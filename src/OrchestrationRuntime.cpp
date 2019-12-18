@@ -2,21 +2,42 @@
 
 #include <stdexcept>
 #include <iostream>
+  
+unsigned int          OrchestrationRuntime::nTeams_            = 1;
+unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
+OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
 
-OrchestrationRuntime::OrchestrationRuntime(const unsigned int nTeams,
-                                           const unsigned int nMaxThreads)
-    : nTeams_(nTeams),
-      teams_(nullptr)
-{
-    if (nTeams_ == 0) {
-        throw std::invalid_argument("[OrchestrationRuntime::OrchestrationRuntime] "
+OrchestrationRuntime* OrchestrationRuntime::instance(void) {
+    if (!instance_) {
+        instance_ = new OrchestrationRuntime();
+    }
+
+    return instance_;
+}
+
+void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
+    if (nTeams == 0) {
+        throw std::invalid_argument("[OrchestrationRuntime::setNumberThreadTeams] "
                                     "Need at least one ThreadTeam");
     }
 
+    nTeams_ = nTeams;
+}
+
+void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
+    if (nThreads == 0) {
+        throw std::invalid_argument("[OrchestrationRuntime::setMaxThreadsPerTeam] "
+                                    "Need at least one thread per team");
+    }
+
+    maxThreadsPerTeam_ = nThreads;
+}
+
+OrchestrationRuntime::OrchestrationRuntime(void) {
     std::cout << "[OrchestrationRuntime] Initializing\n";
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
-        teams_[i] = new ThreadTeam(nMaxThreads, i);
+        teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
     }
     std::cout << "[OrchestrationRuntime] Initialized\n";
 }
@@ -30,6 +51,9 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
 
     delete [] teams_;
     teams_ = nullptr;
+
+    instance_ = nullptr;
+
     std::cout << "[OrchestrationRuntime] Destroyed\n";
 }
 

@@ -24,14 +24,18 @@ int main(int argc, char* argv[]) {
     std::vector<int>   work = {-5, -4, -1, 0, 6, 25};
 
     try {
-        OrchestrationRuntime    runtime(N_THREAD_TEAMS, MAX_THREADS);
+        OrchestrationRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
+        OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
+        OrchestrationRuntime*    runtime = OrchestrationRuntime::instance();
 
         // The work vector is a standin for the set of parameters we need to
         // specify the tile iterator to use.
-        runtime.executeTask(work, "Task Bundle 1",
-                            ThreadRoutines::cpu, 2, "bundle1_cpuTask",
-                            ThreadRoutines::gpu, 5, "bundle1_gpuTask",
-                            ThreadRoutines::postGpu, 0, "bundle1_postGpuTask");
+        runtime->executeTask(work, "Task Bundle 1",
+                             ThreadRoutines::cpu, 2, "bundle1_cpuTask",
+                             ThreadRoutines::gpu, 5, "bundle1_gpuTask",
+                             ThreadRoutines::postGpu, 0, "bundle1_postGpuTask");
+
+        delete runtime;
     } catch (std::invalid_argument  e) {
         printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         return 2;

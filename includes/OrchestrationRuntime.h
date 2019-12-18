@@ -6,9 +6,11 @@
 
 class OrchestrationRuntime {
 public:
-    OrchestrationRuntime(const unsigned int nTeams,
-                         const unsigned int nMaxThreads);
     ~OrchestrationRuntime(void);
+
+    static OrchestrationRuntime* instance(void);
+    static void setNumberThreadTeams(const unsigned int nTeams);
+    static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
     void executeTask(const std::vector<int>& work,
                      const std::string& bundleName,
@@ -23,10 +25,14 @@ public:
                      const std::string& postGpuTaskName);
 
 protected:
+    OrchestrationRuntime(void);
 
 private:
-    unsigned int  nTeams_;
-    ThreadTeam**  teams_;
+    static unsigned int            nTeams_; 
+    static unsigned int            maxThreadsPerTeam_;
+    static OrchestrationRuntime*   instance_;
+
+    ThreadTeam**                   teams_;
 };
 
 #endif
