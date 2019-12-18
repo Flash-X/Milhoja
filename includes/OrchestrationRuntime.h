@@ -1,3 +1,10 @@
+/**
+ * \file    OrchestrationRuntime.h
+ *
+ * \brief 
+ *
+ */
+
 #ifndef ORCHESTRATION_RUNTIME_H__
 #define ORCHESTRATION_RUNTIME_H__
 
@@ -24,10 +31,11 @@ public:
                      const unsigned int nPostGpuThreads,
                      const std::string& postGpuTaskName);
 
-protected:
-    OrchestrationRuntime(void);
-
 private:
+    OrchestrationRuntime(void);
+    OrchestrationRuntime(const OrchestrationRuntime&);
+    OrchestrationRuntime& operator=(const OrchestrationRuntime&);
+
     static unsigned int            nTeams_; 
     static unsigned int            maxThreadsPerTeam_;
     static OrchestrationRuntime*   instance_;

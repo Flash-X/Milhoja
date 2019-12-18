@@ -7,6 +7,11 @@ unsigned int          OrchestrationRuntime::nTeams_            = 1;
 unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
 OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
 
+/**
+ * 
+ *
+ * \return 
+ */
 OrchestrationRuntime* OrchestrationRuntime::instance(void) {
     if (!instance_) {
         instance_ = new OrchestrationRuntime();
@@ -15,8 +20,16 @@ OrchestrationRuntime* OrchestrationRuntime::instance(void) {
     return instance_;
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
 void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
-    if (nTeams == 0) {
+    if (instance_) {
+        throw std::logic_error("[OrchestrationRuntime::setNumberThreadTeams] "
+                               "Set only when runtime does not exist");
+    } else if(nTeams == 0) {
         throw std::invalid_argument("[OrchestrationRuntime::setNumberThreadTeams] "
                                     "Need at least one ThreadTeam");
     }
@@ -24,8 +37,16 @@ void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
     nTeams_ = nTeams;
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
 void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
-    if (nThreads == 0) {
+    if (instance_) {
+        throw std::logic_error("[OrchestrationRuntime::setMaxThreadsPerTeam] "
+                               "Set only when runtime does not exist");
+    } else if (nThreads == 0) {
         throw std::invalid_argument("[OrchestrationRuntime::setMaxThreadsPerTeam] "
                                     "Need at least one thread per team");
     }
@@ -33,6 +54,11 @@ void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
     maxThreadsPerTeam_ = nThreads;
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
 OrchestrationRuntime::OrchestrationRuntime(void) {
     std::cout << "[OrchestrationRuntime] Initializing\n";
     teams_ = new ThreadTeam*[nTeams_];
@@ -42,6 +68,11 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
     std::cout << "[OrchestrationRuntime] Initialized\n";
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
 OrchestrationRuntime::~OrchestrationRuntime(void) {
     std::cout << "[OrchestrationRuntime] Finalizing\n";
     for (unsigned int i=0; i<nTeams_; ++i) {
@@ -57,6 +88,11 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
     std::cout << "[OrchestrationRuntime] Destroyed\n";
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
 void OrchestrationRuntime::executeTask(const std::vector<int>& work,
                                        const std::string& bundleName,
                                        TASK_FCN* cpuTask,
@@ -72,6 +108,10 @@ void OrchestrationRuntime::executeTask(const std::vector<int>& work,
     // Realistically, we would have multiple different implementations and 
     // this routine would select the setup based on the parameter values.
     // The assignment of team type of team ID would be hardcoded in each.
+    //
+    // TASK_COMPOSER: Should the task composer identify the pipelines that it
+    // will need and then write this routine for each?  If not, the
+    // combinatorics could grow out of control fairly quickly.
 
     ThreadTeam*   cpuTeam     = teams_[0];
     ThreadTeam*   gpuTeam     = teams_[1];
