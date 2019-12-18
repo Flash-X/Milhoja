@@ -15,7 +15,7 @@ const unsigned int MAX_THREADS = 10;
 int main(int argc, char* argv[]) {
     if (argc != 1) {
         printf("\nNo command line arguments please\n\n");
-        exit(-1);
+        return 1;
     }
 
     std::vector<int>   work = {-5, -4, -1, 0, 6, 25};
@@ -25,20 +25,23 @@ int main(int argc, char* argv[]) {
 
         // The work vector is a standin for the set of parameters we need to
         // specify the tile iterator to use.
-        runtime.executeTask(work,
-                            ThreadRoutines::cpu, 2,
-                            ThreadRoutines::gpu, 5,
-                            ThreadRoutines::postGpu, 0);
+//        runtime.executeTask(work,
+//                            ThreadRoutines::cpu, 2,
+//                            ThreadRoutines::gpu, 5,
+//                            ThreadRoutines::postGpu, 0);
         printf("Runtime finished\n");
+    } catch (std::invalid_argument  e) {
+        printf("\nINVALID ARGUMENT: %s\n\n", e.what());
+        return 2;
     } catch (std::logic_error  e) {
         printf("\nLOGIC ERROR: %s\n\n", e.what());
-        return -2;
+        return 3;
     } catch (std::runtime_error  e) {
         printf("\nRUNTIME ERROR: %s\n\n", e.what());
-        return -3;
+        return 4;
     } catch (...) {
         printf("\n??? ERROR: Unanticipated error\n\n");
-        return -4;
+        return 5;
     }
 
     pthread_exit(NULL);

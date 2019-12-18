@@ -113,10 +113,15 @@ protected:
     };
 
 private:
+    void         transitionState(const teamState nextState);
+    void         transitionThreadState(const unsigned int tId,
+                                       const threadState nextState);
+
+    static std::string  getStateName(const teamState state);
+    static std::string  getThreadStateName(const threadState state);
+
     unsigned int      nMaxThreads_;       //!< Number of threads in team won't exceed this
     std::string       name_;              //!< Short name of team for debugging
-
-    bool              isTerminating_;     //!< True if the destructor has been entered
 
     std::queue<int>   queue_;             //!< Internal queue of work to be done
     teamState         state_;             //!< The current state of the thread team
