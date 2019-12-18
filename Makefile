@@ -26,7 +26,7 @@ MAKEFILE  = Makefile
 COMMAND   =  $(BASE).x
 
 CXX       = g++
-CXXFLAGS  = -fopenmp -g -O0 -I$(OMPI_DIR)/include -I$(INCDIR) -std=c++11
+CXXFLAGS  = -fopenmp -g -O0 -I$(INCDIR) -std=c++11
 CXXWARNS  =
 
 LIBS      = -lgomp -lstdc++
