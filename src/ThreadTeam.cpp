@@ -72,7 +72,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
             throw std::runtime_error("[ThreadTeam::ThreadTeam] "
                                      "Unable to create thread");
         }
-        threadStates_[i] = STARTING;
+        threadStates_[i] = THREAD_STARTING;
     }
 
     // Wait until all threads have started running their routine
@@ -126,7 +126,7 @@ ThreadTeam::~ThreadTeam(void) {
 
         nTerminated = 0;
         for (unsigned int i=0; i<nMaxThreads_; ++i) {
-            if (threadStates_[i] == TERMINATING) {
+            if (threadStates_[i] == THREAD_TERMINATING) {
                 ++nTerminated;
             }
         }
@@ -215,7 +215,7 @@ void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
 
     if (threadReceiver_) {
         if (     state_ == TEAM_IDLE
-            || ((state_ == RUNNING_CLOSED_QUEUE) && (queue_.empty()))) {
+            || ((state_ == TEAM_RUNNING_CLOSED_QUEUE) && (queue_.empty()))) {
             threadReceiver_->increaseThreadCount(nThreads);
             pthread_mutex_unlock(&teamMutex_);
             return;
@@ -306,7 +306,7 @@ void ThreadTeam::startTask(TASK_FCN* taskFcn, const unsigned int nThreads) {
         pthread_cond_signal(&activateThread_);
     }
 
-    state_ = RUNNING_OPEN_QUEUE;
+    state_ = TEAM_RUNNING_OPEN_QUEUE;
     printf("%s ThreadTeam is running and accepting work\n", name_.c_str());
 
     pthread_mutex_unlock(&teamMutex_);
@@ -323,7 +323,7 @@ void ThreadTeam::startTask(TASK_FCN* taskFcn, const unsigned int nThreads) {
 void ThreadTeam::enqueue(const int work) {
     pthread_mutex_lock(&teamMutex_);
 
-    if (state_ == RUNNING_CLOSED_QUEUE) {
+    if (state_ == TEAM_RUNNING_CLOSED_QUEUE) {
         pthread_mutex_unlock(&teamMutex_);
         std::logic_error("[ThreadTeam::enqueue] "
                          "Cannot queue after wait() called");
@@ -357,7 +357,7 @@ void ThreadTeam::closeTask(void) {
     pthread_mutex_lock(&teamMutex_);
 
     printf("%s ThreadTeam is running and has all work\n", name_.c_str());
-    state_ = RUNNING_CLOSED_QUEUE;
+    state_ = TEAM_RUNNING_CLOSED_QUEUE;
 
     pthread_mutex_unlock(&teamMutex_);
 }
@@ -432,7 +432,7 @@ void ThreadTeam::wait(void) {
 
     pthread_mutex_lock(&teamMutex_);
 
-    if (state_ != RUNNING_CLOSED_QUEUE) {
+    if (state_ != TEAM_RUNNING_CLOSED_QUEUE) {
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error("[ThreadTeam::wait] "
                                "closeTask() not called yet");
@@ -536,7 +536,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
         state = team->state_;
 
         if ((team->isTerminating_) && (state == TEAM_IDLE)) {
-            team->threadStates_[tId] = TERMINATING;
+            team->threadStates_[tId] = THREAD_TERMINATING;
             pthread_cond_signal(&(team->threadTerminated_));
 
             pthread_mutex_unlock(&(team->teamMutex_));
@@ -547,7 +547,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             pthread_mutex_unlock(&(team->teamMutex_));
             throw std::runtime_error("[ThreadPool::threadRoutine] "
                                      "Thread cannot terminate if team is not idle");
-        } else if (isEmpty && (state == RUNNING_CLOSED_QUEUE)) {
+        } else if (isEmpty && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
             // No more work in queue and no more work can be added since a
             // thread has called wait
             //    => thread can now terminate.
@@ -566,12 +566,12 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
             printf("[%s %d] Activated\n", team->name_.c_str(), tId);
-        } else if (isEmpty && (state == RUNNING_OPEN_QUEUE)) {
+        } else if (isEmpty && (state == TEAM_RUNNING_OPEN_QUEUE)) {
             // There is still the potential for more work to be added.
             // Therefore, we don't want the thread to terminate, but rather
             // to wait for the signal that it should check the queue again.
             printf("[%s %d] Waiting for work\n", team->name_.c_str(), tId);
-            team->threadStates_[tId] = WAITING;
+            team->threadStates_[tId] = THREAD_WAITING;
             pthread_cond_wait(&(team->checkQueue_), &(team->teamMutex_)); 
             printf("[%s %d] Rechecking thread team state\n", team->name_.c_str(), tId);
 
@@ -601,7 +601,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // In these cases, the thread will go back into a wait state or
             // terminate.
         } else if (  !isEmpty && 
-                   ((state == RUNNING_OPEN_QUEUE) || (state == RUNNING_CLOSED_QUEUE))) {
+                   ((state == TEAM_RUNNING_OPEN_QUEUE) || (state == TEAM_RUNNING_CLOSED_QUEUE))) {
             work = team->queue_.front();
             team->queue_.pop();
             foundWork = true;
@@ -610,7 +610,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // If this is the last work to be done, signal to all waiting 
             // threads that they should check the queue and therefore
             // determine that they should terminate.
-            if (team->queue_.empty() && (state == RUNNING_CLOSED_QUEUE)) {
+            if (team->queue_.empty() && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
                 pthread_cond_broadcast(&(team->checkQueue_));
             }
         } else {
@@ -625,7 +625,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
         // Release the mutex before executing computation on work
         if (foundWork) {
-            team->threadStates_[tId] = COMPUTING;
+            team->threadStates_[tId] = THREAD_COMPUTING;
             printf("[%s %d] Dequeued work %d\n", team->name_.c_str(), tId, work);
             team->taskFcn_(tId, team->name_, work);
 
@@ -633,7 +633,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             if (team->workReceiver_) {
                 team->workReceiver_->enqueue(work); 
 
-                if (team->queue_.empty() && (state == RUNNING_CLOSED_QUEUE)) {
+                if (team->queue_.empty() && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
                     team->workReceiver_->closeTask();
                 }
             }
@@ -734,10 +734,10 @@ void ThreadTeam::printState(const unsigned int tId) const {
     case TEAM_IDLE:
         teamState = "Idle";
         break;
-    case RUNNING_OPEN_QUEUE:
+    case TEAM_RUNNING_OPEN_QUEUE:
         teamState = "Executing Task/Queue Open";
         break;
-    case RUNNING_CLOSED_QUEUE:
+    case TEAM_RUNNING_CLOSED_QUEUE:
         teamState = "Executing Task/Queue Closed";
         break;
     default:
@@ -762,19 +762,19 @@ void ThreadTeam::printState(const unsigned int tId) const {
     std::string threadState = "";
     for (unsigned int i=0; i<nMaxThreads_; ++i) {
         switch(threadStates_[i]) {
-        case STARTING:
+        case THREAD_STARTING:
             threadState = "Starting";
             break;
         case THREAD_IDLE:
             threadState = "Idle";
             break;
-        case COMPUTING:
+        case THREAD_COMPUTING:
             threadState = "Computing";
             break;
-        case WAITING:
+        case THREAD_WAITING:
             threadState = "Waiting";
             break;
-        case TERMINATING:
+        case THREAD_TERMINATING:
             threadState = "Terminating";
             break;
         default:

@@ -90,18 +90,20 @@ protected:
 
     // A state of RUNNING_CLOSED_QUEUE and an empty queue imply that the
     // current task has finished.
-    enum teamState   {TEAM_IDLE,              //!< Thread team is idle
-                      RUNNING_OPEN_QUEUE,     /*!< Thread team executing but work
+    enum teamState   {TEAM_STARTING,
+                      TEAM_IDLE,              //!< Thread team is idle
+                      TEAM_RUNNING_OPEN_QUEUE,     /*!< Thread team executing but work
                                                *   can still be queued */
-                      RUNNING_CLOSED_QUEUE};  /*!< Thread team executing and no
+                      TEAM_RUNNING_CLOSED_QUEUE,  /*!< Thread team executing and no
                                                *   more work can be added */
+                      TEAM_TERMINATING};
 
-    enum threadState {STARTING,     //!< Thread is created & starting
+    enum threadState {THREAD_STARTING,     //!< Thread is created & starting
                       THREAD_IDLE,  //!< Thread is not in use
-                      COMPUTING,    //!< Thread is executing computations on unit of work
-                      WAITING,      /*!< Thread is waiting for a unit of work
+                      THREAD_COMPUTING,    //!< Thread is executing computations on unit of work
+                      THREAD_WAITING,      /*!< Thread is waiting for a unit of work
                                      *   to become available */
-                      TERMINATING}; //!< Thread is terminating execution
+                      THREAD_TERMINATING}; //!< Thread is terminating execution
 
      // Structure used to pass data to each thread 
     struct ThreadData {
