@@ -1,2 +1,2 @@
-runtime.x
-*.o
+test_runtime.x
+src/*.o
