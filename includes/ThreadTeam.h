@@ -62,15 +62,16 @@
 // of the unit of work.
 class ThreadTeam {
 public:
-    ThreadTeam(const unsigned int nMaxThreads, const std::string name);
+    ThreadTeam(const unsigned int nMaxThreads, const unsigned int id);
     ~ThreadTeam(void);
 
     void         increaseThreadCount(const unsigned int nThreads);
 
     unsigned int nMaximumThreads(void) const;
-    std::string  name(void) const;
 
-    void         startTask(TASK_FCN* fcn, const unsigned int nThreads);
+    void         startTask(TASK_FCN* fcn, const unsigned int nThreads,
+                           const std::string& teamName, 
+                           const std::string& taskName);
     void         enqueue(const int work);
     void         closeTask(void);
     void         wait(void);
@@ -81,7 +82,7 @@ public:
     void         attachWorkReceiver(ThreadTeam* receiver);
     void         detachWorkReceiver(void);
 
-    void         printState(const unsigned int tId) const;
+    void         printState(void) const;
 
 protected:
     static void* threadRoutine(void*);
@@ -121,7 +122,9 @@ private:
     static std::string  getThreadStateName(const threadState state);
 
     unsigned int      nMaxThreads_;       //!< Number of threads in team won't exceed this
-    std::string       name_;              //!< Short name of team for debugging
+    unsigned int      id_;                //!< (Hopefully) unique ID for team
+    std::string       hdr_;               //!< Short name of team for debugging
+    std::string       taskName_;
 
     std::queue<int>   queue_;             //!< Internal queue of work to be done
     teamState         state_;             //!< The current state of the thread team

@@ -6,22 +6,27 @@
 
 class OrchestrationRuntime {
 public:
-    OrchestrationRuntime(const unsigned int nMaxCpuThreads,
-                         const unsigned int nMaxGpuThreads,
-                         const unsigned int nMaxPostGpuThreads);
+    OrchestrationRuntime(const unsigned int nTeams,
+                         const unsigned int nMaxThreads);
     ~OrchestrationRuntime(void);
 
     void executeTask(const std::vector<int>& work,
-                     TASK_FCN* cpuTask, const unsigned int nCpuThreads,
-                     TASK_FCN* gpuTask, const unsigned int nGpuThreads,
-                     TASK_FCN* postGpuTask, const unsigned int nPostGpuThreads);
+                     const std::string& bundleName,
+                     TASK_FCN* cpuTask,
+                     const unsigned int nCpuThreads,
+                     const std::string& cpuTaskName,
+                     TASK_FCN* gpuTask, 
+                     const unsigned int nGpuThreads,
+                     const std::string& gpuTaskName, 
+                     TASK_FCN* postGpuTask,
+                     const unsigned int nPostGpuThreads,
+                     const std::string& postGpuTaskName);
 
 protected:
 
 private:
-    ThreadTeam   cpuTeam_;
-    ThreadTeam   gpuTeam_;
-    ThreadTeam   postGpuTeam_;
+    unsigned int  nTeams_;
+    ThreadTeam**  teams_;
 };
 
 #endif
