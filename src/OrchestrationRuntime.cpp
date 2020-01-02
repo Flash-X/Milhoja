@@ -123,6 +123,7 @@ void OrchestrationRuntime::executeTask(const std::vector<int>& work,
                                 "Post-GPU could receive too many threads "
                                 "from the CPU and GPU teams");
     }
+    // TODO: Confirm that no team has publisher's/subscribers.
 
     std::cout << "[OrchestrationRuntime] Start execution of " 
               << bundleName << std::endl;

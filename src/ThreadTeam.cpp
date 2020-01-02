@@ -223,6 +223,8 @@ void ThreadTeam::transitionState(const teamState nextState) {
             msg += std::to_string(nextState);
             throw std::logic_error(msg);
         }
+
+        // TODO: Check if work was given to the team while in Idle.
     } else {
         std::string  msg("[ThreadTeam::transitionState] Invalid thread team state ");
         msg += std::to_string(nextState);
