@@ -8,6 +8,7 @@
 #ifndef ORCHESTRATION_RUNTIME_H__
 #define ORCHESTRATION_RUNTIME_H__
 
+#include "Grid.h"
 #include "ThreadTeam.h"
 #include "runtimeTask.h"
 
@@ -19,7 +20,7 @@ public:
     static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
-    void executeTask(const std::vector<int>& work,
+    void executeTask(Grid& myGrid,
                      const std::string& bundleName,
                      TASK_FCN* cpuTask,
                      const unsigned int nCpuThreads,

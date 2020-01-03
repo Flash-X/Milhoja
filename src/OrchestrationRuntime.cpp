@@ -2,7 +2,10 @@
 
 #include <stdexcept>
 #include <iostream>
-  
+
+#include "Block.h"
+#include "BlockIterator.h"
+
 unsigned int          OrchestrationRuntime::nTeams_            = 1;
 unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
 OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
@@ -93,7 +96,7 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
  *
  * \return 
  */
-void OrchestrationRuntime::executeTask(const std::vector<int>& work,
+void OrchestrationRuntime::executeTask(Grid& myGrid,
                                        const std::string& bundleName,
                                        TASK_FCN* cpuTask,
                                        const unsigned int nCpuThreads,
@@ -113,7 +116,7 @@ void OrchestrationRuntime::executeTask(const std::vector<int>& work,
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
 
-    ThreadTeam*   cpuTeam     = teams_[0];
+//    ThreadTeam*   cpuTeam     = teams_[0];
     ThreadTeam*   gpuTeam     = teams_[1];
     ThreadTeam*   postGpuTeam = teams_[2];
 
@@ -128,28 +131,33 @@ void OrchestrationRuntime::executeTask(const std::vector<int>& work,
     std::cout << "[OrchestrationRuntime] Start execution of " 
               << bundleName << std::endl;
 
-    // Construct thread and work pipelines
-    cpuTeam->attachThreadReceiver(postGpuTeam);
+    //***** Construct thread and work pipelines
+//    cpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachWorkReceiver(postGpuTeam);
 
-    cpuTeam->startTask(cpuTask, nCpuThreads,
-                       "CpuTask", cpuTaskName);
+//    cpuTeam->startTask(cpuTask, nCpuThreads,
+//                       "CpuTask", cpuTaskName);
     gpuTeam->startTask(gpuTask, nGpuThreads,
                        "GpuTask", gpuTaskName);
     postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
                            "PostGpuTask", postGpuTaskName);
 
+
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
-    for (auto w: work) {
+    Block         block;
+    BlockIterator itor(&myGrid);
+    for (itor.clear(); itor.isValid(); itor.next()) {
+        block = itor.currentBlock();
+
         // Queue the GPU work first so that it can potentially get a head start
-        gpuTeam->enqueue(w);
-        cpuTeam->enqueue(w);
+        gpuTeam->enqueue(block);
+//        cpuTeam->enqueue(block);
     }
     gpuTeam->closeTask();
-    cpuTeam->closeTask();
+//    cpuTeam->closeTask();
 
     // TODO: We could give subscribers a pointer to the publisher so that during
     // the subscriber's wait() it can determine if it should terminate yet.  The
@@ -159,8 +167,8 @@ void OrchestrationRuntime::executeTask(const std::vector<int>& work,
 
     // CPU and GPU pools are not dependent on any other pools
     //   => call these first
-    cpuTeam->wait();
-    cpuTeam->detachThreadReceiver();
+//    cpuTeam->wait();
+//    cpuTeam->detachThreadReceiver();
 
     gpuTeam->wait();
     

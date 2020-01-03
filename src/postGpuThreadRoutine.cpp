@@ -3,10 +3,13 @@
 #include <cstdio>
 #include <unistd.h>
 
+#include "Block.h"
+
 void ThreadRoutines::postGpu(const unsigned int tId,
                              const std::string& name,
-                             const int work) {
-    printf("[%s / Thread %d] Post-GPU thread got work %d\n", name.c_str(), tId, work);
+                             Block& block) {
+    printf("[%s / Thread %d] Post-GPU thread got block %d\n",
+           name.c_str(), tId, block.index());
     usleep(250000);
 }
 

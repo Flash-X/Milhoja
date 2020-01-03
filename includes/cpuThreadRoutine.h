@@ -3,8 +3,10 @@
 
 #include <iostream>
 
+#include "Block.h"
+
 namespace ThreadRoutines {
-    void cpu(const unsigned int tId, const std::string& name, const int work);
+    void cpu(const unsigned int tId, const std::string& name, Block& block);
 }
 
 #endif

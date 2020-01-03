@@ -3,8 +3,10 @@
 
 #include <string>
 
+#include "Block.h"
+
 namespace ThreadRoutines {
-    void gpu(const unsigned int tId, const std::string& name, const int work);
+    void gpu(const unsigned int tId, const std::string& name, Block& block);
 }
 
 #endif

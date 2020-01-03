@@ -56,6 +56,7 @@
 #include <string>
 #include <pthread.h>
 
+#include "Block.h"
 #include "runtimeTask.h"
 
 // TODO: Make this class a templated class where the template type is the type
@@ -72,7 +73,7 @@ public:
     void         startTask(TASK_FCN* fcn, const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName);
-    void         enqueue(const int work);
+    void         enqueue(const Block& block);
     void         closeTask(void);
     void         wait(void);
 
@@ -121,39 +122,39 @@ private:
     static std::string  getStateName(const teamState state);
     static std::string  getThreadStateName(const threadState state);
 
-    unsigned int      nMaxThreads_;       //!< Number of threads in team won't exceed this
-    unsigned int      id_;                //!< (Hopefully) unique ID for team
-    std::string       hdr_;               //!< Short name of team for debugging
-    std::string       taskName_;
+    unsigned int       nMaxThreads_;       //!< Number of threads in team won't exceed this
+    unsigned int       id_;                //!< (Hopefully) unique ID for team
+    std::string        hdr_;               //!< Short name of team for debugging
+    std::string        taskName_;
 
-    std::queue<int>   queue_;             //!< Internal queue of work to be done
-    teamState         state_;             //!< The current state of the thread team
-    threadState*      threadStates_;      //!< The current state of each thread in team
+    std::queue<Block>  queue_;             //!< Internal queue of work to be done
+    teamState          state_;             //!< The current state of the thread team
+    threadState*       threadStates_;      //!< The current state of each thread in team
 
-    pthread_attr_t    attr_;              //!< All threads setup with this attribute
-    pthread_mutex_t   teamMutex_;         //!< Use to access members
-    pthread_cond_t    threadIdling_;      //!< Thread finished work and idling
-    pthread_cond_t    activateThread_;    //!< Wake an idle thread for work
-    pthread_cond_t    checkQueue_;        /*!< Signal sent to waiting threads to
-                                           *   indicate that they should recheck
-                                           *   the queue and team state.  This
-                                           *   is emitted each time work is enqueued 
-                                           *   or if a thread has detected that
-                                           *   there is no more work in the
-                                           *   queue and that no more work will
-                                           *   be added to the queue */
-    pthread_cond_t    threadTerminated_;  //!< Each thread emits this signal upon termination
+    pthread_attr_t     attr_;              //!< All threads setup with this attribute
+    pthread_mutex_t    teamMutex_;         //!< Use to access members
+    pthread_cond_t     threadIdling_;      //!< Thread finished work and idling
+    pthread_cond_t     activateThread_;    //!< Wake an idle thread for work
+    pthread_cond_t     checkQueue_;        /*!< Signal sent to waiting threads to
+                                            *   indicate that they should recheck
+                                            *   the queue and team state.  This
+                                            *   is emitted each time work is enqueued 
+                                            *   or if a thread has detected that
+                                            *   there is no more work in the
+                                            *   queue and that no more work will
+                                            *   be added to the queue */
+    pthread_cond_t     threadTerminated_;  //!< Each thread emits this signal upon termination
 
-    TASK_FCN*         taskFcn_;           /*!< Computational task to be applied to
+    TASK_FCN*          taskFcn_;           /*!< Computational task to be applied to
                                            *   all units of enqueued work */
 
     // Make these members so that their values are set in
     // start/increaseThreadCount, but still valid when threads run their routine.
-    pthread_t*       threads_;            //!< Array of opaque thread indices
-    ThreadData*      threadData_;         //!< Array of arguments passed to thread routine
+    pthread_t*         threads_;            //!< Array of opaque thread indices
+    ThreadData*        threadData_;         //!< Array of arguments passed to thread routine
 
-    ThreadTeam*      threadReceiver_;     //!< Thread team to notify when threads terminate
-    ThreadTeam*      workReceiver_;       //!< Thread team to pass work to when finished
+    ThreadTeam*        threadReceiver_;     //!< Thread team to notify when threads terminate
+    ThreadTeam*        workReceiver_;       //!< Thread team to pass work to when finished
 };
 
 #endif

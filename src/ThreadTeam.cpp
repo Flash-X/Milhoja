@@ -507,9 +507,9 @@ void ThreadTeam::startTask(TASK_FCN* taskFcn, const unsigned int nThreads,
  *   1) the thread team is idle or
  *   2) after calling startTask() but before calling closeTask().
  *
- * \param   work  The unit of work to add.
+ * \param   block  The unit of work to add.
  */
-void ThreadTeam::enqueue(const int work) {
+void ThreadTeam::enqueue(const Block& block) {
     pthread_mutex_lock(&teamMutex_);
 
     if (state_ == TEAM_RUNNING_CLOSED_QUEUE) {
@@ -518,8 +518,8 @@ void ThreadTeam::enqueue(const int work) {
                          "Cannot queue after wait() called");
     }
 
-    queue_.push(work);
-    printf("[%s] work %d enqueued\n", hdr_.c_str(), work);
+    queue_.push(block);
+    printf("[%s] Block %d enqueued\n", hdr_.c_str(), block.index());
 
     // Signal a single waiting thread to look for work
     pthread_cond_signal(&checkQueue_);
@@ -546,6 +546,17 @@ void ThreadTeam::closeTask(void) {
     pthread_mutex_lock(&teamMutex_);
 
     transitionState(TEAM_RUNNING_CLOSED_QUEUE);
+
+    // It is possible that all work has been done and given to work subscribers
+    // before this transition occurs.  Notify work subscribers if this was the
+    // case.
+    if (workReceiver_) {
+        // FIXME: This is bad.  We need the mutex for the workReceiver 
+        //        to get this.  Does this open the door for a deadlock?
+        if (workReceiver_->state_ == TEAM_RUNNING_OPEN_QUEUE) {
+            workReceiver_->closeTask();
+        }
+    }
 
     pthread_mutex_unlock(&teamMutex_);
 }
@@ -722,7 +733,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
     pthread_mutex_unlock(&(team->teamMutex_));
 
-    int         work = 0;
+    Block       block;
     bool        isEmpty = false;
     teamState   state = TEAM_IDLE;
     bool        foundWork = false;
@@ -741,7 +752,8 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
             pthread_exit(NULL);
             return nullptr;
-        } else if (isEmpty && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
+        } else if (    isEmpty 
+                   && ((state == TEAM_RUNNING_CLOSED_QUEUE) || (state == TEAM_IDLE)) ) {
             // No more work in queue and no more work can be added since a
             // thread has called wait
             //    => thread can now terminate.
@@ -768,7 +780,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // with explicit calls
             if (!team->queue_.empty()) {
                 // work was enqueued
-                work = team->queue_.front();
+                block = team->queue_.front();
                 team->queue_.pop();
                 foundWork = true;
                 team->transitionThreadState(tId, THREAD_COMPUTING);
@@ -792,7 +804,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // terminate.
         } else if (  !isEmpty && 
                    ((state == TEAM_RUNNING_OPEN_QUEUE) || (state == TEAM_RUNNING_CLOSED_QUEUE))) {
-            work = team->queue_.front();
+            block = team->queue_.front();
             team->queue_.pop();
             foundWork = true;
             team->transitionThreadState(tId, THREAD_COMPUTING);
@@ -816,17 +828,20 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
         // Release the mutex before executing computation on work
         if (foundWork) {
-            printf("[%s / Thread %d] Dequeued work %d\n", team->hdr_.c_str(), tId, work);
-            team->taskFcn_(tId, team->hdr_, work);
+            printf("[%s / Thread %d] Dequeued block %d\n", team->hdr_.c_str(),
+                                                           tId, block.index());
+            team->taskFcn_(tId, team->hdr_, block);
 
             // Send work to next thread team in the pipeline if it exists
             pthread_mutex_lock(&(team->teamMutex_));
             if (team->workReceiver_) {
-                team->workReceiver_->enqueue(work); 
+                team->workReceiver_->enqueue(block); 
 
-                // TODO: Is the receiver task being closed properly if at this
-                // point there is no more work, the queue is open, and no more
-                // work is added to the queue?
+                // We cannot rely on this changing the state of the reciever
+                // team as it is possible for this to occur before this team's
+                // state is set to closed (by client code!)
+                // FIXME: Is this good motivation for rethinking the states of
+                //        thread teams?
                 if (team->queue_.empty() && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
                     team->workReceiver_->closeTask();
                 }

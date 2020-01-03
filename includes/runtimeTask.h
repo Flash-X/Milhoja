@@ -3,9 +3,11 @@
 
 #include <string>
 
+#include "Block.h"
+
 typedef void (TASK_FCN)(const unsigned int tId,
                         const std::string& name,
-                        const int work);
+                        Block& block);
 
 #endif
 
