@@ -11,7 +11,7 @@
 #include "BlockIterator.h"
 #include "OrchestrationRuntime.h"
 
-#include "scale_cpu.h"
+#include "scaleEnergy_cpu.h"
 #include "computeLaplacianDensity_cpu.h"
 #include "computeLaplacianEnergy_cpu.h"
 
@@ -117,7 +117,7 @@ void computeError(BlockIterator& itor, double* L_inf1, double* meanAbsErr1,
               for (int j=lo[JAXIS]; j<=hi[JAXIS]; ++j) { 
                    y = y_coords[j-j0];
 
-                   absErr = fabs(2.1*Delta_f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
+                   absErr = fabs(Delta_f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
                    sum1 += absErr;
                    if (absErr > maxAbsErr1) {
                         maxAbsErr1 = absErr;
@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
             runtime->executeTask(myGrid, "Task Bundle 1",
                                  ThreadRoutines::computeLaplacianDensity_cpu, 2, "bundle1_cpuTask",
                                  ThreadRoutines::computeLaplacianEnergy_cpu, 5, "bundle1_gpuTask",
-                                 ThreadRoutines::scale_cpu, 0, "bundle1_postGpuTask");
+                                 ThreadRoutines::scaleEnergy_cpu, 0, "bundle1_postGpuTask");
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
             return 2;

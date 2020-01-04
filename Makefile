@@ -50,7 +50,7 @@ CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/computeLaplacianDensity_cpu.h \
     $(INCDIR)/computeLaplacianEnergy_cpu.h \
-    $(INCDIR)/scale_cpu.h \
+    $(INCDIR)/scaleEnergy_cpu.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/OrchestrationRuntime.h
 SRCS       = \
@@ -59,7 +59,7 @@ SRCS       = \
     $(SRCDIR)/BlockIterator.cpp \
     $(SRCDIR)/computeLaplacianDensity_cpu.cpp \
     $(SRCDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(SRCDIR)/scale_cpu.cpp \
+    $(SRCDIR)/scaleEnergy_cpu.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/Driver.cpp
