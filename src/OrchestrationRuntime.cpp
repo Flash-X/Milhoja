@@ -63,12 +63,18 @@ void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
  * \return 
  */
 OrchestrationRuntime::OrchestrationRuntime(void) {
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Initializing\n";
+#endif
+
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
         teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
     }
+
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Initialized\n";
+#endif
 }
 
 /**
@@ -77,7 +83,10 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
  * \return 
  */
 OrchestrationRuntime::~OrchestrationRuntime(void) {
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Finalizing\n";
+#endif
+
     for (unsigned int i=0; i<nTeams_; ++i) {
         delete teams_[i];
         teams_[i] = nullptr;
@@ -88,7 +97,9 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
 
     instance_ = nullptr;
 
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Destroyed\n";
+#endif
 }
 
 /**
@@ -116,7 +127,7 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
 
-//    ThreadTeam*   cpuTeam     = teams_[0];
+    ThreadTeam*   cpuTeam     = teams_[0];
     ThreadTeam*   gpuTeam     = teams_[1];
     ThreadTeam*   postGpuTeam = teams_[2];
 
@@ -128,16 +139,18 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
     }
     // TODO: Confirm that no team has publisher's/subscribers.
 
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Start execution of " 
               << bundleName << std::endl;
+#endif
 
     //***** Construct thread and work pipelines
-//    cpuTeam->attachThreadReceiver(postGpuTeam);
+    cpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachWorkReceiver(postGpuTeam);
 
-//    cpuTeam->startTask(cpuTask, nCpuThreads,
-//                       "CpuTask", cpuTaskName);
+    cpuTeam->startTask(cpuTask, nCpuThreads,
+                       "CpuTask", cpuTaskName);
     gpuTeam->startTask(gpuTask, nGpuThreads,
                        "GpuTask", gpuTaskName);
     postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
@@ -154,10 +167,10 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
 
         // Queue the GPU work first so that it can potentially get a head start
         gpuTeam->enqueue(block);
-//        cpuTeam->enqueue(block);
+        cpuTeam->enqueue(block);
     }
     gpuTeam->closeTask();
-//    cpuTeam->closeTask();
+    cpuTeam->closeTask();
 
     // TODO: We could give subscribers a pointer to the publisher so that during
     // the subscriber's wait() it can determine if it should terminate yet.  The
@@ -167,8 +180,8 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
 
     // CPU and GPU pools are not dependent on any other pools
     //   => call these first
-//    cpuTeam->wait();
-//    cpuTeam->detachThreadReceiver();
+    cpuTeam->wait();
+    cpuTeam->detachThreadReceiver();
 
     gpuTeam->wait();
     
@@ -183,7 +196,9 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
     //      determining if it should terminate.
     postGpuTeam->wait();
 
+#ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Finished execution of " 
               << bundleName << std::endl;
+#endif
 }
 

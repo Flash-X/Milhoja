@@ -62,7 +62,9 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
     pthread_cond_init(&checkQueue_, NULL);
     pthread_cond_init(&threadTerminated_, NULL);
 
+#ifdef VERBOSE
     printf("[%s] State set to Starting\n", hdr_.c_str());
+#endif
 
     int rc = 0;
     threadStates_ = new threadState[nMaxThreads_];
@@ -82,8 +84,10 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
             throw std::runtime_error(msg);
         }
         threadStates_[i] = THREAD_STARTING;
+#ifdef VERBOSE
         printf("[%s] State set to Starting for thread %d\n", 
                hdr_.c_str(), i);
+#endif
     }
 
     // Wait until all threads have started running their routine
@@ -138,7 +142,9 @@ ThreadTeam::~ThreadTeam(void) {
 
     pthread_mutex_destroy(&teamMutex_);
 
+#ifdef VERBOSE
     printf("[%s] Team destroyed\n", hdr_.c_str());
+#endif
 }
 
 /**
@@ -231,10 +237,12 @@ void ThreadTeam::transitionState(const teamState nextState) {
         throw std::invalid_argument(msg);
     }
 
+#ifdef VERBOSE
     printf("[%s] Transition from %s to %s\n",
            hdr_.c_str(), 
            getStateName(state_).c_str(), 
            getStateName(nextState).c_str());
+#endif
 
     state_ = nextState;
 }
@@ -340,10 +348,12 @@ void ThreadTeam::transitionThreadState(const unsigned int tId,
         throw std::invalid_argument(msg);
     }
 
+#ifdef VERBOSE
     printf("[%s / Thread %d] Transition from %s to %s\n",
            hdr_.c_str(), tId,
            getThreadStateName(currentState).c_str(),
            getThreadStateName(nextState).c_str());
+#endif
 
     threadStates_[tId] = nextState;
 }
@@ -478,11 +488,15 @@ void ThreadTeam::startTask(TASK_FCN* taskFcn, const unsigned int nThreads,
     taskName_ = taskName;
     taskFcn_ = taskFcn;
 
+#ifdef VERBOSE
     printf("[%s] Assigned team name %s\n", 
            hdr_.c_str(), teamName.c_str());
+#endif
     hdr_ = teamName;
+#ifdef VERBOSE
     printf("[%s] Starting task %s with %d initial threads\n", 
            hdr_.c_str(), taskName_.c_str(), nThreads);
+#endif
 
     if (nThreads > nMaxThreads_) {
         pthread_mutex_unlock(&teamMutex_);
@@ -519,7 +533,9 @@ void ThreadTeam::enqueue(const Block& block) {
     }
 
     queue_.push(block);
+#ifdef VERBOSE
     printf("[%s] Block %d enqueued\n", hdr_.c_str(), block.index());
+#endif
 
     // Signal a single waiting thread to look for work
     pthread_cond_signal(&checkQueue_);
@@ -652,7 +668,9 @@ void ThreadTeam::wait(void) {
         if (nIdleThreads() == nMaxThreads_) {
             // Thread team never received work and no threads created.
             // This resets team status so that it can start queueing work again.
+#ifdef VERBOSE
             printf("[%s] Finished task %s\n", hdr_.c_str(), taskName_.c_str());
+#endif
             transitionState(TEAM_IDLE);
 
             // Once the task is finished the team no longer has a task identity
@@ -685,7 +703,9 @@ void ThreadTeam::wait(void) {
     }
 
     // This resets team status so that it can start queueing work again.
+#ifdef VERBOSE
     printf("[%s] Finished task %s\n", hdr_.c_str(), taskName_.c_str());
+#endif
     transitionState(TEAM_IDLE);
 
     // Once the task is finished the team no longer has a task identity
@@ -828,8 +848,10 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
         // Release the mutex before executing computation on work
         if (foundWork) {
+#ifdef VERBOSE
             printf("[%s / Thread %d] Dequeued block %d\n", team->hdr_.c_str(),
                                                            tId, block.index());
+#endif
             team->taskFcn_(tId, team->hdr_, block);
 
             // Send work to next thread team in the pipeline if it exists

@@ -22,7 +22,7 @@ public:
     std::array<unsigned int,NDIM> size(void) const;
     std::array<double,NDIM>       deltas(void) const;
     std::vector<double>           coordinates(const int axis) const;
-    double**                      dataPtr(void);
+    double***                     dataPtr(void);
 
     bool isValid(void) const;
 

@@ -12,7 +12,8 @@ Grid::Grid(const double xMin, const double xMax,
            const unsigned int nCellsPerBlockY, 
            const unsigned int nBlocksX,
            const unsigned int nBlocksY, 
-           const unsigned int nGuard)
+           const unsigned int nGuard,
+           const unsigned int nVariables)
     : xMin_(xMin),
       xMax_(xMax),
       yMin_(yMin),
@@ -22,6 +23,7 @@ Grid::Grid(const double xMin, const double xMax,
       nBlocksX_(nBlocksX),
       nBlocksY_(nBlocksY),
       nGuard_(nGuard),
+      nVariables_(nVariables),
       blocks_(NULL)
 {
     // TODO: Error check input parameters
@@ -32,12 +34,20 @@ Grid::Grid(const double xMin, const double xMax,
 
     // Allocate each block as a contiguous region of memory, but
     // allow for blocks residing in different parts of memory.
-    blocks_ = new double**[nBlocks];
+    blocks_ = new double***[nBlocks];
     for     (unsigned int n=0; n<nBlocks; ++n) {
-        blocks_[n]    = new double*[nCellsX];
-        blocks_[n][0] = new double[nCellsX * nCellsY];
-        for (unsigned int i=1; i<nCellsX; ++i) {
-            blocks_[n][i] = blocks_[n][i-1] + nCellsY;
+        blocks_[n] = new double**[nVariables_];
+        for (unsigned int v=0; v<nVariables_; ++v) {
+            blocks_[n][v] = new double*[nCellsX];
+        }
+
+        blocks_[n][0][0] = new double[nVariables_ * nCellsX * nCellsY];
+        blocks_[n][1][0] = blocks_[n][0][0] + nCellsX * nCellsY;
+
+        for     (unsigned int v=0; v<nVariables_; ++v) {
+            for (unsigned int i=1; i<nCellsX;     ++i) {
+                blocks_[n][v][i] = blocks_[n][v][i-1] + nCellsY;
+            }
         }
     }
 }
@@ -46,7 +56,12 @@ Grid::~Grid(void) {
     unsigned int nBlocks = nBlocksX_ * nBlocksY_;
 
     for (unsigned int n=0; n<nBlocks; ++n) {
-        delete [] blocks_[n][0];
+        delete [] blocks_[n][0][0];
+
+        for (unsigned int v=0; v<nVariables_; ++v) {
+            delete [] blocks_[n][v];
+        }
+
         delete [] blocks_[n];
     }
     delete [] blocks_;
@@ -102,7 +117,7 @@ std::array<double,NDIM> Grid::deltas(void) const {
     return dx;
 }
 
-double** Grid::dataPtr(const unsigned int idx) {
+double*** Grid::dataPtr(const unsigned int idx) {
     unsigned int nBlocks = nBlocksX_ * nBlocksY_;
 
     if (idx >= nBlocks) {

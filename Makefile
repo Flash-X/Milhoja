@@ -5,7 +5,7 @@ SHELL=/bin/sh
 # command line.
 #
 # Ex. The full featured test of the Orchestration System prototype
-#    make clean all RUNTIME=CUDA VERBOSITY=SILENT PROBLEM=P2 STUDY=SCALING
+#    make clean all RUNTIME=CUDA VERBOSITY=SILENT STUDY=SCALING
 #
 
 #
@@ -22,16 +22,8 @@ endif
 # Enable/Disable verbose logging of orchestration runtime sequence
 #
 ifndef VERBOSITY
-VERBOSITY=VERBOSE
-#VERBOSITY=SILENT
-endif
-
-#
-# Choose between two different problems to solve (See Driver.cpp)
-#
-ifndef PROBLEM
-#PROBLEM=P1
-PROBLEM=P2
+#VERBOSITY=VERBOSE
+VERBOSITY=SILENT
 endif
 
 #
@@ -40,8 +32,8 @@ endif
 # - a series of increasingly refined meshes as a scaling test 
 #
 ifndef STUDY
-#STUDY=SINGLE
-STUDY=SCALING
+STUDY=SINGLE
+#STUDY=SCALING
 endif
 
 BASE    = test_runtime
@@ -56,7 +48,8 @@ CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/BlockIterator.h \
     $(INCDIR)/runtimeTask.h \
-    $(INCDIR)/computeLaplacian_cpu.h \
+    $(INCDIR)/computeLaplacianDensity_cpu.h \
+    $(INCDIR)/computeLaplacianEnergy_cpu.h \
     $(INCDIR)/scale_cpu.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/OrchestrationRuntime.h
@@ -64,7 +57,8 @@ SRCS       = \
     $(SRCDIR)/Block.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/BlockIterator.cpp \
-    $(SRCDIR)/computeLaplacian_cpu.cpp \
+    $(SRCDIR)/computeLaplacianDensity_cpu.cpp \
+    $(SRCDIR)/computeLaplacianEnergy_cpu.cpp \
     $(SRCDIR)/scale_cpu.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
@@ -75,7 +69,7 @@ MAKEFILE  = Makefile
 COMMAND   =  $(BASE).x
 
 CXX       = g++
-CXXFLAGS  = -fopenmp -g -O0 -I$(INCDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSITY) -D$(PROBLEM) -D$(STUDY) 
+CXXFLAGS  = -fopenmp -g -O0 -I$(INCDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSITY) -D$(STUDY) 
 CXXWARNS  =
 
 LIBS      = -lgomp -lstdc++

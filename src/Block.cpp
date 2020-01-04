@@ -172,7 +172,7 @@ std::vector<double> Block::coordinates(const int axis) const {
     return coords;
 }
 
-double** Block::dataPtr(void) {
+double*** Block::dataPtr(void) {
     if (!isValid()) {
         throw std::runtime_error("[Block::dataPtr] Block is invalid");
     }

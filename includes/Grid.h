@@ -13,7 +13,8 @@ public:
          const unsigned int nCellsPerBlockY, 
          const unsigned int nBlocksX,
          const unsigned int nBlocksY,
-         const unsigned int nGuard);
+         const unsigned int nGuard,
+         const unsigned int nVariables);
     ~Grid(void);
 
     unsigned int                  nGuardcells(void) const;
@@ -27,7 +28,7 @@ public:
     //       their pointer to a FAB through this means.
     // The pointer is to the FAB interior + GCs.  The zero-based array 
     // indices are to the first GC on the low faces of the blocks.
-    double** dataPtr(const unsigned int idx);
+    double*** dataPtr(const unsigned int idx);
 
 private:
     // Disallow copying due to dynamic memory allocation of multifab
@@ -44,10 +45,11 @@ private:
     unsigned int nBlocksX_;
     unsigned int nBlocksY_;
     unsigned int nGuard_;
+    unsigned int nVariables_;
 
     // Our multifab is an array of 2D block data arrays (the FABs)
     // The zero-based block index is the index into this array.
-    double*** blocks_;
+    double**** blocks_;
 };
 
 #endif

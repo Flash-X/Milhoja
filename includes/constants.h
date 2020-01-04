@@ -10,5 +10,9 @@ const int IAXIS = 0;
 const int JAXIS = 1;
 const int KAXIS = 2;
 
+const int DENS_VAR = 0;
+const int ENER_VAR = 1;
+const int N_VARIABLES = 2;
+
 #endif
 

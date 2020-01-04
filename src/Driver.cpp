@@ -12,46 +12,45 @@
 #include "OrchestrationRuntime.h"
 
 #include "scale_cpu.h"
-#include "computeLaplacian_cpu.h"
+#include "computeLaplacianDensity_cpu.h"
+#include "computeLaplacianEnergy_cpu.h"
 
 // TASK_COMPOSER: The offline tool will need to determine how many thread teams
 // are needed as well as how many threads to allocate to each.
 const unsigned int N_THREAD_TEAMS = 3;
 const unsigned int MAX_THREADS = 10;
 
-#if defined(P1)
 //***** PROBLEM ONE
 //      Approximated exactly by second-order discretized Laplacian
-double f(const double x, const double y) {
+double f1(const double x, const double y) {
     return (  3.0*x*x*x +     x*x + x 
             - 2.0*y*y*y - 1.5*y*y + y
             + 5.0);
 }
 
-double Delta_f(const double x, const double y) {
+double Delta_f1(const double x, const double y) {
     return (18.0*x - 12.0*y - 1.0);
 }
-#elif defined(P2)
+
 //***** PROBLEM TWO
 //      Approximation is not exact and we know the error term exactly
-double f(const double x, const double y) {
+double f2(const double x, const double y) {
     return (  4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
             -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
             + 1.0);
 }
 
-double Delta_f(const double x, const double y) {
+double Delta_f2(const double x, const double y) {
     return (  48.0*x*x - 18.0*x
             - 12.0*y*y + 12.0*y
             - 2.0); 
 }
-#endif
 
 void initializeData(BlockIterator& itor) {
-    int      i0   = 0;
-    int      j0   = 0;
-    double   x    = 0.0;
-    double** data = NULL;
+    int       i0   = 0;
+    int       j0   = 0;
+    double    x    = 0.0;
+    double*** data = NULL;
 
     std::vector<double>   x_coords;
     std::vector<double>   y_coords;
@@ -73,14 +72,16 @@ void initializeData(BlockIterator& itor) {
          for      (int i=loGC[IAXIS]; i<=hiGC[IAXIS]; ++i) {
               x = x_coords[i-i0];
               for (int j=loGC[JAXIS]; j<=hiGC[JAXIS]; ++j) { 
-                   data[i-i0][j-j0] = f(x, y_coords[j-j0]);
+                   data[DENS_VAR][i-i0][j-j0] = f1(x, y_coords[j-j0]);
+                   data[ENER_VAR][i-i0][j-j0] = f2(x, y_coords[j-j0]);
               }
          }
     }
 }
 
-void computeError(BlockIterator& itor, double* L_inf, double* meanAbsErr) {
-    double**                      data = NULL;
+void computeError(BlockIterator& itor, double* L_inf1, double* meanAbsErr1,
+                                       double* L_inf2, double* meanAbsErr2) {
+    double***                     data = NULL;
     std::vector<double>           x_coords;
     std::vector<double>           y_coords;
     std::array<unsigned int,NDIM> lo;
@@ -92,8 +93,10 @@ void computeError(BlockIterator& itor, double* L_inf, double* meanAbsErr) {
     double x            = 0.0;
     double y            = 0.0;
     double absErr       = 0.0;
-    double maxAbsErr    = 0.0;
-    double sum          = 0.0;
+    double maxAbsErr1   = 0.0;
+    double sum1         = 0.0;
+    double maxAbsErr2   = 0.0;
+    double sum2         = 0.0;
     unsigned int nCells = 0;
 
     Block block;
@@ -113,12 +116,17 @@ void computeError(BlockIterator& itor, double* L_inf, double* meanAbsErr) {
               x = x_coords[i-i0];
               for (int j=lo[JAXIS]; j<=hi[JAXIS]; ++j) { 
                    y = y_coords[j-j0];
-                   absErr = fabs(2.1 * Delta_f(x, y) - data[i-i0][j-j0]);
-                   
-                   sum += absErr;
-                   
-                   if (absErr > maxAbsErr) {
-                        maxAbsErr = absErr;
+
+                   absErr = fabs(2.1*Delta_f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
+                   sum1 += absErr;
+                   if (absErr > maxAbsErr1) {
+                        maxAbsErr1 = absErr;
+                   }
+
+                   absErr = fabs(3.2*Delta_f2(x, y) - data[ENER_VAR][i-i0][j-j0]);
+                   sum2 += absErr;
+                   if (absErr > maxAbsErr2) {
+                        maxAbsErr2 = absErr;
                    }
 
                    ++nCells;
@@ -126,8 +134,11 @@ void computeError(BlockIterator& itor, double* L_inf, double* meanAbsErr) {
          }
     }
 
-    *L_inf = maxAbsErr;
-    *meanAbsErr = sum / ((double)nCells);
+    *L_inf1 = maxAbsErr1;
+    *meanAbsErr1 = sum1 / ((double)nCells);
+
+    *L_inf2 = maxAbsErr2;
+    *meanAbsErr2 = sum2 / ((double)nCells);
 }
 
 int main(int argc, char* argv[]) {
@@ -136,8 +147,8 @@ int main(int argc, char* argv[]) {
     // Maintain dx=dy at each trial for simple scaling test
 #if   defined(SINGLE)
     const unsigned int N_TRIALS = 1;
-    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {6};
-    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {3};
+    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {128};
+    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {64};
 #elif defined(SCALING)
     const unsigned int N_TRIALS = 6;
     const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {2, 4, 6, 8, 10, 12};
@@ -168,14 +179,16 @@ int main(int argc, char* argv[]) {
     OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
     OrchestrationRuntime*    runtime = OrchestrationRuntime::instance();
 
-    double L_inf      = 0.0;
-    double meanAbsErr = 0.0;
-    double results[N_TRIALS][3];
+    double L_inf1      = 0.0;
+    double meanAbsErr1 = 0.0;
+    double L_inf2      = 0.0;
+    double meanAbsErr2 = 0.0;
+    double results[N_TRIALS][N_VARIABLES][3];
     for (int i=0; i<N_TRIALS; ++i) {
         //***** SETUP DOMAIN MESH
         Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
                     NXB, NYB, N_BLOCKS_X_ALL[i], N_BLOCKS_Y_ALL[i],
-                    N_GUARD);
+                    N_GUARD, N_VARIABLES);
 
         // Use getters to test Grid class
         nGuard      = myGrid.nGuardcells();
@@ -208,8 +221,8 @@ int main(int argc, char* argv[]) {
             // myGrid is a standin for the set of parameters we need to
             // specify the tile iterator to use.
             runtime->executeTask(myGrid, "Task Bundle 1",
-                                 ThreadRoutines::computeLaplacian_cpu, 2, "bundle1_cpuTask",
-                                 ThreadRoutines::computeLaplacian_cpu, 5, "bundle1_gpuTask",
+                                 ThreadRoutines::computeLaplacianDensity_cpu, 2, "bundle1_cpuTask",
+                                 ThreadRoutines::computeLaplacianEnergy_cpu, 5, "bundle1_gpuTask",
                                  ThreadRoutines::scale_cpu, 0, "bundle1_postGpuTask");
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
@@ -225,10 +238,13 @@ int main(int argc, char* argv[]) {
             return 5;
         }
 
-        computeError(itor, &L_inf, &meanAbsErr);
-        results[i][0] = NXB * N_BLOCKS_X_ALL[i];
-        results[i][1] = L_inf;
-        results[i][2] = meanAbsErr;
+        computeError(itor, &L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
+        results[i][DENS_VAR][0] = NXB * N_BLOCKS_X_ALL[i];
+        results[i][DENS_VAR][1] = L_inf1;
+        results[i][DENS_VAR][2] = meanAbsErr1;
+        results[i][ENER_VAR][0] = NXB * N_BLOCKS_X_ALL[i];
+        results[i][ENER_VAR][1] = L_inf2;
+        results[i][ENER_VAR][2] = meanAbsErr2;
 
         // Write to file the finest solution
 //        if (i == (N_TRIALS - 1)) {
@@ -237,7 +253,7 @@ int main(int argc, char* argv[]) {
 //            for (itor.clear(); itor.isValid(); itor.next()) {
 //                Block block = itor.currentBlock();
 //
-//                double**                       dataPtr   = block.dataPtr();
+//                double***                      dataPtr   = block.dataPtr();
 //                std::array<unsigned int, NDIM> lo        = block.lo();
 //                std::array<unsigned int, NDIM> hi        = block.hi();
 //                std::array<int, NDIM>          loGC      = block.loGC();
@@ -250,7 +266,7 @@ int main(int argc, char* argv[]) {
 //                    for (unsigned int j2=lo[JAXIS]; j2<=hi[JAXIS]; ++j2) {
 //                        fprintf(fp, "%d\t%d\t%.16f\t%.16f\t%.16f\n", i2, j2, 
 //                                    xCoords[i2-i0], yCoords[j2-j0],
-//                                    dataPtr[i2-i0][j2-j0]);
+//                                    dataPtr[ENER_VAR][i2-i0][j2-j0]);
 //                    }
 //                }
 //            }
@@ -266,22 +282,43 @@ int main(int argc, char* argv[]) {
     double       deltaErr   = 0.0;
     double       deltaCells = 0.0;
 
+    printf("Density Variable Results\n");
     printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
     for (int i=0; i<N_TRIALS; ++i) {
-        nCells     = (int)results[i][0];
-        L_inf      =      results[i][1];
-        meanAbsErr =      results[i][2];
+        nCells      = (int)results[i][DENS_VAR][0];
+        L_inf1      =      results[i][DENS_VAR][1];
+        meanAbsErr1 =      results[i][DENS_VAR][2];
         if        (i == 0) {
-            printf("%d\t%g\t%g\t      -\n", nCells, L_inf, meanAbsErr);
-        } else if (meanAbsErr == 0.0) {
-            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf, meanAbsErr);
+            printf("%d\t%g\t%g\t      -\n", nCells, L_inf1, meanAbsErr1);
+        } else if (meanAbsErr1 == 0.0) {
+            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf1, meanAbsErr1);
         } else {
-            deltaErr   = log10(results[i][2]) -log10(results[i-1][2]);
-            deltaCells = log10(results[i][0]) -log10(results[i-1][0]);
+            deltaErr   = log10(results[i][DENS_VAR][2]) - log10(results[i-1][DENS_VAR][2]);
+            deltaCells = log10(results[i][DENS_VAR][0]) - log10(results[i-1][DENS_VAR][0]);
             slope = deltaErr / deltaCells;
-            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf, meanAbsErr, slope);
+            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf1, meanAbsErr1, slope);
         }
     }
+    printf("\n");
+
+    printf("Energy Variable Results\n");
+    printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
+    for (int i=0; i<N_TRIALS; ++i) {
+        nCells      = (int)results[i][ENER_VAR][0];
+        L_inf2      =      results[i][ENER_VAR][1];
+        meanAbsErr2 =      results[i][ENER_VAR][2];
+        if        (i == 0) {
+            printf("%d\t%g\t%g\t      -\n", nCells, L_inf2, meanAbsErr2);
+        } else if (meanAbsErr2 == 0.0) {
+            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf2, meanAbsErr2);
+        } else {
+            deltaErr   = log10(results[i][ENER_VAR][2]) -log10(results[i-1][ENER_VAR][2]);
+            deltaCells = log10(results[i][ENER_VAR][0]) -log10(results[i-1][ENER_VAR][0]);
+            slope = deltaErr / deltaCells;
+            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf2, meanAbsErr2, slope);
+        }
+    }
+    printf("\n");
 
     // TODO: Add test to confirm reasonably small mean error
     delete OrchestrationRuntime::instance();
