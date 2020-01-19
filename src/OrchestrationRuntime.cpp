@@ -166,8 +166,8 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
         block = itor.currentBlock();
 
         // Queue the GPU work first so that it can potentially get a head start
-        gpuTeam->enqueue(block);
-        cpuTeam->enqueue(block);
+//        gpuTeam->enqueue(block);
+//        cpuTeam->enqueue(block);
     }
     gpuTeam->closeTask();
     cpuTeam->closeTask();

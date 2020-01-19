@@ -22,8 +22,8 @@ endif
 # Enable/Disable verbose logging of orchestration runtime sequence
 #
 ifndef VERBOSITY
-#VERBOSITY=VERBOSE
-VERBOSITY=SILENT
+VERBOSITY=VERBOSE
+#VERBOSITY=SILENT
 endif
 
 #
@@ -52,6 +52,12 @@ CXX_HDRS   = \
     $(INCDIR)/computeLaplacianEnergy_cpu.h \
     $(INCDIR)/scaleEnergy_cpu.h \
     $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/OrchestrationRuntime.h
 SRCS       = \
     $(SRCDIR)/Block.cpp \
@@ -61,8 +67,13 @@ SRCS       = \
     $(SRCDIR)/computeLaplacianEnergy_cpu.cpp \
     $(SRCDIR)/scaleEnergy_cpu.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(SRCDIR)/Driver.cpp
+    $(SRCDIR)/test.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile

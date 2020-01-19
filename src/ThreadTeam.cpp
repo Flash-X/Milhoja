@@ -4,17 +4,24 @@
 
 #include "ThreadTeam.h"
 
-#include <cstdio>
 #include <iostream>
 #include <stdexcept>
+
+#include "ThreadTeamIdle.h"
+#include "ThreadTeamTerminating.h"
+#include "ThreadTeamRunningOpen.h"
+#include "ThreadTeamRunningClosed.h"
+#include "ThreadTeamRunningNoMoreWork.h"
 
 /**
  * Instantiate a thread team that, at any point in time, can have no more than
  * nMaxThreads threads in existence.  Thread teams must contain at least one
  * thread.
  * 
- * This routine initializes the state of all possible threads to THREAD_IDLE
- * and the team will be in the state TEAM_IDLE.
+ * This routine initializes the state of the team in MODE_IDLE with
+ *  - no threads waiting, computing, or terminating,
+ *  - all nMaxThreads threads Idling, and
+ *  - no pending work.
  *
  * \param  nMaxThreads The maximum permissible number of threads in the team.
  *                     Zero threads is considered to be a logical error.
@@ -22,33 +29,92 @@
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
                        const unsigned int id)
-    : nMaxThreads_(nMaxThreads),
+    : N_idle_actual_(0),
+      N_wait_(0),
+      N_comp_(0),
+      queue_(),
+      N_idle_intended_(nMaxThreads),
+      nMaxThreads_(nMaxThreads),
       id_(id),
       hdr_(""),
-      taskName_(""),
-      queue_(),
-      state_(TEAM_STARTING),
-      threadStates_(nullptr),
+      taskName_("NoTaskYet"),
+      state_(nullptr),
+      stateIdle_(nullptr),
+      stateTerminating_(nullptr),
+      stateRunOpen_(nullptr),
+      stateRunClosed_(nullptr),
+      stateRunNoMoreWork_(nullptr),
       taskFcn_(nullptr),
       threads_(nullptr),
       threadData_(nullptr),
       threadReceiver_(nullptr),
-      workReceiver_(nullptr)
+      workReceiver_(nullptr),
+      isWaitBlocking_(false)
 {
+    hdr_  = "Thread Team ";
+    hdr_ += std::to_string(id_);
+    
     if (nMaxThreads_ == 0) {
-        throw std::logic_error("[ThreadTeam::ThreadTeam] "
-                               "Empty thread teams disallowed");
+        std::string   msg("[ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nEmpty thread teams disallowed";
+        throw std::logic_error(msg);
     }
 
-    hdr_  = "ThreadTeam ";
-    hdr_ += std::to_string(id_);
-
+    // Initialize mutex before creating other states in case they need it 
     pthread_mutex_init(&teamMutex_, NULL);
 
-    // Use of the mutex should not be necessary since no other code
-    // that could use the object's members can run until construction
-    // begins.  However, I use it to be defensive and under the assumption
-    // that teams won't be instantiated often.
+    //***** INSTANTIATE EXTENDED FINITE STATE MACHINE STATE OBJECTS
+    stateIdle_ = new ThreadTeamIdle(this); 
+    if (!stateIdle_) {
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nUnable to instantiate ";
+        msg += getModeName(MODE_IDLE);
+        msg += " state object";
+        throw std::runtime_error(msg);
+    }
+
+    stateTerminating_ = new ThreadTeamTerminating(this); 
+    if (!stateTerminating_) {
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nUnable to instantiate ";
+        msg += getModeName(MODE_TERMINATING);
+        msg += " state object";
+        throw std::runtime_error(msg);
+    }
+
+    stateRunOpen_ = new ThreadTeamRunningOpen(this); 
+    if (!stateRunOpen_) {
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nUnable to instantiate ";
+        msg += getModeName(MODE_RUNNING_OPEN_QUEUE);
+        msg += " state object";
+        throw std::runtime_error(msg);
+    }
+
+    stateRunClosed_ = new ThreadTeamRunningClosed(this); 
+    if (!stateRunClosed_) {
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nUnable to instantiate ";
+        msg += getModeName(MODE_RUNNING_CLOSED_QUEUE);
+        msg += " state object";
+        throw std::runtime_error(msg);
+    }
+
+    stateRunNoMoreWork_ = new ThreadTeamRunningNoMoreWork(this); 
+    if (!stateRunNoMoreWork_) {
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nUnable to instantiate ";
+        msg += getModeName(MODE_RUNNING_NO_MORE_WORK);
+        msg += " state object";
+        throw std::runtime_error(msg);
+    }
+
     pthread_mutex_lock(&teamMutex_);
 
     // TODO: Do we need to set more attributes?
@@ -57,84 +123,172 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
     pthread_attr_init(&attr_);
     pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
 
-    pthread_cond_init(&threadIdling_, NULL);
+    pthread_cond_init(&threadStarted_, NULL);
     pthread_cond_init(&activateThread_, NULL);
-    pthread_cond_init(&checkQueue_, NULL);
+    pthread_cond_init(&transitionThread_, NULL);
     pthread_cond_init(&threadTerminated_, NULL);
+    pthread_cond_init(&unblockWaitThread_, NULL);
 
-#ifdef VERBOSE
-    printf("[%s] State set to Starting\n", hdr_.c_str());
-#endif
+    //***** SETUP EXTENDED FINITE STATE MACHINE IN INITIAL STATE
+    // Setup before creating threads, which need to know the state
+    // - MODE_IDLE with all threads in Idle and no pending work
+    N_idle_intended_ = nMaxThreads_;
+    N_wait_          = 0;
+    N_comp_          = 0;
+    if (!queue_.empty()) {
+        pthread_mutex_unlock(&teamMutex_);
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nqueue_ is not empty ";
+        throw std::runtime_error(msg);
+    }
+    // Setup manually since we aren't transitioning yet
+    state_ = stateIdle_;
 
     int rc = 0;
-    threadStates_ = new threadState[nMaxThreads_];
     threads_      = new   pthread_t[nMaxThreads_];
     threadData_   = new  ThreadData[nMaxThreads_];
     for (unsigned int i=0; i<nMaxThreads_; ++i) {
         threadData_[i].tId = i;
         threadData_[i].team = this;
+        // TODO: Do we need threads_ and threadData_ as arrays?
         rc = pthread_create(&threads_[i], &attr_, *threadRoutine,
                             reinterpret_cast<void*>(&(threadData_[i])));
         if (rc != 0) {
             pthread_mutex_unlock(&teamMutex_);
-            std::string msg("ThreadTeam::ThreadTeam] Thread team ");
-            msg += std::to_string(id_);
-            msg += " unable to create thread ";
+            std::string msg("ThreadTeam::ThreadTeam] ");
+            msg += hdr_;
+            msg += "\nUnable to create thread ";
             msg += std::to_string(i);
             throw std::runtime_error(msg);
         }
-        threadStates_[i] = THREAD_STARTING;
+
 #ifdef VERBOSE
-        printf("[%s] State set to Starting for thread %d\n", 
-               hdr_.c_str(), i);
+        std::cout << "[" << hdr_ << "] Starting thread " << i << std::endl;
 #endif
     }
 
-    // Wait until all threads have started running their routine
+    // Wait until all threads have started running their routine and are Idle
     do {
-        pthread_cond_wait(&threadIdling_, &teamMutex_);
-    } while (nIdleThreads() < nMaxThreads_);
-    transitionState(TEAM_IDLE);
+        pthread_cond_wait(&threadStarted_, &teamMutex_);
+    } while (N_idle_actual_ < nMaxThreads_);
+
+    if (N_idle_actual_ != N_idle_intended_) {
+        pthread_mutex_unlock(&teamMutex_);
+        std::string msg("ThreadTeam::ThreadTeam] ");
+        msg += hdr_;
+        msg += "\nN actual idle threads ";
+        msg += std::to_string(N_idle_actual_);
+        msg += " not equal to N intended idle threads ";
+        msg += std::to_string(N_idle_intended_);
+        throw std::runtime_error(msg);
+    }
+
+#ifdef VERBOSE
+        std::cout << "[" << hdr_ << "] Team initialized in state " 
+                  << getModeName(state_->mode())
+                  << " with "
+                  << N_idle_actual_ << " threads idling\n";
+#endif
 
     pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
- * Destroy the thread team.  It is considered a logical or runtime error if any
- * of the following is true at the time of destruction:
- *   - there is a thread in the team that is *not* idle
- *   - the team still has work pending
+ * Destroy the thread team.
+ * 
+ * \warning: This should only be run if the team is in MODE_IDLE.
  */
 ThreadTeam::~ThreadTeam(void) {
     pthread_mutex_lock(&teamMutex_);
 
     // TODO: How to handle errors discovered in destructor?
-    transitionState(TEAM_TERMINATING);
+    // Transition state and sanity check that current ThreadTeam
+    // state is as expected
+    std::string errMsg = setMode_NotThreadsafe(MODE_TERMINATING);
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        std::cerr << errMsg << std::endl;
+    } else if (N_idle_actual_ != nMaxThreads_) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nNumber of actual Idle threads ";
+        errMsg += std::to_string(N_idle_actual_);
+        errMsg += " not equal to N_max ";
+        errMsg += std::to_string(nMaxThreads_);
+        std::cerr << errMsg << std::endl;
+    } else if (N_idle_intended_ != nMaxThreads_) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nNumber of intended Idle threads ";
+        errMsg += std::to_string(N_idle_intended_);
+        errMsg += " not equal to N_max ";
+        errMsg += std::to_string(nMaxThreads_);
+        std::cerr << errMsg << std::endl;
+    } else if (N_wait_ != 0) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nNumber of Waiting threads ";
+        errMsg += std::to_string(N_wait_);
+        errMsg += " not zero";
+        std::cerr << errMsg << std::endl;
+    } else if (N_comp_ != 0) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nNumber of Computing threads ";
+        errMsg += std::to_string(N_comp_);
+        errMsg += " not zero";
+        std::cerr << errMsg << std::endl;
+    } else if (!queue_.empty()) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nPending work queue has ";
+        errMsg += std::to_string(queue_.size());
+        errMsg += " units of work instead of zero";
+        std::cerr << errMsg << std::endl;
+    } else if (threadReceiver_) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nTeam still has a Thread Subscriber";
+        std::cerr << errMsg << std::endl;
+    } else if (workReceiver_) {
+        pthread_mutex_unlock(&teamMutex_);
+        errMsg = "ThreadTeam::~ThreadTeam] ";
+        errMsg += hdr_;
+        errMsg += "\nTeam still has a Work Subscriber";
+        std::cerr << errMsg << std::endl;
+    }
 
-    // All threads are sleeping and should receive this signal
+    // State Transition Output
+    //  - All threads are Idle and should receive this signal
     pthread_cond_broadcast(&activateThread_);
 
     // Block until all threads have terminated
-    unsigned int nTerminated = 0;
+    N_idle_intended_ = 0;
     do {
         pthread_cond_wait(&threadTerminated_, &teamMutex_);
+    } while (N_idle_actual_ > N_idle_intended_);
 
-        nTerminated = 0;
-        for (unsigned int i=0; i<nMaxThreads_; ++i) {
-            if (threadStates_[i] == THREAD_TERMINATING) {
-                ++nTerminated;
-            }
-        }
-    } while (nTerminated < nMaxThreads_);
+#ifdef VERBOSE
+        std::cout << "[" << hdr_ << "] " 
+                  << nMaxThreads_
+                  << " Threads terminated\n";
+#endif
 
     delete [] threadData_;
     delete [] threads_;
-    delete [] threadStates_;
 
+    pthread_cond_destroy(&unblockWaitThread_);
     pthread_cond_destroy(&threadTerminated_);
-    pthread_cond_destroy(&checkQueue_);
+    pthread_cond_destroy(&transitionThread_);
     pthread_cond_destroy(&activateThread_);
-    pthread_cond_destroy(&threadIdling_);
+    pthread_cond_destroy(&threadStarted_);
 
     pthread_attr_destroy(&attr_);
 
@@ -142,220 +296,115 @@ ThreadTeam::~ThreadTeam(void) {
 
     pthread_mutex_destroy(&teamMutex_);
 
+    state_ = nullptr;
+    delete stateIdle_;
+    delete stateTerminating_;
+    delete stateRunOpen_;
+    delete stateRunClosed_;
+    delete stateRunNoMoreWork_;
+
 #ifdef VERBOSE
-    printf("[%s] Team destroyed\n", hdr_.c_str());
+    std::cout << "[" << hdr_ << "] Team destroyed\n";
 #endif
 }
 
 /**
- * 
+ * Obtain the name of the given mode as a string.
  *
- * \return 
+ * \param   mode - The enum value of the mode.
+ * \return  The name.
  */
-std::string  ThreadTeam::getStateName(const teamState state) {
-    std::string name("");
-    if        (state == TEAM_STARTING) {
-        name = "Starting";
-    } else if (state == TEAM_IDLE) {
-        name = "Idle";
-    } else if (state == TEAM_RUNNING_OPEN_QUEUE) {
-        name = "Executing Task/Queue Open";
-    } else if (state == TEAM_RUNNING_CLOSED_QUEUE) {
-        name = "Executing Task/Queue Closed";
-    } else if (state == TEAM_TERMINATING) {
-        name = "Terminating";
-    } else {
-        std::string  msg("[ThreadTeam::getStateName] Invalid team state ");
-        msg += std::to_string(state);
-        throw std::logic_error(msg);
+std::string ThreadTeam::getModeName(const teamMode mode) const {
+    std::string   modeName("");
+
+    switch(mode) {
+    case MODE_IDLE:
+        modeName = "Idle";
+        break;
+    case MODE_TERMINATING:
+        modeName = "Terminating";
+        break;
+    case MODE_RUNNING_OPEN_QUEUE:
+        modeName = "Running & Queue Open";
+        break;
+    case MODE_RUNNING_CLOSED_QUEUE:
+        modeName = "Running & Queue Closed";
+        break;
+    case MODE_RUNNING_NO_MORE_WORK:
+        modeName = "Running & No More Work";
+        break;
+    default:
+        std::string msg("ThreadTeam::getModeName] ");
+        msg += hdr_;
+        msg += "\nInvalid state mode ";
+        msg += std::to_string(mode);
+        throw std::runtime_error(msg);
     }
 
-    return name;
+    return modeName;
 }
 
 /**
- * 
  *
- * \return 
+ * Set the mode of the EFSM to the given mode.  This internal method is usually
+ * called as part of a state transition.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \param    nextMode - The next mode as an enum value.
+ * \return   An empty string if the mode was set successfully, an error
+ *           statement otherwise.
  */
-void ThreadTeam::transitionState(const teamState nextState) {
-    // FIXME: Should this routine just return the error message so
-    // that the calling routine can manage the mutex?
-    if        (nextState == TEAM_STARTING) {
-        // Initial state set manually in constructor including manual state
-        // printing
-        throw std::logic_error("[ThreadTeam::transitionState] "
-                               "Team state cannot be set to Starting");
-    } else if (nextState == TEAM_IDLE) {
-        if (   (state_ != TEAM_STARTING)
-            && (state_ != TEAM_RUNNING_CLOSED_QUEUE)) {
-            std::string  msg("[ThreadTeam::transitionState] "
-                             "Invalid transition from ");
-            msg += std::to_string(state_);
-            msg += " to ";
-            msg += std::to_string(nextState);
-            throw std::logic_error(msg);
-        } else if (!queue_.empty()) {
-            std::logic_error("[ThreadTeam::transitionState] "
-                             "Queue must be empty to transition team to Idle");
-        } else if (nIdleThreads() < nMaxThreads_) {
-            std::logic_error("[ThreadTeam::transitionState] "
-                             "All threads must be Idle to transition team to Idle");
-        }
-    } else if (nextState == TEAM_RUNNING_OPEN_QUEUE) {
-        if (state_ != TEAM_IDLE) {
-            std::string  msg("[ThreadTeam::transitionState] "
-                             "Invalid transition from ");
-            msg += std::to_string(state_);
-            msg += " to ";
-            msg += std::to_string(nextState);
-            throw std::logic_error(msg);
-        }
-    } else if (nextState == TEAM_RUNNING_CLOSED_QUEUE) {
-        if (state_ != TEAM_RUNNING_OPEN_QUEUE) {
-            std::string  msg("[ThreadTeam::transitionState] "
-                             "Invalid transition from ");
-            msg += std::to_string(state_);
-            msg += " to ";
-            msg += std::to_string(nextState);
-            throw std::logic_error(msg);
-        }
-    } else if (nextState == TEAM_TERMINATING) {
-        if (state_ != TEAM_IDLE) {
-            std::string  msg("[ThreadTeam::transitionState] "
-                             "Invalid transition from ");
-            msg += std::to_string(state_);
-            msg += " to ";
-            msg += std::to_string(nextState);
-            throw std::logic_error(msg);
-        }
+std::string ThreadTeam::setMode_NotThreadsafe(const teamMode nextMode) {
+    std::string    errMsg("");
 
-        // TODO: Check if work was given to the team while in Idle.
-    } else {
-        std::string  msg("[ThreadTeam::transitionState] Invalid thread team state ");
-        msg += std::to_string(nextState);
-        throw std::invalid_argument(msg);
+    teamMode  currentMode = state_->mode();
+
+    switch(nextMode) {
+    case MODE_IDLE:
+        state_ = stateIdle_;
+        break;
+    case MODE_TERMINATING:
+        // This transition is not initiated by one of the State objects, but
+        // rather by clients calling the Destructor.  Therefore, we have to
+        // error check the Mode transitions here.
+        if (currentMode != MODE_IDLE) {
+            errMsg  = "[ThreadTeam::setMode_NotThreadsafe] ";
+            errMsg += hdr_;
+            errMsg += "\nInvalid state transition from ";
+            errMsg += getModeName(currentMode);
+            errMsg += " to ";
+            errMsg += getModeName(nextMode);
+            return errMsg;
+        }
+        state_ = stateTerminating_;
+        break;
+    default:
+        errMsg  = "[ThreadTeam::setMode_NotThreadsafe] ";
+        errMsg += hdr_;
+        errMsg += "\nUnknown ThreadTeam state mode ";
+        errMsg += getModeName(nextMode);
+        return errMsg;
+    }
+
+    if (!state_) {
+        errMsg  = "[ThreadTeam::setMode_NotThreadsafe] ";
+        errMsg += hdr_;
+        errMsg += "\n";
+        errMsg += getModeName(nextMode);
+        errMsg += " instance is NULL";
+        return errMsg;
     }
 
 #ifdef VERBOSE
-    printf("[%s] Transition from %s to %s\n",
-           hdr_.c_str(), 
-           getStateName(state_).c_str(), 
-           getStateName(nextState).c_str());
+    std::cout << "[" << hdr_ << "] Transitioned from "
+              << getModeName(currentMode)
+              << " to "
+              << getModeName(nextMode) << std::endl;
 #endif
 
-    state_ = nextState;
-}
-
-/**
- * 
- *
- * \return 
- */
-std::string  ThreadTeam::getThreadStateName(const threadState state) {
-    std::string name("");
-    if        (state == THREAD_STARTING) {
-        name = "Starting";
-    } else if (state == THREAD_IDLE) {
-        name = "Idle";
-    } else if (state == THREAD_COMPUTING) {
-        name = "Computing";
-    } else if (state == THREAD_WAITING) {
-        name = "Waiting";
-    } else if (state == THREAD_TERMINATING) {
-        name = "Terminating";
-    } else {
-        std::string  msg("[ThreadTeam::getThreadStateName] Invalid thread state ");
-        msg += std::to_string(state);
-        throw std::logic_error(msg);
-    }
-
-    return name;
-}
-
-/**
- * 
- *
- * \return 
- */
-void ThreadTeam::transitionThreadState(const unsigned int tId,
-                                       const threadState nextState) {
-    if (tId >= nMaxThreads_) {
-        std::string  msg("[ThreadTeam::transitionThreadState] Invalid thread ID ");
-        msg += std::to_string(tId);
-        throw std::invalid_argument(msg);
-    }
-
-    threadState currentState = threadStates_[tId];
-    if        (nextState == THREAD_STARTING) {
-        // Initial state set manually in constructor including manual state
-        // printing
-        std::string msg("[ThreadTeam::transitionThreadState] "
-                        "Team state cannot be set to Starting - Thread ");
-        msg += std::to_string(tId);
-        throw std::logic_error(msg);
-    } else if (nextState == THREAD_IDLE) {
-        if (currentState == THREAD_TERMINATING) {
-            std::string  msg("[ThreadTeam::transitionThreadState] "
-                             "Invalid transition from ");
-            msg += getThreadStateName(currentState);
-            msg += " to ";
-            msg += getThreadStateName(nextState);
-            msg += " - Thread ";
-            msg += std::to_string(tId);
-            throw std::logic_error(msg);
-        }
-    } else if (nextState == THREAD_COMPUTING) {
-        if (   (currentState == THREAD_STARTING)
-            || (currentState == THREAD_TERMINATING)) {
-            std::string  msg("[ThreadTeam::transitionThreadState] "
-                             "Invalid transition from ");
-            msg += getThreadStateName(currentState);
-            msg += " to ";
-            msg += getThreadStateName(nextState);
-            msg += " - Thread ";
-            msg += std::to_string(tId);
-            throw std::logic_error(msg);
-        }
-    } else if (nextState == THREAD_WAITING) {
-        if (   (currentState == THREAD_STARTING)
-            || (currentState == THREAD_TERMINATING)) {
-            std::string  msg("[ThreadTeam::transitionThreadState] "
-                             "Invalid transition from ");
-            msg += getThreadStateName(currentState);
-            msg += " to ";
-            msg += getThreadStateName(nextState);
-            msg += " - Thread ";
-            msg += std::to_string(tId);
-            throw std::logic_error(msg);
-        }
-    } else if (nextState == THREAD_TERMINATING) {
-        if (currentState != THREAD_IDLE) {
-            std::string  msg("[ThreadTeam::transitionThreadState] "
-                             "Invalid transition from ");
-            msg += getThreadStateName(currentState);
-            msg += " to ";
-            msg += getThreadStateName(nextState);
-            msg += " - Thread ";
-            msg += std::to_string(tId);
-            throw std::logic_error(msg);
-        }
-    } else {
-        std::string  msg("[ThreadTeam::transitionThreadState] Invalid thread state ");
-        msg += std::to_string(nextState);
-        msg += " - Thread ";
-        msg += std::to_string(tId);
-        throw std::invalid_argument(msg);
-    }
-
-#ifdef VERBOSE
-    printf("[%s / Thread %d] Transition from %s to %s\n",
-           hdr_.c_str(), tId,
-           getThreadStateName(currentState).c_str(),
-           getThreadStateName(nextState).c_str());
-#endif
-
-    threadStates_[tId] = nextState;
+    return errMsg;
 }
 
 /**
@@ -367,360 +416,212 @@ void ThreadTeam::transitionThreadState(const unsigned int tId,
 unsigned int ThreadTeam::nMaximumThreads(void) const {
     return nMaxThreads_;
 }
-
+ 
 /**
- * Obtain the total number of threads that are idling at the current time.
+ * Indicate to the thread team that it may activate the given number of Idle
+ * threads so that they may help execute the current execution cycle's task.
  *
- * \warning Code that calls this routine must first use teamMutex_ to
- *          successfully obtain a lock on team thread resources.
+ * \warning All classes that implement this routine must confirm that activating
+ * the given number of Idle threads will not exceed the maximum number of
+ * threads allotted to the team.  To avoid loss of thread resources if thread
+ * publishing is in use during the current cycle, these classes should use
+ * N_idle_intended_ rather than N_idle_actual_.
  *
- * \return The number of threads.
- */
-unsigned int ThreadTeam::nIdleThreads(void) const {
-    int nIdle = 0;
-    for (unsigned int i=0; i<nMaxThreads_; ++i) {
-        if (threadStates_[i] == THREAD_IDLE) {
-            ++nIdle; 
-        }
-    }
-
-    return nIdle;
-}
-
-/**
- * Activate nThreads more threads in the team.
- *
- * A thread subscriber team could also be a thread publisher team.  If such a
- * team finishes its work before its publisher does, then this method will
- * immediately push new threads along to its subscriber.
- *
- * It is considered to be a logical error if activating this many threads would
- * exceed the maximum number of threads allowed in the team.
- * 
- * As the startTask() method sets the original number of threads to use to
- * execute a task with the team, calling this method with the team in the idle
- * state is considered to be a logical error.
- *
- * \param   nThreads   The number of new threads to activate.
+ * \param nThreads - The number of Idle threads to activate.
  */
 void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
-    if (nThreads == 0) {
-        throw std::runtime_error("[ThreadTeam::increaseThreadCount] "
-                                 "Zero thread increase given");
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::increaseThreadCount] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
     }
-    
-    pthread_mutex_lock(&teamMutex_);
-
-    if (threadReceiver_) {
-        if (     state_ == TEAM_IDLE
-            || ((state_ == TEAM_RUNNING_CLOSED_QUEUE) && (queue_.empty()))) {
-            threadReceiver_->increaseThreadCount(nThreads);
-            pthread_mutex_unlock(&teamMutex_);
-            return;
-        }
-    } else if (state_ == TEAM_IDLE) {
-        // Client code should call the publisher wait() before the subscriber
-        // wait().  Therefore, the publisher would not be sending threads
-        // to its idle subscriber.
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::runtime_error("[ThreadTeam::increaseThreadCount] "
-                                 "Idle team with no thread receiver does not "
-                                 "need more threads");
-    } else if (nThreads > nIdleThreads()) {
-        // If there are no idle threads, then the following signal would not be
-        // caught and we would lose a thread resource.
-        //
-        // Maximum thread counts in each team should be properly setup so that
-        // this is impossible.
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::runtime_error("[ThreadTeam::increaseThreadCount] "
-                                 "Number of threads in team is too large");
-    }
-
-    pthread_mutex_unlock(&teamMutex_);
-
-    for (unsigned int i=0; i<nThreads; ++i) {
-        // Wake the threads individually so that they can immediately
-        // start their work.  The calling thread is likely going to idle next,
-        // so we can slow it down.
-        pthread_mutex_lock(&teamMutex_);
-        pthread_cond_signal(&activateThread_);
-        pthread_mutex_unlock(&teamMutex_);
-    }
+    state_->increaseThreadCount(nThreads);
 }
 
 /**
- * Initiate an task execution cycle that will use a thread team that will
- * initially contain nThreads threads.  The number of threads active in the team
- * can subsequently be increased with the increaseThreadCount() method.
+ * Start an execution cycle that will apply the given task to all tiles
+ * subsequently given to the team using the enqueue() method.
+ * 
+ * Note that all tasks must conform to the same minimal interface.  This
+ * constraint avoids exposing computation-specific information to the Thread
+ * Teams so that these are decoupled from the content of the work being done.
+ * Client code must make all task-/computation-specific data available to the
+ * task function through other means.
  *
- * The thread team must be in the idle state when this method is called.  This
- * can occur if
- *   1) startTask() has not yet been called for the team or
- *   2) the wait() method was the last method called and has terminated.
+ * An execution cycle can begin with zero threads with the understanding that
+ * the team will be setup as a thread subscriber so that threads can be
+ * activated at a later time by the thread publisher.
  *
- * After calling this method, the team can still accept work via the enqueue()
- * method.
- *
- * Note that passing zero threads is a valid input.  This might be useful if
- * this team will later be pushed threads from a thread publisher.
- *
- * \param  taskFcn   A function that is applied to each unit of work.  When this
- *                   function terminates, it is considered that the task has
- *                   been executed on that unit and it is removed from the
- *                   queue.
- * \param  nThreads  The number of threads to use at the start of this execution
- *                   cycle.
+ * \param    fcn - a function pointer to the task to execute.
+ * \param    nThreads - the number of Idle threads to immediately activate.
+ * \param    teamName - a name to assign to the team that will be used for
+ *                      logging the team during this execution cycle.
+ * \param    taskName - a name to assign to the task that will be used for
+ *                      logging the team during this execution cycle.
  */
-void ThreadTeam::startTask(TASK_FCN* taskFcn, const unsigned int nThreads,
-                           const std::string& teamName,
+void ThreadTeam::startTask(TASK_FCN* fcn, const unsigned int nThreads,
+                           const std::string& teamName, 
                            const std::string& taskName) {
-    if (!taskFcn) {
-        std::string  msg("[ThreadTeam::startTask] Thread team ");
-        msg += std::to_string(id_);
-        msg += "\nNull task function pointer for task";
-        msg += taskName;
-        throw std::logic_error(msg);
+    // TODO: Is it OK that we use state_ without acquiring the mutex?  state_
+    // should only be altered by calling setMode_NotThreadsafe, which can be
+    // called by the object pointed to by state_.  Better to acquire the mutex
+    // here and pass this through as a parameter so that a called method can
+    // release the mutex on error?  This seems ugly but safer.
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::startTask] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
     }
-
-    pthread_mutex_lock(&teamMutex_);
-
-    taskName_ = taskName;
-    taskFcn_ = taskFcn;
-
-#ifdef VERBOSE
-    printf("[%s] Assigned team name %s\n", 
-           hdr_.c_str(), teamName.c_str());
-#endif
-    hdr_ = teamName;
-#ifdef VERBOSE
-    printf("[%s] Starting task %s with %d initial threads\n", 
-           hdr_.c_str(), taskName_.c_str(), nThreads);
-#endif
-
-    if (nThreads > nMaxThreads_) {
-        pthread_mutex_unlock(&teamMutex_);
-        std::string  msg("[ThreadTeam::startTask] Thread team ");
-        msg += teamName;
-        msg += "\nToo many starting threads";
-        throw std::logic_error(msg);
-    }
-
-    transitionState(TEAM_RUNNING_OPEN_QUEUE);
-
-    for (unsigned int i=0; i<nThreads; ++i) {
-        pthread_cond_signal(&activateThread_);
-    }
-
-    pthread_mutex_unlock(&teamMutex_);
+    state_->startTask(fcn, nThreads, teamName, taskName);
 }
 
 /**
- * Add a unit of work to the thread team's workload.  This method can only
- * be invoked when
- *   1) the thread team is idle or
- *   2) after calling startTask() but before calling closeTask().
- *
- * \param   block  The unit of work to add.
- */
-void ThreadTeam::enqueue(const Block& block) {
-    pthread_mutex_lock(&teamMutex_);
-
-    if (state_ == TEAM_RUNNING_CLOSED_QUEUE) {
-        pthread_mutex_unlock(&teamMutex_);
-        std::logic_error("[ThreadTeam::enqueue] "
-                         "Cannot queue after wait() called");
-    }
-
-    queue_.push(block);
-#ifdef VERBOSE
-    printf("[%s] Block %d enqueued\n", hdr_.c_str(), block.index());
-#endif
-
-    // Signal a single waiting thread to look for work
-    pthread_cond_signal(&checkQueue_);
-
-    pthread_mutex_unlock(&teamMutex_);
-}
-
-/**
- * A non-blocking routine that is called after startTask() but before wait() to
- * inform the thread team that client code has finished adding to the queue all
- *  work to be evaluated by the team during the current execution cycle.
- *
- * \param
- * \return
+ * Indicate to the thread team that no more units of work will be given to the
+ * team during the present execution cycle.
  */
 void ThreadTeam::closeTask(void) {
-    // Ideally, the call to wait() would communicate to the team that no more
-    // work will be added.  However, in the case that there are more than one
-    // thread teams simultaneously running, the blocking nature of wait() would
-    // lead to potential inefficiencies.  In particular, consider the case where
-    // we call wait() for team A before calling wait() for team B.  If team B
-    // finishes its work before A, then all team B threads will sit idle because
-    // team B does not yet know that no more work will be added.
-    pthread_mutex_lock(&teamMutex_);
-
-    transitionState(TEAM_RUNNING_CLOSED_QUEUE);
-
-    // It is possible that all work has been done and given to work subscribers
-    // before this transition occurs.  Notify work subscribers if this was the
-    // case.
-    if (workReceiver_) {
-        // FIXME: This is bad.  We need the mutex for the workReceiver 
-        //        to get this.  Does this open the door for a deadlock?
-        if (workReceiver_->state_ == TEAM_RUNNING_OPEN_QUEUE) {
-            workReceiver_->closeTask();
-        }
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::closeTask] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
     }
-
-    pthread_mutex_unlock(&teamMutex_);
+    state_->closeTask();
 }
 
 /**
- * Client code calls this method to block its execution until all work units
- * have been processed and all threads in the team have transitioned to idle.
- * When this method returns, the thread team will therefore be idle.
+ * Give the thread team a unit of work on which it should apply the current
+ * execution cycle's task.
  *
- * This routine can only be called after calling closeTask().
+ * \todo    Need to figure out how to manage more than one unit of work.
+ *          For a CPU-heavy task, it should receive tiles; a GPU-heavy
+ *          task, a data packet of blocks.
  *
- * If a thread team is a work or thread subscriber, then the subscriber team's
- * wait() function must be called after the wait() function of its publisher
- * teams.
+ * \param   work - the unit of work.
+ */
+void ThreadTeam::enqueue(const int work) {
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::enqueue] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
+    }
+    state_->enqueue(work);
+}
+
+/**
+ * Block a single calling thread until the team finishes executing its current
+ * execution cycle.
+ *
+ * \warning Classes derived from ThreadTeamState need to ensure that only one
+ *          single thread can be blocked by calling wait() at a time.
  */
 void ThreadTeam::wait(void) {
-    // TODO: Review this in light of teams with no threads and no work
-    // TODO: If we have a team that pushes work or threads to another
-    //       team, how do we make certain that this doesn't finish 
-    //       if the receiver team is still spinning up?
-    // TODO: Enumerate these based on transitions?  When are states changed,
-    // when is data added?  Are we discovering these enumerations along the way?
-    // Possible entry scenarios
-    //   1) No work in the queue and no more work will be added
-    //      a) all threads idle
-    //         i)   All active threads were computing when closeTask() was
-    //              called
-    //              - set team to idle
-    //         ii)  startTask() given zero threads and team not setup as thread
-    //              subscriber
-    //              - resources wasted
-    //              - could be detected if we store nStartThreads and check if
-    //                team is a thread subscriber
-    //              - TODO: Worth the effort?  Allow client code to setup
-    //                      bad pipelines?
-    //              - set team to idle
-    //         iii) bug in thread team implementation
-    //              - shouldn't happen
-    //      b) threads waiting and possibly some idle threads
-    //         i)   team had active threads but some or all threads were in wait
-    //              already when closeTask() was called
-    //              - set team to idle
-    //      c) threads computing and possibly some idle threads
-    //      d) threads computing and waiting and possibly some idle threads
-    //   2) Work in queue but no more work will be added
-    //      a) all threads idle
-    //      b) threads waiting and possibly some idle threads
-    //      c) threads computing and possibly some idle threads
-    //      d) threads computing and waiting and possibly some idle threads
-    //
-    // At this point, we could have
-    //   1) no more active threads 
-    //      Example - only one thread in team
-    //   2) all active threads waiting
-    //      Example - N>1 threads created and only one work unit
-    //   3) all active threads computing
-    //      Example - more work units than threads and all work
-    //                units in queue before startTask() called
-    //   4) a mixture of computing and waiting threads
-    //      Example - more threads than work units in queue and more
-    //                than one work unit in queue when startTask() called
-    //
-    // A thread can only terminate if the work queue is empty and this
-    // method has been called.  Therefore, there is no more work in the
-    // queue for waiting threads and we signal *all* waiting threads to check
-    // the queue so that they can determine that they can terminate.
-    //
-    // No computing threads can check the queue yet since we hold the mutex.
-    // Therefore, they will determine when they get the mutex that they can 
-    // terminate.  Hence, they will not wait and it is unimportant that they
-    // miss this signal.
-
-    pthread_mutex_lock(&teamMutex_);
-
-    if (state_ != TEAM_RUNNING_CLOSED_QUEUE) {
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error("[ThreadTeam::wait] "
-                               "closeTask() not called yet");
-    } else if (!queue_.empty() && (nIdleThreads() == nMaxThreads_)) {
-        // Work enqueued, but no threads made active yet.
-        //
-        // This could occur if
-        //   1) the team code is buggy and allows for threads to go idle before
-        //      all work is enqueued (shouldn't happen) or
-        //   2) startTask() is given zero threads and the team is not setup
-        //      as a thread subscriber.
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error("[ThreadTeam::wait] "
-                               "closeTask() not called yet");
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::wait] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
     }
-
-    if (queue_.empty()) {
-        if (nIdleThreads() == nMaxThreads_) {
-            // Thread team never received work and no threads created.
-            // This resets team status so that it can start queueing work again.
-#ifdef VERBOSE
-            printf("[%s] Finished task %s\n", hdr_.c_str(), taskName_.c_str());
-#endif
-            transitionState(TEAM_IDLE);
-
-            // Once the task is finished the team no longer has a task identity
-            hdr_  = "ThreadTeam ";
-            hdr_ += std::to_string(id_);
-            taskName_ = "";
-
-            pthread_mutex_unlock(&teamMutex_);
-            return;
-        } else {
-            // No more work and some threads possibly waiting.
-            //  => Inform all waiting threads to check the queue and go idle
-            //
-            // Upon terminating their work, all computing threads should
-            // discover that there is no more work and should go idle.
-            pthread_cond_broadcast(&checkQueue_);
-        }
-    }
-
-    // Block until all threads in team have transitioned to idle
-    while (nIdleThreads() < nMaxThreads_) {
-        pthread_cond_wait(&threadIdling_, &teamMutex_);
-    }
-  
-    // Sanity check the team's state
-    if (!queue_.empty()) {
-        pthread_mutex_unlock(&teamMutex_);
-        std::logic_error("[ThreadTeam::wait] "
-                         "No more threads to carry out pending work"); 
-    }
-
-    // This resets team status so that it can start queueing work again.
-#ifdef VERBOSE
-    printf("[%s] Finished task %s\n", hdr_.c_str(), taskName_.c_str());
-#endif
-    transitionState(TEAM_IDLE);
-
-    // Once the task is finished the team no longer has a task identity
-    hdr_  = "ThreadTeam ";
-    hdr_ += std::to_string(id_);
-    taskName_ = "";
-
-    pthread_mutex_unlock(&teamMutex_);
+    state_->wait();
 }
 
 /**
+ * Attach a thread team as a thread subscriber.  Therefore, this converts the
+ * calling object into a thread publisher.
  *
+ * \warning Classes derived from ThreadTeamState need to ensure that only one
+ *          thread team can be attached as a thread subscriber at a time.  Also,
+ *          they must confirm that the pointer is non-null, and that the team
+ *          itself is not being set to publish threads to itself.
  *
- * \param
- * \return
+ * \param  receiver - the team to which thread transitions to Idle shall by
+ *                    published.
+ */
+void ThreadTeam::attachThreadReceiver(ThreadTeam* receiver) {
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::attachThreadReceiver] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
+    }
+    state_->attachThreadReceiver(receiver);
+}
+
+/**
+ * Detach the thread subscriber so that the calling object is no longer a thread
+ * publisher.
+ *
+ * \warning Classes derived from ThreadTeamState should consider it a logical
+ * error if this routine is called when the calling object has no thread team
+ * attached as a subscriber.
+ */
+void ThreadTeam::detachThreadReceiver(void) {
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::detachThreadReceiver] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
+    }
+    state_->detachThreadReceiver();
+}
+
+/**
+ * Register a thread team as a work subscriber.  Therefore, this converts the
+ * calling object into a work publisher.
+ *
+ * \warning Classes derived from ThreadTeamState need to ensure that only one
+ *          thread team can be attached as a work subscriber at a time.  Also,
+ *          they must confirm that the pointer is non-null, and that the team
+ *          itself is not being set to publish work to itself.
+ *
+ * \param  receiver - the team to which units of work shall be published.
+ */
+void ThreadTeam::attachWorkReceiver(ThreadTeam* receiver) {
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::attachWorkReceiver] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
+    }
+    state_->attachWorkReceiver(receiver);
+}
+
+/**
+ * Detach the work subscriber so that the calling object is no longer a work
+ * publisher.
+ *
+ * \warning Classes derived from ThreadTeamState should consider it a logical
+ * error if this routine is called when the calling object has no thread team
+ * attached as a subscriber.
+ */
+void ThreadTeam::detachWorkReceiver(void) {
+    if (!state_) {
+        std::string  errMsg("ThreadTeam::detachWorkReceiver] ");
+        errMsg += hdr_;
+        errMsg += "\nstate_ is NULL";
+        throw std::runtime_error(errMsg);
+    }
+    state_->detachWorkReceiver();
+}
+
+/**
+ * This is the routine that each thread in the team executes as it moves
+ * through the thread states Idle, Waiting, Computing, and Terminating in accord
+ * with the team's mode, the queue contents and the state of the other threads
+ * in the team.
+ *
+ * A thread is
+ *   - Idle if it is waiting on the activateThread_ signal
+ *   - Terminating if it has determined that the team has mode Terminating
+ *   - Waiting if it is not Idle or Terminating and waiting on transitionThread_
+ *   - Computing if it found work at the last transition and is currently
+ *     executing the task on that work.
+ *   
+ * \param  varg - a void pointer to the thread's ThreadData initializationd data
+ * \return nullptr
  */
 void* ThreadTeam::threadRoutine(void* varg) {
     pthread_detach(pthread_self());
@@ -740,266 +641,53 @@ void* ThreadTeam::threadRoutine(void* varg) {
                                  "Null thread team pointer");
     }
 
-    // TODO: Move this into the loop?
-    // All threads must initially wait and indicate that they have started their
-    // routine.
-    pthread_mutex_lock(&(team->teamMutex_));
-
-    team->transitionThreadState(tId, THREAD_IDLE);
-    pthread_cond_signal(&(team->threadIdling_));
-
-    // Wait for first call to startTask()
-    pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
-
-    pthread_mutex_unlock(&(team->teamMutex_));
-
-    Block       block;
-    bool        isEmpty = false;
-    teamState   state = TEAM_IDLE;
-    bool        foundWork = false;
+    bool        hasStarted = false;
+    teamMode    mode = MODE_IDLE;
     while (true) {
-        foundWork = false;
-
         pthread_mutex_lock(&(team->teamMutex_));
-        isEmpty = team->queue_.empty();
-        state = team->state_;
+        mode = team->state_->mode();
 
-        if (state == TEAM_TERMINATING) {
-            team->transitionThreadState(tId, THREAD_TERMINATING);
+        if        ((mode == MODE_IDLE) && !hasStarted) {
+            hasStarted = true;
+
+            // Inform team that thread started and start in Idle
+            team->N_idle_actual_ += 1;
+            pthread_cond_signal(&(team->threadStarted_));
+            pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
+        } else if (!hasStarted) {
+            pthread_mutex_unlock(&(team->teamMutex_));
+            std::string  msg("[ThreadTeam::threadRoutine] ");
+            msg += team->hdr_;
+            msg += "/Thread ";
+            msg += std::to_string(tId);
+            msg += "\nThread team not started in Idle at startup";
+            throw std::logic_error(msg);
+        } else if (mode == MODE_TERMINATING) {
+            // Inform team that thread has terminated & terminate
+            team->N_idle_actual_ -= 1;
             pthread_cond_signal(&(team->threadTerminated_));
 
             pthread_mutex_unlock(&(team->teamMutex_));
 
             pthread_exit(NULL);
             return nullptr;
-        } else if (    isEmpty 
-                   && ((state == TEAM_RUNNING_CLOSED_QUEUE) || (state == TEAM_IDLE)) ) {
-            // No more work in queue and no more work can be added since a
-            // thread has called wait
-            //    => thread can now terminate.
-            // Update state before signaling that thread is terminating.
-            team->transitionThreadState(tId, THREAD_IDLE);
-
-            // Inform wait() so that it can block until all threads are idling
-            pthread_cond_signal(&(team->threadIdling_));
-
-            // Transfer thread resources to receiver thread team
-            if (team->threadReceiver_) {
-                team->threadReceiver_->increaseThreadCount(1);
-            }
-
-            pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
-        } else if (isEmpty && (state == TEAM_RUNNING_OPEN_QUEUE)) {
-            // There is still the potential for more work to be added.
-            // Therefore, we don't want the thread to terminate, but rather
-            // to wait for the signal that it should check the queue again.
-            team->transitionThreadState(tId, THREAD_WAITING);
-            pthread_cond_wait(&(team->checkQueue_), &(team->teamMutex_)); 
-
-            // State could have changed during wait, so recheck state
-            // with explicit calls
-            if (!team->queue_.empty()) {
-                // work was enqueued
-                block = team->queue_.front();
-                team->queue_.pop();
-                foundWork = true;
-                team->transitionThreadState(tId, THREAD_COMPUTING);
-
-                // Since the state upon entry is no wait, we cannot
-                // conclude that there will be no more work.
-            }
-
-            // It is possible for
-            //       1) thread A to be in wait state
-            //       2) work to be enqueued
-            //       3) thread B to pop that work first
-            //       4) thread A to receive the signal to check the queue
-            //       5) thread A finds the queue empty
-            //
-            // It is also possible that a thread terminated and wait() informed
-            // this thread to recheck the queue so that it can discover that there
-            // is no more work and that it should therefore terminate as well.
-            // 
-            // In these cases, the thread will go back into a wait state or
-            // terminate.
-        } else if (  !isEmpty && 
-                   ((state == TEAM_RUNNING_OPEN_QUEUE) || (state == TEAM_RUNNING_CLOSED_QUEUE))) {
-            block = team->queue_.front();
-            team->queue_.pop();
-            foundWork = true;
-            team->transitionThreadState(tId, THREAD_COMPUTING);
-
-            // Update to see if this thread left the queue empty.
-            // If this is the last work to be done, signal to all waiting 
-            // threads that they should check the queue and therefore
-            // determine that they should terminate.
-            if (team->queue_.empty() && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
-                pthread_cond_broadcast(&(team->checkQueue_));
-            }
         } else {
-            team->printState();
             pthread_mutex_unlock(&(team->teamMutex_));
-            std::string  msg("[ThreadTeam::threadRoutine] "
-                             "Invalid thread control flow - Thread ");
+            std::string  msg("[ThreadTeam::threadRoutine] ");
+            msg += team->hdr_;
+            msg += "/Thread ";
             msg += std::to_string(tId);
+            msg += "\nInvalid thread control flow";
             throw std::logic_error(msg);
         }
         pthread_mutex_unlock(&(team->teamMutex_));
-
-        // Release the mutex before executing computation on work
-        if (foundWork) {
-#ifdef VERBOSE
-            printf("[%s / Thread %d] Dequeued block %d\n", team->hdr_.c_str(),
-                                                           tId, block.index());
-#endif
-            team->taskFcn_(tId, team->hdr_, block);
-
-            // Send work to next thread team in the pipeline if it exists
-            pthread_mutex_lock(&(team->teamMutex_));
-            if (team->workReceiver_) {
-                team->workReceiver_->enqueue(block); 
-
-                // We cannot rely on this changing the state of the reciever
-                // team as it is possible for this to occur before this team's
-                // state is set to closed (by client code!)
-                // FIXME: Is this good motivation for rethinking the states of
-                //        thread teams?
-                if (team->queue_.empty() && (state == TEAM_RUNNING_CLOSED_QUEUE)) {
-                    team->workReceiver_->closeTask();
-                }
-            }
-            pthread_mutex_unlock(&(team->teamMutex_));
-        }
     }
 
-    throw std::logic_error("[ThreadTeam::threadRoutine] "
-                           "Inavlid thread control flow");
-}
-
-/**
- *
- *
- * \param
- * \return
- */
-void ThreadTeam::attachThreadReceiver(ThreadTeam* receiver) {
-    pthread_mutex_lock(&teamMutex_);
-
-    if (!receiver) {
-        throw std::logic_error("[ThreadTeam::attachThreadReceiver] "
-                               "Null receiver thread team given");
-    } else if (receiver == this) {
-        throw std::logic_error("[ThreadTeam::attachThreadReceiver] "
-                               "Cannot attach the team to itself");
-    } else if (threadReceiver_) {
-        throw std::logic_error("[ThreadTeam::attachThreadReceiver] "
-                               "A receiver team is already attached");
-    } else if (state_ != TEAM_IDLE) {
-        throw std::logic_error("[ThreadTeam::attachThreadReceiver] "
-                               "Cannot attach unless team in Idle");
-    }
-
-    threadReceiver_ = receiver;
-
-    pthread_mutex_unlock(&teamMutex_);
-}
-
-/**
- *
- *
- * \param
- * \return
- */
-void ThreadTeam::detachThreadReceiver(void) {
-    pthread_mutex_lock(&teamMutex_);
-
-    if (state_ != TEAM_IDLE) {
-        throw std::logic_error("[ThreadTeam::detachThreadReceiver] "
-                               "Cannot detach unless team in Idle");
-    }
-    threadReceiver_ = nullptr;
-
-    pthread_mutex_unlock(&teamMutex_);
-}
-
-/**
- *
- *
- * \param
- * \return
- */
-void ThreadTeam::attachWorkReceiver(ThreadTeam* receiver) {
-    pthread_mutex_lock(&teamMutex_);
-
-    if (!receiver) {
-        throw std::logic_error("[ThreadTeam::attachWorkReceiver] "
-                               "Null receiver thread team given");
-    } else if (receiver == this) {
-        throw std::logic_error("[ThreadTeam::attachWorkReceiver] "
-                               "Cannot attach the team to itself");
-    } else if (workReceiver_) {
-        throw std::logic_error("[ThreadTeam::attachWorkReceiver] "
-                               "A receiver team is already attached");
-    } else if (state_ != TEAM_IDLE) {
-        throw std::logic_error("[ThreadTeam::attachWorkReceiver] "
-                               "Cannot attach unless team in Idle");
-    }
-
-    workReceiver_ = receiver;
-
-    pthread_mutex_unlock(&teamMutex_);
-}
-
-/**
- *
- *
- * \param
- * \return
- */
-void ThreadTeam::detachWorkReceiver(void) {
-    pthread_mutex_lock(&teamMutex_);
-
-    if (state_ != TEAM_IDLE) {
-        throw std::logic_error("[ThreadTeam::detachWorkReceiver] "
-                               "Cannot detach unless team in Idle");
-    }
-    workReceiver_ = nullptr;
-
-    pthread_mutex_unlock(&teamMutex_);
-}
-
-/**
- *
- *
- * \param
- * \return
- */
-void ThreadTeam::printState(void) const {
-    printf("[%s] Thread Team State Snapshot\n", hdr_.c_str());
-    printf("[%s] -------------------------------------------------------\n",
-           hdr_.c_str());
-    printf("[%s] \tThreadTeam State\t\t%s\n", hdr_.c_str(),
-           getStateName(state_).c_str());
-    printf("[%s] \tUnits of Work in Queue\t\t%d\n",  hdr_.c_str(),
-           queue_.size());
-    printf("[%s] \tN Threads in Team\t\t%d\n", hdr_.c_str(), nMaxThreads_);
-    printf("[%s] \tThread States\n", hdr_.c_str());
-    std::string threadState = "";
-    for (unsigned int i=0; i<nMaxThreads_; ++i) {
-        printf("[%s] \t\tThread %d\t\t%s\n", hdr_.c_str(),
-               i, getThreadStateName(threadStates_[i]).c_str());
-    }
-
-    if (threadReceiver_) {
-        printf("[%s] \tThread Receiver\t\t\t%s\n", hdr_.c_str());
-    } else {
-        printf("[%s] \tNo Thread Receiver\n", hdr_.c_str());
-    }
-
-    if (workReceiver_) {
-        printf("[%s] \tWork Receiver\t\t\t%s\n", hdr_.c_str());
-    } else {
-        printf("[%s] \tNo Work Receiver\n", hdr_.c_str());
-    }
+    std::string  msg("[ThreadTeam::threadRoutine] ");
+    msg += team->hdr_;
+    msg += "/Thread ";
+    msg += std::to_string(tId);
+    msg += "\nInvalid thread control flow";
+    throw std::logic_error(msg);
 }
 
