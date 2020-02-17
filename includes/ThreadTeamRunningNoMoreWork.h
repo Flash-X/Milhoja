@@ -34,6 +34,9 @@ public:
     void                  attachWorkReceiver(ThreadTeam* receiver);
     void                  detachWorkReceiver(void);
 
+protected:
+    std::string  isStateValid_NotThreadSafe(void) const;
+
 private:
     // Disallow copying of objects to create new objects
     ThreadTeamRunningNoMoreWork& operator=(const ThreadTeamRunningNoMoreWork& rhs);

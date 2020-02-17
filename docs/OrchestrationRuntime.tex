@@ -3,7 +3,10 @@
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage[toc,page]{appendix}
+\usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{commath}
 \usepackage{color}
 
 \title{FLASH Orchestration System Design}
@@ -14,6 +17,13 @@
 % Set spacing between items in itemize/enumerate
 \setlist{itemsep=1pt}
 
+\newcommand{\N}                 {{\mathbb N}}
+\newcommand{\Z}                 {{\mathbb Z}}
+\newcommand{\Q}                 {{\mathbb Q}}
+\newcommand{\R}                 {{\mathbb R}}
+\newcommand{\C}                 {{\mathbb C}}
+\newcommand{\F}                 {{\mathbb F}}
+
 \newcommand{\SetuptimeParam}[1] {\textcolor{red}{#1}}
 \newcommand{\RuntimeParam}[1]   {\textcolor{blue}{#1}}
 \newcommand{\ComposerKey}[1]    {\textcolor{cyan}{#1}}
@@ -22,6 +32,7 @@
 \newcommand{\TeamIdle}          {\textsc{TeamIdle}}
 \newcommand{\TeamRunningOpen}   {\textsc{TeamRunningOpen}}
 \newcommand{\TeamRunningClosed} {\textsc{TeamRunningClosed}}
+\newcommand{\TeamRunningNoMoreWork} {\textsc{TeamRunningNoMoreWork}}
 \newcommand{\TeamTerminating}   {\textsc{TeamTerminating}}
 
 \newcommand{\ThreadStarting}    {\textsc{ThreadStarting}}
@@ -31,22 +42,16 @@
 \newcommand{\ThreadTerminating} {\textsc{ThreadTerminating}}
 
 \begin{document}
+
+% Setup numbered/referentiable environment for requirements
+\theoremstyle{definition} % No italics or spaces
+\newtheorem{req}{Req}[section]
+
 \maketitle
 
-\section{Runtime design}
-%What classes of scalar values do we have in the physics units?  For instance are
-%there scalars that are constant for the duration of the simulation?  Constant
-%for the duration of an iteration?  Constants that are changed by auxiliary
-%tasks?  Constants that are updated by work tasks?  For the first two, we can set
-%up mirrors of the variable between host and devices.  Those that are changed by
-%auxiliary tasks can also be mirrored by running the task concurrently in both
-%the CPU and the GPU.  What about the others?  Do we send those in the data
-%packets so that the CPU and GPUs can force the mirroring somehow?  Do we just
-%hand these over the managed memory and hope that everything goes well?  Do we
-%hand these over to managed memory but ask the task composer to touch the scalars
-%on the appropriate device before each runtime call (these are blocking)?\\
+\section{Design Summary}
 
-\subsection{Requirements}
+\section{Runtime Requirements}
 If a simulation is setup such that no runtime is needed, then the Orchestration
 runtime shall not be built into the simulation.  In particular, this means that
 there shall be no unnecessary resources allocated nor an extra level of packing
@@ -190,6 +195,242 @@ TODO: Add info how pub/sub links are made and when they can be made/unmade.\\
 
 TODO: Need to specify requirements for unit of work translation.\\
 
+\section{Runtime Technical Specifications \& Design}
+%What classes of scalar values do we have in the physics units?  For instance are
+%there scalars that are constant for the duration of the simulation?  Constant
+%for the duration of an iteration?  Constants that are changed by auxiliary
+%tasks?  Constants that are updated by work tasks?  For the first two, we can set
+%up mirrors of the variable between host and devices.  Those that are changed by
+%auxiliary tasks can also be mirrored by running the task concurrently in both
+%the CPU and the GPU.  What about the others?  Do we send those in the data
+%packets so that the CPU and GPUs can force the mirroring somehow?  Do we just
+%hand these over the managed memory and hope that everything goes well?  Do we
+%hand these over to managed memory but ask the task composer to touch the scalars
+%on the appropriate device before each runtime call (these are blocking)?\\
+
+The runtime is fundamentally a event-driven software and as such the design has
+been specified as a finite state machine.  However, the behavior in a given
+state cannot be specified solely on the basis of a single qualitative state
+variable.  Rather, the behavior will depend on a qualitative state variable,
+which is called the mode, as well as the quantitative internal state variables
+$N_i, N_w, N_c, N_t, N_Q$ that respectively keep track of 
+\begin{itemize}
+\item{the number of idle threads in the team,}
+\item{the number of threads that are waiting for work to be added,}
+\item{the number of threads executing a computation on a unit of work,}
+\item{the number of threads that are terminating, and}
+\item{the number of units of work in team's pending work queue.}
+\end{itemize}
+Note that the definitions of $N_i, N_w, N_c, N_t$ imply that each thread is
+always in one and only one state but that this EFSM need not track the actual
+state of each thread --- it is only the aggregated thread state information that
+is important.  Therefore, the runtime is an extended finite state machine 
+\[
+M = (Q, X, I, O, s_0, T)
+\]
+where
+\begin{itemize}
+\item{$Q$ is the finite set of qualitative modes,}
+\item{$X = \set{(N_i, N_w, N_c, N_t, N_Q) \in \N_0^5 | N_i + N_w + N_c + N_t =
+N_{max}}$ is the set of internal state variables where $N_{max}$ is the
+number of threads in the team,}
+\item{$I$ is the set of internel and external events,}
+\item{$O$ is the set of outputs,}
+\item{$s_0 = (q_0, x_0) \in Q \times X$ is the initial state, and}
+\item{$T : Q \times X \times I \to Q \times X \times O$ is the transition
+function that is evaluated by the EFSM at each occurrence of an event to
+identify the output to be performed as well as the state to transition to.}
+\end{itemize}
+
+The set $Q$ contains the modes
+\begin{itemize}
+\item{\TeamIdle --- all threads idle and no work in the queue}
+\item{\TeamRunningOpen --- a task has been given to the team and units of work
+on which to execute the task can still be given to the team}
+\item{\TeamRunningClosed --- a task being executed but no more units
+of work can be given to the team}
+\item{\TeamRunningNoMoreWork --- a task is being executed, no more
+units of work can be given, and the team has identified that the task has
+already been applied to or is currently being applied to all units of work}
+\item{\TeamTerminating --- the client has indicated that it no longer needs the team.}
+\end{itemize}
+
+The set $I$ of events is the union of events triggered by clients through the
+team's interface
+\begin{itemize}
+\item{\texttt{startTask} --- give the team a task and activate a given number of the
+$N_{max}$ idle threads in the team to work on it}
+\item{\texttt{increaseThreadCount} --- activate a given number of idle threads in the
+team so that they can start working on the task as well}
+\item{\texttt{enqueue} --- give the team a unit of work on which to apply its
+task}
+\item{\texttt{closeTask} --- indicate (without blocking the caller) to the team
+that no more units of work will be given for the current task}
+\item{\texttt{$\sim$ThreadTeam} --- thread team no longer needed}
+\end{itemize}
+with the set of events triggered internally
+\begin{itemize}
+\item{\texttt{activateThread} --- wake an idle thread so that it can participate
+in applying a task to given units of work}
+\item{\texttt{transitionThread} --- wake a thread that is waiting for work so
+that it can evaluate if there is pending work and update its state accordingly}
+\item{\texttt{computationFinished} --- a thread finished applying the team's
+task to a unit of work and shall evaluate if there is pending work and update
+its state accordingly}
+\item{\texttt{threadTerminated} --- emitted by a thread to indicate that it has
+terminated}
+\end{itemize}
+
+The initial state is defined to be
+\[
+s_0 = \left(q_0, (N_i, N_w, N_c, N_t, N_Q)_0\right) = \left(\TeamIdle, (0, 0, 0, 0, 0)\right).
+\]
+
+The set $O$ and the transition function $T$ encapsulate the complexity of the
+runtime and are specified in the spreadsheet XXX.  A state diagram for the team
+that indicates only states and transitions is shown in
+Figure~\ref{fig:TeamStateDiagram}.  A similar state diagram for threads in the
+team is shown in Figure~\ref{fig:ThreadStateDiagram}.  These figures are
+intended only to aid in understanding the design of the runtime.  The content of
+XXX should be understood to be the actual design of the runtime.
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=5.0in]{TeamStates.pdf}
+\caption[]{}
+\label{fig:TeamStateDiagram}
+\end{center}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{center}
+\includegraphics[width=6.5in]{ThreadStatesPersistent.pdf}
+\caption[]{}
+\label{fig:ThreadStateDiagram}
+\end{center}
+\end{figure}
+
+\begin{req}
+All threads that transition to idle must wait for the \texttt{activateThread}
+signal.
+\label{req:IdleActivateThread}
+\end{req}
+
+\begin{req}
+External code can decrease $N_i$ through the \texttt{startTask} and
+\texttt{increaseThreadCount} events and the runtime shall be implemented such
+that a request to activate $i$ threads results in an error if $i$ exceeds the
+number of idle threads that are available for activation.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  In the present design, this requirement
+is important because the runtime would emit more \texttt{activateThread} signals
+than there are threads to receive them.  Because teams allows for thread
+publishers/subscribers, undetected signals would amount to a loss of thread
+resources at the level of the runtime.  Note that a thread-based implementation
+will have a lag between when these events trigger the activation of idle threads
+and when these threads are actually activated.  The runtime design therefore
+tracks the actual number of idle threads with \texttt{N\_idle\_} = $N_i$ as well
+as the number of threads pending activation with \texttt{N\_to\_activate\_}.
+When a thread does receive \texttt{activateThread}, it decrements both
+\texttt{N\_idle\_} and \texttt{N\_to\_activate\_} and increments the internal
+state variable $N_w, N_c$, or $N_t$ corresponding to the thread's next state.
+To satisfy the requirement, both events throw an error if $i > $
+\texttt{N\_idle\_} - \texttt{N\_to\_activate\_}.
+
+\begin{req}
+\label{req:Runtime_OneWait}
+For each task execution, a team shall allow for only one thread to wait on the
+termination of the task.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented a flag
+\texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
+
+\subsection{{\TeamIdle} State}
+
+\begin{req}
+\label{req:Idle_NoEnqueue}
+While the runtime could allow clients to give units of work to a team with the
+understanding that the work would be for the next task to be given to the team,
+there is no known use case for which this is necessary.  Therefore, to simplify
+the design, client code shall not be allowed to give a team a unit of work if
+the team is in the mode \TeamIdle.  
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  The \texttt{enqueue} method throws an
+error if called in this mode.  There is no other means to add work.\\ 
+
+\begin{req}
+In the {\TeamIdle} mode, the queue shall always be empty and all threads in the
+team in the idle state.  This implies that no thread can be in the Waiting,
+Computing, or Terminating states and that all threads are therefore by
+Req~\ref{req:IdleActivateThread} are waiting to receive the
+\texttt{activateThread} event.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  The initial state starts in {\TeamIdle}
+but specifies that there is no work in the queue.  Also, all transitions to
+{\TeamIdle} can only happen if the queue is empty.  Therefore, the pending work
+queue is always empty upon entry to \TeamIdle.  Finally, no work can be added
+to the queue in the {\TeamIdle} state by Req~\ref{req:Idle_NoEnqueue}.\\
+
+The initial state specifies that all threads are idle and transitions to
+{\TeamIdle} can only happen if the same is true.  Therefore, the claim is true
+upon entry to {\TeamIdle} and all threads are waiting for \texttt{activateThread}.
+Note that threads can only transition to Terminating in the {\TeamTerminating} 
+state.  Also, responses\footnote{These cases are being considered should one of
+these events be emitted when the team in not Idle, but is received after
+transitioning to Idle.  With the current implementation, since all threads would
+be waiting on \texttt{activateThread}, no threads would be waiting for the
+latter two events.} to \texttt{activateThread}, \texttt{transitionThread}, and
+\texttt{computationFinishes} do not transition the thread state and have the
+responding threads wait for \texttt{activateThread}.  Therefore any attempt to
+transition a thread terminates with the thread in idle.\\
+
+\begin{req}
+Consider a team that is both a thread publisher and subscriber.  It is possible
+for the team to finish its work and transition to {\TeamIdle} before its
+publisher finishes its work.  Therefore, to avoid loss of thread resources at
+the level of the runtime, teams that are thread publishers and that are in
+{\TeamIdle} shall forward requests to increase thread count on to their
+subscriber.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
+\begin{req}
+It is possible that a runtime execution cycle could finish and transition the
+team back to {\TeamIdle} before an external thread has the chance to call
+\texttt{wait}.  Therefore, the method shall be enabled in {\TeamIdle} and shall
+terminate immediately to avoid unnecessary blocking of the calling thread.  Note
+that this does allow for client code to superfluously call \texttt{wait} before
+the first execution cycle is run and multiple times between cycles, both of
+which are logical errors.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated and in
+accord with Req~\ref{req:Runtime_OneWait}.  
+
+\subsection{{\TeamTerminating} State}
+\begin{req}
+Client code shall not be able to interact with a thread team that is in the
+{\ThreadTerminating} mode and the EFSM terminates automatically as a result of
+being transitioned to this mode.
+\end{req}
+\textbf{Verification:}\hspace{0.125in} The transition to this mode is triggered
+by destroying the team object and is therefore handled by the destructor.
+Hence, interaction with the object is impossible.
+
+\begin{req}
+Upon entry into {\TeamTerminating} and while in this state, the pending work
+queue shall always be empty and the number of waiting and computing threads
+equal to zero.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  These are confirmed in the destructor
+upon transitioning to the mode.  Other consistency checks are handled in the
+destructor as sanity checks of proper implementation.
+
+\begin{req}
+\end{req}
+\textbf{Verification:}\hspace{0.125in}
+
+
+
 At any point in time, each thread team shall only exist in one of the states
 \begin{enumerate}
 \item{\TeamStarting,}
@@ -252,13 +493,6 @@ TODO: Add in information about when work can be added.  Add in info about when
 Work/Thread subscribers can be added/removed.  Need to account for special cases
 of threads being given.\\
 
-\begin{figure}[!ht]
-\begin{center}
-\includegraphics[width=3.5in]{TeamStates.pdf}
-\caption[]{}
-\label{fig:TeamStateDiagram}
-\end{center}
-\end{figure}
 
 At any point in time, each thread in a thread team shall only exist in one of
 the states
@@ -320,13 +554,6 @@ implementation, this can occur if a waiting thread is awakened due to the
 addition of a new unit of work to the queue, but eventually finds no work
 because a computing thread was able to dequeue the new unit of work first.}\\
 
-\begin{figure}[!hp]
-\begin{center}
-\includegraphics[width=6.5in]{ThreadStatesPersistent.pdf}
-\caption[]{}
-\label{fig:ThreadStateDiagram}
-\end{center}
-\end{figure}
 
 A thread team shall maintain a set of pending units of work and all threads in a
 thread team shall be able to check the set of pending units of work.  In

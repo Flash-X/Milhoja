@@ -130,7 +130,6 @@
 
 #include "runtimeTask.h"
 
-// Avoid cyclic dependencies
 class ThreadTeamState;
 class ThreadTeamIdle;
 class ThreadTeamTerminating;
@@ -140,11 +139,20 @@ class ThreadTeamRunningNoMoreWork;
 
 class ThreadTeam {
 public:
+    //***** Extended Finite State Machine State Definition
+    // Qualitative state Modes
+    enum teamMode   {MODE_IDLE,
+                     MODE_TERMINATING,
+                     MODE_RUNNING_OPEN_QUEUE,
+                     MODE_RUNNING_CLOSED_QUEUE,
+                     MODE_RUNNING_NO_MORE_WORK};
+
     ThreadTeam(const unsigned int nMaxThreads, const unsigned int id);
     virtual ~ThreadTeam(void);
 
     // State-independent methods
-    unsigned int nMaximumThreads(void) const;
+    unsigned int             nMaximumThreads(void) const;
+    ThreadTeam::teamMode     mode(void) const;
 
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
@@ -162,25 +170,21 @@ public:
     void         attachWorkReceiver(ThreadTeam* receiver);
     void         detachWorkReceiver(void);
 
-    //***** Extended Finite State Machine State Definition
-    // Qualitative state Modes
-    enum teamMode   {MODE_IDLE,
-                     MODE_TERMINATING,
-                     MODE_RUNNING_OPEN_QUEUE,
-                     MODE_RUNNING_CLOSED_QUEUE,
-                     MODE_RUNNING_NO_MORE_WORK};
 protected:
     // Structure used to pass data to each thread 
     struct ThreadData {
         unsigned int   tId = -1;       //!< ID that each thread uses for logging
         ThreadTeam*    team = nullptr; //!< Pointer to team object that starts/owns the thread
     };
-    
+
     // Routine that each thread in the team runs
     static void* threadRoutine(void*);
 
     std::string  getModeName(const teamMode mode) const;
     std::string  setMode_NotThreadsafe(const teamMode nextNode);
+    std::string  printState_NotThreadsafe(const std::string& method,
+                                          const unsigned int tId,
+                                          const std::string& msg) const;
 
 private:
     // Disallow copying of objects to create new objects
@@ -198,20 +202,28 @@ private:
     //***** Extended Finite State Machine State Definition
     // Qualitative State Mode
     // Encoded in ThreadTeamState instance pointed to by state_
-    // See list of state*_ instances declared below
+    ThreadTeamState*              state_;
+    ThreadTeamIdle*               stateIdle_;
+    ThreadTeamTerminating*        stateTerminating_;
+    ThreadTeamRunningOpen*        stateRunOpen_;
+    ThreadTeamRunningClosed*      stateRunClosed_;
+    ThreadTeamRunningNoMoreWork*  stateRunNoMoreWork_;
 
     // Quantitative Internal State Variables
-    unsigned int   N_idle_actual_;        /*!< Number of threads that are
-                                           *   actually Idling
-                                           *   (i.e. waiting on activateThread_)) */
-    unsigned int   N_wait_;               /*!< No work at last transition.
-                                           *   Waiting for transitionThread_. */
-    unsigned int   N_comp_;               /*!< Found work at last transition and
-                                           *   currently applying task to work.
-                                           *   It will transition
-                                           *   (ComputingFinished event) when it
-                                           *   finishes that work. */
-    std::queue<int>   queue_;             //!< Internal queue of pending work.
+    unsigned int   N_idle_;      /*!< Number of threads that are
+                                  *   actually Idling
+                                  *   (i.e. waiting on activateThread_)) */
+    unsigned int   N_wait_;      /*!< No work at last transition.
+                                  *   Waiting for transitionThread_. */
+    unsigned int   N_comp_;      /*!< Found work at last transition and
+                                  *   currently applying task to work.
+                                  *   It will transition
+                                  *   (computingFinished event) when it
+                                  *   finishes that work. */
+    unsigned int   N_terminate_; /*!< Number of threads that are terminating
+                                  *   or that have terminated. */
+
+    std::queue<int>   queue_;   //!< Internal queue of pending work.
 
     //***** Data members not directly related to state
     // Client code could set the number of Idle threads by calling startTask()
@@ -219,21 +231,16 @@ private:
     // threads to transition to active.
     //
     // If client code calls increaseThreadCount(), we need to throw an error if
-    // the increased count would exceed the number of threads in the team.
+    // the increased count would exceed the number of Idle threads in the team.
     // Therefore, we cannot rely on the number of actual Idle threads to do this
-    // error checking.
-    unsigned int      N_idle_intended_;
+    // error checking.  This tracks the number of Idle threads that will be
+    // activated but that have not yet received the signal to activate.
+    unsigned int      N_to_activate_;
 
     unsigned int      nMaxThreads_;        //!< Number of threads in team won't exceed this
     unsigned int      id_;                 //!< (Hopefully) unique ID for team
     std::string       hdr_;                //!< Short name of team for logging
     std::string       taskName_;           //!< Short name of task for logging
-    ThreadTeamState*              state_;
-    ThreadTeamIdle*               stateIdle_;
-    ThreadTeamTerminating*        stateTerminating_;
-    ThreadTeamRunningOpen*        stateRunOpen_;
-    ThreadTeamRunningClosed*      stateRunClosed_;
-    ThreadTeamRunningNoMoreWork*  stateRunNoMoreWork_;
 
     pthread_attr_t    attr_;               //!< All threads setup with this attribute
     pthread_mutex_t   teamMutex_;          //!< Use to access members
@@ -243,17 +250,14 @@ private:
     pthread_cond_t    threadTerminated_;   //!< Each thread emits this signal upon termination
     pthread_cond_t    unblockWaitThread_;  //!< Wake single thread blocked by calling wait()
 
-    TASK_FCN*         taskFcn_;           /*!< Computational task to be applied to
-                                           *   all units of enqueued work */
+    TASK_FCN*         taskFcn_;            /*!< Computational task to be applied to
+                                            *   all units of enqueued work */
 
-    pthread_t*       threads_;            //!< Array of opaque thread indices
-    ThreadData*      threadData_;         //!< Array of arguments passed to thread routine
-
-    ThreadTeam*      threadReceiver_;     //!< Thread team to notify when threads terminate
-    ThreadTeam*      workReceiver_;       //!< Thread team to pass work to when finished
+    ThreadTeam*       threadReceiver_;     //!< Thread team to notify when threads terminate
+    ThreadTeam*       workReceiver_;       //!< Thread team to pass work to when finished
 
     // Keep track of when wait() is blocking and when it is released
-    bool             isWaitBlocking_;     //!< Only a single thread can be blocked 
+    bool              isWaitBlocking_;     //!< Only a single thread can be blocked 
 };
 
 #endif

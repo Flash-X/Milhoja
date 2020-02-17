@@ -35,6 +35,15 @@ ThreadTeam::teamMode ThreadTeamRunningOpen::mode(void) const {
 }
 
 /**
+ * 
+ */
+std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
+    std::string errMsg("");
+
+    return errMsg;
+}
+
+/**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */

@@ -37,6 +37,15 @@ ThreadTeam::teamMode ThreadTeamRunningClosed::mode(void) const {
 }
 
 /**
+ * 
+ */
+std::string ThreadTeamRunningClosed::isStateValid_NotThreadSafe(void) const {
+    std::string errMsg("");
+
+    return errMsg;
+}
+
+/**
  *
  *
  * \param

@@ -22,8 +22,8 @@ endif
 # Enable/Disable verbose logging of orchestration runtime sequence
 #
 ifndef VERBOSITY
-VERBOSITY=VERBOSE
-#VERBOSITY=SILENT
+#VERBOSITY=VERBOSE
+VERBOSITY=SILENT
 endif
 
 #
@@ -36,10 +36,11 @@ STUDY=SINGLE
 #STUDY=SCALING
 endif
 
-BASE    = test_runtime
-BASEDIR = .
-INCDIR  = $(BASEDIR)/includes
-SRCDIR  = $(BASEDIR)/src
+BASE     = test_runtime
+BASEDIR  = .
+INCDIR   = $(BASEDIR)/includes
+SRCDIR   = $(BASEDIR)/src
+TESTDIR  = $(BASEDIR)/test
 
 # Common files
 CXX_HDRS   = \
@@ -73,18 +74,19 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(SRCDIR)/test.cpp
+    $(TESTDIR)/test.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile
 COMMAND   =  $(BASE).x
 
+GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-4fb34iawhssxssc3mdpe4cjjldgnr6n7
 CXX       = g++
-CXXFLAGS  = -fopenmp -g -O0 -I$(INCDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSITY) -D$(STUDY) 
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY) -D$(STUDY) 
 CXXWARNS  =
 
-LIBS      = -lgomp -lstdc++
-LDFLAGS   = 
+LIBS      = -lstdc++ -lgtest -lgtest_main
+LDFLAGS   = -L$(GTESTDIR)/lib
  
 all:    $(COMMAND)
 
@@ -99,4 +101,11 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 
 clean:
 	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
- 
+
+test: $(BASEDIR)/$(BASE).x
+	@echo
+	@echo "Run Orchestration Runtime testsuites"
+	@echo "------------------------------------------------------------------"
+	@$(BASEDIR)/$(BASE).x
+	@echo
+

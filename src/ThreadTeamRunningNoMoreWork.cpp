@@ -37,6 +37,15 @@ ThreadTeam::teamMode ThreadTeamRunningNoMoreWork::mode(void) const {
 }
 
 /**
+ * 
+ */
+std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const {
+    std::string errMsg("");
+
+    return errMsg;
+}
+
+/**
  *
  *
  * \param

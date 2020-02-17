@@ -33,6 +33,11 @@ public:
 
     virtual void                  attachWorkReceiver(ThreadTeam* receiver) = 0;
     virtual void                  detachWorkReceiver(void) = 0;
+
+protected:
+    friend class ThreadTeam; 
+
+    virtual std::string           isStateValid_NotThreadSafe(void) const = 0;
 };
 
 #endif

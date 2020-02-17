@@ -8,8 +8,6 @@
  * pointer to the ThreadTeam object whose private data members it will directly
  * adjust under the hood.
  *
- * \todo - Finish implementing all methods
- *
  * \param team - The ThreadTeam object that is instantiating this object
  */
 ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
@@ -19,7 +17,7 @@ ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
     if (!team_) {
         std::string  msg("[ThreadTeamIdle::ThreadTeamIdle] ");
         msg += team_->hdr_;
-        msg += "\nGiven thread team in NULL";
+        msg += "\n\tGiven thread team in NULL";
         throw std::logic_error(msg);
     }
 }
@@ -39,16 +37,65 @@ ThreadTeam::teamMode ThreadTeamIdle::mode(void) const {
 }
 
 /**
+ * Confirm that the state of the EFSM is valid for the Idle mode.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
+ */
+std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
+    std::string errMsg("");
+
+    if (team_->N_idle_ != team_->nMaxThreads_) {
+        errMsg  = "N_idle != N threads in team";
+    } else if (team_->N_wait_ != 0) {
+        errMsg = "N_wait not zero";
+    } else if (team_->N_comp_ != 0) {
+        errMsg = "N_comp not zero";
+    } else if (team_->N_terminate_ != 0) {
+        errMsg = "N_terminate not zero";
+    } else if (!team_->queue_.empty()) {
+        errMsg = "Pending work queue not empty";
+   }
+
+    return errMsg;
+}
+
+/**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
 void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
                                const std::string& teamName, 
                                const std::string& taskName) {
-    std::string  msg("[ThreadTeamIdle::startTask] ");
-    msg += team_->hdr_;
-    msg += "\nstartTask() not implemented yet for mode Idle";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
+        msg  = "nThreads (";
+        msg += std::to_string(nThreads);
+        msg += ") exceeds the number of threads available for activation";
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    } else if (team_->N_to_activate_ != 0) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, "Number of threads pending activation not zero");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    }
+
+    team_->N_to_activate_ = nThreads;
+    team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
+    for (unsigned int i=0; i<nThreads; ++i) {
+        pthread_cond_signal(&(team_->activateThread_));
+    }
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
 }
 
 /**
@@ -58,12 +105,31 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
  * Otherwise, it does nothing.  This behavior is motivated by the case that a
  * Thread Subscriber has gone Idle before its Thread Publisher has finished its
  * task.  Note that all subsequent teams that are Idle and that receive this
- * signal will ignore it as well as adding threads to a team with no task is
- * non-sensical.
+ * signal will ignore it as well since adding threads to a team with no task is
+ * nonsensical.
  */
 void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
     pthread_mutex_lock(&(team_->teamMutex_));
 
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
+        // Even though we aren't activating threads in the team, this still
+        // represents a logical error in the program.
+        msg  = "nThreads (";
+        msg += std::to_string(nThreads);
+        msg += ") exceeds the number of threads available for activation";
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    }
+
+    // No need to alter N_to_activate_ as we forward the thread activation on
     if (team_->threadReceiver_) {
         team_->threadReceiver_->increaseThreadCount(nThreads);
     }
@@ -80,10 +146,13 @@ void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
  * Work Publisher enqueueing work on a Work Subscriber that is still Idle.
  */
 void ThreadTeamIdle::enqueue(const int work) {
-    std::string  msg("[ThreadTeamIdle::enqueue] ");
-    msg += team_->hdr_;
-    msg += "\nAdding work in Idle state not allowed";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "enqueue", 0, "Adding work in Idle state not allowed");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
@@ -93,10 +162,13 @@ void ThreadTeamIdle::enqueue(const int work) {
  * running.
  */
 void ThreadTeamIdle::closeTask() {
-    std::string  msg("[ThreadTeamIdle::closeTask] ");
-    msg += team_->hdr_;
-    msg += "\nCannot close the queue when no task is being executed";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "enqueue", 0, "Cannot close the queue when no task is being executed");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
@@ -108,20 +180,22 @@ void ThreadTeamIdle::closeTask() {
  * no-op so that it won't block.
  */
 void ThreadTeamIdle::wait(void) {
-#ifdef VERBOSE
-    // DEBUG - Does this ever happen?
     pthread_mutex_lock(&(team_->teamMutex_));
 
-    if (team_->isWaitBlocking_) {
-        std::string  errMsg("ThreadTeamIdle::wait] ");
-        errMsg += team_->hdr_;
-        errMsg += "\nTeam incorrectly believes that a thread already called wait";
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "wait", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (team_->isWaitBlocking_) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "wait", 0, "Team incorrectly believes that a thread already called wait");
+        pthread_mutex_unlock(&(team_->teamMutex_));
         throw std::runtime_error(errMsg);
     }
 
-    std::cout << "[" << team_->hdr_ << "] wait() called with team in Idle\n";
     pthread_mutex_unlock(&(team_->teamMutex_));
-#endif
 }
 
 /**
@@ -137,22 +211,29 @@ void ThreadTeamIdle::wait(void) {
 void ThreadTeamIdle::attachThreadReceiver(ThreadTeam* receiver) {
     pthread_mutex_lock(&(team_->teamMutex_));
 
-    if (!receiver) {
-        std::string  msg("[ThreadTeamIdle::attachThreadReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nNull Thread Subscriber team given";
-        throw std::logic_error(msg);
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachThreadReceiver", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (!receiver) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachThreadReceiver", 0, "Null thread subscriber team given");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     } else if (receiver == team_) {
-        std::string  msg("[ThreadTeamIdle::attachThreadReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nCannot attach the team to itself";
-        throw std::logic_error(msg);
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachThreadReceiver", 0, "Cannot attach team to itself");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     } else if (team_->threadReceiver_) {
-        std::string  msg("[ThreadTeamIdle::attachThreadReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nA Thread Subscriber is already attached";
-        throw std::logic_error(msg);
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachThreadReceiver", 0, "A thread subscriber is already attached");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     }
+
     team_->threadReceiver_ = receiver;
 
     pthread_mutex_unlock(&(team_->teamMutex_));
@@ -166,17 +247,24 @@ void ThreadTeamIdle::attachThreadReceiver(ThreadTeam* receiver) {
 void ThreadTeamIdle::detachThreadReceiver(void) {
     pthread_mutex_lock(&(team_->teamMutex_));
 
-    if (!(team_->threadReceiver_)) {
-        std::string  msg("[ThreadTeamIdle::detachThreadReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nNo Thread Subscriber attached";
-        throw std::logic_error(msg);
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "detachThreadReceiver", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (!(team_->threadReceiver_)) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "detachThreadReceiver", 0, "No thread subscriber attached");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     }
+
     team_->threadReceiver_ = nullptr;
 
     pthread_mutex_unlock(&(team_->teamMutex_));
 }
-    
+
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
@@ -190,22 +278,29 @@ void ThreadTeamIdle::detachThreadReceiver(void) {
 void ThreadTeamIdle::attachWorkReceiver(ThreadTeam* receiver) {
     pthread_mutex_lock(&(team_->teamMutex_));
 
-    if (!receiver) {
-        std::string  msg("[ThreadTeamIdle::attachWorkReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nNull Work Subscriber team given";
-        throw std::logic_error(msg);
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachWorkReceiver", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (!receiver) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachWorkReceiver", 0, "Null work subscriber team given");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     } else if (receiver == team_) {
-        std::string  msg("[ThreadTeamIdle::attachWorkReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nCannot attach the team to itself";
-        throw std::logic_error(msg);
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachWorkReceiver", 0, "Cannot attach team to itself");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     } else if (team_->workReceiver_) {
-        std::string  msg("[ThreadTeamIdle::attachWorkReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nA Work Subscriber is already attached";
-        throw std::logic_error(msg);
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "attachWorkReceiver", 0, "A work subscriber is already attached");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     }
+
     team_->workReceiver_ = receiver;
 
     pthread_mutex_unlock(&(team_->teamMutex_));
@@ -219,12 +314,19 @@ void ThreadTeamIdle::attachWorkReceiver(ThreadTeam* receiver) {
 void ThreadTeamIdle::detachWorkReceiver(void) {
     pthread_mutex_lock(&(team_->teamMutex_));
 
-    if (!(team_->workReceiver_)) {
-        std::string  msg("[ThreadTeamIdle::detachWorkReceiver] ");
-        msg += team_->hdr_;
-        msg += "\nNo Work Subscriber attached";
-        throw std::logic_error(msg);
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "detachWorkReceiver", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (!(team_->workReceiver_)) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "detachWorkReceiver", 0, "No work subscriber attached");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     }
+
     team_->workReceiver_ = nullptr;
 
     pthread_mutex_unlock(&(team_->teamMutex_));
