@@ -89,6 +89,19 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
         throw std::logic_error(errMsg);
     }
 
+#ifdef VERBOSE
+    std::cout << "[" << team_->hdr_ << "] Assigned team name "
+              << teamName << std::endl;
+#endif
+    team_->hdr_ = teamName;
+#ifdef VERBOSE
+    std::count << "[" << team_->hdr_ << "] Starting task "
+               << taskName
+               << " with "
+               << nThreads
+               << " initial threads\n";
+#endif
+
     team_->N_to_activate_ = nThreads;
     team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
     for (unsigned int i=0; i<nThreads; ++i) {

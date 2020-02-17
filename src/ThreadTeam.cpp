@@ -747,6 +747,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
     teamMode     mode         = MODE_IDLE;
     bool         hasStarted   = false;
     bool         isQueueEmpty = false;
+    unsigned int work         = 0;
     while (true) {
         mode = team->state_->mode();
         isQueueEmpty = team->queue_.empty();
@@ -864,11 +865,48 @@ void* ThreadTeam::threadRoutine(void* varg) {
             pthread_mutex_unlock(&(team->teamMutex_));
             pthread_exit(NULL);
             return nullptr;
+        } else if (isQueueEmpty) {
+            team->N_wait_ += 1;
+            N_total =   team->N_idle_ + team->N_wait_
+                      + team->N_comp_ + team->N_terminate_;
+            if (N_total != team->nMaxThreads_) {
+                std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "Inconsistent thread counts");
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::runtime_error(msg);
+            }
+
+            pthread_cond_wait(&(team->transitionThread_), &(team->teamMutex_));
+            team->N_wait_ -= 1;
         } else {
-            std::string  msg = team->printState_NotThreadsafe(
-                "threadRoutine", tId, "Invalid thread control flow");
+            team->N_comp_ += 1;
+            N_total =   team->N_idle_ + team->N_wait_
+                      + team->N_comp_ + team->N_terminate_;
+            if (N_total != team->nMaxThreads_) {
+                std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "Inconsistent thread counts");
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::runtime_error(msg);
+            }
+
+            work = team->queue_.front();
+#ifdef VERBOSE
+            std::cout << "[" << team->hdr_ << " / Thread " << tId << "] "
+                      << "Dequeued work " << work << std::endl;
+#endif
+
+            // Do work!  No need to keep mutex.
             pthread_mutex_unlock(&(team->teamMutex_));
-            throw std::logic_error(msg);
+            team->taskFcn_(tId, team->hdr_, work);
+            pthread_mutex_lock(&(team->teamMutex_));
+
+            // This is where computationFinished is "emitted"
+
+            if (team->workReceiver_) {
+                team->workReceiver_->enqueue(work);
+            }
+
+            team->N_comp_ -= 1;
         }
     }
     pthread_mutex_unlock(&(team->teamMutex_));

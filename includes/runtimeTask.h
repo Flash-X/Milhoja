@@ -7,7 +7,7 @@
 
 typedef void (TASK_FCN)(const unsigned int tId,
                         const std::string& name,
-                        Block& block);
+                        unsigned int& work);
 
 #endif
 

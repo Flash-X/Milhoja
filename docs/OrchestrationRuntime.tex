@@ -345,6 +345,13 @@ termination of the task.
 \textbf{Verification:}\hspace{0.125in}  Implemented a flag
 \texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
 
+\begin{req}
+To maintain a simple design, client code shall only be allowed to attach and
+detach thread subscribers when the team is in the {\TeamIdle} mode.  The same
+requirement applies for work subscribers.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}
+
 \subsection{{\TeamIdle} State}
 
 \begin{req}
@@ -406,6 +413,7 @@ which are logical errors.
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated and in
 accord with Req~\ref{req:Runtime_OneWait}.  
 
+
 \subsection{{\TeamTerminating} State}
 \begin{req}
 Client code shall not be able to interact with a thread team that is in the
@@ -425,10 +433,22 @@ equal to zero.
 upon transitioning to the mode.  Other consistency checks are handled in the
 destructor as sanity checks of proper implementation.
 
+\subsection{\TeamRunningOpen}
+\begin{req}
+Consider the case of two teams, one of which is the work publisher for the
+other.  When the publisher team transitions to {\TeamRunningNoMoreWork}, it
+calls the subscriber's \texttt{closeTask()} method to inform the subscriber that
+it will not be given more work.  This implies that the thread that executes an
+execution cycle with the Orchestration Runtime does not know when
+\texttt{closeTask()} is called and therefore could call \texttt{wait()} before
+this event occurs.  Hence, a thread team in the state {\TeamRunningOpen} shall
+allow for a thread to call \texttt{wait()} method.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
 \begin{req}
 \end{req}
 \textbf{Verification:}\hspace{0.125in}
-
 
 
 At any point in time, each thread team shall only exist in one of the states
