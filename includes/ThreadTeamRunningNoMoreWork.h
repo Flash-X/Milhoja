@@ -26,7 +26,7 @@ public:
                                     const std::string& teamName, 
                                     const std::string& taskName);
     std::string           enqueue_NotThreadsafe(const int work);
-    void                  closeTask(void);
+    std::string           closeTask_NotThreadsafe(void);
     std::string           wait_NotThreadsafe(void);
 
 protected:

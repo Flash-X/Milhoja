@@ -247,11 +247,11 @@ ThreadTeam::~ThreadTeam(void) {
     pthread_mutex_destroy(&teamMutex_);
 
     state_ = nullptr;
-    delete stateIdle_;
-    delete stateTerminating_;
-    delete stateRunOpen_;
-    delete stateRunClosed_;
-    delete stateRunNoMoreWork_;
+    if (stateIdle_)           delete stateIdle_;
+    if (stateTerminating_)    delete stateTerminating_;
+    if (stateRunOpen_)        delete stateRunOpen_;
+    if (stateRunClosed_)      delete stateRunClosed_;
+    if (stateRunNoMoreWork_)  delete stateRunNoMoreWork_;
     stateIdle_ = nullptr;
     stateTerminating_ = nullptr;
     stateRunOpen_ = nullptr;
@@ -500,13 +500,28 @@ void ThreadTeam::startTask(TASK_FCN* fcn, const unsigned int nThreads,
  * team during the present execution cycle.
  */
 void ThreadTeam::closeTask(void) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::closeTask] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("closeTask", 0, "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->closeTask();
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("closeTask", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    errMsg = state_->closeTask_NotThreadsafe();
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**

@@ -93,7 +93,7 @@ TEST(RuntimeTest, TestIdleNoRun) {
 
         // Use methods that are not allowed in Idle
         ASSERT_THROW(team1.enqueue(1),  std::runtime_error);
-        ASSERT_THROW(team1.closeTask(), std::logic_error);
+        ASSERT_THROW(team1.closeTask(), std::runtime_error);
 
         // Detach when no teams have been attached
         ASSERT_THROW(team1.detachThreadReceiver(), std::logic_error);

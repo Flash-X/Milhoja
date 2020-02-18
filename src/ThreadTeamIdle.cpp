@@ -159,14 +159,9 @@ std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
  * Calling this is a logic error as we cannot close the queue if no task is
  * running.
  */
-void ThreadTeamIdle::closeTask() {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "enqueue", 0, "Cannot close the queue when no task is being executed");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamIdle::closeTask_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeTask", 0,
+                  "Cannot close the queue when no task is being executed");
 }
 
 /**

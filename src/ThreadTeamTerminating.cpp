@@ -86,14 +86,9 @@ std::string ThreadTeamTerminating::enqueue_NotThreadsafe(const int work) {
  *
  * No task can be running if the team is terminating.
  */
-void ThreadTeamTerminating::closeTask() {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "closeTask", 0, "Cannot close queue if team is terminating");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamTerminating::closeTask_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeTask", 0,
+                  "Cannot close queue if team is terminating");
 }
 
 /**

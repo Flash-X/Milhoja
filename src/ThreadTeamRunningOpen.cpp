@@ -117,17 +117,7 @@ std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningOpen::closeTask() {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "closeTask", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
-    }
-
+std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
     if (team_->queue_.empty()) {
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
         pthread_cond_broadcast(&(team_->transitionThread_));
@@ -135,7 +125,7 @@ void ThreadTeamRunningOpen::closeTask() {
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE);
     }
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**

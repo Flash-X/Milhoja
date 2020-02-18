@@ -123,14 +123,9 @@ std::string ThreadTeamRunningClosed::enqueue_NotThreadsafe(const int work) {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningClosed::closeTask() {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "closeTask", 0, "The task is already closed");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningClosed::closeTask_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeTask", 0,
+                  "The task is already closed");
 }
 
 /**
