@@ -28,12 +28,6 @@ public:
     void                  closeTask(void);
     std::string           wait_NotThreadsafe(void);
 
-    void                  attachThreadReceiver(ThreadTeam* receiver);
-    void                  detachThreadReceiver(void);
-
-    void                  attachWorkReceiver(ThreadTeam* receiver);
-    void                  detachWorkReceiver(void);
-
 protected:
     std::string  isStateValid_NotThreadSafe(void) const;
 

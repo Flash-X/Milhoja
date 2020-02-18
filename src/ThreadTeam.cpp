@@ -585,6 +585,11 @@ void ThreadTeam::wait(void) {
  * Attach a thread team as a thread subscriber.  Therefore, this converts the
  * calling object into a thread publisher.
  *
+ * It is a logic error
+ *   - to call this with a NULL team
+ *   - to try to attach a team to itself
+ *   - to try to attach when a team is already attached.
+ *
  * \warning Classes derived from ThreadTeamState need to ensure that only one
  *          thread team can be attached as a thread subscriber at a time.  Also,
  *          they must confirm that the pointer is non-null, and that the team
@@ -594,13 +599,47 @@ void ThreadTeam::wait(void) {
  *                    published.
  */
 void ThreadTeam::attachThreadReceiver(ThreadTeam* receiver) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::attachThreadReceiver] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->attachThreadReceiver(receiver);
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (state_->mode() != MODE_IDLE) {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
+                 "A team can only be attached in the Idle mode");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+     
+    if (!receiver) {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
+                 "Null thread subscriber team given");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (receiver == this) {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
+                 "Cannot attach team to itself");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (threadReceiver_) {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
+                 "A thread subscriber is already attached");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    threadReceiver_ = receiver;
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -612,13 +651,37 @@ void ThreadTeam::attachThreadReceiver(ThreadTeam* receiver) {
  * attached as a subscriber.
  */
 void ThreadTeam::detachThreadReceiver(void) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::detachThreadReceiver] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->detachThreadReceiver();
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (state_->mode() != MODE_IDLE) {
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
+                 "A team can only be detached in the Idle mode");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+    
+    if (!threadReceiver_) {
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
+                 "No thread subscriber attached");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    threadReceiver_ = nullptr;
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -633,13 +696,47 @@ void ThreadTeam::detachThreadReceiver(void) {
  * \param  receiver - the team to which units of work shall be published.
  */
 void ThreadTeam::attachWorkReceiver(ThreadTeam* receiver) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::attachWorkReceiver] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->attachWorkReceiver(receiver);
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (state_->mode() != MODE_IDLE) {
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+                 "A team can only be attached in the Idle mode");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+    
+    if (!receiver) {
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+                 "Null work subscriber team given");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (receiver == this) {
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+                 "Cannot attach team to itself");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (workReceiver_) {
+        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+                 "A work subscriber is already attached");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    workReceiver_ = receiver;
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -651,13 +748,37 @@ void ThreadTeam::attachWorkReceiver(ThreadTeam* receiver) {
  * attached as a subscriber.
  */
 void ThreadTeam::detachWorkReceiver(void) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::detachWorkReceiver] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->detachWorkReceiver();
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (state_->mode() != MODE_IDLE) {
+        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
+                 "A team can only be detached in the Idle mode");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+    
+    if (!workReceiver_) {
+        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
+                 "No work subscriber attached");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    workReceiver_ = nullptr;
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**

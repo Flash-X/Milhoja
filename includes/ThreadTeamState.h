@@ -29,12 +29,6 @@ public:
     virtual void                  closeTask(void) = 0;
     virtual std::string           wait_NotThreadsafe(void) = 0;
 
-    virtual void                  attachThreadReceiver(ThreadTeam* receiver) = 0;
-    virtual void                  detachThreadReceiver(void) = 0;
-
-    virtual void                  attachWorkReceiver(ThreadTeam* receiver) = 0;
-    virtual void                  detachWorkReceiver(void) = 0;
-
 protected:
     friend class ThreadTeam; 
 
