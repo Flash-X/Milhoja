@@ -96,7 +96,14 @@ std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
  *
  */
 std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
-    if (team_->queue_.empty()) {
+    bool isQueueEmpty = team_->queue_.empty();
+    if        (    isQueueEmpty
+               && (team_->N_idle_ == team_->nMaxThreads_)
+               && (team_->N_to_activate_ == 0)) {
+        // No more work can be added and there are no threads that are active or
+        // that will be made active => no need to transition threads.
+        team_->setMode_NotThreadsafe(ThreadTeam::MODE_IDLE);
+    } else if (isQueueEmpty) {
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
         pthread_cond_broadcast(&(team_->transitionThread_));
     } else {

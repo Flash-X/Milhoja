@@ -62,6 +62,23 @@ TEST(RuntimeTest, TestAbnormalDestroy) {
     team1 = nullptr;
 }
 
+/*
+ *  Create a team.  Start a task without threads and close the task without adding
+ *  work.  While this is odd, it should be acceptable.
+ */
+TEST(RuntimeTest, TestNoWorkNoThreads) {
+    ThreadTeam    team1(3, 1, "TestNoWorkNoThreads.log");
+
+    EXPECT_EQ(3, team1.nMaximumThreads());
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+ 
+    team1.startTask(TestThreadRoutines::noop, 0, "test", "noop");
+    team1.closeTask();
+    team1.wait();
+
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+}
+
 TEST(RuntimeTest, TestIdleNoRun) {
     unsigned int   N_ITERS = 10;
 

@@ -50,39 +50,162 @@
 \maketitle
 
 \section{Design Summary}
+%The class implements a team of threads that is specifically designed for use
+%by the Orchestration Runtime, which schedules a single task with the thread
+%team for execution in a single cycle.  All public methods are thread-safe.
+%
+%The team is designed and implemented as an extended finite state machine
+%(EFSM).  The mode (qualitative) portion of the EFSM's state must be in one
+%and only one of
+%  - Idle,
+%  - Running with the work queue open
+%    (i.e. able to accept more units of work),
+%  - Running with the work queue closed
+%    (i.e. no more units of work can be added),
+%  - Running with no more pending work
+%    (i.e. there are no more units of work in the queue, but at least one
+%    thread is still applying the task to a unit of work), or
+%  - Terminating   
+%at any point in time.  The internal state variables (quantitative) for the
+%EFSM are the number of
+%  - pending units of work in the team's queue,
+%  - Idle threads,
+%  - Waiting threads,
+%  - Computing threads, and 
+%  - Terminating threads.
+%The events that trigger state transitions are
+%  - an external call to startTask()
+%    (Idle -> Running \& Open),
+%  - an external call to closeTask()
+%    (Running \& Open -> Running Closed),
+%  - a thread determines that the queue is empty
+%    (Running \& Closed -> Running \& No Pending Work),
+%  - all threads have transitioned to Idle
+%    (Running \& No Pending Work -> Idle), and
+%  - an external call results in the destruction of the thread team object
+%    (Idle -> Terminating).
+%At construction, the thread team starts the maximum number of threads
+%allotted to it and these persist until the team is destroyed.  The EFSM
+%starts in the Idle mode with all threads in the Idle state and an empty
+%queue.
+%
+%External code starts an execution cycle by calling startTask and at the same
+%time indicates what task is to be executed by the team as well as how many
+%threads in the team shall be activated immediately to start applying the
+%task.  After startTask has been called, external code can use the enqueue
+%method to give to the team tiles on which to apply its task.  These tiles are
+%passed to enqueue one unit of work at a time where a unit of work could be a
+%single tile (e.g. if the task will have the team run computations on a CPU)
+%or a data packet containing multiple tiles (e.g. if the task will have the
+%team run computations on an accelerator).  The external code indicates to the
+%EFSM that all tiles on which to operate during this cycle have already been
+%enqueued.  The EFSM then continues its application of the task to all
+%remaining given tiles and automatically transitions back to Idle once work
+%and, therefore, the execution cycle finishes.  An external thread can be
+%blocked until the task execution cycle finishes by calling the team's wait
+%method.
+%
+%There is no restriction that a single thread team must execute the same task
+%with every execution cycle.  Similarly, there is no restriction that a team
+%must be dedicated to running computation-heavy code on only a single piece of
+%hardware (e.g. only on the CPU or only on the GPU).  Rather, the thread team
+%only knows to execute the code behind a function pointer, which can include
+%kernel launches on an accelerator.  It is possible for that code to execute
+%computationally-heavy code on a mixture of available HW on the node.
+%However, our present best guess is that restricting each task to run
+%principally on a single device is likely clean, simple, elegant, and
+%maintainable.
+%
+%The EFSM is implemented using the State design pattern presented in the Gang
+%of Four's famous Design Patterns book (Pp. 305).  This class exposes the
+%interface of the EFSM to client code and the client code should only
+%instantiate this class.  Each of the ThreadTeam* classes derived from
+%ThreadTeamState are instantiated once by this class and are used to provide
+%state-specific behavior of the team.  This design was chosen as the response
+%to events, outputs, and error checking of the EFSM are logically partitioned
+%across the modes of the EFSM and are therefore largely encapsulated within
+%each class.  This class
+%  - declares and houses all data members needed to implement the EFSM,
+%  - initializes the EFSM in the correct Idle state,
+%  - handles the destruction of the EFSM, and
+%  - defines how all threads in the team shall behave.
+%Note that each thread in the team is a FSM that moves between the Idle,
+%Waiting, Computing, and Terminating states.  The hope is that studying,
+%analysing, and maintaining the EFSM will hopefully be easier thanks to the
+%use of this design.  However, the runtime efficiency of this design has not
+%yet been studied.
+%
+%It is envisioned that the runtime may instantiate multiple thread teams with
+%each team executing a potentially different task.  See the OrchestrationRuntime
+%documentation for more information regarding this intent.
+%
+%To control the number of active threads running in the host at any point in
+%time, a thread team can become a thread subscriber of another thread team so
+%that the subscriber is notified that it can add another thread to its team
+%each time a thread terminates in the publisher thread's team.
+%
+%To control the number of active threads running in the host at any point in
+%time, a thread team can become a thread subscriber of another thread team so
+%that the subscriber is notified that it can add another thread to its team
+%each time a thread terminates in the publisher thread's team.
+%
+%In addition a thread team can also be setup as a work subscriber of another
+%thread team so that when the publishing thread finishes a unit of work, the
+%result is automatically enqueued on the subscriber team's queue.  When the
+%publisher has finished all its work and enqueued all work units in the
+%subscriber team, the publisher automatically calls the subscriber's closeTask
+%method.
+%
+%Note that a thread publisher can only have one thread subscriber and a work
+%publisher can only have one work subscriber.  However, a thread team can be
+%both a thread subscriber and a thread publisher.  Also, a thread team can be
+%a thread subscriber for one team and a work subscriber for another.
+%
+%The implementations of the publisher/subscriber design aspects are
+%one-directional versions of the Observer design pattern (Pp. 293).
+%
+%The wait() method for a publisher team must be called before the wait()
+%method of its subscriber team.
 
 \section{Runtime Requirements}
+\begin{req}
 If a simulation is setup such that no runtime is needed, then the Orchestration
 runtime shall not be built into the simulation.  In particular, this means that
 there shall be no unnecessary resources allocated nor an extra level of packing
 tiles into data packets.  This could allow for basic stub implementations such
-as initialization/finalization being called from Driver.\\
+as initialization/finalization being called from Driver.
+\end{req}
 
+\begin{req}
 At any point in time during the execution of a simulation, there shall be no more
 than one instantiation of the runtime in operation so that design complexity can
-be minimized (\textit{e.g.} resource allocation and management).\\
+be minimized (\textit{e.g.} resource allocation and management).
+\end{req}
 
+\begin{req}
 The runtime shall be built into FLASH5 as a new unit and the unit shall allow
 for different implementations of the unit.  Some examples of different
 implementations will be
 \begin{itemize}
-\item{low-level (\textit{e.g.} CUDA Fortran) \textit{vs.} high-level
+\item{low-level (\textit{e.g.} CUDA) \textit{vs.} high-level
 (\textit{e.g.} OpenMP) and}
-\item{general (\textit{e.g.} CUDA Fortran) \textit{vs.}} platform-specific
-(\textit{e.g.} CUDA Fortran optimized for Summit).
+\item{general (\textit{e.g.} CUDA) \textit{vs.}} platform-specific
+(\textit{e.g.} CUDA optimized for Summit).
 \end{itemize}
-
 The interface of the runtime unit will allow for running a bundle of auxiliary
 tasks and a bundle of work tasks.  \textcolor{red}{Should we allow for bundles
-that are a mixture of auxiliary and work tasks?}\\
+that are a mixture of auxiliary and work tasks?}
+\end{req}
 
+\begin{req}
 The interface of the runtime shall be designed such  that when a new type of
 device is introduced in platform nodes, the routines for starting a runtime
 execution can be extended trivially\footnote{Ideally by adding new function
 pointers to the parameter list of these routines.} for including the running of
 tasks on these devices.  If the nodes allow for running concurrently tasks on
 this device while running code on the host or on other devices, then the updated
-interface shall allow for this.\\
+interface shall allow for this.
+\end{req}
 
 \textcolor{red}{Put in information regarding runtime parameters needed by
 runtime.  Does this include runtime parameters that depend upon how task were
@@ -91,6 +214,7 @@ bundled/scheduled?}\\
 \textcolor{red}{Do we allow for specifying to the runtime which data should
 remain where?}\\
 
+\begin{req}
 At instantiation, the runtime shall instantiate a given number, $N$, of distinct
 thread teams and each thread team shall be allowed to simultaneously use
 at most a given number, $M$, of threads.  \textcolor{red}{It remains to be seen
@@ -98,65 +222,97 @@ if the threads should be created at instantiation and persist throughout the
 simulation or if they should be created each time the runtime executes a task
 bundle.  The former would be more runtime efficient, but permanently consume
 more memory in the form of thread stacks, etc. and increase the burden on the
-OS.}\\
+OS.}
+\end{req}
 
+\begin{req}
 Thread teams shall
 \begin{enumerate}
 \item{be created and run in the host CPU,}
-\item{be associated with a single MPI rank, and}
-\item{expose the same interface to client code.}
+\item{be associated with a single MPI rank,}
+\item{be associated with a single unit of work (\textit{e.g.} tiles, blocks, or a
+data packet of blocks), and}
+\item{expose the same interface to client code regardless of the unit of work.}
 \end{enumerate}
+\end{req}
 
-A thread team shall be used by client code to apply a single, given
-computational task to all blocks managed by the team's associated MPI rank in
-each runtime execution cycle.  Note that the computational task can be different
-with each cycle.  \textcolor{red}{Should we allow for dividing the load of blocks
-between two or more thread teams?  For example, if the task bundle
-has effectively just one task, we could have half the blocks run on the CPU and
-the other half on the GPU.  Should we allow for the possiblity of a thread that
-determines dynamically to which thread team it should give the next block?  This
-could be a way of making full use of HW.  This implies that all thread teams in
-the selection pool could also be work publishers to the same thread team that
-applies a follow-up task to all blocks.}\\
+\begin{req}
+A thread team shall execute at most one task at a time so that it is easier to
+determine independence of tasks and teams.  For each task execution the client
+code shall inform the thread team what task shall be executed and how many
+threads in the team should be activated immediately to start work on the task.
+\end{req}
 
+\begin{req}
 Thread teams shall not need to know nor be informed of which device will carry
 out the computation associated with a given computational task.  Rather the
 given computational task shall know where its block data resides in different
 memory and the task shall be written so that it can carry out its computations
 on the devices assigned to it.  This can include running code on the host CPU
 with the given team thread or using the team thread to launch computations on
-accelerator devices.\\
+accelerator devices.
+\end{req}
 
-A thread team shall execute at most one task at a time so that it is easier to
-determine independence of tasks and teams.  For each task execution the client
-code shall inform the thread team what task shall be executed and how many
-threads in the team should be activated immediately to start work on the task.\\
+\textcolor{red}{Should we allow for dividing the
+load of blocks between two or more thread teams?  For example, if the task
+bundle has effectively just one task, we could have half the blocks run on the
+CPU and the other half on the GPU.  Should we allow for the possiblity of a
+thread that determines dynamically to which thread team it should give the next
+block?  This could be a way of making full use of HW.  This implies that all
+thread teams in the selection pool could also be work publishers to the same
+thread team that applies a follow-up task to all blocks.}
 
-The thread team interface shall allow for client code to assign more units of
-work to a thread team and this shall only be allowed if the thread team is in the
-\TeamIdle or \TeamRunningOpen states.  This requirement is consistent with
-requirement XXX in that and is \emph{not} inconsistent with requirement YYY as
-this requirement relates to what happens once the team is already in the
-\TeamIdle state.  Each execution cycle for a given thread team begins
-\begin{enumerate}
-\item{with the thread team in \TeamIdle if it is the case that client code has
-chosen to already give units of work to the thread team or}
-\item{when client code gives the team a computational task and triggers the
-team's state to \TeamRunningOpen otherwise.}
-\end{enumerate}
+\begin{req}
+A thread team shall be used by client code to apply a single, given
+computational task to a subset of the blocks managed by the team's associated
+MPI rank in each runtime execution cycle.  Note that the computational task can
+be different with each cycle.
+\end{req}
 
+\begin{req}
+The thread team interface shall allow for client code to assign units of
+work to a thread team one unit at a time where the full work load given to a
+team during a single task execution is a subset of the blocks managed by the
+team's associated MPI rank.
+\end{req}
+
+\begin{req}
+The thread team interface shall allow for client code to inform the team when
+all units of work to which the current task are to be applied have been given to
+the team.
+\end{req}
+
+\begin{req}
 Client code shall trigger \textit{via} the runtime interface a single runtime
 execution cycle that consists of executing potentially many distinct tasks on
 multiple different target devices.  Based on the number of tasks in the cycle's
 task bundle, the runtime will assemble the appropriate topology of thread teams.
 The runtime shall trigger an error if the number of tasks in the bundle is more
-than the number of thread teams created by the runtime.\\
+than the number of thread teams created by the runtime.
+\end{req}
 
-The lead thread that is used to trigger/schedule a runtime execution cycle shall
+\begin{req}
+The runtime shall contain a \textbf{concurrent work distributor} that
+facilitates applying multiple disctinct tasks to all the blocks managed by the
+runtime's MPI rank.  Specifically, this distributor shall gather tiles using the
+Grid unit's tile iterator (or asycnrhonous tile iterator), form these into the
+appropriate units of work, and give the units of work to the appropriate thread
+teams.  Refer to Figure~\ref{fig:ConcurrentItor} for an example of such a scheme.
+\end{req}
+
+\begin{req}
+The runtime shall contain a \textbf{work splitting distributor} that facilitates
+using more than one thread team in parallel to applying a single task to all the
+blocks managed by the runtime's MPI rank with each the task being applied to
+each block by only one team.  Specifically, this distributor shall
 gather tiles using the Grid unit's tile iterator (or asycnrhonous tile
-iterator), form these into the appropriate units of work, and give the units of
-work to the appropriate thread teams.\\
+iterator), use a distribution scheme to determine which tiles will be sent to
+which team, form these into the appropriate units of work based on the
+destination team, and send the units of work to the appropriate thread teams.
+Refer to Figure~\ref{fig:SplitItor} for an example of such a scheme.
+\end{req}
 
+\begin{req}
 A thread team may be configured to push units of work, to which it has already
 applied its task, to other thread teams.  The team that pushes units of work is
 therefore a \textbf{work publisher} and the teams to which the units of work are
@@ -166,34 +322,77 @@ subscriber for two distinct work publishers\footnote{Split the load of blocks
 between a thread team dedicated for FPGAs and a second team for GPUs.  We could
 have each team run the same task on its subset of blocks and then pipe the
 results into a single work subscriber that runs a quick, independent follow-up
-task on the CPU.}\\
+task on the CPU.}.
+\end{req}
 
+\begin{req}
 Each thread team may be configured as a \textbf{thread publisher} and as a
 \textbf{thread subscriber}.  A thread publisher shall have at most one thread
 subscriber and there shall be no limit to the number of thread publishers that a
-thread subscriber can have.  When a thread in a thread publisher team
-transitions to \ThreadIdle, the thread publisher shall inform its
+thread subscriber can have.  When a thread in a thread publisher team determines
+that there is no more work to be done in the current execution cycle and
+therefore transitions to Idle, the thread publisher shall inform its
 single\footnote{This requirement is related to load balancing and in this sense,
 we cannot activate a thread in each of several thread teams because one thread
-has transitioned to \ThreadIdle.  We could build in a round-robin communication
+has transitioned to Idle.  We could build in a round-robin communication
 scheme but choose not to in the name of simplicity.} subscriber that the
-subscriber can now activate another thread in its team.  The requirements allow
-for a single thread team being both a subscriber and a publisher.  A thread team
-shall not be alloed to push a thread to itself.\\
+subscriber can now activate another thread in its team.
+\end{req}
 
+Note that the requirements allow for a single thread team being both a
+subscriber and a publisher.
+
+\begin{req}
+A thread team shall not be allowed to push a thread or work to itself.  However,
+the runtime shall not be responsible for ensuring that a given configuration of
+thread teams does not lead to an endless cycle of feeding threads around a
+circle of teams nor an endless cycle of feeding work around a circle of teams.
+\end{req}
+
+\begin{req}
 If a thread subscriber is informed that it may activate another thread in its
-team but there are no more threads in the team in the \TeamIdle state, then the
-subscriber team shall emit an error.  Therefore, it is the client code's
-responsibility to ensure that the number of threads in a thread subscriber team
-is less than or equal to the sum total of threads that the team starts with and
-the number of threads that can be triggered.  Note that multiple thread teams
-can be connected in chains and a single thread team could be a subscriber to
-many chains.  Therefore, the task of determining the maximum number of threads
-in a team is important and can be challengning.\\
+team but there are no more Idle threads in the team, then the
+subscriber team shall emit an error.
+\end{req}
 
-TODO: Add info how pub/sub links are made and when they can be made/unmade.\\
+This implies that it is the client code's responsibility to ensure that the
+number of threads in a thread subscriber team is less than or equal to the sum
+total of threads that the team starts with and the number of threads that can be
+triggered.  Note that multiple thread teams can be connected in chains and a
+single thread team could be a subscriber to many chains.  Therefore, the task of
+determining the maximum number of threads in a team is important.
 
-TODO: Need to specify requirements for unit of work translation.\\
+\begin{req}
+The runtime shall allow for a thread team whose unit of work is a data packet of
+blocks to be work publisher for a thread team whose unit of work is either a
+data packet of blocks or tiles.  In the latter case, the runtime shall provide
+an object that translates data packets of blocks.  For this case, this object is
+the work subscriber of the first team and the work publisher of the final team.
+See Figures~\ref{fig:ConcurrentItor} and~\ref{fig:SplitItor}.
+\end{req}
+
+\textcolor{red}{Is there a use case having a tile-to-data packet aggregation
+object?}
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=5.0in]{ConcurrentItorExample.pdf}
+\caption[]{\textcolor{red}{Add general information related to requirements.
+Also specify the assumptions about RW indepence of tasks so that these
+topologies will give the correct results regardless of order of execution.}}
+\label{fig:ConcurrentItor}
+\end{center}
+\end{figure}
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=5.0in]{WorkSplittingExample.pdf}
+\caption[]{\textcolor{red}{Add general information related to requirements.
+Also specify the assumptions about RW indepence of tasks so that these
+topologies will give the correct results regardless of order of execution.}}
+\label{fig:SplitItor}
+\end{center}
+\end{figure}
 
 \section{Runtime Technical Specifications \& Design}
 %What classes of scalar values do we have in the physics units?  For instance are
@@ -213,15 +412,14 @@ been specified as a finite state machine.  However, the behavior in a given
 state cannot be specified solely on the basis of a single qualitative state
 variable.  Rather, the behavior will depend on a qualitative state variable,
 which is called the mode, as well as the quantitative internal state variables
-$N_i, N_w, N_c, N_t, N_Q$ that respectively keep track of 
+$N_i, N_w, N_c, N_Q$ that respectively keep track of 
 \begin{itemize}
 \item{the number of idle threads in the team,}
 \item{the number of threads that are waiting for work to be added,}
-\item{the number of threads executing a computation on a unit of work,}
-\item{the number of threads that are terminating, and}
+\item{the number of threads executing a computation on a unit of work, and}
 \item{the number of units of work in team's pending work queue.}
 \end{itemize}
-Note that the definitions of $N_i, N_w, N_c, N_t$ imply that each thread is
+Note that the definitions of $N_i, N_w, N_c$ imply that each thread is
 always in one and only one state but that this EFSM need not track the actual
 state of each thread --- it is only the aggregated thread state information that
 is important.  Therefore, the runtime is an extended finite state machine 
@@ -231,7 +429,7 @@ M = (Q, X, I, O, s_0, T)
 where
 \begin{itemize}
 \item{$Q$ is the finite set of qualitative modes,}
-\item{$X = \set{(N_i, N_w, N_c, N_t, N_Q) \in \N_0^5 | N_i + N_w + N_c + N_t =
+\item{$X = \set{(N_i, N_w, N_c, N_Q) \in \N_0^4\,|\,N_i + N_w + N_c =
 N_{max}}$ is the set of internal state variables where $N_{max}$ is the
 number of threads in the team,}
 \item{$I$ is the set of internel and external events,}
@@ -252,7 +450,7 @@ of work can be given to the team}
 \item{\TeamRunningNoMoreWork --- a task is being executed, no more
 units of work can be given, and the team has identified that the task has
 already been applied to or is currently being applied to all units of work}
-\item{\TeamTerminating --- the client has indicated that it no longer needs the team.}
+%\item{\TeamTerminating --- the client has indicated that it no longer needs the team.}
 \end{itemize}
 
 The set $I$ of events is the union of events triggered by clients through the
@@ -266,7 +464,7 @@ team so that they can start working on the task as well}
 task}
 \item{\texttt{closeTask} --- indicate (without blocking the caller) to the team
 that no more units of work will be given for the current task}
-\item{\texttt{$\sim$ThreadTeam} --- thread team no longer needed}
+%\item{\texttt{$\sim$ThreadTeam} --- thread team no longer needed}
 \end{itemize}
 with the set of events triggered internally
 \begin{itemize}
@@ -277,13 +475,13 @@ that it can evaluate if there is pending work and update its state accordingly}
 \item{\texttt{computationFinished} --- a thread finished applying the team's
 task to a unit of work and shall evaluate if there is pending work and update
 its state accordingly}
-\item{\texttt{threadTerminated} --- emitted by a thread to indicate that it has
-terminated}
+%\item{\texttt{threadTerminated} --- emitted by a thread to indicate that it has
+%terminated}
 \end{itemize}
 
 The initial state is defined to be
 \[
-s_0 = \left(q_0, (N_i, N_w, N_c, N_t, N_Q)_0\right) = \left(\TeamIdle, (0, 0, 0, 0, 0)\right).
+s_0 = \left(q_0, (N_i, N_w, N_c, N_Q)_0\right) = \left(\TeamIdle, (0, 0, 0, 0)\right).
 \]
 
 The set $O$ and the transition function $T$ encapsulate the complexity of the
