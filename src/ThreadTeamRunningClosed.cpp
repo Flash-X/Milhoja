@@ -51,16 +51,12 @@ std::string ThreadTeamRunningClosed::isStateValid_NotThreadSafe(void) const {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningClosed::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                                        const std::string& teamName, 
-                                        const std::string& taskName) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "startTask", 0, "Cannot start a task when one is already running");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningClosed::startTask_NotThreadsafe(TASK_FCN* fcn,
+                                                             const unsigned int nThreads,
+                                                             const std::string& teamName, 
+                                                             const std::string& taskName) {
+    return team_->printState_NotThreadsafe("startTask", 0,
+                  "Cannot start a task when one is already running");
 }
 
 /**
@@ -118,14 +114,9 @@ void ThreadTeamRunningClosed::increaseThreadCount(const unsigned int nThreads) {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningClosed::enqueue(const int work) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "enqueue", 0, "Cannot enqueue work if queue is closed");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningClosed::enqueue_NotThreadsafe(const int work) {
+    return team_->printState_NotThreadsafe("enqueue", 0,
+                  "Cannot enqueue work if queue is closed");
 }
 
 /**
@@ -147,14 +138,6 @@ void ThreadTeamRunningClosed::closeTask() {
  *
  */
 std::string  ThreadTeamRunningClosed::wait_NotThreadsafe(void) {
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        return team_->printState_NotThreadsafe("wait", 0, msg);
-    } else if (team_->isWaitBlocking_) {
-        return team_->printState_NotThreadsafe("wait", 0,
-                      "A thread has already called wait");
-    }
-
     // Block until team transitions to Idle
     team_->isWaitBlocking_ = true;
 #ifdef VERBOSE

@@ -21,10 +21,11 @@ public:
     virtual ThreadTeam::teamMode  mode(void) const = 0;
 
     virtual void                  increaseThreadCount(const unsigned int nThreads) = 0;
-    virtual void                  startTask(TASK_FCN* fcn, const unsigned int nThreads,
+    virtual std::string           startTask_NotThreadsafe(TASK_FCN* fcn,
+                                            const unsigned int nThreads,
                                             const std::string& teamName, 
                                             const std::string& taskName) = 0;
-    virtual void                  enqueue(const int work) = 0;
+    virtual std::string           enqueue_NotThreadsafe(const int work) = 0;
     virtual void                  closeTask(void) = 0;
     virtual std::string           wait_NotThreadsafe(void) = 0;
 

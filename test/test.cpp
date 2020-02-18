@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <thread>
+#include <chrono>
 #include <vector>
 #include <stdexcept>
 #include <pthread.h>
@@ -11,6 +13,55 @@
 #include "gtest/gtest.h"
 
 namespace {
+/*
+ * Test if a ThreadTeam object is destroyed correctly even if the mode isn't in
+ * Idle (i.e. there are at least some threads in the Wait state).
+ *
+ * As presently implemented, this cannot be tested automatically.  Rather, we
+ * should not see an error reports in the test output and we need to manually
+ * study the log file to confirm that the destruction happened as expected.
+ *
+ * \todo - figure out how to test this automatically
+ */
+TEST(RuntimeTest, TestAbnormalDestroy) {
+    // Test in Running & Open 
+    ThreadTeam*    team1 = new ThreadTeam(4, 1, "TestAbnormalDestroy.log");
+
+    EXPECT_EQ(4, team1->nMaximumThreads());
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
+        
+    team1->startTask(TestThreadRoutines::delay_500ms, 3, "teamName", "500ms");
+    team1->enqueue(1);
+
+    // Give team time to activate the threads, but for destruction to 
+    // occur while we have a thread computing
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1->mode());
+
+    // Set to terminate
+    delete  team1;
+    team1 = nullptr;
+ 
+    // Test in Running & Closed or Running w/ NoMoreWork
+    team1 = new ThreadTeam(4, 1, "TestAbnormalDestroy.log");
+
+    EXPECT_EQ(4, team1->nMaximumThreads());
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
+        
+    team1->startTask(TestThreadRoutines::delay_500ms, 3, "teamName", "500ms");
+    team1->enqueue(1);
+    team1->closeTask();
+
+    // Give team time to activate the threads, but for destruction to 
+    // occur while we have a thread computing
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    EXPECT_NE(ThreadTeam::MODE_IDLE, team1->mode());
+
+    // Set to terminate
+    delete  team1;
+    team1 = nullptr;
+}
+
 TEST(RuntimeTest, TestIdleNoRun) {
     unsigned int   N_ITERS = 10;
 
@@ -41,7 +92,7 @@ TEST(RuntimeTest, TestIdleNoRun) {
         ASSERT_THROW(team1.increaseThreadCount(11), std::logic_error);
 
         // Use methods that are not allowed in Idle
-        ASSERT_THROW(team1.enqueue(1),  std::logic_error);
+        ASSERT_THROW(team1.enqueue(1),  std::runtime_error);
         ASSERT_THROW(team1.closeTask(), std::logic_error);
 
         // Detach when no teams have been attached
@@ -93,7 +144,7 @@ TEST(RuntimeTest, TestRunningOpenNoWork) {
 
         // Call methods that are not allowed in Running & Open
         ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 5, "test", "noop"),
-                     std::logic_error);
+                     std::runtime_error);
         ASSERT_THROW(team1.attachThreadReceiver(&team2), std::logic_error);
         ASSERT_THROW(team1.detachThreadReceiver(),       std::logic_error);
         ASSERT_THROW(team1.attachWorkReceiver(&team2),   std::logic_error);

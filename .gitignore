@@ -1,3 +1,4 @@
 test_runtime.x
+*.log
 src/*.o
 test/*.o

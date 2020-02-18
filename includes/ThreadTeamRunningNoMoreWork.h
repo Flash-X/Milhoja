@@ -21,10 +21,11 @@ public:
     ThreadTeam::teamMode  mode(void) const;
 
     void                  increaseThreadCount(const unsigned int nThreads);
-    void                  startTask(TASK_FCN* fcn, const unsigned int nThreads,
+    std::string           startTask_NotThreadsafe(TASK_FCN* fcn,
+                                    const unsigned int nThreads,
                                     const std::string& teamName, 
                                     const std::string& taskName);
-    void                  enqueue(const int work);
+    std::string           enqueue_NotThreadsafe(const int work);
     void                  closeTask(void);
     std::string           wait_NotThreadsafe(void);
 

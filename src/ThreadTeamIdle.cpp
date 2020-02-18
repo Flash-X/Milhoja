@@ -63,35 +63,13 @@ std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                               const std::string& teamName, 
-                               const std::string& taskName) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
-    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
-        msg  = "nThreads (";
-        msg += std::to_string(nThreads);
-        msg += ") exceeds the number of threads available for activation";
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    } else if (team_->N_to_activate_ != 0) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, "Number of threads pending activation not zero");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    } else if (!fcn) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, "null task funtion pointer given");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
+std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
+                                                    const unsigned int nThreads,
+                                                    const std::string& teamName, 
+                                                    const std::string& taskName) {
+    if (team_->N_to_activate_ != 0) {
+        return team_->printState_NotThreadsafe("startTask", 0,
+                      "Number of threads pending activation not zero");
     }
 
 #ifdef VERBOSE
@@ -107,6 +85,7 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
 #endif
 
     team_->hdr_ = teamName;
+    team_->taskFcn_ = fcn;
 
     team_->N_to_activate_ = nThreads;
     team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
@@ -114,7 +93,7 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
         pthread_cond_signal(&(team_->activateThread_));
     }
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**
@@ -169,14 +148,9 @@ void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
  * work in any one of them.  In this way, we don't have to worry about an active
  * Work Publisher enqueueing work on a Work Subscriber that is still Idle.
  */
-void ThreadTeamIdle::enqueue(const int work) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "enqueue", 0, "Adding work in Idle state not allowed");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
+    return team_->printState_NotThreadsafe("enqueue", 0,
+                  "Adding work in Idle state not allowed");
 }
 
 /**
@@ -204,14 +178,6 @@ void ThreadTeamIdle::closeTask() {
  * no-op so that it won't block.
  */
 std::string    ThreadTeamIdle::wait_NotThreadsafe(void) {
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        return team_->printState_NotThreadsafe("wait", 0, msg);
-    } else if (team_->isWaitBlocking_) {
-        return team_->printState_NotThreadsafe("wait", 0,
-                      "A thread has already called wait");
-    }
-
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[Client Thread] Called no-op wait (Idle)\n";

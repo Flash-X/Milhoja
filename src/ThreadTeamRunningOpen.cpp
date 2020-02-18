@@ -49,18 +49,13 @@ std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
 
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
- *
  */
-void ThreadTeamRunningOpen::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                                      const std::string& teamName, 
-                                      const std::string& taskName) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "startTask", 0, "Cannot start a task when one is already running");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningOpen::startTask_NotThreadsafe(TASK_FCN* fcn,
+                                                           const unsigned int nThreads,
+                                                           const std::string& teamName, 
+                                                           const std::string& taskName) {
+    return team_->printState_NotThreadsafe("startTask", 0,
+                  "Cannot start a task when one is already running");
 }
 
 /**
@@ -103,19 +98,7 @@ void ThreadTeamRunningOpen::increaseThreadCount(const unsigned int nThreads) {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningOpen::enqueue(const int work) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "enqueue", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
-    }
-
-    // Wake a waiting thread (if there is one) so that it can start
-    // applying the task to the new work
+std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
     team_->queue_.push(work);
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
@@ -123,9 +106,11 @@ void ThreadTeamRunningOpen::enqueue(const int work) {
     team_->logFile_.close();
 #endif
 
+    // Wake a waiting thread (if there is one) so that it can start
+    // applying the task to the new work
     pthread_cond_signal(&(team_->transitionThread_));
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**
@@ -158,15 +143,6 @@ void ThreadTeamRunningOpen::closeTask() {
  *
  */
 std::string  ThreadTeamRunningOpen::wait_NotThreadsafe(void) {
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        return team_->printState_NotThreadsafe("wait", 0, msg);
-    } else if (team_->isWaitBlocking_) {
-        return team_->printState_NotThreadsafe("wait", 0,
-                 "A thread has already called wait");
-    }
-
-    // Block until team transitions to Idle
     team_->isWaitBlocking_ = true;
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);

@@ -53,16 +53,12 @@ std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const 
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningNoMoreWork::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                                        const std::string& teamName, 
-                                        const std::string& taskName) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "startTask", 0, "Cannot start a task when one is already running");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningNoMoreWork::startTask_NotThreadsafe(TASK_FCN* fcn,
+                                                                 const unsigned int nThreads,
+                                                                 const std::string& teamName, 
+                                                                 const std::string& taskName) {
+    return team_->printState_NotThreadsafe("startTask", 0,
+                  "Cannot start a task when one is already running");
 }
 
 /**
@@ -104,14 +100,9 @@ void ThreadTeamRunningNoMoreWork::increaseThreadCount(const unsigned int nThread
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningNoMoreWork::enqueue(const int work) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "enqueue", 0, "Cannot enqueue work if queue is closed");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamRunningNoMoreWork::enqueue_NotThreadsafe(const int work) {
+    return team_->printState_NotThreadsafe("enqueue", 0,
+                  "Cannot enqueue work if queue is closed");
 }
 
 /**
@@ -133,14 +124,6 @@ void ThreadTeamRunningNoMoreWork::closeTask() {
  *
  */
 std::string   ThreadTeamRunningNoMoreWork::wait_NotThreadsafe(void) {
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        return team_->printState_NotThreadsafe("wait", 0, msg);
-    } else if (team_->isWaitBlocking_) {
-        return team_->printState_NotThreadsafe("wait", 0,
-                 "A thread has already called wait");
-    }
-
     team_->isWaitBlocking_ = true;
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);

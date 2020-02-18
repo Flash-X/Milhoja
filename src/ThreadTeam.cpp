@@ -211,7 +211,7 @@ ThreadTeam::~ThreadTeam(void) {
         std::cerr << errMsg << std::endl;
         pthread_mutex_unlock(&teamMutex_);
     }
-    
+
     // We cannot assume that the team is in the nice Idle state.
     // Rather, it could be destroyed due to a runtime error
     //
@@ -458,18 +458,41 @@ void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
 void ThreadTeam::startTask(TASK_FCN* fcn, const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName) {
-    // TODO: Is it OK that we use state_ without acquiring the mutex?  state_
-    // should only be altered by calling setMode_NotThreadsafe, which can be
-    // called by the object pointed to by state_.  Better to acquire the mutex
-    // here and pass this through as a parameter so that a called method can
-    // release the mutex on error?  This seems ugly but safer.
+    pthread_mutex_lock(&teamMutex_);
+
+    // Test conditions that should be checked for all states
+    std::string errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::startTask] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("startTask", 0, "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->startTask(fcn, nThreads, teamName, taskName);
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("enqueue", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (nThreads > (N_idle_ - N_to_activate_)) {
+        std::string  msg  = "nThreads (";
+        msg += std::to_string(nThreads);
+        msg += ") exceeds the number of threads available for activation";
+        errMsg = printState_NotThreadsafe("startTask", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (!fcn) {
+        errMsg = printState_NotThreadsafe("startTask", 0,
+                 "null task funtion pointer given");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    errMsg = state_->startTask_NotThreadsafe(fcn, nThreads, teamName, taskName);
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -497,13 +520,28 @@ void ThreadTeam::closeTask(void) {
  * \param   work - the unit of work.
  */
 void ThreadTeam::enqueue(const int work) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string   errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::enqueue] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("enqueue", 0, "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->enqueue(work);
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("enqueue", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    errMsg = state_->enqueue_NotThreadsafe(work);
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -516,15 +554,25 @@ void ThreadTeam::enqueue(const int work) {
 void ThreadTeam::wait(void) {
     pthread_mutex_lock(&teamMutex_);
 
+    std::string   errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::wait] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("wait", 0, "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("wait", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (isWaitBlocking_) {
+        errMsg = printState_NotThreadsafe("wait", 0,
+                 "A thread has already called wait");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
 
-    std::string errMsg = state_->wait_NotThreadsafe();
+    errMsg = state_->wait_NotThreadsafe();
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -951,6 +999,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
 #endif
 
             work = team->queue_.front();
+            team->queue_.pop();
 #ifdef VERBOSE
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "

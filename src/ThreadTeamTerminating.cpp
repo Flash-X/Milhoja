@@ -38,17 +38,7 @@ ThreadTeam::teamMode ThreadTeamTerminating::mode(void) const {
  * 
  */
 std::string ThreadTeamTerminating::isStateValid_NotThreadSafe(void) const {
-    std::string errMsg("");
-
-    if        (team_->N_wait_ != 0) {
-        errMsg = "N_wait not zero";
-    } else if (team_->N_comp_ != 0) {
-        errMsg = "N_comp not zero";
-    } else if (!team_->queue_.empty()) {
-        errMsg = "Pending work queue not empty";
-    }
-
-    return errMsg;
+    return "";
 }
 
 /**
@@ -57,16 +47,12 @@ std::string ThreadTeamTerminating::isStateValid_NotThreadSafe(void) const {
  * Do not start a new task if the team is terminating.
  *
  */
-void ThreadTeamTerminating::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                                      const std::string& teamName, 
-                                      const std::string& taskName) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "startTask", 0, "Cannot start a task if team is terminating");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamTerminating::startTask_NotThreadsafe(TASK_FCN* fcn,
+                                                           const unsigned int nThreads,
+                                                           const std::string& teamName, 
+                                                           const std::string& taskName) {
+    return team_->printState_NotThreadsafe("startTask", 0,
+                  "Cannot start a task if team is terminating");
 }
 
 /**
@@ -90,14 +76,9 @@ void ThreadTeamTerminating::increaseThreadCount(const unsigned int nThreads) {
  *
  * Do not allow for work to be added if the team is terminating.
  */
-void ThreadTeamTerminating::enqueue(const int work) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "enqueue", 0, "Cannot add more work if team is terminating");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamTerminating::enqueue_NotThreadsafe(const int work) {
+    return team_->printState_NotThreadsafe("enqueue", 0,
+                  "Cannot add more work if team is terminating");
 }
 
 /**
