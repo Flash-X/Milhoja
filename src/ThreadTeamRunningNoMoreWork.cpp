@@ -1,10 +1,12 @@
 #include "ThreadTeamRunningNoMoreWork.h"
 
 /**
+ * Instantiate a ThreadTeamRunningNoMoreWork object for internal use by a ThreadTeam
+ * object as part of the State design pattern.  This gives the concrete state
+ * object a pointer to the ThreadTeam object whose private data members it will
+ * directly adjust under the hood.
  *
- *
- * \param
- * \return
+ * \param team - The ThreadTeam object that is instantiating this object
  */
 ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork(ThreadTeam* team)
     : ThreadTeamState(),
@@ -13,24 +15,20 @@ ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork(ThreadTeam* team)
     if (!team_) {
         std::string  msg("[ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork] ");
         msg += team_->hdr_;
-        msg += "\nGiven thread team in NULL";
+        msg += "\n\tGiven thread team in NULL";
         throw std::logic_error(msg);
     }
 }
 
 /**
- *
- *
- * \param
- * \return
+ * Destroy the concrete state object.
  */
 ThreadTeamRunningNoMoreWork::~ThreadTeamRunningNoMoreWork(void) { }
 
 /**
+ * Obtain the mode that this class is associated with.
  *
- *
- * \param
- * \return
+ * \return The mode as a value in the teamMode enum.
  */
 ThreadTeam::teamMode ThreadTeamRunningNoMoreWork::mode(void) const {
     return ThreadTeam::MODE_RUNNING_NO_MORE_WORK;
@@ -42,125 +40,175 @@ ThreadTeam::teamMode ThreadTeamRunningNoMoreWork::mode(void) const {
 std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const {
     std::string errMsg("");
 
+    if (team_->N_terminate_ != 0) {
+        errMsg = "N_terminate not zero";
+    } else if (!(team_->queue_.empty())) {
+        errMsg = "Pending work queue not empty";
+    }
+
     return errMsg;
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::startTask(TASK_FCN* fcn, const unsigned int nThreads,
-                                            const std::string& teamName, 
-                                            const std::string& taskName) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::startTask] ");
-    msg += team_->hdr_;
-    msg += "\nCannot start a task with a team that is terminating";
-    throw std::logic_error(msg);
+                                        const std::string& teamName, 
+                                        const std::string& taskName) {
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "startTask", 0, "Cannot start a task when one is already running");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::increaseThreadCount(const unsigned int nThreads) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::increaseThreadCount] ");
-    msg += team_->hdr_;
-    msg += "\nCannot increase thread count in a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "increaseThreadCount", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (nThreads == 0) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "increaseThreadCount", 0, "No sense in increasing by zero threads");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
+        msg  = "nThreads (";
+        msg += std::to_string(nThreads);
+        msg += ") exceeds the number of threads available for activation";
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "increaseThreadCount", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    }
+ 
+    if (team_->threadReceiver_) {
+        team_->threadReceiver_->increaseThreadCount(nThreads);
+    }
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::enqueue(const int work) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::enqueue] ");
-    msg += team_->hdr_;
-    msg += "\nCannot add give work to a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "enqueue", 0, "Cannot enqueue work if queue is closed");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::closeTask() {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::closeTask] ");
-    msg += team_->hdr_;
-    msg += "\nCannot close the queue of a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "closeTask", 0, "The task is already closed");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::wait(void) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::closeTask] ");
-    msg += team_->hdr_;
-    msg += "\nCannot wait on a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string msg = isStateValid_NotThreadSafe();
+    if (msg != "") {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "wait", 0, msg);
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::runtime_error(errMsg);
+    } else if (team_->isWaitBlocking_) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "wait", 0, "A thread has already called wait");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
+    }
+
+    // Block until team transitions to Idle
+    team_->isWaitBlocking_ = true;
+    pthread_cond_wait(&(team_->unblockWaitThread_), &(team_->teamMutex_));
+    team_->isWaitBlocking_ = false;
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::attachThreadReceiver(ThreadTeam* receiver) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::attachThreadReceiver] ");
-    msg += team_->hdr_;
-    msg += "\nCannot attach to a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "attachThreadReceiver", 0, "Subscribers can only be attached in Idle");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::detachThreadReceiver(void) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::detachThreadReceiver] ");
-    msg += team_->hdr_;
-    msg += "\nCannot detach from a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "detachThreadReceiver", 0, "Subscribers can only be detached in Idle");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
     
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::attachWorkReceiver(ThreadTeam* receiver) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::attachWorkReceiver] ");
-    msg += team_->hdr_;
-    msg += "\nCannot attach to a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "attachWorkReceiver", 0, "Subscribers can only be attached in Idle");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 
 /**
+ * See ThreadTeam.cpp documentation for same method for basic information.
  *
- *
- * \param
- * \return
  */
 void ThreadTeamRunningNoMoreWork::detachWorkReceiver(void) {
-    std::string  msg("[ThreadTeamRunningNoMoreWork::detachWorkReceiver] ");
-    msg += team_->hdr_;
-    msg += "\nCannot detach from a team that is terminating";
-    throw std::logic_error(msg);
+    pthread_mutex_lock(&(team_->teamMutex_));
+
+    std::string  errMsg = team_->printState_NotThreadsafe(
+        "detachWorkReceiver", 0, "Subscribers can only be detached in Idle");
+
+    pthread_mutex_unlock(&(team_->teamMutex_));
+    throw std::logic_error(errMsg);
 }
 

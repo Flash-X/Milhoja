@@ -141,7 +141,12 @@ void ThreadTeamRunningOpen::closeTask() {
         throw std::runtime_error(errMsg);
     }
 
-    team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE);
+    if (team_->queue_.empty()) {
+        team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
+        pthread_cond_broadcast(&(team_->transitionThread_));
+    } else {
+        team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE);
+    }
 
     pthread_mutex_unlock(&(team_->teamMutex_));
 }

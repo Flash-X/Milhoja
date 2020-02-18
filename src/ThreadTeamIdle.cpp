@@ -87,6 +87,11 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
             "startTask", 0, "Number of threads pending activation not zero");
         pthread_mutex_unlock(&(team_->teamMutex_));
         throw std::logic_error(errMsg);
+    } else if (!fcn) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "startTask", 0, "null task funtion pointer given");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     }
 
 #ifdef VERBOSE
@@ -127,9 +132,14 @@ void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
     std::string msg = isStateValid_NotThreadSafe();
     if (msg != "") {
         std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, msg);
+            "increaseThreadCount", 0, msg);
         pthread_mutex_unlock(&(team_->teamMutex_));
         throw std::runtime_error(errMsg);
+    } else if (nThreads == 0) {
+        std::string  errMsg = team_->printState_NotThreadsafe(
+            "increaseThreadCount", 0, "No sense in increasing by zero threads");
+        pthread_mutex_unlock(&(team_->teamMutex_));
+        throw std::logic_error(errMsg);
     } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
         // Even though we aren't activating threads in the team, this still
         // represents a logical error in the program.
@@ -137,7 +147,7 @@ void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
         msg += std::to_string(nThreads);
         msg += ") exceeds the number of threads available for activation";
         std::string  errMsg = team_->printState_NotThreadsafe(
-            "startTask", 0, msg);
+            "increaseThreadCount", 0, msg);
         pthread_mutex_unlock(&(team_->teamMutex_));
         throw std::logic_error(errMsg);
     }
