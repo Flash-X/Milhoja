@@ -415,13 +415,42 @@ ThreadTeam::teamMode ThreadTeam::mode(void) const {
  * \param nThreads - The number of Idle threads to activate.
  */
 void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
+    pthread_mutex_lock(&teamMutex_);
+
+    // Test conditions that should be checked for all states
+    std::string errMsg("");
     if (!state_) {
-        std::string  errMsg("ThreadTeam::increaseThreadCount] ");
-        errMsg += hdr_;
-        errMsg += "\n\tstate_ is NULL";
+        errMsg = printState_NotThreadsafe("increaseThreadCount", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->increaseThreadCount(nThreads);
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("increaseThreadCount", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (nThreads == 0) {
+        errMsg = printState_NotThreadsafe("increaseThreadCount", 0,
+                 "No sense in increasing by zero threads");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    } else if (nThreads > (N_idle_ - N_to_activate_)) {
+        msg  = "nThreads (";
+        msg += std::to_string(nThreads);
+        msg += ") exceeds the number of threads available for activation";
+        errMsg = printState_NotThreadsafe("increaseThreadCount", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    errMsg = state_->increaseThreadCount_NotThreadsafe(nThreads);
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -469,7 +498,7 @@ void ThreadTeam::startTask(TASK_FCN* fcn, const unsigned int nThreads,
     }
     std::string msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
-        errMsg = printState_NotThreadsafe("enqueue", 0, msg);
+        errMsg = printState_NotThreadsafe("startTask", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     } else if (nThreads > (N_idle_ - N_to_activate_)) {

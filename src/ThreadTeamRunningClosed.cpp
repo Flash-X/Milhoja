@@ -63,30 +63,8 @@ std::string ThreadTeamRunningClosed::startTask_NotThreadsafe(TASK_FCN* fcn,
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningClosed::increaseThreadCount(const unsigned int nThreads) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
-    } else if (nThreads == 0) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, "No sense in increasing by zero threads");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
-        msg  = "nThreads (";
-        msg += std::to_string(nThreads);
-        msg += ") exceeds the number of threads available for activation";
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    }
- 
+std::string ThreadTeamRunningClosed::increaseThreadCount_NotThreadsafe(
+                                                const unsigned int nThreads) {
     // Don't activate all threads if we are asked to activate more threads than
     // this is remaining work
     // NOTE: This also handles the case that the queue is empty
@@ -107,7 +85,7 @@ void ThreadTeamRunningClosed::increaseThreadCount(const unsigned int nThreads) {
         team_->threadReceiver_->increaseThreadCount(nThreads - nWork);
     }
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**

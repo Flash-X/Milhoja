@@ -60,15 +60,10 @@ std::string ThreadTeamTerminating::startTask_NotThreadsafe(TASK_FCN* fcn,
  *
  * Do not activate threads if the team is terminating.
  */
-void ThreadTeamTerminating::increaseThreadCount(const unsigned int nThreads) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "increaseThreadCount", 0,
+std::string ThreadTeamTerminating::increaseThreadCount_NotThreadsafe(
+                                            const unsigned int nThreads) {
+    return team_->printState_NotThreadsafe("increaseThreadCount", 0,
         "Cannot increase thread count if team is terminating");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
 }
 
 /**

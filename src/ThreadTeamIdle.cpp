@@ -106,38 +106,14 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
  * signal will ignore it as well since adding threads to a team with no task is
  * nonsensical.
  */
-void ThreadTeamIdle::increaseThreadCount(const unsigned int nThreads) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string msg = isStateValid_NotThreadSafe();
-    if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
-    } else if (nThreads == 0) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, "No sense in increasing by zero threads");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    } else if (nThreads > (team_->N_idle_ - team_->N_to_activate_)) {
-        // Even though we aren't activating threads in the team, this still
-        // represents a logical error in the program.
-        msg  = "nThreads (";
-        msg += std::to_string(nThreads);
-        msg += ") exceeds the number of threads available for activation";
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "increaseThreadCount", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
-    }
-
+std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
+                                    const unsigned int nThreads) {
     // No need to alter N_to_activate_ as we forward the thread activation on
     if (team_->threadReceiver_) {
         team_->threadReceiver_->increaseThreadCount(nThreads);
     }
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**

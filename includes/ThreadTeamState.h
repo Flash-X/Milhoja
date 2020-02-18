@@ -20,8 +20,10 @@ public:
 
     virtual ThreadTeam::teamMode  mode(void) const = 0;
 
-    virtual void                  increaseThreadCount(const unsigned int nThreads) = 0;
-    virtual std::string           startTask_NotThreadsafe(TASK_FCN* fcn,
+    virtual std::string           increaseThreadCount_NotThreadsafe(
+                                            const unsigned int nThreads) = 0;
+    virtual std::string           startTask_NotThreadsafe(
+                                            TASK_FCN* fcn,
                                             const unsigned int nThreads,
                                             const std::string& teamName, 
                                             const std::string& taskName) = 0;
