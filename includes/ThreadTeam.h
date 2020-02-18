@@ -127,6 +127,7 @@
 
 #include <queue>
 #include <string>
+#include <fstream>
 
 #include "runtimeTask.h"
 
@@ -147,7 +148,9 @@ public:
                      MODE_RUNNING_CLOSED_QUEUE,
                      MODE_RUNNING_NO_MORE_WORK};
 
-    ThreadTeam(const unsigned int nMaxThreads, const unsigned int id);
+    ThreadTeam(const unsigned int nMaxThreads,
+               const unsigned int id,
+               const std::string& logFilename);
     virtual ~ThreadTeam(void);
 
     // State-independent methods
@@ -258,6 +261,11 @@ private:
 
     // Keep track of when wait() is blocking and when it is released
     bool              isWaitBlocking_;     //!< Only a single thread can be blocked 
+
+    std::string       logFilename_;
+#ifdef VERBOSE
+    std::ofstream     logFile_; 
+#endif
 };
 
 #endif

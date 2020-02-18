@@ -8,6 +8,8 @@
 #ifndef ORCHESTRATION_RUNTIME_H__
 #define ORCHESTRATION_RUNTIME_H__
 
+#include <string>
+
 #include "Grid.h"
 #include "ThreadTeam.h"
 #include "runtimeTask.h"
@@ -17,6 +19,7 @@ public:
     ~OrchestrationRuntime(void);
 
     static OrchestrationRuntime* instance(void);
+    static void setLogFilename(const std::string& filename);
     static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
@@ -37,6 +40,7 @@ private:
     OrchestrationRuntime(const OrchestrationRuntime&);
     OrchestrationRuntime& operator=(const OrchestrationRuntime&);
 
+    static std::string             logFilename_;
     static unsigned int            nTeams_; 
     static unsigned int            maxThreadsPerTeam_;
     static OrchestrationRuntime*   instance_;

@@ -22,8 +22,8 @@ endif
 # Enable/Disable verbose logging of orchestration runtime sequence
 #
 ifndef VERBOSITY
-#VERBOSITY=VERBOSE
-VERBOSITY=SILENT
+VERBOSITY=VERBOSE
+#VERBOSITY=SILENT
 endif
 
 #

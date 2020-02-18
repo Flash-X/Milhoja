@@ -95,17 +95,18 @@ void ThreadTeamIdle::startTask(TASK_FCN* fcn, const unsigned int nThreads,
     }
 
 #ifdef VERBOSE
-    std::cout << "[" << team_->hdr_ << "] Assigned team name "
-              << teamName << std::endl;
+    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
+    team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
+                    << teamName << std::endl;
+    team_->logFile_ << "[" << teamName << "] Starting task "
+                    << taskName
+                    << " with "
+                    << nThreads
+                    << " initial threads\n";
+    team_->logFile_.close();
 #endif
+
     team_->hdr_ = teamName;
-#ifdef VERBOSE
-    std::count << "[" << team_->hdr_ << "] Starting task "
-               << taskName
-               << " with "
-               << nThreads
-               << " initial threads\n";
-#endif
 
     team_->N_to_activate_ = nThreads;
     team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
@@ -202,23 +203,22 @@ void ThreadTeamIdle::closeTask() {
  * calling thread got a chance to call wait().  Therefore, this method is a
  * no-op so that it won't block.
  */
-void ThreadTeamIdle::wait(void) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
+std::string    ThreadTeamIdle::wait_NotThreadsafe(void) {
     std::string msg = isStateValid_NotThreadSafe();
     if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "wait", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
+        return team_->printState_NotThreadsafe("wait", 0, msg);
     } else if (team_->isWaitBlocking_) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "wait", 0, "Team incorrectly believes that a thread already called wait");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
+        return team_->printState_NotThreadsafe("wait", 0,
+                      "A thread has already called wait");
     }
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+#ifdef VERBOSE
+    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
+    team_->logFile_ << "[Client Thread] Called no-op wait (Idle)\n";
+    team_->logFile_.close();
+#endif
+
+    return "";
 }
 
 /**

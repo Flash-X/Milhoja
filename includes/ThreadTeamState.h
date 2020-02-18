@@ -26,7 +26,7 @@ public:
                                             const std::string& taskName) = 0;
     virtual void                  enqueue(const int work) = 0;
     virtual void                  closeTask(void) = 0;
-    virtual void                  wait(void) = 0;
+    virtual std::string           wait_NotThreadsafe(void) = 0;
 
     virtual void                  attachThreadReceiver(ThreadTeam* receiver) = 0;
     virtual void                  detachThreadReceiver(void) = 0;

@@ -132,28 +132,30 @@ void ThreadTeamRunningNoMoreWork::closeTask() {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  */
-void ThreadTeamRunningNoMoreWork::wait(void) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
+std::string   ThreadTeamRunningNoMoreWork::wait_NotThreadsafe(void) {
     std::string msg = isStateValid_NotThreadSafe();
     if (msg != "") {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "wait", 0, msg);
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::runtime_error(errMsg);
+        return team_->printState_NotThreadsafe("wait", 0, msg);
     } else if (team_->isWaitBlocking_) {
-        std::string  errMsg = team_->printState_NotThreadsafe(
-            "wait", 0, "A thread has already called wait");
-        pthread_mutex_unlock(&(team_->teamMutex_));
-        throw std::logic_error(errMsg);
+        return team_->printState_NotThreadsafe("wait", 0,
+                 "A thread has already called wait");
     }
 
-    // Block until team transitions to Idle
     team_->isWaitBlocking_ = true;
+#ifdef VERBOSE
+    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
+    team_->logFile_ << "[Client Thread] Waiting on team (No More Work)\n";
+    team_->logFile_.close();
+#endif
     pthread_cond_wait(&(team_->unblockWaitThread_), &(team_->teamMutex_));
+#ifdef VERBOSE
+    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
+    team_->logFile_ << "[Client Thread] Received unblockWaitThread (No More Work)\n";
+    team_->logFile_.close();
+#endif
     team_->isWaitBlocking_ = false;
 
-    pthread_mutex_unlock(&(team_->teamMutex_));
+    return "";
 }
 
 /**

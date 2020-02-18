@@ -6,6 +6,7 @@
 #include "Block.h"
 #include "BlockIterator.h"
 
+std::string           OrchestrationRuntime::logFilename_       = "";
 unsigned int          OrchestrationRuntime::nTeams_            = 1;
 unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
 OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
@@ -21,6 +22,20 @@ OrchestrationRuntime* OrchestrationRuntime::instance(void) {
     }
 
     return instance_;
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
+void OrchestrationRuntime::setLogFilename(const std::string& filename) {
+    if (instance_) {
+        throw std::logic_error("[OrchestrationRuntime::setLogFilename] "
+                               "Set only when runtime does not exist");
+    }
+
+    logFilename_ = filename;
 }
 
 /**
@@ -69,7 +84,7 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
 
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
-        teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
+        teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i, logFilename_);
     }
 
 #ifdef VERBOSE

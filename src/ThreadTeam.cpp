@@ -27,7 +27,8 @@
  * \param  id          A unique thread team ID for debug use.
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
-                       const unsigned int id)
+                       const unsigned int id,
+                       const std::string& logFilename)
     : state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
@@ -47,7 +48,8 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
       taskFcn_(nullptr),
       threadReceiver_(nullptr),
       workReceiver_(nullptr),
-      isWaitBlocking_(false)
+      isWaitBlocking_(false),
+      logFilename_(logFilename)
 {
     hdr_  = "Thread Team ";
     hdr_ += std::to_string(id_);
@@ -157,10 +159,6 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
             pthread_mutex_unlock(&teamMutex_);
             throw std::runtime_error(msg);
         }
-
-#ifdef VERBOSE
-        std::cout << "[" << hdr_ << "] Starting thread " << i << std::endl;
-#endif
     }
 
     // Wait until all threads have started running their routine and are Idle
@@ -187,10 +185,12 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
     }
 
 #ifdef VERBOSE
-        std::cout << "[" << hdr_ << "] Team initialized in state " 
-                  << getModeName(state_->mode())
-                  << " with "
-                  << N_idle_ << " threads idling\n";
+        logFile_.open(logFilename_, std::ios::out | std::ios::app);
+        logFile_ << "[" << hdr_ << "] Team initialized in state " 
+                 << getModeName(state_->mode())
+                 << " with "
+                 << N_idle_ << " threads idling\n";
+        logFile_.close();
 #endif
 
     pthread_mutex_unlock(&teamMutex_);
@@ -227,9 +227,11 @@ ThreadTeam::~ThreadTeam(void) {
     } while (N_terminate_ < nMaxThreads_);
 
 #ifdef VERBOSE
-    std::cout << "[" << hdr_ << "] " 
-              << nMaxThreads_
-              << " Threads terminated\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[" << hdr_ << "] " 
+             << nMaxThreads_
+             << " Threads terminated\n";
+    logFile_.close();
 #endif
 
     pthread_cond_destroy(&unblockWaitThread_);
@@ -257,7 +259,9 @@ ThreadTeam::~ThreadTeam(void) {
     stateRunNoMoreWork_ = nullptr;
 
 #ifdef VERBOSE
-    std::cout << "[" << hdr_ << "] Team destroyed\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[" << hdr_ << "] Team destroyed\n";
+    logFile_.close();
 #endif
 }
 
@@ -349,13 +353,23 @@ std::string ThreadTeam::setMode_NotThreadsafe(const teamMode nextMode) {
     msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
         return msg;
+    } else if (nextMode != state_->mode()) {
+        msg  = "EFSM in mode ";
+        msg += getModeName(state_->mode());
+        msg += " instead of intended mode ";
+        msg += getModeName(nextMode);
+        std::string  errMsg = printState_NotThreadsafe(
+            "setMode_NotThreadsafe", 0, msg);
+        return errMsg;
     }
 
 #ifdef VERBOSE
-    std::cout << "[" << hdr_ << "] Transitioned from "
-              << getModeName(currentMode)
-              << " to "
-              << getModeName(nextMode) << std::endl;
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[" << hdr_ << "] Transitioned from "
+             << getModeName(currentMode)
+             << " to "
+             << getModeName(state_->mode()) << std::endl;
+    logFile_.close();
 #endif
 
     return errMsg;
@@ -500,13 +514,23 @@ void ThreadTeam::enqueue(const int work) {
  *          single thread can be blocked by calling wait() at a time.
  */
 void ThreadTeam::wait(void) {
+    pthread_mutex_lock(&teamMutex_);
+
     if (!state_) {
         std::string  errMsg("ThreadTeam::wait] ");
         errMsg += hdr_;
         errMsg += "\n\tstate_ is NULL";
+        pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
-    state_->wait();
+
+    std::string errMsg = state_->wait_NotThreadsafe();
+    if (errMsg != "") {
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
@@ -719,6 +743,16 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 pthread_mutex_unlock(&(team->teamMutex_));
             }
 
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Terminated - " 
+                           << team->N_terminate_
+                           << " terminated out of "
+                           << team->nMaxThreads_ << std::endl;
+            team->logFile_.close();
+#endif
+
             // Inform team that thread has terminated & terminate
             pthread_cond_signal(&(team->threadTerminated_));
             pthread_mutex_unlock(&(team->teamMutex_));
@@ -745,6 +779,19 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 pthread_cond_signal(&(team->threadStarted_));
             }
 
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Transition to Idle\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
+
             if (   (mode == MODE_RUNNING_NO_MORE_WORK) 
                 && (team->N_idle_ == team->nMaxThreads_)) {
                 team->setMode_NotThreadsafe(MODE_IDLE);
@@ -753,6 +800,12 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 }
 
                 pthread_cond_broadcast(&(team->unblockWaitThread_));
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Sent unblockWaitThread signal" << std::endl;
+            team->logFile_.close();
+#endif
             }
 
             // It is possible that a call to increaseThreadCount could result
@@ -760,6 +813,18 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // and the event received after the team goes idle.  If this occurs,
             // forward the thread count increase and stay Idle.
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Activated\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
             transitionToIdle = false;
 
             // Handle cases where activated thread should go back to Idle
@@ -815,7 +880,31 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 throw std::runtime_error(msg);
             }
 
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Transition to Waiting\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
             pthread_cond_wait(&(team->transitionThread_), &(team->teamMutex_));
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Awoken\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
 
             mode = team->state_->mode();
             if ((mode == MODE_RUNNING_CLOSED_QUEUE) && (team->queue_.empty())) {
@@ -848,10 +937,25 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 throw std::runtime_error(msg);
             }
 
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Transition to Computing\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
+
             work = team->queue_.front();
 #ifdef VERBOSE
-            std::cout << "[" << team->hdr_ << " / Thread " << tId << "] "
-                      << "Dequeued work " << work << std::endl;
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Dequeued work " << work << std::endl;
+            team->logFile_.close();
 #endif
 
             // No more pending work for this task (aside from this last unit of
@@ -868,6 +972,18 @@ void* ThreadTeam::threadRoutine(void* varg) {
             pthread_mutex_lock(&(team->teamMutex_));
 
             // This is where computationFinished is "emitted"
+#ifdef VERBOSE
+            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
+            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
+                           << "Finished computing\n"
+                           << "\tN_max         = " << team->nMaxThreads_   << std::endl
+                           << "\tN_idle        = " << team->N_idle_        << std::endl  
+                           << "\tN_comp        = " << team->N_comp_        << std::endl
+                           << "\tN_wait        = " << team->N_wait_        << std::endl
+                           << "\tN_terminate   = " << team->N_terminate_   << std::endl
+                           << "\tN_to_activate = " << team->N_to_activate_ << std::endl;
+            team->logFile_.close();
+#endif
 
             if (team->workReceiver_) {
                 team->workReceiver_->enqueue(work);

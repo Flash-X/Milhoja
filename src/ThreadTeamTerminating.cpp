@@ -121,14 +121,9 @@ void ThreadTeamTerminating::closeTask() {
  * Don't let a thread wait on this object to finish a task if the team is
  * terminating.
  */
-void ThreadTeamTerminating::wait(void) {
-    pthread_mutex_lock(&(team_->teamMutex_));
-
-    std::string  errMsg = team_->printState_NotThreadsafe(
-        "wait", 0, "Cannot wait on team that is terminating");
-
-    pthread_mutex_unlock(&(team_->teamMutex_));
-    throw std::logic_error(errMsg);
+std::string ThreadTeamTerminating::wait_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("wait", 0,
+                  "Cannot wait on team that is terminating");
 }
 
 /**
