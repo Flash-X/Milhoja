@@ -16,29 +16,25 @@
  *   - Running with the work queue open
  *     (i.e. able to accept more units of work),
  *   - Running with the work queue closed
- *     (i.e. no more units of work can be added),
+ *     (i.e. no more units of work can be added), or
  *   - Running with no more pending work
  *     (i.e. there are no more units of work in the queue, but at least one
- *     thread is still applying the task to a unit of work), or
- *   - Terminating
+ *     thread is still applying the task to a unit of work)
  * at any point in time.  The internal state variables (quantitative) for the
  * EFSM are the number of
  *   - pending units of work in the team's queue,
  *   - Idle threads,
- *   - Waiting threads,
- *   - Computing threads, and
- *   - Terminating threads.
+ *   - Waiting threads, and
+ *   - Computing threads.
  * The events that trigger state transitions are
  *   - an external call to startTask()
  *     (Idle -> Running & Open),
  *   - an external call to closeTask()
  *     (Running & Open -> Running Closed),
  *   - a thread determines that the queue is empty
- *     (Running & Closed -> Running & No Pending Work),
+ *     (Running & Closed -> Running & No Pending Work), and
  *   - all threads have transitioned to Idle
- *     (Running & No Pending Work -> Idle), and
- *   - an external call results in the destruction of the thread team object
- *     (Idle -> Terminating).
+ *     (Running & No Pending Work -> Idle).
  * At construction, the thread team starts the maximum number of threads
  * allotted to it and these persist until the team is destroyed.  The EFSM
  * starts in the Idle mode with all threads in the Idle state and an empty

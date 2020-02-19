@@ -253,6 +253,16 @@ with the given team thread or using the team thread to launch computations on
 accelerator devices.
 \end{req}
 
+\begin{req}
+A thread team shall maintain a set of pending units of work and all threads in a
+thread team shall be able to check the set of pending units of work.  In
+addition, each thread in the team shall be able to claim ownership of a single
+unit of work by removing it from the set with the understanding that that thread
+is responsible for applying the team's task to that unit of work.  It shall be
+impossible for two threads to simultaneously claim ownership of the same unit of
+work.
+\end{req}
+
 \textcolor{red}{Should we allow for dividing the
 load of blocks between two or more thread teams?  For example, if the task
 bundle has effectively just one task, we could have half the blocks run on the
@@ -360,7 +370,13 @@ number of threads in a thread subscriber team is less than or equal to the sum
 total of threads that the team starts with and the number of threads that can be
 triggered.  Note that multiple thread teams can be connected in chains and a
 single thread team could be a subscriber to many chains.  Therefore, the task of
-determining the maximum number of threads in a team is important.
+determining the maximum number of threads in a team is important.\\
+
+\textcolor{red}{How to deal with the case of a work subscriber that has
+multiple work publishers?  Publishers call a routine in subscriber to inform the
+subscriber that it can detach and subscriber transitions to closed only once it
+is not attached to any subscribers?  This implies pub/sub pattern with two way
+knowledge of relationship.}\\
 
 \begin{req}
 The runtime shall allow for a thread team whose unit of work is a data packet of
@@ -407,8 +423,9 @@ topologies will give the correct results regardless of order of execution.}}
 %hand these over to managed memory but ask the task composer to touch the scalars
 %on the appropriate device before each runtime call (these are blocking)?\\
 
-The runtime is fundamentally a event-driven software and as such the design has
-been specified as a finite state machine.  However, the behavior in a given
+\subsection{Thread Teams}
+A thread team is fundamentally event-driven software and as such its design
+has been specified as a finite state machine.  However, the behavior in a given
 state cannot be specified solely on the basis of a single qualitative state
 variable.  Rather, the behavior will depend on a qualitative state variable,
 which is called the mode, as well as the quantitative internal state variables
@@ -417,7 +434,7 @@ $N_i, N_w, N_c, N_Q$ that respectively keep track of
 \item{the number of idle threads in the team,}
 \item{the number of threads that are waiting for work to be added,}
 \item{the number of threads executing a computation on a unit of work, and}
-\item{the number of units of work in team's pending work queue.}
+\item{the number of units of work in the team's pending work queue.}
 \end{itemize}
 Note that the definitions of $N_i, N_w, N_c$ imply that each thread is
 always in one and only one state but that this EFSM need not track the actual
@@ -479,6 +496,13 @@ its state accordingly}
 %terminated}
 \end{itemize}
 
+\textcolor{red}{Add in explanation of how computationFinished is different and
+how it could be perceived to break the rules of a FSM since the thread never
+finishes its transitions.  With the right definitions, it seems that we get
+around this --- the thread is is an effective blocking state (i.e. like waiting
+of a signal) while it is computing.  This signal is only emitted by a computing
+thread and is only received by the emitting thread itself.}
+
 The initial state is defined to be
 \[
 s_0 = \left(q_0, (N_i, N_w, N_c, N_Q)_0\right) = \left(\TeamIdle, (0, 0, 0, 0)\right).
@@ -490,7 +514,19 @@ that indicates only states and transitions is shown in
 Figure~\ref{fig:TeamStateDiagram}.  A similar state diagram for threads in the
 team is shown in Figure~\ref{fig:ThreadStateDiagram}.  These figures are
 intended only to aid in understanding the design of the runtime.  The content of
-XXX should be understood to be the actual design of the runtime.
+XXX should be understood to be the actual design of the runtime.\\
+
+The design and implementation philosophy of the EFSM was to put an emphasize on
+correctness and maintainability.  One important consequence was to create a
+design that accounts for all possible states/transitions/events even though it
+could be proven that some states/transitions/events are precluded from happening
+by the design itself.  Therefore, our design/implementation is hopefully robust
+and not so sensitive to small design changes.  Also, the mental load associated
+with working with the design is lower since we do not have the burden of proving
+and maintaining proofs of impossible states/transitions.  This is especially
+important as the thread-based implementation of the thread team cannot make
+strong assumptions about the predictability of the order of execution of code
+and events, which increases the complexity of such proofs.
 
 \begin{figure}[!ht]
 \begin{center}
@@ -531,14 +567,17 @@ tracks the actual number of idle threads with \texttt{N\_idle\_} = $N_i$ as well
 as the number of threads pending activation with \texttt{N\_to\_activate\_}.
 When a thread does receive \texttt{activateThread}, it decrements both
 \texttt{N\_idle\_} and \texttt{N\_to\_activate\_} and increments the internal
-state variable $N_w, N_c$, or $N_t$ corresponding to the thread's next state.
+state variable $N_i, N_w$ or $N_c$ corresponding to the thread's next state.
 To satisfy the requirement, both events throw an error if $i > $
 \texttt{N\_idle\_} - \texttt{N\_to\_activate\_}.
 
 \begin{req}
 \label{req:Runtime_OneWait}
-For each task execution, a team shall allow for only one thread to wait on the
-termination of the task.
+The interface of the thread team shall contain a \texttt{wait} method so that
+for each task execution, the execution of a thread that calls \texttt{wait} is
+blocked until the termination of the task.  This interface shall allow for at
+most one thread to block its execution with this method during each task
+execution.
 \end{req}
 \textbf{Verification:}\hspace{0.125in}  Implemented a flag
 \texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
@@ -548,10 +587,38 @@ To maintain a simple design, client code shall only be allowed to attach and
 detach thread subscribers when the team is in the {\TeamIdle} mode.  The same
 requirement applies for work subscribers.
 \end{req}
+\textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
+
+\begin{req}
+In the original designs, the Team state machine also contained a
+{\TeamTerminating} mode.  The transition to this mode was allowed only from
+{\TeamIdle} and was triggered by initiating the destruction of the team.  While
+sensible, this design was flawed since a runtime error that occurs with the team
+in any state could trigger the destruction of the team.  Therefore, the
+termination of the EFSM and the clean-up of its resources shall be possible from
+any state.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  The destructor does not do any error
+checking to confirm that destruction was called with the EFSM in any particular
+state.  Also, the destructor assumes that there are Idle, Waiting, and Computing
+threads at the time of calling.  For the Idle and Waiting threads, it triggers
+them to finish; the Computing, it waits for them to finish their work and
+discover that they should terminate.
+
+\begin{req}
+As per the requirements of FSMs, each transition shall be implemented so that
+the code executing the transition has sole access to the thread team's state
+during the entirety of the transition.  This implies that no other thread can
+alter the state simultaneously.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  With each change to the software, the
+satisfication of this requirement should be reverified.
+
+\begin{req}
+\end{req}
 \textbf{Verification:}\hspace{0.125in}
 
 \subsection{{\TeamIdle} State}
-
 \begin{req}
 \label{req:Idle_NoEnqueue}
 While the runtime could allow clients to give units of work to a team with the
@@ -561,7 +628,7 @@ the design, client code shall not be allowed to give a team a unit of work if
 the team is in the mode \TeamIdle.  
 \end{req}
 \textbf{Verification:}\hspace{0.125in}  The \texttt{enqueue} method throws an
-error if called in this mode.  There is no other means to add work.\\ 
+error if called in this mode.  There is no other means to add work.
 
 \begin{req}
 In the {\TeamIdle} mode, the queue shall always be empty and all threads in the
@@ -579,15 +646,14 @@ to the queue in the {\TeamIdle} state by Req~\ref{req:Idle_NoEnqueue}.\\
 The initial state specifies that all threads are idle and transitions to
 {\TeamIdle} can only happen if the same is true.  Therefore, the claim is true
 upon entry to {\TeamIdle} and all threads are waiting for \texttt{activateThread}.
-Note that threads can only transition to Terminating in the {\TeamTerminating} 
-state.  Also, responses\footnote{These cases are being considered should one of
-these events be emitted when the team in not Idle, but is received after
-transitioning to Idle.  With the current implementation, since all threads would
-be waiting on \texttt{activateThread}, no threads would be waiting for the
-latter two events.} to \texttt{activateThread}, \texttt{transitionThread}, and
+Also, responses\footnote{These cases are being considered should one of these
+events be emitted when the team in not Idle, but is received after transitioning
+to Idle.  With the current implementation, since all threads would be waiting on
+\texttt{activateThread}, no threads would be waiting for the latter two events.}
+to \texttt{activateThread}, \texttt{transitionThread}, and
 \texttt{computationFinishes} do not transition the thread state and have the
 responding threads wait for \texttt{activateThread}.  Therefore any attempt to
-transition a thread terminates with the thread in idle.\\
+transition a thread terminates with the thread in idle.
 
 \begin{req}
 Consider a team that is both a thread publisher and subscriber.  It is possible
@@ -611,26 +677,6 @@ which are logical errors.
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated and in
 accord with Req~\ref{req:Runtime_OneWait}.  
 
-
-\subsection{{\TeamTerminating} State}
-\begin{req}
-Client code shall not be able to interact with a thread team that is in the
-{\ThreadTerminating} mode and the EFSM terminates automatically as a result of
-being transitioned to this mode.
-\end{req}
-\textbf{Verification:}\hspace{0.125in} The transition to this mode is triggered
-by destroying the team object and is therefore handled by the destructor.
-Hence, interaction with the object is impossible.
-
-\begin{req}
-Upon entry into {\TeamTerminating} and while in this state, the pending work
-queue shall always be empty and the number of waiting and computing threads
-equal to zero.
-\end{req}
-\textbf{Verification:}\hspace{0.125in}  These are confirmed in the destructor
-upon transitioning to the mode.  Other consistency checks are handled in the
-destructor as sanity checks of proper implementation.
-
 \subsection{\TeamRunningOpen}
 \begin{req}
 Consider the case of two teams, one of which is the work publisher for the
@@ -647,242 +693,6 @@ allow for a thread to call \texttt{wait()} method.
 \begin{req}
 \end{req}
 \textbf{Verification:}\hspace{0.125in}
-
-
-At any point in time, each thread team shall only exist in one of the states
-\begin{enumerate}
-\item{\TeamStarting,}
-\item{\TeamIdle,}
-\item{\TeamRunningOpen,}
-\item{\TeamRunningClosed, or}
-\item{\TeamTerminating.}
-\end{enumerate}
-
-A thread team shall be set into the \TeamStarting state upon creation and the
-team's state shall not transition to \TeamStarting from any state. \\
-
-A thread team's state can transition to \TeamIdle only if
-\begin{enumerate}
-\item{the current state is \TeamStarting or \TeamRunningClosed and}
-\item{all threads in the team are created and in the state \ThreadIdle.}
-\end{enumerate}
-If the current state is \TeamRunningClosed, then the transition to \TeamIdle
-shall occur automatically without client code intervention once all threads in
-the team have transitioned to the state \ThreadIdle.\\
-
-A thread team state shall transition from \TeamStarting to \TeamIdle
-automatically once all requirements for transitioning to \TeamIdle are
-satisified.  \textcolor{red}{For the present design, this means that
-\TeamStarting is a transitory state and the team can only be in that state
-during the construction phase of a thread team.}\\
-
-A thread team's state can be transitioned to \TeamRunningOpen only if
-\begin{enumerate}
-\item{the current state is \TeamIdle and}
-\item{the client code has triggered this \textit{via} the thread team's
-interface (\texttt{startTask()}).}
-\end{enumerate}
-
-A thread team's state can be transitioned to \TeamRunningClosed only if
-\begin{enumerate}
-\item{the current state is \TeamRunningOpen and}
-\item{the client code has triggered this \textit{via} the thread team's
-interface (\texttt{closeTask()}).}
-\end{enumerate}
-
-A thread team's state can be transitioned to \TeamTerminating only if the
-current state is \TeamIdle, which implies that no thread in the team is working.
-In addition, this transition must require that there be no pending work for the
-team (\textit{e.g.} no units of work given to the thread team while in the
-\TeamIdle state).  \textcolor{red}{As with \TeamStarting, \TeamTerminating is
-presently implemented as a transitory state and the transition to this state can
-only be triggered by client code destroying the thread team}.\\
-
-The state of a work subscriber shall be transitioned to \TeamRunningClosed only
-by its work publisher and only once the work publisher has determined that it
-has no more pending work and no more work can be added to its set of pending
-work.  \textcolor{red}{How to deal with this if we allow for a subscriber to
-have multiple publishers?  Publishers call a routine in subscriber to inform the
-subscriber that it can detach and subscriber transitions to closed only once it
-is not attached to any subscribers?  This implies pub/sub pattern with two way
-knowledge of relationship.}\\
-
-TODO: Add in information about when work can be added.  Add in info about when
-Work/Thread subscribers can be added/removed.  Need to account for special cases
-of threads being given.\\
-
-
-At any point in time, each thread in a thread team shall only exist in one of
-the states
-\begin{enumerate}
-\item{\ThreadStarting,}
-\item{\ThreadIdle,}
-\item{\ThreadComputing,}
-\item{\ThreadWaiting, or}
-\item{\ThreadTerminating.}
-\end{enumerate}
-
-A thread shall be set automatically into the \TeamStarting state by its thread
-team upon creation of both the team and the thread itself.  The thread's state
-shall not transition to \ThreadStarting from any state. \\
-
-A thread's state can transition to \ThreadIdle only if
-\begin{enumerate}
-\item{it is presently in any state other than \ThreadTerminating,}
-\item{the thread is not presently executing work,}
-\item{there is no work pending for the thread's team, and}
-\item{there is no possibility of more work being given to the thread's team
-during the current execution cycle.}
-\end{enumerate}
-This requirement and requirement XXX imply that a team cannot transition to the
-state \TeamIdle unless there is no more work and no possibility for more work to
-be given to the team if the team is executing a task.\\
-
-A thread's state shall only be transitioned to \ThreadTerminating by the
-thread's team and this transition shall and shall only occur when the
-state of the thread's team is transitioned to \TeamTerminating.\\
-
-A thread's state can transition to \ThreadComputing only if
-\begin{enumerate}
-\item{the thread's current state is \ThreadIdle, the state of the thread's team
-is \TeamRunningOpen or \TeamRunningClosed, and the thread finds at the time of
-transition a unit of work on which to apply its task; or}
-\item{the thread's current state is \ThreadWaiting, the state of the thread's
-team is \TeamRunningOpen or \TeamRunningClosed, and the thread finds at the time
-of transition a unit of work on which to apply its task.}
-\end{enumerate}
-A thread's state shall remain in \ThreadComputing if after finishing the
-execution of the task on a unit of work it finds a new unit of work on which to
-apply the task.\\
-
-A thread's state can transition to \ThreadWaiting only if
-\begin{enumerate}
-\item{the thread's current state is \ThreadIdle, the state of the thread's team
-is \TeamRunningOpen or \TeamRunningClosed, and the thread does not find at the
-time of transition a unit of work on which to apply its task; or}
-\item{the thread's current state is \ThreadComputing, the state of the thread's
-team is \TeamRunningOpen or \TeamRunningClosed, and after finishing the
-execution of the task on a unit of work it does not find a unit of work on which
-to apply its task.}
-\end{enumerate}
-A thread's state shall remain in \ThreadWaiting if the state of the thread's
-team is \TeamRunningOpen and at the time of transition the thread does not find 
-a new unit of work on which to apply the task.  \textcolor{red}{For the current
-implementation, this can occur if a waiting thread is awakened due to the
-addition of a new unit of work to the queue, but eventually finds no work
-because a computing thread was able to dequeue the new unit of work first.}\\
-
-
-A thread team shall maintain a set of pending units of work and all threads in a
-thread team shall be able to check the set of pending units of work.  In
-addition, each thread in the team shall be able to claim ownership of a single
-unit of work by removing it from the set with the understanding that that thread
-is responsible for applying the team's task to that unit of work.  It shall be
-impossible for two threads to simultaneously claim ownership of the same unit of
-work.\\
-
-A thread in a thread team shall understand that its team has no pending work
-only if it finds no units of work in the team's pending work set.\\
-
-A thread in a thread team shall understand that its team cannot presently
-recieve more work only if the team is in one of the states \TeamStarting,
-\TeamRunningClosed, or \TeamTerminating.
-
-\subsection{Thread Team Interface}
-
-The thread team interface shall include a method called \texttt{enqueue()} that
-accepts a single unit of work that matches the unit of work that the thread team
-handles.  Upon being called, this method shall immediately add the given unit of
-work to the set of pending units of work and no other thread in the team shall
-be able to interact with this set during this process\footnote{For instance,
-another thread shall not be able to check if the set is empty.}.\\
-
-The \texttt{enqueue()} method shall emit an error if it is called on a thread
-team that is not in one of the states \TeamIdle or \TeamRunningOpen.
-\textcolor{red}{Only allow in \TeamRunningOpen?  If we do this, we then insist
-that client code call startTask on all thread teams before calling enqueue for
-any thread team.  This also means that no thread publisher can push threads
-until its subscriber in is \TeamRunningOpen.  Therefore, it wouldn't matter in
-what order the startTasks are called.}\\
-
-If a new unit of work is given to a thread team \textit{via} the
-\texttt{enqueue()} method and the thread team has one or more threads in the
-\ThreadWaiting state, then the thread team shall signal one and only one of
-these threads to transition its state.  If this is not the case, then the team
-either has threads in the computing state or it presently has no active threads.
-In the former case, the computing thread will transition when it finishes
-applying the task to its current unit of work.  In the latter case, the team
-must be a thread subscriber and thread will find the work when it is awakened
-upon a thread push.\\
-
-The thread team interface shall include a method called \texttt{startTask()}
-that accepts the task routine that the thread team shall apply to all units of
-work it is given as well as the number of threads to initially assign to carry
-out the task, $N_{start}$.  This method shall emit an error if the number of
-initial threads exceeds the number of threads in the team.\\
-
-The \texttt{startTask()} routine shall emit an error if it is called on a thread
-team that is in any state other than \TeamIdle.\\
-
-When client code calls a thread team's \texttt{startTask()} routine, the thread
-team shall signal to $N_{start}$ threads\footnote{Requirement XXX implies that
-the team is in the state \TeamIdle.  Therefore, by requirement YYY, all threads
-in a team must be in the \ThreadIdle state.  It follows from this conclusion and
-Requirement ZZZ that there must be at least this many threads in the team that
-are in the \ThreadIdle state and that are therefore available to start work.}
-that they should transition state.\\
-
-The thread team interface shall include a routine called
-\texttt{increaseThreadCount()} that accepts the number of threads, $N_{awaken}$,
-to add to the group of threads that are carrying out the work associated with
-the team's assigned task.  It is intended that this routine is only called by a
-thread team's thread publishers.\\
-
-The \texttt{increaseThreadCount()} method shall emit an error if the thread team
-on which it is called is in any state other than \TeamRunningOpen or
-\TeamRunningClosed.  Note that a thread publisher cannot push a thread to a
-thread subscriber if the subscriber is still in the \TeamIdle state.  Therefore,
-client code shall call the \texttt{startTask()} routine of a thread subscriber
-before calling the \texttt{startTask()} routine of that team's thread publisher.\\
-
-The \texttt{increaseThreadCount()} method shall emit an error if the sum of the
-given number of threads to add and the number of threads currently working on
-the task exceeds the number of threads in the team.\\
-
-When the \texttt{increaseThreadCount()} routine is called, the routine shall
-signal to $N_{awaken}$ idle threads in the team to transition state.
-\textcolor{red}{Should be able to prove that this many idle threads must
-exist.}\\
-
-Note that a thread subscriber could finish its task before its thread
-publishers finish their task.  Therefore, the subscriber could be in the
-\TeamIdle state when its publishers call the subscriber's
-\texttt{increaseThreadCount()} routine, which would result in the emission of an
-error (See requirement XXX).  To avoid this unintended error emission, client code shall call the
-\texttt{wait()} routine of a thread subscriber \emph{after} the calling the
-\texttt{wait()} routines of all of the subscriber's thread publishers.\\
-
-The thread team interface shall include a routine called \texttt{wait()}.  This
-routine shall transition the state of the thread team on which it is called to
-\TeamRunningClosed and shall block until the routine can transition the team's
-state to \TeamIdle.\\
-
-When the \texttt{wait()} routine is called on a particular thread team, it must
-be the case that \texttt{startTask()} has alredy been called for the thread team
-and either work has or has not been given to the team \textit{via} calls to
-\texttt{enqueue()}.  If no work has been given, then there is no pending work
-
-The \texttt{wait()} routine shall emit an error if it is called when the team is
-in any state other than \TeamRunningOpen.\\
-
-If a thread determines during a state transition that it has taken ownership of
-the last unit of work in the pending work set and that there is no possibility
-of more units of work being given, then it shall signal all threads in the team
-in state \ThreadWaiting to transition state.  These, it turn, will determine that
-they can transition to \ThreadIdle.  Note that all threads that are in the
-\ThreadComputing state will transition state upon finishing task execution on
-their current unit of work and determine that they shall transition to
-\ThreadIdle.\\
 
 \subsection{Possible Requirements}
 %If a thread team is going to ship data to an accelerator like a GPU, then the
