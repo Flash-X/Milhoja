@@ -21,21 +21,12 @@ ThreadTeamRunningOpen::ThreadTeamRunningOpen(ThreadTeam* team)
 }
 
 /**
- * Destroy the concrete state object.
- */
-ThreadTeamRunningOpen::~ThreadTeamRunningOpen(void) { }
-
-/**
- * Obtain the mode that this class is associated with.
+ * Confirm that the state of the EFSM is valid for the Running & Queue Open  mode.
  *
- * \return The mode as a value in the teamMode enum.
- */
-ThreadTeam::teamMode ThreadTeamRunningOpen::mode(void) const {
-    return ThreadTeam::MODE_RUNNING_OPEN_QUEUE;
-}
-
-/**
- * 
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
     std::string errMsg("");
@@ -49,6 +40,13 @@ std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
 
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
+ *
+ * Do not allow for starting a new task if one is still on-going.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                            const unsigned int nThreads,
@@ -61,6 +59,10 @@ std::string ThreadTeamRunningOpen::startTask_NotThreadsafe(TASK_FCN* fcn,
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
@@ -75,9 +77,14 @@ std::string ThreadTeamRunningOpen::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
     team_->queue_.push(work);
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Enqueued work " << work << std::endl;
@@ -94,14 +101,19 @@ std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
     bool isQueueEmpty = team_->queue_.empty();
     if        (    isQueueEmpty
-               && (team_->N_idle_ == team_->nMaxThreads_)
-               && (team_->N_to_activate_ == 0)) {
-        // No more work can be added and there are no threads that are active or
-        // that will be made active => no need to transition threads.
+               && (team_->N_idle_ == team_->nMaxThreads_) ) {
+        // No more work can be added and there are no threads that are active
+        //   => no need to transition threads.
+        // If N_to_activate_ > 0, then activated threads will transition back
+        // to Idle based on the new Mode
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_IDLE);
         if (team_->workReceiver_) {
             team_->workReceiver_->closeTask();
@@ -119,20 +131,28 @@ std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string  ThreadTeamRunningOpen::wait_NotThreadsafe(void) {
     team_->isWaitBlocking_ = true;
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[Client Thread] Waiting on team (Run & Open)\n";
     team_->logFile_.close();
 #endif
+
     pthread_cond_wait(&(team_->unblockWaitThread_), &(team_->teamMutex_));
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[Client Thread] Received unblockWaitSignal (Run & Open)\n";
     team_->logFile_.close();
 #endif
+
     team_->isWaitBlocking_ = false;
         
     return "";
