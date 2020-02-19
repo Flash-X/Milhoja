@@ -21,31 +21,14 @@ ThreadTeamTerminating::ThreadTeamTerminating(ThreadTeam* team)
 }
 
 /**
- * Destroy the concrete state object.
- */
-ThreadTeamTerminating::~ThreadTeamTerminating(void) { }
-
-/**
- * Obtain the mode that this class is associated with.
- *
- * \return The mode as a value in the teamMode enum.
- */
-ThreadTeam::teamMode ThreadTeamTerminating::mode(void) const {
-    return ThreadTeam::MODE_TERMINATING;
-}
-
-/**
- * 
- */
-std::string ThreadTeamTerminating::isStateValid_NotThreadSafe(void) const {
-    return "";
-}
-
-/**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  * Do not start a new task if the team is terminating.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamTerminating::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                            const unsigned int nThreads,
@@ -59,6 +42,11 @@ std::string ThreadTeamTerminating::startTask_NotThreadsafe(TASK_FCN* fcn,
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  * Do not activate threads if the team is terminating.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamTerminating::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
@@ -70,6 +58,11 @@ std::string ThreadTeamTerminating::increaseThreadCount_NotThreadsafe(
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  * Do not allow for work to be added if the team is terminating.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamTerminating::enqueue_NotThreadsafe(const int work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
@@ -80,6 +73,11 @@ std::string ThreadTeamTerminating::enqueue_NotThreadsafe(const int work) {
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
  * No task can be running if the team is terminating.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamTerminating::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
@@ -91,6 +89,11 @@ std::string ThreadTeamTerminating::closeTask_NotThreadsafe(void) {
  *
  * Don't let a thread wait on this object to finish a task if the team is
  * terminating.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamTerminating::wait_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("wait", 0,

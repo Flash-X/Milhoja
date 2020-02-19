@@ -15,9 +15,11 @@
 class ThreadTeamTerminating : public ThreadTeamState {
 public:
     ThreadTeamTerminating(ThreadTeam* team);
-    ~ThreadTeamTerminating(void);
+    ~ThreadTeamTerminating(void)                { };
 
-    ThreadTeam::teamMode  mode(void) const;
+    ThreadTeam::teamMode  mode(void) const {
+        return ThreadTeam::MODE_TERMINATING;
+    }
 
     std::string           increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads);
@@ -31,7 +33,9 @@ public:
     std::string           wait_NotThreadsafe(void);
 
 protected:
-    std::string  isStateValid_NotThreadSafe(void) const;
+    std::string  isStateValid_NotThreadSafe(void) const {
+        return "";
+    }
 
 private:
     // Disallow copying of objects to create new objects

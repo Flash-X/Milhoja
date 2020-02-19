@@ -21,15 +21,6 @@ ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
 }
 
 /**
- * Obtain the mode that this class is associated with.
- *
- * \return The mode as a value in the teamMode enum.
- */
-ThreadTeam::teamMode ThreadTeamIdle::mode(void) const {
-    return ThreadTeam::MODE_IDLE;
-}
-
-/**
  * Confirm that the state of the EFSM is valid for the Idle mode.
  *
  * \warning This method is *not* thread safe and therefore should only be called
