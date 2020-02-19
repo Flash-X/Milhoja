@@ -15,7 +15,7 @@
 class ThreadTeamIdle : public ThreadTeamState {
 public:
     ThreadTeamIdle(ThreadTeam* team);
-    ~ThreadTeamIdle(void);
+    ~ThreadTeamIdle(void)                 { };
 
     ThreadTeam::teamMode  mode(void) const;
 

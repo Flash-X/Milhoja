@@ -679,7 +679,12 @@ the design, client code shall not be allowed to give a team a unit of work if
 the team is in the mode \TeamIdle.  
 \end{req}
 \textbf{Verification:}\hspace{0.125in}  The \texttt{enqueue} method throws an
-error if called in this mode.  There is no other means to add work.
+error if called in this mode.  There is no other means to add work.\\
+
+Given this requirement, it would be wise to call \texttt{startTask} on all
+thread teams to be used on a task before enqueueing work with any of these.  This
+practice will help avoid the case where an active work publisher tries to
+enqueue work on a work subscriber that is still in the mode \TeamIdle.
 
 \begin{req}
 In the {\TeamIdle} mode, the queue shall always be empty and all threads in the

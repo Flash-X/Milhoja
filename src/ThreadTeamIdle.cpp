@@ -1,7 +1,5 @@
 #include "ThreadTeamIdle.h"
 
-#include <iostream>
-
 /**
  * Instantiate a ThreadTeamIdle object for internal use by a ThreadTeam object
  * as part of the State design pattern.  This gives the concrete state object a
@@ -23,11 +21,6 @@ ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
 }
 
 /**
- * Destroy the Idle concrete state object.
- */
-ThreadTeamIdle::~ThreadTeamIdle(void) { }
-
-/**
  * Obtain the mode that this class is associated with.
  *
  * \return The mode as a value in the teamMode enum.
@@ -38,6 +31,9 @@ ThreadTeam::teamMode ThreadTeamIdle::mode(void) const {
 
 /**
  * Confirm that the state of the EFSM is valid for the Idle mode.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
@@ -62,16 +58,15 @@ std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                     const unsigned int nThreads,
                                                     const std::string& teamName, 
                                                     const std::string& taskName) {
-    if (team_->N_to_activate_ != 0) {
-        return team_->printState_NotThreadsafe("startTask", 0,
-                      "Number of threads pending activation not zero");
-    }
-
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
@@ -79,7 +74,7 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
     team_->logFile_ << "[" << teamName << "] Starting task "
                     << taskName
                     << " with "
-                    << nThreads
+                    << std::to_string(nThreads)
                     << " initial threads\n";
     team_->logFile_.close();
 #endif
@@ -87,7 +82,7 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
     team_->hdr_ = teamName;
     team_->taskFcn_ = fcn;
 
-    team_->N_to_activate_ = nThreads;
+    team_->N_to_activate_ += nThreads;
     team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
     for (unsigned int i=0; i<nThreads; ++i) {
         pthread_cond_signal(&(team_->activateThread_));
@@ -105,6 +100,11 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
  * task.  Note that all subsequent teams that are Idle and that receive this
  * signal will ignore it as well since adding threads to a team with no task is
  * nonsensical.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) {
@@ -119,10 +119,12 @@ std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * To simplify the design, we do not allow for adding work in Idle mode.  Client
- * code should therefore call startTask() on all ThreadTeams before enqueueing
- * work in any one of them.  In this way, we don't have to worry about an active
- * Work Publisher enqueueing work on a Work Subscriber that is still Idle.
+ * To simplify the design, we do not allow for adding work in Idle mode.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
@@ -134,6 +136,11 @@ std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
  *
  * Calling this is a logic error as we cannot close the queue if no task is
  * running.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamIdle::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
@@ -147,6 +154,11 @@ std::string ThreadTeamIdle::closeTask_NotThreadsafe(void) {
  * it could be that a team finishes its task and transition to Idle before a
  * calling thread got a chance to call wait().  Therefore, this method is a
  * no-op so that it won't block.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string    ThreadTeamIdle::wait_NotThreadsafe(void) {
 #ifdef VERBOSE

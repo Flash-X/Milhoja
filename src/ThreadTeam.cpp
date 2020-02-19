@@ -1008,6 +1008,10 @@ void* ThreadTeam::threadRoutine(void* varg) {
                                   "Sent unblockWaitThread signal");
                 team->logFile_.close();
 #endif
+
+                // reset team name to generic name
+                team->hdr_ = "Thread Team " + std::to_string(team->id_);
+                team->taskFcn_ = nullptr;
             }
 
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
