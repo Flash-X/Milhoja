@@ -75,7 +75,7 @@ SRCS       = \
     $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
     $(TESTDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
-    $(TESTDIR)/test.cpp
+    $(TESTDIR)/testThreadTeam.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile
@@ -101,7 +101,9 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 clean:
+	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
 	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
 
 test: $(BASEDIR)/$(BASE).x
 	@echo

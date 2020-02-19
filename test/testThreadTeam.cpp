@@ -23,7 +23,7 @@ namespace {
  *
  * \todo - figure out how to test this automatically
  */
-TEST(RuntimeTest, TestAbnormalDestroy) {
+TEST(ThreadTeamTest, TestAbnormalDestroy) {
     // Test in Running & Open 
     ThreadTeam*    team1 = new ThreadTeam(4, 1, "TestAbnormalDestroy.log");
 
@@ -69,7 +69,7 @@ TEST(RuntimeTest, TestAbnormalDestroy) {
  *  Configure this team with a work subscriber so that we confirm that it
  *  transitions to Idle as well automatically.
  */
-TEST(RuntimeTest, TestNoWorkNoThreads) {
+TEST(ThreadTeamTest, TestNoWorkNoThreads) {
     ThreadTeam    team1(3, 1, "TestNoWorkNoThreads.log");
     ThreadTeam    team2(2, 2, "TestNoWorkNoThreads.log");
 
@@ -91,7 +91,7 @@ TEST(RuntimeTest, TestNoWorkNoThreads) {
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
 }
 
-TEST(RuntimeTest, TestIdleNoRun) {
+TEST(ThreadTeamTest, TestIdleNoRun) {
     unsigned int   N_ITERS = 10;
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
@@ -158,7 +158,7 @@ TEST(RuntimeTest, TestIdleNoRun) {
     }
 }
 
-TEST(RuntimeTest, TestRunningOpenNoWork) {
+TEST(ThreadTeamTest, TestRunningOpenNoWork) {
     unsigned int  N_ITERS = 100;
 
     ThreadTeam  team1(10, 1, "TestRunningOpenNoWork.log");
@@ -187,7 +187,7 @@ TEST(RuntimeTest, TestRunningOpenNoWork) {
     }
 }
 
-TEST(RuntimeTest, TestNoWork) {
+TEST(ThreadTeamTest, TestNoWork) {
     unsigned int  N_ITERS = 100;
 
     ThreadTeam  team1(10, 1, "TestNoWork.log");
