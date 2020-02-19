@@ -65,18 +65,30 @@ TEST(RuntimeTest, TestAbnormalDestroy) {
 /*
  *  Create a team.  Start a task without threads and close the task without adding
  *  work.  While this is odd, it should be acceptable.
+ *
+ *  Configure this team with a work subscriber so that we confirm that it
+ *  transitions to Idle as well automatically.
  */
 TEST(RuntimeTest, TestNoWorkNoThreads) {
     ThreadTeam    team1(3, 1, "TestNoWorkNoThreads.log");
+    ThreadTeam    team2(2, 2, "TestNoWorkNoThreads.log");
 
     EXPECT_EQ(3, team1.nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
- 
-    team1.startTask(TestThreadRoutines::noop, 0, "test", "noop");
+
+    EXPECT_EQ(2, team2.nMaximumThreads());
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
+
+    team1.attachWorkReceiver(&team2);
+
+    team1.startTask(TestThreadRoutines::noop, 0, "test1", "noop");
+    team2.startTask(TestThreadRoutines::noop, 0, "test2", "noop");
     team1.closeTask();
     team1.wait();
+    team2.wait();
 
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
 }
 
 TEST(RuntimeTest, TestIdleNoRun) {

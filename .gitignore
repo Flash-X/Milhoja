@@ -1,3 +1,8 @@
+.DS_Store
+*/.DS_Store
+docs/OrchestrationRuntime.log
+docs/OrchestrationRuntime.aux
+docs/OrchestrationRuntime.pdf
 test_runtime.x
 *.log
 src/*.o

@@ -103,6 +103,9 @@ std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
         // No more work can be added and there are no threads that are active or
         // that will be made active => no need to transition threads.
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_IDLE);
+        if (team_->workReceiver_) {
+            team_->workReceiver_->closeTask();
+        }
     } else if (isQueueEmpty) {
         team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
         pthread_cond_broadcast(&(team_->transitionThread_));

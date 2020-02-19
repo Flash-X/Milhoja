@@ -44,14 +44,7 @@ TESTDIR  = $(BASEDIR)/test
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/constants.h \
-    $(INCDIR)/Block.h \
-    $(INCDIR)/Grid.h \
-    $(INCDIR)/BlockIterator.h \
     $(INCDIR)/runtimeTask.h \
-    $(INCDIR)/computeLaplacianDensity_cpu.h \
-    $(INCDIR)/computeLaplacianEnergy_cpu.h \
-    $(INCDIR)/scaleEnergy_cpu.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -59,14 +52,15 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(INCDIR)/OrchestrationRuntime.h
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/constants.h \
+    $(TESTDIR)/Block.h \
+    $(TESTDIR)/Grid.h \
+    $(TESTDIR)/BlockIterator.h \
+    $(TESTDIR)/computeLaplacianDensity_cpu.h \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
+    $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
-    $(SRCDIR)/Block.cpp \
-    $(SRCDIR)/Grid.cpp \
-    $(SRCDIR)/BlockIterator.cpp \
-    $(SRCDIR)/computeLaplacianDensity_cpu.cpp \
-    $(SRCDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(SRCDIR)/scaleEnergy_cpu.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/ThreadTeamIdle.cpp \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
@@ -74,6 +68,12 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(TESTDIR)/Block.cpp \
+    $(TESTDIR)/Grid.cpp \
+    $(TESTDIR)/BlockIterator.cpp \
+    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
+    $(TESTDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/test.cpp
 

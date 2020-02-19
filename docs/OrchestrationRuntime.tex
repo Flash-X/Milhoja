@@ -390,6 +390,12 @@ See Figures~\ref{fig:ConcurrentItor} and~\ref{fig:SplitItor}.
 \textcolor{red}{Is there a use case having a tile-to-data packet aggregation
 object?}
 
+\begin{req}
+The runtime shall have a replay facility so that thread teams can be arranged
+into a predescribed topology and each thread team setup in a given state.  This
+should be useful for both debugging and designing meaningful tests.
+\end{req}
+
 \begin{figure}[!ht]
 \begin{center}
 \includegraphics[width=5.0in]{ConcurrentItorExample.pdf}
@@ -606,13 +612,42 @@ them to finish; the Computing, it waits for them to finish their work and
 discover that they should terminate.
 
 \begin{req}
+\label{req:Runtime_AtomicTransition}
 As per the requirements of FSMs, each transition shall be implemented so that
 the code executing the transition has sole access to the thread team's state
 during the entirety of the transition.  This implies that no other thread can
 alter the state simultaneously.
 \end{req}
 \textbf{Verification:}\hspace{0.125in}  With each change to the software, the
-satisfication of this requirement should be reverified.
+satisfication of this requirement should be reverified.\\
+
+Given the present implementation, it important for transitions that transition
+the mode and emit internal signals that the code transition the mode
+\textbf{first} and then emit the signals.  This is to prevent the possible
+(\textbf{TBC} for pthreads?) case that the signal is emitted and received
+before the mode is correctly transitioned, which would violate
+Requirement~\ref{req:Runtime_AtomicTransition} and cause the responding thread
+to react to the signal is a way that is potentially not in accord with the true
+mode of the EFSM.
+
+\begin{req}
+Any transition to {\TeamRunningNoMoreWork} shall awaken all waiting threads so
+that they can transition to Idle.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
+\begin{req}
+Any transition to {\TeamIdle} shall call the \texttt{closeTask()} method of the
+team's work subscriber if it has a work subscriber.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
+\begin{req}
+Upon emitting/receiving the \texttt{computationFinished} signal, a computing
+thread shall enqueue the unit of work that it just finished applying the team's
+task to with the team's work subscriber if the team has a work subscriber.
+\end{req}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
 \begin{req}
 \end{req}
