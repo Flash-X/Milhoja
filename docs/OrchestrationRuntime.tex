@@ -254,6 +254,19 @@ accelerator devices.
 \end{req}
 
 \begin{req}
+Each task to be run with a thread team shall have the same identical code
+interface so that task-specific information does not need to be passed to the
+task by the thread team.  This requirement helps decouple the thread team and
+therefore the runtime from the work being done by the runtime.
+\end{req}
+
+This implies that client code must devise a scheme that makes all
+task-/computation-specific parameters available to the task function.  For
+FLASH, our present design is to make all task functions methods in a unit and
+all such parameters data members in the unit.  This means that the code that
+calls the runtime will need to set these data members before the call.
+
+\begin{req}
 A thread team shall maintain a set of pending units of work and all threads in a
 thread team shall be able to check the set of pending units of work.  In
 addition, each thread in the team shall be able to claim ownership of a single
@@ -452,7 +465,7 @@ M = (Q, X, I, O, s_0, T)
 where
 \begin{itemize}
 \item{$Q$ is the finite set of qualitative modes,}
-\item{$X = \set{(N_i, N_w, N_c, N_Q) \in \N_0^4\,|\,N_i + N_w + N_c =
+\item{$X = \set{(N_i, N_w, N_c, N_Q) \in \Z_{\ge 0}^4\,|\,N_i + N_w + N_c =
 N_{max}}$ is the set of internal state variables where $N_{max}$ is the
 number of threads in the team,}
 \item{$I$ is the set of internel and external events,}
@@ -532,7 +545,10 @@ with working with the design is lower since we do not have the burden of proving
 and maintaining proofs of impossible states/transitions.  This is especially
 important as the thread-based implementation of the thread team cannot make
 strong assumptions about the predictability of the order of execution of code
-and events, which increases the complexity of such proofs.
+and events, which increases the complexity of such proofs.  This is ugly in the
+sense that the code might carry out actions that it shouldn't without our
+knowing.  It always means that we have not completely understood the full
+behavior of the EFSM.
 
 \begin{figure}[!ht]
 \begin{center}

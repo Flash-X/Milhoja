@@ -9,63 +9,8 @@
  * by the Orchestration Runtime, which schedules a single task with the thread
  * team for execution in a single cycle.  All public methods are thread-safe.
  *
- * The team is designed and implemented as an extended finite state machine
- * (EFSM).  The mode (qualitative) portion of the EFSM's state must be in one
- * and only one of
- *   - Idle,
- *   - Running with the work queue open
- *     (i.e. able to accept more units of work),
- *   - Running with the work queue closed
- *     (i.e. no more units of work can be added), or
- *   - Running with no more pending work
- *     (i.e. there are no more units of work in the queue, but at least one
- *     thread is still applying the task to a unit of work)
- * at any point in time.  The internal state variables (quantitative) for the
- * EFSM are the number of
- *   - pending units of work in the team's queue,
- *   - Idle threads,
- *   - Waiting threads, and
- *   - Computing threads.
- * The events that trigger state transitions are
- *   - an external call to startTask()
- *     (Idle -> Running & Open),
- *   - an external call to closeTask()
- *     (Running & Open -> Running Closed),
- *   - a thread determines that the queue is empty
- *     (Running & Closed -> Running & No Pending Work), and
- *   - all threads have transitioned to Idle
- *     (Running & No Pending Work -> Idle).
- * At construction, the thread team starts the maximum number of threads
- * allotted to it and these persist until the team is destroyed.  The EFSM
- * starts in the Idle mode with all threads in the Idle state and an empty
- * queue.
- *
- * External code starts an execution cycle by calling startTask and at the same
- * time indicates what task is to be executed by the team as well as how many
- * threads in the team shall be activated immediately to start applying the
- * task.  After startTask has been called, external code can use the enqueue
- * method to give to the team tiles on which to apply its task.  These tiles are
- * passed to enqueue one unit of work at a time where a unit of work could be a
- * single tile (e.g. if the task will have the team run computations on a CPU)
- * or a data packet containing multiple tiles (e.g. if the task will have the
- * team run computations on an accelerator).  The external code indicates to the
- * EFSM that all tiles on which to operate during this cycle have already been
- * enqueued.  The EFSM then continues its application of the task to all
- * remaining given tiles and automatically transitions back to Idle once work
- * and, therefore, the execution cycle finishes.  An external thread can be
- * blocked until the task execution cycle finishes by calling the team's wait
- * method.
- *
- * There is no restriction that a single thread team must execute the same task
- * with every execution cycle.  Similarly, there is no restriction that a team
- * must be dedicated to running computation-heavy code on only a single piece of
- * hardware (e.g. only on the CPU or only on the GPU).  Rather, the thread team
- * only knows to execute the code behind a function pointer, which can include
- * kernel launches on an accelerator.  It is possible for that code to execute
- * computationally-heavy code on a mixture of available HW on the node.
- * However, our present best guess is that restricting each task to run
- * principally on a single device is likely clean, simple, elegant, and
- * maintainable.
+ * Please refer to the Orchestration System design documents for more
+ * information regarding the general thread team design.
  *
  * The EFSM is implemented using the State design pattern presented in the Gang
  * of Four's famous Design Patterns book (Pp. 305).  This class exposes the
@@ -81,37 +26,22 @@
  *   - handles the destruction of the EFSM, and
  *   - defines how all threads in the team shall behave.
  * Note that each thread in the team is a FSM that moves between the Idle,
- * Waiting, Computing, and Terminating states.  The hope is that studying,
- * analysing, and maintaining the EFSM will hopefully be easier thanks to the
- * use of this design.  However, the runtime efficiency of this design has not
- * yet been studied.
+ * Waiting, and Computing states.
  *
- * It is envisioned that the runtime may instantiate multiple thread teams with
- * each team executing a potentially different task.  See the OrchestrationRuntime
- * documentation for more information regarding this intent.
+ * Each method in this class whose behavior is implemented by calling the
+ * associated method of the state_ member has a similar structure.
+ *   - Acquire the team's mutex
+ *   - Do all error checking that should be done for this call regardless of the
+ *     team's current state
+ *   - Call the state_ member's non-threadsafe version of the method
+ *   - Error check this and release the mutex
+ * It is important that these routines (and not the state_ methods) acquire the
+ * routines.  If we were to call the state_ method and then ask for the mutex,
+ * then it is possible that we call the method associate with one mode, but get
+ * the mutex after the mode has transitioned.
  *
- * To control the number of active threads running in the host at any point in
- * time, a thread team can become a thread subscriber of another thread team so
- * that the subscriber is notified that it can add another thread to its team
- * each time a thread terminates in the publisher thread's team.
- *
- * In addition a thread team can also be setup as a work subscriber of another
- * thread team so that when the publishing thread finishes a unit of work, the
- * result is automatically enqueued on the subscriber team's queue.  When the
- * publisher has finished all its work and enqueued all work units in the
- * subscriber team, the publisher automatically calls the subscriber's closeTask
- * method.
- *
- * Note that a thread publisher can only have one thread subscriber and a work
- * publisher can only have one work subscriber.  However, a thread team can be
- * both a thread subscriber and a thread publisher.  Also, a thread team can be
- * a thread subscriber for one team and a work subscriber for another.
- *
- * The implementations of the publisher/subscriber design aspects are
- * one-directional versions of the Observer design pattern (Pp. 293).
- *
- * The wait() method for a publisher team must be called before the wait()
- * method of its subscriber team.
+ * The implementations of the work/thread publisher/subscriber design aspects
+ * are one-directional versions of the Observer design pattern (Pp. 293).
  *
  * \warning Client must be certain that subscriber/publisher chains are not
  * setup that code result in deadlocks or infinite loops.
@@ -138,6 +68,9 @@ class ThreadTeam {
 public:
     //***** Extended Finite State Machine State Definition
     // Qualitative state Modes
+    // Note that Terminating is not a mode in the EFSM design.  However,
+    // we implement it as if it were to handle the termination of the EFSM as
+    // part of the State design pattern.
     enum teamMode   {MODE_IDLE,
                      MODE_TERMINATING,
                      MODE_RUNNING_OPEN_QUEUE,
@@ -151,18 +84,20 @@ public:
 
     // State-independent methods
     unsigned int             nMaximumThreads(void) const;
-    ThreadTeam::teamMode     mode(void) const;
+    ThreadTeam::teamMode     mode(void);
 
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
     void         increaseThreadCount(const unsigned int nThreads);
-    void         startTask(TASK_FCN* fcn, const unsigned int nThreads,
+    void         startTask(TASK_FCN* fcn,
+                           const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName);
     void         enqueue(const int work);
     void         closeTask(void);
     void         wait(void);
 
+    // State-dependent methods whose simple dependence is handled by this class
     void         attachThreadReceiver(ThreadTeam* receiver);
     void         detachThreadReceiver(void);
 
@@ -170,16 +105,21 @@ public:
     void         detachWorkReceiver(void);
 
 protected:
-    // Structure used to pass data to each thread 
+    // Structure used to pass data to each thread at thread creation
     struct ThreadData {
-        unsigned int   tId = -1;       //!< ID that each thread uses for logging
-        ThreadTeam*    team = nullptr; //!< Pointer to team object that starts/owns the thread
+        unsigned int   tId = -1;
+        ThreadTeam*    team = nullptr;
     };
 
-    // Routine that each thread in the team runs
+    // Routine executed by each thread in the team
+    // TODO: Can this be split out as a seperate function in its own file?
+    //       This would help with separation of concerns and to keep the file
+    //       size down.
     static void* threadRoutine(void*);
 
     std::string  getModeName(const teamMode mode) const;
+
+    // Code that calls these should acquire teamMutex_ before the call
     std::string  setMode_NotThreadsafe(const teamMode nextNode);
     std::string  printState_NotThreadsafe(const std::string& method,
                                           const unsigned int tId,
