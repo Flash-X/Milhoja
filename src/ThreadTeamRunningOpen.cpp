@@ -29,13 +29,11 @@ ThreadTeamRunningOpen::ThreadTeamRunningOpen(ThreadTeam* team)
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
-    std::string errMsg("");
-
     if (team_->N_terminate_ != 0) {
-        errMsg = "N_terminate not zero";
+        return "N_terminate not zero";
     }
 
-    return errMsg;
+    return "";
 }
 
 /**

@@ -484,7 +484,9 @@ void ThreadTeam::startTask(TASK_FCN* fcn,
         errMsg = printState_NotThreadsafe("startTask", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (nThreads > (N_idle_ - N_to_activate_)) {
+    } else if (nThreads > N_idle_) {
+        // We don't need to consider N_to_activate_ here as those are 
+        // considered in how many events to emit
         std::string  msg  = "nThreads (";
         msg += std::to_string(nThreads);
         msg += ") exceeds the number of threads available for activation";

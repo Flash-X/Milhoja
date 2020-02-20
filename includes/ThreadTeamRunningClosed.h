@@ -15,9 +15,11 @@
 class ThreadTeamRunningClosed : public ThreadTeamState {
 public:
     ThreadTeamRunningClosed(ThreadTeam* team);
-    ~ThreadTeamRunningClosed(void);
+    ~ThreadTeamRunningClosed(void)                { };
 
-    ThreadTeam::teamMode  mode(void) const;
+    ThreadTeam::teamMode  mode(void) const {
+        return ThreadTeam::MODE_RUNNING_CLOSED_QUEUE;
+    }
 
     std::string           increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads);

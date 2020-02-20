@@ -73,9 +73,22 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
     team_->hdr_ = teamName;
     team_->taskFcn_ = fcn;
 
-    team_->N_to_activate_ += nThreads;
+    // NOTE: If this is altered, the error checking in the calling startTask()
+    //       method should be reviewed as well.
+    //
+    // While unlikely, imagine the case that we are in Idle and have a thread
+    // activation event issued, but not received.  If the event were received in
+    // Idle, then the thread would go idle again.
+    //
+    // However, if we change the mode to Running & Open now, then the thread to
+    // receive the event would go to Waiting or Computing.  Therefore, we should
+    // account for such an unreceived event in determining how many new events
+    // to issue.
+    unsigned int nEventsToIssue = nThreads - team_->N_to_activate_;
+
+    team_->N_to_activate_ = nThreads;
     team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
-    for (unsigned int i=0; i<nThreads; ++i) {
+    for (unsigned int i=0; i<nEventsToIssue; ++i) {
         pthread_cond_signal(&(team_->activateThread_));
     }
 
