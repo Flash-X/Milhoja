@@ -169,6 +169,23 @@
 
 \section{Runtime Requirements}
 \begin{req}
+The runtime implementation and dependencies shall not impede FLASH5 from being
+used on *nix operation systems including macOS nor from being run for research
+on laptops.  Implementations shall not require more than the C++-11 standard and
+threading implementations shall be portable.
+\end{req}
+
+\textcolor{red}{Present implementation is with pthreads, which is portable based
+on OS (is it compliant with the POSIX standard).  If we do accept the C++-11
+standard are reasonable, then it could be switch to use the C++ thread
+facilities.}\\
+
+\textcolor{red}{Memory managers such as AML and Umpire are dependent on
+LibNuma, which is linux based.  Therefore, macOS users would presently not be
+able to use a runtime based on these.  For laptops, this might be acceptable.
+However, this would preclude Mac Pro users from using their GPUs.}
+
+\begin{req}
 If a simulation is setup such that no runtime is needed, then the Orchestration
 runtime shall not be built into the simulation.  In particular, this means that
 there shall be no unnecessary resources allocated nor an extra level of packing
@@ -603,6 +620,8 @@ execution.
 \end{req}
 \textbf{Verification:}\hspace{0.125in}  Implemented a flag
 \texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
+
+\textcolor{red}{Should we have a variant of wait that accepts a timeout?}
 
 \begin{req}
 To maintain a simple design, client code shall only be allowed to attach and

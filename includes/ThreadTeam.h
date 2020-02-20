@@ -85,6 +85,10 @@ public:
     // State-independent methods
     unsigned int             nMaximumThreads(void) const;
     ThreadTeam::teamMode     mode(void);
+    void                     stateCounts(unsigned int* N_idle,
+                                         unsigned int* N_wait,
+                                         unsigned int* N_comp,
+                                         unsigned int* N_work);
 
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState

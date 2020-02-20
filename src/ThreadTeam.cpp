@@ -407,6 +407,25 @@ ThreadTeam::teamMode ThreadTeam::mode(void) {
 }
 
 /**
+ * Obtain the current mode of the team.
+ *
+ * \return The mode as an enum
+ */
+void ThreadTeam::stateCounts(unsigned int* N_idle,
+                             unsigned int* N_wait,
+                             unsigned int* N_comp,
+                             unsigned int* N_work) {
+    pthread_mutex_lock(&teamMutex_);
+
+    *N_idle = N_idle_;
+    *N_wait = N_wait_;
+    *N_comp = N_comp_;
+    *N_work = queue_.size();
+
+    pthread_mutex_unlock(&teamMutex_);
+}
+
+/**
  * Indicate to the thread team that it may activate the given number of Idle
  * threads so that they may help execute the current execution cycle's task.
  *
@@ -973,6 +992,10 @@ void* ThreadTeam::threadRoutine(void* varg) {
                     pthread_mutex_unlock(&(team->teamMutex_));
                     throw std::runtime_error(msg);
                 }
+
+                if (team->threadReceiver_) {
+                    team->threadReceiver_->increaseThreadCount(1);
+                }
             }
 
 #ifdef VERBOSE
@@ -1023,19 +1046,6 @@ void* ThreadTeam::threadRoutine(void* varg) {
                               "Activated");
             team->logFile_.close();
 #endif
-
-            // Handle output when activated thread should go back to Idle
-            mode = team->state_->mode();
-            isQueueEmpty = team->queue_.empty();
-            if (   team->threadReceiver_
-                && (    (mode == MODE_IDLE)
-                    ||  (mode == MODE_RUNNING_NO_MORE_WORK)
-                    || ((mode == MODE_RUNNING_CLOSED_QUEUE) && isQueueEmpty)
-                   ) 
-               )
-            {
-                team->threadReceiver_->increaseThreadCount(1);
-            }
 
             if (team->N_to_activate_ <= 0) {
                 std::string  msg = team->printState_NotThreadsafe(
