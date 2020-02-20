@@ -21,37 +21,32 @@ ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork(ThreadTeam* team)
 }
 
 /**
- * Destroy the concrete state object.
- */
-ThreadTeamRunningNoMoreWork::~ThreadTeamRunningNoMoreWork(void) { }
-
-/**
- * Obtain the mode that this class is associated with.
+ * Confirm that the state of the EFSM is valid for the Running/No More Work mode.
  *
- * \return The mode as a value in the teamMode enum.
- */
-ThreadTeam::teamMode ThreadTeamRunningNoMoreWork::mode(void) const {
-    return ThreadTeam::MODE_RUNNING_NO_MORE_WORK;
-}
-
-/**
- * 
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const {
-    std::string errMsg("");
-
     if (team_->N_terminate_ != 0) {
-        errMsg = "N_terminate not zero";
+        return "N_terminate not zero";
     } else if (!(team_->queue_.empty())) {
-        errMsg = "Pending work queue not empty";
+        return "Pending work queue not empty";
     }
 
-    return errMsg;
+    return "";
 }
 
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * Cannot start a task when one is still running.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningNoMoreWork::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                                  const unsigned int nThreads,
@@ -64,6 +59,12 @@ std::string ThreadTeamRunningNoMoreWork::startTask_NotThreadsafe(TASK_FCN* fcn,
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * Forward threads onto thread subscriber.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningNoMoreWork::increaseThreadCount_NotThreadsafe(
                                                     const unsigned int nThreads) {
@@ -77,6 +78,12 @@ std::string ThreadTeamRunningNoMoreWork::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * The queue is closed.  No work can be added.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningNoMoreWork::enqueue_NotThreadsafe(const int work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
@@ -86,6 +93,12 @@ std::string ThreadTeamRunningNoMoreWork::enqueue_NotThreadsafe(const int work) {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * The task is already closed.
+ *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningNoMoreWork::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
@@ -95,20 +108,28 @@ std::string ThreadTeamRunningNoMoreWork::closeTask_NotThreadsafe(void) {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
+ * \warning This method is *not* thread safe and therefore should only be called
+ *          when the calling code has already acquired teamMutex_.
+ *
+ * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string   ThreadTeamRunningNoMoreWork::wait_NotThreadsafe(void) {
     team_->isWaitBlocking_ = true;
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[Client Thread] Waiting on team (No More Work)\n";
     team_->logFile_.close();
 #endif
+
     pthread_cond_wait(&(team_->unblockWaitThread_), &(team_->teamMutex_));
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[Client Thread] Received unblockWaitThread (No More Work)\n";
     team_->logFile_.close();
 #endif
+
     team_->isWaitBlocking_ = false;
 
     return "";

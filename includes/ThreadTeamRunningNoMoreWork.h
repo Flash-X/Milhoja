@@ -15,10 +15,12 @@
 class ThreadTeamRunningNoMoreWork : public ThreadTeamState {
 public:
     ThreadTeamRunningNoMoreWork(ThreadTeam* team);
-    ~ThreadTeamRunningNoMoreWork(void);
+    ~ThreadTeamRunningNoMoreWork(void)                { };
 
     // State-dependent methods
-    ThreadTeam::teamMode  mode(void) const;
+    ThreadTeam::teamMode  mode(void) const {
+        return ThreadTeam::MODE_RUNNING_NO_MORE_WORK;
+    }
 
     std::string           increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads);
