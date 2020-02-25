@@ -939,72 +939,199 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
 
     team1.attachThreadReceiver(&team2);
 
-    // Team 1 shall be set into Running & No More Work with a thread
-    //        carrying out a lengthy computation
-    // Team 2 shall be in Running & Open with a pending unit of work
-    //        but no threads
-    team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait", "100ms");
-    team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait", "100ms");
-    team1.enqueue(1);
-    team2.enqueue(2);
-    team1.closeTask();
-    for (unsigned int i=0; i<10; ++i) {
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        // Team 1 shall be set into Running & No More Work with a thread
+        //        carrying out a lengthy computation
+        // Team 2 shall be in Running & Open with a pending unit of work
+        //        but no threads
+        team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait", "100ms");
+        team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait", "100ms");
+        team1.enqueue(1);
+        team2.enqueue(2);
+        team1.closeTask();
+        for (unsigned int i=0; i<10; ++i) {
+            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 1)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        if (N_comp == 1)     break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(2, team1.nMaximumThreads());
+        EXPECT_EQ(1, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(1, N_comp);
+        EXPECT_EQ(0, N_Q);
 
-    team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
-    EXPECT_EQ(2, team1.nMaximumThreads());
-    EXPECT_EQ(1, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(1, N_comp);
-    EXPECT_EQ(0, N_Q);
-
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
-    EXPECT_EQ(3, team2.nMaximumThreads());
-    EXPECT_EQ(3, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(1, N_Q);
-
-    // Team 1 doesn't need another thread and should forward it to
-    // team 2
-    team1.increaseThreadCount(1);
-
-    for (unsigned int i=0; i<10; ++i) {
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        if (N_comp == 1)     break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(1, N_Q);
+
+        // Team 1 doesn't need another thread and should forward it to
+        // team 2
+        team1.increaseThreadCount(1);
+
+        for (unsigned int i=0; i<10; ++i) {
+            team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 1)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(2, team1.nMaximumThreads());
+        EXPECT_EQ(1, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(1, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        // If we didn't call increaseThreadCount above, then team 1 still
+        // hasn't finished its task and wouldn't have forwarded its 1 thread along
+        // yet.  This would fail.
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(2, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(1, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        // This should send all of Team 1's active threads to Team 2
+        team1.wait();
+
+        // Wait for team 2 computation to finish so that we have a 
+        // predictable state to check
+        for (unsigned int i=0; i<10; ++i) {
+            team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 0)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(1, N_idle);
+        EXPECT_EQ(2, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        team2.closeTask();
+        team2.wait();
     }
-
-    team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
-    EXPECT_EQ(2, team1.nMaximumThreads());
-    EXPECT_EQ(1, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(1, N_comp);
-    EXPECT_EQ(0, N_Q);
-   
-    // If we didn't call increaseThreadCount above, then team 1 still
-    // hasn't finished its task and wouldn't have forwarded its 1 thread along
-    // yet.  This would fail.
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
-    EXPECT_EQ(3, team2.nMaximumThreads());
-    EXPECT_EQ(2, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(1, N_comp);
-    EXPECT_EQ(0, N_Q);
-
-    team1.wait();
-
-    team2.closeTask();
-    team2.wait();
 
     team1.detachThreadReceiver();
+}
+
+/**
+ * Confirm that the transitionThread and computationFinished threads are handled
+ * correctly in the Running & No More Work mode
+ */
+TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
+    unsigned int  N_ITERS = 10;
+
+    unsigned int   N_idle = 0;
+    unsigned int   N_wait = 0;
+    unsigned int   N_comp = 0;
+    unsigned int   N_Q    = 0;
+
+    ThreadTeam  team1(8, 1, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam  team2(3, 1, "TestRunningNoMoreWorkTransition.log");
+
+    team1.attachWorkReceiver(&team2);
+
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        // Queue up several units of work so that we can confirm the proper behavior
+        // when computationFinished is emitted in Running & No More Work
+        //
+        // Give the task enough threads that at least two threads will be waiting so
+        // that we can confirm the proper behavior when transitionThread is emitted
+        // in Running & No More Work
+        team1.startTask(TestThreadRoutines::delay_100ms, 6, "wait1",  "100ms");
+        team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait2",  "100ms");
+        team1.enqueue(1);
+        team1.enqueue(2);
+        team1.enqueue(3);
+        for (unsigned int i=0; i<10; ++i) {
+            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 3)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        // Confirm that we have at least two threads waiting
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(8, team1.nMaximumThreads());
+        EXPECT_EQ(2, N_idle);
+        EXPECT_EQ(3, N_wait);
+        EXPECT_EQ(3, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        // Calling closeTask in this state should result in the broadcast
+        // of transitionThread to all waiting threads
+        // Confirm here that the waiting threads are correctly transitioned to Idle
+        team1.closeTask();
+        for (unsigned int i=0; i<10; ++i) {
+            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_idle == 5)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(8, team1.nMaximumThreads());
+        EXPECT_EQ(5, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(3, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        // As work is finished by Team 1, it should be forwarded to Team 2.
+        // Also, when Team 1 finishes its work, it should unblock this wait
+        // and call closeTask on Team 2.  This should transition the mode of Team 2.
+        team1.wait();
+
+        // Confirm that computing threads transitioned to Idle correctly
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(8, team1.nMaximumThreads());
+        EXPECT_EQ(8, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        // Confirm that work was forwarded correctly
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team2.mode());
+        EXPECT_EQ(3, team2.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(3, N_Q);
+
+        team2.increaseThreadCount(3);
+        team2.wait();
+    }
+
+    team1.detachWorkReceiver();
 }
 
 }
