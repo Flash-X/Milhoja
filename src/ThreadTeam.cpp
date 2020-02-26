@@ -925,6 +925,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
     //          would be some time during which N_i + N_w + N_c + N_t != N_max.
     pthread_mutex_lock(&(team->teamMutex_));
 
+    std::string        errMsg("");
     teamMode           mode             = MODE_IDLE;
     bool               isThreadStarting = true;
     bool               isQueueEmpty     = false;
@@ -1012,7 +1013,13 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // the state for this transition.
             if ((mode == MODE_RUNNING_CLOSED_QUEUE) && isQueueEmpty) {
                 mode = MODE_RUNNING_NO_MORE_WORK;
-                team->setMode_NotThreadsafe(mode);
+                errMsg = team->setMode_NotThreadsafe(mode);
+                if (errMsg != "") {
+                    std::string  msg = team->printState_NotThreadsafe(
+                                             "threadRoutine", tId, errMsg);
+                    pthread_mutex_unlock(&(team->teamMutex_));
+                    throw std::runtime_error(msg);
+                }
                 pthread_cond_broadcast(&(team->transitionThread_));
             }
             // The task has been completely applied and the execution cycle
@@ -1020,7 +1027,13 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // Finalize for the end of the cycle
             if (   (mode == MODE_RUNNING_NO_MORE_WORK) 
                 && (team->N_idle_ == team->nMaxThreads_)) {
-                team->setMode_NotThreadsafe(MODE_IDLE);
+                errMsg = team->setMode_NotThreadsafe(MODE_IDLE);
+                if (errMsg != "") {
+                    std::string  msg = team->printState_NotThreadsafe(
+                                             "threadRoutine", tId, errMsg);
+                    pthread_mutex_unlock(&(team->teamMutex_));
+                    throw std::runtime_error(msg);
+                }
                 if (team->workReceiver_) {
                     team->workReceiver_->closeTask();
                 }
@@ -1150,7 +1163,13 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // can release waiting threads as soon as possible and therefore
             // pass these resources to thread subscribers ASAP.
             if ((mode == MODE_RUNNING_CLOSED_QUEUE) && (team->queue_.empty())) {
-                team->setMode_NotThreadsafe(MODE_RUNNING_NO_MORE_WORK);
+                errMsg = team->setMode_NotThreadsafe(MODE_RUNNING_NO_MORE_WORK);
+                if (errMsg != "") {
+                    std::string  msg = team->printState_NotThreadsafe(
+                                             "threadRoutine", tId, errMsg);
+                    pthread_mutex_unlock(&(team->teamMutex_));
+                    throw std::runtime_error(msg);
+                }
                 pthread_cond_broadcast(&(team->transitionThread_));
             }
 

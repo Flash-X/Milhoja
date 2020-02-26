@@ -58,6 +58,8 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                     const unsigned int nThreads,
                                                     const std::string& teamName, 
                                                     const std::string& taskName) {
+    std::string   errMsg("");
+
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
@@ -87,12 +89,15 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
     unsigned int nEventsToIssue = nThreads - team_->N_to_activate_;
 
     team_->N_to_activate_ = nThreads;
-    team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
+    errMsg = team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_OPEN_QUEUE);
+    if (errMsg != "") {
+        return errMsg;
+    }
     for (unsigned int i=0; i<nEventsToIssue; ++i) {
         pthread_cond_signal(&(team_->activateThread_));
     }
 
-    return "";
+    return errMsg;
 }
 
 /**
