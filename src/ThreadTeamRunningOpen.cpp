@@ -105,6 +105,8 @@ std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(const int work) {
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
+    std::string    errMsg("");
+
     bool isQueueEmpty = team_->queue_.empty();
     if        (    isQueueEmpty
                && (team_->N_idle_ == team_->nMaxThreads_) ) {
@@ -112,18 +114,36 @@ std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
         //   => no need to transition threads.
         // If N_to_activate_ > 0, then activated threads will transition back
         // to Idle based on the new Mode
-        team_->setMode_NotThreadsafe(ThreadTeam::MODE_IDLE);
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeam::MODE_IDLE);
+        if (errMsg != "") {
+            return errMsg;
+        }
+
         if (team_->workReceiver_) {
             team_->workReceiver_->closeTask();
         }
+
     } else if (isQueueEmpty) {
-        team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
+        if (errMsg != "") {
+            return errMsg;
+        }
         pthread_cond_broadcast(&(team_->transitionThread_));
     } else {
-        team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE);
+        // We could add an optimization here.  If there are N waiting threads
+        // and M<N units of pending work, then we could transition N-M waiting
+        // threads to Idle to free up resources as quickly as possible.  To do
+        // this properly, we would need to keep track of the actual number of
+        // waiting threads as well as the number of transitionThread events
+        // emitted but not yet received.  Not presently worth the effort or
+        // increased complexity.
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE);
+        if (errMsg != "") {
+            return errMsg;
+        }
     }
 
-    return "";
+    return errMsg;
 }
 
 /**

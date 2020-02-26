@@ -29,8 +29,10 @@ ThreadTeamRunningClosed::ThreadTeamRunningClosed(ThreadTeam* team)
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 std::string ThreadTeamRunningClosed::isStateValid_NotThreadSafe(void) const {
-    if (team_->N_terminate_ != 0) {
+    if        (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
+    } else if (team_->queue_.empty()) {
+        return "The pending work queue should not be empty";
     }
 
     return "";

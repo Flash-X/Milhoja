@@ -46,10 +46,25 @@
 % Setup numbered/referentiable environment for requirements
 \theoremstyle{definition} % No italics or spaces
 \newtheorem{req}{Req}[section]
+\newtheorem{spec}{Spec}[section]
 
 \maketitle
 
+%%%%%----- DESIGN SUMMARY SECTION -----%%%%%
 \section{Design Summary}
+\textcolor{red}{What classes of scalar values do we have in the physics units?
+For instance are there scalars that are constant for the duration of the
+simulation?  Constant for the duration of an iteration?  Constants that are
+changed by auxiliary tasks?  Constants that are updated by work tasks?  For the
+first two, we can set up mirrors of the variable between host and devices.
+Those that are changed by auxiliary tasks can also be mirrored by running the
+task concurrently in both the CPU and the GPU.  What about the others?  Do we
+send those in the data packets so that the CPU and GPUs can force the mirroring
+somehow?  Do we just hand these over the managed memory and hope that everything
+goes well?  Do we hand these over to managed memory but ask the task composer to
+touch the scalars on the appropriate device before each runtime call (these are
+blocking)?}
+
 %The class implements a team of threads that is specifically designed for use
 %by the Orchestration Runtime, which schedules a single task with the thread
 %team for execution in a single cycle.  All public methods are thread-safe.
@@ -167,18 +182,26 @@
 %The wait() method for a publisher team must be called before the wait()
 %method of its subscriber team.
 
+%%%%%----- RUNTIME REQUIREMENTS SECTION -----%%%%%
 \section{Runtime Requirements}
+The statements made in this section are intended to be informal, high-level
+requirements.  Specifically, they should be correct for all orchestration
+runtime designs and ideally require little change if our design changes
+significantly.  In other words, these statements should not be informed by
+implementation ideas or details.
+
 \begin{req}
 The runtime implementation and dependencies shall not impede FLASH5 from being
 used on *nix operation systems including macOS nor from being run for research
 on laptops.  Implementations shall not require more than the C++-11 standard and
-threading implementations shall be portable.
+threading implementations shall be portable.  \textcolor{red}{What Fortran
+standard are we shooting for?}
 \end{req}
 
 \textcolor{red}{Present implementation is with pthreads, which is portable based
 on OS (is it compliant with the POSIX standard).  If we do accept the C++-11
-standard are reasonable, then it could be switch to use the C++ thread
-facilities.}\\
+standard as reasonable, then the runtime implementation could be redone to use
+the C++ thread facilities.}\\
 
 \textcolor{red}{Memory managers such as AML and Umpire are dependent on
 LibNuma, which is linux based.  Therefore, macOS users would presently not be
@@ -200,6 +223,7 @@ be minimized (\textit{e.g.} resource allocation and management).
 \end{req}
 
 \begin{req}
+\label{req:UnitImplementations}
 The runtime shall be built into FLASH5 as a new unit and the unit shall allow
 for different implementations of the unit.  Some examples of different
 implementations will be
@@ -209,10 +233,24 @@ implementations will be
 \item{general (\textit{e.g.} CUDA) \textit{vs.}} platform-specific
 (\textit{e.g.} CUDA optimized for Summit).
 \end{itemize}
-The interface of the runtime unit will allow for running a bundle of auxiliary
-tasks and a bundle of work tasks.  \textcolor{red}{Should we allow for bundles
-that are a mixture of auxiliary and work tasks?}
 \end{req}
+
+\begin{req}
+All implementations shall be designed for as portability.  As an example,
+\textit{general} use GPU-related code shall avoid using device-specific library
+functionality such as managed memory as other GPU-based platforms might not
+offer managed memory at all or in a portable way.
+\end{req}
+
+Clearly the above requirement is ill-defined and therefore decisions regarding
+what does and doesn't satisfy the requirement will involve personal judgement
+and trade-off analysis.  For example, emphasis was placed on the word
+``general'' above as Req~\ref{req:UnitImplementations} would allow for a
+CUDA-based implementation that uses managed memory.  However, if we choose to
+have two different implementations of large, complex, general-use code that is
+hard to test such that the two implementations differ only in a few lines
+related to mananged memory, then we might decide that maintainability is being
+significantly decreased.
 
 \begin{req}
 The interface of the runtime shall be designed such  that when a new type of
@@ -223,6 +261,13 @@ tasks on these devices.  If the nodes allow for running concurrently tasks on
 this device while running code on the host or on other devices, then the updated
 interface shall allow for this.
 \end{req}
+
+\textcolor{red}{Where does the interface between the offline toolchain and
+runtime sit?  Should the runtime dictate what thread team topologies are
+available and therefore fix the number of thread teams available and how the
+toolchain maps work onto teams/HW?  Or should the offline toolchain write the
+code that creates the topologies and therefore customize the runtime's interface
+for launching execution cycles?}\\
 
 \textcolor{red}{Put in information regarding runtime parameters needed by
 runtime.  Does this include runtime parameters that depend upon how task were
@@ -239,11 +284,14 @@ if the threads should be created at instantiation and persist throughout the
 simulation or if they should be created each time the runtime executes a task
 bundle.  The former would be more runtime efficient, but permanently consume
 more memory in the form of thread stacks, etc. and increase the burden on the
-OS.}
+OS.  Is $M$ fixed across all thread teams?}
 \end{req}
 
+Note that it is the client codes responsibility to determine $M$ and $N$ in
+accord with the runtime's requirements presented here.
+
 \begin{req}
-Thread teams shall
+Each thread team shall
 \begin{enumerate}
 \item{be created and run in the host CPU,}
 \item{be associated with a single MPI rank,}
@@ -254,10 +302,29 @@ data packet of blocks), and}
 \end{req}
 
 \begin{req}
-A thread team shall execute at most one task at a time so that it is easier to
-determine independence of tasks and teams.  For each task execution the client
-code shall inform the thread team what task shall be executed and how many
-threads in the team should be activated immediately to start work on the task.
+For each execution cycle, a thread team shall be used by client code to apply at
+most one task at a time (work or auxiliary) to a subset of the tiles managed by
+the team's associated MPI rank.  For the case of an auxiliary task, the subset
+is the empty set.  The restriction to one task will help make it easier to
+determine independence of tasks and teams.  For each cycle, the client code
+shall inform the thread team what task shall be executed and how many threads in
+the team should be activated immediately to start work on the task.  This
+implies that the task assigned to a particular thread team can change from one
+execution cycle to the next.
+\end{req}
+
+\begin{req}
+All thread team units of work shall encapsulate each tile in the unit of work
+with metainformation so that tasks can retrieve information such as coordinates
+as well as the pointer to the location of the tile's data in relevant memory
+systems.  If a task will only run on the host, then the unit work only need
+identify the location of the tiles data (cell-centered and potentially
+face-centered) in the host memory (i.e. the Grid unit's data structures).  If
+the task will run in both CPU and in accelerators, then the metainformation must
+specify pointers for all data in the memory accessible to the host and
+accelerators.  \textcolor{red}{This requirement will need improvement as the
+prototype evolves.  Basically, we are extending the notion of tile metadata to
+the notion of a data packet.}
 \end{req}
 
 \begin{req}
@@ -274,14 +341,18 @@ accelerator devices.
 Each task to be run with a thread team shall have the same identical code
 interface so that task-specific information does not need to be passed to the
 task by the thread team.  This requirement helps decouple the thread team and
-therefore the runtime from the work being done by the runtime.
+therefore the runtime from the work being done by the thread teams.
 \end{req}
 
 This implies that client code must devise a scheme that makes all
-task-/computation-specific parameters available to the task function.  For
-FLASH, our present design is to make all task functions methods in a unit and
-all such parameters data members in the unit.  This means that the code that
-calls the runtime will need to set these data members before the call.
+task-/computation-specific parameters available to the function that defines the
+task.  For FLASH, our present design is to implement all task functions as
+routines in a unit and all such parameters as data members in the unit.  This
+means that the code that calls the runtime will need to set the values of these
+data members before the call.  \textcolor{red}{For C++, would this mean wrapping
+each task or a set of related tasks in a class?  Could we just package up
+related parameters in a single namespace so that they are global but in an
+acceptable way?}
 
 \begin{req}
 A thread team shall maintain a set of pending units of work and all threads in a
@@ -291,22 +362,6 @@ unit of work by removing it from the set with the understanding that that thread
 is responsible for applying the team's task to that unit of work.  It shall be
 impossible for two threads to simultaneously claim ownership of the same unit of
 work.
-\end{req}
-
-\textcolor{red}{Should we allow for dividing the
-load of blocks between two or more thread teams?  For example, if the task
-bundle has effectively just one task, we could have half the blocks run on the
-CPU and the other half on the GPU.  Should we allow for the possiblity of a
-thread that determines dynamically to which thread team it should give the next
-block?  This could be a way of making full use of HW.  This implies that all
-thread teams in the selection pool could also be work publishers to the same
-thread team that applies a follow-up task to all blocks.}
-
-\begin{req}
-A thread team shall be used by client code to apply a single, given
-computational task to a subset of the blocks managed by the team's associated
-MPI rank in each runtime execution cycle.  Note that the computational task can
-be different with each cycle.
 \end{req}
 
 \begin{req}
@@ -319,21 +374,35 @@ team's associated MPI rank.
 \begin{req}
 The thread team interface shall allow for client code to inform the team when
 all units of work to which the current task are to be applied have been given to
-the team.
+the team.  This shall include the possibility of giving a thread team a task but
+no units of work.
 \end{req}
 
 \begin{req}
 Client code shall trigger \textit{via} the runtime interface a single runtime
-execution cycle that consists of executing potentially many distinct tasks on
-multiple different target devices.  Based on the number of tasks in the cycle's
-task bundle, the runtime will assemble the appropriate topology of thread teams.
-The runtime shall trigger an error if the number of tasks in the bundle is more
-than the number of thread teams created by the runtime.
+execution cycle that consists of executing potentially many distinct tasks (both
+auxiliary and work) on multiple different target devices.  The runtime interface
+shall provide the client code with a means to express what tasks are to be run
+as well as inter-task dependencies such that the runtime will be able to
+assemble an appropriate topology of thread teams that does not violate the
+inter-task dependencies.  The runtime shall trigger an error if the number of
+tasks in the bundle is more than the number of thread teams created by the
+runtime.
 \end{req}
+
+\textcolor{red}{What does this look like?  The offline toolchain should
+determine the inter-task dependencies, the mapping of tasks to HW, and the
+mapping of tasks to thread teams.  Is the latter just choosing a thread team
+with the correct unit of work?  How does the toolchain specify to the runtime
+which topology to use and the mapping of task to teams in the topology?  Can it
+just be a long parameter list with multiple consecutive parameters in the list
+specifying the task for a particular device?  The runtime could then see which
+parameters specify a task and infer the topology from this.  We would need, for
+instance, a CPU concurrent task, a GPU concurrent task, and a post-GPU task.}
 
 \begin{req}
 The runtime shall contain a \textbf{concurrent work distributor} that
-facilitates applying multiple disctinct tasks to all the blocks managed by the
+facilitates applying multiple distinct tasks to all the blocks managed by the
 runtime's MPI rank.  Specifically, this distributor shall gather tiles using the
 Grid unit's tile iterator (or asycnrhonous tile iterator), form these into the
 appropriate units of work, and give the units of work to the appropriate thread
@@ -343,27 +412,36 @@ teams.  Refer to Figure~\ref{fig:ConcurrentItor} for an example of such a scheme
 \begin{req}
 The runtime shall contain a \textbf{work splitting distributor} that facilitates
 using more than one thread team in parallel to applying a single task to all the
-blocks managed by the runtime's MPI rank with each the task being applied to
-each block by only one team.  Specifically, this distributor shall
+blocks managed by the runtime's MPI rank with the task being applied to
+each block by one and only one team.  Specifically, this distributor shall
 gather tiles using the Grid unit's tile iterator (or asycnrhonous tile
 iterator), use a distribution scheme to determine which tiles will be sent to
 which team, form these into the appropriate units of work based on the
 destination team, and send the units of work to the appropriate thread teams.
 Refer to Figure~\ref{fig:SplitItor} for an example of such a scheme.
+\textcolor{red}{Allow for scheme that selects routing of work to team
+dynamically?}
 \end{req}
 
 \begin{req}
 A thread team may be configured to push units of work, to which it has already
 applied its task, to other thread teams.  The team that pushes units of work is
 therefore a \textbf{work publisher} and the teams to which the units of work are
-given are \textbf{work subscribers}.  A thread team shall not be allowed to push
-work to itself.  It shall be possible for a single thread team to be a work
-subscriber for two distinct work publishers\footnote{Split the load of blocks
-between a thread team dedicated for FPGAs and a second team for GPUs.  We could
-have each team run the same task on its subset of blocks and then pipe the
-results into a single work subscriber that runs a quick, independent follow-up
-task on the CPU.}.
+given are \textbf{work subscribers}.  It shall be possible for a single thread
+team to be a work subscriber for any number of distinct work
+publishers\footnote{Split the load of blocks between a thread team dedicated for
+FPGAs and a second team for GPUs.  We could have each team run the same task on
+its subset of blocks and then pipe the results into a single work subscriber
+that runs a quick, independent follow-up task on the CPU.}.  Note that work
+distributors are therefore work publishers.
 \end{req}
+
+\textcolor{red}{The present implementation does not yet support multiple work
+publishers for a single subscriber.  The design needs to be extended so that
+a subscriber with multiple publishers can keep track of which subscriber has
+called closeTask.  The transition to Running \& Closed Queue would only occur
+once each publisher has called closeTask.  Do we need a pub/sub pattern with
+two-way knowledge?}
 
 \begin{req}
 Each thread team may be configured as a \textbf{thread publisher} and as a
@@ -391,44 +469,40 @@ circle of teams nor an endless cycle of feeding work around a circle of teams.
 
 \begin{req}
 If a thread subscriber is informed that it may activate another thread in its
-team but there are no more Idle threads in the team, then the
-subscriber team shall emit an error.
+team but there are no more Idle threads in the team, then the subscriber team
+shall emit an error.
 \end{req}
 
 This implies that it is the client code's responsibility to ensure that the
 number of threads in a thread subscriber team is less than or equal to the sum
 total of threads that the team starts with and the number of threads that can be
-triggered.  Note that multiple thread teams can be connected in chains and a
+activated.  Note that multiple thread teams can be connected in chains and a
 single thread team could be a subscriber to many chains.  Therefore, the task of
-determining the maximum number of threads in a team is important.\\
-
-\textcolor{red}{How to deal with the case of a work subscriber that has
-multiple work publishers?  Publishers call a routine in subscriber to inform the
-subscriber that it can detach and subscriber transitions to closed only once it
-is not attached to any subscribers?  This implies pub/sub pattern with two way
-knowledge of relationship.}\\
+determining the maximum number of threads in a team is important.
 
 \begin{req}
 The runtime shall allow for a thread team whose unit of work is a data packet of
-blocks to be work publisher for a thread team whose unit of work is either a
-data packet of blocks or tiles.  In the latter case, the runtime shall provide
-an object that translates data packets of blocks.  For this case, this object is
-the work subscriber of the first team and the work publisher of the final team.
-See Figures~\ref{fig:ConcurrentItor} and~\ref{fig:SplitItor}.
+blocks to be a work publisher for a thread team whose unit of work is a data
+packet of blocks or whose unit of work is tiles.  In the latter case, the
+runtime shall provide an object that breaks data packets of blocks into its
+constituent tiles.  For this case, this object is the work subscriber of the
+first team and the work publisher of the final team.  See
+Figures~\ref{fig:ConcurrentItor} and~\ref{fig:SplitItor}.
 \end{req}
 
 \textcolor{red}{Is there a use case having a tile-to-data packet aggregation
 object?}
 
 \begin{req}
-The runtime shall have a replay facility so that thread teams can be arranged
-into a predescribed topology and each thread team setup in a given state.  This
-should be useful for both debugging and designing meaningful tests.
+The runtime shall have a record/replay facility so that thread teams can be
+arranged into a pre-described topology and each thread team setup in a given
+state.  This should be useful for both debugging and designing meaningful direct
+tests of low-level functionality.
 \end{req}
 
 \begin{figure}[!ht]
 \begin{center}
-\includegraphics[width=5.0in]{ConcurrentItorExample.pdf}
+\includegraphics[width=5.5in]{ConcurrentItorExample.pdf}
 \caption[]{\textcolor{red}{Add general information related to requirements.
 Also specify the assumptions about RW indepence of tasks so that these
 topologies will give the correct results regardless of order of execution.}}
@@ -438,7 +512,7 @@ topologies will give the correct results regardless of order of execution.}}
 
 \begin{figure}[!ht]
 \begin{center}
-\includegraphics[width=5.0in]{WorkSplittingExample.pdf}
+\includegraphics[width=5.5in]{WorkSplittingExample.pdf}
 \caption[]{\textcolor{red}{Add general information related to requirements.
 Also specify the assumptions about RW indepence of tasks so that these
 topologies will give the correct results regardless of order of execution.}}
@@ -446,26 +520,31 @@ topologies will give the correct results regardless of order of execution.}}
 \end{center}
 \end{figure}
 
+%%%%%----- RUNTIME TECHNICAL SPECIFICATIONS & DESIGN SECTION -----%%%%%
 \section{Runtime Technical Specifications \& Design}
-%What classes of scalar values do we have in the physics units?  For instance are
-%there scalars that are constant for the duration of the simulation?  Constant
-%for the duration of an iteration?  Constants that are changed by auxiliary
-%tasks?  Constants that are updated by work tasks?  For the first two, we can set
-%up mirrors of the variable between host and devices.  Those that are changed by
-%auxiliary tasks can also be mirrored by running the task concurrently in both
-%the CPU and the GPU.  What about the others?  Do we send those in the data
-%packets so that the CPU and GPUs can force the mirroring somehow?  Do we just
-%hand these over the managed memory and hope that everything goes well?  Do we
-%hand these over to managed memory but ask the task composer to touch the scalars
-%on the appropriate device before each runtime call (these are blocking)?\\
+The statements that appear in this section are being referred to as technical
+specifications rather than requirements in that these statements are low-level
+and directly informed by the design and how we plan to implement the design.
+Therefore, it is expected that a change in the design that does not violate the
+above requirements could require significant changes to this section of the
+document.\\
 
+One main intent of the technical specifications is to highlight key ideas,
+difficulties, and complexities that should be kept in mind when studying and
+maintaining the code.  Also, use, corner, and edge cases that have been
+identified are presented as motivation for technical specifications.  Finally,
+some statements are made because the correctness of the design and
+implementation require that they be satisfied.  For such statements, proofs are
+given to explain how we know that the specification is satisfied by the design.
+
+%%-- THREAD TEAMS SUBSECTION
 \subsection{Thread Teams}
-A thread team is fundamentally event-driven software and as such its design
-has been specified as a finite state machine.  However, the behavior in a given
-state cannot be specified solely on the basis of a single qualitative state
-variable.  Rather, the behavior will depend on a qualitative state variable,
-which is called the mode, as well as the quantitative internal state variables
-$N_i, N_w, N_c, N_Q$ that respectively keep track of 
+A thread team is fundamentally event-driven software and as such its design has
+been specified as a finite state machine (FSM).  However, the behavior in a
+given state cannot be specified solely by a single qualitative state variable.
+Rather, the behavior will depend on a qualitative state variable, which is
+called the mode, as well as the quantitative internal state variables $N_i, N_w,
+N_c, N_Q$ that respectively keep track of 
 \begin{itemize}
 \item{the number of idle threads in the team,}
 \item{the number of threads that are waiting for work to be added,}
@@ -475,7 +554,7 @@ $N_i, N_w, N_c, N_Q$ that respectively keep track of
 Note that the definitions of $N_i, N_w, N_c$ imply that each thread is
 always in one and only one state but that this EFSM need not track the actual
 state of each thread --- it is only the aggregated thread state information that
-is important.  Therefore, the runtime is an extended finite state machine 
+is important.  Therefore, the runtime is an extended finite state machine (EFSM)
 \[
 M = (Q, X, I, O, s_0, T)
 \]
@@ -485,13 +564,20 @@ where
 \item{$X = \set{(N_i, N_w, N_c, N_Q) \in \Z_{\ge 0}^4\,|\,N_i + N_w + N_c =
 N_{max}}$ is the set of internal state variables where $N_{max}$ is the
 number of threads in the team,}
-\item{$I$ is the set of internel and external events,}
+\item{$I$ is the set of internal and external events,}
 \item{$O$ is the set of outputs,}
 \item{$s_0 = (q_0, x_0) \in Q \times X$ is the initial state, and}
 \item{$T : Q \times X \times I \to Q \times X \times O$ is the transition
 function that is evaluated by the EFSM at each occurrence of an event to
 identify the output to be performed as well as the state to transition to.}
 \end{itemize}
+
+Note that the set of all possible states is not $Q \times X$.  There are
+elements in that set that the EFSM must not occupy.  See
+Specs~\ref{spec:Closed_NoWork} and~\ref{spec:NoMoreWork_NeedThread} for examples of such
+prohibited states.  Therefore, the above specification of $T$ is only correct
+if we assume that the output associated with such prohibited states is to throw
+an error.\\
 
 The set $Q$ contains the modes
 \begin{itemize}
@@ -522,7 +608,8 @@ that no more units of work will be given for the current task}
 with the set of events triggered internally
 \begin{itemize}
 \item{\texttt{activateThread} --- wake an idle thread so that it can participate
-in applying a task to given units of work}
+in applying a task to given units of work, look for pending work, and update its
+state accordingly}
 \item{\texttt{transitionThread} --- wake a thread that is waiting for work so
 that it can evaluate if there is pending work and update its state accordingly}
 \item{\texttt{computationFinished} --- a thread finished applying the team's
@@ -532,12 +619,26 @@ its state accordingly}
 %terminated}
 \end{itemize}
 
-\textcolor{red}{Add in explanation of how computationFinished is different and
-how it could be perceived to break the rules of a FSM since the thread never
-finishes its transitions.  With the right definitions, it seems that we get
-around this --- the thread is is an effective blocking state (i.e. like waiting
-of a signal) while it is computing.  This signal is only emitted by a computing
-thread and is only received by the emitting thread itself.}
+Note that \texttt{computationFinished} is different from the other events and it
+is important to understand how it is different as well as how we define it to
+make certain that this event does not break the rules of a FSM.  Specifically,
+when a thread transitions to Computing it does not sleep or wait on another
+event as is the case for Waiting or Idle threads.  Rather, it does work.  Seen
+in this light, a state transition in the EFSM that results in a thread becoming
+a Computing thread does not terminate until the Computing thread finishes
+applying the team's task to its current unit of work.  Therefore, we should not
+allow any other thread to alter the state of the EFSM until the work is
+finished, which is not acceptable.\\
+
+Therefore, we emphasize that in our design the Computing thread is
+\textit{effectively} sleeping while it is applying the team's task to a unit of
+work and a EFSM state transition can finish when such a thread ``sleeps''.  It is sleeping not in the sense of no resource usage, but rather from the
+perspective of not being an active member of the runtime infrastructure while it
+is computing.  As with Waiting and Idle threads, the Computing threads need to
+be awakened by a dedicated event, which is the \texttt{computationFinished}
+event.  This event is ``emitted'' by a Computing thread when it finishes
+applying a task to its current unit of work and can only be received by the thread
+itself.\\
 
 The initial state is defined to be
 \[
@@ -552,20 +653,20 @@ team is shown in Figure~\ref{fig:ThreadStateDiagram}.  These figures are
 intended only to aid in understanding the design of the runtime.  The content of
 XXX should be understood to be the actual design of the runtime.\\
 
-The design and implementation philosophy of the EFSM was to put an emphasize on
+The design and implementation philosophy of the EFSM was to emphasize
 correctness and maintainability.  One important consequence was to create a
-design that accounts for all possible states/transitions/events even though it
-could be proven that some states/transitions/events are precluded from happening
-by the design itself.  Therefore, our design/implementation is hopefully robust
-and not so sensitive to small design changes.  Also, the mental load associated
-with working with the design is lower since we do not have the burden of proving
-and maintaining proofs of impossible states/transitions.  This is especially
-important as the thread-based implementation of the thread team cannot make
-strong assumptions about the predictability of the order of execution of code
-and events, which increases the complexity of such proofs.  This is ugly in the
-sense that the code might carry out actions that it shouldn't without our
-knowing.  It always means that we have not completely understood the full
-behavior of the EFSM.
+design that accounts for all possible states, transitions, and events even
+though it could be proven that some states/transitions/events are precluded from
+happening by the design itself.  Therefore, our design/implementation is
+hopefully robust and not sensitive to small design changes.  Also, the mental
+load associated with working with the design is lower since we do not have the
+burden of proving and maintaining proofs of impossible states/transitions.  This
+is especially important as the thread-based implementation of the thread team
+cannot make strong assumptions about the predictability of the order of
+execution of code and events, which increases the complexity of such proofs.
+This is ugly in the sense that the code might carry out actions that it
+shouldn't without our knowing.  It also means that we have not completely
+understood the full behavior of the EFSM.
 
 \begin{figure}[!ht]
 \begin{center}
@@ -583,18 +684,18 @@ behavior of the EFSM.
 \end{center}
 \end{figure}
 
-\begin{req}
+\begin{spec}
 All threads that transition to idle must wait for the \texttt{activateThread}
 signal.
-\label{req:IdleActivateThread}
-\end{req}
+\label{spec:IdleActivateThread}
+\end{spec}
 
-\begin{req}
-External code can decrease $N_i$ through the \texttt{startTask} and
+\begin{spec}
+External code can only decrease $N_i$ through the \texttt{startTask} and
 \texttt{increaseThreadCount} events and the runtime shall be implemented such
 that a request to activate $i$ threads results in an error if $i$ exceeds the
 number of idle threads that are available for activation.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  In the present design, this requirement
 is important because the runtime would emit more \texttt{activateThread} signals
 than there are threads to receive them.  Because teams allows for thread
@@ -605,32 +706,32 @@ and when these threads are actually activated.  The runtime design therefore
 tracks the actual number of idle threads with \texttt{N\_idle\_} = $N_i$ as well
 as the number of threads pending activation with \texttt{N\_to\_activate\_}.
 When a thread does receive \texttt{activateThread}, it decrements both
-\texttt{N\_idle\_} and \texttt{N\_to\_activate\_} and increments the internal
-state variable $N_i, N_w$ or $N_c$ corresponding to the thread's next state.
-To satisfy the requirement, both events throw an error if $i > $
+\texttt{N\_idle\_} and \texttt{N\_to\_activate\_} by one and increments by one
+the internal state variable $N_i, N_w$ or $N_c$ corresponding to the thread's
+next state.  To satisfy the requirement, both events throw an error if $i > $
 \texttt{N\_idle\_} - \texttt{N\_to\_activate\_}.
 
-\begin{req}
-\label{req:Runtime_OneWait}
+\begin{spec}
+\label{spec:Runtime_OneWait}
 The interface of the thread team shall contain a \texttt{wait} method so that
 for each task execution, the execution of a thread that calls \texttt{wait} is
 blocked until the termination of the task.  This interface shall allow for at
 most one thread to block its execution with this method during each task
 execution.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented a flag
 \texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
 
 \textcolor{red}{Should we have a variant of wait that accepts a timeout?}
 
-\begin{req}
+\begin{spec}
 To maintain a simple design, client code shall only be allowed to attach and
 detach thread subscribers when the team is in the {\TeamIdle} mode.  The same
 requirement applies for work subscribers.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
 
-\begin{req}
+\begin{spec}
 In the original designs, the Team state machine also contained a
 {\TeamTerminating} mode.  The transition to this mode was allowed only from
 {\TeamIdle} and was triggered by initiating the destruction of the team.  While
@@ -638,90 +739,114 @@ sensible, this design was flawed since a runtime error that occurs with the team
 in any state could trigger the destruction of the team.  Therefore, the
 termination of the EFSM and the clean-up of its resources shall be possible from
 any state.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  The destructor does not do any error
 checking to confirm that destruction was called with the EFSM in any particular
 state.  Also, the destructor assumes that there are Idle, Waiting, and Computing
-threads at the time of calling.  For the Idle and Waiting threads, it triggers
-them to finish; the Computing, it waits for them to finish their work and
+threads at the time of calling.  For the Idle and Waiting threads, it signals 
+them to terminate; Computing threads, it waits for them to finish their work and
 discover that they should terminate.
 
-\begin{req}
-\label{req:Runtime_AtomicTransition}
+\begin{spec}
+\label{spec:Runtime_AtomicTransition}
 As per the requirements of FSMs, each transition shall be implemented so that
 the code executing the transition has sole access to the thread team's state
 during the entirety of the transition.  This implies that no other thread can
-alter the state simultaneously.
-\end{req}
-\textbf{Verification:}\hspace{0.125in}  With each change to the software, the
-satisfication of this requirement should be reverified.\\
+alter the state simultaneously and that transitions are atomic.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  Each thread team object has a single,
+dedicated mutex that must be acquired to access or alter thread team state
+information.  Each transition acquires the mutex either through an explicit
+request or by a thread receiving an event and the mutex is not released until
+the transition is finalized.\\
 
-Given the present implementation, it important for transitions that transition
-the mode and emit internal signals that the code transition the mode
-\textbf{first} and then emit the signals.  This is to prevent the possible
-(\textbf{TBC} for pthreads?) case that the signal is emitted and received
-before the mode is correctly transitioned, which would violate
-Requirement~\ref{req:Runtime_AtomicTransition} and cause the responding thread
+Given the present implementation, it is important for transitions that
+transition the mode and emit internal signals that the code transition the mode
+\textbf{first} and then emit the signals.  This prevents the possible
+(\textbf{TBC} for pthreads?) case that the signal is emitted and received before
+the mode is correctly transitioned, which would violate
+Spec~\ref{spec:Runtime_AtomicTransition} and cause the responding thread
 to react to the signal is a way that is potentially not in accord with the true
 mode of the EFSM.
 
-\begin{req}
-Any transition to {\TeamRunningNoMoreWork} shall awaken all waiting threads so
+\begin{spec}
+\label{spec:Runtime_AwakenOnNoMoreWork}
+All transitions to {\TeamRunningNoMoreWork} shall awaken all waiting threads so
 that they can transition to Idle.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
-\begin{req}
-Any transition to {\TeamIdle} shall call the \texttt{closeTask()} method of the
-team's work subscriber if it has a work subscriber.
-\end{req}
+\begin{spec}
+\label{spec:Runtime_IdleOutput}
+All transitions to {\TeamIdle} shall
+\begin{itemize}
+\item{call the \texttt{closeTask()} method of the team's work subscriber if it
+has a work subscriber and }
+\item{unblock the external thread that called \texttt{wait} if such a thread
+exists.}
+\end{itemize}
+Note that this does not include \textit{setting} the EFSM into its initial
+state.
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
-\begin{req}
+\begin{spec}
 Upon emitting/receiving the \texttt{computationFinished} signal, a computing
 thread shall enqueue the unit of work that it just finished applying the team's
 task to with the team's work subscriber if the team has a work subscriber.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
-\begin{req}
-\end{req}
-\textbf{Verification:}\hspace{0.125in}
+\begin{spec}
+It is possible for an idle thread to receive the \texttt{activateThread} event
+when the team does not need threads to be activated (\textit{i.e.} the state is
+in {\TeamRunningClosed} with $N_Q = 0$ or the mode is \TeamIdle
+\footnote{Consider a team that is both a thread publisher and subscriber.  It is
+possible for the team to finish its work and transition to {\TeamIdle} before
+its publisher and subscriber finish their work.} or \TeamRunningNoMoreWork).  To
+avoid thread resource loss and to promote efficient execution of the execution
+cycle's tasks, in this scenario the threads that receive the unnecessary event
+shall call \texttt{increaseThreadCount(1)} for its thread subscriber if it
+exists.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
 
+%%-- TEAM IDLE SUBSECTION
 \subsection{{\TeamIdle} State}
-\begin{req}
-\label{req:Idle_NoEnqueue}
-While the runtime could allow clients to give units of work to a team with the
-understanding that the work would be for the next task to be given to the team,
-there is no known use case for which this is necessary.  Therefore, to simplify
-the design, client code shall not be allowed to give a team a unit of work if
-the team is in the mode \TeamIdle.  
-\end{req}
+\begin{spec}
+\label{spec:Idle_NoEnqueue}
+While the runtime could allow clients to give units of work to a team that is in
+{\TeamIdle} with the understanding that the work would be for the next task to
+be given to the team, there is no known use case for which this is necessary.
+Therefore, to simplify the design, client code shall not be allowed to give a
+team a unit of work if the team is in the mode \TeamIdle.  
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  The \texttt{enqueue} method throws an
 error if called in this mode.  There is no other means to add work.\\
 
-Given this requirement, it would be wise to call \texttt{startTask} on all
+Based on this specification, client code should call \texttt{startTask} on all
 thread teams to be used on a task before enqueueing work with any of these.  This
 practice will help avoid the case where an active work publisher tries to
 enqueue work on a work subscriber that is still in the mode \TeamIdle.
 
-\begin{req}
+\begin{spec}
 In the {\TeamIdle} mode, the queue shall always be empty and all threads in the
 team in the idle state.  This implies that no thread can be in the Waiting,
 Computing, or Terminating states and that all threads are therefore by
-Req~\ref{req:IdleActivateThread} are waiting to receive the
+Spec~\ref{spec:IdleActivateThread} are waiting to receive the
 \texttt{activateThread} event.
-\end{req}
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  The initial state starts in {\TeamIdle}
-but specifies that there is no work in the queue.  Also, all transitions to
-{\TeamIdle} can only happen if the queue is empty.  Therefore, the pending work
-queue is always empty upon entry to \TeamIdle.  Finally, no work can be added
-to the queue in the {\TeamIdle} state by Req~\ref{req:Idle_NoEnqueue}.\\
+and specifies that there is no work in the queue.  Also, all transitions to
+{\TeamIdle} only happen if the queue is empty.  Therefore, the pending work
+queue is always empty upon entry to \TeamIdle.  Finally, no work can be added to
+the queue in the {\TeamIdle} state by Spec~\ref{spec:Idle_NoEnqueue}.\\
 
 The initial state specifies that all threads are idle and transitions to
-{\TeamIdle} can only happen if the same is true.  Therefore, the claim is true
-upon entry to {\TeamIdle} and all threads are waiting for \texttt{activateThread}.
-Also, responses\footnote{These cases are being considered should one of these
+{\TeamIdle} only happen if the same is true.  Therefore, the claim is true upon
+entry to {\TeamIdle} and all threads are waiting for \texttt{activateThread}.
+Also, responses
+\footnote{These cases are being considered should one of these
 events be emitted when the team in not Idle, but is received after transitioning
 to Idle.  With the current implementation, since all threads would be waiting on
 \texttt{activateThread}, no threads would be waiting for the latter two events.}
@@ -730,44 +855,129 @@ to \texttt{activateThread}, \texttt{transitionThread}, and
 responding threads wait for \texttt{activateThread}.  Therefore any attempt to
 transition a thread terminates with the thread in idle.
 
-\begin{req}
-Consider a team that is both a thread publisher and subscriber.  It is possible
-for the team to finish its work and transition to {\TeamIdle} before its
-publisher finishes its work.  Therefore, to avoid loss of thread resources at
-the level of the runtime, teams that are thread publishers and that are in
-{\TeamIdle} shall forward requests to increase thread count on to their
-subscriber.
-\end{req}
-\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
-
-\begin{req}
-It is possible that a runtime execution cycle could finish and transition the
-team back to {\TeamIdle} before an external thread has the chance to call
-\texttt{wait}.  Therefore, the method shall be enabled in {\TeamIdle} and shall
-terminate immediately to avoid unnecessary blocking of the calling thread.  Note
-that this does allow for client code to superfluously call \texttt{wait} before
-the first execution cycle is run and multiple times between cycles, both of
-which are logical errors.
-\end{req}
+\begin{spec}
+It would seem to be sensible to insist that an external thread cannot call
+\texttt{wait} for a team that is in \TeamIdle.  However, it is possible that a
+runtime execution cycle could finish and transition a team back to {\TeamIdle}
+before an external thread has the chance to call \texttt{wait}.  Therefore, the
+\texttt{wait} method shall be enabled in {\TeamIdle} and shall terminate immediately to avoid
+unnecessary blocking of the calling thread.  Note that this does allow for
+client code to superfluously call \texttt{wait} before the first execution cycle
+is run and multiple times between cycles, both of which are logical errors.
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated and in
-accord with Req~\ref{req:Runtime_OneWait}.  
+accord with Spec~\ref{spec:Runtime_OneWait}.  
 
+%%-- TEAM RUNNING & OPEN SUBSECTION
 \subsection{\TeamRunningOpen}
-\begin{req}
-Consider the case of two teams, one of which is the work publisher for the
-other.  When the publisher team transitions to {\TeamRunningNoMoreWork}, it
-calls the subscriber's \texttt{closeTask()} method to inform the subscriber that
-it will not be given more work.  This implies that the thread that executes an
-execution cycle with the Orchestration Runtime does not know when
-\texttt{closeTask()} is called and therefore could call \texttt{wait()} before
-this event occurs.  Hence, a thread team in the state {\TeamRunningOpen} shall
-allow for a thread to call \texttt{wait()} method.
-\end{req}
+\begin{spec}
+It  would seem sensible to insist that an external thread cannot call
+\texttt{wait} during a given execution cycle unless the \texttt{closeTask} event
+has already been issued for the same cycle.  However, consider the case of two
+teams, one of which is the work publisher for the other.  As per
+Spec~\ref{spec:Runtime_IdleOutput}, when the publisher team transitions to
+{\TeamIdle}, it calls the subscriber's \texttt{closeTask} method to inform the
+subscriber that it will not be given more work.  This implies that the external
+thread that triggers an execution cycle with the runtime does not know when
+\texttt{closeTask} is called and therefore could call \texttt{wait} before this
+event occurs.  Hence, a thread team in the state {\TeamRunningOpen} shall allow
+for a thread to call \texttt{wait}.
+\end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
-\begin{req}
-\end{req}
-\textbf{Verification:}\hspace{0.125in}
+%%-- TEAM RUNNING & CLOSED SUBSECTION
+\subsection{\TeamRunningClosed}
+\begin{spec}
+\label{spec:Closed_Transition}
+If a team is in mode \TeamRunningClosed, then every thread that transitions to
+Computing shall check if $N_Q = 0$ as part of the transition and after
+dequeueing the unit of work on which it will apply its team's task.  If this is
+the case, then during the same transition (and therefore before applying the
+task to the dequeued unit of work) the thread shall change the mode to
+\TeamRunningNoMoreWork.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  A thread can be transitioned to
+Computing from the Idle, Waiting, and Computing state.  If the mode is
+{\TeamRunningClosed}, $N_Q = 1$, and a
+thread receives any of the \texttt{activateThread}, \texttt{transitionThread},
+or \texttt{computationFinished} events, then the induced transitions always changes
+the mode to \TeamRunningNoMoreWork.  No other events result in decreasing $N_Q$
+to zero in \TeamRunningClosed.
+
+\begin{spec}
+\label{spec:Closed_NoWork}
+The transition from {\TeamRunningClosed} to \TeamRunningNoMoreWork, which is the
+only transition possible for this mode, is triggered internally by the active
+thread that dequeues the last unit of work (Spec~\ref{spec:Closed_Transition}).
+Therefore, to avoid deadlock the design of the runtime shall be such that the
+EFSM cannot be in mode {\TeamRunningClosed} with $N_Q = 0$.  Note that it is not
+necessarily an error if $N_i = N_{max}$ in {\TeamRunningClosed} as the team
+could be a thread subscriber and have a thread activated by its publisher so
+that the team could eventually dequeue elements and determine that there is no
+more work.
+\textcolor{red}{Should each thread team store the pointer to its thread
+publisher so that we can implement a rule here that if a team isn't a thread
+subscriber and $N_i = N_{max}$, then we have an error?}
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  The only transition to
+{\TeamRunningClosed} is from {\TeamRunningOpen}, which only occurs if $N_Q > 0$.
+Hence, the specification is satisfied upon entry into the mode.  The value of
+$N_Q$ can decrease in this mode only when a thread transitions to the Computing
+state.   By Spec~\ref{spec:Closed_Transition}, the EFSM mode is transitioned to
+{\TeamRunningNoMoreWork} as part of every transition that results in $N_Q = 0$.
+
+%%-- TEAM RUNNING & NO MORE WORK SUBSECTION
+\subsection{\TeamRunningNoMoreWork}
+\begin{spec}
+\label{spec:NoMoreWork_NoWork}
+If a team is in \TeamRunningNoMoreWork, then it shall always be true that $N_Q =
+0$.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  The only transition into
+{\TeamRunningNoMoreWork} is from {\TeamRunningClosed} and this transition only
+occurs with $N_Q = 0$.  Therefore, the specification is satisfied upon entry to
+the mode.  The only means to increase $N_Q$ is by adding work \textit{via}
+\texttt{enqueue}, which is prohibited in \TeamRunningNoMoreWork.
+
+\begin{spec}
+\label{spec:NoMoreWork_TransitionToIdle}
+If a team is in mode \TeamRunningNoMoreWork, then the last thread to transition
+to Idle shall change the mode to \TeamIdle.  This is valid as $N_i =
+N_{max}$ necessarily at the transition and by Spec~\ref{spec:NoMoreWork_NoWork}
+it is certain that $N_Q = 0$.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  The only transition into
+{\TeamRunningNoMoreWork} is from {\TeamRunningClosed} and this transition only
+occurs with $N_c > 0$.  Therefore, upon entry to the mode, there is at least one
+thread that could transition to Idle.  Since satisfaction of
+Spec~\ref{spec:NoMoreWork_NoWork} implies that $N_Q = 0$, all computing threads
+will determine upon finishing applying the team's task to the current unit of
+work that there is no more work and will subsequently transition to Idle.
+Similarly, satisfaction of Spec~\ref{spec:Runtime_AwakenOnNoMoreWork} implies
+that all threads in the Wait state will be awakened, determine that there is no
+work, and transition to Idle as well.  Therefore, all non-active threads will
+eventually transition to Idle.  Given this and the fact that the reception of
+\texttt{activateThread} events are effectively ignored by Idle threads, we
+conclude that there will be a last thread that transitions to Idle.   This
+thread is programmed to transition the mode to \TeamIdle.
+
+\begin{spec}
+\label{spec:NoMoreWork_NeedThread}
+The transition from {\TeamRunningNoMoreWork} to \TeamIdle, which is the only
+transition out of this mode, occurs when the last non-Idle thread transitions to
+Idle (See Spec~\ref{spec:NoMoreWork_TransitionToIdle}).  Therefore, to avoid deadlock the design of the runtime
+shall prohibit the EFSM from being in a state with {\TeamRunningNoMoreWork} and
+$N_i = N_{max}$.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  The only transition into
+{\TeamRunningNoMoreWork} is from {\TeamRunningClosed} and this transition only
+occurs with $N_c > 0$.  Therefore, $N_i < N_{max}$ upon entry to
+the mode.  As $N_i$ can only decrease by at most one with each thread
+transition, which are atomic (Spec~\ref{spec:Runtime_AtomicTransition}),
+satisfaction of Spec~\ref{spec:NoMoreWork_TransitionToIdle} implies that $N_i$
+cannot be set to zero in {\TeamRunningNoMoreWork} without also simultaneously
+causing the mode to change to \TeamIdle.  Hence, $N_i < N_{max}$ in
+{\TeamRunningNoMoreWork} up to the transition to \TeamIdle.
 
 \subsection{Possible Requirements}
 %If a thread team is going to ship data to an accelerator like a GPU, then the
@@ -785,28 +995,6 @@ passed to executeTask and shall be able to form all necessary units of work from
 this.  This is too specific.  What if it can just queue tiles to every team and
 the units of work are formed at dequeueing?  Who is responsible for the
 shipments then?  Who is responsible for bringing data back?
-
-%If thread team A and thread team B have different units of work and team B is a
-%work subscriber of A, then there shall exist a mechanism in the
-%enqueueing/dequeueing process for translating units of work.
-%\textcolor{red}{This is not yet resolved.  For example, we could ask the
-%publishers to do the translation --- enqueue each tile in a data packet
-%separately or assemble tiles into data packets.  Or, when a task execution cycle
-%is initiated, each subscriber team would create a queue that receives the work
-%unit of its publisher and dequeueing would do the translation.}.  Can we relax
-%this so that data packets are only assembled by the queue task and all GPU-based
-%teams that receive work from a CPU-based team have single tile data packets?
-%Can our pipeline eventually hide the explosion of transport latency costs?  This
-%seems unlikely since tile size is set for the CPU and could lead to units of
-%work too small to keep the GPU busy for long enough to hide the latencies.
-
-%Should we allow the Post-concurrency task to start immediately when blocks get
-%back from the GPU?  This would imply that this task is also independent from the
-%CPU-concurrent task.  Or, do we run the Post-concurrent task only after both the
-%CPU and GPU work have finished?  Note that we can never know that a single
-%routine will always run on either the host or either the device.  They must be
-%written in such a way that they can be run well on either without manual or
-%automatically updating the code beyond directives (OpenACC, OpenMP, CUDA, etc.).\\
 
 %Consider a unit of runtime work that includes a GPU-concurrent task, a
 %CPU-concurrent task, and a Post-concurrency CPU task in its task bundle.  Then
@@ -841,148 +1029,5 @@ shipments then?  Who is responsible for bringing data back?
 %host and some devices sharing the same physical memory, this requirement could
 %become more imporatant.  Therefore, giving the runtime more parameters to inform
 %data movements could be important.\\
-
-%\newpage
-%\begin{appendices}
-%\section{Hydro operations}
-%The Unsplit implementation of the Hydro step operation has at least three
-%variants and the variant executed at runtime is presently determined at each
-%time step based on the Grid unit AMR implementation chosen (known at setup) 
-%and whether or not flux correction should be applied (specified as a runtime
-%parameter).  Here we express each variant as an operation.\\
-%
-%\textcolor{red}{TODO: Add to requirements that parameter such as flux correction
-%should be both a setup and runtime parameter.  If the setup-time value is false,
-%then the task scheduler has the possibility to fuse tasks.  If it is true, then
-%the runtime parameter can still be set to turn this off.  However, the binary
-%built will not have been built with the potential for fusing tasks.}\\
-%
-%For the following subsections, the colorization is
-%\begin{itemize}
-%\item{a \ComposerKey{keyword} that is paired with a static Fortran routine in
-%the operation's dictionary,}
-%\item{a \RuntimeParam{runtime} parameter, and}
-%\item{a \SetuptimeParam{setup-time} and runtime parameter.}
-%\end{itemize}
-%
-%TODO: Add in a UG variant?!
-%
-%\newpage
-%\subsection{No flux correction variant}
-%\texttt{
-%\begin{tabbing}
-%\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
-%if \SetuptimeParam{shockDetectOn}:\\
-%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
-%\> Task 1:\\
-%\>\> \ComposerKey{doShockDetection}\\
-%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
-%Task 2:\\
-%\> if \RuntimeParam{updateHydroFluxes}:\\
-%\>\> \ComposerKey{updateHydroData}\\
-%\> \ComposerKey{zeroFluxData}\\
-%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
-%\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
-%\end{tabbing}
-%}
-%
-%For \ComposerKey{computeFluxesAndUpdateSolution}, the dictionary should know
-%that it needs to run \texttt{hy\_computeFluxes} with \texttt{Uout => Uin}.
-%
-%\subsection{Paramesh + flux correction variant}
-%\texttt{
-%\begin{tabbing}
-%\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
-%if \SetuptimeParam{shockDetectOn}:\\
-%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
-%\> Task 1:\\
-%\>\> \ComposerKey{doShockDetection}\\
-%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
-%Task 2:\\
-%\> if \RuntimeParam{updateHydroFluxes}:\\
-%\>\> \ComposerKey{updateHydroData}\\
-%\> \ComposerKey{zeroFluxData}\\
-%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
-%\>\> if level == finest:\\
-%\>\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
-%\>\> else:\\
-%\>\>\> \ComposerKey{computeFluxes}\\
-%\> \ComposerKey{storeFluxDataForFluxCorrect}\\
-%\ComposerKey{conserveFluxes} (global, internode data movement)\\
-%Task 3:\\
-%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
-%\>\> if level == finest:\\
-%\>\>\> \ComposerKey{noOp}\\
-%\>\> else:\\
-%\>\>\> \ComposerKey{updateSolution}\\
-%\> \ComposerKey{updateBoundaries}
-%\end{tabbing}
-%}
-%
-%\newpage
-%\subsection{AMReX + flux correction variant - tiling}  
-%\textbf{Input:} \texttt{simTime, dt, dtOld, sweepOrder}\\
-%\textbf{Output:} the updated solution with EoS run on all leaf blocks.  GC data
-%not necessarily good.
-%
-%\texttt{
-%\begin{tabbing}
-%\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
-%if \SetuptimeParam{shockDetectOn}:\\
-%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
-%\> Task 1:\\
-%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
-%\>\>\> \ComposerKey{doShockDetection} (operates on single block)\\
-%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
-%Task 2:\\
-%\> if \RuntimeParam{updateHydroFluxes}:\\
-%\>\> SubTask 2.1 (Run in device so that data is already in device memory?):\\
-%\>\>\> \ComposerKey{updateHydroData} (doesn't operate on blocks, but sets
-%variables)\\
-%\> SubTask 2.2 (Run in CPU to avoid data movements?):\\
-%\>\> \ComposerKey{zeroFluxData} (iterates over all leaf blocks)\\
-%\ComposerKey{TaskBarrier} (fake data movement so that tasks are clean and efficient)\\
-%Task 3:\\
-%\> level = finest\\
-%\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
-%\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
-%\> if \ComposerKey{nLevels} > 1:\\
-%\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
-%\> level = finest-1 (NOTE: There might only be one level at any iteration!)\\
-%\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
-%\>\> \ComposerKey{computeFluxes}\\
-%\> if level != coarsest:\\
-%\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
-%\ComposerKey{conserveFluxes} (global, internode data movement)\\
-%loop level=finest-1..coarsest:\\
-%\>Task 3+i:\\
-%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
-%\>\>\> \ComposerKey{updateSolution}\\
-%\>\> level = finest-i\\
-%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
-%\>\>\> \ComposerKey{computeFluxes}\\
-%\>\> if level != coarsest:\\
-%\>\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
-%\ComposerKey{conserveFluxes} (global, internode data movement)\\[0.25in]
-%Task M:\\
-%if \SetuptimeParam{useGravity}:\\
-%\> \ComposerKey{prepareNewGravityAccelerations}\\
-%\ComposerKey{doGravityStep}
-%\ComposerKey{TaskBarrier} (Implied because we are at the end of the operation?)
-%\end{tabbing}
-%}
-%
-%Note that \texttt{hy\_updateSolution} calls \texttt{hy\_energyFix} and \texttt{Eos\_wrapped}
-%at the end.  These two could be pulled out and included as subtasks that could
-%be run on the CPU after \texttt{hy\_updateSolution} finishes running on a data
-%packet in the accelerator.\\
-%
-%Note that \texttt{hy\_prepareNewGravityAccelerations} can call
-%Gravity\_potential and GcFill in the end.  This needs to be moved up.\\
-%
-%Note that \texttt{hy\_gravityStep} iterates over all leaf blocks to update the
-%solution using the gravity accelerations.
-%
-%\end{appendices}
 
 \end{document}

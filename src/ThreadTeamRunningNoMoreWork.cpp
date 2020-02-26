@@ -31,6 +31,8 @@ ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork(ThreadTeam* team)
 std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const {
     if (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
+    } else if (team_->N_idle_ == team_->nMaxThreads_) {
+        return "At least one thread should be active";
     } else if (!(team_->queue_.empty())) {
         return "Pending work queue not empty";
     }
