@@ -452,6 +452,7 @@ once each publisher has called closeTask.  Do we need a pub/sub pattern with
 two-way knowledge?}
 
 \begin{req}
+\label{req:ThreadSubPub}
 Each thread team may be configured as a \textbf{thread publisher} and as a
 \textbf{thread subscriber}.  A thread publisher shall have at most one thread
 subscriber and there shall be no limit to the number of thread publishers that a
@@ -473,6 +474,7 @@ circle of teams nor an endless cycle of feeding work around a circle of teams.
 \end{req}
 
 \begin{req}
+\label{req:ThreadBalance}
 If a thread subscriber is informed that it may activate another thread in its
 team but there are no more Idle threads in the team, then the subscriber team
 shall emit an error.
@@ -738,7 +740,9 @@ work remain.  Therefore, the only thread that can access a dequeued unit of work
 is the thread that dequeued it.
 \begin{spec}
 All threads that transition to Idle must wait for the \texttt{activateThread}
-signal.
+event.  This includes threads in Idle that receive the \texttt{activateThread}
+event but remain in Idle as well as all threads that are \textit{set} into the
+Idle state when the EFSM is setup in the initial state.
 \label{spec:IdleActivateThread}
 \end{spec}
 
@@ -747,6 +751,8 @@ External code shall only be able to decrease $N_i$ through the
 \texttt{startTask} and \texttt{increaseThreadCount} events and the runtime shall
 be implemented such that a request to activate $i$ threads results in an error
 if $i$ exceeds the number of Idle threads that are available for activation.
+Note that this technical specification is consistent with
+Req~\ref{req:ThreadBalance}.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in}  In the present design, this requirement
 is important because the runtime would emit more \texttt{activateThread} signals
@@ -802,8 +808,8 @@ discover that they should terminate.
 
 \begin{spec}
 \label{spec:Runtime_AwakenOnNoMoreWork}
-All transitions to {\TeamRunningNoMoreWork} shall awaken all Waiting threads so
-that they can transition to Idle.
+All transitions to {\TeamRunningNoMoreWork} from a different mode shall awaken
+all Waiting threads so that they can transition to Idle.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
@@ -817,7 +823,7 @@ task to with the team's work subscriber if the team has a work subscriber.
 
 \begin{spec}
 \label{spec:Runtime_IdleOutput}
-All transitions to {\TeamIdle} shall
+All transitions to {\TeamIdle} from a different mode shall
 \begin{itemize}
 \item{call the \texttt{closeTask} method of the team's work subscriber if it
 has a work subscriber and }
@@ -835,26 +841,27 @@ the EFSM into its initial state.
 \begin{spec}
 \label{spec:Runtime_IdleToIdle}
 It is possible for an Idle thread to receive the \texttt{activateThread} event
-when the team does not need threads to be activated (\textit{i.e.} the state is
-in {\TeamRunningClosed} with $N_Q = 0$ or the mode is \TeamIdle
-\footnote{Consider a team that is both a thread publisher and subscriber.  It is
-possible for the team to finish its work and transition to {\TeamIdle} before
-its publisher and subscriber finish their work.} or \TeamRunningNoMoreWork).  To
-avoid thread resource loss and to promote efficient execution of the execution
-cycle's tasks, in this scenario the threads that receive the unnecessary event
-shall remain in Idle and call \texttt{increaseThreadCount(1)} for its thread
-subscriber if it exists.
+when the team does not need threads to be activated (\textit{i.e.} the mode is
+\TeamIdle \footnote{Consider a team that is both a thread publisher and
+subscriber.  It is possible for the team to finish its work and transition to
+{\TeamIdle} before its publisher and subscriber finish their work.} or
+\TeamRunningNoMoreWork).  To avoid thread resource loss and to promote efficient
+execution of the execution cycle's tasks, in this scenario the threads that
+receive the unnecessary event shall remain in Idle and call
+\texttt{increaseThreadCount(1)} for its thread subscriber if it exists.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
 
 \begin{spec}
+\label{spec:Runtime_ForwardThreads}
 To prevent thread resource loss at the level of the runtime, all threads that
 transition to Idle shall call \texttt{increaseThreadCount(1)} of its thread
 subscriber should it exist.  This specification is consistent with
 Spec~\ref{spec:Runtime_IdleToIdle}, which could be understood to handle the
 special case that an Idle thread transitions to Idle.  Note that this
 specification is not applicable to the case of \textit{setting} the EFSM into
-its initial state.
+its initial state.  Note that this technical specification is consistent with
+Req~\ref{req:ThreadSubPub}.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
 
@@ -874,10 +881,33 @@ team is not in {\TeamRunningOpen} result in error.\\
 Based on this specification, client code should call \texttt{startTask} on all
 thread teams to be used on a task before enqueueing work with any of these.  This
 practice will help avoid the case where an active work publisher tries to
-enqueue work on a work subscriber that is still in the mode \TeamIdle.
+enqueue work on a work subscriber that is still in the mode \TeamIdle.\\
+
+As a final note, the design accounts for \texttt{transitionThread} events that
+occur when no Waiting threads exist.  For each of these, this occurrence is
+acceptable and no output is generated as part of the transition.  This
+transition is included for the sake of completeness and can occur with the
+current implementation when certain outputs broadcast \texttt{transitionThread}.
+Unlike for \texttt{activateThread}, it is unimportant that there is no thread to
+receive the event.  This is due to the fact that this event exists to inform a
+Waiting thread to look for work or that it should determine that it should
+transition to Idle.  If there are no Waiting threads because all threads are
+Idle, then the team must be in \TeamIdle, in which case we don't need to
+activate threads, or in \TeamRunningOpen.  In the latter case, we wait for
+threads to be activated or for \texttt{closeTask} to be called to transition
+the team to \TeamIdle.  If all threads are Computing, then these will discover
+that there is pending work and the team will stay maximally busy.
 
 %%-- TEAM IDLE SUBSECTION
 \subsection{{\TeamIdle} State}
+\begin{spec}
+Similar to Spec~\ref{spec:Runtime_ForwardThreads}, if client code calls the
+\texttt{increaseThreadCount} method of a thread team in \TeamIdle, the team shall
+forward the pushed thread resources immediately on to its thread subscriber if
+it exists.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
 \begin{spec}
 In the {\TeamIdle} mode, the queue shall always be empty with all threads in the
 team in the Idle state.  This implies that no thread can be in the Waiting
