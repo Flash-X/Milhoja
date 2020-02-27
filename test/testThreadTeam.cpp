@@ -19,42 +19,57 @@ namespace {
  *  This implicitly tests destruction from the Idle mode.
  */
 TEST(ThreadTeamTest, TestInitialState) {
+    unsigned int   N_ITERS = 100;
+
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam    team1(3, 1, "TestInitialState.log");
-    ThreadTeam    team2(2, 2, "TestInitialState.log");
+    // Check that having two thread teams available at the same time
+    // is OK in terms of initial state
+    ThreadTeam   team1(10, 1, "TestInitialState.log");
+    ThreadTeam*  team2 = nullptr;
 
     // Confirm explicit state
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(3, team1.nMaximumThreads());
+    EXPECT_EQ(10, team1.nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
-    EXPECT_EQ(3, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(0, N_Q);
-
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(2, team2.nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
-    EXPECT_EQ(2, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(0, N_Q);
+    EXPECT_EQ(10, N_idle);
+    EXPECT_EQ(0,  N_wait);
+    EXPECT_EQ(0,  N_comp);
+    EXPECT_EQ(0,  N_Q);
 
     // Confirm indirectly that no subscribers are attached
-    ASSERT_THROW(team1.detachThreadReceiver(), std::logic_error);
-    ASSERT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+    EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
+    EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
 
-    ASSERT_THROW(team2.detachThreadReceiver(), std::logic_error);
-    ASSERT_THROW(team2.detachWorkReceiver(),   std::logic_error);
+    // Check that teams must have minimum number of threads
+    EXPECT_THROW(new ThreadTeam(0, 2, "TestInitialState.log"), std::logic_error);
+    EXPECT_THROW(new ThreadTeam(1, 2, "TestInitialState.log"), std::logic_error);
+
+    for (unsigned int i=2; i<=N_ITERS; ++i) {
+        team2 = new ThreadTeam(i, 2, "TestInitialState.log");
+
+        team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(i, team2->nMaximumThreads());
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team2->mode());
+        EXPECT_EQ(i, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        EXPECT_THROW(team2->detachThreadReceiver(), std::logic_error);
+        EXPECT_THROW(team2->detachWorkReceiver(),   std::logic_error);
+
+        delete team2;
+        team2 = nullptr;
+    }
 }
 
 /**
  * Test if a ThreadTeam object is destroyed correctly even if the mode isn't in
- * Idle (i.e. there are at least some threads in the Wait state).
+ * Idle (i.e. there are at least some threads in the Computing and Wait states).
  *
  * As presently implemented, this cannot be tested automatically.  Rather, we
  * should not see an error reports in the test output and we need to manually
@@ -68,14 +83,14 @@ TEST(ThreadTeamTest, TestDestruction) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    // Test in Running & Open 
     ThreadTeam*    team1 = new ThreadTeam(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
 
+    // Test in Running & Open 
     team1->startTask(TestThreadRoutines::delay_100ms, 3, "teamName", "100ms");
     team1->enqueue(1);
-    for (unsigned int i=0; i<100; ++i) {
+    for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if (N_comp == 1)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -93,7 +108,6 @@ TEST(ThreadTeamTest, TestDestruction) {
     delete  team1;
     team1 = nullptr;
  
-    // Test in Running & Closed or Running w/ NoMoreWork
     team1 = new ThreadTeam(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
@@ -103,7 +117,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     // won't be any work in the queue
     team1->startTask(TestThreadRoutines::delay_100ms, 3, "teamName", "100ms");
     team1->enqueue(1);
-    for (unsigned int i=0; i<100; ++i) {
+    for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if (N_Q == 0)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -137,7 +151,7 @@ TEST(ThreadTeamTest, TestDestruction) {
  */
 TEST(ThreadTeamTest, TestIdleWait) {
     ThreadTeam    team1(3, 1, "TestIdleWait.log");
-    
+
     // Call wait without having run a task
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
     team1.wait();
@@ -148,7 +162,7 @@ TEST(ThreadTeamTest, TestIdleWait) {
     // as many times as we want
     team1.startTask(TestThreadRoutines::noop, 0, "test1", "noop");
     team1.closeTask();
-    for (unsigned int i=0; i<100; ++i) {
+    for (unsigned int i=0; i<10; ++i) {
         if (team1.mode() == ThreadTeam::MODE_IDLE)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -162,12 +176,10 @@ TEST(ThreadTeamTest, TestIdleWait) {
     team1.startTask(TestThreadRoutines::noop, 1, "test1", "noop");
     team1.enqueue(1);
     team1.closeTask();
-    for (unsigned int i=0; i<100; ++i) {
-        if (team1.mode() == ThreadTeam::MODE_IDLE)      break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
+    // Legitimate wait call
+    team1.wait();
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+
     team1.wait();
     team1.wait();
     team1.wait();
@@ -181,8 +193,15 @@ TEST(ThreadTeamTest, TestIdleWait) {
  *  transitions to Idle as well automatically.
  */
 TEST(ThreadTeamTest, TestNoWorkNoThreads) {
+    unsigned int   N_idle = 0;
+    unsigned int   N_wait = 0;
+    unsigned int   N_comp = 0;
+    unsigned int   N_Q    = 0;
+
     ThreadTeam    team1(3, 1, "TestNoWorkNoThreads.log");
     ThreadTeam    team2(2, 2, "TestNoWorkNoThreads.log");
+
+    team1.attachWorkReceiver(&team2);
 
     EXPECT_EQ(3, team1.nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
@@ -190,13 +209,20 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
     EXPECT_EQ(2, team2.nMaximumThreads());
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
 
-    team1.attachWorkReceiver(&team2);
-
     team1.startTask(TestThreadRoutines::noop, 0, "test1", "noop");
     team2.startTask(TestThreadRoutines::noop, 0, "test2", "noop");
+
+    team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+    EXPECT_EQ(3, team1.nMaximumThreads());
+    EXPECT_EQ(3, N_idle);
+    EXPECT_EQ(0, N_wait);
+    EXPECT_EQ(0, N_comp);
+    EXPECT_EQ(0, N_Q);
+
     team1.closeTask();
     team1.wait();
-    // Next call will hang if team1 doesn't all team2's closeTask()
+    // Next line will hang if team1 doesn't call team2's closeTask()
     team2.wait();
 
     EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
@@ -210,37 +236,37 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
 TEST(ThreadTeamTest, TestIdleErrors) {
     unsigned int   N_ITERS = 10;
 
-    // Confirm correct construction & initial state
     ThreadTeam    team1(10, 1, "TestIdleErrors.log");
     ThreadTeam    team2(5,  2, "TestIdleErrors.log");
     ThreadTeam    team3(2,  3, "TestIdleErrors.log");
+    ThreadTeam    team4(2,  4, "TestIdleErrors.log");
 
-    // Repeat several times so we confirm in the case that we have and haven't
-    // run execution cycles
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Ask for more threads than in team
-        ASSERT_THROW(team1.startTask(nullptr, 11, "teamName", "null"),
+        EXPECT_THROW(team1.startTask(nullptr, 11, "teamName", "null"),
                      std::logic_error);
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 11, "teamName", "noop"),
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop,
+                                     team1.nMaximumThreads()+1,
+                                     "teamName", "noop"),
                      std::logic_error);
-        ASSERT_THROW(team1.increaseThreadCount(0),  std::logic_error);
-        ASSERT_THROW(team1.increaseThreadCount(11), std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(11), std::logic_error);
 
         // Use methods that are not allowed in Idle
-        ASSERT_THROW(team1.enqueue(1),  std::runtime_error);
-        ASSERT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.enqueue(1),  std::runtime_error);
+        EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Detach when no teams have been attached
-        ASSERT_THROW(team1.detachThreadReceiver(), std::logic_error);
-        ASSERT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
+        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
 
         // Attach null team
-        ASSERT_THROW(team1.attachThreadReceiver(nullptr), std::logic_error);
-        ASSERT_THROW(team1.attachWorkReceiver(nullptr),   std::logic_error);
+        EXPECT_THROW(team1.attachThreadReceiver(nullptr), std::logic_error);
+        EXPECT_THROW(team1.attachWorkReceiver(nullptr),   std::logic_error);
 
         // Attach team to itself
-        ASSERT_THROW(team1.attachThreadReceiver(&team1), std::logic_error);
-        ASSERT_THROW(team1.attachWorkReceiver(&team1),   std::logic_error);
+        EXPECT_THROW(team1.attachThreadReceiver(&team1), std::logic_error);
+        EXPECT_THROW(team1.attachWorkReceiver(&team1),   std::logic_error);
 
         // Setup basic topology
         team1.attachThreadReceiver(&team3);
@@ -248,9 +274,14 @@ TEST(ThreadTeamTest, TestIdleErrors) {
         team2.attachWorkReceiver(&team3);
 
         // Not allowed to attach more than one receiver
-        ASSERT_THROW(team1.attachThreadReceiver(&team3), std::logic_error);
-        ASSERT_THROW(team2.attachThreadReceiver(&team3), std::logic_error);
-        ASSERT_THROW(team2.attachWorkReceiver(&team3),   std::logic_error);
+        //  - try with same and different teams
+        EXPECT_THROW(team1.attachThreadReceiver(&team3), std::logic_error);
+        EXPECT_THROW(team2.attachThreadReceiver(&team3), std::logic_error);
+        EXPECT_THROW(team2.attachWorkReceiver(&team3),   std::logic_error);
+
+        EXPECT_THROW(team1.attachThreadReceiver(&team4), std::logic_error);
+        EXPECT_THROW(team2.attachThreadReceiver(&team4), std::logic_error);
+        EXPECT_THROW(team2.attachWorkReceiver(&team4),   std::logic_error);
 
         // Break down topology so that destruction is clean
         team1.detachThreadReceiver();
@@ -258,10 +289,13 @@ TEST(ThreadTeamTest, TestIdleErrors) {
         team2.detachWorkReceiver();
 
         // If these were properly detached above, these should fail
-        ASSERT_THROW(team1.detachThreadReceiver(), std::logic_error);
-        ASSERT_THROW(team2.detachThreadReceiver(), std::logic_error);
-        ASSERT_THROW(team2.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
+        EXPECT_THROW(team2.detachThreadReceiver(), std::logic_error);
+        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team2.detachWorkReceiver(),   std::logic_error);
 
+        // Run an execution cycle so that we test the above with and without
+        // having run a cycle
         team1.startTask(TestThreadRoutines::noop, 5, "test1", "noop");
         team1.enqueue(1);
         team1.closeTask();
@@ -271,11 +305,11 @@ TEST(ThreadTeamTest, TestIdleErrors) {
 
 /**
  *  Confirm that threads are forwarded properly by a team that is in Idle
- *  and that a team in Running & Closed only uses those threads it receives and
+ *  and that a team in Running & Closed only uses those threads it needs and
  *  forwards along the rest.
  */ 
 TEST(ThreadTeamTest, TestIdleForwardsThreads) {
-    unsigned int  N_ITERS = 100;
+    unsigned int  N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -286,80 +320,83 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
     ThreadTeam  team2(4, 2, "TestIdleForwardsThreads.log");
     ThreadTeam  team3(6, 3, "TestIdleForwardsThreads.log");
 
+    // Team 2 is a thread subscriber and publisher
     team1.attachThreadReceiver(&team2);
     team2.attachThreadReceiver(&team3);
 
-    // Team 1 stays in Idle
-    // Team 2 setup in Running & Closed with one pending item
-    //        It will take Team 2 some time to finish its 
-    //        work once it gets a thread
-    // Team 3 setup in Running & Closed with one pending item
-    //        It will finish quickly once it gets a thread
-    team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait", "100ms");
-    team3.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
-    team2.enqueue(1);
-    team3.enqueue(2);
-    team2.closeTask();
-    team3.closeTask();
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        // Team 1 stays in Idle
+        // Team 2 setup in Running & Closed with one pending item
+        //        It will take Team 2 some time to finish its 
+        //        work once it gets a thread
+        // Team 3 setup in Running & Closed with one pending item
+        //        It will finish quickly once it gets a thread
+        team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait", "100ms");
+        team3.startTask(TestThreadRoutines::noop,        0, "quick", "noop");
+        team2.enqueue(1);
+        team3.enqueue(2);
+        team2.closeTask();
+        team3.closeTask();
 
-    team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
-    EXPECT_EQ(2, team1.nMaximumThreads());
-    EXPECT_EQ(2, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(0, N_Q);
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(2, team1.nMaximumThreads());
+        EXPECT_EQ(2, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
 
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team2.mode());
-    EXPECT_EQ(4, team2.nMaximumThreads());
-    EXPECT_EQ(4, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(1, N_Q);
-
-    team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team3.mode());
-    EXPECT_EQ(6, team3.nMaximumThreads());
-    EXPECT_EQ(6, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(1, N_Q);
-
-    // Team 1 should just forward 2 threads to Team 2
-    // Team 2 should determine that it just needs 1 and foward other to Team 2
-    //   => Team 3 should finish before Team 2
-    team1.increaseThreadCount(2);
-
-    // Let team 3 finish and give Team 2 time to start work
-    team3.wait();
-    for (unsigned int i=0; i<10; ++i) {
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        if (N_comp == 1)    break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team2.mode());
+        EXPECT_EQ(4, team2.nMaximumThreads());
+        EXPECT_EQ(4, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(1, N_Q);
+
+        team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team3.mode());
+        EXPECT_EQ(6, team3.nMaximumThreads());
+        EXPECT_EQ(6, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(1, N_Q);
+
+        // Team 1 should forward 2 threads to Team 2
+        // Team 2 should determine that it just needs 1 and foward other to Team 2
+        //   => Team 3 should finish before Team 2
+        team1.increaseThreadCount(2);
+
+        // Let team 3 finish and give Team 2 time to start work
+        team3.wait();
+        for (unsigned int i=0; i<10; ++i) {
+            team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 1)    break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team2.mode());
+        EXPECT_EQ(4, team2.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(1, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
+        EXPECT_EQ(6, team3.nMaximumThreads());
+        EXPECT_EQ(6, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        team2.wait();
+
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
+        EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
     }
-
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team2.mode());
-    EXPECT_EQ(4, team2.nMaximumThreads());
-    EXPECT_EQ(3, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(1, N_comp);
-    EXPECT_EQ(0, N_Q);
-
-    team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
-    EXPECT_EQ(6, team3.nMaximumThreads());
-    EXPECT_EQ(6, N_idle);
-    EXPECT_EQ(0, N_wait);
-    EXPECT_EQ(0, N_comp);
-    EXPECT_EQ(0, N_Q);
-
-    team2.wait();
-
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
 }
 
 /**
@@ -377,7 +414,6 @@ TEST(ThreadTeamTest, TestNoWork) {
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         team1.startTask(TestThreadRoutines::noop, 3, "test", "noop");
-   
         for (unsigned int i=0; i<100; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 3)  break;
@@ -405,22 +441,24 @@ TEST(ThreadTeamTest, TestNoWork) {
     }
 }
 
+/**
+ * Confirm that the thread team responds to incorrect use of team's interface in
+ * the Running & Open mode.
+ */
 TEST(ThreadTeamTest, TestRunningOpenErrors) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(10, 1, "TestRunningOpenNoWork.log");
-    ThreadTeam  team2(2,  2, "TestRunningOpenNoWork.log");
+    ThreadTeam  team1(10, 1, "TestRunningOpenErrors.log");
+    ThreadTeam  team2(10,  2, "TestRunningOpenErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.startTask(TestThreadRoutines::noop, 5, "test", "noop");
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
-
-        // Wait some time for Idle threads to activate
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 5)     break; 
@@ -428,6 +466,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(10, team1.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(5, N_wait);
@@ -435,18 +474,55 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         EXPECT_EQ(0, N_Q);
 
         // Call methods that are not allowed in Running & Open
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 5, "test", "noop"),
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 5, "test", "noop"),
                      std::runtime_error);
-        ASSERT_THROW(team1.attachThreadReceiver(&team2), std::logic_error);
-        ASSERT_THROW(team1.detachThreadReceiver(),       std::logic_error);
-        ASSERT_THROW(team1.attachWorkReceiver(&team2),   std::logic_error);
-        ASSERT_THROW(team1.detachWorkReceiver(),         std::logic_error);
 
-        ASSERT_THROW(team1.increaseThreadCount(0),  std::logic_error);
-        ASSERT_THROW(team1.increaseThreadCount(11), std::logic_error);
+        EXPECT_THROW(team1.attachThreadReceiver(&team2), std::logic_error);
+        EXPECT_THROW(team1.attachWorkReceiver(&team2),   std::logic_error);
+
+        EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(11), std::logic_error);
+
+        // Confirm that all of the above were called in the same mode
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
 
         team1.closeTask();
         team1.wait();
+    }
+
+    for (unsigned int i=0; i<N_ITERS; ++i) { 
+        team1.attachThreadReceiver(&team2);
+        team1.attachWorkReceiver(&team2);
+
+        team1.startTask(TestThreadRoutines::noop, 5, "quick1", "noop");
+        team2.startTask(TestThreadRoutines::noop, 0, "quick2", "noop");
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        for (unsigned int i=0; i<10; ++i) {
+            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_wait == 5)     break; 
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(10, team1.nMaximumThreads());
+        EXPECT_EQ(5, N_idle);
+        EXPECT_EQ(5, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
+        EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
+        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+
+        // Confirm that all of the above were called in the same mode
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+
+        team1.closeTask();
+        team1.wait();
+        team2.wait();
+
+        team1.detachThreadReceiver();
+        team1.detachWorkReceiver();
     }
 }
 
@@ -454,7 +530,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
  *  Confirm that threads can be increased correctly in Running & Open.
  */
 TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -493,10 +569,9 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         // have given even though we have more waiting threads than work in the
         // queue
         team1.increaseThreadCount(2);
-
-        for (unsigned int i=0; i<100; ++i) {
+        for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_Q == 0)   break;
+            if ((N_Q == 0) && (N_wait == 2))   break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -519,6 +594,11 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         // This should result in threads being sent to Team 2
         team1.closeTask();
         team1.wait();
+        for (unsigned int i=0; i<10; ++i) {
+            team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_wait == 2)   break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
@@ -549,7 +629,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
  *  computing threads push work to Work subscribers.
  */
 TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
-    unsigned int  N_ITERS = 2;
+    unsigned int   N_ITERS = 2;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -559,14 +639,14 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
     ThreadTeam  team1(3, 1, "TestRunningOpenEnqueue.log");
     ThreadTeam  team2(2, 2, "TestRunningOpenEnqueue.log");
 
-    team1.attachWorkReceiver(&team2);
-
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait",  "100ms");
-        team2.startTask(TestThreadRoutines::delay_100ms, 2, "wait",  "100ms");
-        for (unsigned int i=0; i<100; ++i) {
+        team1.attachWorkReceiver(&team2);
+
+        team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait1",  "100ms");
+        team2.startTask(TestThreadRoutines::delay_100ms, 2, "wait2",  "100ms");
+        for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_wait == 3)   break;
+            if (N_wait == 1)   break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -605,6 +685,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
+        // Wait until Team 2 gets work from Team 1
         for (unsigned int i=0; i<1000; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_Q == 0)   break;
@@ -637,9 +718,9 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         team1.closeTask();
         team1.wait();
         team2.wait();
-    }
 
-    team1.detachWorkReceiver();
+        team1.detachWorkReceiver();
+    }
 }
 
 /**
@@ -647,7 +728,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
  * Closed mode do fail.
  */
 TEST(ThreadTeamTest, TestRunningClosedErrors) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -657,24 +738,24 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
     ThreadTeam  team1(5, 1, "TestRunningClosedErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        // Team must have one threads and two units of work to stay to closed
+        // Team has one active thread and two units of work to stay closed
         team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait",  "100ms");
         team1.enqueue(1);
         team1.enqueue(2);
         team1.closeTask();
 
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
                                      "quick",  "fail"), std::runtime_error);
 
-        ASSERT_THROW(team1.increaseThreadCount(0), std::logic_error);
-        ASSERT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
+        EXPECT_THROW(team1.increaseThreadCount(0), std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
                                                std::logic_error);
 
-        ASSERT_THROW(team1.enqueue(1),  std::runtime_error);
-        ASSERT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.enqueue(1),  std::runtime_error);
+        EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
@@ -687,16 +768,18 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
  * Confirm that activating threads when in Running & Closed works as expected.
  */
 TEST(ThreadTeamTest, TestRunningClosedActivation) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
-    
-    ThreadTeam  team1(3, 1, "TestRunningClosedActivation.log");
+
+    ThreadTeam  team1(4, 1, "TestRunningClosedActivation.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
+        // Add enough work to test all necessary transitions and wait until the
+        // single thread starts computing
         team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait",  "100ms");
         team1.enqueue(1);
         team1.enqueue(2);
@@ -709,14 +792,15 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
         }
 
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
-        EXPECT_EQ(3, team1.nMaximumThreads());
-        EXPECT_EQ(2, N_idle);
+        EXPECT_EQ(4, team1.nMaximumThreads());
+        EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
         EXPECT_EQ(1, N_comp);
         EXPECT_EQ(2, N_Q);
 
-        // Activate a thread so that it can start computing but not transition the
-        // mode
+        // Activate a thread so that it can start computing 
+        // This shouldn't transition the mode as there will still be a unit of
+        // work in the queue after this transition
         team1.increaseThreadCount(1);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -725,23 +809,25 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
         }
 
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
-        EXPECT_EQ(3, team1.nMaximumThreads());
-        EXPECT_EQ(1, N_idle);
+        EXPECT_EQ(4, team1.nMaximumThreads());
+        EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
         EXPECT_EQ(2, N_comp);
         EXPECT_EQ(1, N_Q);
 
         // Activate final thread so that it can start computing and transition mode
+        // The transition should also awaken the waiting thread so that it goes
+        // idle
         team1.increaseThreadCount(1);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_Q == 0)     break;
+            if ((N_Q == 0) && (N_wait == 0))     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
-        EXPECT_EQ(3, team1.nMaximumThreads());
-        EXPECT_EQ(0, N_idle);
+        EXPECT_EQ(4, team1.nMaximumThreads());
+        EXPECT_EQ(1, N_idle);
         EXPECT_EQ(0, N_wait);
         EXPECT_EQ(3, N_comp);
         EXPECT_EQ(0, N_Q);
@@ -754,13 +840,13 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
  * Confirm that activating threads when in Running & Closed works as expected.
  */
 TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
-    
+
     ThreadTeam  team1(3, 1, "TestRunningClosedWorkPub.log");
     ThreadTeam  team2(4, 2, "TestRunningClosedWorkPub.log");
 
@@ -769,7 +855,8 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Team 1 needs to delay long enough that we can catch transitions, 
         // but fast enough that all three units of work will be handled by
-        // team 2 simulataneously
+        // team 2 simulataneously.  Similarly, we activate all threads in team 2
+        // from the start
         team1.startTask(TestThreadRoutines::delay_10ms,  1, "quick",  "10ms");
         team2.startTask(TestThreadRoutines::delay_100ms, 4, "wait",   "100ms");
         team1.enqueue(1);
@@ -798,7 +885,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        // When the first work is finished, it should be enqueued
+        // When the first work unit is finished, it should be enqueued
         // on team 2
         for (unsigned int i=0; i<50; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -857,11 +944,11 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(0, N_Q);
 
         // When the final work is finished, it should be enqueued
-        // on team 2
+        // on team 2 and team 1 should call closeTask for team 2
         team1.wait();
 
         // Wait until computing on final unit begins *and* the single waiting
-        // thread goes idle
+        // thread goes idle due to the transition to Running & No More Work
         for (unsigned int i=0; i<20; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_idle == 1)     break;
@@ -887,7 +974,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
  * No More Work mode do fail.
  */
 TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -897,24 +984,29 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
     ThreadTeam  team1(5, 1, "TestRunningNoMoreWorkErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        // Team must have at least one thread and one units of work to stay in
+        // Team must have at least one thread and one unit of work to stay in
         // Running & No More Work
         team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait",  "100ms");
         team1.enqueue(1);
         team1.closeTask();
+        for (unsigned int i=0; i<50; ++i) {
+            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_comp == 1)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
 
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
-        ASSERT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
                                      "quick",  "fail"), std::runtime_error);
 
-        ASSERT_THROW(team1.increaseThreadCount(0), std::logic_error);
-        ASSERT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
+        EXPECT_THROW(team1.increaseThreadCount(0), std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
                                                std::logic_error);
 
-        ASSERT_THROW(team1.enqueue(1),  std::runtime_error);
-        ASSERT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.enqueue(1),  std::runtime_error);
+        EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
@@ -924,10 +1016,11 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
 }
 
 /**
- * 
+ *  Confirm that in Running & No More Work all attempts to increase the thread
+ *  count are forwarded on to the thread subscriber.
  */
 TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -941,7 +1034,8 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Team 1 shall be set into Running & No More Work with a thread
-        //        carrying out a lengthy computation
+        //        carrying out a lengthy computation.  We set the team
+        //        up so that there is an idle thread that could be activated
         // Team 2 shall be in Running & Open with a pending unit of work
         //        but no threads
         team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait", "100ms");
@@ -974,13 +1068,13 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         // Team 1 doesn't need another thread and should forward it to
         // team 2
         team1.increaseThreadCount(1);
-
         for (unsigned int i=0; i<10; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
+        // Idle thread remained idle
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(2, team1.nMaximumThreads());
@@ -1031,7 +1125,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
  * correctly in the Running & No More Work mode
  */
 TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;

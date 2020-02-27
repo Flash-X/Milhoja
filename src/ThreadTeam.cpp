@@ -212,6 +212,11 @@ ThreadTeam::~ThreadTeam(void) {
         pthread_mutex_unlock(&teamMutex_);
     }
 
+    // TODO: dequeue all items explicitly if queue not empty?  Definitely
+    // necessary if the items in the queue are pointers to dynamically-allocated
+    // memory.
+    // TODO: Print warning messages if not in Idle?
+
     // We cannot assume that the team is in the nice Idle state.
     // Rather, it could be destroyed due to a runtime error
     //
