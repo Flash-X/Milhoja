@@ -1028,7 +1028,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
     unsigned int   N_Q    = 0;
 
     ThreadTeam  team1(2, 1, "TestRunningNoMoreWorkForward.log");
-    ThreadTeam  team2(3, 1, "TestRunningNoMoreWorkForward.log");
+    ThreadTeam  team2(3, 2, "TestRunningNoMoreWorkForward.log");
 
     team1.attachThreadReceiver(&team2);
 
@@ -1133,9 +1133,11 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     unsigned int   N_Q    = 0;
 
     ThreadTeam  team1(8, 1, "TestRunningNoMoreWorkTransition.log");
-    ThreadTeam  team2(3, 1, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam  team2(3, 2, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam  team3(8, 3, "TestRunningNoMoreWorkTransition.log");
 
     team1.attachWorkReceiver(&team2);
+    team1.attachThreadReceiver(&team3);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Queue up several units of work so that we can confirm the proper behavior
@@ -1144,8 +1146,12 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         // Give the task enough threads that at least two threads will be waiting so
         // that we can confirm the proper behavior when transitionThread is emitted
         // in Running & No More Work
+        //
+        // Setup Team 3 without any initial threads and no work to confirm that 
+        // thread forwarding progresses when a thread transitions to Idle.
         team1.startTask(TestThreadRoutines::delay_100ms, 6, "wait1",  "100ms");
         team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait2",  "100ms");
+        team3.startTask(TestThreadRoutines::noop,        0, "quick3", "noop");
         team1.enqueue(1);
         team1.enqueue(2);
         team1.enqueue(3);
@@ -1172,13 +1178,27 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
+        team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(8, team3.nMaximumThreads());
+        EXPECT_EQ(8, N_idle);
+        EXPECT_EQ(0, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
         // Calling closeTask in this state should result in the broadcast
         // of transitionThread to all waiting threads
         // Confirm here that the waiting threads are correctly transitioned to Idle
+        // and that thread resources are forwarded to Team 3
         team1.closeTask();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_idle == 5)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        for (unsigned int i=0; i<10; ++i) {
+            team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_wait == 3)     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -1198,9 +1218,19 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
+        team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(8, team3.nMaximumThreads());
+        EXPECT_EQ(5, N_idle);
+        EXPECT_EQ(3, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
         // As work is finished by Team 1, it should be forwarded to Team 2.
         // Also, when Team 1 finishes its work, it should unblock this wait
         // and call closeTask on Team 2.  This should transition the mode of Team 2.
+        // Finally, the remaining thread resources should be transferred to
+        // Team 3
         team1.wait();
 
         // Confirm that computing threads transitioned to Idle correctly
@@ -1221,8 +1251,19 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(3, N_Q);
 
+        // Confirm that threads forwarded correctly
+        team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(8, team3.nMaximumThreads());
+        EXPECT_EQ(2, N_idle);
+        EXPECT_EQ(6, N_wait);
+        EXPECT_EQ(0, N_comp);
+        EXPECT_EQ(0, N_Q);
+
         team2.increaseThreadCount(3);
         team2.wait();
+        team3.closeTask();
+        team3.wait();
     }
 
     team1.detachWorkReceiver();

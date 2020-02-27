@@ -777,27 +777,32 @@ that they can transition to Idle.
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
 \begin{spec}
-\label{spec:Runtime_IdleOutput}
-All transitions to {\TeamIdle} shall
-\begin{itemize}
-\item{call the \texttt{closeTask()} method of the team's work subscriber if it
-has a work subscriber and }
-\item{unblock the external thread that called \texttt{wait} if such a thread
-exists.}
-\end{itemize}
-Note that this does not include \textit{setting} the EFSM into its initial
-state.
-\end{spec}
-\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
-
-\begin{spec}
-Upon emitting/receiving the \texttt{computationFinished} signal, a computing
+\label{spec:Runtime_CompMustEnqueue}
+Upon emitting/receiving the \texttt{computationFinished} signal, a Computing
 thread shall enqueue the unit of work that it just finished applying the team's
 task to with the team's work subscriber if the team has a work subscriber.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
 \begin{spec}
+\label{spec:Runtime_IdleOutput}
+All transitions to {\TeamIdle} shall
+\begin{itemize}
+\item{call the \texttt{closeTask} method of the team's work subscriber if it
+has a work subscriber and }
+\item{unblock the external thread that called \texttt{wait} if such a thread
+exists.}
+\end{itemize}
+If the transition to {\TeamIdle} is handled by a Computing thread, then the
+Computing thread shall enqueue its unit of work
+(Spec~\ref{spec:Runtime_CompMustEnqueue}) prior to calling \texttt{closeTask}.
+Note that this specification is not applicable to the case of \textit{setting}
+the EFSM into its initial state.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
+
+\begin{spec}
+\label{spec:Runtime_IdleToIdle}
 It is possible for an idle thread to receive the \texttt{activateThread} event
 when the team does not need threads to be activated (\textit{i.e.} the state is
 in {\TeamRunningClosed} with $N_Q = 0$ or the mode is \TeamIdle
@@ -806,8 +811,19 @@ possible for the team to finish its work and transition to {\TeamIdle} before
 its publisher and subscriber finish their work.} or \TeamRunningNoMoreWork).  To
 avoid thread resource loss and to promote efficient execution of the execution
 cycle's tasks, in this scenario the threads that receive the unnecessary event
-shall call \texttt{increaseThreadCount(1)} for its thread subscriber if it
-exists.
+shall remain in Idle and call \texttt{increaseThreadCount(1)} for its thread
+subscriber if it exists.
+\end{spec}
+\textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
+
+\begin{spec}
+To prevent thread resource loss at the level of the runtime, all threads that
+transition to Idle shall call \texttt{increaseThreadCount(1)} of its thread
+subscriber should it exist.  This specification is consistent with
+Spec~\ref{spec:Runtime_IdleToIdle}, which could be understood to handle the
+special case that an Idle thread transitions to Idle.  Note that this
+specification is not applicable to the case of \textit{setting} the EFSM into
+its initial state.
 \end{spec}
 \textbf{Verification:}\hspace{0.125in} Implemented directly as stated.
 
