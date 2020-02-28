@@ -1,3 +1,4 @@
+#include <ctime>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -1101,7 +1102,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         // predictable state to check
         for (unsigned int i=0; i<10; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_comp == 0)     break;
+            if (N_wait == 2)     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -1267,6 +1268,63 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     }
 
     team1.detachWorkReceiver();
+}
+
+TEST(ThreadTeamTest, TestTimings) {
+    unsigned int   N_THREADS = 10;
+    unsigned int   N_ITERS = 1000;
+
+    ThreadTeam* team1 = nullptr;
+    ThreadTeam  team2(N_THREADS, 2, "TestTimings2.log");
+
+    double conv = 1.0e6 / (double(CLOCKS_PER_SEC * N_ITERS));
+
+    clock_t   time = clock();
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        team1 = new ThreadTeam(N_THREADS, 1, "TestTimings1.log");
+        delete team1;
+        team1 = nullptr;
+    }
+    time = clock() - time;
+    std::cout << "Thread Team Create Time\t\t\t\t"
+              << (time * conv) << " us" << std::endl;
+
+    time = clock();
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        team2.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
+        team2.closeTask();
+        team2.wait();
+    }
+    time = clock() - time;
+    std::cout << "Idle->Open->Idle Time\t\t\t\t"
+              << (time * conv) << " us" << std::endl;
+
+    for (unsigned int n=1; n<=N_THREADS; ++n) {
+        time = clock();
+        for (unsigned int i=0; i<N_ITERS; ++i) {
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
+            team2.closeTask();
+            team2.wait();
+        }
+        time = clock() - time;
+        std::cout << std::to_string(n) 
+                  << " thread/Idle->Open->NoMoreWork->Idle Time\t"
+                  << (time * conv) << " us" << std::endl;
+    }
+
+    for (unsigned int n=1; n<=N_THREADS; ++n) {
+        time = clock();
+        for (unsigned int i=0; i<N_ITERS; ++i) {
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
+            team2.enqueue(1);
+            team2.closeTask();
+            team2.wait();
+        }
+        time = clock() - time;
+        std::cout << std::to_string(n) 
+                  << " thread/single no-op cycle Time\t\t" 
+                  << (time * conv) << " us" << std::endl;
+    }
 }
 
 }
