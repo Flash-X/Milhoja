@@ -1233,6 +1233,11 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         // Finally, the remaining thread resources should be transferred to
         // Team 3
         team1.wait();
+        for (unsigned int i=0; i<10; ++i) {
+            team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_wait == 6)     break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
 
         // Confirm that computing threads transitioned to Idle correctly
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -1268,8 +1273,10 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     }
 
     team1.detachWorkReceiver();
+    team1.detachThreadReceiver();
 }
 
+#ifndef VERBOSE
 TEST(ThreadTeamTest, TestTimings) {
     unsigned int   N_THREADS = 10;
     unsigned int   N_ITERS = 1000;
@@ -1326,6 +1333,7 @@ TEST(ThreadTeamTest, TestTimings) {
                   << (time * conv) << " us" << std::endl;
     }
 }
+#endif
 
 }
 

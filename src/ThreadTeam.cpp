@@ -650,7 +650,9 @@ void ThreadTeam::wait(void) {
         // this method is a no-op so that it won't block.
 #ifdef VERBOSE
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Called no-op wait (Idle)\n";
+        logFile_ << "[Client Thread] Called no-op wait on " 
+                 << hdr_
+                 << " team (Idle)\n";
         logFile_.close();
 #endif
     } else {
@@ -658,7 +660,9 @@ void ThreadTeam::wait(void) {
 
 #ifdef VERBOSE
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Waiting on team - "
+        logFile_ << "[Client Thread] Waiting on "
+                 << hdr_ 
+                 << " team - "
                  << getModeName(mode) << std::endl;
         logFile_.close();
 #endif
@@ -674,7 +678,10 @@ void ThreadTeam::wait(void) {
 
 #ifdef VERBOSE
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Received unblockWaitSignal\n";
+        logFile_ << "[Client Thread] Received unblockWaitSignal for "
+                 << hdr_ 
+                 << " team\n";
+
         logFile_.close();
 #endif
 

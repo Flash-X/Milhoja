@@ -75,7 +75,8 @@ SRCS       = \
     $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
     $(TESTDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
-    $(TESTDIR)/testThreadTeam.cpp
+    $(TESTDIR)/testThreadTeam.cpp \
+    $(TESTDIR)/testRuntimeInt.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile
