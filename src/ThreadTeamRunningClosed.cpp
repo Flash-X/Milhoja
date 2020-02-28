@@ -67,23 +67,20 @@ std::string ThreadTeamRunningClosed::startTask_NotThreadsafe(TASK_FCN* fcn,
 std::string ThreadTeamRunningClosed::increaseThreadCount_NotThreadsafe(
                                                 const unsigned int nThreads) {
     // Don't activate all threads if we are asked to activate more threads than
-    // this is remaining work
-    // NOTE: This also handles the case that the queue is empty
-    unsigned int   nWork = team_->queue_.size();
-    unsigned int   nThreadsMin = 0;
-    if (nThreads > nWork) {
-        nThreadsMin = nWork;
-    } else {
-        nThreadsMin = nThreads;
-    }
+    // there is remaining work
+    unsigned int   N_Q = team_->queue_.size();
+    unsigned int   nThreadsMin = nThreads;
+    if (nThreads > N_Q) {
+        nThreadsMin = N_Q;
+    } 
 
     team_->N_to_activate_ += nThreadsMin;
     for (unsigned int i=0; i<nThreadsMin; ++i) {
         pthread_cond_signal(&(team_->activateThread_));
     }
 
-    if ((nThreads > nWork) && (team_->threadReceiver_)) {
-        team_->threadReceiver_->increaseThreadCount(nThreads - nWork);
+    if ((nThreads > N_Q) && (team_->threadReceiver_)) {
+        team_->threadReceiver_->increaseThreadCount(nThreads - N_Q);
     }
 
     return "";
@@ -107,7 +104,7 @@ std::string ThreadTeamRunningClosed::enqueue_NotThreadsafe(const int work) {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * Can' close a task that is already closed.
+ * Can't close a task that is already closed.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.

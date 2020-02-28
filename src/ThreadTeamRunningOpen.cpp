@@ -122,8 +122,10 @@ std::string ThreadTeamRunningOpen::closeTask_NotThreadsafe(void) {
         if (team_->workReceiver_) {
             team_->workReceiver_->closeTask();
         }
-
     } else if (isQueueEmpty) {
+        // No more work, but we have threads that need to transition to Idle
+        // - Awaken Waiting threads so that they find no work and transition
+        // - Computing threads will find no work eventually and transition
         errMsg = team_->setMode_NotThreadsafe(ThreadTeam::MODE_RUNNING_NO_MORE_WORK);
         if (errMsg != "") {
             return errMsg;

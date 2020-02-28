@@ -39,7 +39,7 @@ std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
         errMsg = "N_comp not zero";
     } else if (team_->N_terminate_ != 0) {
         errMsg = "N_terminate not zero";
-    } else if (!team_->queue_.empty()) {
+    } else if (!(team_->queue_.empty())) {
         errMsg = "Pending work queue not empty";
    }
 
@@ -80,7 +80,7 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
     //
     // While unlikely, imagine the case that we are in Idle and have a thread
     // activation event issued, but not received.  If the event were received in
-    // Idle, then the thread would go idle again.
+    // Idle, then the thread would go Idle again.
     //
     // However, if we change the mode to Running & Open now, then the thread to
     // receive the event would go to Waiting or Computing.  Therefore, we should
