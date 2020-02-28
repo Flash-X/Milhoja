@@ -187,6 +187,9 @@ private:
 
     pthread_attr_t    attr_;               //!< All threads setup with this attribute
     pthread_mutex_t   teamMutex_;          //!< Use to access members
+    pthread_cond_t    allActivated_;       /*!< Emitted when a thread activates
+                                            *   and determines that there are no more
+                                            *   pending activations */
     pthread_cond_t    threadStarted_;      //!< Each thread emits this signal upon starting
     pthread_cond_t    activateThread_;     //!< Ask idling threads to transition state
     pthread_cond_t    transitionThread_;   //!< Ask waiting threads to transition state

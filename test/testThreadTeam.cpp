@@ -1274,11 +1274,6 @@ TEST(ThreadTeamTest, TestTimings) {
     unsigned int   N_THREADS = 10;
     unsigned int   N_ITERS = 1000;
 
-    unsigned int   N_idle = 0;
-    unsigned int   N_wait = 0;
-    unsigned int   N_comp = 0;
-    unsigned int   N_Q    = 0;
-
     ThreadTeam* team1 = nullptr;
     ThreadTeam  team2(N_THREADS, 2, "TestTimings2.log");
 
@@ -1316,14 +1311,6 @@ TEST(ThreadTeamTest, TestTimings) {
                   << " thread/Idle->Open->NoMoreWork->Idle Time\t"
                   << (time * conv) << " us" << std::endl;
     }
-
-    team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
-    EXPECT_EQ(N_THREADS, team2.nMaximumThreads());
-    EXPECT_EQ(N_THREADS, N_idle);
-    EXPECT_EQ(0,         N_wait);
-    EXPECT_EQ(0,         N_comp);
-    EXPECT_EQ(0,         N_Q);
 
     for (unsigned int n=1; n<=N_THREADS; ++n) {
         time = clock();

@@ -124,6 +124,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
     pthread_attr_init(&attr_);
     pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
 
+    pthread_cond_init(&allActivated_, NULL);
     pthread_cond_init(&threadStarted_, NULL);
     pthread_cond_init(&activateThread_, NULL);
     pthread_cond_init(&transitionThread_, NULL);
@@ -247,6 +248,7 @@ ThreadTeam::~ThreadTeam(void) {
     pthread_cond_destroy(&transitionThread_);
     pthread_cond_destroy(&activateThread_);
     pthread_cond_destroy(&threadStarted_);
+    pthread_cond_destroy(&allActivated_);
 
     pthread_attr_destroy(&attr_);
 
@@ -515,8 +517,8 @@ void ThreadTeam::startTask(TASK_FCN* fcn,
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     } else if (nThreads > N_idle_) {
-        // We don't need to consider N_to_activate_ here as those are 
-        // considered in how many events to emit (See ThreadTeamRunningOpen))
+        // Derived classes that implement startTask should account for nonzero
+        // N_to_activate_
         std::string  msg  = "nThreads (";
         msg += std::to_string(nThreads);
         msg += ") exceeds the number of threads available for activation";
@@ -1142,6 +1144,12 @@ void* ThreadTeam::threadRoutine(void* varg) {
             }
             team->N_to_activate_ -= 1;
             team->N_idle_ -= 1;
+
+            // Let startTask/increaseThreadCount know that there are no more
+            // pending activations
+            if (team->N_to_activate_ == 0) {
+                pthread_cond_signal(&(team->allActivated_));
+            }
         } else if (N_Q == 0) {
             // 
             //<--------------------- TRANSITION TO WAIT --------------------->
