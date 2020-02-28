@@ -107,33 +107,3 @@ std::string ThreadTeamRunningNoMoreWork::closeTask_NotThreadsafe(void) {
                   "The task is already closed");
 }
 
-/**
- * See ThreadTeam.cpp documentation for same method for basic information.
- *
- * \warning This method is *not* thread safe and therefore should only be called
- *          when the calling code has already acquired teamMutex_.
- *
- * \return an empty string if the state is valid.  Otherwise, an error message
- */
-std::string   ThreadTeamRunningNoMoreWork::wait_NotThreadsafe(void) {
-    team_->isWaitBlocking_ = true;
-
-#ifdef VERBOSE
-    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[Client Thread] Waiting on team (No More Work)\n";
-    team_->logFile_.close();
-#endif
-
-    pthread_cond_wait(&(team_->unblockWaitThread_), &(team_->teamMutex_));
-
-#ifdef VERBOSE
-    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[Client Thread] Received unblockWaitThread (No More Work)\n";
-    team_->logFile_.close();
-#endif
-
-    team_->isWaitBlocking_ = false;
-
-    return "";
-}
-

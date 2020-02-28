@@ -84,19 +84,3 @@ std::string ThreadTeamTerminating::closeTask_NotThreadsafe(void) {
                   "Cannot close queue if team is terminating");
 }
 
-/**
- * See ThreadTeam.cpp documentation for same method for basic information.
- *
- * Don't let a thread wait on this object to finish a task if the team is
- * terminating.
- *
- * \warning This method is *not* thread safe and therefore should only be called
- *          when the calling code has already acquired teamMutex_.
- *
- * \return an empty string if the state is valid.  Otherwise, an error message
- */
-std::string ThreadTeamTerminating::wait_NotThreadsafe(void) {
-    return team_->printState_NotThreadsafe("wait", 0,
-                  "Cannot wait on team that is terminating");
-}
-

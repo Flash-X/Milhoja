@@ -156,26 +156,3 @@ std::string ThreadTeamIdle::closeTask_NotThreadsafe(void) {
                   "Cannot close the queue when no task is being executed");
 }
 
-/**
- * See ThreadTeam.cpp documentation for same method for basic information.
- *
- * Calling wait on a ThreadTeam that is Idle seems like a logic error.  However,
- * it could be that a team finishes its task and transition to Idle before a
- * calling thread got a chance to call wait().  Therefore, this method is a
- * no-op so that it won't block.
- *
- * \warning This method is *not* thread safe and therefore should only be called
- *          when the calling code has already acquired teamMutex_.
- *
- * \return an empty string if the state is valid.  Otherwise, an error message
- */
-std::string    ThreadTeamIdle::wait_NotThreadsafe(void) {
-#ifdef VERBOSE
-    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[Client Thread] Called no-op wait (Idle)\n";
-    team_->logFile_.close();
-#endif
-
-    return "";
-}
-

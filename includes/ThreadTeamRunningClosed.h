@@ -30,7 +30,6 @@ public:
                                     const std::string& taskName);
     std::string           enqueue_NotThreadsafe(const int work);
     std::string           closeTask_NotThreadsafe(void);
-    std::string           wait_NotThreadsafe(void);
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const;

@@ -608,6 +608,10 @@ void ThreadTeam::enqueue(const int work) {
 /**
  * Block a single calling thread until the team finishes executing its current
  * execution cycle.
+ *
+ * This routine is handled outside of the State design pattern as the mode
+ * dependence is simple.  Also, the state variable isWaitBlocking_ was
+ * not included in the definition of the EFSM.
  */
 void ThreadTeam::wait(void) {
     pthread_mutex_lock(&teamMutex_);
@@ -631,10 +635,48 @@ void ThreadTeam::wait(void) {
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->wait_NotThreadsafe();
-    if (errMsg != "") {
+    teamMode  mode = state_->mode();
+    if (mode == MODE_TERMINATING) {
+        std::string  errMsg = printState_NotThreadsafe("wait", 0,
+                              "Cannot call wait when terminating");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
+    } else if (mode == MODE_IDLE) {
+        // Calling wait on a ThreadTeam that is Idle seems like a logic error.
+        // However, it could be that a team finishes its task and transition to
+        // Idle before a calling thread got a chance to call wait().  Therefore,
+        // this method is a no-op so that it won't block.
+#ifdef VERBOSE
+        logFile_.open(logFilename_, std::ios::out | std::ios::app);
+        logFile_ << "[Client Thread] Called no-op wait (Idle)\n";
+        logFile_.close();
+#endif
+    } else {
+        isWaitBlocking_ = true;
+
+#ifdef VERBOSE
+        logFile_.open(logFilename_, std::ios::out | std::ios::app);
+        logFile_ << "[Client Thread] Waiting on team - "
+                 << getModeName(mode) << std::endl;
+        logFile_.close();
+#endif
+
+        pthread_cond_wait(&unblockWaitThread_, &teamMutex_);
+        if (state_->mode() != MODE_IDLE) {
+            std::string  msg = "Client thread unblocked with team in mode ";
+            msg += getModeName(state_->mode());
+            std::string  errMsg = printState_NotThreadsafe("wait", 0, msg);
+            pthread_mutex_unlock(&teamMutex_);
+            throw std::runtime_error(errMsg);
+        }
+
+#ifdef VERBOSE
+        logFile_.open(logFilename_, std::ios::out | std::ios::app);
+        logFile_ << "[Client Thread] Received unblockWaitSignal\n";
+        logFile_.close();
+#endif
+
+        isWaitBlocking_ = false;
     }
 
     pthread_mutex_unlock(&teamMutex_);
