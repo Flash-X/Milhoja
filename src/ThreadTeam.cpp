@@ -17,7 +17,7 @@
  * Instantiate a thread team that, at any point in time, can have no more than
  * nMaxThreads threads in existence.
  *
- * This routine initializes the state of the team in MODE_IDLE with
+ * This routine initializes the state of the team in IDLE with
  *  - no threads waiting, computing, or terminating,
  *  - all nMaxThreads threads Idling, and
  *  - no pending work.
@@ -71,7 +71,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
         msg += "\n\tUnable to instantiate ";
-        msg += getModeName(MODE_IDLE);
+        msg += getModeName(ThreadTeamModes::IDLE);
         msg += " state object";
         throw std::runtime_error(msg);
     }
@@ -81,7 +81,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
         msg += "\n\tUnable to instantiate ";
-        msg += getModeName(MODE_TERMINATING);
+        msg += getModeName(ThreadTeamModes::TERMINATING);
         msg += " state object";
         throw std::runtime_error(msg);
     }
@@ -91,7 +91,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
         msg += "\n\tUnable to instantiate ";
-        msg += getModeName(MODE_RUNNING_OPEN_QUEUE);
+        msg += getModeName(ThreadTeamModes::RUNNING_OPEN_QUEUE);
         msg += " state object";
         throw std::runtime_error(msg);
     }
@@ -101,7 +101,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
         msg += "\n\tUnable to instantiate ";
-        msg += getModeName(MODE_RUNNING_CLOSED_QUEUE);
+        msg += getModeName(ThreadTeamModes::RUNNING_CLOSED_QUEUE);
         msg += " state object";
         throw std::runtime_error(msg);
     }
@@ -111,7 +111,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
         msg += "\n\tUnable to instantiate ";
-        msg += getModeName(MODE_RUNNING_NO_MORE_WORK);
+        msg += getModeName(ThreadTeamModes::RUNNING_NO_MORE_WORK);
         msg += " state object";
         throw std::runtime_error(msg);
     }
@@ -133,7 +133,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
 
     //***** SETUP EXTENDED FINITE STATE MACHINE IN INITIAL STATE
     // Setup before creating threads, which need to know the state
-    // - MODE_IDLE with all threads in Idle and no pending work
+    // - IDLE with all threads in Idle and no pending work
     N_idle_        = 0;
     N_wait_        = 0;
     N_comp_        = 0;
@@ -211,7 +211,7 @@ ThreadTeam::~ThreadTeam(void) {
     // memory.
     // TODO: Print warning messages if not in Idle?
     try {
-        std::string  msg = setMode_NotThreadsafe(MODE_TERMINATING);
+        std::string  msg = setMode_NotThreadsafe(ThreadTeamModes::TERMINATING);
         if (msg != "") {
             std::string  errMsg = printState_NotThreadsafe("~ThreadTeam", 0, msg);
             std::cerr << errMsg << std::endl;
@@ -292,23 +292,23 @@ ThreadTeam::~ThreadTeam(void) {
  * \param   mode - The enum value of the mode.
  * \return  The name
  */
-std::string ThreadTeam::getModeName(const teamMode mode) const {
+std::string ThreadTeam::getModeName(const ThreadTeamModes::mode mode) const {
     std::string   modeName("");
 
     switch(mode) {
-    case MODE_IDLE:
+    case ThreadTeamModes::IDLE:
         modeName = "Idle";
         break;
-    case MODE_TERMINATING:
+    case ThreadTeamModes::TERMINATING:
         modeName = "Terminating";
         break;
-    case MODE_RUNNING_OPEN_QUEUE:
+    case ThreadTeamModes::RUNNING_OPEN_QUEUE:
         modeName = "Running & Queue Open";
         break;
-    case MODE_RUNNING_CLOSED_QUEUE:
+    case ThreadTeamModes::RUNNING_CLOSED_QUEUE:
         modeName = "Running & Queue Closed";
         break;
-    case MODE_RUNNING_NO_MORE_WORK:
+    case ThreadTeamModes::RUNNING_NO_MORE_WORK:
         modeName = "Running & No More Work";
         break;
     default:
@@ -333,27 +333,27 @@ std::string ThreadTeam::getModeName(const teamMode mode) const {
  * \return   An empty string if the mode was set successfully, an error
  *           statement otherwise.
  */
-std::string ThreadTeam::setMode_NotThreadsafe(const teamMode nextMode) {
+std::string ThreadTeam::setMode_NotThreadsafe(const ThreadTeamModes::mode nextMode) {
     std::string    errMsg("");
 
 #ifdef VERBOSE
-    teamMode  currentMode = state_->mode();
+    ThreadTeamModes::mode  currentMode = state_->mode();
 #endif
 
     switch(nextMode) {
-    case MODE_IDLE:
+    case ThreadTeamModes::IDLE:
         state_ = stateIdle_;
         break;
-    case MODE_TERMINATING:
+    case ThreadTeamModes::TERMINATING:
         state_ = stateTerminating_;
         break;
-    case MODE_RUNNING_OPEN_QUEUE:
+    case ThreadTeamModes::RUNNING_OPEN_QUEUE:
         state_ = stateRunOpen_;
         break;
-    case MODE_RUNNING_CLOSED_QUEUE:
+    case ThreadTeamModes::RUNNING_CLOSED_QUEUE:
         state_ = stateRunClosed_;
         break;
-    case MODE_RUNNING_NO_MORE_WORK:
+    case ThreadTeamModes::RUNNING_NO_MORE_WORK:
         state_ = stateRunNoMoreWork_;
         break;
     default:
@@ -402,7 +402,7 @@ unsigned int ThreadTeam::nMaximumThreads(void) const {
  *
  * \return The mode as an enum
  */
-ThreadTeam::teamMode ThreadTeam::mode(void) {
+ThreadTeamModes::mode ThreadTeam::mode(void) {
     pthread_mutex_lock(&teamMutex_);
 
     if (!state_) {
@@ -411,7 +411,7 @@ ThreadTeam::teamMode ThreadTeam::mode(void) {
         errMsg += "\n\tstate_ is NULL";
         throw std::runtime_error(errMsg);
     }
-    teamMode theMode = state_->mode();
+    ThreadTeamModes::mode theMode = state_->mode();
 
     pthread_mutex_unlock(&teamMutex_);
 
@@ -637,13 +637,13 @@ void ThreadTeam::wait(void) {
         throw std::runtime_error(errMsg);
     }
 
-    teamMode  mode = state_->mode();
-    if (mode == MODE_TERMINATING) {
+    ThreadTeamModes::mode  mode = state_->mode();
+    if (mode == ThreadTeamModes::TERMINATING) {
         std::string  errMsg = printState_NotThreadsafe("wait", 0,
                               "Cannot call wait when terminating");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (mode == MODE_IDLE) {
+    } else if (mode == ThreadTeamModes::IDLE) {
         // Calling wait on a ThreadTeam that is Idle seems like a logic error.
         // However, it could be that a team finishes its task and transition to
         // Idle before a calling thread got a chance to call wait().  Therefore,
@@ -668,7 +668,7 @@ void ThreadTeam::wait(void) {
 #endif
 
         pthread_cond_wait(&unblockWaitThread_, &teamMutex_);
-        if (state_->mode() != MODE_IDLE) {
+        if (state_->mode() != ThreadTeamModes::IDLE) {
             std::string  msg = "Client thread unblocked with team in mode ";
             msg += getModeName(state_->mode());
             std::string  errMsg = printState_NotThreadsafe("wait", 0, msg);
@@ -722,7 +722,7 @@ void ThreadTeam::attachThreadReceiver(ThreadTeam* receiver) {
         errMsg = printState_NotThreadsafe("attachThreadReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (state_->mode() != MODE_IDLE) {
+    } else if (state_->mode() != ThreadTeamModes::IDLE) {
         errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
                  "A team can only be attached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
@@ -775,7 +775,7 @@ void ThreadTeam::detachThreadReceiver(void) {
         errMsg = printState_NotThreadsafe("detachThreadReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (state_->mode() != MODE_IDLE) {
+    } else if (state_->mode() != ThreadTeamModes::IDLE) {
         errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
                  "A team can only be detached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
@@ -820,7 +820,7 @@ void ThreadTeam::attachWorkReceiver(ThreadTeam* receiver) {
         errMsg = printState_NotThreadsafe("attachWorkReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (state_->mode() != MODE_IDLE) {
+    } else if (state_->mode() != ThreadTeamModes::IDLE) {
         errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
                  "A team can only be attached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
@@ -873,7 +873,7 @@ void ThreadTeam::detachWorkReceiver(void) {
         errMsg = printState_NotThreadsafe("detachWorkReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (state_->mode() != MODE_IDLE) {
+    } else if (state_->mode() != ThreadTeamModes::IDLE) {
         errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
                  "A team can only be detached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
@@ -995,18 +995,18 @@ void* ThreadTeam::threadRoutine(void* varg) {
     //          would be some time during which N_i + N_w + N_c + N_t != N_max.
     pthread_mutex_lock(&(team->teamMutex_));
 
-    std::string        errMsg("");
-    teamMode           mode             = MODE_IDLE;
-    bool               isThreadStarting = true;
-    unsigned int       N_Q              = 0;
-    unsigned int       work             = 0;
-    unsigned int       N_total          = 0;
+    std::string             errMsg("");
+    ThreadTeamModes::mode   mode             = ThreadTeamModes::IDLE;
+    bool                    isThreadStarting = true;
+    unsigned int            N_Q              = 0;
+    unsigned int            work             = 0;
+    unsigned int            N_total          = 0;
     while (true) {
         mode = team->state_->mode();
         N_Q = team->queue_.size();
 
         // Finish transition, wait for event, do output, and loop back
-        if (mode == MODE_TERMINATING) {
+        if (mode == ThreadTeamModes::TERMINATING) {
             // 
             //<----------- TRANSITION TO TERMINATING & STOP THREADS ----------->
             //
@@ -1036,9 +1036,10 @@ void* ThreadTeam::threadRoutine(void* varg) {
             pthread_mutex_unlock(&(team->teamMutex_));
             pthread_exit(NULL);
             return nullptr;
-        } else if (    (mode == MODE_IDLE)
-                   ||  (mode == MODE_RUNNING_NO_MORE_WORK)
-                   || ((mode == MODE_RUNNING_CLOSED_QUEUE) && (N_Q == 0)) ) {
+        } else if (    (mode == ThreadTeamModes::IDLE)
+                   ||  (mode == ThreadTeamModes::RUNNING_NO_MORE_WORK)
+                   || (   (mode == ThreadTeamModes::RUNNING_CLOSED_QUEUE) 
+                       && (N_Q == 0)) ) {
             // 
             //<--------------------- TRANSITION TO IDLE --------------------->
             //
@@ -1082,8 +1083,8 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // 
             // Since these are emitting events, only call these after updating
             // the state for this transition.
-            if ((mode == MODE_RUNNING_CLOSED_QUEUE) && (N_Q == 0)) {
-                mode = MODE_RUNNING_NO_MORE_WORK;
+            if ((mode == ThreadTeamModes::RUNNING_CLOSED_QUEUE) && (N_Q == 0)) {
+                mode = ThreadTeamModes::RUNNING_NO_MORE_WORK;
                 errMsg = team->setMode_NotThreadsafe(mode);
                 if (errMsg != "") {
                     std::string  msg = team->printState_NotThreadsafe(
@@ -1097,9 +1098,9 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // The task has been completely applied and the execution cycle
             // is over if this is the last thread to transition to Idle
             // Finalize for the end of the cycle
-            if (   (mode == MODE_RUNNING_NO_MORE_WORK) 
+            if (   (mode == ThreadTeamModes::RUNNING_NO_MORE_WORK) 
                 && (team->N_idle_ == team->nMaxThreads_)) {
-                errMsg = team->setMode_NotThreadsafe(MODE_IDLE);
+                errMsg = team->setMode_NotThreadsafe(ThreadTeamModes::IDLE);
                 if (errMsg != "") {
                     std::string  msg = team->printState_NotThreadsafe(
                                              "threadRoutine", tId, errMsg);
@@ -1248,8 +1249,9 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // NOTE: This would be handled above, but check it here so that we
             // can release waiting threads as soon as possible and therefore
             // pass these resources to thread subscribers ASAP.
-            if ((mode == MODE_RUNNING_CLOSED_QUEUE) && (N_Q == 0)) {
-                errMsg = team->setMode_NotThreadsafe(MODE_RUNNING_NO_MORE_WORK);
+            if ((mode == ThreadTeamModes::RUNNING_CLOSED_QUEUE) && (N_Q == 0)) {
+                errMsg = team->setMode_NotThreadsafe(
+                               ThreadTeamModes::RUNNING_NO_MORE_WORK);
                 if (errMsg != "") {
                     std::string  msg = team->printState_NotThreadsafe(
                                              "threadRoutine", tId, errMsg);

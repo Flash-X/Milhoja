@@ -17,8 +17,8 @@ public:
     ThreadTeamRunningClosed(ThreadTeam* team);
     ~ThreadTeamRunningClosed(void)                { };
 
-    ThreadTeam::teamMode  mode(void) const {
-        return ThreadTeam::MODE_RUNNING_CLOSED_QUEUE;
+    ThreadTeamModes::mode  mode(void) const {
+        return ThreadTeamModes::RUNNING_CLOSED_QUEUE;
     }
 
     std::string           increaseThreadCount_NotThreadsafe(

@@ -18,8 +18,8 @@ public:
     ~ThreadTeamRunningNoMoreWork(void)                { };
 
     // State-dependent methods
-    ThreadTeam::teamMode  mode(void) const {
-        return ThreadTeam::MODE_RUNNING_NO_MORE_WORK;
+    ThreadTeamModes::mode  mode(void) const {
+        return ThreadTeamModes::RUNNING_NO_MORE_WORK;
     }
 
     std::string           increaseThreadCount_NotThreadsafe(

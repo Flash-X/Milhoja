@@ -17,8 +17,8 @@ public:
     ThreadTeamRunningOpen(ThreadTeam* team);
     ~ThreadTeamRunningOpen(void)                { };
 
-    ThreadTeam::teamMode  mode(void) const {
-        return ThreadTeam::MODE_RUNNING_OPEN_QUEUE;
+    ThreadTeamModes::mode  mode(void) const {
+        return ThreadTeamModes::RUNNING_OPEN_QUEUE;
     }
 
     std::string           increaseThreadCount_NotThreadsafe(

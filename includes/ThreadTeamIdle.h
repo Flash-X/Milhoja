@@ -17,8 +17,8 @@ public:
     ThreadTeamIdle(ThreadTeam* team);
     ~ThreadTeamIdle(void)                 { };
 
-    ThreadTeam::teamMode  mode(void) const {
-        return ThreadTeam::MODE_IDLE;
+    ThreadTeamModes::mode  mode(void) const {
+        return ThreadTeamModes::IDLE;
     }
 
     std::string           increaseThreadCount_NotThreadsafe(

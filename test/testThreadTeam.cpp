@@ -35,7 +35,7 @@ TEST(ThreadTeamTest, TestInitialState) {
     // Confirm explicit state
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
     EXPECT_EQ(10, team1.nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
     EXPECT_EQ(10, N_idle);
     EXPECT_EQ(0,  N_wait);
     EXPECT_EQ(0,  N_comp);
@@ -54,7 +54,7 @@ TEST(ThreadTeamTest, TestInitialState) {
 
         team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(i, team2->nMaximumThreads());
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team2->mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team2->mode());
         EXPECT_EQ(i, N_idle);
         EXPECT_EQ(0, N_wait);
         EXPECT_EQ(0, N_comp);
@@ -86,7 +86,7 @@ TEST(ThreadTeamTest, TestDestruction) {
 
     ThreadTeam*    team1 = new ThreadTeam(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1->mode());
 
     // Test in Running & Open 
     team1->startTask(TestThreadRoutines::delay_100ms, 3, "teamName", "100ms");
@@ -98,7 +98,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     }
 
     team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1->mode());
+    EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1->mode());
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(1, N_idle);
     EXPECT_EQ(2, N_wait);
@@ -111,7 +111,7 @@ TEST(ThreadTeamTest, TestDestruction) {
  
     team1 = new ThreadTeam(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1->mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1->mode());
  
     // Wait for a thread to dequeue the work before closing queue
     // The mode will transition to Running & No More Work as there
@@ -133,7 +133,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     }
 
     team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1->mode());
+    EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1->mode());
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(3, N_idle);
     EXPECT_EQ(0, N_wait);
@@ -154,7 +154,7 @@ TEST(ThreadTeamTest, TestIdleWait) {
     ThreadTeam    team1(3, 1, "TestIdleWait.log");
 
     // Call wait without having run a task
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
     team1.wait();
     team1.wait();
     team1.wait();
@@ -164,11 +164,11 @@ TEST(ThreadTeamTest, TestIdleWait) {
     team1.startTask(TestThreadRoutines::noop, 0, "test1", "noop");
     team1.closeTask();
     for (unsigned int i=0; i<10; ++i) {
-        if (team1.mode() == ThreadTeam::MODE_IDLE)      break;
+        if (team1.mode() == ThreadTeamModes::IDLE)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
     team1.wait();
     team1.wait();
     team1.wait();
@@ -179,7 +179,7 @@ TEST(ThreadTeamTest, TestIdleWait) {
     team1.closeTask();
     // Legitimate wait call
     team1.wait();
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
 
     team1.wait();
     team1.wait();
@@ -205,16 +205,16 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
     team1.attachWorkReceiver(&team2);
 
     EXPECT_EQ(3, team1.nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
 
     EXPECT_EQ(2, team2.nMaximumThreads());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team2.mode());
 
     team1.startTask(TestThreadRoutines::noop, 0, "test1", "noop");
     team2.startTask(TestThreadRoutines::noop, 0, "test2", "noop");
 
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-    EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
     EXPECT_EQ(3, team1.nMaximumThreads());
     EXPECT_EQ(3, N_idle);
     EXPECT_EQ(0, N_wait);
@@ -226,8 +226,8 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
     // Next line will hang if team1 doesn't call team2's closeTask()
     team2.wait();
 
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
-    EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
+    EXPECT_EQ(ThreadTeamModes::IDLE, team2.mode());
 }
 
 /**
@@ -340,7 +340,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
         team3.closeTask();
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
         EXPECT_EQ(2, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -348,7 +348,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(4, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -356,7 +356,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
         EXPECT_EQ(1, N_Q);
 
         team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team3.mode());
         EXPECT_EQ(6, team3.nMaximumThreads());
         EXPECT_EQ(6, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -377,7 +377,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
         }
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -385,7 +385,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
         EXPECT_EQ(0, N_Q);
 
         team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team3.mode());
         EXPECT_EQ(6, team3.nMaximumThreads());
         EXPECT_EQ(6, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -394,9 +394,9 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
 
         team2.wait();
 
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team2.mode());
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team3.mode());
     }
 }
 
@@ -422,7 +422,7 @@ TEST(ThreadTeamTest, TestNoWork) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(5, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(3, N_wait);
@@ -433,7 +433,7 @@ TEST(ThreadTeamTest, TestNoWork) {
         team1.wait();
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
         EXPECT_EQ(5, team1.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -459,7 +459,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.startTask(TestThreadRoutines::noop, 5, "test", "noop");
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 5)     break; 
@@ -467,7 +467,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(10, team1.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(5, N_wait);
@@ -485,7 +485,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         EXPECT_THROW(team1.increaseThreadCount(11), std::logic_error);
 
         // Confirm that all of the above were called in the same mode
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
 
         team1.closeTask();
         team1.wait();
@@ -497,7 +497,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
 
         team1.startTask(TestThreadRoutines::noop, 5, "quick1", "noop");
         team2.startTask(TestThreadRoutines::noop, 0, "quick2", "noop");
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 5)     break; 
@@ -505,7 +505,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(10, team1.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(5, N_wait);
@@ -516,7 +516,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
 
         // Confirm that all of the above were called in the same mode
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
 
         team1.closeTask();
         team1.wait();
@@ -551,7 +551,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         team1.enqueue(1);
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -559,7 +559,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(1, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(4, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -577,7 +577,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(2, N_wait);
@@ -585,7 +585,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(4, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -602,7 +602,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -610,7 +610,7 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(2, N_wait);
@@ -652,7 +652,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(1, N_wait);
@@ -671,7 +671,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -679,7 +679,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         EXPECT_EQ(1, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(2, team2.nMaximumThreads());
         EXPECT_EQ(0, N_idle);
         EXPECT_EQ(2, N_wait);
@@ -699,7 +699,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -708,7 +708,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
 
         // Confirm that team 2 got a unit of work
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(2, team2.nMaximumThreads());
         EXPECT_EQ(0, N_idle);
         EXPECT_EQ(1, N_wait);
@@ -745,7 +745,7 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
         team1.enqueue(2);
         team1.closeTask();
 
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
@@ -759,7 +759,7 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
         EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
 
         team1.wait();
     }
@@ -792,7 +792,7 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
         EXPECT_EQ(4, team1.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -809,7 +809,7 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
         EXPECT_EQ(4, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -826,7 +826,7 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(4, team1.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -871,7 +871,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -879,7 +879,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(2, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(0, N_idle);
         EXPECT_EQ(4, N_wait);
@@ -900,7 +900,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -908,7 +908,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(1, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(0, N_idle);
         EXPECT_EQ(3, N_wait);
@@ -929,7 +929,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -937,7 +937,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(0, N_idle);
         EXPECT_EQ(2, N_wait);
@@ -957,7 +957,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         }
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team2.mode());
         EXPECT_EQ(4, team2.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -996,7 +996,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
@@ -1010,7 +1010,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
 
         team1.wait();
     }
@@ -1051,7 +1051,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(2, team1.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1059,7 +1059,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1077,7 +1077,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
 
         // Idle thread remained idle
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(2, team1.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1088,7 +1088,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         // hasn't finished its task and wouldn't have forwarded its 1 thread along
         // yet.  This would fail.
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1107,7 +1107,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         }
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(1, N_idle);
         EXPECT_EQ(2, N_wait);
@@ -1164,7 +1164,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         // Confirm that we have at least two threads waiting
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(8, team1.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(3, N_wait);
@@ -1172,7 +1172,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1180,7 +1180,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_Q);
 
         team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team3.mode());
         EXPECT_EQ(8, team3.nMaximumThreads());
         EXPECT_EQ(8, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1204,7 +1204,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         }
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_NO_MORE_WORK, team1.mode());
         EXPECT_EQ(8, team1.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1212,7 +1212,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_Q);
 
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1220,7 +1220,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_Q);
 
         team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team3.mode());
         EXPECT_EQ(8, team3.nMaximumThreads());
         EXPECT_EQ(5, N_idle);
         EXPECT_EQ(3, N_wait);
@@ -1241,7 +1241,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         // Confirm that computing threads transitioned to Idle correctly
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_IDLE, team1.mode());
+        EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
         EXPECT_EQ(8, team1.nMaximumThreads());
         EXPECT_EQ(8, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1250,7 +1250,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         // Confirm that work was forwarded correctly
         team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_CLOSED_QUEUE, team2.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_CLOSED_QUEUE, team2.mode());
         EXPECT_EQ(3, team2.nMaximumThreads());
         EXPECT_EQ(3, N_idle);
         EXPECT_EQ(0, N_wait);
@@ -1259,7 +1259,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         // Confirm that threads forwarded correctly
         team3.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        EXPECT_EQ(ThreadTeam::MODE_RUNNING_OPEN_QUEUE, team3.mode());
+        EXPECT_EQ(ThreadTeamModes::RUNNING_OPEN_QUEUE, team3.mode());
         EXPECT_EQ(8, team3.nMaximumThreads());
         EXPECT_EQ(2, N_idle);
         EXPECT_EQ(6, N_wait);

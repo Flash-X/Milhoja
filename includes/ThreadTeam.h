@@ -56,6 +56,7 @@
 #include <fstream>
 
 #include "runtimeTask.h"
+#include "ThreadTeamModes.h"
 
 class ThreadTeamState;
 class ThreadTeamIdle;
@@ -66,17 +67,6 @@ class ThreadTeamRunningNoMoreWork;
 
 class ThreadTeam {
 public:
-    //***** Extended Finite State Machine State Definition
-    // Qualitative state Modes
-    // Note that Terminating is not a mode in the EFSM design.  However,
-    // we implement it as if it were to handle the termination of the EFSM as
-    // part of the State design pattern.
-    enum teamMode   {MODE_IDLE,
-                     MODE_TERMINATING,
-                     MODE_RUNNING_OPEN_QUEUE,
-                     MODE_RUNNING_CLOSED_QUEUE,
-                     MODE_RUNNING_NO_MORE_WORK};
-
     ThreadTeam(const unsigned int nMaxThreads,
                const unsigned int id,
                const std::string& logFilename);
@@ -84,7 +74,7 @@ public:
 
     // State-independent methods
     unsigned int             nMaximumThreads(void) const;
-    ThreadTeam::teamMode     mode(void);
+    ThreadTeamModes::mode    mode(void);
     void                     stateCounts(unsigned int* N_idle,
                                          unsigned int* N_wait,
                                          unsigned int* N_comp,
@@ -121,10 +111,10 @@ protected:
     //       size down.
     static void* threadRoutine(void*);
 
-    std::string  getModeName(const teamMode mode) const;
+    std::string  getModeName(const ThreadTeamModes::mode mode) const;
 
     // Code that calls these should acquire teamMutex_ before the call
-    std::string  setMode_NotThreadsafe(const teamMode nextNode);
+    std::string  setMode_NotThreadsafe(const ThreadTeamModes::mode nextNode);
     std::string  printState_NotThreadsafe(const std::string& method,
                                           const unsigned int tId,
                                           const std::string& msg) const;

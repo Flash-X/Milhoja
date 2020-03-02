@@ -17,8 +17,8 @@ public:
     ThreadTeamTerminating(ThreadTeam* team);
     ~ThreadTeamTerminating(void)                { };
 
-    ThreadTeam::teamMode  mode(void) const {
-        return ThreadTeam::MODE_TERMINATING;
+    ThreadTeamModes::mode  mode(void) const {
+        return ThreadTeamModes::TERMINATING;
     }
 
     std::string           increaseThreadCount_NotThreadsafe(

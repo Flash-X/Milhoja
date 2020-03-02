@@ -45,6 +45,7 @@ TESTDIR  = $(BASEDIR)/test
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
