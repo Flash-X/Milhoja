@@ -58,12 +58,12 @@
 #include "runtimeTask.h"
 #include "ThreadTeamModes.h"
 
-class ThreadTeamState;
-class ThreadTeamIdle;
-class ThreadTeamTerminating;
-class ThreadTeamRunningOpen;
-class ThreadTeamRunningClosed;
-class ThreadTeamRunningNoMoreWork;
+#include "ThreadTeamState.h"
+#include "ThreadTeamIdle.h"
+#include "ThreadTeamTerminating.h"
+#include "ThreadTeamRunningOpen.h"
+#include "ThreadTeamRunningClosed.h"
+#include "ThreadTeamRunningNoMoreWork.h"
 
 class ThreadTeam {
 public:
@@ -125,21 +125,21 @@ private:
 
     // State Design Pattern - ThreadTeamState derived classes need direct access
     //                        to protected methods and private data members
-    friend class ThreadTeamIdle;
-    friend class ThreadTeamTerminating;
-    friend class ThreadTeamRunningOpen;
-    friend class ThreadTeamRunningClosed;
-    friend class ThreadTeamRunningNoMoreWork;
+    friend class ThreadTeamIdle<ThreadTeam>;
+    friend class ThreadTeamTerminating<ThreadTeam>;
+    friend class ThreadTeamRunningOpen<ThreadTeam>;
+    friend class ThreadTeamRunningClosed<ThreadTeam>;
+    friend class ThreadTeamRunningNoMoreWork<ThreadTeam>;
 
     //***** Extended Finite State Machine State Definition
     // Qualitative State Mode
     // Encoded in ThreadTeamState instance pointed to by state_
-    ThreadTeamState*              state_;
-    ThreadTeamIdle*               stateIdle_;
-    ThreadTeamTerminating*        stateTerminating_;
-    ThreadTeamRunningOpen*        stateRunOpen_;
-    ThreadTeamRunningClosed*      stateRunClosed_;
-    ThreadTeamRunningNoMoreWork*  stateRunNoMoreWork_;
+    ThreadTeamState*                          state_;
+    ThreadTeamIdle<ThreadTeam>*               stateIdle_;
+    ThreadTeamTerminating<ThreadTeam>*        stateTerminating_;
+    ThreadTeamRunningOpen<ThreadTeam>*        stateRunOpen_;
+    ThreadTeamRunningClosed<ThreadTeam>*      stateRunClosed_;
+    ThreadTeamRunningNoMoreWork<ThreadTeam>*  stateRunNoMoreWork_;
 
     // Quantitative Internal State Variables
     unsigned int   N_idle_;      /*!< Number of threads that are

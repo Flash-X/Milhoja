@@ -11,7 +11,7 @@
 
 #include <string>
 
-#include "ThreadTeam.h"
+class ThreadTeam;
 
 class ThreadTeamState {
 public:
@@ -31,7 +31,7 @@ public:
     virtual std::string            closeTask_NotThreadsafe(void) = 0;
 
 protected:
-    friend class ThreadTeam; 
+    friend ThreadTeam;
 
     virtual std::string            isStateValid_NotThreadSafe(void) const = 0;
 };

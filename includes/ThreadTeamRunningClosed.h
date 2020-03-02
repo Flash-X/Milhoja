@@ -9,12 +9,12 @@
 #ifndef THREAD_TEAM_RUNNING_CLOSED_H__
 #define THREAD_TEAM_RUNNING_CLOSED_H__
 
-#include "ThreadTeam.h"
 #include "ThreadTeamState.h"
 
+template<class T>
 class ThreadTeamRunningClosed : public ThreadTeamState {
 public:
-    ThreadTeamRunningClosed(ThreadTeam* team);
+    ThreadTeamRunningClosed(T* team);
     ~ThreadTeamRunningClosed(void)                { };
 
     ThreadTeamModes::mode  mode(void) const {
@@ -39,8 +39,12 @@ private:
     ThreadTeamRunningClosed& operator=(const ThreadTeamRunningClosed& rhs);
     ThreadTeamRunningClosed(const ThreadTeamRunningClosed& other);
 
-    ThreadTeam*    team_;
+    T*    team_;
 };
+
+// Include class definition in header since this is a class template
+//   => no need to compile the .cpp file directly as part of build
+#include "../src/ThreadTeamRunningClosed.cpp"
 
 #endif
 

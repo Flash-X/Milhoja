@@ -9,12 +9,12 @@
 #ifndef THREAD_TEAM_TERMINATING_H__
 #define THREAD_TEAM_TERMINATING_H__
 
-#include "ThreadTeam.h"
 #include "ThreadTeamState.h"
 
+template<class T>
 class ThreadTeamTerminating : public ThreadTeamState {
 public:
-    ThreadTeamTerminating(ThreadTeam* team);
+    ThreadTeamTerminating(T* team);
     ~ThreadTeamTerminating(void)                { };
 
     ThreadTeamModes::mode  mode(void) const {
@@ -41,8 +41,12 @@ private:
     ThreadTeamTerminating& operator=(const ThreadTeamTerminating& rhs);
     ThreadTeamTerminating(const ThreadTeamTerminating& other);
 
-    ThreadTeam*    team_;
+    T*    team_;
 };
+
+// Include class definition in header since this is a class template
+//   => no need to compile the .cpp file directly as part of build
+#include "../src/ThreadTeamTerminating.cpp"
 
 #endif
 

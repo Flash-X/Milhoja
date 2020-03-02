@@ -9,12 +9,12 @@
 #ifndef THREAD_TEAM_IDLE_H__
 #define THREAD_TEAM_IDLE_H__
 
-#include "ThreadTeam.h"
 #include "ThreadTeamState.h"
 
+template<class T>
 class ThreadTeamIdle : public ThreadTeamState {
 public:
-    ThreadTeamIdle(ThreadTeam* team);
+    ThreadTeamIdle(T* team);
     ~ThreadTeamIdle(void)                 { };
 
     ThreadTeamModes::mode  mode(void) const {
@@ -39,8 +39,12 @@ private:
     ThreadTeamIdle& operator=(const ThreadTeamIdle& rhs);
     ThreadTeamIdle(const ThreadTeamIdle& other);
 
-    ThreadTeam*    team_;
+    T*    team_;
 };
+
+// Include class definition in header since this is a class template
+//   => no need to compile the .cpp file directly as part of build
+#include "../src/ThreadTeamIdle.cpp"
 
 #endif
 

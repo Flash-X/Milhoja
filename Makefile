@@ -63,11 +63,6 @@ CXX_HDRS   = \
     $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
     $(SRCDIR)/ThreadTeam.cpp \
-    $(SRCDIR)/ThreadTeamIdle.cpp \
-    $(SRCDIR)/ThreadTeamTerminating.cpp \
-    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
-    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
-    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTDIR)/Block.cpp \
     $(TESTDIR)/Grid.cpp \

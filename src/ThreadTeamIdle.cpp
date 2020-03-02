@@ -8,7 +8,8 @@
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
+template<class T>
+ThreadTeamIdle<T>::ThreadTeamIdle(T* team)
     : ThreadTeamState(),
       team_(team)
 {
@@ -28,7 +29,8 @@ ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
+template<class T>
+std::string ThreadTeamIdle<T>::isStateValid_NotThreadSafe(void) const {
     std::string errMsg("");
 
     if (team_->N_idle_ != team_->nMaxThreads_) {
@@ -54,7 +56,8 @@ std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
+template<class T>
+std::string ThreadTeamIdle<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
                                                     const unsigned int nThreads,
                                                     const std::string& teamName, 
                                                     const std::string& taskName) {
@@ -114,7 +117,8 @@ std::string ThreadTeamIdle::startTask_NotThreadsafe(TASK_FCN* fcn,
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
+template<class T>
+std::string ThreadTeamIdle<T>::increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) {
     // No need to alter N_to_activate_ as we forward the thread activation on
     if (team_->threadReceiver_) {
@@ -134,7 +138,8 @@ std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
+template<class T>
+std::string  ThreadTeamIdle<T>::enqueue_NotThreadsafe(const int work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Adding work in Idle state not allowed");
 }
@@ -150,7 +155,8 @@ std::string  ThreadTeamIdle::enqueue_NotThreadsafe(const int work) {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-std::string ThreadTeamIdle::closeTask_NotThreadsafe(void) {
+template<class T>
+std::string ThreadTeamIdle<T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "Cannot close the queue when no task is being executed");
 }

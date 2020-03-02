@@ -7,12 +7,6 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "ThreadTeamIdle.h"
-#include "ThreadTeamTerminating.h"
-#include "ThreadTeamRunningOpen.h"
-#include "ThreadTeamRunningClosed.h"
-#include "ThreadTeamRunningNoMoreWork.h"
-
 /**
  * Instantiate a thread team that, at any point in time, can have no more than
  * nMaxThreads threads in existence.
@@ -66,7 +60,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
     pthread_mutex_init(&teamMutex_, NULL);
 
     //***** INSTANTIATE EXTENDED FINITE STATE MACHINE STATE OBJECTS
-    stateIdle_ = new ThreadTeamIdle(this); 
+    stateIdle_ = new ThreadTeamIdle<ThreadTeam>(this); 
     if (!stateIdle_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -76,7 +70,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateTerminating_ = new ThreadTeamTerminating(this); 
+    stateTerminating_ = new ThreadTeamTerminating<ThreadTeam>(this); 
     if (!stateTerminating_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -86,7 +80,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunOpen_ = new ThreadTeamRunningOpen(this); 
+    stateRunOpen_ = new ThreadTeamRunningOpen<ThreadTeam>(this); 
     if (!stateRunOpen_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -96,7 +90,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunClosed_ = new ThreadTeamRunningClosed(this); 
+    stateRunClosed_ = new ThreadTeamRunningClosed<ThreadTeam>(this); 
     if (!stateRunClosed_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -106,7 +100,7 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunNoMoreWork_ = new ThreadTeamRunningNoMoreWork(this); 
+    stateRunNoMoreWork_ = new ThreadTeamRunningNoMoreWork<ThreadTeam>(this); 
     if (!stateRunNoMoreWork_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;

@@ -9,12 +9,12 @@
 #ifndef THREAD_TEAM_RUNNING_OPEN_H__
 #define THREAD_TEAM_RUNNING_OPEN_H__
 
-#include "ThreadTeam.h"
 #include "ThreadTeamState.h"
 
+template<class T>
 class ThreadTeamRunningOpen : public ThreadTeamState {
 public:
-    ThreadTeamRunningOpen(ThreadTeam* team);
+    ThreadTeamRunningOpen(T* team);
     ~ThreadTeamRunningOpen(void)                { };
 
     ThreadTeamModes::mode  mode(void) const {
@@ -39,8 +39,12 @@ private:
     ThreadTeamRunningOpen& operator=(const ThreadTeamRunningOpen& rhs);
     ThreadTeamRunningOpen(const ThreadTeamRunningOpen& other);
 
-    ThreadTeam*    team_;
+    T*    team_;
 };
+
+// Include class definition in header since this is a class template
+//   => no need to compile the .cpp file directly as part of build
+#include "../src/ThreadTeamRunningOpen.cpp"
 
 #endif
 

@@ -9,12 +9,12 @@
 #ifndef THREAD_TEAM_RUNNING_NO_MORE_WORK_H__
 #define THREAD_TEAM_RUNNING_NO_MORE_WORK_H__
 
-#include "ThreadTeam.h"
 #include "ThreadTeamState.h"
 
+template<class T>
 class ThreadTeamRunningNoMoreWork : public ThreadTeamState {
 public:
-    ThreadTeamRunningNoMoreWork(ThreadTeam* team);
+    ThreadTeamRunningNoMoreWork(T* team);
     ~ThreadTeamRunningNoMoreWork(void)                { };
 
     // State-dependent methods
@@ -40,8 +40,12 @@ private:
     ThreadTeamRunningNoMoreWork& operator=(const ThreadTeamRunningNoMoreWork& rhs);
     ThreadTeamRunningNoMoreWork(const ThreadTeamRunningNoMoreWork& other);
 
-    ThreadTeam*    team_;
+    T*    team_;
 };
+
+// Include class definition in header since this is a class template
+//   => no need to compile the .cpp file directly as part of build
+#include "../src/ThreadTeamRunningNoMoreWork.cpp"
 
 #endif
 
