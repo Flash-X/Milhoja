@@ -29,8 +29,8 @@ TEST(ThreadTeamTest, TestInitialState) {
 
     // Check that having two thread teams available at the same time
     // is OK in terms of initial state
-    ThreadTeam   team1(10, 1, "TestInitialState.log");
-    ThreadTeam*  team2 = nullptr;
+    ThreadTeam<int>   team1(10, 1, "TestInitialState.log");
+    ThreadTeam<int>*  team2 = nullptr;
 
     // Confirm explicit state
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -46,11 +46,11 @@ TEST(ThreadTeamTest, TestInitialState) {
     EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
 
     // Check that teams must have minimum number of threads
-    EXPECT_THROW(new ThreadTeam(0, 2, "TestInitialState.log"), std::logic_error);
-    EXPECT_THROW(new ThreadTeam(1, 2, "TestInitialState.log"), std::logic_error);
+    EXPECT_THROW(new ThreadTeam<int>(0, 2, "TestInitialState.log"), std::logic_error);
+    EXPECT_THROW(new ThreadTeam<int>(1, 2, "TestInitialState.log"), std::logic_error);
 
     for (unsigned int i=2; i<=N_ITERS; ++i) {
-        team2 = new ThreadTeam(i, 2, "TestInitialState.log");
+        team2 = new ThreadTeam<int>(i, 2, "TestInitialState.log");
 
         team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(i, team2->nMaximumThreads());
@@ -84,7 +84,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam*    team1 = new ThreadTeam(4, 1, "TestDestruction.log");
+    ThreadTeam<int>*    team1 = new ThreadTeam<int>(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamModes::IDLE, team1->mode());
 
@@ -109,7 +109,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     delete  team1;
     team1 = nullptr;
  
-    team1 = new ThreadTeam(4, 1, "TestDestruction.log");
+    team1 = new ThreadTeam<int>(4, 1, "TestDestruction.log");
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamModes::IDLE, team1->mode());
  
@@ -151,7 +151,7 @@ TEST(ThreadTeamTest, TestDestruction) {
  * nonsense is allowed.
  */
 TEST(ThreadTeamTest, TestIdleWait) {
-    ThreadTeam    team1(3, 1, "TestIdleWait.log");
+    ThreadTeam<int>    team1(3, 1, "TestIdleWait.log");
 
     // Call wait without having run a task
     EXPECT_EQ(ThreadTeamModes::IDLE, team1.mode());
@@ -199,8 +199,8 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam    team1(3, 1, "TestNoWorkNoThreads.log");
-    ThreadTeam    team2(2, 2, "TestNoWorkNoThreads.log");
+    ThreadTeam<int>    team1(3, 1, "TestNoWorkNoThreads.log");
+    ThreadTeam<int>    team2(2, 2, "TestNoWorkNoThreads.log");
 
     team1.attachWorkReceiver(&team2);
 
@@ -237,10 +237,10 @@ TEST(ThreadTeamTest, TestNoWorkNoThreads) {
 TEST(ThreadTeamTest, TestIdleErrors) {
     unsigned int   N_ITERS = 10;
 
-    ThreadTeam    team1(10, 1, "TestIdleErrors.log");
-    ThreadTeam    team2(5,  2, "TestIdleErrors.log");
-    ThreadTeam    team3(2,  3, "TestIdleErrors.log");
-    ThreadTeam    team4(2,  4, "TestIdleErrors.log");
+    ThreadTeam<int>    team1(10, 1, "TestIdleErrors.log");
+    ThreadTeam<int>    team2(5,  2, "TestIdleErrors.log");
+    ThreadTeam<int>    team3(2,  3, "TestIdleErrors.log");
+    ThreadTeam<int>    team4(2,  4, "TestIdleErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Ask for more threads than in team
@@ -317,9 +317,9 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(2, 1, "TestIdleForwardsThreads.log");
-    ThreadTeam  team2(4, 2, "TestIdleForwardsThreads.log");
-    ThreadTeam  team3(6, 3, "TestIdleForwardsThreads.log");
+    ThreadTeam<int>  team1(2, 1, "TestIdleForwardsThreads.log");
+    ThreadTeam<int>  team2(4, 2, "TestIdleForwardsThreads.log");
+    ThreadTeam<int>  team3(6, 3, "TestIdleForwardsThreads.log");
 
     // Team 2 is a thread subscriber and publisher
     team1.attachThreadReceiver(&team2);
@@ -411,7 +411,7 @@ TEST(ThreadTeamTest, TestNoWork) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(5, 1, "TestNoWork.log");
+    ThreadTeam<int>  team1(5, 1, "TestNoWork.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         team1.startTask(TestThreadRoutines::noop, 3, "test", "noop");
@@ -454,8 +454,8 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(10, 1, "TestRunningOpenErrors.log");
-    ThreadTeam  team2(10,  2, "TestRunningOpenErrors.log");
+    ThreadTeam<int>  team1(10, 1, "TestRunningOpenErrors.log");
+    ThreadTeam<int>  team2(10,  2, "TestRunningOpenErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.startTask(TestThreadRoutines::noop, 5, "test", "noop");
@@ -538,8 +538,8 @@ TEST(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(3, 1, "TestRunningOpenIncreaseThreads.log");
-    ThreadTeam  team2(4, 2, "TestRunningOpenIncreaseThreads.log");
+    ThreadTeam<int>  team1(3, 1, "TestRunningOpenIncreaseThreads.log");
+    ThreadTeam<int>  team2(4, 2, "TestRunningOpenIncreaseThreads.log");
 
     team1.attachThreadReceiver(&team2);
 
@@ -637,8 +637,8 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(3, 1, "TestRunningOpenEnqueue.log");
-    ThreadTeam  team2(2, 2, "TestRunningOpenEnqueue.log");
+    ThreadTeam<int>  team1(3, 1, "TestRunningOpenEnqueue.log");
+    ThreadTeam<int>  team2(2, 2, "TestRunningOpenEnqueue.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.attachWorkReceiver(&team2);
@@ -736,7 +736,7 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(5, 1, "TestRunningClosedErrors.log");
+    ThreadTeam<int>  team1(5, 1, "TestRunningClosedErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team has one active thread and two units of work to stay closed
@@ -776,7 +776,7 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(4, 1, "TestRunningClosedActivation.log");
+    ThreadTeam<int>  team1(4, 1, "TestRunningClosedActivation.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Add enough work to test all necessary transitions and wait until the
@@ -848,8 +848,8 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(3, 1, "TestRunningClosedWorkPub.log");
-    ThreadTeam  team2(4, 2, "TestRunningClosedWorkPub.log");
+    ThreadTeam<int>  team1(3, 1, "TestRunningClosedWorkPub.log");
+    ThreadTeam<int>  team2(4, 2, "TestRunningClosedWorkPub.log");
 
     team1.attachWorkReceiver(&team2);
 
@@ -982,7 +982,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(5, 1, "TestRunningNoMoreWorkErrors.log");
+    ThreadTeam<int>  team1(5, 1, "TestRunningNoMoreWorkErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team must have at least one thread and one unit of work to stay in
@@ -1028,8 +1028,8 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkForward) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(2, 1, "TestRunningNoMoreWorkForward.log");
-    ThreadTeam  team2(3, 2, "TestRunningNoMoreWorkForward.log");
+    ThreadTeam<int>  team1(2, 1, "TestRunningNoMoreWorkForward.log");
+    ThreadTeam<int>  team2(3, 2, "TestRunningNoMoreWorkForward.log");
 
     team1.attachThreadReceiver(&team2);
 
@@ -1133,9 +1133,9 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam  team1(8, 1, "TestRunningNoMoreWorkTransition.log");
-    ThreadTeam  team2(3, 2, "TestRunningNoMoreWorkTransition.log");
-    ThreadTeam  team3(8, 3, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam<int>  team1(8, 1, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam<int>  team2(3, 2, "TestRunningNoMoreWorkTransition.log");
+    ThreadTeam<int>  team3(8, 3, "TestRunningNoMoreWorkTransition.log");
 
     team1.attachWorkReceiver(&team2);
     team1.attachThreadReceiver(&team3);
@@ -1281,14 +1281,14 @@ TEST(ThreadTeamTest, TestTimings) {
     unsigned int   N_THREADS = 10;
     unsigned int   N_ITERS = 1000;
 
-    ThreadTeam* team1 = nullptr;
-    ThreadTeam  team2(N_THREADS, 2, "TestTimings2.log");
+    ThreadTeam<int>* team1 = nullptr;
+    ThreadTeam<int>  team2(N_THREADS, 2, "TestTimings2.log");
 
     double conv = 1.0e6 / (double(CLOCKS_PER_SEC * N_ITERS));
 
     clock_t   time = clock();
     for (unsigned int i=0; i<N_ITERS; ++i) {
-        team1 = new ThreadTeam(N_THREADS, 1, "TestTimings1.log");
+        team1 = new ThreadTeam<int>(N_THREADS, 1, "TestTimings1.log");
         delete team1;
         team1 = nullptr;
     }

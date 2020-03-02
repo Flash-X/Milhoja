@@ -11,8 +11,8 @@
 
 #include "ThreadTeamState.h"
 
-template<class T>
-class ThreadTeamRunningClosed : public ThreadTeamState<T> {
+template<typename W, class T>
+class ThreadTeamRunningClosed : public ThreadTeamState<W,T> {
 public:
     ThreadTeamRunningClosed(T* team);
     ~ThreadTeamRunningClosed(void)                { };
@@ -24,11 +24,11 @@ public:
     std::string           increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads);
     std::string           startTask_NotThreadsafe(
-                                    TASK_FCN* fcn,
+                                    TASK_FCN<W> fcn,
                                     const unsigned int nThreads,
                                     const std::string& teamName, 
                                     const std::string& taskName);
-    std::string           enqueue_NotThreadsafe(const int work);
+    std::string           enqueue_NotThreadsafe(const W& work);
     std::string           closeTask_NotThreadsafe(void);
 
 protected:

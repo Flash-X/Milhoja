@@ -8,9 +8,9 @@
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<class T>
-ThreadTeamRunningOpen<T>::ThreadTeamRunningOpen(T* team)
-    : ThreadTeamState<T>(),
+template<typename W, class T>
+ThreadTeamRunningOpen<W,T>::ThreadTeamRunningOpen(T* team)
+    : ThreadTeamState<W,T>(),
       team_(team)
 {
     if (!team_) {
@@ -29,8 +29,8 @@ ThreadTeamRunningOpen<T>::ThreadTeamRunningOpen(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningOpen<T>::isStateValid_NotThreadSafe(void) const {
+template<typename W, class T>
+std::string ThreadTeamRunningOpen<W,T>::isStateValid_NotThreadSafe(void) const {
     if (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     }
@@ -48,8 +48,8 @@ std::string ThreadTeamRunningOpen<T>::isStateValid_NotThreadSafe(void) const {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningOpen<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
+template<typename W, class T>
+std::string ThreadTeamRunningOpen<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
                                                            const unsigned int nThreads,
                                                            const std::string& teamName, 
                                                            const std::string& taskName) {
@@ -65,8 +65,8 @@ std::string ThreadTeamRunningOpen<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningOpen<T>::increaseThreadCount_NotThreadsafe(
+template<typename W, class T>
+std::string ThreadTeamRunningOpen<W,T>::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     team_->N_to_activate_ += nThreads;
     for (unsigned int i=0; i<nThreads; ++i) {
@@ -84,8 +84,8 @@ std::string ThreadTeamRunningOpen<T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningOpen<T>::enqueue_NotThreadsafe(const int work) {
+template<typename W, class T>
+std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(const W& work) {
     team_->queue_.push(work);
 
 #ifdef VERBOSE
@@ -109,8 +109,8 @@ std::string ThreadTeamRunningOpen<T>::enqueue_NotThreadsafe(const int work) {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningOpen<T>::closeTask_NotThreadsafe(void) {
+template<typename W, class T>
+std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
     std::string    errMsg("");
 
     bool isQueueEmpty = team_->queue_.empty();

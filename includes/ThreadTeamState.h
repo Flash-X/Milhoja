@@ -4,6 +4,10 @@
  * A pure abstract base class for defining the interface of all ThreadTeam*
  * derived classes that will implement the ThreadTeam state-specific behavior.
  * This design follows the State design pattern.
+ *
+ * The template variable W defines the unit of work (e.g. a tile, data packet of
+ * tiles); T, refers to the main State class in the State design pattern and
+ * should therefore always be ThreadTeam.
  */
 
 #ifndef THREAD_TEAM_STATE_H__
@@ -11,7 +15,7 @@
 
 #include <string>
 
-template<class T>
+template<typename W, class T>
 class ThreadTeamState {
 public:
     ThreadTeamState(void)          {  }
@@ -22,11 +26,11 @@ public:
     virtual std::string            increaseThreadCount_NotThreadsafe(
                                              const unsigned int nThreads) = 0;
     virtual std::string            startTask_NotThreadsafe(
-                                             TASK_FCN* fcn,
+                                             TASK_FCN<W> fcn,
                                              const unsigned int nThreads,
                                              const std::string& teamName, 
                                              const std::string& taskName) = 0;
-    virtual std::string            enqueue_NotThreadsafe(const int work) = 0;
+    virtual std::string            enqueue_NotThreadsafe(const W& work) = 0;
     virtual std::string            closeTask_NotThreadsafe(void) = 0;
 
 protected:

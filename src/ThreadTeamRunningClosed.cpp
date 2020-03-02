@@ -8,9 +8,9 @@
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<class T>
-ThreadTeamRunningClosed<T>::ThreadTeamRunningClosed(T* team)
-    : ThreadTeamState<T>(),
+template<typename W, class T>
+ThreadTeamRunningClosed<W,T>::ThreadTeamRunningClosed(T* team)
+    : ThreadTeamState<W,T>(),
       team_(team)
 {
     if (!team_) {
@@ -29,8 +29,8 @@ ThreadTeamRunningClosed<T>::ThreadTeamRunningClosed(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningClosed<T>::isStateValid_NotThreadSafe(void) const {
+template<typename W, class T>
+std::string ThreadTeamRunningClosed<W,T>::isStateValid_NotThreadSafe(void) const {
     if        (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     } else if (team_->queue_.empty()) {
@@ -50,8 +50,8 @@ std::string ThreadTeamRunningClosed<T>::isStateValid_NotThreadSafe(void) const {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningClosed<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
+template<typename W, class T>
+std::string ThreadTeamRunningClosed<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
                                                              const unsigned int nThreads,
                                                              const std::string& teamName, 
                                                              const std::string& taskName) {
@@ -67,8 +67,8 @@ std::string ThreadTeamRunningClosed<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningClosed<T>::increaseThreadCount_NotThreadsafe(
+template<typename W, class T>
+std::string ThreadTeamRunningClosed<W,T>::increaseThreadCount_NotThreadsafe(
                                                 const unsigned int nThreads) {
     // Don't activate all threads if we are asked to activate more threads than
     // there is remaining work
@@ -100,8 +100,8 @@ std::string ThreadTeamRunningClosed<T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningClosed<T>::enqueue_NotThreadsafe(const int work) {
+template<typename W, class T>
+std::string ThreadTeamRunningClosed<W,T>::enqueue_NotThreadsafe(const W& work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Cannot enqueue work if queue is closed");
 }
@@ -116,8 +116,8 @@ std::string ThreadTeamRunningClosed<T>::enqueue_NotThreadsafe(const int work) {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamRunningClosed<T>::closeTask_NotThreadsafe(void) {
+template<typename W, class T>
+std::string ThreadTeamRunningClosed<W,T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "The task is already closed");
 }

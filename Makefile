@@ -62,8 +62,6 @@ CXX_HDRS   = \
     $(TESTDIR)/computeLaplacianEnergy_cpu.h \
     $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
-    $(SRCDIR)/ThreadTeam.cpp \
-    $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTDIR)/Block.cpp \
     $(TESTDIR)/Grid.cpp \
     $(TESTDIR)/BlockIterator.cpp \

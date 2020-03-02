@@ -14,6 +14,7 @@
 #include "ThreadTeam.h"
 #include "runtimeTask.h"
 
+template<typename W>
 class OrchestrationRuntime {
 public:
     ~OrchestrationRuntime(void);
@@ -25,13 +26,13 @@ public:
 
     void executeTask(Grid& myGrid,
                      const std::string& bundleName,
-                     TASK_FCN* cpuTask,
+                     TASK_FCN<W>* cpuTask,
                      const unsigned int nCpuThreads,
                      const std::string& cpuTaskName,
-                     TASK_FCN* gpuTask, 
+                     TASK_FCN<W>* gpuTask, 
                      const unsigned int nGpuThreads,
                      const std::string& gpuTaskName, 
-                     TASK_FCN* postGpuTask,
+                     TASK_FCN<W>* postGpuTask,
                      const unsigned int nPostGpuThreads,
                      const std::string& postGpuTaskName);
 
@@ -45,8 +46,10 @@ private:
     static unsigned int            maxThreadsPerTeam_;
     static OrchestrationRuntime*   instance_;
 
-    ThreadTeam**                   teams_;
+    ThreadTeam<W>**                teams_;
 };
+
+#include "../src/OrchestrationRuntime.cpp"
 
 #endif
 

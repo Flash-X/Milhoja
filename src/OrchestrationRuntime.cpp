@@ -6,17 +6,22 @@
 #include "Block.h"
 #include "BlockIterator.h"
 
-std::string           OrchestrationRuntime::logFilename_       = "";
-unsigned int          OrchestrationRuntime::nTeams_            = 1;
-unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
-OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
+template<typename W>
+std::string              OrchestrationRuntime<W>::logFilename_       = "";
+template<typename W>
+unsigned int             OrchestrationRuntime<W>::nTeams_            = 1;
+template<typename W>
+unsigned int             OrchestrationRuntime<W>::maxThreadsPerTeam_ = 5;
+template<typename W>
+OrchestrationRuntime<W>* OrchestrationRuntime<W>::instance_          = nullptr;
 
 /**
  * 
  *
  * \return 
  */
-OrchestrationRuntime* OrchestrationRuntime::instance(void) {
+template<typename W>
+OrchestrationRuntime<W>* OrchestrationRuntime<W>::instance(void) {
     if (!instance_) {
         instance_ = new OrchestrationRuntime();
     }
@@ -29,7 +34,8 @@ OrchestrationRuntime* OrchestrationRuntime::instance(void) {
  *
  * \return 
  */
-void OrchestrationRuntime::setLogFilename(const std::string& filename) {
+template<typename W>
+void OrchestrationRuntime<W>::setLogFilename(const std::string& filename) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setLogFilename] "
                                "Set only when runtime does not exist");
@@ -43,7 +49,8 @@ void OrchestrationRuntime::setLogFilename(const std::string& filename) {
  *
  * \return 
  */
-void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
+template<typename W>
+void OrchestrationRuntime<W>::setNumberThreadTeams(const unsigned int nTeams) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
@@ -60,7 +67,8 @@ void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
  *
  * \return 
  */
-void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
+template<typename W>
+void OrchestrationRuntime<W>::setMaxThreadsPerTeam(const unsigned int nThreads) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setMaxThreadsPerTeam] "
                                "Set only when runtime does not exist");
@@ -77,14 +85,15 @@ void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
  *
  * \return 
  */
-OrchestrationRuntime::OrchestrationRuntime(void) {
+template<typename W>
+OrchestrationRuntime<W>::OrchestrationRuntime(void) {
 #ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Initializing\n";
 #endif
 
-    teams_ = new ThreadTeam*[nTeams_];
+    teams_ = new ThreadTeam<W>*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
-        teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i, logFilename_);
+        teams_[i] = new ThreadTeam<W>(maxThreadsPerTeam_, i, logFilename_);
     }
 
 #ifdef VERBOSE
@@ -97,7 +106,8 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
  *
  * \return 
  */
-OrchestrationRuntime::~OrchestrationRuntime(void) {
+template<typename W>
+OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
 #ifdef VERBOSE
     std::cout << "[OrchestrationRuntime] Finalizing\n";
 #endif
@@ -122,15 +132,16 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
  *
  * \return 
  */
-void OrchestrationRuntime::executeTask(Grid& myGrid,
+template<typename W>
+void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
                                        const std::string& bundleName,
-                                       TASK_FCN* cpuTask,
+                                       TASK_FCN<W>* cpuTask,
                                        const unsigned int nCpuThreads,
                                        const std::string& cpuTaskName,
-                                       TASK_FCN* gpuTask, 
+                                       TASK_FCN<W>* gpuTask, 
                                        const unsigned int nGpuThreads,
                                        const std::string& gpuTaskName, 
-                                       TASK_FCN* postGpuTask,
+                                       TASK_FCN<W>* postGpuTask,
                                        const unsigned int nPostGpuThreads,
                                        const std::string& postGpuTaskName) {
     // TODO: The pipeline construction would be done dynamically.
@@ -142,9 +153,9 @@ void OrchestrationRuntime::executeTask(Grid& myGrid,
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
 
-    ThreadTeam*   cpuTeam     = teams_[0];
-    ThreadTeam*   gpuTeam     = teams_[1];
-    ThreadTeam*   postGpuTeam = teams_[2];
+    ThreadTeam<W>*   cpuTeam     = teams_[0];
+    ThreadTeam<W>*   gpuTeam     = teams_[1];
+    ThreadTeam<W>*   postGpuTeam = teams_[2];
 
     unsigned int nTotalThreads = nCpuThreads + nGpuThreads + nPostGpuThreads;
     if (nTotalThreads > postGpuTeam->nMaximumThreads()) {

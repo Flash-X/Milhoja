@@ -14,34 +14,34 @@ namespace {
 // No-op set of task routines
 void cpuNoop(const unsigned int tId,
              const std::string& name,
-             const unsigned int work) { }
+             const int& work) { }
 
 void gpuNoop(const unsigned int tId,
              const std::string& name,
-             const unsigned int work) { }
+             const int& work) { }
 
 void postGpuNoop(const unsigned int tId,
                  const std::string& name,
-                 const unsigned int work) { }
+                 const int& work) { }
 
 // Set of task routines that sleep for a random amount of time
 void cpuRandom(const unsigned int tId,
                const std::string& name,
-               const unsigned int work) {
+               const int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
 
 void gpuRandom(const unsigned int tId,
                const std::string& name,
-               const unsigned int work) {
+               const int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
 
 void postGpuRandom(const unsigned int tId,
                    const std::string& name,
-                   const unsigned int work) {
+                   const int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
@@ -56,9 +56,9 @@ TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
     std::vector<unsigned int>   work = {5, 4, 1, 0, 6, 25};
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam   cpu(3,      1, "TestSingle_ManualCheck.log");
-    ThreadTeam   gpu(6,      2, "TestSingle_ManualCheck.log");
-    ThreadTeam   postGpu(10, 3, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   cpu(3,      1, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   gpu(6,      2, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   postGpu(10, 3, "TestSingle_ManualCheck.log");
 
     cpu.attachThreadReceiver(&postGpu);
     gpu.attachThreadReceiver(&postGpu);
@@ -121,9 +121,9 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam   cpu(3,      1, "TestMultipleFast.log");
-    ThreadTeam   gpu(6,      2, "TestMultipleFast.log");
-    ThreadTeam   postGpu(10, 3, "TestMultipleFast.log");
+    ThreadTeam<int>   cpu(3,      1, "TestMultipleFast.log");
+    ThreadTeam<int>   gpu(6,      2, "TestMultipleFast.log");
+    ThreadTeam<int>   postGpu(10, 3, "TestMultipleFast.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         cpu.attachThreadReceiver(&postGpu);
@@ -191,9 +191,9 @@ TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam   cpu(3,      1, "TestMultipleRandomWait.log");
-    ThreadTeam   gpu(6,      2, "TestMultipleRandomWait.log");
-    ThreadTeam   postGpu(10, 3, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   cpu(3,      1, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   gpu(6,      2, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   postGpu(10, 3, "TestMultipleRandomWait.log");
 
     cpu.attachThreadReceiver(&postGpu);
     gpu.attachThreadReceiver(&postGpu);

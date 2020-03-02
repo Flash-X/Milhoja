@@ -8,9 +8,9 @@
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<class T>
-ThreadTeamTerminating<T>::ThreadTeamTerminating(T* team)
-    : ThreadTeamState<T>(),
+template<typename W, class T>
+ThreadTeamTerminating<W,T>::ThreadTeamTerminating(T* team)
+    : ThreadTeamState<W,T>(),
       team_(team)
 {
     if (!team_) {
@@ -31,8 +31,8 @@ ThreadTeamTerminating<T>::ThreadTeamTerminating(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamTerminating<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
+template<typename W, class T>
+std::string ThreadTeamTerminating<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
                                                            const unsigned int nThreads,
                                                            const std::string& teamName, 
                                                            const std::string& taskName) {
@@ -50,8 +50,8 @@ std::string ThreadTeamTerminating<T>::startTask_NotThreadsafe(TASK_FCN* fcn,
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamTerminating<T>::increaseThreadCount_NotThreadsafe(
+template<typename W, class T>
+std::string ThreadTeamTerminating<W,T>::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     return team_->printState_NotThreadsafe("increaseThreadCount", 0,
         "Cannot increase thread count if team is terminating");
@@ -67,8 +67,8 @@ std::string ThreadTeamTerminating<T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamTerminating<T>::enqueue_NotThreadsafe(const int work) {
+template<typename W, class T>
+std::string ThreadTeamTerminating<W,T>::enqueue_NotThreadsafe(const W& work) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Cannot add more work if team is terminating");
 }
@@ -83,8 +83,8 @@ std::string ThreadTeamTerminating<T>::enqueue_NotThreadsafe(const int work) {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<class T>
-std::string ThreadTeamTerminating<T>::closeTask_NotThreadsafe(void) {
+template<typename W, class T>
+std::string ThreadTeamTerminating<W,T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "Cannot close queue if team is terminating");
 }

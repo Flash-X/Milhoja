@@ -43,6 +43,9 @@
  * The implementations of the work/thread publisher/subscriber design aspects
  * are one-directional versions of the Observer design pattern (Pp. 293).
  *
+ * The template parameter W allows for building ThreadTeam objects that work
+ * with different units of work (e.g. tiles, data packets of blocks).
+ *
  * \warning Client must be certain that subscriber/publisher chains are not
  * setup that code result in deadlocks or infinite loops.
  *
@@ -65,6 +68,7 @@
 #include "ThreadTeamRunningClosed.h"
 #include "ThreadTeamRunningNoMoreWork.h"
 
+template<typename W>
 class ThreadTeam {
 public:
     ThreadTeam(const unsigned int nMaxThreads,
@@ -83,11 +87,11 @@ public:
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
     void         increaseThreadCount(const unsigned int nThreads);
-    void         startTask(TASK_FCN* fcn,
+    void         startTask(TASK_FCN<W> fcn,
                            const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName);
-    void         enqueue(const int work);
+    void         enqueue(const W& work);
     void         closeTask(void);
     void         wait(void);
 
@@ -125,21 +129,21 @@ private:
 
     // State Design Pattern - ThreadTeamState derived classes need direct access
     //                        to protected methods and private data members
-    friend class ThreadTeamIdle<ThreadTeam>;
-    friend class ThreadTeamTerminating<ThreadTeam>;
-    friend class ThreadTeamRunningOpen<ThreadTeam>;
-    friend class ThreadTeamRunningClosed<ThreadTeam>;
-    friend class ThreadTeamRunningNoMoreWork<ThreadTeam>;
+    friend class ThreadTeamIdle<W,ThreadTeam>;
+    friend class ThreadTeamTerminating<W,ThreadTeam>;
+    friend class ThreadTeamRunningOpen<W,ThreadTeam>;
+    friend class ThreadTeamRunningClosed<W,ThreadTeam>;
+    friend class ThreadTeamRunningNoMoreWork<W,ThreadTeam>;
 
     //***** Extended Finite State Machine State Definition
     // Qualitative State Mode
     // Encoded in ThreadTeamState instance pointed to by state_
-    ThreadTeamState<ThreadTeam>*              state_;
-    ThreadTeamIdle<ThreadTeam>*               stateIdle_;
-    ThreadTeamTerminating<ThreadTeam>*        stateTerminating_;
-    ThreadTeamRunningOpen<ThreadTeam>*        stateRunOpen_;
-    ThreadTeamRunningClosed<ThreadTeam>*      stateRunClosed_;
-    ThreadTeamRunningNoMoreWork<ThreadTeam>*  stateRunNoMoreWork_;
+    ThreadTeamState<W,ThreadTeam>*              state_;
+    ThreadTeamIdle<W,ThreadTeam>*               stateIdle_;
+    ThreadTeamTerminating<W,ThreadTeam>*        stateTerminating_;
+    ThreadTeamRunningOpen<W,ThreadTeam>*        stateRunOpen_;
+    ThreadTeamRunningClosed<W,ThreadTeam>*      stateRunClosed_;
+    ThreadTeamRunningNoMoreWork<W,ThreadTeam>*  stateRunNoMoreWork_;
 
     // Quantitative Internal State Variables
     unsigned int   N_idle_;      /*!< Number of threads that are
@@ -155,7 +159,7 @@ private:
     unsigned int   N_terminate_; /*!< Number of threads that are terminating
                                   *   or that have terminated. */
 
-    std::queue<int>   queue_;   //!< Internal queue of pending work.
+    std::queue<W>   queue_;   //!< Internal queue of pending work.
 
     //***** Data members not directly related to state
     // Client code could set the number of Idle threads by calling startTask()
@@ -185,7 +189,7 @@ private:
     pthread_cond_t    threadTerminated_;   //!< Each thread emits this signal upon termination
     pthread_cond_t    unblockWaitThread_;  //!< Wake single thread blocked by calling wait()
 
-    TASK_FCN*         taskFcn_;            /*!< Computational task to be applied to
+    TASK_FCN<W>       taskFcn_;            /*!< Computational task to be applied to
                                             *   all units of enqueued work */
 
     ThreadTeam*       threadReceiver_;     //!< Thread team to notify when threads terminate
@@ -199,6 +203,8 @@ private:
     std::ofstream     logFile_; 
 #endif
 };
+
+#include "../src/ThreadTeam.cpp"
 
 #endif
 
