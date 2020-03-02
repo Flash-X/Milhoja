@@ -106,9 +106,8 @@ protected:
     };
 
     // Routine executed by each thread in the team
-    // TODO: Can this be split out as a seperate function in its own file?
-    //       This would help with separation of concerns and to keep the file
-    //       size down.
+    // This routine is made a class method so that it can have access to
+    // protected and private members and methods. 
     static void* threadRoutine(void*);
 
     std::string  getModeName(const ThreadTeamModes::mode mode) const;
