@@ -10,7 +10,7 @@
  */
 template<class T>
 ThreadTeamTerminating<T>::ThreadTeamTerminating(T* team)
-    : ThreadTeamState(),
+    : ThreadTeamState<T>(),
       team_(team)
 {
     if (!team_) {

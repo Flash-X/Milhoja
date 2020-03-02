@@ -10,7 +10,7 @@
  */
 template<class T>
 ThreadTeamRunningClosed<T>::ThreadTeamRunningClosed(T* team)
-    : ThreadTeamState(),
+    : ThreadTeamState<T>(),
       team_(team)
 {
     if (!team_) {

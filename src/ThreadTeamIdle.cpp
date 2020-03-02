@@ -10,7 +10,7 @@
  */
 template<class T>
 ThreadTeamIdle<T>::ThreadTeamIdle(T* team)
-    : ThreadTeamState(),
+    : ThreadTeamState<T>(),
       team_(team)
 {
     if (!team_) {

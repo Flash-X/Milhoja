@@ -11,8 +11,7 @@
 
 #include <string>
 
-class ThreadTeam;
-
+template<class T>
 class ThreadTeamState {
 public:
     ThreadTeamState(void)          {  }
@@ -31,7 +30,7 @@ public:
     virtual std::string            closeTask_NotThreadsafe(void) = 0;
 
 protected:
-    friend ThreadTeam;
+    friend T;
 
     virtual std::string            isStateValid_NotThreadSafe(void) const = 0;
 };

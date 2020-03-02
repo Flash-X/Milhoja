@@ -12,7 +12,7 @@
 #include "ThreadTeamState.h"
 
 template<class T>
-class ThreadTeamRunningOpen : public ThreadTeamState {
+class ThreadTeamRunningOpen : public ThreadTeamState<T> {
 public:
     ThreadTeamRunningOpen(T* team);
     ~ThreadTeamRunningOpen(void)                { };

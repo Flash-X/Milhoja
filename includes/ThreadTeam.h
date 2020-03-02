@@ -134,7 +134,7 @@ private:
     //***** Extended Finite State Machine State Definition
     // Qualitative State Mode
     // Encoded in ThreadTeamState instance pointed to by state_
-    ThreadTeamState*                          state_;
+    ThreadTeamState<ThreadTeam>*              state_;
     ThreadTeamIdle<ThreadTeam>*               stateIdle_;
     ThreadTeamTerminating<ThreadTeam>*        stateTerminating_;
     ThreadTeamRunningOpen<ThreadTeam>*        stateRunOpen_;
