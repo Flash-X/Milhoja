@@ -18,22 +18,22 @@ public:
     ~ThreadTeamRunningNoMoreWork(void)                { };
 
     // State-dependent methods
-    ThreadTeamModes::mode  mode(void) const {
-        return ThreadTeamModes::RUNNING_NO_MORE_WORK;
+    ThreadTeamMode  mode(void) const override {
+        return ThreadTeamMode::RUNNING_NO_MORE_WORK;
     }
 
-    std::string           increaseThreadCount_NotThreadsafe(
-                                    const unsigned int nThreads);
-    std::string           startTask_NotThreadsafe(
-                                    TASK_FCN<W> fcn,
-                                    const unsigned int nThreads,
-                                    const std::string& teamName, 
-                                    const std::string& taskName);
-    std::string           enqueue_NotThreadsafe(const W& work);
-    std::string           closeTask_NotThreadsafe(void);
+    std::string     increaseThreadCount_NotThreadsafe(
+                            const unsigned int nThreads) override;
+    std::string     startTask_NotThreadsafe(
+                            TASK_FCN<W> fcn,
+                            const unsigned int nThreads,
+                            const std::string& teamName, 
+                            const std::string& taskName) override;
+    std::string     enqueue_NotThreadsafe(const W& work) override;
+    std::string     closeTask_NotThreadsafe(void) override;
 
 protected:
-    std::string  isStateValid_NotThreadSafe(void) const;
+    std::string  isStateValid_NotThreadSafe(void) const override;
 
 private:
     // Disallow copying of objects to create new objects

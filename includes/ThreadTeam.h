@@ -59,7 +59,7 @@
 #include <fstream>
 
 #include "runtimeTask.h"
-#include "ThreadTeamModes.h"
+#include "ThreadTeamMode.h"
 
 #include "ThreadTeamState.h"
 #include "ThreadTeamIdle.h"
@@ -77,12 +77,12 @@ public:
     virtual ~ThreadTeam(void);
 
     // State-independent methods
-    unsigned int             nMaximumThreads(void) const;
-    ThreadTeamModes::mode    mode(void);
-    void                     stateCounts(unsigned int* N_idle,
-                                         unsigned int* N_wait,
-                                         unsigned int* N_comp,
-                                         unsigned int* N_work);
+    unsigned int      nMaximumThreads(void) const;
+    ThreadTeamMode    mode(void);
+    void              stateCounts(unsigned int* N_idle,
+                                  unsigned int* N_wait,
+                                  unsigned int* N_comp,
+                                  unsigned int* N_work);
 
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
@@ -114,10 +114,10 @@ protected:
     // protected and private members and methods. 
     static void* threadRoutine(void*);
 
-    std::string  getModeName(const ThreadTeamModes::mode mode) const;
+    std::string  getModeName(const ThreadTeamMode mode) const;
 
     // Code that calls these should acquire teamMutex_ before the call
-    std::string  setMode_NotThreadsafe(const ThreadTeamModes::mode nextNode);
+    std::string  setMode_NotThreadsafe(const ThreadTeamMode nextNode);
     std::string  printState_NotThreadsafe(const std::string& method,
                                           const unsigned int tId,
                                           const std::string& msg) const;

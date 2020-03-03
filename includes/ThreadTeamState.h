@@ -21,22 +21,22 @@ public:
     ThreadTeamState(void)          {  }
     virtual ~ThreadTeamState(void) {  }
 
-    virtual ThreadTeamModes::mode  mode(void) const = 0;
+    virtual ThreadTeamMode  mode(void) const = 0;
 
-    virtual std::string            increaseThreadCount_NotThreadsafe(
-                                             const unsigned int nThreads) = 0;
-    virtual std::string            startTask_NotThreadsafe(
-                                             TASK_FCN<W> fcn,
-                                             const unsigned int nThreads,
-                                             const std::string& teamName, 
-                                             const std::string& taskName) = 0;
-    virtual std::string            enqueue_NotThreadsafe(const W& work) = 0;
-    virtual std::string            closeTask_NotThreadsafe(void) = 0;
+    virtual std::string     increaseThreadCount_NotThreadsafe(
+                                    const unsigned int nThreads) = 0;
+    virtual std::string     startTask_NotThreadsafe(
+                                    TASK_FCN<W> fcn,
+                                    const unsigned int nThreads,
+                                    const std::string& teamName, 
+                                    const std::string& taskName) = 0;
+    virtual std::string     enqueue_NotThreadsafe(const W& work) = 0;
+    virtual std::string     closeTask_NotThreadsafe(void) = 0;
 
 protected:
     friend T;
 
-    virtual std::string            isStateValid_NotThreadSafe(void) const = 0;
+    virtual std::string     isStateValid_NotThreadSafe(void) const = 0;
 };
 
 #endif

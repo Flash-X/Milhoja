@@ -120,7 +120,7 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
         //   => no need to transition threads.
         // If N_to_activate_ > 0, then activated threads will transition back
         // to Idle based on the new Mode
-        errMsg = team_->setMode_NotThreadsafe(ThreadTeamModes::IDLE);
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::IDLE);
         if (errMsg != "") {
             return errMsg;
         }
@@ -132,7 +132,7 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
         // No more work, but we have threads that need to transition to Idle
         // - Awaken Waiting threads so that they find no work and transition
         // - Computing threads will find no work eventually and transition
-        errMsg = team_->setMode_NotThreadsafe(ThreadTeamModes::RUNNING_NO_MORE_WORK);
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::RUNNING_NO_MORE_WORK);
         if (errMsg != "") {
             return errMsg;
         }
@@ -145,7 +145,7 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
         // waiting threads as well as the number of transitionThread events
         // emitted but not yet received.  Not presently worth the effort or
         // increased complexity.
-        errMsg = team_->setMode_NotThreadsafe(ThreadTeamModes::RUNNING_CLOSED_QUEUE);
+        errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::RUNNING_CLOSED_QUEUE);
         if (errMsg != "") {
             return errMsg;
         }

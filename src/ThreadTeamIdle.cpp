@@ -90,7 +90,7 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
     unsigned int nEventsToEmit = nThreads - team_->N_to_activate_;
 
     team_->N_to_activate_ = nThreads;
-    errMsg = team_->setMode_NotThreadsafe(ThreadTeamModes::RUNNING_OPEN_QUEUE);
+    errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::RUNNING_OPEN_QUEUE);
     if (errMsg != "") {
         return errMsg;
     }

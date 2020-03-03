@@ -1,5 +1,5 @@
 /**
- * \file    ThreadTeamModes.h
+ * \file    ThreadTeamMode.h
  *
  * The qualitative modes that are used as part of the full state definition
  * of the ThreadTeam extended finite state machine.  Note that Terminating is
@@ -13,13 +13,11 @@
 #ifndef THREAD_TEAM_MODES_H__
 #define THREAD_TEAM_MODES_H__
 
-namespace ThreadTeamModes {
-    enum mode {IDLE,
-               TERMINATING,
-               RUNNING_OPEN_QUEUE,
-               RUNNING_CLOSED_QUEUE,
-               RUNNING_NO_MORE_WORK};
-}
+enum class ThreadTeamMode {IDLE,
+                           TERMINATING,
+                           RUNNING_OPEN_QUEUE,
+                           RUNNING_CLOSED_QUEUE,
+                           RUNNING_NO_MORE_WORK};
 
 #endif
 
