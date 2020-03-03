@@ -134,16 +134,16 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  */
 template<typename W>
 void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
-                                       const std::string& bundleName,
-                                       TASK_FCN<W>* cpuTask,
-                                       const unsigned int nCpuThreads,
-                                       const std::string& cpuTaskName,
-                                       TASK_FCN<W>* gpuTask, 
-                                       const unsigned int nGpuThreads,
-                                       const std::string& gpuTaskName, 
-                                       TASK_FCN<W>* postGpuTask,
-                                       const unsigned int nPostGpuThreads,
-                                       const std::string& postGpuTaskName) {
+                                          const std::string& bundleName,
+                                          TASK_FCN<W> cpuTask,
+                                          const unsigned int nCpuThreads,
+                                          const std::string& cpuTaskName,
+                                          TASK_FCN<W> gpuTask, 
+                                          const unsigned int nGpuThreads,
+                                          const std::string& gpuTaskName, 
+                                          TASK_FCN<W> postGpuTask,
+                                          const unsigned int nPostGpuThreads,
+                                          const std::string& postGpuTaskName) {
     // TODO: The pipeline construction would be done dynamically.
     // Realistically, we would have multiple different implementations and 
     // this routine would select the setup based on the parameter values.

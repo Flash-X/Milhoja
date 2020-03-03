@@ -205,7 +205,8 @@ ThreadTeam<W>::~ThreadTeam(void) {
     // TODO: dequeue all items explicitly if queue not empty?  Definitely
     // necessary if the items in the queue are pointers to dynamically-allocated
     // memory.
-    // TODO: Print warning messages if not in Idle?
+    // TODO: Print warning messages if termination is not happening under normal
+    // conditions so that clients can detect logical errors on their part.
     try {
         std::string  msg = setMode_NotThreadsafe(ThreadTeamModes::TERMINATING);
         if (msg != "") {
@@ -1011,7 +1012,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     ThreadTeamModes::mode   mode             = ThreadTeamModes::IDLE;
     bool                    isThreadStarting = true;
     unsigned int            N_Q              = 0;
-    W                       work             = 0;
+    W                       work{};
     unsigned int            N_total          = 0;
     while (true) {
         mode = team->state_->mode();
@@ -1247,7 +1248,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 #ifdef VERBOSE
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Dequeued work " + std::to_string(work));
+                              "Dequeued work");
             team->logFile_.close();
 #endif
 

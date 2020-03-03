@@ -22,9 +22,5 @@ void ThreadRoutines::scaleEnergy_cpu(const unsigned int tId,
               f[ENER_VAR][i-i0][j-j0] *= 3.2;
          }
     }
-
-#ifdef VERBOSE
-    printf("[%s / Thread %d] Scaled energy block %d\n", name.c_str(), tId, idx);
-#endif
 }
 

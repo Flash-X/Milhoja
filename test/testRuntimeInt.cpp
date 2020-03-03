@@ -14,34 +14,34 @@ namespace {
 // No-op set of task routines
 void cpuNoop(const unsigned int tId,
              const std::string& name,
-             const int& work) { }
+             int& work) { }
 
 void gpuNoop(const unsigned int tId,
              const std::string& name,
-             const int& work) { }
+             int& work) { }
 
 void postGpuNoop(const unsigned int tId,
                  const std::string& name,
-                 const int& work) { }
+                 int& work) { }
 
 // Set of task routines that sleep for a random amount of time
 void cpuRandom(const unsigned int tId,
                const std::string& name,
-               const int& work) {
+               int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
 
 void gpuRandom(const unsigned int tId,
                const std::string& name,
-               const int& work) {
+               int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
 
 void postGpuRandom(const unsigned int tId,
                    const std::string& name,
-                   const int& work) {
+                   int& work) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }

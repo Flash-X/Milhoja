@@ -6,7 +6,9 @@
 #include "Block.h"
 
 namespace ThreadRoutines {
-    void computeLaplacianEnergy_cpu(const unsigned int tId, const std::string& name, Block& block);
+    void computeLaplacianEnergy_cpu(const unsigned int tId,
+                                    const std::string& name,
+                                    Block& block);
 }
 
 #endif

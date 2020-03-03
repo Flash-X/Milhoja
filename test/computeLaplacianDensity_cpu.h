@@ -6,7 +6,9 @@
 #include "Block.h"
 
 namespace ThreadRoutines {
-    void computeLaplacianDensity_cpu(const unsigned int tId, const std::string& name, Block& block);
+    void computeLaplacianDensity_cpu(const unsigned int tId,
+                                     const std::string& name,
+                                     Block& block);
 }
 
 #endif

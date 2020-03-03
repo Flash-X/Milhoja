@@ -90,7 +90,7 @@ std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(const W& work) {
 
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[" << team_->hdr_ << "] Enqueued work " << work << std::endl;
+    team_->logFile_ << "[" << team_->hdr_ << "] Enqueued work\n";
     team_->logFile_.close();
 #endif
 
