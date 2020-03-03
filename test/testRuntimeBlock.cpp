@@ -150,15 +150,13 @@ protected:
                   for (int j=lo[JAXIS]; j<=hi[JAXIS]; ++j) { 
                        y = y_coords[j-j0];
     
-//                       absErr = fabs(Delta_f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
-                       absErr = fabs(f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
+                       absErr = fabs(Delta_f1(x, y) - data[DENS_VAR][i-i0][j-j0]);
                        sum1 += absErr;
                        if (absErr > maxAbsErr1) {
                             maxAbsErr1 = absErr;
                        }
     
-//                       absErr = fabs(3.2*Delta_f2(x, y) - data[ENER_VAR][i-i0][j-j0]);
-                       absErr = fabs(3.2*f2(x, y) - data[ENER_VAR][i-i0][j-j0]);
+                       absErr = fabs(3.2*Delta_f2(x, y) - data[ENER_VAR][i-i0][j-j0]);
                        sum2 += absErr;
                        if (absErr > maxAbsErr2) {
                             maxAbsErr2 = absErr;
@@ -182,37 +180,46 @@ void cpuNoop(const unsigned int tId,
              Block& work) { }
 
 #ifndef VERBOSE
-TEST_F(TestRuntimeBlock, TestSingleTeam_ManualCheck) {
-    constexpr unsigned int  N_TRIALS   = 1;
-    constexpr unsigned int  N_BLOCKS_X = 1024;
-    constexpr unsigned int  N_BLOCKS_Y = 512;
+TEST_F(TestRuntimeBlock, TestSingleTeam) {
+    constexpr unsigned int  N_THREADS      = 4;
+    constexpr unsigned int  N_BLOCKS_X     = 512;
+    constexpr unsigned int  N_BLOCKS_Y     = 256;
 
-    ThreadTeam<Block>   cpu(4, 1, "TestSingleTeam_ManualCheck.log");
+    ThreadTeam<Block>   cpu(4, 1, "TestSingleTeam.log");
 
     //***** SETUP DOMAIN MESH
     Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
                 NXB, NYB, N_BLOCKS_X, N_BLOCKS_Y,
                 N_GUARD, N_VARIABLES);
 
-    // Use getters to test Grid class
-    unsigned int                      nGuard      = myGrid.nGuardcells();
-    std::array<double,NDIM>           domainLo    = myGrid.domain(LOW);
-    std::array<double,NDIM>           domainHi    = myGrid.domain(HIGH);
-    std::array<unsigned int,NDIM>     domainShape = myGrid.shape();
-    std::array<unsigned int,NDIM>     blockSize   = myGrid.blockSize();
-    std::array<double,NDIM>           deltas      = myGrid.deltas();
-
+    // The test problem assumes square mesh
+    std::array<double,NDIM> deltas = myGrid.deltas();
     ASSERT_EQ(deltas[0], deltas[1]);
-
+        
     BlockIterator itor(&myGrid);
     initializeData(itor);
 
     try {
-        cpu.startTask(ThreadRoutines::scaleEnergy_cpu, 4, "Cpu", "scaleEnergy");
-        Block block;
+        cpu.startTask(ThreadRoutines::computeLaplacianEnergy_cpu, N_THREADS,
+                      "Cpu", "LaplacianEnergy");
         for (itor.clear(); itor.isValid(); itor.next()) {
-             block = itor.currentBlock();
-             cpu.enqueue(block);
+             cpu.enqueue(itor.currentBlock());
+        }
+        cpu.closeTask();
+        cpu.wait();
+
+        cpu.startTask(ThreadRoutines::computeLaplacianDensity_cpu, N_THREADS,
+                      "Cpu", "LaplacianDensity");
+        for (itor.clear(); itor.isValid(); itor.next()) {
+             cpu.enqueue(itor.currentBlock());
+        }
+        cpu.closeTask();
+        cpu.wait();
+
+        cpu.startTask(ThreadRoutines::scaleEnergy_cpu, N_THREADS,
+                      "Cpu", "scaleEnergy");
+        for (itor.clear(); itor.isValid(); itor.next()) {
+             cpu.enqueue(itor.currentBlock());
         }
         cpu.closeTask();
         cpu.wait();
@@ -234,66 +241,83 @@ TEST_F(TestRuntimeBlock, TestSingleTeam_ManualCheck) {
     double meanAbsErr1 = 0.0;
     double L_inf2      = 0.0;
     double meanAbsErr2 = 0.0;
-    double results[N_TRIALS][N_VARIABLES][3];
     computeError(itor, &L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
-    results[0][DENS_VAR][0] = NXB * N_BLOCKS_X;
-    results[0][DENS_VAR][1] = L_inf1;
-    results[0][DENS_VAR][2] = meanAbsErr1;
-    results[0][ENER_VAR][0] = NXB * N_BLOCKS_X;
-    results[0][ENER_VAR][1] = L_inf2;
-    results[0][ENER_VAR][2] = meanAbsErr2;
 
-    //***** WRITE RESULTS FOR VERIFICATION
-    unsigned int nCells     = 0;
-    double       slope      = 0.0;
-    double       deltaErr   = 0.0;
-    double       deltaCells = 0.0;
+    EXPECT_TRUE(0.0 <= L_inf1);
+    EXPECT_TRUE(L_inf1 <= 1.0e-15);
+    EXPECT_TRUE(0.0 <= meanAbsErr1);
+    EXPECT_TRUE(meanAbsErr1 <= 1.0e-15);
 
-    printf("Density Variable Results\n");
-    printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
-    for (int i=0; i<N_TRIALS; ++i) {
-        nCells      = (int)results[i][DENS_VAR][0];
-        L_inf1      =      results[i][DENS_VAR][1];
-        meanAbsErr1 =      results[i][DENS_VAR][2];
-        if        (i == 0) {
-            printf("%d\t%g\t%g\t      -\n", nCells, L_inf1, meanAbsErr1);
-        } else if (meanAbsErr1 == 0.0) {
-            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf1, meanAbsErr1);
-        } else {
-            deltaErr   = log10(results[i][DENS_VAR][2]) - log10(results[i-1][DENS_VAR][2]);
-            deltaCells = log10(results[i][DENS_VAR][0]) - log10(results[i-1][DENS_VAR][0]);
-            slope = deltaErr / deltaCells;
-            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf1, meanAbsErr1, slope);
-        }
-    }
-    printf("\n");
-
-    printf("Energy Variable Results\n");
-    printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
-    for (int i=0; i<N_TRIALS; ++i) {
-        nCells      = (int)results[i][ENER_VAR][0];
-        L_inf2      =      results[i][ENER_VAR][1];
-        meanAbsErr2 =      results[i][ENER_VAR][2];
-        if        (i == 0) {
-            printf("%d\t%g\t%g\t      -\n", nCells, L_inf2, meanAbsErr2);
-        } else if (meanAbsErr2 == 0.0) {
-            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf2, meanAbsErr2);
-        } else {
-            deltaErr   = log10(results[i][ENER_VAR][2]) -log10(results[i-1][ENER_VAR][2]);
-            deltaCells = log10(results[i][ENER_VAR][0]) -log10(results[i-1][ENER_VAR][0]);
-            slope = deltaErr / deltaCells;
-            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf2, meanAbsErr2, slope);
-        }
-    }
-    printf("\n");
-
+    EXPECT_TRUE(0.0 <= L_inf2);
+    EXPECT_TRUE(L_inf2 <= 5.0e-6);
+    EXPECT_TRUE(0.0 <= meanAbsErr2);
+    EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
 }
 #endif
 
-//TEST(TestRuntimeBlock, TestSingle_ManualCheck) {
-//    const unsigned int N_TRIALS = 1;
-//    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {1024};
-//    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {512};
+#ifndef VERBOSE
+TEST_F(TestRuntimeBlock, TestRuntimeSingle) {
+    constexpr unsigned int  N_BLOCKS_X     = 512;
+    constexpr unsigned int  N_BLOCKS_Y     = 256;
+
+    ThreadTeam<Block>   cpu(4, 1, "TestRuntimeSingle.log");
+
+    //***** SETUP DOMAIN MESH
+    Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
+                NXB, NYB, N_BLOCKS_X, N_BLOCKS_Y,
+                N_GUARD, N_VARIABLES);
+
+    // The test problem assumes square mesh
+    std::array<double,NDIM> deltas = myGrid.deltas();
+    ASSERT_EQ(deltas[0], deltas[1]);
+        
+    BlockIterator itor(&myGrid);
+    initializeData(itor);
+
+    try {
+        // Give an extra thread to the GPU task so that it can start to get work
+        // to the postGpu task quicker.
+        runtime_->executeTask(myGrid, "Task Bundle 1",
+                              ThreadRoutines::computeLaplacianDensity_cpu,
+                              1, "bundle1_cpuTask",
+                              ThreadRoutines::computeLaplacianEnergy_cpu,
+                              2, "bundle1_gpuTask",
+                              ThreadRoutines::scaleEnergy_cpu,
+                              0, "bundle1_postGpuTask");
+    } catch (std::invalid_argument  e) {
+        printf("\nINVALID ARGUMENT: %s\n\n", e.what());
+        EXPECT_TRUE(false);
+    } catch (std::logic_error  e) {
+        printf("\nLOGIC ERROR: %s\n\n", e.what());
+        EXPECT_TRUE(false);
+    } catch (std::runtime_error  e) {
+        printf("\nRUNTIME ERROR: %s\n\n", e.what());
+        EXPECT_TRUE(false);
+    } catch (...) {
+        printf("\n??? ERROR: Unanticipated error\n\n");
+        EXPECT_TRUE(false);
+    }
+
+    double L_inf1      = 0.0;
+    double meanAbsErr1 = 0.0;
+    double L_inf2      = 0.0;
+    double meanAbsErr2 = 0.0;
+    computeError(itor, &L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
+
+    EXPECT_TRUE(0.0 <= L_inf1);
+    EXPECT_TRUE(L_inf1 <= 1.0e-15);
+    EXPECT_TRUE(0.0 <= meanAbsErr1);
+    EXPECT_TRUE(meanAbsErr1 <= 1.0e-15);
+
+    EXPECT_TRUE(0.0 <= L_inf2);
+    EXPECT_TRUE(L_inf2 <= 5.0e-6);
+    EXPECT_TRUE(0.0 <= meanAbsErr2);
+    EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
+}
+#endif
+
+#ifndef VERBOSE
+TEST_F(TestRuntimeBlock, TestRuntimeScaling) {
 //////#elif defined(SCALING)
 //////    const unsigned int N_TRIALS = 6;
 //////    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {2, 4, 6, 8, 10, 12};
@@ -453,6 +477,7 @@ TEST_F(TestRuntimeBlock, TestSingleTeam_ManualCheck) {
 //    printf("\n");
 //
 //    // TODO: Add test to confirm reasonably small mean error
-//}
+}
+#endif
 
 }

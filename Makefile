@@ -5,7 +5,7 @@ SHELL=/bin/sh
 # command line.
 #
 # Ex. The full featured test of the Orchestration System prototype
-#    make clean all RUNTIME=CUDA VERBOSITY=SILENT STUDY=SCALING
+#    make clean all RUNTIME=CUDA VERBOSITY=SILENT
 #
 
 #
@@ -24,16 +24,6 @@ endif
 ifndef VERBOSITY
 VERBOSITY=VERBOSE
 #VERBOSITY=SILENT
-endif
-
-#
-# Execute the test on 
-# - a single Grid setup for rapid regression testing or
-# - a series of increasingly refined meshes as a scaling test 
-#
-ifndef STUDY
-STUDY=SINGLE
-#STUDY=SCALING
 endif
 
 BASE     = test_runtime
@@ -79,7 +69,7 @@ COMMAND   =  $(BASE).x
 
 GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-4fb34iawhssxssc3mdpe4cjjldgnr6n7
 CXX       = g++
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY) -D$(STUDY) 
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
 CXXWARNS  =
 
 LIBS      = -lstdc++ -lgtest -lgtest_main
