@@ -318,165 +318,89 @@ TEST_F(TestRuntimeBlock, TestRuntimeSingle) {
 
 #ifndef VERBOSE
 TEST_F(TestRuntimeBlock, TestRuntimeScaling) {
-//////#elif defined(SCALING)
-//////    const unsigned int N_TRIALS = 6;
-//////    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {2, 4, 6, 8, 10, 12};
-//////    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {1, 2, 3, 4,  5,  6};
-////////    const unsigned int N_TRIALS = 8;
-////////    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {8, 16, 32, 64, 128, 256, 512, 1024};
-////////    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {4,  8, 16, 32,  64, 128, 256,  512};
-//////#endif
-//
-//    //***** DATA COLLECTION
-//    unsigned int                  nGuard = 0;
-//    std::array<double,NDIM>       domainLo;
-//    std::array<double,NDIM>       domainHi;
-//    std::array<unsigned int,NDIM> domainShape;
-//    std::array<unsigned int,NDIM> blockSize;
-//    std::array<double,NDIM>       deltas;
-//
-//    double L_inf1      = 0.0;
-//    double meanAbsErr1 = 0.0;
-//    double L_inf2      = 0.0;
-//    double meanAbsErr2 = 0.0;
-//    double results[N_TRIALS][N_VARIABLES][3];
-//    for (int i=0; i<N_TRIALS; ++i) {
-//        //***** SETUP DOMAIN MESH
-//        Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
-//                    NXB, NYB, N_BLOCKS_X_ALL[i], N_BLOCKS_Y_ALL[i],
-//                    N_GUARD, N_VARIABLES);
-//
-//        // Use getters to test Grid class
-//        nGuard      = myGrid.nGuardcells();
-//        domainLo    = myGrid.domain(LOW);
-//        domainHi    = myGrid.domain(HIGH);
-//        domainShape = myGrid.shape();
-//        blockSize   = myGrid.blockSize();
-//        deltas      = myGrid.deltas();
-//
-//        ASSERT_EQ(deltas[0], deltas[1]);
-//
-//        printf("\n");
-//        printf("Domain Lo\t\t(%f, %f)\n", domainLo[IAXIS], domainLo[JAXIS]);
-//        printf("Domain Hi\t\t(%f, %f)\n", domainHi[IAXIS], domainHi[JAXIS]);
-//        printf("Domain Block Shape\t%d x %d\n", domainShape[IAXIS], domainShape[JAXIS]);
-//        printf("Deltas\t\t\t(%f, %f)\n", deltas[IAXIS], deltas[JAXIS]);
-//        printf("Block Size\t\t%d x %d\n", blockSize[IAXIS], blockSize[JAXIS]);
-//        printf("Number of Guardcells\t%d\n", nGuard);
-//        printf("\n");
-//
-//        BlockIterator itor(&myGrid);
-//        initializeData(itor);
-//
-//        //***** COMPUTATION STAGE
-//        // At this level, the Orchestration System has been used to contruct the
-//        // operation function that we call.  Hopefully, the interface of this
-//        // function will not vary with the Orchestration Runtime chosen at setup.
-//        // So far, the Driver is Runtime agnostic.
-//        try {
-//            // myGrid is a standin for the set of parameters we need to
-//            // specify the tile iterator to use.
-//            runtime->executeTask(myGrid, "Task Bundle 1",
-//                                 ThreadRoutines::computeLaplacianDensity_cpu, 2, "bundle1_cpuTask",
-//                                 ThreadRoutines::computeLaplacianEnergy_cpu,  2, "bundle1_gpuTask",
-//                                 ThreadRoutines::scaleEnergy_cpu,             0, "bundle1_postGpuTask");
-//        } catch (std::invalid_argument  e) {
-//            printf("\nINVALID ARGUMENT: %s\n\n", e.what());
-//            ASSERT_TRUE(false);
-//        } catch (std::logic_error  e) {
-//            printf("\nLOGIC ERROR: %s\n\n", e.what());
-//            ASSERT_TRUE(false);
-//        } catch (std::runtime_error  e) {
-//            printf("\nRUNTIME ERROR: %s\n\n", e.what());
-//            ASSERT_TRUE(false);
-//        } catch (...) {
-//            printf("\n??? ERROR: Unanticipated error\n\n");
-//            ASSERT_TRUE(false);
-//        }
-//
-//        computeError(itor, &L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
-//        results[i][DENS_VAR][0] = NXB * N_BLOCKS_X_ALL[i];
-//        results[i][DENS_VAR][1] = L_inf1;
-//        results[i][DENS_VAR][2] = meanAbsErr1;
-//        results[i][ENER_VAR][0] = NXB * N_BLOCKS_X_ALL[i];
-//        results[i][ENER_VAR][1] = L_inf2;
-//        results[i][ENER_VAR][2] = meanAbsErr2;
-//
-//        // Write to file the finest solution
-////        if (i == (N_TRIALS - 1)) {
-////            FILE* fp = fopen("laplacian.dat", "w");
-////
-////            for (itor.clear(); itor.isValid(); itor.next()) {
-////                Block block = itor.currentBlock();
-////
-////                double***                      dataPtr   = block.dataPtr();
-////                std::array<unsigned int, NDIM> lo        = block.lo();
-////                std::array<unsigned int, NDIM> hi        = block.hi();
-////                std::array<int, NDIM>          loGC      = block.loGC();
-////                std::vector<double>            xCoords   = block.coordinates(IAXIS);
-////                std::vector<double>            yCoords   = block.coordinates(JAXIS);
-////
-////                unsigned int i0 = loGC[IAXIS];
-////                unsigned int j0 = loGC[JAXIS];
-////                for     (unsigned int i2=lo[IAXIS]; i2<=hi[IAXIS]; ++i2) {
-////                    for (unsigned int j2=lo[JAXIS]; j2<=hi[JAXIS]; ++j2) {
-////                        fprintf(fp, "%d\t%d\t%.16f\t%.16f\t%.16f\n", i2, j2, 
-////                                    xCoords[i2-i0], yCoords[j2-j0],
-////                                    dataPtr[ENER_VAR][i2-i0][j2-j0]);
-////                    }
-////                }
-////            }
-////
-////            fclose(fp);
-////        }
-//    }
-//    printf("\n");
-//
-//    //***** WRITE RESULTS FOR VERIFICATION
-//    unsigned int nCells     = 0;
-//    double       slope      = 0.0;
-//    double       deltaErr   = 0.0;
-//    double       deltaCells = 0.0;
-//
-//    printf("Density Variable Results\n");
-//    printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
-//    for (int i=0; i<N_TRIALS; ++i) {
-//        nCells      = (int)results[i][DENS_VAR][0];
-//        L_inf1      =      results[i][DENS_VAR][1];
-//        meanAbsErr1 =      results[i][DENS_VAR][2];
-//        if        (i == 0) {
-//            printf("%d\t%g\t%g\t      -\n", nCells, L_inf1, meanAbsErr1);
-//        } else if (meanAbsErr1 == 0.0) {
-//            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf1, meanAbsErr1);
-//        } else {
-//            deltaErr   = log10(results[i][DENS_VAR][2]) - log10(results[i-1][DENS_VAR][2]);
-//            deltaCells = log10(results[i][DENS_VAR][0]) - log10(results[i-1][DENS_VAR][0]);
-//            slope = deltaErr / deltaCells;
-//            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf1, meanAbsErr1, slope);
-//        }
-//    }
-//    printf("\n");
-//
-//    printf("Energy Variable Results\n");
-//    printf("nCells\tL_inf\t\tMean\t\tMean Slope\n");
-//    for (int i=0; i<N_TRIALS; ++i) {
-//        nCells      = (int)results[i][ENER_VAR][0];
-//        L_inf2      =      results[i][ENER_VAR][1];
-//        meanAbsErr2 =      results[i][ENER_VAR][2];
-//        if        (i == 0) {
-//            printf("%d\t%g\t%g\t      -\n", nCells, L_inf2, meanAbsErr2);
-//        } else if (meanAbsErr2 == 0.0) {
-//            printf("%d\t%g\t%g\tn/a\n", nCells, L_inf2, meanAbsErr2);
-//        } else {
-//            deltaErr   = log10(results[i][ENER_VAR][2]) -log10(results[i-1][ENER_VAR][2]);
-//            deltaCells = log10(results[i][ENER_VAR][0]) -log10(results[i-1][ENER_VAR][0]);
-//            slope = deltaErr / deltaCells;
-//            printf("%d\t%g\t%g\t%.8f\n", nCells, L_inf2, meanAbsErr2, slope);
-//        }
-//    }
-//    printf("\n");
-//
-//    // TODO: Add test to confirm reasonably small mean error
+    const unsigned int N_TRIALS = 7;
+    const unsigned int N_BLOCKS_X_ALL[N_TRIALS] = {8, 16, 32, 64, 128, 256, 512};
+    const unsigned int N_BLOCKS_Y_ALL[N_TRIALS] = {4,  8, 16, 32,  64, 128, 256};
+
+    std::array<double,NDIM>   deltas;
+
+    double L_inf1      = 0.0;
+    double meanAbsErr1 = 0.0;
+    double L_inf2      = 0.0;
+    double meanAbsErr2 = 0.0;
+    double results[N_TRIALS][3];
+    for (int i=0; i<N_TRIALS; ++i) {
+        //***** SETUP DOMAIN MESH
+        Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
+                    NXB, NYB, N_BLOCKS_X_ALL[i], N_BLOCKS_Y_ALL[i],
+                    N_GUARD, N_VARIABLES);
+
+        // The test problem assumes square mesh
+        deltas      = myGrid.deltas();
+        ASSERT_EQ(deltas[0], deltas[1]);
+
+        BlockIterator itor(&myGrid);
+        initializeData(itor);
+
+        //***** COMPUTATION STAGE
+        // At this level, the Orchestration System has been used to contruct the
+        // operation function that we call.  Hopefully, the interface of this
+        // function will not vary with the Orchestration Runtime chosen at setup.
+        // So far, the Driver is Runtime agnostic.
+        try {
+            // myGrid is a standin for the set of parameters we need to
+            // specify the tile iterator to use.
+            runtime_->executeTask(myGrid, "Task Bundle 1",
+                                  ThreadRoutines::computeLaplacianDensity_cpu,
+                                  1, "bundle1_cpuTask",
+                                  ThreadRoutines::computeLaplacianEnergy_cpu,
+                                  2, "bundle1_gpuTask",
+                                  ThreadRoutines::scaleEnergy_cpu,
+                                  0, "bundle1_postGpuTask");
+        } catch (std::invalid_argument  e) {
+            printf("\nINVALID ARGUMENT: %s\n\n", e.what());
+            ASSERT_TRUE(false);
+        } catch (std::logic_error  e) {
+            printf("\nLOGIC ERROR: %s\n\n", e.what());
+            ASSERT_TRUE(false);
+        } catch (std::runtime_error  e) {
+            printf("\nRUNTIME ERROR: %s\n\n", e.what());
+            ASSERT_TRUE(false);
+        } catch (...) {
+            printf("\n??? ERROR: Unanticipated error\n\n");
+            ASSERT_TRUE(false);
+        }
+
+        computeError(itor, &L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
+
+        // No scaling relationship for the Density data
+        //    => Check now and don't store data
+        EXPECT_TRUE(0.0 <= L_inf1);
+        EXPECT_TRUE(L_inf1 <= 1.0e-15);
+        EXPECT_TRUE(0.0 <= meanAbsErr1);
+        EXPECT_TRUE(meanAbsErr1 <= 1.0e-15);
+
+        results[i][0] = NXB * N_BLOCKS_X_ALL[i];
+        results[i][1] = L_inf2;
+        results[i][2] = meanAbsErr2;
+    }
+
+    // Check energy scaling
+    double       deltaErr   = 0.0;
+    double       deltaCells = 0.0;
+    for (int i=1; i<N_TRIALS; ++i) {
+        deltaErr   = log10(results[i][2]) -log10(results[i-1][2]);
+        deltaCells = log10(results[i][0]) -log10(results[i-1][0]);
+
+        // Confirm that we get second-order scaling
+        EXPECT_NEAR(-2.0, deltaErr / deltaCells, 1.0e-5);
+    }
+
+    // Confirm that we also get reasonable absolute error
+    EXPECT_TRUE(0.0 <= results[N_TRIALS-1][1]);
+    EXPECT_TRUE(results[N_TRIALS-1][1] <= 5.0e-6);
+    EXPECT_TRUE(0.0 <= results[N_TRIALS-1][2]);
+    EXPECT_TRUE(results[N_TRIALS-1][2] <= 5.0e-6);
 }
 #endif
 
