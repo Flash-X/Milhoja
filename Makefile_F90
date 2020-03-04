@@ -1,0 +1,95 @@
+SHELL=/bin/sh
+
+##### MIMIC SETUP STAGE/RUNTIME PARAMETERS HERE
+# These define default values, but selection can also be made at
+# command line.
+#
+# Ex. The full featured test of the Orchestration System prototype
+#    make clean all RUNTIME=CUDA VERBOSITY=SILENT
+#
+
+#
+# Choose between 
+# - running a serial invocation (CPU-only node operation) or
+# - running a parallel invocation (CPU/Multi-GPU node operation)
+#
+ifndef RUNTIME
+RUNTIME=CPU_ONLY
+#RUNTIME=CUDA
+endif
+
+#
+# Enable/Disable verbose logging of orchestration runtime sequence
+#
+ifndef VERBOSITY
+VERBOSITY=VERBOSE
+#VERBOSITY=SILENT
+endif
+
+BASE     = test_runtime_f90
+BASEDIR  = .
+INCDIR   = $(BASEDIR)/includes
+SRCDIR   = $(BASEDIR)/src
+TESTDIR  = $(BASEDIR)/test
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/constants.h \
+    $(TESTDIR)/Block.h \
+    $(TESTDIR)/Grid.h \
+    $(TESTDIR)/BlockIterator.h
+CXX_SRCS       = \
+    $(TESTDIR)/Block.cpp \
+    $(TESTDIR)/Grid.cpp \
+    $(TESTDIR)/BlockIterator.cpp \
+    $(SRCDIR)/Orchestration_runtime_fi.cpp
+F90_SRCS       = \
+    $(SRCDIR)/Orchestration_runtime_mod.F90 \
+    $(TESTDIR)/testOrchestrationRuntime.F90
+
+OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
+MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
+MAKEFILE  = Makefile_F90
+COMMAND   =  $(BASE).x
+
+CXX       = g++
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
+CXXWARNS  =
+
+F90       = gfortran
+F90FLAGS  =
+F90WARNS  =
+
+LIBS      = -lstdc++
+LDFLAGS   = 
+ 
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp .mod .F90
+
+$(COMMAND): $(OBJS) $(MODS) $(MAKEFILE) 
+	$(F90) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.F90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
+	$(F90) -c $(F90FLAGS) $(F90WARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
+
