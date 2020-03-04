@@ -27,7 +27,7 @@ protected:
     // TASK_COMPOSER: The offline tool will need to determine how many thread
     // teams are needed as well as how many threads to allocate to each.
     static constexpr unsigned int N_THREAD_TEAMS = 3;
-    static constexpr unsigned int MAX_THREADS = 10;
+    static constexpr unsigned int MAX_THREADS    = 5;
 
     static constexpr double       X_MIN      = 0.0;
     static constexpr double       X_MAX      = 1.0;

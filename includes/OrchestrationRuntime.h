@@ -47,6 +47,10 @@ private:
     static OrchestrationRuntime*   instance_;
 
     ThreadTeam<W>**                teams_;
+
+#ifdef VERBOSE
+    std::ofstream     logFile_; 
+#endif
 };
 
 #include "../src/OrchestrationRuntime.cpp"

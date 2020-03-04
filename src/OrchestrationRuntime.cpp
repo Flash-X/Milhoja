@@ -88,7 +88,9 @@ void OrchestrationRuntime<W>::setMaxThreadsPerTeam(const unsigned int nThreads) 
 template<typename W>
 OrchestrationRuntime<W>::OrchestrationRuntime(void) {
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Initializing\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Initializing\n";
+    logFile_.close();
 #endif
 
     teams_ = new ThreadTeam<W>*[nTeams_];
@@ -97,7 +99,9 @@ OrchestrationRuntime<W>::OrchestrationRuntime(void) {
     }
 
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Initialized\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Initialized\n";
+    logFile_.close();
 #endif
 }
 
@@ -109,7 +113,9 @@ OrchestrationRuntime<W>::OrchestrationRuntime(void) {
 template<typename W>
 OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Finalizing\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Finalizing\n";
+    logFile_.close();
 #endif
 
     for (unsigned int i=0; i<nTeams_; ++i) {
@@ -123,7 +129,9 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
     instance_ = nullptr;
 
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Destroyed\n";
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Finalized\n";
+    logFile_.close();
 #endif
 }
 
@@ -166,8 +174,10 @@ void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
     // TODO: Confirm that no team has publisher's/subscribers.
 
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Start execution of " 
-              << bundleName << std::endl;
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Start execution of " 
+             << bundleName << std::endl;
+    logFile_.close();
 #endif
 
     //***** Construct thread and work pipelines
@@ -223,8 +233,10 @@ void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
     postGpuTeam->wait();
 
 #ifdef VERBOSE
-    std::cout << "[OrchestrationRuntime] Finished execution of " 
-              << bundleName << std::endl;
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Finished execution of " 
+             << bundleName << std::endl;
+    logFile_.close();
 #endif
 }
 
