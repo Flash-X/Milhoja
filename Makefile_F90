@@ -54,7 +54,11 @@ CXX_SRCS       = \
     $(TESTDIR)/BlockIterator.cpp \
     $(SRCDIR)/Orchestration_runtime_fi.cpp
 F90_SRCS       = \
-    $(SRCDIR)/Orchestration_runtime_mod.F90 \
+    $(SRCDIR)/Orchestration_interface.F90 \
+    $(SRCDIR)/Orchestration_data.F90 \
+    $(SRCDIR)/Orchestration_init.F90 \
+    $(SRCDIR)/Orchestration_finalize.F90 \
+    $(SRCDIR)/Orchestration_executeTasks.F90 \
     $(TESTDIR)/testOrchestrationRuntime.F90
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))

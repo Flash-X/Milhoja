@@ -1,7 +1,7 @@
 program testOrchestrationRuntime
-    use Orchestration_runtime_mod, only : Orchestration_init, &
-                                          Orchestration_finalize, &
-                                          Orchestration_executeTasks
+    use Orchestration_interface, ONLY: Orchestration_init, &
+                                       Orchestration_finalize, &
+                                       Orchestration_executeTasks
 
     implicit none
 
