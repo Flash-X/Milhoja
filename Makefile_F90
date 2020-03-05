@@ -51,7 +51,6 @@ CXX_HDRS   = \
 CXX_SRCS       = \
     $(TESTDIR)/Block.cpp \
     $(TESTDIR)/Grid.cpp \
-    $(TESTDIR)/BlockIterator.cpp \
     $(SRCDIR)/Orchestration_runtime_fi.cpp
 F90_SRCS       = \
     $(SRCDIR)/Orchestration_interface.F90 \
@@ -59,7 +58,8 @@ F90_SRCS       = \
     $(SRCDIR)/Orchestration_init.F90 \
     $(SRCDIR)/Orchestration_finalize.F90 \
     $(SRCDIR)/Orchestration_executeTasks.F90 \
-    $(TESTDIR)/testOrchestrationRuntime.F90
+    $(TESTDIR)/RuntimeTest_data.F90 \
+    $(TESTDIR)/RuntimeTest_evolveFlash.F90
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
 MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
@@ -71,7 +71,7 @@ CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSIT
 CXXWARNS  =
 
 F90       = gfortran
-F90FLAGS  =
+F90FLAGS  = -g -O0
 F90WARNS  =
 
 LIBS      = -lstdc++
