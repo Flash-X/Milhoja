@@ -7,29 +7,41 @@ module Orchestration_runtime_mod
     logical, save :: isInitialized = .FALSE.
 
     public :: Orchestration_init
-!    public :: Orchestration_executeTasks
     public :: Orchestration_finalize
+    public :: Orchestration_executeTasks
+
+    interface
+        subroutine runtimeTask(tId, work) bind(c)
+            import
+            implicit none
+            integer(c_int), intent(IN), value :: tId
+            integer(c_int), intent(IN)        :: work
+        end subroutine runtimeTask
+    end interface
 
 contains
 
+    !>
+    !!
+    !!
     subroutine Orchestration_init(nTeams, nThreadsPerTeam, logFilename)
         interface
-            subroutine Orchestration_init_fi(nTeams, &
+            subroutine orchestration_init_fi(nTeams, &
                                              nThreadsPerTeam, &
                                              logFilename) bind(c)
                 import
                 implicit none
-                integer,                intent(IN), value :: nTeams
-                integer,                intent(IN), value :: nThreadsPerTeam
-                character(kind=c_char), intent(IN)        :: logFilename(*)
-            end subroutine Orchestration_init_fi
+                integer,                      intent(IN), value :: nTeams
+                integer,                      intent(IN), value :: nThreadsPerTeam
+                character(len=1,kind=c_char), intent(IN)        :: logFilename(*)
+            end subroutine orchestration_init_fi
         end interface
 
-        integer,      intent(IN) :: nTeams
-        integer,      intent(IN) :: nThreadsPerTeam
-        character(*), intent(IN) :: logFilename 
+        integer,          intent(IN) :: nTeams
+        integer,          intent(IN) :: nThreadsPerTeam
+        character(len=*), intent(IN) :: logFilename 
 
-        character(kind=c_char) :: cFilename(len_trim(logFilename)+1)
+        character(len=1,kind=c_char) :: cFilename(len_trim(logFilename)+1)
         integer                :: i
 
         if (isInitialized) then
@@ -43,16 +55,19 @@ contains
         end do
         cFilename(SIZE(cFilename)) = c_null_char
 
-        call Orchestration_init_fi(nTeams, nThreadsPerTeam, cFilename)
+        call orchestration_init_fi(nTeams, nThreadsPerTeam, cFilename)
         isInitialized = .TRUE.
     end subroutine Orchestration_init
 
+    !>
+    !!
+    !!
     subroutine Orchestration_finalize()
         interface
-            subroutine Orchestration_finalize_fi() bind(c)
+            subroutine orchestration_finalize_fi() bind(c)
                 import
                 implicit none
-            end subroutine Orchestration_finalize_fi
+            end subroutine orchestration_finalize_fi
         end interface
 
         if (.NOT. isInitialized) then
@@ -61,9 +76,28 @@ contains
             STOP
         end if
 
-        call Orchestration_finalize_fi()
+        call orchestration_finalize_fi()
         isInitialized = .FALSE.
     end subroutine Orchestration_finalize
+
+    !>
+    !!
+    !!
+    subroutine Orchestration_executeTasks(cpuTask)
+        interface
+            subroutine orchestration_execute_tasks_fi(cpuTask) bind(c)
+                import
+                implicit none
+                type(c_funptr), intent(IN), value :: cpuTask
+            end subroutine orchestration_execute_tasks_fi
+        end interface
+                
+        procedure(runtimeTask) :: cpuTask
+        type(c_funptr)         :: cpuTaskPtr
+
+        cpuTaskPtr = c_funloc(cpuTask)
+        call orchestration_execute_tasks_fi(cpuTaskPtr)
+    end subroutine Orchestration_executeTasks
 
 end module Orchestration_runtime_mod
 

@@ -14,9 +14,7 @@
 #include <string>
 
 template<typename W>
-using TASK_FCN = void (*)(const unsigned int tId,
-                          const std::string& name,
-                          W& work);
+using TASK_FCN = void (*)(const int tId, W& work);
 
 #endif
 

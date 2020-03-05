@@ -260,8 +260,6 @@ TEST_F(TestRuntimeBlock, TestRuntimeSingle) {
     constexpr unsigned int  N_BLOCKS_X     = 512;
     constexpr unsigned int  N_BLOCKS_Y     = 256;
 
-    ThreadTeam<Block>   cpu(4, 1, "TestRuntimeSingle.log");
-
     //***** SETUP DOMAIN MESH
     Grid myGrid(X_MIN, X_MAX, Y_MIN, Y_MAX,
                 NXB, NYB, N_BLOCKS_X, N_BLOCKS_Y,

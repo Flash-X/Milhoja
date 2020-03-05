@@ -6,9 +6,7 @@
 
 #include "constants.h"
 
-void ThreadRoutines::scaleEnergy_cpu(const unsigned int tId,
-                                     const std::string& name,
-                                     Block& block) {
+void ThreadRoutines::scaleEnergy_cpu(const int tId, Block& block) {
     unsigned int                  idx  = block.index();
     std::array<unsigned int,NDIM> lo   = block.lo();
     std::array<unsigned int,NDIM> hi   = block.hi();

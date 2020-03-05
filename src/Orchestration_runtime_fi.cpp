@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "Block.h"
+#include "runtimeTask.h"
 #include "OrchestrationRuntime.h"
 
 extern "C" {
@@ -27,6 +28,15 @@ extern "C" {
         } catch (...) {
             printf("\n??? ERROR: Unanticipated error\n\n");
         }
+    }
+
+    /**
+     *
+     */
+    void   orchestration_execute_tasks_fi(TASK_FCN<int> cpuTask) {
+        int tId  = 2;
+        int work = 12;
+        cpuTask(tId, work); 
     }
 
     /**

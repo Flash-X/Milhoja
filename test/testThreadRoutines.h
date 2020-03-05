@@ -4,15 +4,9 @@
 #include <string>
 
 namespace TestThreadRoutines {
-    void noop(const unsigned int tId,
-              const std::string& name,
-              int& work);
-    void delay_10ms(const unsigned int tId,
-                    const std::string& name,
-                    int& work);
-    void delay_100ms(const unsigned int tId,
-                     const std::string& name,
-                     int& work);
+    void noop(const int tId, int& work);
+    void delay_10ms(const int tId, int& work);
+    void delay_100ms(const int tId, int& work);
 }
 
 #endif

@@ -6,9 +6,7 @@
 
 #include "constants.h"
 
-void ThreadRoutines::computeLaplacianDensity_cpu(const unsigned int tId,
-                                                 const std::string& name,
-                                                 Block& block) {
+void ThreadRoutines::computeLaplacianDensity_cpu(const int tId, Block& block) {
     unsigned int                  idx       = block.index();
     unsigned int                  nGuard    = block.nGuardcells();
     std::array<unsigned int,NDIM> lo        = block.lo();
@@ -50,10 +48,6 @@ void ThreadRoutines::computeLaplacianDensity_cpu(const unsigned int tId,
                                    + ((f_y_im1 + f_y_ip1) - 2.0*f_i) * dy_sqr_inv;
          }
     }
-
-#ifdef VERBOSE
-    printf("[%s / Thread %d] Applied Laplacian to block %d\n", name.c_str(), tId, idx);
-#endif
 
     // Overwrite interior of given block with Laplacian result
     for      (int i=lo[IAXIS]; i<=hi[IAXIS]; ++i) {
