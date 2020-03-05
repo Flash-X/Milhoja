@@ -31,6 +31,8 @@ BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test
+AMREXDIR = $(HOME)/Projects/amrex_install/2D
+GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-6y5spjfzq4uiazxbcb7sw3qrloxbrhgw
 
 # Common files
 CXX_HDRS   = \
@@ -43,37 +45,30 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTDIR)/constants.h \
-    $(TESTDIR)/Block.h \
-    $(TESTDIR)/Grid.h \
-    $(TESTDIR)/BlockIterator.h \
-    $(TESTDIR)/computeLaplacianDensity_cpu.h \
-    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTDIR)/scaleEnergy_cpu.h
+    $(TESTDIR)/constants.h
+#    $(INCDIR)/OrchestrationRuntime.h \
+#    $(TESTDIR)/computeLaplacianDensity_cpu.h \
+#    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
+#    $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
-    $(TESTDIR)/Block.cpp \
-    $(TESTDIR)/Grid.cpp \
-    $(TESTDIR)/BlockIterator.cpp \
-    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
-    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(TESTDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
-    $(TESTDIR)/testThreadTeam.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeBlock.cpp
+#    $(TESTDIR)/testThreadTeam.cpp \
+#    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
+#    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
+#    $(TESTDIR)/scaleEnergy_cpu.cpp \
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile
 COMMAND   =  $(BASE).x
 
-GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-4fb34iawhssxssc3mdpe4cjjldgnr6n7
-CXX       = g++
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
 CXXWARNS  =
 
-LIBS      = -lstdc++ -lgtest -lgtest_main
-LDFLAGS   = -L$(GTESTDIR)/lib
+LIBS      = -lstdc++ -lamrex -lgtest -lgtest_main
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
  
 all:    $(COMMAND)
 

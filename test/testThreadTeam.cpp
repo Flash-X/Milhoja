@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 #include "testThreadRoutines.h"
-#include "OrchestrationRuntime.h"
+#include "ThreadTeam.h"
 
 #include "gtest/gtest.h"
 

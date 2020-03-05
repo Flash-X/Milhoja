@@ -1,7 +1,6 @@
 #include <string>
 #include <stdexcept>
 
-#include "Block.h"
 #include "runtimeTask.h"
 #include "OrchestrationRuntime.h"
 
@@ -14,11 +13,11 @@ extern "C" {
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
-            OrchestrationRuntime<Block>::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
-            OrchestrationRuntime<Block>::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
-            OrchestrationRuntime<Block>::setLogFilename(logFilename);
+            OrchestrationRuntime<int>::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
+            OrchestrationRuntime<int>::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
+            OrchestrationRuntime<int>::setLogFilename(logFilename);
 
-            OrchestrationRuntime<Block>*  runtime = OrchestrationRuntime<Block>::instance();
+            OrchestrationRuntime<int>*  runtime = OrchestrationRuntime<int>::instance();
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         } catch (std::logic_error  e) {
@@ -43,7 +42,7 @@ extern "C" {
      *
      */
     void   orchestration_finalize_fi(void) {
-        delete OrchestrationRuntime<Block>::instance();
+        delete OrchestrationRuntime<int>::instance();
     }
 }
 

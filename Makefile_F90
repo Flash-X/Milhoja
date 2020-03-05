@@ -44,13 +44,8 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTDIR)/constants.h \
-    $(TESTDIR)/Block.h \
-    $(TESTDIR)/Grid.h \
-    $(TESTDIR)/BlockIterator.h
+    $(TESTDIR)/constants.h
 CXX_SRCS       = \
-    $(TESTDIR)/Block.cpp \
-    $(TESTDIR)/Grid.cpp \
     $(SRCDIR)/Orchestration_runtime_fi.cpp
 F90_SRCS       = \
     $(SRCDIR)/Orchestration_interface.F90 \

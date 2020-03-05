@@ -3,9 +3,6 @@
 #include <stdexcept>
 #include <iostream>
 
-#include "Block.h"
-#include "BlockIterator.h"
-
 template<typename W>
 std::string              OrchestrationRuntime<W>::logFilename_       = "";
 template<typename W>
@@ -141,8 +138,7 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  * \return 
  */
 template<typename W>
-void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
-                                          const std::string& bundleName,
+void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
                                           TASK_FCN<W> cpuTask,
                                           const unsigned int nCpuThreads,
                                           const std::string& cpuTaskName,
@@ -196,15 +192,15 @@ void OrchestrationRuntime<W>::executeTask(Grid& myGrid,
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
-    Block         block;
-    BlockIterator itor(&myGrid);
-    for (itor.clear(); itor.isValid(); itor.next()) {
-        block = itor.currentBlock();
-
-        // Queue the GPU work first so that it can potentially get a head start
-        gpuTeam->enqueue(block);
-        cpuTeam->enqueue(block);
-    }
+//    Block         block;
+//    BlockIterator itor(&myGrid);
+//    for (itor.clear(); itor.isValid(); itor.next()) {
+//        block = itor.currentBlock();
+//
+//        // Queue the GPU work first so that it can potentially get a head start
+//        gpuTeam->enqueue(block);
+//        cpuTeam->enqueue(block);
+//    }
     gpuTeam->closeTask();
     cpuTeam->closeTask();
 
