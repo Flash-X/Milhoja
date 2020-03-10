@@ -138,7 +138,9 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  * \return 
  */
 template<typename W>
-void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
+void OrchestrationRuntime<W>::executeTask(amrex::MultiFab& mfab,
+                                          const amrex::Geometry& geometry,
+                                          const std::string& bundleName,
                                           TASK_FCN<W> cpuTask,
                                           const unsigned int nCpuThreads,
                                           const std::string& cpuTaskName,
@@ -188,19 +190,18 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
                            "PostGpuTask", postGpuTaskName);
 
-
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
-//    Block         block;
-//    BlockIterator itor(&myGrid);
-//    for (itor.clear(); itor.isValid(); itor.next()) {
-//        block = itor.currentBlock();
-//
-//        // Queue the GPU work first so that it can potentially get a head start
-//        gpuTeam->enqueue(block);
-//        cpuTeam->enqueue(block);
-//    }
+    // TODO: This is where it is clear that this class does not need to be a
+    // template.  This iterator isn't useful if the unit of work is the int.
+    // The runtime will have to cater to all the units of work across all
+    // ThreadTeams and queue appropriately.
+    for (amrex::MFIter  itor(mfab); itor.isValid(); ++itor) {
+        W  work(itor, mfab, geometry);
+        cpuTeam->enqueue(work);
+        gpuTeam->enqueue(work);
+    }
     gpuTeam->closeTask();
     cpuTeam->closeTask();
 

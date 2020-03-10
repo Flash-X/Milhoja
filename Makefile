@@ -36,6 +36,7 @@ GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googlet
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
@@ -45,19 +46,21 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(TESTDIR)/constants.h
-#    $(INCDIR)/OrchestrationRuntime.h \
-#    $(TESTDIR)/computeLaplacianDensity_cpu.h \
-#    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
-#    $(TESTDIR)/scaleEnergy_cpu.h
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/constants.h \
+    $(TESTDIR)/computeLaplacianDensity_cpu.h \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
+    $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
+    $(SRCDIR)/Tile.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
-    $(TESTDIR)/testRuntimeBlock.cpp
+    $(TESTDIR)/testRuntimeTile.cpp \
+    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
+    $(TESTDIR)/scaleEnergy_cpu.cpp \
+    $(TESTDIR)/runAllCppTests.cpp
 #    $(TESTDIR)/testThreadTeam.cpp \
-#    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
-#    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
-#    $(TESTDIR)/scaleEnergy_cpu.cpp \
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 MAKEFILE  = Makefile

@@ -10,6 +10,9 @@
 
 #include <string>
 
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+
 #include "ThreadTeam.h"
 #include "runtimeTask.h"
 
@@ -23,7 +26,9 @@ public:
     static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
-    void executeTask(const std::string& bundleName,
+    void executeTask(amrex::MultiFab& mfab,
+                     const amrex::Geometry& geometry,
+                     const std::string& bundleName,
                      TASK_FCN<W> cpuTask,
                      const unsigned int nCpuThreads,
                      const std::string& cpuTaskName,

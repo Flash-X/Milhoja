@@ -3,10 +3,10 @@
 
 #include <string>
 
-#include "Block.h"
+#include "Tile.h"
 
 namespace ThreadRoutines {
-    void computeLaplacianDensity_cpu(const int tId, Block& block);
+    void computeLaplacianDensity_cpu(const int tId, Tile& tileDesc);
 }
 
 #endif

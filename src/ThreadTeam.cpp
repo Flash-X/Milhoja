@@ -1012,7 +1012,6 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     ThreadTeamMode   mode             = ThreadTeamMode::IDLE;
     bool             isThreadStarting = true;
     unsigned int     N_Q              = 0;
-    W                work{};
     unsigned int     N_total          = 0;
     while (true) {
         mode = team->state_->mode();
@@ -1241,7 +1240,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             team->logFile_.close();
 #endif
 
-            work = team->queue_.front();
+            W   work = team->queue_.front();
             team->queue_.pop();
             --N_Q;
 

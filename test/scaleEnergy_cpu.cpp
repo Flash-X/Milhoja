@@ -1,23 +1,16 @@
 #include "scaleEnergy_cpu.h"
 
-#include <cstdio>
-
-#include <unistd.h>
-
 #include "constants.h"
 
-void ThreadRoutines::scaleEnergy_cpu(const int tId, Block& block) {
-    unsigned int                  idx  = block.index();
-    std::array<unsigned int,NDIM> lo   = block.lo();
-    std::array<unsigned int,NDIM> hi   = block.hi();
-    std::array<int,NDIM>          loGC = block.loGC();
-    double***                     f    = block.dataPtr();
+void ThreadRoutines::scaleEnergy_cpu(const int tId,
+                                     Tile& tileDesc) {
+    amrex::Array4<amrex::Real> const&   f = tileDesc.data();
 
-    int i0 = loGC[IAXIS];
-    int j0 = loGC[JAXIS];
-    for      (int i=lo[IAXIS]; i<=hi[IAXIS]; ++i) {
-         for (int j=lo[JAXIS]; j<=hi[JAXIS]; ++j) {
-              f[ENER_VAR][i-i0][j-j0] *= 3.2;
+    amrex::Dim3 const    lo = tileDesc.lo();
+    amrex::Dim3 const    hi = tileDesc.hi();
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+              f(i, j, lo.z, ENER_VAR) *= 3.2;
          }
     }
 }
