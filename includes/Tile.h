@@ -3,9 +3,6 @@
 
 #include <AMReX.H>
 #include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_FArrayBox.H>
 #include <AMReX_MFIter.H>
 
 /**
@@ -18,13 +15,13 @@
  */
 class Tile {
 public:
-    Tile(amrex::MFIter& itor,
-         amrex::MultiFab& mfab,
-         const amrex::Geometry& geometry);
+    Tile(amrex::MFIter& itor);
     ~Tile(void);
 
     amrex::Dim3                  lo(void) const;
     amrex::Dim3                  hi(void) const;
+    const int*                   loVect(void) const;
+    const int*                   hiVect(void) const;
     const amrex::Box&            interior(void) const;
 
     amrex::Dim3                  loGC(void) const;
@@ -35,10 +32,11 @@ public:
     amrex::Array4<amrex::Real>&  data(void);
 
 private:
+    // TODO: What to do with the copy and move methods?
+
     const amrex::Box             interior_;
     const amrex::Box             GC_;
     amrex::Array4<amrex::Real>   data_;
-    const amrex::Geometry&       geometry_;
 };
 
 #endif

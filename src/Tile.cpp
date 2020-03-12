@@ -1,15 +1,15 @@
 #include "Tile.h"
 
+#include "Grid.h"
+#include "constants.h"
+
 /**
  *
  */
-Tile::Tile(amrex::MFIter& itor,
-           amrex::MultiFab& mfab,
-           const amrex::Geometry& geometry)
+Tile::Tile(amrex::MFIter& itor)
     : interior_(itor.validbox()),
       GC_(itor.fabbox()),
-      data_(mfab.array(itor)),
-      geometry_(geometry) {  }
+      data_(Grid<NXB,NYB,NZB,NGUARD>::instance()->unk().array(itor)) {  }
 
 /**
  *
@@ -28,6 +28,20 @@ amrex::Dim3  Tile::lo(void) const {
  */
 amrex::Dim3  Tile::hi(void) const {
     return amrex::ubound(interior_);
+}
+
+/**
+ *
+ */
+const int*  Tile::loVect(void) const {
+    return interior_.loVect();
+}
+
+/**
+ *
+ */
+const int*  Tile::hiVect(void) const {
+    return interior_.hiVect();
 }
 
 /**
@@ -69,11 +83,13 @@ amrex::Array4<amrex::Real>& Tile::data(void) {
  *
  */
 amrex::XDim3 Tile::deltas(void) const {
+    amrex::Geometry& geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
+
     amrex::XDim3   deltas;
 
-    deltas.x = geometry_.CellSize(0);
-    deltas.y = geometry_.CellSize(1);
-    deltas.z = geometry_.CellSize(2);
+    deltas.x = geometry.CellSize(0);
+    deltas.y = geometry.CellSize(1);
+    deltas.z = geometry.CellSize(2);
 
     return deltas;
 }

@@ -13,8 +13,10 @@
 
 #include <string>
 
+// The work must be passed as a pointer for interoperability with Fortran
+// interface
 template<typename W>
-using TASK_FCN = void (*)(const int tId, W& work);
+using TASK_FCN = void (*)(const int tId, W* work);
 
 #endif
 

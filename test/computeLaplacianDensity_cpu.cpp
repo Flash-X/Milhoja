@@ -2,12 +2,12 @@
 
 #include "constants.h"
 
-void ThreadRoutines::computeLaplacianDensity_cpu(const int tId, Tile& tileDesc) {
-    amrex::Array4<amrex::Real> const&   f = tileDesc.data();
-    amrex::FArrayBox                    fabBuffer(tileDesc.interior());
+void ThreadRoutines::computeLaplacianDensity_cpu(const int tId, Tile* tileDesc) {
+    amrex::Array4<amrex::Real> const&   f = tileDesc->data();
+    amrex::FArrayBox                    fabBuffer(tileDesc->interior());
     amrex::Array4<amrex::Real> const&   buffer = fabBuffer.array();
 
-    amrex::XDim3  deltas = tileDesc.deltas();
+    amrex::XDim3  deltas = tileDesc->deltas();
 
     amrex::Real   f_i     = 0.0;
     amrex::Real   f_x_im1 = 0.0;
@@ -19,8 +19,8 @@ void ThreadRoutines::computeLaplacianDensity_cpu(const int tId, Tile& tileDesc) 
     amrex::Real   dy_sqr_inv = 1.0 / (deltas.y * deltas.y);
 
     // Compute Laplacian in buffer
-    const amrex::Dim3 lo = tileDesc.lo();
-    const amrex::Dim3 hi = tileDesc.hi();
+    const amrex::Dim3 lo = tileDesc->lo();
+    const amrex::Dim3 hi = tileDesc->hi();
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
               f_i     = f(i,   j,   lo.z, DENS_VAR);

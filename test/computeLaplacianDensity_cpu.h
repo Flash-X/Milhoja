@@ -6,7 +6,7 @@
 #include "Tile.h"
 
 namespace ThreadRoutines {
-    void computeLaplacianDensity_cpu(const int tId, Tile& tileDesc);
+    void computeLaplacianDensity_cpu(const int tId, Tile* tileDesc);
 }
 
 #endif

@@ -6,7 +6,7 @@
 #include "Tile.h"
 
 namespace ThreadRoutines {
-    void scaleEnergy_cpu(const int tId, Tile& tileDesc);
+    void scaleEnergy_cpu(const int tId, Tile* tileDesc);
 }
 
 #endif

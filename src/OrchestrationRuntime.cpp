@@ -138,9 +138,7 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  * \return 
  */
 template<typename W>
-void OrchestrationRuntime<W>::executeTask(amrex::MultiFab& mfab,
-                                          const amrex::Geometry& geometry,
-                                          const std::string& bundleName,
+void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
                                           TASK_FCN<W> cpuTask,
                                           const unsigned int nCpuThreads,
                                           const std::string& cpuTaskName,
@@ -197,11 +195,13 @@ void OrchestrationRuntime<W>::executeTask(amrex::MultiFab& mfab,
     // template.  This iterator isn't useful if the unit of work is the int.
     // The runtime will have to cater to all the units of work across all
     // ThreadTeams and queue appropriately.
-    for (amrex::MFIter  itor(mfab); itor.isValid(); ++itor) {
-        W  work(itor, mfab, geometry);
+    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+        W  work(itor);
         cpuTeam->enqueue(work);
         gpuTeam->enqueue(work);
     }
+    grid = nullptr;
     gpuTeam->closeTask();
     cpuTeam->closeTask();
 

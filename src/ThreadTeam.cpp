@@ -1240,6 +1240,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             team->logFile_.close();
 #endif
 
+            // TODO: Make certain that this is a move.  Ditto when we enqueue.
             W   work = team->queue_.front();
             team->queue_.pop();
             --N_Q;
@@ -1276,7 +1277,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 
             // Do work!  No need to keep mutex.
             pthread_mutex_unlock(&(team->teamMutex_));
-            team->taskFcn_(tId, work);
+            team->taskFcn_(tId, &work);
 
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));
