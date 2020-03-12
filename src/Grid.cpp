@@ -92,8 +92,10 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
     }
 
     unk_ = new amrex::MultiFab(ba, dm, NUNKVAR, NGC);
-
-    initBlock();
+    for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
+        Tile   tileDesc = Tile(itor);
+        initBlock(&tileDesc);
+    }
 }
 
 /**

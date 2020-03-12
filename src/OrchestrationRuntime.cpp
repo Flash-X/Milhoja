@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "Grid.h"
+
 template<typename W>
 std::string              OrchestrationRuntime<W>::logFilename_       = "";
 template<typename W>

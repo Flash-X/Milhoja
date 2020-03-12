@@ -84,30 +84,23 @@ protected:
                 - 2.0); 
     }
 
-    static void initBlock(void) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
-        amrex::MultiFab&   unk = grid->unk();
-        amrex::Geometry&   geometry = grid->geometry();
-        grid = nullptr;
+    static void initBlock(Tile* tileDesc) {
+        amrex::Geometry geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
 
+        amrex::Array4<amrex::Real> const&   f = tileDesc->data();
+
+        // Fill in the GC data as well as we aren't doing a GC fill in any
+        // of these tests
         amrex::Real   x = 0.0;
         amrex::Real   y = 0.0;
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            const amrex::Box&                    box = itor.fabbox();
-            amrex::FArrayBox&                    fab = unk[itor];
-            amrex::Array4<amrex::Real> const&    data = fab.array();
-
-            // Fill in the GC data as well as we aren't doing a GC fill in any
-            // of these tests
-            const amrex::Dim3 loGC = amrex::lbound(box);
-            const amrex::Dim3 hiGC = amrex::ubound(box);
-            for     (int j = loGC.y; j <= hiGC.y; ++j) {
-                y = geometry.CellCenter(j, 1);
-                for (int i = loGC.x; i <= hiGC.x; ++i) {
-                    x = geometry.CellCenter(i, 0);
-                    data(i, j, loGC.z, DENS_VAR) = f1(x, y);
-                    data(i, j, loGC.z, ENER_VAR) = f2(x, y);
-                }
+        const amrex::Dim3 loGC = tileDesc->loGC();
+        const amrex::Dim3 hiGC = tileDesc->hiGC();
+        for     (int j = loGC.y; j <= hiGC.y; ++j) {
+            y = geometry.CellCenter(j, 1);
+            for (int i = loGC.x; i <= hiGC.x; ++i) {
+                x = geometry.CellCenter(i, 0);
+                f(i, j, loGC.z, DENS_VAR) = f1(x, y);
+                f(i, j, loGC.z, ENER_VAR) = f2(x, y);
             }
         }
     }

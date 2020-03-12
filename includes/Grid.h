@@ -12,7 +12,9 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-using SET_IC_FCN = void (*)(void);
+#include "Tile.h"
+
+using SET_IC_FCN = void (*)(Tile* tileDesc);
 
 template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
 class Grid {
