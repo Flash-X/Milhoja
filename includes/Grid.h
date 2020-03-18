@@ -11,6 +11,7 @@
 #include <AMReX.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include "Tile.h"
 
@@ -29,11 +30,14 @@ public:
                        const unsigned int nBlocksX,
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
+                       const unsigned int nVars,
                        SET_IC_FCN initBlock);
     void    destroyDomain(void);
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return geometry_; }
+
+    void    writeToFile(const std::string& filename) const;
 
 private:
     Grid(void);

@@ -85,8 +85,8 @@ std::string ThreadTeamRunningOpen<W,T>::increaseThreadCount_NotThreadsafe(
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(const W& work) {
-    team_->queue_.push(work);
+std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work) {
+    team_->queue_.push(std::move(work));
 
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);

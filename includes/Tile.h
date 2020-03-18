@@ -18,6 +18,11 @@ public:
     Tile(amrex::MFIter& itor);
     ~Tile(void);
 
+    Tile(Tile&&);
+    Tile& operator=(Tile&&);
+
+    int                          gridIndex(void) const  { return gridIdx_; }
+
     amrex::Dim3                  lo(void) const;
     amrex::Dim3                  hi(void) const;
     const int*                   loVect(void) const;
@@ -26,17 +31,25 @@ public:
 
     amrex::Dim3                  loGC(void) const;
     amrex::Dim3                  hiGC(void) const;
+    const int*                   loGCVect(void) const;
+    const int*                   hiGCVect(void) const;
     const amrex::Box&            interiorAndGC(void) const;
 
     amrex::XDim3                 deltas(void) const;
-    amrex::Array4<amrex::Real>&  data(void);
+//    amrex::Array4<amrex::Real>&  data(void)     { return data_; }
+
 
 private:
-    // TODO: What to do with the copy and move methods?
+    Tile(Tile&) = delete;
+    Tile(const Tile&) = delete;
+    Tile& operator=(Tile&) = delete;
+    Tile& operator=(const Tile&) = delete;
+    Tile& operator=(const Tile&&) = delete;
 
-    const amrex::Box             interior_;
-    const amrex::Box             GC_;
-    amrex::Array4<amrex::Real>   data_;
+    int           gridIdx_;
+    amrex::Box*   interior_;
+    amrex::Box*   GC_;
+//    amrex::Array4<amrex::Real>   data_;
 };
 
 #endif

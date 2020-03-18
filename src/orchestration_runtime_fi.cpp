@@ -1,6 +1,7 @@
 #include <string>
 #include <stdexcept>
 
+#include "Tile.h"
 #include "runtimeTask.h"
 #include "OrchestrationRuntime.h"
 
@@ -13,11 +14,11 @@ extern "C" {
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
-            OrchestrationRuntime<int>::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
-            OrchestrationRuntime<int>::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
-            OrchestrationRuntime<int>::setLogFilename(logFilename);
+            OrchestrationRuntime<Tile>::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
+            OrchestrationRuntime<Tile>::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
+            OrchestrationRuntime<Tile>::setLogFilename(logFilename);
 
-            OrchestrationRuntime<int>*  runtime = OrchestrationRuntime<int>::instance();
+            OrchestrationRuntime<Tile>::instance();
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         } catch (std::logic_error  e) {
@@ -32,17 +33,21 @@ extern "C" {
     /**
      *
      */
-    void   orchestration_execute_tasks_fi(TASK_FCN<int> cpuTask) {
-        int tId  = 2;
-        int work = 12;
-        cpuTask(tId, work); 
+    void   orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuTask,
+                                          const int nCpuThreads) {
+        OrchestrationRuntime<Tile>*  runtime = OrchestrationRuntime<Tile>::instance();
+        runtime->executeTask("Task1",
+                             cpuTask,
+                             static_cast<unsigned int>(nCpuThreads), "CpuTask",
+                             nullptr, 0, "NoTask",
+                             nullptr, 0, "NoTask");
     }
 
     /**
      *
      */
     void   orchestration_finalize_fi(void) {
-        delete OrchestrationRuntime<int>::instance();
+        delete OrchestrationRuntime<Tile>::instance();
     }
 }
 

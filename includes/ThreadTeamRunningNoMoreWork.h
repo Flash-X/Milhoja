@@ -29,7 +29,7 @@ public:
                             const unsigned int nThreads,
                             const std::string& teamName, 
                             const std::string& taskName) override;
-    std::string     enqueue_NotThreadsafe(const W& work) override;
+    std::string     enqueue_NotThreadsafe(W& work) override;
     std::string     closeTask_NotThreadsafe(void) override;
 
 protected:

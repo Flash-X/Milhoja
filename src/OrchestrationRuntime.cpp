@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "Grid.h"
+#include "Flash.h"
 
 template<typename W>
 std::string              OrchestrationRuntime<W>::logFilename_       = "";
@@ -179,16 +180,16 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
 #endif
 
     //***** Construct thread and work pipelines
-    cpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachWorkReceiver(postGpuTeam);
+//    cpuTeam->attachThreadReceiver(postGpuTeam);
+//    gpuTeam->attachThreadReceiver(postGpuTeam);
+//    gpuTeam->attachWorkReceiver(postGpuTeam);
 
     cpuTeam->startTask(cpuTask, nCpuThreads,
                        "CpuTask", cpuTaskName);
-    gpuTeam->startTask(gpuTask, nGpuThreads,
-                       "GpuTask", gpuTaskName);
-    postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
-                           "PostGpuTask", postGpuTaskName);
+//    gpuTeam->startTask(gpuTask, nGpuThreads,
+//                       "GpuTask", gpuTaskName);
+//    postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
+//                           "PostGpuTask", postGpuTaskName);
 
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
@@ -201,10 +202,10 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         W  work(itor);
         cpuTeam->enqueue(work);
-        gpuTeam->enqueue(work);
+//        gpuTeam->enqueue(work);
     }
     grid = nullptr;
-    gpuTeam->closeTask();
+//    gpuTeam->closeTask();
     cpuTeam->closeTask();
 
     // TODO: We could give subscribers a pointer to the publisher so that during
@@ -216,20 +217,20 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     // CPU and GPU pools are not dependent on any other pools
     //   => call these first
     cpuTeam->wait();
-    cpuTeam->detachThreadReceiver();
+//    cpuTeam->detachThreadReceiver();
 
-    gpuTeam->wait();
+//    gpuTeam->wait();
     
     // The GPU pool has no more threads or work to push to its dependents
-    gpuTeam->detachThreadReceiver();
-    gpuTeam->detachWorkReceiver();
+//    gpuTeam->detachThreadReceiver();
+//    gpuTeam->detachWorkReceiver();
 
     // Post-GPU follows GPU in the thread pool work/thread pipeline
     //   => the gpuTeam wait() method *must* terminate before the postGpuTeam
     //      wait() method is called to ensure that all GPU work are queued
     //      in postGpuTeam before the post-GPU thread pool can begin
     //      determining if it should terminate.
-    postGpuTeam->wait();
+//    postGpuTeam->wait();
 
 #ifdef VERBOSE
     logFile_.open(logFilename_, std::ios::out | std::ios::app);

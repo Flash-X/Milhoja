@@ -1,5 +1,6 @@
 #include <stdexcept>
 
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
@@ -58,6 +59,7 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
                                        const unsigned int nBlocksX,
                                        const unsigned int nBlocksY,
                                        const unsigned int nBlocksZ,
+                                       const unsigned int nVars,
                                        SET_IC_FCN initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
@@ -91,9 +93,9 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
         assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NX, NY, NZ)));
     }
 
-    unk_ = new amrex::MultiFab(ba, dm, NUNKVAR, NGC);
+    unk_ = new amrex::MultiFab(ba, dm, nVars, NGC);
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        Tile   tileDesc = Tile(itor);
+        Tile   tileDesc(itor);
         initBlock(&tileDesc);
     }
 }
@@ -108,5 +110,17 @@ void    Grid<NX,NY,NZ,NGC>::destroyDomain(void) {
         unk_ = nullptr;
     }
     geometry_ = amrex::Geometry();
+}
+
+/**
+ *
+ */
+template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
+void    Grid<NX,NY,NZ,NGC>::writeToFile(const std::string& filename) const {
+    amrex::Vector<std::string>    names(unk_->nComp());
+    names[0] = "Density";
+    names[1] = "Energy";
+
+    amrex::WriteSingleLevelPlotfile(filename, *unk_, names, geometry_, 0.0, 0);
 }
 

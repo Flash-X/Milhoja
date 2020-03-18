@@ -31,9 +31,12 @@ BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test
+AMREXDIR = $(HOME)/Projects/amrex_install/2D
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
@@ -46,31 +49,47 @@ CXX_HDRS   = \
     $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
-    $(SRCDIR)/Orchestration_runtime_fi.cpp
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/tile_fi.cpp \
+    $(SRCDIR)/grid_fi.cpp \
+    $(SRCDIR)/orchestration_runtime_fi.cpp
 F90_SRCS       = \
+    $(SRCDIR)/tile_mod.F90 \
+    $(SRCDIR)/Grid_interface.F90 \
     $(SRCDIR)/Orchestration_interface.F90 \
+    $(TESTDIR)/Simulation_interface.F90 \
+    $(TESTDIR)/Analysis_interface.F90 \
+    $(TESTDIR)/Simulation_initBlock.F90 \
+    $(SRCDIR)/Grid_data.F90 \
     $(SRCDIR)/Orchestration_data.F90 \
+    $(TESTDIR)/Analysis_data.F90 \
+    $(SRCDIR)/Grid_init.F90 \
+    $(SRCDIR)/Grid_initDomain.F90 \
+    $(SRCDIR)/Grid_getDomainBoundBox.F90 \
+    $(SRCDIR)/Grid_getDeltas.F90 \
+    $(SRCDIR)/Grid_getCellCoords.F90 \
+    $(SRCDIR)/Grid_finalize.F90 \
     $(SRCDIR)/Orchestration_init.F90 \
     $(SRCDIR)/Orchestration_finalize.F90 \
     $(SRCDIR)/Orchestration_executeTasks.F90 \
-    $(TESTDIR)/RuntimeTest_data.F90 \
-    $(TESTDIR)/RuntimeTest_evolveFlash.F90
+    $(TESTDIR)/Driver_evolveFlash.F90 \
+    $(TESTDIR)/Analysis_computeErrors.F90
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
 MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
 MAKEFILE  = Makefile_F90
 COMMAND   =  $(BASE).x
 
-CXX       = g++
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
 CXXWARNS  =
 
-F90       = gfortran
-F90FLAGS  = -g -O0
+F90       = mpif90
+F90FLAGS  = -g -O0 -cpp -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
 F90WARNS  =
 
-LIBS      = -lstdc++
-LDFLAGS   = 
+LIBS      = -lstdc++ -lamrex
+LDFLAGS   = -L$(AMREXDIR)/lib
  
 all:    $(COMMAND)
 
@@ -89,6 +108,8 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 clean:
 	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
 	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
-	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
 	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(BASEDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.mod
 

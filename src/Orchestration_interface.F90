@@ -11,13 +11,10 @@ module Orchestration_interface
 
     !!!!!----- DEFINE PROCEDURE POINTER INTERFACES
     abstract interface
-        ! TODO: The unit of work is int.  After the AMReX iterator is built into
-        !       the C++ code, we can swap this over to Grid_tile_t or a data
-        !       packet of tiles
-        subroutine Orchestration_runtimeTask(tId, work) bind(c)
-            use iso_c_binding, ONLY : c_int
-            integer(c_int), intent(IN), value :: tId
-            integer(c_int), intent(IN)        :: work
+        subroutine Orchestration_runtimeTask(tId, tilePtr) bind(c)
+            use iso_c_binding, ONLY : C_INT, C_PTR
+            integer(C_INT), intent(IN), value :: tId
+            type(C_PTR),    intent(IN), value :: tilePtr
         end subroutine Orchestration_runtimeTask
     end interface
 
@@ -25,10 +22,7 @@ module Orchestration_interface
 
     !!!!!----- DEFINE GENERAL ROUTINE INTERFACES
     interface
-        subroutine Orchestration_init(nTeams, nThreadsPerTeam, logFilename)
-            integer,          intent(IN) :: nTeams
-            integer,          intent(IN) :: nThreadsPerTeam
-            character(len=*), intent(IN) :: logFilename 
+        subroutine Orchestration_init()
         end subroutine Orchestration_init
     end interface
 
@@ -38,8 +32,9 @@ module Orchestration_interface
     end interface
 
     interface
-        subroutine Orchestration_executeTasks(cpuTask)
+        subroutine Orchestration_executeTasks(cpuTask, nCpuTasks)
             procedure(Orchestration_runtimeTask) :: cpuTask
+            integer, intent(IN)                  :: nCpuTasks
         end subroutine Orchestration_executeTasks
     end interface
 

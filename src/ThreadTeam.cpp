@@ -587,7 +587,7 @@ void ThreadTeam<W>::closeTask(void) {
  * \param   work - the unit of work.
  */
 template<typename W>
-void ThreadTeam<W>::enqueue(const W& work) {
+void ThreadTeam<W>::enqueue(W& work) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -1241,7 +1241,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 #endif
 
             // TODO: Make certain that this is a move.  Ditto when we enqueue.
-            W   work = team->queue_.front();
+            W   work = std::move(team->queue_.front());
             team->queue_.pop();
             --N_Q;
 
