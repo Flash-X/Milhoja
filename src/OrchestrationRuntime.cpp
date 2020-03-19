@@ -141,16 +141,23 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  * \return 
  */
 template<typename W>
-void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
-                                          TASK_FCN<W> cpuTask,
-                                          const unsigned int nCpuThreads,
-                                          const std::string& cpuTaskName,
-                                          TASK_FCN<W> gpuTask, 
-                                          const unsigned int nGpuThreads,
-                                          const std::string& gpuTaskName, 
-                                          TASK_FCN<W> postGpuTask,
-                                          const unsigned int nPostGpuThreads,
-                                          const std::string& postGpuTaskName) {
+void OrchestrationRuntime<W>::executeTasks(const std::string& bundleName,
+                                           TASK_FCN<W> cpuTask,
+                                           const unsigned int nCpuThreads,
+                                           const std::string& cpuTaskName,
+                                           TASK_FCN<W> gpuTask, 
+                                           const unsigned int nGpuThreads,
+                                           const std::string& gpuTaskName, 
+                                           TASK_FCN<W> postGpuTask,
+                                           const unsigned int nPostGpuThreads,
+                                           const std::string& postGpuTaskName) {
+#ifdef VERBOSE
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Start execution of " 
+             << bundleName << std::endl;
+    logFile_.close();
+#endif
+
     // TODO: The pipeline construction would be done dynamically.
     // Realistically, we would have multiple different implementations and 
     // this routine would select the setup based on the parameter values.
@@ -159,26 +166,47 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     // TASK_COMPOSER: Should the task composer identify the pipelines that it
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
-
-    if (!cpuTask && !gpuTask && !postGpuTask) {
+    if (cpuTask && !gpuTask && !postGpuTask) {
+        executeCpuTask(bundleName,
+                       cpuTask, nCpuThreads, cpuTaskName);
+    } else if (cpuTask && gpuTask && postGpuTask) {
+        executeTasks_Full(bundleName,
+                          cpuTask,     nCpuThreads,     cpuTaskName,
+                          gpuTask,     nGpuThreads,     gpuTaskName,
+                          postGpuTask, nPostGpuThreads, postGpuTaskName);
+    } else {
         // TODO: Return an error code so that Fortran wrapper can call
         // Driver_abortFlash with error message generated here?
-        std::string   errMsg =   "No tasks given for runtime task ";
+        std::string   errMsg =   "No compatible thread team layout - ";
         errMsg += bundleName;
         errMsg += "\n";
         throw std::logic_error(errMsg);
     }
 
-    if (!cpuTask) {
-        std::cout << "Given NULL cpu task\n";
-    }
-    if (!gpuTask) {
-        std::cout << "Given NULL gpu task\n";
-    }
-    if (!postGpuTask) {
-        std::cout << "Given NULL post-gpu task\n";
-    }
+#ifdef VERBOSE
+    logFile_.open(logFilename_, std::ios::out | std::ios::app);
+    logFile_ << "[OrchestrationRuntime] Finished execution of " 
+             << bundleName << std::endl;
+    logFile_.close();
+#endif
+}
 
+/**
+ * 
+ *
+ * \return 
+ */
+template<typename W>
+void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
+                                                TASK_FCN<W> cpuTask,
+                                                const unsigned int nCpuThreads,
+                                                const std::string& cpuTaskName,
+                                                TASK_FCN<W> gpuTask, 
+                                                const unsigned int nGpuThreads,
+                                                const std::string& gpuTaskName, 
+                                                TASK_FCN<W> postGpuTask,
+                                                const unsigned int nPostGpuThreads,
+                                                const std::string& postGpuTaskName) {
     ThreadTeam<W>*   cpuTeam     = teams_[0];
     ThreadTeam<W>*   gpuTeam     = teams_[1];
     ThreadTeam<W>*   postGpuTeam = teams_[2];
@@ -191,24 +219,15 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     }
     // TODO: Confirm that no team has publisher's/subscribers.
 
-#ifdef VERBOSE
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[OrchestrationRuntime] Start execution of " 
-             << bundleName << std::endl;
-    logFile_.close();
-#endif
 
     //***** Construct thread and work pipelines
-//    cpuTeam->attachThreadReceiver(postGpuTeam);
-//    gpuTeam->attachThreadReceiver(postGpuTeam);
-//    gpuTeam->attachWorkReceiver(postGpuTeam);
+    cpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachWorkReceiver(postGpuTeam);
 
-    cpuTeam->startTask(cpuTask, nCpuThreads,
-                       "CpuTask", cpuTaskName);
-//    gpuTeam->startTask(gpuTask, nGpuThreads,
-//                       "GpuTask", gpuTaskName);
-//    postGpuTeam->startTask(postGpuTask, nPostGpuThreads,
-//                           "PostGpuTask", postGpuTaskName);
+    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
+    gpuTeam->startTask(gpuTask, nGpuThreads, "GpuTask", gpuTaskName);
+    postGpuTeam->startTask(postGpuTask, nPostGpuThreads, "PostGpuTask", postGpuTaskName);
 
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
@@ -221,10 +240,10 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         W  work(itor);
         cpuTeam->enqueue(work);
-//        gpuTeam->enqueue(work);
+        gpuTeam->enqueue(work);
     }
     grid = nullptr;
-//    gpuTeam->closeTask();
+    gpuTeam->closeTask();
     cpuTeam->closeTask();
 
     // TODO: We could give subscribers a pointer to the publisher so that during
@@ -236,26 +255,43 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     // CPU and GPU pools are not dependent on any other pools
     //   => call these first
     cpuTeam->wait();
-//    cpuTeam->detachThreadReceiver();
+    cpuTeam->detachThreadReceiver();
 
-//    gpuTeam->wait();
+    gpuTeam->wait();
     
     // The GPU pool has no more threads or work to push to its dependents
-//    gpuTeam->detachThreadReceiver();
-//    gpuTeam->detachWorkReceiver();
+    gpuTeam->detachThreadReceiver();
+    gpuTeam->detachWorkReceiver();
 
     // Post-GPU follows GPU in the thread pool work/thread pipeline
     //   => the gpuTeam wait() method *must* terminate before the postGpuTeam
     //      wait() method is called to ensure that all GPU work are queued
     //      in postGpuTeam before the post-GPU thread pool can begin
     //      determining if it should terminate.
-//    postGpuTeam->wait();
+    postGpuTeam->wait();
+}
 
-#ifdef VERBOSE
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[OrchestrationRuntime] Finished execution of " 
-             << bundleName << std::endl;
-    logFile_.close();
-#endif
+/**
+ * 
+ *
+ * \return 
+ */
+template<typename W>
+void OrchestrationRuntime<W>::executeCpuTask(const std::string& bundleName,
+                                             TASK_FCN<W> cpuTask,
+                                             const unsigned int nCpuThreads,
+                                             const std::string& cpuTaskName) {
+    ThreadTeam<W>*   cpuTeam     = teams_[0];
+
+    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
+
+    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+        W  work(itor);
+        cpuTeam->enqueue(work);
+    }
+    grid = nullptr;
+    cpuTeam->closeTask();
+    cpuTeam->wait();
 }
 
