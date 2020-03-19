@@ -27,7 +27,8 @@ program Driver_evolveFlash
     ph_op1_energyFactor = 3.2
     an_energyFactor = ph_op1_energyFactor
 
-    call Orchestration_executeTasks(Physics_op1_executeTask3_Tile, 3)
+    call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask3_Tile, &
+                                    nCpuThreads=3)
 
     ! DEV: Since we are breaking up the high-level operations so that we can
     ! potentially mix tasks from different operations in execution cycles, we
@@ -44,7 +45,9 @@ program Driver_evolveFlash
     ! need a synchoronization mechanism?!
     an_LinfErrors(:, :)    = 0.0
     an_meanAbsErrors(:, :) = 0.0
-    call Orchestration_executeTasks(Analysis_computeErrors, 2)
+
+    call Orchestration_executeTasks(cpuTask=Analysis_computeErrors, &
+                                    nCpuThreads=2)
     write(*,*) "Linf           Density = ", MAXVAL(an_LinfErrors(DENS_VAR, :))
     write(*,*) "Linf           Energy  = ", MAXVAL(an_LinfErrors(ENER_VAR, :))
 

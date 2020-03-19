@@ -32,9 +32,15 @@ module Orchestration_interface
     end interface
 
     interface
-        subroutine Orchestration_executeTasks(cpuTask, nCpuTasks)
-            procedure(Orchestration_runtimeTask) :: cpuTask
-            integer, intent(IN)                  :: nCpuTasks
+        subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
+                                              gpuTask,     nGpuThreads, &
+                                              postGpuTask, nPostGpuThreads)
+            procedure(Orchestration_runtimeTask), optional :: cpuTask
+            integer, intent(IN),                  optional :: nCpuThreads
+            procedure(Orchestration_runtimeTask), optional :: gpuTask
+            integer, intent(IN),                  optional :: nGpuThreads
+            procedure(Orchestration_runtimeTask), optional :: postGpuTask
+            integer, intent(IN),                  optional :: nPostGpuThreads
         end subroutine Orchestration_executeTasks
     end interface
 

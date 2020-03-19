@@ -34,13 +34,19 @@ extern "C" {
      *
      */
     void   orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuTask,
-                                          const int nCpuThreads) {
+                                          const int nCpuThreads,
+                                          TASK_FCN<Tile> gpuTask,
+                                          const int nGpuThreads,
+                                          TASK_FCN<Tile> postGpuTask,
+                                          const int nPostGpuThreads) {
         OrchestrationRuntime<Tile>*  runtime = OrchestrationRuntime<Tile>::instance();
         runtime->executeTask("Task1",
                              cpuTask,
                              static_cast<unsigned int>(nCpuThreads), "CpuTask",
-                             nullptr, 0, "NoTask",
-                             nullptr, 0, "NoTask");
+                             gpuTask,
+                             static_cast<unsigned int>(nGpuThreads), "GpuTask",
+                             postGpuTask,
+                             static_cast<unsigned int>(nPostGpuThreads), "postGpuTask");
     }
 
     /**

@@ -160,6 +160,25 @@ void OrchestrationRuntime<W>::executeTask(const std::string& bundleName,
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
 
+    if (!cpuTask && !gpuTask && !postGpuTask) {
+        // TODO: Return an error code so that Fortran wrapper can call
+        // Driver_abortFlash with error message generated here?
+        std::string   errMsg =   "No tasks given for runtime task ";
+        errMsg += bundleName;
+        errMsg += "\n";
+        throw std::logic_error(errMsg);
+    }
+
+    if (!cpuTask) {
+        std::cout << "Given NULL cpu task\n";
+    }
+    if (!gpuTask) {
+        std::cout << "Given NULL gpu task\n";
+    }
+    if (!postGpuTask) {
+        std::cout << "Given NULL post-gpu task\n";
+    }
+
     ThreadTeam<W>*   cpuTeam     = teams_[0];
     ThreadTeam<W>*   gpuTeam     = teams_[1];
     ThreadTeam<W>*   postGpuTeam = teams_[2];
