@@ -59,10 +59,12 @@ F90_SRCS       = \
     $(SRCDIR)/Orchestration_interface.F90 \
     $(TESTDIR)/Simulation_interface.F90 \
     $(TESTDIR)/Analysis_interface.F90 \
+    $(TESTDIR)/Physics_interface.F90 \
     $(TESTDIR)/Simulation_initBlock.F90 \
     $(SRCDIR)/Grid_data.F90 \
     $(SRCDIR)/Orchestration_data.F90 \
     $(TESTDIR)/Analysis_data.F90 \
+    $(TESTDIR)/Physics_data.F90 \
     $(SRCDIR)/Grid_init.F90 \
     $(SRCDIR)/Grid_initDomain.F90 \
     $(SRCDIR)/Grid_getDomainBoundBox.F90 \
@@ -73,7 +75,8 @@ F90_SRCS       = \
     $(SRCDIR)/Orchestration_finalize.F90 \
     $(SRCDIR)/Orchestration_executeTasks.F90 \
     $(TESTDIR)/Driver_evolveFlash.F90 \
-    $(TESTDIR)/Analysis_computeErrors.F90
+    $(TESTDIR)/Analysis_computeErrors.F90 \
+    $(TESTDIR)/Physics_op1_executeTask3_Tile.F90
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
 MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))

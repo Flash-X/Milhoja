@@ -7,6 +7,10 @@ module tile_mod
     implicit none
     private
 
+    ! TODO: Can we make this a derived type (i.e. no methods) that is
+    ! interoperable with a C struct?  Check if this simplifies the wrapper and
+    ! leads to a performance increase.  It would be good to get rid of Fortran
+    ! classes everywhere.
     type, public :: tile_t
         type(C_PTR) :: cptr         = C_NULL_PTR
         integer     :: gridIndex    = -1

@@ -6,7 +6,9 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
 
     use Grid_interface, ONLY : Grid_getCellCoords
     use tile_mod,       ONLY : tile_t
-    use Analysis_data,  ONLY : an_LinfErrors, an_meanAbsErrors
+    use Analysis_data,  ONLY : an_LinfErrors, &
+                               an_meanAbsErrors, &
+                               an_energyFactor
 
     implicit none
 
@@ -68,6 +70,7 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
                 fExpected =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x &
                             -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y &
                             + 1.0;
+                fExpected = fExpected * an_energyFactor
                 absErr = ABS(f(i, j, k, ENER_VAR) - fExpected)
                 sumEner = sumEner + absErr
                 an_LinfErrors(ENER_VAR, idx) = MAX(an_LinfErrors(ENER_VAR, idx), absErr)

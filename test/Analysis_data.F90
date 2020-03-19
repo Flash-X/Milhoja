@@ -7,5 +7,7 @@ module Analysis_data
 
     real, save, allocatable :: an_LinfErrors(:, :)
     real, save, allocatable :: an_meanAbsErrors(:, :)
+
+    real, save :: an_energyFactor = 0.0
 end module Analysis_data
 
