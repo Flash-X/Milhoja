@@ -91,7 +91,7 @@ public:
                            const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName);
-    void         enqueue(W& work);
+    void         enqueue(W& work, const bool move);
     void         closeTask(void);
     void         wait(void);
 

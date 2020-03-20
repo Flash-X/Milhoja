@@ -85,8 +85,16 @@ std::string ThreadTeamRunningOpen<W,T>::increaseThreadCount_NotThreadsafe(
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work) {
-    team_->queue_.push(std::move(work));
+std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+    if (move) {
+        // Force move to new Tile object so that the object pushed to queue has
+        // ownership of tile resources
+        team_->queue_.push(std::move(work));
+    } else {
+        // Copy the tile resources and push copy on queue.  The copy gets its
+        // own tile resources.
+        team_->queue_.push(work);
+    }
 
 #ifdef VERBOSE
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);

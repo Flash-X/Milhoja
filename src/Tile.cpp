@@ -21,6 +21,15 @@ Tile::Tile(amrex::MFIter& itor)
     GC_->shift({AMREX_D_DECL(1, 1, 1)});
 }
 
+Tile::Tile(const Tile& other)
+    : gridIdx_(other.gridIdx_),
+      interior_(nullptr),
+      GC_(nullptr)
+{
+    interior_ = new amrex::Box(*(other.interior_));
+    GC_       = new amrex::Box(*(other.GC_));
+}
+
 Tile::Tile(Tile&& other)
     : gridIdx_(other.gridIdx_),
       interior_(other.interior_),

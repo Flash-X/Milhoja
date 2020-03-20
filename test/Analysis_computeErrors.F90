@@ -68,17 +68,14 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
             do i = lo(IAXIS), hi(IAXIS)
                 x = xCoords(i)
 
-                fExpected =   3.0*x*x*x +     x*x + x &
-                            - 2.0*y*y*y - 1.5*y*y + y &
-                            + 5.0;
+                fExpected = 18.0*x - 12.0*y - 1.0
                 absErr = ABS(f(i, j, k, DENS_VAR) - fExpected)
                 sumDens = sumDens + absErr
                 LinfDens = MAX(LinfDens, absErr)
 
-                fExpected =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x &
-                            -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y &
-                            + 1.0;
-                fExpected = fExpected * an_energyFactor
+                fExpected = an_energyFactor * (  48.0*x*x - 18.0*x &
+                                               - 12.0*y*y + 12.0*y &
+                                               - 2.0)
                 absErr = ABS(f(i, j, k, ENER_VAR) - fExpected)
                 sumEner = sumEner + absErr
                 LinfEner = MAX(LinfEner, absErr)

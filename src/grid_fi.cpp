@@ -36,9 +36,6 @@ extern "C" {
                          static_cast<unsigned int>(nBlocksZ),
                          static_cast<unsigned int>(nVars),
                          initBlock);
-
-        grid->writeToFile(std::string("RuntimeTest"));
-
         grid = nullptr;
     }
 

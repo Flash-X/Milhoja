@@ -76,6 +76,8 @@ F90_SRCS       = \
     $(SRCDIR)/Orchestration_executeTasks.F90 \
     $(TESTDIR)/Driver_evolveFlash.F90 \
     $(TESTDIR)/Analysis_computeErrors.F90 \
+    $(TESTDIR)/Physics_op1_executeTask1_Tile.F90 \
+    $(TESTDIR)/Physics_op1_executeTask2_Tile.F90 \
     $(TESTDIR)/Physics_op1_executeTask3_Tile.F90
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))

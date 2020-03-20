@@ -587,7 +587,7 @@ void ThreadTeam<W>::closeTask(void) {
  * \param   work - the unit of work.
  */
 template<typename W>
-void ThreadTeam<W>::enqueue(W& work) {
+void ThreadTeam<W>::enqueue(W& work, const bool move) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -604,7 +604,7 @@ void ThreadTeam<W>::enqueue(W& work) {
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->enqueue_NotThreadsafe(work);
+    errMsg = state_->enqueue_NotThreadsafe(work, move);
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -1290,7 +1290,10 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 #endif
 
             if (team->workReceiver_) {
-                team->workReceiver_->enqueue(work);
+                // Since there is presently only one work subscriber per
+                // publisher, we can use move semantics to transfer ownership of
+                // the tile from publisher to subscriber
+                team->workReceiver_->enqueue(work, true);
             }
 
             if (team->N_comp_ <= 0) {

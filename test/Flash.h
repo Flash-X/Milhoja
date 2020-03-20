@@ -13,8 +13,8 @@
 #define Y_MAX      1.0
 #define Z_MIN      0.0
 #define Z_MAX      0.0
-#define N_BLOCKS_X  64
-#define N_BLOCKS_Y  32
+#define N_BLOCKS_X 256
+#define N_BLOCKS_Y 128
 #define N_BLOCKS_Z   1
 
 #endif

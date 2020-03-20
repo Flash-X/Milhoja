@@ -30,7 +30,7 @@ public:
                                     const unsigned int nThreads,
                                     const std::string& teamName, 
                                     const std::string& taskName) = 0;
-    virtual std::string     enqueue_NotThreadsafe(W& work) = 0;
+    virtual std::string     enqueue_NotThreadsafe(W& work, const bool move) = 0;
     virtual std::string     closeTask_NotThreadsafe(void) = 0;
 
 protected:

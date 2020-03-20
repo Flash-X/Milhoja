@@ -18,6 +18,8 @@ subroutine Physics_op1_executeTask3_Tile(tId, tilePtr) bind(c)
     integer                          :: hi(1:MDIM)
     integer                          :: i, j, k
 
+    nullify(f)
+
     tileDesc = tilePtr
 
     call tileDesc%dataPtr(f)
@@ -30,5 +32,6 @@ subroutine Physics_op1_executeTask3_Tile(tId, tilePtr) bind(c)
             end do
         end do
     end do
+    nullify(f)
 end subroutine Physics_op1_executeTask3_Tile
 

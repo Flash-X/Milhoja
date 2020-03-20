@@ -18,6 +18,7 @@ public:
     Tile(amrex::MFIter& itor);
     ~Tile(void);
 
+    Tile(const Tile&);
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
@@ -41,7 +42,6 @@ public:
 
 private:
     Tile(Tile&) = delete;
-    Tile(const Tile&) = delete;
     Tile& operator=(Tile&) = delete;
     Tile& operator=(const Tile&) = delete;
     Tile& operator=(const Tile&&) = delete;

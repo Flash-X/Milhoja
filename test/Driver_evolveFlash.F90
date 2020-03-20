@@ -12,7 +12,9 @@ program Driver_evolveFlash
     use Analysis_data,           ONLY : an_LinfErrors, &
                                         an_meanAbsErrors, &
                                         an_energyFactor
-    use Physics_interface,       ONLY : Physics_op1_executeTask3_Tile
+    use Physics_interface,       ONLY : Physics_op1_executeTask1_Tile, &
+                                        Physics_op1_executeTask2_Tile, &
+                                        Physics_op1_executeTask3_Tile
     use Physics_data,            ONLY : ph_op1_energyFactor  
 
     implicit none
@@ -27,8 +29,12 @@ program Driver_evolveFlash
     ph_op1_energyFactor = 3.2
     an_energyFactor = ph_op1_energyFactor
 
-    call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask3_Tile, &
-                                    nCpuThreads=3)
+    call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask1_Tile, &
+                                    nCpuThreads=2, &
+                                    gpuTask=Physics_op1_executeTask2_Tile, &
+                                    nGpuThreads=2, &
+                                    postGpuTask=Physics_op1_executeTask3_Tile, &
+                                    nPostGpuThreads=0)
 
     ! DEV: Since we are breaking up the high-level operations so that we can
     ! potentially mix tasks from different operations in execution cycles, we

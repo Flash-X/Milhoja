@@ -239,8 +239,9 @@ void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         W  work(itor);
-        cpuTeam->enqueue(work);
-        gpuTeam->enqueue(work);
+        // Ownership of tile resources is transferred to last team
+        cpuTeam->enqueue(work, false);
+        gpuTeam->enqueue(work, true);
     }
     grid = nullptr;
     gpuTeam->closeTask();
@@ -288,7 +289,8 @@ void OrchestrationRuntime<W>::executeCpuTask(const std::string& bundleName,
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         W  work(itor);
-        cpuTeam->enqueue(work);
+        // Ownership of tile resources is transferred immediately
+        cpuTeam->enqueue(work, true);
     }
     grid = nullptr;
     cpuTeam->closeTask();
