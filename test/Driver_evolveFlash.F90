@@ -4,7 +4,8 @@
 program Driver_evolveFlash
     use Grid_interface,          ONLY : Grid_init, &
                                         Grid_finalize, &
-                                        Grid_initDomain
+                                        Grid_initDomain, &
+                                        Grid_getDeltas
     use Orchestration_interface, ONLY : Orchestration_init, &
                                         Orchestration_finalize, &
                                         Orchestration_executeTasks
@@ -18,6 +19,13 @@ program Driver_evolveFlash
     use Physics_data,            ONLY : ph_op1_energyFactor  
 
     implicit none
+
+    integer, parameter :: FOUT = 111
+
+    character(128) :: fname
+    real           :: LinfDens
+    real           :: LinfEner
+    real           :: deltas(1:MDIM)
 
     call Grid_init()
     call Orchestration_init()
@@ -54,13 +62,24 @@ program Driver_evolveFlash
 
     call Orchestration_executeTasks(cpuTask=Analysis_computeErrors, &
                                     nCpuThreads=2)
-    write(*,*) "Linf           Density = ", MAXVAL(an_LinfErrors(DENS_VAR, :))
-    write(*,*) "Linf           Energy  = ", MAXVAL(an_LinfErrors(ENER_VAR, :))
+
+    LinfDens = MAXVAL(an_LinfErrors(DENS_VAR, :))
+    LinfEner = MAXVAL(an_LinfErrors(ENER_VAR, :))
+    write(*,*) "Linf           Density = ", LinfDens
+    write(*,*) "Linf           Energy  = ", LinfEner
+
+    call Grid_getDeltas(1, deltas)
+
+    write(fname,'(A,I0,A,I0,A)') "RuntimeF90Test_", N_BLOCKS_X, "_", N_BLOCKS_Y, ".dat"
+    OPEN(unit=FOUT, FILE=fname, STATUS='new', ACTION='write')
+    write(FOUT,'(A)')                             "#dx,dy,Linf Density,Linf Energy"
+    write(FOUT,'(E15.8,A,E15.8,A,E15.8,A,E15.8)') deltas(IAXIS), ",", deltas(JAXIS), ",", &
+                                                  LinfDens, ',', LinfEner
+    CLOSE(unit=FOUT)
 
     deallocate(an_LinfErrors, an_meanAbsErrors)
 
     call Orchestration_finalize()
     call Grid_finalize()
-
 end program Driver_evolveFlash
 
