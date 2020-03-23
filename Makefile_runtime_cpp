@@ -1,32 +1,7 @@
 SHELL=/bin/sh
 
-##### MIMIC SETUP STAGE/RUNTIME PARAMETERS HERE
-# These define default values, but selection can also be made at
-# command line.
-#
-# Ex. The full featured test of the Orchestration System prototype
-#    make clean all RUNTIME=CUDA VERBOSITY=SILENT
-#
-
-#
-# Choose between 
-# - running a serial invocation (CPU-only node operation) or
-# - running a parallel invocation (CPU/Multi-GPU node operation)
-#
-ifndef RUNTIME
-RUNTIME=CPU_ONLY
-#RUNTIME=CUDA
-endif
-
-#
-# Enable/Disable verbose logging of orchestration runtime sequence
-#
-ifndef VERBOSITY
-VERBOSITY=VERBOSE
-#VERBOSITY=SILENT
-endif
-
-BASE     = test_runtime
+BASE     = test_runtime_cpp
+MAKEFILE = Makefile_runtime_cpp
 BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
@@ -54,21 +29,18 @@ CXX_HDRS   = \
     $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
-    $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \
     $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
     $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
     $(TESTDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/runAllCppTests.cpp
-#    $(TESTDIR)/testThreadTeam.cpp \
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
-MAKEFILE  = Makefile
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -std=c++11 -D$(VERBOSITY)
 CXXWARNS  =
 
 LIBS      = -lstdc++ -lamrex -lgtest -lgtest_main
@@ -89,11 +61,7 @@ clean:
 	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
 	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
 	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
-
-test: $(BASEDIR)/$(BASE).x
-	@echo
-	@echo "Run Orchestration Runtime testsuites"
-	@echo "------------------------------------------------------------------"
-	@$(BASEDIR)/$(BASE).x
-	@echo
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(BASEDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.mod
 

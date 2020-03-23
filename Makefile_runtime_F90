@@ -1,32 +1,7 @@
 SHELL=/bin/sh
 
-##### MIMIC SETUP STAGE/RUNTIME PARAMETERS HERE
-# These define default values, but selection can also be made at
-# command line.
-#
-# Ex. The full featured test of the Orchestration System prototype
-#    make clean all RUNTIME=CUDA VERBOSITY=SILENT
-#
-
-#
-# Choose between 
-# - running a serial invocation (CPU-only node operation) or
-# - running a parallel invocation (CPU/Multi-GPU node operation)
-#
-ifndef RUNTIME
-RUNTIME=CPU_ONLY
-#RUNTIME=CUDA
-endif
-
-#
-# Enable/Disable verbose logging of orchestration runtime sequence
-#
-ifndef VERBOSITY
-VERBOSITY=VERBOSE
-#VERBOSITY=SILENT
-endif
-
 BASE     = test_runtime_f90
+MAKEFILE = Makefile_runtime_F90
 BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
@@ -82,11 +57,10 @@ F90_SRCS       = \
 
 OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
 MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
-MAKEFILE  = Makefile_F90
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11 -D$(RUNTIME) -D$(VERBOSITY)
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11 -D$(VERBOSITY)
 CXXWARNS  =
 
 F90       = mpif90

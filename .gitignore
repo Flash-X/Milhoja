@@ -5,7 +5,8 @@ RuntimeF90Test_*_*.dat
 docs/OrchestrationRuntime.log
 docs/OrchestrationRuntime.aux
 docs/OrchestrationRuntime.pdf
-test_runtime.x
+test_threadteam_cpp.x
+test_runtime_cpp.x
 test_runtime_f90.x
 *.log
 *.mod

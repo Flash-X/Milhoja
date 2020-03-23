@@ -1,0 +1,54 @@
+SHELL=/bin/sh
+
+BASE     = test_threadteam_cpp
+MAKEFILE = Makefile_threadteam_cpp
+BASEDIR  = .
+INCDIR   = $(BASEDIR)/includes
+SRCDIR   = $(BASEDIR)/src
+TESTDIR  = $(BASEDIR)/test
+GTESTDIR = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-6y5spjfzq4uiazxbcb7sw3qrloxbrhgw
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h
+SRCS       = \
+    $(TESTDIR)/testThreadRoutines.cpp \
+    $(TESTDIR)/testThreadTeam.cpp
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = g++
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11 -D$(VERBOSITY)
+CXXWARNS  =
+
+LIBS      = -lstdc++ -lgtest -lgtest_main
+LDFLAGS   = -L$(GTESTDIR)/lib
+ 
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+
+$(COMMAND): $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
+	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(BASEDIR)/*.mod
+	/bin/rm -f $(COMMAND) $(TESTDIR)/*.mod
+
