@@ -1,3 +1,4 @@
+// TODO: Switch to iostream
 #include <stdio.h>
 #include <cmath>
 #include <cassert>
@@ -18,6 +19,7 @@
 #include "ThreadTeam.h"
 #include "OrchestrationRuntime.h"
 
+#include "Flash.h"
 #include "constants.h"
 #include "scaleEnergy_cpu.h"
 #include "computeLaplacianDensity_cpu.h"
@@ -47,6 +49,7 @@ protected:
         Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
         grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                          N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
+                         NUNKVAR,
                          initBlock);
    }
 
@@ -85,9 +88,14 @@ protected:
     }
 
     static void initBlock(Tile* tileDesc) {
-        amrex::Geometry geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
+        Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        amrex::Geometry     geometry = grid->geometry();
+        amrex::MultiFab&    unk = grid->unk();
+        amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
+        grid = nullptr;
 
-        amrex::Array4<amrex::Real> const&   f = tileDesc->data();
+        // TODO: Make getting data ptr in C++ a method in Tile?
+        amrex::Array4<amrex::Real> const&   f = fab.array();
 
         // Fill in the GC data as well as we aren't doing a GC fill in any
         // of these tests
@@ -99,12 +107,13 @@ protected:
             y = geometry.CellCenter(j, 1);
             for (int i = loGC.x; i <= hiGC.x; ++i) {
                 x = geometry.CellCenter(i, 0);
-                f(i, j, loGC.z, DENS_VAR) = f1(x, y);
-                f(i, j, loGC.z, ENER_VAR) = f2(x, y);
+                f(i, j, loGC.z, DENS_VAR_C) = f1(x, y);
+                f(i, j, loGC.z, ENER_VAR_C) = f2(x, y);
             }
         }
     }
 
+    // TODO: Convert over to runtime task and execute using runtime
     void computeError(amrex::Real* L_inf1, amrex::Real* meanAbsErr1,
                       amrex::Real* L_inf2, amrex::Real* meanAbsErr2) {
         Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
@@ -133,13 +142,13 @@ protected:
                 for (int i = lo.x; i <= hi.x; ++i) {
                     x = geometry.CellCenter(i, 0);
 
-                    absErr = fabs(Delta_f1(x, y) - data(i, j, lo.z, DENS_VAR));
+                    absErr = fabs(Delta_f1(x, y) - data(i, j, lo.z, DENS_VAR_C));
                     sum1 += absErr;
                     if (absErr > maxAbsErr1) {
                          maxAbsErr1 = absErr;
                     }
 
-                    absErr = fabs(3.2*Delta_f2(x, y) - data(i, j, lo.z, ENER_VAR));
+                    absErr = fabs(3.2*Delta_f2(x, y) - data(i, j, lo.z, ENER_VAR_C));
                     sum2 += absErr;
                     if (absErr > maxAbsErr2) {
                          maxAbsErr2 = absErr;
@@ -160,10 +169,7 @@ protected:
 
 #ifndef VERBOSE
 TEST_F(TestRuntimeTile, TestSingleTeam) {
-    Grid<NXB,NYB,NZB,NGUARD>*  grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
-    amrex::MultiFab&   unk = grid->unk();
-    amrex::Geometry&   geometry = grid->geometry();
-    grid = nullptr;
+    amrex::MultiFab&   unk = Grid<NXB,NYB,NZB,NGUARD>::instance()->unk();
 
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam<Tile>  cpu(N_THREADS, 1, "TestSingleTeam.log");
@@ -172,7 +178,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.startTask(ThreadRoutines::computeLaplacianEnergy_cpu, N_THREADS,
                       "Cpu", "LaplacianEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu.enqueue(Tile(itor));
+            Tile   myTile(itor);
+            cpu.enqueue(myTile, true);
         }
         cpu.closeTask();
         cpu.wait();
@@ -180,7 +187,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.startTask(ThreadRoutines::computeLaplacianDensity_cpu, N_THREADS,
                       "Cpu", "LaplacianDensity");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu.enqueue(Tile(itor));
+            Tile   myTile(itor);
+            cpu.enqueue(myTile, true);
         }
         cpu.closeTask();
         cpu.wait();
@@ -188,7 +196,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.startTask(ThreadRoutines::scaleEnergy_cpu, N_THREADS,
                       "Cpu", "scaleEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu.enqueue(Tile(itor));
+            Tile   myTile(itor);
+            cpu.enqueue(myTile, true);
         }
         cpu.closeTask();
         cpu.wait();
@@ -229,13 +238,13 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     try {
         // Give an extra thread to the GPU task so that it can start to get work
         // to the postGpu task quicker.
-        runtime_->executeTask("Task Bundle 1",
-                              ThreadRoutines::computeLaplacianDensity_cpu,
-                              1, "bundle1_cpuTask",
-                              ThreadRoutines::computeLaplacianEnergy_cpu,
-                              2, "bundle1_gpuTask",
-                              ThreadRoutines::scaleEnergy_cpu,
-                              0, "bundle1_postGpuTask");
+        runtime_->executeTasks("Task Bundle 1",
+                               ThreadRoutines::computeLaplacianDensity_cpu,
+                               1, "bundle1_cpuTask",
+                               ThreadRoutines::computeLaplacianEnergy_cpu,
+                               2, "bundle1_gpuTask",
+                               ThreadRoutines::scaleEnergy_cpu,
+                               0, "bundle1_postGpuTask");
     } catch (std::invalid_argument  e) {
         printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         EXPECT_TRUE(false);

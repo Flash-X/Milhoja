@@ -47,6 +47,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h \
     $(TESTDIR)/computeLaplacianDensity_cpu.h \
     $(TESTDIR)/computeLaplacianEnergy_cpu.h \

@@ -1,6 +1,7 @@
 #include <AMReX.H>
 
 #include "Grid.h"
+#include "Flash.h"
 #include "constants.h"
 
 #include <gtest/gtest.h>

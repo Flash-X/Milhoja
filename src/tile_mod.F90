@@ -67,10 +67,11 @@ contains
         this%loGC(:) = 1
         this%hiGC(:) = 1
         do i = 1, NDIM
-            this%lo(i)   = INT(lo(i))
-            this%hi(i)   = INT(hi(i))
-            this%loGC(i) = INT(loGC(i))
-            this%hiGC(i) = INT(hiGC(i))
+            ! AMReX spatial indices are 0-based; FLASH5, 1-based
+            this%lo(i)   = INT(lo(i)) + 1
+            this%hi(i)   = INT(hi(i)) + 1
+            this%loGC(i) = INT(loGC(i)) + 1
+            this%hiGC(i) = INT(hiGC(i)) + 1
         end do
     end subroutine shallow_copy_c_to_f
 

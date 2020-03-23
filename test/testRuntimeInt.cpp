@@ -41,7 +41,7 @@ void postGpuRandom(const int tId, int* work) {
  * studied to confirm correctness.
  */
 TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
-    std::vector<unsigned int>   work = {5, 4, 1, 0, 6, 25};
+    std::vector<int>   work = {-5, 4, -1, 0, -6, 25};
 
     // postGpu has enough threads to receive all of cpu and gpu threads
     ThreadTeam<int>   cpu(3,      1, "TestSingle_ManualCheck.log");
@@ -57,9 +57,9 @@ TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
         gpu.startTask(gpuNoop,         5, "Gpu",     "gpuNoop");
         postGpu.startTask(postGpuNoop, 0, "postGpu", "postGpuNoop");
 
-        for (auto w: work) {
-            cpu.enqueue(w);
-            gpu.enqueue(w);
+        for (unsigned int i=0; i<work.size(); ++i) {
+            cpu.enqueue(work[i], false);
+            gpu.enqueue(work[i], true);
         }
         // gpu will call closeTask of postGpu when gpu transitions to Idle
         gpu.closeTask();
@@ -103,7 +103,7 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
 #endif
     unsigned int   MAX_N_WORK = 1000;
 
-    std::vector<unsigned int>   work(MAX_N_WORK);
+    std::vector<int>   work(MAX_N_WORK);
     for (unsigned int i=0; i<MAX_N_WORK; ++i) {
         work[i] = i;
     }
@@ -123,9 +123,9 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
             gpu.startTask(gpuNoop,         5, "Gpu",     "gpuNoop");
             postGpu.startTask(postGpuNoop, 0, "postGpu", "postGpuNoop");
 
-            for (auto w: work) {
-                cpu.enqueue(w);
-                gpu.enqueue(w);
+            for (unsigned int i=0; i<work.size(); ++i) {
+                cpu.enqueue(work[i], false);
+                gpu.enqueue(work[i], true);
             }
             gpu.closeTask();
             cpu.closeTask();
@@ -173,7 +173,7 @@ TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
 #endif
     unsigned int   MAX_N_WORK = 1000;
 
-    std::vector<unsigned int>   work(MAX_N_WORK);
+    std::vector<int>   work(MAX_N_WORK);
     for (unsigned int i=0; i<MAX_N_WORK; ++i) {
         work[i] = i;
     }
@@ -193,9 +193,9 @@ TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
             gpu.startTask(gpuRandom,         5, "Gpu",     "gpuRandom");
             postGpu.startTask(postGpuRandom, 0, "postGpu", "postGpuRandom");
 
-            for (auto w: work) {
-                cpu.enqueue(w);
-                gpu.enqueue(w);
+            for (unsigned int i=0; i<work.size(); ++i) {
+                cpu.enqueue(work[i], false);
+                gpu.enqueue(work[i], true);
             }
             gpu.closeTask();
             cpu.closeTask();

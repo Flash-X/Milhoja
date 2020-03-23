@@ -37,8 +37,6 @@ public:
     const amrex::Box&            interiorAndGC(void) const;
 
     amrex::XDim3                 deltas(void) const;
-//    amrex::Array4<amrex::Real>&  data(void)     { return data_; }
-
 
 private:
     Tile(Tile&) = delete;

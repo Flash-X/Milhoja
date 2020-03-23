@@ -3,9 +3,11 @@
 
 #define NGUARD 1
 
-#define DENS_VAR 1
-#define ENER_VAR 2
-#define NUNKVAR  2
+#define DENS_VAR_C 0
+#define ENER_VAR_C 1
+#define DENS_VAR   1
+#define ENER_VAR   2
+#define NUNKVAR    2
 
 #define X_MIN      0.0
 #define X_MAX      1.0

@@ -11,14 +11,9 @@ Tile::Tile(amrex::MFIter& itor)
     : gridIdx_(itor.index()),
       interior_(nullptr),
       GC_(nullptr)
-//      data_(Grid<NXB,NYB,NZB,NGUARD>::instance()->unk().array(itor)),
 {
     interior_ = new amrex::Box(itor.validbox());
     GC_       = new amrex::Box(itor.fabbox());
-
-    // AMReX spatial indices are 0-based; FLASH5, 1-based
-    interior_->shift({AMREX_D_DECL(1, 1, 1)});
-    GC_->shift({AMREX_D_DECL(1, 1, 1)});
 }
 
 Tile::Tile(const Tile& other)

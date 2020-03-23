@@ -1,5 +1,7 @@
 .DS_Store
 */.DS_Store
+.ipynb_checkpoints
+RuntimeF90Test_*_*.dat
 docs/OrchestrationRuntime.log
 docs/OrchestrationRuntime.aux
 docs/OrchestrationRuntime.pdf
