@@ -96,7 +96,7 @@ TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
  * runtime produced the correct result.  No exceptions means the test passed.
  */
 TEST(ThreadRuntimeInt, TestMultipleFast) {
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
 #else
     unsigned int   N_ITERS    = 100;
@@ -166,7 +166,7 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
 TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
     srand(1000);
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
 #else
     unsigned int   N_ITERS    = 100;

@@ -27,12 +27,16 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = g++
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11 -D$(VERBOSITY)
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11
 CXXWARNS  =
 
 LIBS      = -lstdc++ -lgtest -lgtest_main
 LDFLAGS   = -L$(GTESTDIR)/lib
- 
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
 all:    $(COMMAND)
 
 .SUFFIXES:

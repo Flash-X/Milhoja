@@ -168,7 +168,7 @@ protected:
     }
 };
 
-#ifndef VERBOSE
+#ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestSingleTeam) {
     amrex::MultiFab&   unk = Grid<NXB,NYB,NZB,NGUARD>::instance()->unk();
 
@@ -234,7 +234,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 }
 #endif
 
-#ifndef VERBOSE
+#ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     try {
         // Give an extra thread to the GPU task so that it can start to get work

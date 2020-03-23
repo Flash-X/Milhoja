@@ -199,7 +199,7 @@ private:
     bool              isWaitBlocking_;     //!< Only a single thread can be blocked 
 
     std::string       logFilename_;
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     std::ofstream     logFile_; 
 #endif
 };

@@ -60,7 +60,7 @@ MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11 -D$(VERBOSITY)
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11
 CXXWARNS  =
 
 F90       = mpif90
@@ -70,6 +70,10 @@ F90WARNS  =
 LIBS      = -lstdc++ -lamrex
 LDFLAGS   = -L$(AMREXDIR)/lib
  
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
 all:    $(COMMAND)
 
 .SUFFIXES:

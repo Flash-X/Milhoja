@@ -1317,7 +1317,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     team1.detachThreadReceiver();
 }
 
-#ifndef VERBOSE
+#ifndef DEBUG_RUNTIME
 TEST(ThreadTeamTest, TestTimings) {
     unsigned int   N_THREADS = 10;
     unsigned int   N_ITERS = 1000;

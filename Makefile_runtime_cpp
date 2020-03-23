@@ -40,12 +40,16 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -std=c++11 -D$(VERBOSITY)
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -std=c++11
 CXXWARNS  =
 
 LIBS      = -lstdc++ -lamrex -lgtest -lgtest_main
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
- 
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
 all:    $(COMMAND)
 
 .SUFFIXES:

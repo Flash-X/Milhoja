@@ -20,7 +20,7 @@
  *                     Zero or one thread is considered to be a logical error.
  * \param  id          A unique thread team ID for debug use.
  * \param  logFilename The file to which logging information is appended if the
- *                     code is built with VERBOSE.
+ *                     code is built with DEBUG_RUNTIME.
  */
 template<typename W>
 ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
@@ -181,7 +181,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(errMsg);
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
         logFile_ << "[" << hdr_ << "] Team initialized in state " 
                  << getModeName(state_->mode())
@@ -232,7 +232,7 @@ ThreadTeam<W>::~ThreadTeam(void) {
         std::cerr << e.what() << std::endl;
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[" << hdr_ << "] " 
              << nMaxThreads_
@@ -275,7 +275,7 @@ ThreadTeam<W>::~ThreadTeam(void) {
         stateRunNoMoreWork_ = nullptr;
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[" << hdr_ << "] Team destroyed\n";
     logFile_.close();
@@ -335,7 +335,7 @@ template<typename W>
 std::string ThreadTeam<W>::setMode_NotThreadsafe(const ThreadTeamMode nextMode) {
     std::string    errMsg("");
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     ThreadTeamMode  currentMode = state_->mode();
 #endif
 
@@ -372,7 +372,7 @@ std::string ThreadTeam<W>::setMode_NotThreadsafe(const ThreadTeamMode nextMode) 
         return printState_NotThreadsafe("setMode_NotThreadsafe", 0, msg);
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[" << hdr_ << "] Transitioned from "
              << getModeName(currentMode)
@@ -655,7 +655,7 @@ void ThreadTeam<W>::wait(void) {
         // However, it could be that a team finishes its task and transition to
         // Idle before a calling thread got a chance to call wait().  Therefore,
         // this method is a no-op so that it won't block.
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
         logFile_ << "[Client Thread] Called no-op wait on " 
                  << hdr_
@@ -665,7 +665,7 @@ void ThreadTeam<W>::wait(void) {
     } else {
         isWaitBlocking_ = true;
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
         logFile_ << "[Client Thread] Waiting on "
                  << hdr_ 
@@ -683,7 +683,7 @@ void ThreadTeam<W>::wait(void) {
             throw std::runtime_error(errMsg);
         }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
         logFile_.open(logFilename_, std::ios::out | std::ios::app);
         logFile_ << "[Client Thread] Received unblockWaitSignal for "
                  << hdr_ 
@@ -1033,7 +1033,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 pthread_mutex_unlock(&(team->teamMutex_));
             }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
                            << "Terminated - " 
@@ -1083,7 +1083,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 }
             }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Transition to Idle");
@@ -1124,7 +1124,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                     team->workReceiver_->closeTask();
                 }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
                 team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
                 team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                                   "Sent unblockWaitThread signal");
@@ -1141,7 +1141,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             }
 
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Activated");
@@ -1191,14 +1191,14 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 throw std::runtime_error(msg);
             }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Transition to Waiting");
             team->logFile_.close();
 #endif
             pthread_cond_wait(&(team->transitionThread_), &(team->teamMutex_));
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Awakened");
@@ -1233,7 +1233,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 throw std::runtime_error(msg);
             }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Transition to Computing");
@@ -1245,7 +1245,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             team->queue_.pop();
             --N_Q;
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Dequeued work");
@@ -1282,7 +1282,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
             team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
             team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
                               "Finished computing");

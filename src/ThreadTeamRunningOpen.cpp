@@ -96,7 +96,7 @@ std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work, const boo
         team_->queue_.push(work);
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Enqueued work\n";
     team_->logFile_.close();

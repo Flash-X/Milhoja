@@ -87,7 +87,7 @@ void OrchestrationRuntime<W>::setMaxThreadsPerTeam(const unsigned int nThreads) 
  */
 template<typename W>
 OrchestrationRuntime<W>::OrchestrationRuntime(void) {
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Initializing\n";
     logFile_.close();
@@ -98,7 +98,7 @@ OrchestrationRuntime<W>::OrchestrationRuntime(void) {
         teams_[i] = new ThreadTeam<W>(maxThreadsPerTeam_, i, logFilename_);
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Initialized\n";
     logFile_.close();
@@ -112,7 +112,7 @@ OrchestrationRuntime<W>::OrchestrationRuntime(void) {
  */
 template<typename W>
 OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finalizing\n";
     logFile_.close();
@@ -128,7 +128,7 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
 
     instance_ = nullptr;
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finalized\n";
     logFile_.close();
@@ -151,7 +151,7 @@ void OrchestrationRuntime<W>::executeTasks(const std::string& bundleName,
                                            TASK_FCN<W> postGpuTask,
                                            const unsigned int nPostGpuThreads,
                                            const std::string& postGpuTaskName) {
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Start execution of " 
              << bundleName << std::endl;
@@ -183,7 +183,7 @@ void OrchestrationRuntime<W>::executeTasks(const std::string& bundleName,
         throw std::logic_error(errMsg);
     }
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finished execution of " 
              << bundleName << std::endl;

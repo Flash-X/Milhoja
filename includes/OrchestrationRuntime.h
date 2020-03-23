@@ -70,7 +70,7 @@ private:
 
     ThreadTeam<W>**                teams_;
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     std::ofstream     logFile_; 
 #endif
 };

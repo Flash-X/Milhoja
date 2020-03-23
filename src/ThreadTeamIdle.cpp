@@ -63,7 +63,7 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
                                                     const std::string& taskName) {
     std::string   errMsg("");
 
-#ifdef VERBOSE
+#ifdef DEBUG_RUNTIME
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
                     << teamName << std::endl;
