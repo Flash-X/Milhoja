@@ -1,6 +1,7 @@
 // TODO: Switch to iostream
 #include <stdio.h>
 #include <cmath>
+#include <iomanip>
 #include <cassert>
 #include <array>
 #include <vector>
@@ -274,6 +275,24 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     EXPECT_TRUE(L_inf2 <= 5.0e-6);
     EXPECT_TRUE(0.0 <= meanAbsErr2);
     EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
+
+    // Output results to file for offline, manual scaling test
+    amrex::Geometry geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
+    amrex::Real  dx = geometry.CellSize(0);
+    amrex::Real  dy = geometry.CellSize(1);
+
+    std::string  fname("RuntimeCppTest_");
+    fname += std::to_string(N_BLOCKS_X);
+    fname += "_";
+    fname += std::to_string(N_BLOCKS_Y);
+    fname += ".dat";
+
+    std::ofstream   fptr;
+    fptr.open(fname, std::ios::out);
+    fptr << "#dx,dy,Linf Density,Linf Energy\n";
+    fptr << std::setprecision(15) << dx << "," << dy << ",";
+    fptr << std::setprecision(15) << L_inf1 << "," << L_inf2 << std::endl;
+    fptr.close();
 }
 #endif
 

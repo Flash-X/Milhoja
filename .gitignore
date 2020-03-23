@@ -2,6 +2,7 @@
 */.DS_Store
 .ipynb_checkpoints
 RuntimeF90Test_*_*.dat
+RuntimeCppTest_*_*.dat
 docs/OrchestrationRuntime.log
 docs/OrchestrationRuntime.aux
 docs/OrchestrationRuntime.pdf
