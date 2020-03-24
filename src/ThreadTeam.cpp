@@ -4,8 +4,17 @@
 
 #include "ThreadTeam.h"
 
+#include <sys/time.h>
 #include <iostream>
 #include <stdexcept>
+
+// TODO:  Determine if this should be implemented with C++ threads instead of
+// pthreads.  If no, then the pthread implementation needs to be cleaned
+// up seriously.  See TODOs below.
+// TODO:  Come up with a good error/exception handling scheme.  The exceptions
+// being thrown by the worker threads cannot be caught by the lead thread, which
+// will lead to hard faults that cannot be traced easily.  It seems that C++
+// threads have some facility for passing exceptions between threads.
 
 /**
  * Instantiate a thread team that, at any point in time, can have no more than
@@ -24,8 +33,8 @@
  */
 template<typename W>
 ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
-                       const unsigned int id,
-                       const std::string& logFilename)
+                          const unsigned int id,
+                          const std::string& logFilename)
     : state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
@@ -160,9 +169,21 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     }
 
     // Wait until all threads have started running their routine and are Idle
+    struct timeval    now;
+    struct timespec   waitAbsTime;
     while (N_idle_ < nMaxThreads_) {
-        // TODO: Timeout on this?
-        pthread_cond_wait(&threadStarted_, &teamMutex_);
+        gettimeofday(&now, NULL);
+        waitAbsTime.tv_sec  = now.tv_sec;
+        waitAbsTime.tv_nsec = now.tv_usec * 1000;
+        waitAbsTime.tv_sec += THREAD_START_STOP_TIMEOUT_SEC;
+
+        rc = pthread_cond_timedwait(&threadStarted_, &teamMutex_, &waitAbsTime);
+        if (rc == ETIMEDOUT) {
+            std::string  msg = printState_NotThreadsafe("ThreadTeam", 0,
+                               "Timeout on threads starting");
+            pthread_mutex_unlock(&teamMutex_);
+            throw std::runtime_error(msg);
+        }
     }
     N_to_activate_ = 0;
 
@@ -228,9 +249,23 @@ ThreadTeam<W>::~ThreadTeam(void) {
             N_to_activate_ = N_idle_;
             pthread_cond_broadcast(&activateThread_);
             pthread_cond_broadcast(&transitionThread_);
+
+            int               rc = 0;
+            struct timeval    now;
+            struct timespec   waitAbsTime;
             while (N_terminate_ < nMaxThreads_) {
-                // TODO: Timeout on this?
-                pthread_cond_wait(&threadTerminated_, &teamMutex_);
+                gettimeofday(&now, NULL);
+                waitAbsTime.tv_sec  = now.tv_sec;
+                waitAbsTime.tv_nsec = now.tv_usec * 1000;
+                waitAbsTime.tv_sec += THREAD_START_STOP_TIMEOUT_SEC;
+
+                rc = pthread_cond_timedwait(&threadTerminated_, &teamMutex_, &waitAbsTime);
+                if (rc == ETIMEDOUT) {
+                    std::string  errMsg = printState_NotThreadsafe("~ThreadTeam", 0,
+                                       "Timeout on threads terminating");
+                    std::cerr << errMsg << std::endl;
+                    break;
+                }
             }
         }
     } catch (std::exception& e) {
@@ -1027,7 +1062,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             // 
             //<----------- TRANSITION TO TERMINATING & STOP THREADS ----------->
             //
-            
+
             // Overflow would be caught below by the check on N_total.
             team->N_terminate_ += 1;
 
@@ -1081,6 +1116,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                         "threadRoutine", tId, "N_terminate_ not zero");
                     std::cerr << msg << std::endl;
                     pthread_mutex_unlock(&(team->teamMutex_));
+                    // TODO: Which thread can catch this exception?
                     throw std::runtime_error(msg);
                 } else if (N_total != team->nMaxThreads_) {
                     std::string  msg = team->printState_NotThreadsafe(

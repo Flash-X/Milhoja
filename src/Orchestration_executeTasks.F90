@@ -12,9 +12,10 @@ subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
     implicit none
 
     interface
-        subroutine orchestration_execute_tasks_fi(cpuTask,     nCpuThreads, &
-                                                  gpuTask,     nGpuThreads, &
-                                                  postGpuTask, nPostGpuThreads) bind(c)
+        function orchestration_execute_tasks_fi(cpuTask,     nCpuThreads, &
+                                                gpuTask,     nGpuThreads, &
+                                                postGpuTask, nPostGpuThreads) &
+                                                result(success) bind(c)
             import
             implicit none
             type(C_FUNPTR), intent(IN), value :: cpuTask
@@ -23,7 +24,8 @@ subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
             integer(C_INT), intent(IN), value :: nGpuThreads
             type(C_FUNPTR), intent(IN), value :: postGpuTask
             integer(C_INT), intent(IN), value :: nPostGpuThreads
-        end subroutine orchestration_execute_tasks_fi
+            integer(C_INT)                    :: success
+        end function orchestration_execute_tasks_fi
     end interface
 
     procedure(Orchestration_runtimeTask), optional :: cpuTask
@@ -40,6 +42,8 @@ subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
     integer(C_INT) :: nCpuThreads_C
     integer(C_INT) :: nGpuThreads_C
     integer(C_INT) :: nPostGpuThreads_C
+
+    integer(C_INT) :: success
 
     if (.NOT. or_isRuntimeInitialized) then
         write(*,*) "The Orchestration Runtime has not been initialized" 
@@ -79,8 +83,12 @@ subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
         nPostGpuThreads_C = INT(nPostGpuThreads, C_INT)
     end if
 
-    CALL orchestration_execute_tasks_fi(cpuTask_C,     nCpuThreads_C, &
-                                        gpuTask_C,     nGpuThreads_C, &
-                                        postGpuTask_C, nPostGpuThreads_C)
+    success = orchestration_execute_tasks_fi(cpuTask_C,     nCpuThreads_C, &
+                                             gpuTask_C,     nGpuThreads_C, &
+                                             postGpuTask_C, nPostGpuThreads_C)
+    if (success /= 1) then
+        write(*,*) "[Orchestration_executeTasks] Unable to execute tasks"
+        STOP
+    end if
 end subroutine Orchestration_executeTasks
 

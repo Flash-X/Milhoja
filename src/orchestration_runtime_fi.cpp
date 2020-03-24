@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <stdexcept>
 
 #include "Tile.h"
@@ -7,10 +8,9 @@
 
 extern "C" {
     /**
-     * \todo - Need this to return a bool so that the client code
-     *         can abort on failure
+     * 
      */
-    void   orchestration_init_fi(const int nTeams,
+    int    orchestration_init_fi(const int nTeams,
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
@@ -19,34 +19,56 @@ extern "C" {
             OrchestrationRuntime::setLogFilename(logFilename);
 
             OrchestrationRuntime::instance();
-        } catch (std::invalid_argument  e) {
-            printf("\nINVALID ARGUMENT: %s\n\n", e.what());
-        } catch (std::logic_error  e) {
-            printf("\nLOGIC ERROR: %s\n\n", e.what());
-        } catch (std::runtime_error  e) {
-            printf("\nRUNTIME ERROR: %s\n\n", e.what());
+        } catch (std::invalid_argument& e) {
+            std::cerr << "\nINVALID ARGUMENT: " << e.what() << "\n\n";
+            return 0;
+        } catch (std::logic_error& e) {
+            std::cerr << "\nLOGIC ERROR: " << e.what() << "\n\n";
+            return 0;
+        } catch (std::runtime_error& e) {
+            std::cerr << "\nRUNTIME ERROR: " << e.what() << "\n\n";
+            return 0;
         } catch (...) {
-            printf("\n??? ERROR: Unanticipated error\n\n");
+            std::cerr << "\n??? ERROR: Unanticipated error\n\n";
+            return 0;
         }
+
+        return 1;
     }
 
     /**
      *
      */
-    void   orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuTask,
+    int    orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuTask,
                                           const int nCpuThreads,
                                           TASK_FCN<Tile> gpuTask,
                                           const int nGpuThreads,
                                           TASK_FCN<Tile> postGpuTask,
                                           const int nPostGpuThreads) {
-        OrchestrationRuntime*  runtime = OrchestrationRuntime::instance();
-        runtime->executeTasks("Task1",
-                              cpuTask,
-                              static_cast<unsigned int>(nCpuThreads), "CpuTask",
-                              gpuTask,
-                              static_cast<unsigned int>(nGpuThreads), "GpuTask",
-                              postGpuTask,
-                              static_cast<unsigned int>(nPostGpuThreads), "postGpuTask");
+        try {
+            OrchestrationRuntime*  runtime = OrchestrationRuntime::instance();
+            runtime->executeTasks("Task1",
+                                  cpuTask,
+                                  static_cast<unsigned int>(nCpuThreads), "CpuTask",
+                                  gpuTask,
+                                  static_cast<unsigned int>(nGpuThreads), "GpuTask",
+                                  postGpuTask,
+                                  static_cast<unsigned int>(nPostGpuThreads), "postGpuTask");
+        } catch (std::invalid_argument& e) {
+            std::cerr << "\nINVALID ARGUMENT: " << e.what() << "\n\n";
+            return 0;
+        } catch (std::logic_error& e) {
+            std::cerr << "\nLOGIC ERROR: " << e.what() << "\n\n";
+            return 0;
+        } catch (std::runtime_error& e) {
+            std::cerr << "\nRUNTIME ERROR: " << e.what() << "\n\n";
+            return 0;
+        } catch (...) {
+            std::cerr << "\n??? ERROR: Unanticipated error\n\n";
+            return 0;
+        }
+
+        return 1;
     }
 
     /**

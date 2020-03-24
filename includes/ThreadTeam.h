@@ -103,6 +103,8 @@ public:
     void         detachWorkReceiver(void);
 
 protected:
+    constexpr static unsigned int   THREAD_START_STOP_TIMEOUT_SEC = 1;
+
     // Structure used to pass data to each thread at thread creation
     struct ThreadData {
         unsigned int   tId = -1;
