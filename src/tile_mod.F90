@@ -83,13 +83,13 @@ contains
     subroutine dataPtr(this, ptr)
         use amrex_fort_module, ONLY : wp => amrex_real
 
-        class(tile_t), intent(IN) :: this
-        real, contiguous, pointer :: ptr(:, :, :, :)
+        class(tile_t), intent(IN)         :: this
+        real,                     pointer :: ptr(:, :, :, :)
 
         ! TODO: How to deal with conversion between real and amrex_real?
-        type(C_PTR)                        :: cptr
-        real(wp),      contiguous, pointer :: fptr(:, :, :, :)
-        integer(C_INT)                     :: n(MDIM+1)
+        type(C_PTR)            :: cptr
+        real(wp),      pointer :: fptr(:, :, :, :)
+        integer(C_INT)         :: n(MDIM+1)
 
         n(1:MDIM) = this%hiGC(1:MDIM) - this%loGC(1:MDIM) + 1
         n(MDIM+1) = NUNKVAR

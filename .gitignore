@@ -8,7 +8,7 @@ docs/OrchestrationRuntime.aux
 docs/OrchestrationRuntime.pdf
 test_threadteam_cpp.x
 test_runtime_cpp.x
-test_runtime_f90.x
+test_runtime_f2003.x
 *.log
 *.mod
 src/*.o

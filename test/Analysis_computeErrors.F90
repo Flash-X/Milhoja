@@ -15,15 +15,15 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
     integer(C_INT), intent(IN), value :: tId
     type(C_PTR),    intent(IN), value :: tilePtr
 
-    type(tile_t)                                :: tileDesc
-    integer                                     :: idx
-    integer                                     :: level
-    integer                                     :: lo(1:MDIM)
-    integer                                     :: hi(1:MDIM)
-    real,                   contiguous, pointer :: f(:, :, :, :)
-    real,       allocatable                     :: xCoords(:)
-    real,       allocatable                     :: yCoords(:)
-    real,       allocatable                     :: zCoords(:)
+    type(tile_t)                    :: tileDesc
+    integer                         :: idx
+    integer                         :: level
+    integer                         :: lo(1:MDIM)
+    integer                         :: hi(1:MDIM)
+    real,                   pointer :: f(:, :, :, :)
+    real,       allocatable         :: xCoords(:)
+    real,       allocatable         :: yCoords(:)
+    real,       allocatable         :: zCoords(:)
 
     real    :: fExpected
     real    :: absErr

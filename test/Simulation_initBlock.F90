@@ -11,14 +11,14 @@ subroutine Simulation_initBlock(tilePtr) bind(c)
 
     type(C_PTR), intent(IN), value :: tilePtr
 
-    type(tile_t)                                :: tileDesc
-    integer                                     :: level
-    integer                                     :: loGC(1:MDIM)
-    integer                                     :: hiGC(1:MDIM)
-    real,                   contiguous, pointer :: f(:, :, :, :)
-    real,       allocatable                     :: xCoords(:)
-    real,       allocatable                     :: yCoords(:)
-    real,       allocatable                     :: zCoords(:)
+    type(tile_t)                    :: tileDesc
+    integer                         :: level
+    integer                         :: loGC(1:MDIM)
+    integer                         :: hiGC(1:MDIM)
+    real,                   pointer :: f(:, :, :, :)
+    real,       allocatable         :: xCoords(:)
+    real,       allocatable         :: yCoords(:)
+    real,       allocatable         :: zCoords(:)
 
     real    :: x, y, z
     integer :: i, j, k

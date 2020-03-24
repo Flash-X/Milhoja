@@ -10,14 +10,14 @@ subroutine Physics_op1_executeTask1_Tile(tId, tilePtr) bind(c)
     integer(C_INT), intent(IN), value :: tId
     type(C_PTR),    intent(IN), value :: tilePtr
 
-    type(tile_t)                     :: tileDesc
-    real,        contiguous, pointer :: Uin(:, :, :, :)
-    integer                          :: lo(1:MDIM) 
-    integer                          :: hi(1:MDIM)
-    real                             :: deltas(1:MDIM)
-    real                             :: dx_sqr_inv
-    real                             :: dy_sqr_inv
-    integer                          :: i, j, k
+    type(tile_t)         :: tileDesc
+    real,        pointer :: Uin(:, :, :, :)
+    integer              :: lo(1:MDIM) 
+    integer              :: hi(1:MDIM)
+    real                 :: deltas(1:MDIM)
+    real                 :: dx_sqr_inv
+    real                 :: dy_sqr_inv
+    integer              :: i, j, k
 
     real, allocatable :: Uout(:, :, :)
 

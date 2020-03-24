@@ -1,7 +1,7 @@
 SHELL=/bin/sh
 
-BASE     = test_runtime_f90
-MAKEFILE = Makefile_runtime_F90
+BASE     = test_runtime_f2003
+MAKEFILE = Makefile_runtime_F2003
 BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
@@ -65,7 +65,7 @@ CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11
 CXXWARNS  =
 
 F90       = mpif90
-F90FLAGS  = -g -O0 -cpp -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F90FLAGS  = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
 F90WARNS  =
 
 LIBS      = -lstdc++ -lamrex

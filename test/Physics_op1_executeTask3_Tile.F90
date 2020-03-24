@@ -12,11 +12,11 @@ subroutine Physics_op1_executeTask3_Tile(tId, tilePtr) bind(c)
     integer(C_INT), intent(IN), value :: tId
     type(C_PTR),    intent(IN), value :: tilePtr
 
-    type(tile_t)                     :: tileDesc
-    real,        contiguous, pointer :: f(:, :, :, :)
-    integer                          :: lo(1:MDIM) 
-    integer                          :: hi(1:MDIM)
-    integer                          :: i, j, k
+    type(tile_t)         :: tileDesc
+    real,        pointer :: f(:, :, :, :)
+    integer              :: lo(1:MDIM) 
+    integer              :: hi(1:MDIM)
+    integer              :: i, j, k
 
     nullify(f)
 
