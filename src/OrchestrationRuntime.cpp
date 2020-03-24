@@ -6,22 +6,17 @@
 #include "Grid.h"
 #include "Flash.h"
 
-template<typename W>
-std::string              OrchestrationRuntime<W>::logFilename_       = "";
-template<typename W>
-unsigned int             OrchestrationRuntime<W>::nTeams_            = 1;
-template<typename W>
-unsigned int             OrchestrationRuntime<W>::maxThreadsPerTeam_ = 5;
-template<typename W>
-OrchestrationRuntime<W>* OrchestrationRuntime<W>::instance_          = nullptr;
+std::string           OrchestrationRuntime::logFilename_       = "";
+unsigned int          OrchestrationRuntime::nTeams_            = 1;
+unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
+OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
 
 /**
  * 
  *
  * \return 
  */
-template<typename W>
-OrchestrationRuntime<W>* OrchestrationRuntime<W>::instance(void) {
+OrchestrationRuntime* OrchestrationRuntime::instance(void) {
     if (!instance_) {
         instance_ = new OrchestrationRuntime();
     }
@@ -34,8 +29,7 @@ OrchestrationRuntime<W>* OrchestrationRuntime<W>::instance(void) {
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::setLogFilename(const std::string& filename) {
+void OrchestrationRuntime::setLogFilename(const std::string& filename) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setLogFilename] "
                                "Set only when runtime does not exist");
@@ -49,8 +43,7 @@ void OrchestrationRuntime<W>::setLogFilename(const std::string& filename) {
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::setNumberThreadTeams(const unsigned int nTeams) {
+void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
@@ -67,8 +60,7 @@ void OrchestrationRuntime<W>::setNumberThreadTeams(const unsigned int nTeams) {
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::setMaxThreadsPerTeam(const unsigned int nThreads) {
+void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setMaxThreadsPerTeam] "
                                "Set only when runtime does not exist");
@@ -85,17 +77,16 @@ void OrchestrationRuntime<W>::setMaxThreadsPerTeam(const unsigned int nThreads) 
  *
  * \return 
  */
-template<typename W>
-OrchestrationRuntime<W>::OrchestrationRuntime(void) {
+OrchestrationRuntime::OrchestrationRuntime(void) {
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Initializing\n";
     logFile_.close();
 #endif
 
-    teams_ = new ThreadTeam<W>*[nTeams_];
+    teams_ = new ThreadTeam<Tile>*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
-        teams_[i] = new ThreadTeam<W>(maxThreadsPerTeam_, i, logFilename_);
+        teams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i, logFilename_);
     }
 
 #ifdef DEBUG_RUNTIME
@@ -110,8 +101,7 @@ OrchestrationRuntime<W>::OrchestrationRuntime(void) {
  *
  * \return 
  */
-template<typename W>
-OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
+OrchestrationRuntime::~OrchestrationRuntime(void) {
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finalizing\n";
@@ -140,17 +130,16 @@ OrchestrationRuntime<W>::~OrchestrationRuntime(void) {
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::executeTasks(const std::string& bundleName,
-                                           TASK_FCN<W> cpuTask,
-                                           const unsigned int nCpuThreads,
-                                           const std::string& cpuTaskName,
-                                           TASK_FCN<W> gpuTask, 
-                                           const unsigned int nGpuThreads,
-                                           const std::string& gpuTaskName, 
-                                           TASK_FCN<W> postGpuTask,
-                                           const unsigned int nPostGpuThreads,
-                                           const std::string& postGpuTaskName) {
+void OrchestrationRuntime::executeTasks(const std::string& bundleName,
+                                        TASK_FCN<Tile> cpuTask,
+                                        const unsigned int nCpuThreads,
+                                        const std::string& cpuTaskName,
+                                        TASK_FCN<Tile> gpuTask, 
+                                        const unsigned int nGpuThreads,
+                                        const std::string& gpuTaskName, 
+                                        TASK_FCN<Tile> postGpuTask,
+                                        const unsigned int nPostGpuThreads,
+                                        const std::string& postGpuTaskName) {
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Start execution of " 
@@ -196,20 +185,20 @@ void OrchestrationRuntime<W>::executeTasks(const std::string& bundleName,
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
-                                                TASK_FCN<W> cpuTask,
-                                                const unsigned int nCpuThreads,
-                                                const std::string& cpuTaskName,
-                                                TASK_FCN<W> gpuTask, 
-                                                const unsigned int nGpuThreads,
-                                                const std::string& gpuTaskName, 
-                                                TASK_FCN<W> postGpuTask,
-                                                const unsigned int nPostGpuThreads,
-                                                const std::string& postGpuTaskName) {
-    ThreadTeam<W>*   cpuTeam     = teams_[0];
-    ThreadTeam<W>*   gpuTeam     = teams_[1];
-    ThreadTeam<W>*   postGpuTeam = teams_[2];
+
+void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
+                                             TASK_FCN<Tile> cpuTask,
+                                             const unsigned int nCpuThreads,
+                                             const std::string& cpuTaskName,
+                                             TASK_FCN<Tile> gpuTask, 
+                                             const unsigned int nGpuThreads,
+                                             const std::string& gpuTaskName, 
+                                             TASK_FCN<Tile> postGpuTask,
+                                             const unsigned int nPostGpuThreads,
+                                             const std::string& postGpuTaskName) {
+    ThreadTeam<Tile>*   cpuTeam     = teams_[0];
+    ThreadTeam<Tile>*   gpuTeam     = teams_[1];
+    ThreadTeam<Tile>*   postGpuTeam = teams_[2];
 
     unsigned int nTotalThreads = nCpuThreads + nGpuThreads + nPostGpuThreads;
     if (nTotalThreads > postGpuTeam->nMaximumThreads()) {
@@ -232,14 +221,10 @@ void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
-    // TODO: This is where it is clear that this class does not need to be a
-    // template.  This iterator isn't useful if the unit of work is the int.
-    // The runtime will have to cater to all the units of work across all
-    // ThreadTeams and queue appropriately.
     unsigned int   level = 0;
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
-        W  work(itor, level);
+        Tile  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
@@ -278,19 +263,18 @@ void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
  *
  * \return 
  */
-template<typename W>
-void OrchestrationRuntime<W>::executeCpuTask(const std::string& bundleName,
-                                             TASK_FCN<W> cpuTask,
-                                             const unsigned int nCpuThreads,
-                                             const std::string& cpuTaskName) {
-    ThreadTeam<W>*   cpuTeam     = teams_[0];
+void OrchestrationRuntime::executeCpuTask(const std::string& bundleName,
+                                          TASK_FCN<Tile> cpuTask,
+                                          const unsigned int nCpuThreads,
+                                          const std::string& cpuTaskName) {
+    ThreadTeam<Tile>*   cpuTeam     = teams_[0];
 
     cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
 
     unsigned int   level = 0;
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
-        W  work(itor, level);
+        Tile  work(itor, level);
         // Ownership of tile resources is transferred immediately
         cpuTeam->enqueue(work, true);
     }

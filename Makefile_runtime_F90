@@ -25,6 +25,7 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp

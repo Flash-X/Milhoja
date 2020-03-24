@@ -14,11 +14,11 @@ extern "C" {
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
-            OrchestrationRuntime<Tile>::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
-            OrchestrationRuntime<Tile>::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
-            OrchestrationRuntime<Tile>::setLogFilename(logFilename);
+            OrchestrationRuntime::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
+            OrchestrationRuntime::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
+            OrchestrationRuntime::setLogFilename(logFilename);
 
-            OrchestrationRuntime<Tile>::instance();
+            OrchestrationRuntime::instance();
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         } catch (std::logic_error  e) {
@@ -39,7 +39,7 @@ extern "C" {
                                           const int nGpuThreads,
                                           TASK_FCN<Tile> postGpuTask,
                                           const int nPostGpuThreads) {
-        OrchestrationRuntime<Tile>*  runtime = OrchestrationRuntime<Tile>::instance();
+        OrchestrationRuntime*  runtime = OrchestrationRuntime::instance();
         runtime->executeTasks("Task1",
                               cpuTask,
                               static_cast<unsigned int>(nCpuThreads), "CpuTask",
@@ -53,7 +53,7 @@ extern "C" {
      *
      */
     void   orchestration_finalize_fi(void) {
-        delete OrchestrationRuntime<Tile>::instance();
+        delete OrchestrationRuntime::instance();
     }
 }
 

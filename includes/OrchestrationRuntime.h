@@ -10,10 +10,10 @@
 
 #include <string>
 
+#include "Tile.h"
 #include "ThreadTeam.h"
 #include "runtimeTask.h"
 
-template<typename W>
 class OrchestrationRuntime {
 public:
     ~OrchestrationRuntime(void);
@@ -24,13 +24,13 @@ public:
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
     void executeTasks(const std::string& bundleName,
-                      TASK_FCN<W> cpuTask,
+                      TASK_FCN<Tile> cpuTask,
                       const unsigned int nCpuThreads,
                       const std::string& cpuTaskName,
-                      TASK_FCN<W> gpuTask, 
+                      TASK_FCN<Tile> gpuTask, 
                       const unsigned int nGpuThreads,
                       const std::string& gpuTaskName, 
-                      TASK_FCN<W> postGpuTask,
+                      TASK_FCN<Tile> postGpuTask,
                       const unsigned int nPostGpuThreads,
                       const std::string& postGpuTaskName);
 
@@ -48,18 +48,18 @@ private:
     OrchestrationRuntime& operator=(const OrchestrationRuntime&&) = delete;
 
     void executeCpuTask(const std::string& bundleName,
-                        TASK_FCN<W> cpuTask,
+                        TASK_FCN<Tile> cpuTask,
                         const unsigned int nCpuThreads,
                         const std::string& cpuTaskName);
 
     void executeTasks_Full(const std::string& bundleName,
-                           TASK_FCN<W> cpuTask,
+                           TASK_FCN<Tile> cpuTask,
                            const unsigned int nCpuThreads,
                            const std::string& cpuTaskName,
-                           TASK_FCN<W> gpuTask, 
+                           TASK_FCN<Tile> gpuTask, 
                            const unsigned int nGpuThreads,
                            const std::string& gpuTaskName, 
-                           TASK_FCN<W> postGpuTask,
+                           TASK_FCN<Tile> postGpuTask,
                            const unsigned int nPostGpuThreads,
                            const std::string& postGpuTaskName);
 
@@ -68,14 +68,12 @@ private:
     static unsigned int            maxThreadsPerTeam_;
     static OrchestrationRuntime*   instance_;
 
-    ThreadTeam<W>**                teams_;
+    ThreadTeam<Tile>**             teams_;
 
 #ifdef DEBUG_RUNTIME
     std::ofstream     logFile_; 
 #endif
 };
-
-#include "../src/OrchestrationRuntime.cpp"
 
 #endif
 

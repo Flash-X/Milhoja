@@ -29,6 +29,7 @@ CXX_HDRS   = \
     $(TESTDIR)/scaleEnergy_cpu.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \
     $(TESTDIR)/computeLaplacianDensity_cpu.cpp \

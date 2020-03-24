@@ -40,12 +40,12 @@ protected:
     static constexpr unsigned int   N_THREAD_TEAMS = 3;
     static constexpr unsigned int   MAX_THREADS    = 5;
 
-    OrchestrationRuntime<Tile>*   runtime_;
+    OrchestrationRuntime*   runtime_;
 
     TestRuntimeTile(void) {
-        OrchestrationRuntime<Tile>::setNumberThreadTeams(N_THREAD_TEAMS);
-        OrchestrationRuntime<Tile>::setMaxThreadsPerTeam(MAX_THREADS);
-        runtime_ = OrchestrationRuntime<Tile>::instance();
+        OrchestrationRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
+        OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
+        runtime_ = OrchestrationRuntime::instance();
 
         Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
         grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
@@ -55,7 +55,7 @@ protected:
    }
 
     ~TestRuntimeTile(void) {
-        delete OrchestrationRuntime<Tile>::instance();
+        delete OrchestrationRuntime::instance();
         Grid<NXB,NYB,NZB,NGUARD>::instance()->destroyDomain();
     }
 
