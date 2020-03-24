@@ -1,10 +1,9 @@
-// TODO: Switch to iostream
-#include <stdio.h>
 #include <cmath>
 #include <iomanip>
 #include <cassert>
 #include <array>
 #include <vector>
+#include <iostream>
 #include <pthread.h>
 
 #include <AMReX.H>
@@ -206,16 +205,19 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.closeTask();
         cpu.wait();
     } catch (std::invalid_argument  e) {
-        printf("\nINVALID ARGUMENT: %s\n\n", e.what());
+        std::cerr << "\nINVALID ARGUMENT: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (std::logic_error  e) {
-        printf("\nLOGIC ERROR: %s\n\n", e.what());
+        std::cerr << "\nLOGIC ERROR: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (std::runtime_error  e) {
-        printf("\nRUNTIME ERROR: %s\n\n", e.what());
+        std::cerr << "\nRUNTIME ERROR: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (...) {
-        printf("\n??? ERROR: Unanticipated error\n\n");
+        std::cerr << "\n??? ERROR: Unanticipated error\n\n";
         EXPECT_TRUE(false);
     }
 
@@ -250,16 +252,19 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
                                ThreadRoutines::scaleEnergy_cpu,
                                0, "bundle1_postGpuTask");
     } catch (std::invalid_argument  e) {
-        printf("\nINVALID ARGUMENT: %s\n\n", e.what());
+        std::cerr << "\nINVALID ARGUMENT: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (std::logic_error  e) {
-        printf("\nLOGIC ERROR: %s\n\n", e.what());
+        std::cerr << "\nLOGIC ERROR: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (std::runtime_error  e) {
-        printf("\nRUNTIME ERROR: %s\n\n", e.what());
+        std::cerr << "\nRUNTIME ERROR: "
+                  << e.what() << "\n\n";
         EXPECT_TRUE(false);
     } catch (...) {
-        printf("\n??? ERROR: Unanticipated error\n\n");
+        std::cerr << "\n??? ERROR: Unanticipated error\n\n";
         EXPECT_TRUE(false);
     }
 
