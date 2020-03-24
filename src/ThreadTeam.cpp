@@ -166,8 +166,13 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     }
     N_to_activate_ = 0;
 
-    unsigned int N_total = N_idle_ + N_wait_ + N_comp_ + N_terminate_;
-    if (N_total != nMaxThreads_) {
+    unsigned int N_total = N_idle_ + N_wait_ + N_comp_;
+    if (N_terminate_ != 0) {
+        std::string  errMsg = printState_NotThreadsafe(
+            "ThreadTeam", 0, "N_terminate_ not zero");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (N_total != nMaxThreads_) {
         std::string  errMsg = printState_NotThreadsafe(
             "ThreadTeam", 0, "Inconsistent thread counts");
         pthread_mutex_unlock(&teamMutex_);
@@ -1022,8 +1027,10 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             // 
             //<----------- TRANSITION TO TERMINATING & STOP THREADS ----------->
             //
-            // TODO Check for overflow 
+            
+            // Overflow would be caught below by the check on N_total.
             team->N_terminate_ += 1;
+
             N_total =   team->N_idle_ + team->N_wait_
                       + team->N_comp_ + team->N_terminate_;
             if (N_total != team->nMaxThreads_) {
@@ -1055,9 +1062,9 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             // 
             //<--------------------- TRANSITION TO IDLE --------------------->
             //
-
             // Finish a thread transition by setting thread to Idle
-            // TODO Check for overflow 
+
+            // Overflow would be caught below by the check on N_total.
             team->N_idle_ += 1;
 
             if (isThreadStarting) {
@@ -1066,11 +1073,16 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 isThreadStarting = false;
                 pthread_cond_signal(&(team->threadStarted_));
             } else {
-                // Exclude N_terminate_ so that we also check that it is zero
                 N_total =   team->N_idle_
                           + team->N_wait_
                           + team->N_comp_;
-                if (N_total != team->nMaxThreads_) {
+                if (team->N_terminate_ != 0) {
+                    std::string  msg = team->printState_NotThreadsafe(
+                        "threadRoutine", tId, "N_terminate_ not zero");
+                    std::cerr << msg << std::endl;
+                    pthread_mutex_unlock(&(team->teamMutex_));
+                    throw std::runtime_error(msg);
+                } else if (N_total != team->nMaxThreads_) {
                     std::string  msg = team->printState_NotThreadsafe(
                         "threadRoutine", tId, "Inconsistent thread counts");
                     std::cerr << msg << std::endl;
@@ -1176,14 +1188,19 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             //
             // Should be in Running & Open
 
-            // TODO Check for overflow 
+            // Overflow would be caught below by the check on N_total.
             team->N_wait_ += 1;
 
-            // Exclude N_terminate_ so that we also check that it is zero
             N_total =   team->N_idle_
                       + team->N_wait_
                       + team->N_comp_;
-            if (N_total != team->nMaxThreads_) {
+            if (team->N_terminate_ != 0) {
+                std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "N_terminate_ not zero");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::runtime_error(msg);
+            } else if (N_total != team->nMaxThreads_) {
                 std::string  msg = team->printState_NotThreadsafe(
                     "threadRoutine", tId, "Inconsistent thread counts");
                 std::cerr << msg << std::endl;
@@ -1219,13 +1236,19 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             //
             // Should be in Running & Open or Running & Closed with pending work
 
-            // TODO Check for overflow 
+            // Overflow would be caught below by the check on N_total.
             team->N_comp_ += 1;
 
             N_total =   team->N_idle_
                       + team->N_wait_
                       + team->N_comp_;
-            if (N_total != team->nMaxThreads_) {
+            if (team->N_terminate_ != 0) {
+                std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "N_terminate_ not zero");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::runtime_error(msg);
+            } else if (N_total != team->nMaxThreads_) {
                 std::string  msg = team->printState_NotThreadsafe(
                     "threadRoutine", tId, "Inconsistent thread counts");
                 std::cerr << msg << std::endl;
