@@ -25,7 +25,6 @@ subroutine Orchestration_init()
     integer                      :: i
 
     if (or_isRuntimeInitialized) then
-        ! TODO: Add in stderr mechanism and write errors to this
         write(*,*) "The Orchestration Runtime has already been initialized" 
         STOP
     end if

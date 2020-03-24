@@ -7,8 +7,9 @@
 /**
  *
  */
-Tile::Tile(amrex::MFIter& itor)
+Tile::Tile(amrex::MFIter& itor, const unsigned int level)
     : gridIdx_(itor.index()),
+      level_(level),
       interior_(nullptr),
       GC_(nullptr)
 {
@@ -18,6 +19,7 @@ Tile::Tile(amrex::MFIter& itor)
 
 Tile::Tile(const Tile& other)
     : gridIdx_(other.gridIdx_),
+      level_(other.level_),
       interior_(nullptr),
       GC_(nullptr)
 {
@@ -27,20 +29,24 @@ Tile::Tile(const Tile& other)
 
 Tile::Tile(Tile&& other)
     : gridIdx_(other.gridIdx_),
+      level_(other.level_),
       interior_(other.interior_),
       GC_(other.GC_)
 {
     other.gridIdx_ = -1;
+    other.level_ = 0;
     other.interior_ = nullptr;
     other.GC_ = nullptr;
 }
 
 Tile& Tile::operator=(Tile&& rhs) {
     gridIdx_ = rhs.gridIdx_;
+    level_ = rhs.level_;
     interior_ = rhs.interior_;
     GC_ = rhs.GC_;
 
     rhs.gridIdx_ = -1;
+    rhs.level_ = -1;
     rhs.interior_ = nullptr;
     rhs.GC_ = nullptr;
 }
@@ -58,7 +64,7 @@ Tile::~Tile(void) {
         GC_ = nullptr;
     }
 }
-    
+
 /**
  *
  */

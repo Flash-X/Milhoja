@@ -14,6 +14,7 @@ module tile_mod
     type, public :: tile_t
         type(C_PTR) :: cptr         = C_NULL_PTR
         integer     :: gridIndex    = -1
+        integer     :: level        = -1
         integer     :: lo(1:MDIM)   = 0
         integer     :: hi(1:MDIM)   = 0
         integer     :: loGC(1:MDIM) = 0
@@ -25,10 +26,11 @@ module tile_mod
     end type
 
     interface
-        subroutine tile_set_limits_fi(tilePtr, gid, lo, hi, loGC, hiGC) bind(c)
+        subroutine tile_set_limits_fi(tilePtr, gid, level, lo, hi, loGC, hiGC) bind(c)
             use, intrinsic :: iso_c_binding
             type(C_PTR),    intent(IN), value :: tilePtr
             integer(C_INT), intent(OUT)       :: gid
+            integer(C_INT), intent(OUT)       :: level
             integer(C_INT), intent(OUT)       :: lo(1:MDIM)
             integer(C_INT), intent(OUT)       :: hi(1:MDIM)
             integer(C_INT), intent(OUT)       :: loGC(1:MDIM)
@@ -49,6 +51,7 @@ contains
         type(C_PTR),   intent(IN),   value :: cptr
 
         integer(C_INT) :: gid
+        integer(C_INT) :: level
         integer(C_INT) :: lo(1:MDIM)
         integer(C_INT) :: hi(1:MDIM)
         integer(C_INT) :: loGC(1:MDIM)
@@ -58,9 +61,11 @@ contains
         ! TODO: What to do if the pointer is already assigned in this?
         this%cptr = cptr
 
-        call tile_set_limits_fi(this%cptr, gid, lo, hi, loGC, hiGC)
+        call tile_set_limits_fi(this%cptr, gid, level, lo, hi, loGC, hiGC)
 
         this%gridIndex = INT(gid)
+        ! FLASH5 uses 1-based level indexing; AMReX, 0-based.
+        this%level = INT(level + 1)
 
         this%lo(:)   = 1
         this%hi(:)   = 1

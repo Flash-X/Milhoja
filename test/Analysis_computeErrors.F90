@@ -17,6 +17,7 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
 
     type(tile_t)                                :: tileDesc
     integer                                     :: idx
+    integer                                     :: level
     integer                                     :: lo(1:MDIM)
     integer                                     :: hi(1:MDIM)
     real,                   contiguous, pointer :: f(:, :, :, :)
@@ -39,19 +40,19 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
 
     tileDesc = tilePtr
 
-    idx = tileDesc%gridIndex
-    lo  = tileDesc%lo
-    hi  = tileDesc%hi
+    idx   = tileDesc%gridIndex
+    level = tileDesc%level
+    lo    = tileDesc%lo
+    hi    = tileDesc%hi
 
     call tileDesc%dataPtr(f)
 
     allocate(xCoords(lo(IAXIS):hi(IAXIS)), &
              yCoords(lo(JAXIS):hi(JAXIS)), &
              zCoords(lo(KAXIS):hi(KAXIS)))
-    ! TODO: Get level from tileDesc
-    call Grid_getCellCoords(IAXIS, 1, lo, hi, xCoords)
-    call Grid_getCellCoords(JAXIS, 1, lo, hi, yCoords)
-    call Grid_getCellCoords(KAXIS, 1, lo, hi, zCoords)
+    call Grid_getCellCoords(IAXIS, level, lo, hi, xCoords)
+    call Grid_getCellCoords(JAXIS, level, lo, hi, yCoords)
+    call Grid_getCellCoords(KAXIS, level, lo, hi, zCoords)
 
     ! These variables are shared resources being accessed in parallel
     ! If we assume that the grid indices are unique and that each tile is

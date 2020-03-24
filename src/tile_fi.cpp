@@ -7,10 +7,11 @@
 #include "Flash.h"
 
 extern "C" {
-    void tile_set_limits_fi(Tile* tileDesc, int& gid,
+    void tile_set_limits_fi(Tile* tileDesc, int& gid, int& level,
                             int lo[MDIM],   int hi[MDIM],
                             int loGC[MDIM], int hiGC[MDIM]) {
-        gid = tileDesc->gridIndex();
+        gid = static_cast<int>(tileDesc->gridIndex());
+        level = static_cast<int>(tileDesc->level());
 
         const int* loPt   = tileDesc->loVect();
         const int* hiPt   = tileDesc->hiVect();

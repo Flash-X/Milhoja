@@ -13,7 +13,6 @@ subroutine Grid_init()
     end interface
 
     if (gr_isGridInitialized) then
-        ! TODO: Add in stderr mechanism and write errors to this
         write(*,*) "The Grid has already been initialized" 
         STOP
     end if

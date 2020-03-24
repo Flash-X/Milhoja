@@ -34,8 +34,7 @@ subroutine Physics_op1_executeTask1_Tile(tId, tilePtr) bind(c)
     call tileDesc%dataPtr(Uin)
     lo = tileDesc%lo(:)
     hi = tileDesc%hi(:)
-    ! TODO: Get level from tileDesc
-    call Grid_getDeltas(1, deltas)
+    call Grid_getDeltas(tileDesc%level, deltas)
 
     dx_sqr_inv = 1.0 / (deltas(IAXIS) * deltas(IAXIS))
     dy_sqr_inv = 1.0 / (deltas(JAXIS) * deltas(JAXIS))

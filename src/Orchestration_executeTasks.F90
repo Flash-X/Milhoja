@@ -42,7 +42,6 @@ subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
     integer(C_INT) :: nPostGpuThreads_C
 
     if (.NOT. or_isRuntimeInitialized) then
-        ! TODO: Add in stderr mechanism and write errors to this
         write(*,*) "The Orchestration Runtime has not been initialized" 
         STOP
     end if

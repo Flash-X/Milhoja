@@ -12,7 +12,6 @@ subroutine Grid_finalize()
     end interface
 
     if (.NOT. gr_isGridInitialized) then
-        ! TODO: Add in stderr mechanism and write errors to this
         write(*,*) "The Grid has not been initialized" 
         STOP
     end if

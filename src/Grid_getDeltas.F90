@@ -28,7 +28,7 @@ subroutine Grid_getDeltas(level, deltas)
     end if
 
     ! AMReX uses 0-based level indexing; FLASH, 1-based.
-    call grid_get_deltas_fi(int(level - 1, C_INT), deltasC)
+    call grid_get_deltas_fi(INT(level - 1, C_INT), deltasC)
 
     ! TODO: Try to avoid the double looping that presently happens
     deltas(:) = 0.0

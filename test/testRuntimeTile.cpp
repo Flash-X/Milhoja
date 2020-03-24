@@ -175,11 +175,14 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam<Tile>  cpu(N_THREADS, 1, "TestSingleTeam.log");
 
+    // Fix simulation to a single level and use AMReX 0-based indexing
+    unsigned int   level = 0;
+
     try {
         cpu.startTask(ThreadRoutines::computeLaplacianEnergy_cpu, N_THREADS,
                       "Cpu", "LaplacianEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor);
+            Tile   myTile(itor, level);
             cpu.enqueue(myTile, true);
         }
         cpu.closeTask();
@@ -188,7 +191,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.startTask(ThreadRoutines::computeLaplacianDensity_cpu, N_THREADS,
                       "Cpu", "LaplacianDensity");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor);
+            Tile   myTile(itor, level);
             cpu.enqueue(myTile, true);
         }
         cpu.closeTask();
@@ -197,7 +200,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.startTask(ThreadRoutines::scaleEnergy_cpu, N_THREADS,
                       "Cpu", "scaleEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor);
+            Tile   myTile(itor, level);
             cpu.enqueue(myTile, true);
         }
         cpu.closeTask();

@@ -93,9 +93,10 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
         assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NX, NY, NZ)));
     }
 
+    unsigned int   level = 0;
     unk_ = new amrex::MultiFab(ba, dm, nVars, NGC);
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        Tile   tileDesc(itor);
+        Tile   tileDesc(itor, level);
         initBlock(&tileDesc);
     }
 }

@@ -12,6 +12,7 @@ subroutine Simulation_initBlock(tilePtr) bind(c)
     type(C_PTR), intent(IN), value :: tilePtr
 
     type(tile_t)                                :: tileDesc
+    integer                                     :: level
     integer                                     :: loGC(1:MDIM)
     integer                                     :: hiGC(1:MDIM)
     real,                   contiguous, pointer :: f(:, :, :, :)
@@ -24,18 +25,18 @@ subroutine Simulation_initBlock(tilePtr) bind(c)
 
     tileDesc = tilePtr
 
-    loGC = tileDesc%loGC
-    hiGC = tileDesc%hiGC
+    loGC  = tileDesc%loGC
+    hiGC  = tileDesc%hiGC
+    level = tileDesc%level
 
     call tileDesc%dataPtr(f)
 
     allocate(xCoords(loGC(IAXIS):hiGC(IAXIS)), &
              yCoords(loGC(JAXIS):hiGC(JAXIS)), &
              zCoords(loGC(KAXIS):hiGC(KAXIS)))
-    ! TODO: Get level from tileDesc
-    call Grid_getCellCoords(IAXIS, 1, loGC, hiGC, xCoords)
-    call Grid_getCellCoords(JAXIS, 1, loGC, hiGC, yCoords)
-    call Grid_getCellCoords(KAXIS, 1, loGC, hiGC, zCoords)
+    call Grid_getCellCoords(IAXIS, level, loGC, hiGC, xCoords)
+    call Grid_getCellCoords(JAXIS, level, loGC, hiGC, yCoords)
+    call Grid_getCellCoords(KAXIS, level, loGC, hiGC, zCoords)
 
     do         k = loGC(KAXIS), hiGC(KAXIS)
         z = zCoords(k)

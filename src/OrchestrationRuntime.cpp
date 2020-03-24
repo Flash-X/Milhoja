@@ -236,9 +236,10 @@ void OrchestrationRuntime<W>::executeTasks_Full(const std::string& bundleName,
     // template.  This iterator isn't useful if the unit of work is the int.
     // The runtime will have to cater to all the units of work across all
     // ThreadTeams and queue appropriately.
+    unsigned int   level = 0;
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
-        W  work(itor);
+        W  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
@@ -286,9 +287,10 @@ void OrchestrationRuntime<W>::executeCpuTask(const std::string& bundleName,
 
     cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
 
+    unsigned int   level = 0;
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
-        W  work(itor);
+        W  work(itor, level);
         // Ownership of tile resources is transferred immediately
         cpuTeam->enqueue(work, true);
     }

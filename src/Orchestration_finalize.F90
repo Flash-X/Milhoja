@@ -13,7 +13,6 @@ subroutine Orchestration_finalize()
     end interface
 
     if (.NOT. or_isRuntimeInitialized) then
-        ! TODO: Add in stderr mechanism and write errors to this
         write(*,*) "The Orchestration Runtime has not been initialized" 
         STOP
     end if
