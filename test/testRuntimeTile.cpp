@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iomanip>
 #include <cassert>
 #include <array>
 #include <vector>
@@ -21,6 +20,7 @@
 
 #include "Flash.h"
 #include "constants.h"
+#include "Analysis.h"
 #include "scaleEnergy_cpu.h"
 #include "computeLaplacianDensity_cpu.h"
 #include "computeLaplacianEnergy_cpu.h"
@@ -58,35 +58,6 @@ protected:
         Grid<NXB,NYB,NZB,NGUARD>::instance()->destroyDomain();
     }
 
-    /**
-     * PROBLEM ONE
-     *      Approximated exactly by second-order discretized Laplacian
-     */
-    static double f1(const double x, const double y) {
-        return (  3.0*x*x*x +     x*x + x 
-                - 2.0*y*y*y - 1.5*y*y + y
-                + 5.0);
-    }
-
-    static double Delta_f1(const double x, const double y) {
-        return (18.0*x - 12.0*y - 1.0);
-    }
-
-    /**
-     * PROBLEM TWO
-     *      Approximation is not exact and we know the error term exactly */
-    static double f2(const double x, const double y) {
-        return (  4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
-                -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
-                + 1.0);
-    }
-
-    static double Delta_f2(const double x, const double y) {
-        return (  48.0*x*x - 18.0*x
-                - 12.0*y*y + 12.0*y
-                - 2.0); 
-    }
-
     static void initBlock(Tile* tileDesc) {
         Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
         amrex::Geometry     geometry = grid->geometry();
@@ -107,63 +78,18 @@ protected:
             y = geometry.CellCenter(j, 1);
             for (int i = loGC.x; i <= hiGC.x; ++i) {
                 x = geometry.CellCenter(i, 0);
-                f(i, j, loGC.z, DENS_VAR_C) = f1(x, y);
-                f(i, j, loGC.z, ENER_VAR_C) = f2(x, y);
+                // PROBLEM ONE
+                //  Approximated exactly by second-order discretized Laplacian
+                f(i, j, loGC.z, DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
+                                              - 2.0*y*y*y - 1.5*y*y + y
+                                              + 5.0;
+                // PROBLEM TWO
+                //  Approximation is not exact and we know the error term exactly
+                f(i, j, loGC.z, ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
+                                              -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
+                                              + 1.0;
             }
         }
-    }
-
-    // TODO: Convert over to runtime task and execute using runtime
-    void computeError(amrex::Real* L_inf1, amrex::Real* meanAbsErr1,
-                      amrex::Real* L_inf2, amrex::Real* meanAbsErr2) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
-        amrex::MultiFab&   unk = grid->unk();
-        amrex::Geometry&   geometry = grid->geometry();
-        grid = nullptr;
-
-        amrex::Real  x            = 0.0;
-        amrex::Real  y            = 0.0;
-        amrex::Real  absErr       = 0.0;
-        amrex::Real  maxAbsErr1   = 0.0;
-        amrex::Real  sum1         = 0.0;
-        amrex::Real  maxAbsErr2   = 0.0;
-        amrex::Real  sum2         = 0.0;
-        unsigned int nCells       = 0;
-
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            const amrex::Box&                    box = itor.validbox();
-            amrex::FArrayBox&                    fab = unk[itor];
-            amrex::Array4<amrex::Real> const&    data = fab.array();
-
-            const amrex::Dim3 lo = amrex::lbound(box);
-            const amrex::Dim3 hi = amrex::ubound(box);
-            for     (int j = lo.y; j <= hi.y; ++j) {
-                y = geometry.CellCenter(j, 1);
-                for (int i = lo.x; i <= hi.x; ++i) {
-                    x = geometry.CellCenter(i, 0);
-
-                    absErr = fabs(Delta_f1(x, y) - data(i, j, lo.z, DENS_VAR_C));
-                    sum1 += absErr;
-                    if (absErr > maxAbsErr1) {
-                         maxAbsErr1 = absErr;
-                    }
-
-                    absErr = fabs(3.2*Delta_f2(x, y) - data(i, j, lo.z, ENER_VAR_C));
-                    sum2 += absErr;
-                    if (absErr > maxAbsErr2) {
-                         maxAbsErr2 = absErr;
-                    }
-
-                    ++nCells;
-                }
-            }
-        }
-
-        *L_inf1 = maxAbsErr1;
-        *meanAbsErr1 = sum1 / static_cast<amrex::Real>(nCells);
-
-        *L_inf2 = maxAbsErr2;
-        *meanAbsErr2 = sum2 / static_cast<amrex::Real>(nCells);
     }
 };
 
@@ -204,6 +130,16 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         }
         cpu.closeTask();
         cpu.wait();
+
+        Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
+        cpu.startTask(Analysis::computeErrors, N_THREADS,
+                      "Analysis", "computeErrors");
+        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
+            Tile   myTile(itor, level);
+            cpu.enqueue(myTile, true);
+        }
+        cpu.closeTask();
+        cpu.wait();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";
@@ -221,11 +157,12 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         EXPECT_TRUE(false);
     }
 
-    amrex::Real    L_inf1      = 0.0;
-    amrex::Real    meanAbsErr1 = 0.0;
-    amrex::Real    L_inf2      = 0.0;
-    amrex::Real    meanAbsErr2 = 0.0;
-    computeError(&L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
+    double L_inf1      = 0.0;
+    double meanAbsErr1 = 0.0;
+    double L_inf2      = 0.0;
+    double meanAbsErr2 = 0.0;
+    Analysis::densityErrors(&L_inf1, &meanAbsErr1);
+    Analysis::energyErrors(&L_inf2, &meanAbsErr2);
 
     EXPECT_TRUE(0.0 <= L_inf1);
     EXPECT_TRUE(L_inf1 <= 0.0);
@@ -251,6 +188,12 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
                                2, "bundle1_gpuTask",
                                ThreadRoutines::scaleEnergy_cpu,
                                0, "bundle1_postGpuTask");
+
+        Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
+        runtime_->executeTasks("Analysis bundle",
+                               Analysis::computeErrors, 2, "bundle1_cpuTask",
+                               nullptr, 0, "null_gpuTask",
+                               nullptr, 0, "null_postGpuTask");
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";
@@ -268,11 +211,20 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         EXPECT_TRUE(false);
     }
 
+    // Output results to file for offline, manual scaling test
+    std::string  fname("RuntimeCppTest_");
+    fname += std::to_string(N_BLOCKS_X);
+    fname += "_";
+    fname += std::to_string(N_BLOCKS_Y);
+    fname += ".dat";
+    Analysis::writeToFile(fname);
+
     double L_inf1      = 0.0;
     double meanAbsErr1 = 0.0;
     double L_inf2      = 0.0;
     double meanAbsErr2 = 0.0;
-    computeError(&L_inf1, &meanAbsErr1, &L_inf2, &meanAbsErr2);
+    Analysis::densityErrors(&L_inf1, &meanAbsErr1);
+    Analysis::energyErrors(&L_inf2, &meanAbsErr2);
 
     EXPECT_TRUE(0.0 <= L_inf1);
     EXPECT_TRUE(L_inf1 <= 1.0e-15);
@@ -283,24 +235,6 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     EXPECT_TRUE(L_inf2 <= 5.0e-6);
     EXPECT_TRUE(0.0 <= meanAbsErr2);
     EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
-
-    // Output results to file for offline, manual scaling test
-    amrex::Geometry geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
-    amrex::Real  dx = geometry.CellSize(0);
-    amrex::Real  dy = geometry.CellSize(1);
-
-    std::string  fname("RuntimeCppTest_");
-    fname += std::to_string(N_BLOCKS_X);
-    fname += "_";
-    fname += std::to_string(N_BLOCKS_Y);
-    fname += ".dat";
-
-    std::ofstream   fptr;
-    fptr.open(fname, std::ios::out);
-    fptr << "#dx,dy,Linf Density,Linf Energy\n";
-    fptr << std::setprecision(15) << dx << "," << dy << ",";
-    fptr << std::setprecision(15) << L_inf1 << "," << L_inf2 << std::endl;
-    fptr.close();
 }
 #endif
 

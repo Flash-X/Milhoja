@@ -58,7 +58,11 @@ contains
         integer(C_INT) :: hiGC(1:MDIM)
         integer        :: i
 
-        ! TODO: What to do if the pointer is already assigned in this?
+        if (C_ASSOCIATED(this%cptr)) then
+            write(*,*) "[tile_t assignment] C pointer already assigned"
+            STOP
+        end if
+
         this%cptr = cptr
 
         call tile_set_limits_fi(this%cptr, gid, level, lo, hi, loGC, hiGC)

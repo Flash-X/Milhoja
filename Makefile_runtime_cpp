@@ -26,7 +26,8 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h \
     $(TESTDIR)/computeLaplacianDensity_cpu.h \
     $(TESTDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTDIR)/scaleEnergy_cpu.h
+    $(TESTDIR)/scaleEnergy_cpu.h \
+    $(TESTDIR)/Analysis.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
@@ -35,6 +36,7 @@ SRCS       = \
     $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
     $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
     $(TESTDIR)/scaleEnergy_cpu.cpp \
+    $(TESTDIR)/Analysis.cpp \
     $(TESTDIR)/runAllCppTests.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))

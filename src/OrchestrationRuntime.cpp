@@ -164,8 +164,6 @@ void OrchestrationRuntime::executeTasks(const std::string& bundleName,
                           gpuTask,     nGpuThreads,     gpuTaskName,
                           postGpuTask, nPostGpuThreads, postGpuTaskName);
     } else {
-        // TODO: Return an error code so that Fortran wrapper can call
-        // Driver_abortFlash with error message generated here?
         std::string   errMsg =   "No compatible thread team layout - ";
         errMsg += bundleName;
         errMsg += "\n";
@@ -206,8 +204,6 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
                                 "Post-GPU could receive too many threads "
                                 "from the CPU and GPU teams");
     }
-    // TODO: Confirm that no team has publisher's/subscribers.
-
 
     //***** Construct thread and work pipelines
     cpuTeam->attachThreadReceiver(postGpuTeam);
