@@ -200,7 +200,9 @@ The runtime implementation and dependencies shall not impede FLASH5 from being
 used on *nix operation systems including macOS nor from being run for research
 on laptops.  Implementations shall not require more than the C++-11 standard and
 threading implementations shall be portable.  \textcolor{red}{What Fortran
-standard are we shooting for?}
+standard are we shooting for?  If the runtime is written in C++, then we will
+need F2003 for the code that manages the C++/Fortran interoperability.  Ideally,
+we can get rid of classes and restrict all other Fortran code to F95.}
 \end{req}
 
 \textcolor{red}{Present implementation is with pthreads, which is portable based
