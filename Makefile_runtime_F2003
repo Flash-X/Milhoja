@@ -90,10 +90,11 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 	$(F90) -c $(F90FLAGS) $(F90WARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(COMMAND) $(BASEDIR)/Test*.log
-	/bin/rm -f $(COMMAND) $(SRCDIR)/*.o
-	/bin/rm -f $(COMMAND) $(TESTDIR)/*.o
-	/bin/rm -f $(COMMAND) $(SRCDIR)/*.mod
-	/bin/rm -f $(COMMAND) $(BASEDIR)/*.mod
-	/bin/rm -f $(COMMAND) $(TESTDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(SRCDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/test_*.x 
 
