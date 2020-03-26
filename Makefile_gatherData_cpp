@@ -1,0 +1,97 @@
+SHELL=/bin/sh
+
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
+BASE     = gather_data_cpp
+MAKEFILE = Makefile_gatherData_cpp
+BASEDIR  = .
+INCDIR   = $(BASEDIR)/includes
+SRCDIR   = $(BASEDIR)/src
+TESTDIR  = $(BASEDIR)/test
+AMREXDIR = $(HOME)/Projects/amrex_install/2D
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
+    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h \
+    $(TESTDIR)/estimateTimerResolution.h \
+    $(TESTDIR)/Analysis.h \
+    $(TESTDIR)/computeLaplacianDensity_cpu.h \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
+    $(TESTDIR)/scaleEnergy_cpu.h
+SRCS       = \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(TESTDIR)/estimateTimerResolution.cpp \
+    $(TESTDIR)/Analysis.cpp \
+    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
+    $(TESTDIR)/scaleEnergy_cpu.cpp \
+    $(TESTDIR)/gatherData.cpp 
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11
+CXXWARNS  =
+
+LIBS      = -lstdc++ -lamrex
+LDFLAGS   = -L$(AMREXDIR)/lib
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+
+$(COMMAND): $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+
+# Move buildInfo.h out so that we just write it once
+# Also, find commands that are universal
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	@/bin/rm -f $(TESTDIR)/buildInfo.h
+	@printf "constexpr char PROJECT_GIT_REPO_NAME[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `git config --get remote.origin.url` >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char PROJECT_GIT_REPO_VER[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `git -C $(SRCDIR) describe --always` >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char BUILD_DATETIME[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `date +"%Y-%m-%dT%H:%M:%S%z"` >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char HOSTNAME[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `hostname` >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char MACHINE_INFO[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char CXX_COMPILER[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" $(CXX) >> $(TESTDIR)/buildInfo.h
+
+	@printf "constexpr char CXX_COMPILER_VERSION[] = \"" >> $(TESTDIR)/buildInfo.h
+	@printf "%s\";\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.h
+
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(TESTDIR)/buildInfo.h
+	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(SRCDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/test_*.x 
+

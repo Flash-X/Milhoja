@@ -1,9 +1,9 @@
 #ifndef CONSTANTS_H__
 #define CONSTANTS_H__
 
-#define NXB 8
-#define NYB 16
-#define NZB 1
+#define NXB N_CELLS_IN_X
+#define NYB N_CELLS_IN_Y
+#define NZB N_CELLS_IN_Z
 
 #define MDIM 3
 #define NDIM 2

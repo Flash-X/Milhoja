@@ -211,14 +211,6 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         EXPECT_TRUE(false);
     }
 
-    // Output results to file for offline, manual scaling test
-    std::string  fname("RuntimeCppTest_");
-    fname += std::to_string(N_BLOCKS_X);
-    fname += "_";
-    fname += std::to_string(N_BLOCKS_Y);
-    fname += ".dat";
-    Analysis::writeToFile(fname);
-
     double L_inf1      = 0.0;
     double meanAbsErr1 = 0.0;
     double L_inf2      = 0.0;
