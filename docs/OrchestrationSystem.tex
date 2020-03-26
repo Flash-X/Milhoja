@@ -9,7 +9,7 @@
 \usepackage{commath}
 \usepackage{color}
 
-\title{FLASH Orchestration Runtime Design}
+\title{FLASH Orchestration System Design}
 
 % No automatic indenting
 \setlength\parindent{0pt}
@@ -50,8 +50,617 @@
 
 \maketitle
 
-%%%%%----- DESIGN SUMMARY SECTION -----%%%%%
-\section{Design Summary}
+%%%%%----- ORCHESTRATION SYSTEM EXECUTIVE SUMMARY -----%%%%%
+\section{Executive Summary}
+This document is intended to be a static snapshot of the FLASH5 development
+team's understanding of the design and requirements associated with the design
+of the Orchestration System that is under development for inclusion in FLASH5.
+This document has been informed by discussions within the group and with
+collaborators as well as through some prototyping of the Orchestration Runtime
+in FLASH5 with the \texttt{simpleUnsplit} Hydro implementation.  However, as a static
+document, the contents here will likely not be updated as our understanding of
+the design of this system improves with implementation of the system.\\
+
+The \textbf{orchestration system} is a performance portability system that will
+allow FLASH5 to run in CPU-only mode or to make good, efficient use of resources
+when run on heterogeneous platforms on which the notion of host-to-device
+offloading exists. The orchestration system is comprised of
+\begin{enumerate}
+\item{an offline \textbf{task scheduler} that}
+    \begin{itemize}
+    \item{reads in metadata orchestration files for all kernels, all tasks, all
+    operations, and for the simulation,}
+    \item{reads in a general, high-level representation of each operation,}
+    \item{creates a kernel graph of all kernels to be executed at each time step,}
+    \item{attempts to optimize resource use for the given platform using the
+    above information by fusing tasks and bundling tasks for execution with the
+    orchestration runtime, and}
+    \item{writes to \texttt{Driver\_evolveFlash} the bundles as a sequence of runtime executions (one task
+    bundle per runtime execution) in an order that preserves dependencies,}
+    \end{itemize}
+\item{an offline \textbf{code generator} that generates Fortran code optimized
+for the given platform and that serves as the code layer that patches
+orchestration runtime execution (\texttt{Driver\_evolveFlash}) with base Fortran
+code that executes kernels and tasks on data defined on individual domain tiles,
+and}
+\item{an \textbf{orchestration runtime} that}
+    \begin{itemize}
+    \item{is invoked for each task,}
+    \item{knows where and how to efficiently transfer data,}
+    \item{manages memory and device resources to prevent incorrect access and
+    promote efficient resource use,}
+    \item{executes kernels in parallel on the appropriate devices and in an
+    order that satisfies dependencies, and}
+    \item{leaves data in the appropriate memory resource.}
+    \end{itemize}
+\end{enumerate}
+
+Our design is forward-looking in the sense that we hope our
+design will not preclude running on future heterogeneous platforms in which
+multiple distinct devices including the host might exist in the same chip
+package (higher NUMA complexity) or in which multiple distinct devices including
+the host might share the same physical memory package (altering the role of data
+transport in a single simulation).  Specifically, our three-levels of
+future-proofing consider that the design must allow for
+\begin{itemize}
+\item{One host + many accelerators (offloading),}
+\item{tighter coupling between host \& host devices
+(physically-unified memory / GPU and CPU have the same memory) --- memory
+barriers to manage resource access dependencies.  NUMA effects (e.g. GPU and CPU
+on same chip) would require that user can dictate mapping of tasks onto HW.
+Same memory could mean that data movements become unnecessary.  This last point
+seems hard.}
+\item{Runtime adaptiveness/forecasting --- this is the interface between the
+runtime and the off line tools --- we have the Orchestration runtime public
+interface that dictates task bundles and on the other side a task graph that is
+executed in task bundles on the runtime.}
+\end{itemize}
+
+%%%%%----- ORCHESTRATION SYSTEM DEFINITIONS & OVERVIEW -----%%%%%
+\section{Definitions \& General Design}
+The term \textbf{unit} is used as per the normal Flash definition.  In
+particular, we would like to emphasize that a unit can contain
+\begin{itemize}
+\item{standalone public routines that function as helper routines,}
+\item{standalone private routines that function as helper routines, and}
+\item{routines that execute a high-level computation or action.}
+\end{itemize}
+
+This latter class of routines are referred to as \textbf{operations} and
+\textit{typically} are routines that
+\begin{itemize}
+\item{are called by the \texttt{Driver\_evolveFlash} routine,}
+\item{outline at a high-level the steps of a computation, and}
+\item{execute the computation on all tiles in the domain by using the tile
+iterator at least once.}
+\end{itemize}
+An example of an
+operation is the updating of the solution at a single time step by the Hydro
+unit and its highest-level representation is the code in \texttt{Hydro.F90}.
+The Gravity unit has many different operations including ... and solving for the
+gravitational potential (\texttt{Gravity\_potential.F90}).  Note that operations
+can call operations.  For instance, the Hydro step operation may call the
+Gravity unit's operation that solves for the gravitational potential.\\
+
+In this document the units of heavy-computation work that are written in the
+form of one or more nested loops are sensibly referred to as \textbf{loop
+nests}.  Each distinct set of code that is run on a device as a single unit of
+computation is known as a \textbf{kernel}.  In general, each kernel will consist
+of one loop nest and the iteration space of the loop nest will be over a section
+of the index space of the domain (\textit{i.e.} a set of cells or faces located
+in a contiguous, rectangular region of the discretization of the domain).  This
+is advantageous as we hope that the computational load of the loop nest will be
+sufficiently large for amortizing the cost of transferring data and launching
+the kernel on the device.  Note that in some cases, it might be reasonable to
+group together lines of code that do not contain a single loop nest.  For
+instance, such kernels might be called to set the values of variables in the
+device memory so that we can avoid the potentially more expensive alternative of
+setting the variables in the host memory and transferring the values to the device
+memory.\\
+
+\textbf{Tasks} are the smallest unit of work that can be executed by the
+Orchestration runtime and each task may consist of kernel launches interleaved
+with code blocks to be run on the host.  In its simplest form, a task may
+consist of code that does not loop over tiles and such tasks are defined as
+\textbf{auxiliary tasks}.  Though relatively simple, these tasks may also launch
+non-trivial kernels.  For instance an auxiliary task may launch a kernel that
+populates via a loop nest an array variable allocated in device memory
+(\textit{e.g.} compute the speed of sound across the cells in a region of the
+domain).  Tasks that perform one loop over a subset of tiles in the domain are
+defined as \textbf{work tasks}.  Note that the design of the runtime does not
+allow for tasks that execute more than one tile iteration loop.\\
+
+An important aspect of the runtime is that each execution of the runtime exposes
+parallelism in at least two different ways.  The first level of parallelism can
+be exploited when certain Grid unit operations that involve global data
+communication can be overlaid asynchronously with one or more subsequent work
+tasks.  This type of parallelism is exposed through the Grid unit's iterator and
+therefore depends on whether a particular implementation of the Grid unit
+supports it and on which global communication operations it supports.  For
+example, the Paramesh implementation of the Grid unit does not have asynchronous
+tile iterators, but AMReX implementation of the Grid unit will allow overlaying
+the filling of guardcells with execution of work tasks.\\
+
+The second layer of parallelism exposed by the runtime design is that of forming
+\textbf{task bundles}.  Specifically, the runtime interface has been designed so
+that with each execution of the runtime, we can execute several work tasks with
+certain pairwise dependence relationships.  For instance, if we bundle two tasks
+that have no data dependencies at all, then these two tasks can be run
+concurrently with one task run in the host and the other in a device.  In
+addition, if we have a third task that has no dependence whatsoever with either
+of the first two tasks or that must be run after the device task, then this
+task may also be included in the bundle for running on the host after the device
+task has been completed.  The two tasks in a task bundle that run concurrently
+are called the \textbf{concurrent CPU} and \textbf{concurrent GPU tasks} if we are
+running on nodes with host CPUs that offload to GPUs.  On a system with such nodes, a
+task in the bundle that is run on blocks in the CPU memory after the concurrent
+GPU task has been applied to these blocks is called a \textbf{post-concurrency
+CPU task}.  Note that one can run the runtime with only one task in the bundle
+if so desired.\\
+
+This design therefore allows for parallelism in the form of task parallelism as
+well as parallelism in the form of pipelining work on devices.  For instance, if a
+runtime execution is scheduled with the GC fill asynchronous iterator, then the
+stages in the pipeline are
+\begin{enumerate}
+\item{copy from the Grid unit's data structures in host memory to a host memory
+buffer those tiles with GC data already filled,}
+\item{assemble $N$ tiles into a data packet and initiate asynchronous data
+transfer to device,}
+\item{launch in device all kernels that comprise the concurrent device task and
+apply to all tiles in the data packet,}
+\item{transfer asynchronously all tiles in data packet back to host memory
+buffer,}
+\item{copy all tile data in data packet back to Grid unit's data structures in
+host memory, and}
+\item{apply post-concurrency host task to all tiles in data packet.}
+\end{enumerate}
+
+A group of tasks are said to be \textbf{runtime-compatible} and can therefore be
+bundled together into a single runtime execution if
+\begin{itemize}
+\item{they can be co-scheduled in the runtime such that they are executed in an
+order that satisfies interdependencies and}
+\item{the tasks are to be run on the same set of tiles or if one task is going
+to iterator over tiles at a finer-grained structure and the second task can
+complete its work on its set of tiles using the same structure.}
+\end{itemize}
+An example of the second case is if one task
+will do its work by looping over all levels and iterating across all leaf blocks
+at each level and the second task needs to do its work on all leaf blocks at all
+levels.  Based on the discussion above, it is not necessarily the case that
+runtime-compatible tasks can be run concurrently.  Also, the definition allows
+for task bundles of auxiliary tasks (all tasks in the bundle iterate over the
+empty set) and the runtime interface includes a routine for executing such a
+bundle.\\
+
+One can start to analyse the different data movements associated with particular
+task bundles.  For instance, data that is operated on by a concurrent GPU work
+task must obviously be transported back to the host memory in the case that a
+post-concurrency CPU task is also included in the bundle and operates on or uses
+the same data.  In the absence of this dependency, it is possible that the
+concurrent GPU work task data could be left in the GPU's memory for immediate
+use by following GPU-based tasks.  However, we cannot know that the device
+memory will be large enough to contain this memory as well as memory needed by
+the following GPU task.  Therefore, we must assume that all runtime executions
+that contain a work task run on a device with its own physical memory have an
+implied data transfer back to the host memory.\\
+
+The current implementation of the \texttt{simpleUnsplit} Hydro code, while temporary and
+brute force, contains an example of an implicit barrier that can exist between
+consecutive tasks.  When tiling is not enabled, the solution at time step $n$ on
+a given block can be used to compute fluxes and these used to overwrite in-place
+the solution data with that of the $n+1$ time step on the same block.  In other
+words, the compute flux and update solution tasks can be fused into one
+computation to be done in one single iteration in a loop over blocks.\\
+
+When tiling is enabled, however, the solution data cannot always be overwritten
+in-place as this could update the data in interior cells that are in fact
+guardcells of a different tile.  If this is done before the fluxes have been
+computed in the neighboring tile, then the result will not be correct.
+Therefore, in this case, the compute fluxes task must be run on all tiles and
+saved in intermediate storage before the solutions are updated based on the
+fluxes, which is an implied and required barrier that exists between
+the two tasks and that prevents combining the two tasks into a single loop over
+tiles.\\
+
+% Consider the case of a loop over tiles that sets a value to a variable and
+% where the value can only be determined after iterating over all tiles (i.e.
+% something akin to a reduction).  If a second loop over the same tiles uses
+% that variable, then an implied variable exists.
+
+This example motivates the following statement.  Two or more tasks can be
+\textbf{fused} if
+\begin{enumerate}
+\item{the tasks are to be run on the same set of tiles or if one task 
+iterates over tiles at a finer-grained structure and the second task can
+complete its work on its set of tiles using the same structure and}
+\item{they have no data dependencies or appear in order in the task graph with
+no implicit barrier between them.}
+\end{enumerate}
+This definition allows for fusing tasks from different operations and even from
+different units.
+Note, however, that it might be more advantageous in terms of decreased runtime
+to avoid fusing so that the tasks can be run on different hardware.  Also,
+fusion could lead to performance degradation if the register pressure is too
+high for the fused task and frequent context switching is required by the data
+access pattern.  \textcolor{red}{Two work tasks that are separated by
+an auxiliary task cannot be fused without also fusing in the auxiliary task,
+which could lead to either incorrect results or to unacceptable increases in
+runtime.}\\
+
+Note that runtime-compatible tasks that have no interdependence within a single
+time step can be bundled together or run in different runtime executions freely
+(\textit{e.g.} Gravity potential and hydro step) within their time step.  Also,
+we can choose to fuse these two tasks in any desired order.  Runtime-compatible
+tasks that have a dependence can be bundled together in the same runtime
+execution if one is scheduled on the GPU and the other as the 
+post-concurrency CPU task.\\
+
+An potential side-effect of our design is that data movements (\textit{e.g.}
+intranode, internode, or host-to-accelerator) that are required by an operation
+will be expressed explicitly at the high-level representation of the operation.
+In this sense, data movements will be placed at the same level of importance in
+terms of algorithmic design as tasks.  Ideally, any two successive data
+movements will be separated by only a single runtime execution.\\
+
+Finally, we partition the code used at each time step into the three classes
+\begin{enumerate}
+\item{\texttt{Driver\_evolveFlash} and its auto-generated runtime calls,}
+\item{\textbf{static Fortran routines} that carry out computations at the
+level of a tile (\textit{e.g.} \texttt{hy\_computeFluxes}), and}
+\item{the \textbf{patch panel} layer of code that must be auto-generated to
+match the contents of \texttt{Driver\_evolveFlash} to the interfaces of the
+static Fortran routines.}
+\end{enumerate}
+If a simulation is to be run in CPU-only mode, then the latter class of files
+would consist of auto-generated high-level representations of each operation
+(\textit{e.g.} Hydro.F90) that are functionally equivalent to the code presently
+in FLASH5.  Otherwise these files would be auto-generated Fortran files that
+implement each of the tasks being passed to a runtime execution.\\
+
+\textcolor{red}{Do we need to classify intermediate data used by kernels?}
+
+%%%%%----- ORCHESTRATION SYSTEM HIGH-LEVEL REQUIREMENTS -----%%%%%
+\section{Overall System}
+\subsection{Requirements}
+Users shall be able to setup each simulation to run
+\begin{enumerate}
+\item{on CPU-only platforms with no runtime (\textit{i.e.} run in FLASH4 mode),}
+\item{on CPU-only platforms but with a runtime so that independent tasks or
+independent tasks/communications can be overlaid, or}
+\item{on platforms that have host/accelerator heterogeneous node architecture.}
+\end{enumerate}
+
+We assume that FLASH5 will run on a variety of different machines including
+personal laptops and leadership class machines.  The Orchestration System design
+shall not expose to CPU-only/no-runtime users unnecessary configuration
+complexity nor additional runtime penalties.  In particular, when run in
+CPU-only mode, using FLASH5 shall be virtually identical to using FLASH4.\\
+
+The system shall be comprised of
+\begin{enumerate}
+\item{an offline tool that constructs a decorated kernel control flow graph,}
+\item{an offline tool that optimizes resource use and execution time by
+determining how to order tasks, on which hardware to run each task, and
+therefore how to form task bundles,}
+\item{offline tools that generate simulation- and platform-specific Fortran code
+based on the optimized scheduling of the previous tool, and}
+\item{an orchestration runtime subsystem.}
+\end{enumerate}
+For more information regarding each of these subsystems, refer to its
+associated, detailed design section below.\\
+
+The kernel/task graph shall represent only the work that needs to be done at
+each time step.  The information needed to construct the kernel/task graph shall
+be made available at setup time so that the graph can be constructed offline at
+setup time, which implies that the graph is static and valid for each
+timestep.\\
+
+The design shall allow for specification of runtime parameters that can alter
+how the kernel/task graph is traversed at runtime.\\
+
+The design shall allow for executing code between time steps, including
+computationally-heavy code, that can make use of the orchestration runtime.
+However, this code shall not require automatic optimization of scheduling nor
+auto-generation of code and shall therefore not be included in the kernel/task
+graph.  An example of such code is the regridding of the domain by an AMR-based
+implementation of the Grid unit.\\
+
+While it could be possible to run concurrently the final tasks from the $n^{th}$
+time step with the beginning tasks for time step $n+1$, the orchestration
+system shall not allow for such parallelism so that complexity is reduced.\\ 
+
+The system shall be designed such that the bundling of tasks and relative
+scheduling of these can be done as either a static task at setup time or at
+runtime so that bundling and scheduling can be done dynamically in response to
+acquiring actual runtime performance and resource usage data during a simulation
+run.  \textcolor{red}{What does this mean in terms of configuration of this
+subsystem?}\\
+
+When the optimization of task/kernel scheduling is done at setup time, the 
+code generation tool shall write at setup time Fortran code that will execute
+all tasks with the same bundling and same relative ordering for each time
+step.\\
+
+When the optimization of task/kernel scheduling is done at runtime, the 
+code generation tool shall write at setup time Fortran code that will allow a
+forecasting scheduler to execute each time step with as many task bundles as it
+sees fit.\\
+
+Ideally, the public interface of the orchestration runtime shall not need to be
+altered to accommodate running with static scheduling or runtime scheduling.\\
+
+At each regridding, the Grid unit shall use the runtime to cache
+non-tile-specific information in device memory.  Examples of such information
+are
+\begin{itemize}
+\item{cell and face coordinates,}
+\item{face areas, }
+\item{cell volumes, and}
+\item{[XYZ] mesh sizes.}
+\end{itemize}
+This information shall not change during the computations made at a single time
+step so that available memory resources in different devices are fixed when the
+time step starts.\\
+
+\textcolor{red}{Should we insist that kernels also cache block-indexed values
+like boundBox and physical size?  Do we get access to cached data through the
+tileDesc object methods?  For example, when called on the host, the method
+physicalSize will do the actual calculation.  However, when called on the GPU,
+should the same routine just get the values from cache?}\\
+
+Values that are needed in device memory for computation and that are constant
+throughout the full program execution shall be stored in host memory and in all
+device memory (where needed) at the beginning of program execution such that the
+value is correctly mirrored across all memory systems and such that memory
+usage can be correctly gauged by the runtime system at the start of each time
+step.\\
+
+Values that are needed in device memory for computation and that are constant
+during a single time step shall stored in host memory and in all device memory
+(where needed) at the beginning of the time step such that the value is
+correctly mirrored across all memory systems and such that memory usage can be
+correctly gauged by the runtime system at the start of each time step.
+
+%%%%%----- STATIC FORTRAN CODEBASE -----%%%%%
+\section{Static Fortran computational code}
+\subsection{Requirements}
+The routines defined in the static Fortran computational code shall each operate
+on a single tile or on no tile at all.\\
+
+The routines defined in the static Fortran computational code shall not
+dynamically allocate memory.  Rather, the necessary tiles of memory shall be
+passed in from the highest-level of such routines.  In other words, all memory
+management is done at the level of each operation and the tiles of scratch
+memory needed by each static routine and all its subroutines must be passed into
+the static routine and passed through the interface to the subroutines.
+
+\subsection{Possible Requirements}
+The static Fortran routines shall not be exposed to the notion of a tile and
+therefore shall not contain the Grid unit's tile descriptor as a parameter.
+Rather, all tile-specific information shall be obtained from the Grid unit by
+the operation at the highest level and all such information passed to static
+Fortran routines as individual parameters.  This shall be implemented so that
+Grid information cached in device memory can be used immediately within device
+kernels.  \textcolor{red}{This means that the high-level routines will have very
+long parameter lists.  Does passing in so many parameters have an adverse effect
+on memory or performance?  Larger frame sizes?}
+
+%%%%%----- ORCHESTRATION OFFLINE TOOLCHAIN -----%%%%%
+\section{Composer design}
+%The composer should have four levels of hierarchy, with each hierarchy
+%having its own set of meta information encodings. The meta information
+%encoded should be such that the composer tool can infer dependencies
+%easily. 
+
+\subsection{Simulation Unit Level Metadata}
+\begin{itemize}
+\item Any customization at Kernel, Task or Operation level, which also
+  tells the tool which composer metafiles to ignore in the source tree
+\item Recipes for combining operations -- perhaps we one can even build a
+  database of recipes for combining operations similar to shortcuts
+\item Recipes for allocating work to communicators/devices
+\end{itemize}
+The composer tool will start from the simulation unit, just as setup
+tool does. It will assemble all the metadata files it needs to parse,
+and as a first step replace all the default ones with custom ones
+included in the Simulation unit. It will then start to build up the
+information from bottom level up. If the simulation unit is asking to
+replace a recipe at any level, the tool will check it for feasibility
+and abort if it isn't. This might be quite difficult, we will have to
+think about it more. 
+ 
+\subsection{Kernel Level Metadata}
+\begin{itemize}
+\item State variables operated on
+\item State variable modified
+\item Spatial dependences (pointwise or not)
+\item Temporal dependences (uses items computed in previous
+  iteration)
+\item Dimensionality
+\item Branches in the kernel -- are they before, in the middle of, or
+  at the end of the kernel
+\item Keyword $\implies$ code dictionary if applicable
+\item Whether a compute intensive kernel
+\item scratch space needed
+\end{itemize}
+After parsing all the information the composer tool will know the
+complete set of state variables that may be used and modified in the
+task, and what kind of spatial and temporal dependencies exist in
+whole of the task. The advantage will be if there are none, that
+information can be percolated up all the way to the operation level composer.
+
+\subsection{Task Level Metadata}
+\begin{itemize}
+\item The number of kernels in the task
+\item Mutually exclusive kernels (branching at the kernel level)
+\item Where can scratch asked by kernels can be reused within tasks
+\item Critical path of kernels -- optional 
+\item Recipes for composing kernels -- optional
+\end{itemize}
+At this level the composer tool is still tracking spatial and temporal
+dependences, and from doing some branch analysis can tell the
+reusability of data between kernels, especially if recipes are
+provided. 
+
+\subsection{Operation Level Metadata}
+\begin{itemize}
+\item The number of tasks
+\item Recipes for composing tasks
+\item Communications between tasks
+\item Reductions, and the state modified with reductions
+\item Tasks available for interleaving with other operations 
+\item Operations it can overlap with
+\end{itemize}
+At this level the composer knows whether it can compress data to be
+sent to devices in terms of number of ghost cells, and consolidated
+memory mapping needs of the operation.
+
+\subsection{Example}
+Unsplit Hydro time step operation
+\begin {itemize}
+\item At kernel level all hy\_uhd.... functions, some may be split
+  further.  No temporal dependencies within kernels, spatial dependency
+  is defined by the stencil. Branches mostly at the beginning or at
+  the end of each kernel. 
+\item Most variables used and updated, should be enumerated
+\item At task level one can convert all of Dongwook's case statements
+  into recipes. 
+\item At the operation level recipes are one of three ways of using flux
+  correction. Some recipes may involve interspersed gravity
+  calculation
+\item The operation will clearly state that it cannot overlap with any
+  other physics unit in the same timestep calculation.
+\end{itemize}
+Gravity with multipole implementation
+\begin{itemize}
+\item All grav\_... functions are kernels.
+\item The number of tasks is two. The computation of moments has no
+  spatial or temporal dependency (I think). 
+\item In first task density is used, nothing is modified, in the
+  second task potential is modified, nothing is used.
+\item Reduction in between the two tasks is indicated
+\item Tasks can be overlapped, as can be the reduction
+\end{itemize}
+Burn
+\begin{itemize}
+\item No kernel has temporal or spatial dependency
+\item Species and density used and modified.
+\item One task, can be overlapped
+\end{itemize}
+
+Now if we were putting together a Sedov application there would be no
+specific information needed at the simulation level, and no
+recipes. If we were doing a supernova calculation then we would
+provide a recipe for overlap of burn with gravity.
+
+\subsection{Requirements}
+
+The macros used to index different variables in FAB data storage shall be
+constructed so that macros with different names never refer to the same
+variable (\textit{i.e.} we prevent aliasing any region of data) so that
+read-write dependencies of data can be established conservatively and correctly
+without having knowledge of the macro mapping to indices\footnote{I do not
+believe that the Unsplit implementation of the Hydro unit presently satisfies
+this rule}.\\
+
+The offline tool that constructs the kernel/task graph shall determine
+automatically for each kernel
+\begin{itemize}
+\item{which data variables (\textit{e.g.} UNK, face-centered, fluxes,
+\textit{etc.}) are read,}
+\item{which data variables (\textit{e.g.} UNK, face-centered, fluxes,
+\textit{etc.}) are written,}
+\item{if the kernel is pointwise or stencil-based, and}
+\item{the temporal dependence of the kernel computation.}
+\end{itemize}
+
+Rules shall be created that allow for determining task- and operation-level
+metainformation based solely on the metainformation of all kernels used by the
+task or operation.  \textcolor{red}{Say this with specific detail and
+potentially just write the rules.}\\
+
+Each work task should be labeled by the type of tiles on which it should be
+applied (\textit{e.g.} leaf), to which level the tiles are restricted (if any),
+and if the tiles are tiles or actually blocks.  This information is needed to
+determine which iterator to use and to help determine which tasks are
+runtime-compatible.\\
+
+If a runtime execution if preceded by a data movement that can make use of an
+asynchronous task iterator, then the offline tool shall build the runtime
+execution such that the execution uses the asynchronous task iterator
+internally.  Note that it is exactly this possibility that motivates the
+possible need for multiple data packets per task.
+
+\subsection{Possible Requirements}
+
+%We prefer static analysis of static Fortran routines to determine dependencies
+%between tasks as opposed to writing directives to express this.  If we do a
+%static analysis within the scope of the single file, then we do not know that
+%the variables with different names are actually different (unless we go outside
+%the file and look at Flash.h).  Going outside the file is too complex.  We could
+%agree on a rule (like restrict in C++), where we say that all MACROS that end
+%with \_VAR and that are used with a four-dimensional array and are different if
+%the part preceding \_VAR are different.  The third option is explicit decoration
+%like Anshu has, which increases the likelihood of errors.  Note that unsplit
+%does not presently allow for us to make strong statements about the MACROS as
+%they have two sets that have the same mapping but two names (DENS\_VAR and
+%DENS\_01\_VAR).\\
+
+%Should we allow for fusing of two tasks that are completely unrelated
+%(\textit{e.g.} from different operations and possibly units)?  This could be
+%good if we have two computations that are individually too light weight to
+%justify the data transfer to the GPU but together form a computationally-heavy
+%load.  Note that fusing could be a bad idea if the register pressure grows too
+%strongly due to the fusion.\\
+
+%However, it
+%might be more advantageous in terms of decreased runtime to avoid fusing so that
+%the tasks can be run on different hardware.  The developer shall be able to
+%specify default information to help determine if tasks should be fused and on
+%which type of device to run in the case that the tasks are not fused.  The users
+%shall be able to override the default values set by the developer to help
+%influence fusing and on which non-fused tasks should be run.  Two
+%runtime-compatible tasks cannot be fused if there is a barrier between them.
+%For example, the stencil nature of \texttt{simpleUnsplit} means that if we use tiling,
+%then there is am implied barrier between computeFluxes and updateSoln.  However,
+%if tiling is turned off, then the barrier is not implied and we can fuse.
+%\textcolor{red}{How to determine this and/or encode it?}\\
+
+%\textcolor{red}{What is the criterion for distinguishing between a task and a
+%kernel?  For instance, we could say that energyFix and Eos are kernels within a
+%task or say that these are different tasks and they inherit their iterator info
+%from the enclosing updateSoln.  Some of this is encapsulation/design.  We would
+%like updateSoln to finish only once *all* the data is in its final, clean form.}
+
+%%%%%----- OFFLINE CODE GENERATION -----%%%%%
+\section{Offline code generation tool}
+\subsection{Requirements}
+If a simulation is setup such that no runtime is needed, then the offline tools
+shall use the kernel/task graph to write a Fortran file that implements the
+highest-level flow of each operation including looping over tiles, executing
+data movements, and executing computation with calls to the static Fortran
+computational code.  The resultant code shall be functionally equivalent and
+similar in resource usage and runtime to the current Fortran code in FLASH4
+(\textit{e.g.} \texttt{Hydro.F90}) except for the possibility that the generated
+code might not contain mutually-exclusive branch statements (\textit{e.g.} use
+LLF or HLL version of the simpleUnsplit solver).\\
+
+If a simulation is setup to use the runtime with static scheduling, then the
+offline tools shall use the kernel/task graph to run task bundles \textit{via}
+the orchestration runtime by writing these to \texttt{Driver\_evolveFlash}.
+
+If a simulation is setup to use the runtime with dynamic, forecasted scheduling,
+then the offline tools shall auto-generate a layer of static code that will
+allow for runtime execution of an unknown number dynamically-bundled
+tasks at each time step and such that tasks are still executed in correct order.
+
+\subsection{Possible Requirements}
+
+%%%%%----- ORCHESTRATION RUNTIME DESIGN SECTION -----%%%%%
+\section{Runtime design}
+
 \textcolor{red}{TODO: Need to add in brief explanation of thread teams,
 execution cycles, and topologies of thread teams.  This document should
 eventually end up in the Orchestration System design document, in which case
@@ -187,13 +796,18 @@ call (these are blocking)?}
 %The wait() method for a publisher team must be called before the wait()
 %method of its subscriber team.
 
-%%%%%----- RUNTIME REQUIREMENTS SECTION -----%%%%%
-\section{Runtime Requirements}
+%%%%%----- RUNTIME REQUIREMENTS SUBSECTION
+\subsection{Runtime Requirements}
 The statements made in this section are intended to be informal, high-level
 requirements.  Specifically, they should be correct for all orchestration
 runtime designs and ideally require little change if our design changes
 significantly.  In other words, these statements should not be informed by
 implementation ideas or details.
+
+\begin{req}
+\textcolor{red}{We should be able to send tiles to CPUs but build data packets
+of blocks.}
+\end{req}
 
 \begin{req}
 The runtime implementation and dependencies shall not impede FLASH5 from being
@@ -530,8 +1144,8 @@ topologies will give the correct results regardless of order of execution.}}
 \end{center}
 \end{figure}
 
-%%%%%----- RUNTIME TECHNICAL SPECIFICATIONS & DESIGN SECTION -----%%%%%
-\section{Runtime Technical Specifications \& Design}
+%%%%%----- RUNTIME TECHNICAL SPECIFICATIONS & DESIGN SUBSECTION
+\subsection{Runtime Technical Specifications \& Design}
 The statements that appear in this section are being referred to as technical
 specifications rather than requirements in that these statements are low-level
 and directly informed by the design and how we plan to implement the design.
@@ -549,7 +1163,7 @@ statements, proofs are given to explain how we know that the specification is
 satisfied by the design and actual implemetation.
 
 %%-- THREAD TEAMS SUBSECTION
-\subsection{Thread Teams}
+\subsubsection{Thread Teams}
 A thread team is fundamentally event-driven software and as such its design has
 been specified as a finite state machine (FSM).  However, the behavior in a
 given state cannot be specified solely by a single qualitative state variable.
@@ -901,7 +1515,7 @@ the team to \TeamIdle.  If all threads are Computing, then these will discover
 that there is pending work and the team will stay maximally busy.
 
 %%-- TEAM IDLE SUBSECTION
-\subsection{{\TeamIdle} State}
+\subsubsection{{\TeamIdle} State}
 \begin{spec}
 Similar to Spec~\ref{spec:Runtime_ForwardThreads}, if client code calls the
 \texttt{increaseThreadCount} method of a thread team in \TeamIdle, the team shall
@@ -950,7 +1564,7 @@ is run and multiple times between cycles, both of which are logical errors.
 accord with Spec~\ref{spec:Runtime_OneWait}.  
 
 %%-- TEAM RUNNING & OPEN SUBSECTION
-\subsection{\TeamRunningOpen}
+\subsubsection{\TeamRunningOpen}
 \begin{spec}
 It  would seem sensible to insist that an external thread cannot call
 \texttt{wait} during a given execution cycle unless the \texttt{closeTask} event
@@ -967,7 +1581,7 @@ for a thread to call \texttt{wait}.
 \textbf{Verification:}\hspace{0.125in}  Implemented directly as stated.
 
 %%-- TEAM RUNNING & CLOSED SUBSECTION
-\subsection{\TeamRunningClosed}
+\subsubsection{\TeamRunningClosed}
 \begin{spec}
 \label{spec:Closed_Transition}
 If a team is in mode \TeamRunningClosed, then every thread that transitions to
@@ -1008,7 +1622,7 @@ state.   By Spec~\ref{spec:Closed_Transition}, the EFSM mode is transitioned to
 {\TeamRunningNoMoreWork} as part of every transition that results in $N_Q = 0$.
 
 %%-- TEAM RUNNING & NO MORE WORK SUBSECTION
-\subsection{\TeamRunningNoMoreWork}
+\subsubsection{\TeamRunningNoMoreWork}
 For the following, note that the only transitions into {\TeamRunningNoMoreWork}
 are from {\TeamRunningOpen} and \TeamRunningClosed.
 
@@ -1065,7 +1679,7 @@ zero in {\TeamRunningNoMoreWork} without also simultaneously causing the mode to
 change to \TeamIdle.  Hence, $N_i < N_{max}$ in {\TeamRunningNoMoreWork} up to
 the transition to \TeamIdle.
 
-\subsection{Possible Requirements}
+%\subsection{Possible Requirements}
 %If a thread team is going to ship data to an accelerator like a GPU, then the
 %unit of work for such a thread team shall be a data packet of tiles (with the
 %possibility that the tiles are the trivial tiling).  This includes the
@@ -1075,12 +1689,6 @@ the transition to \TeamIdle.
 %If a thread team is going to ship data to the host, then the unit of work for
 %such a thread team shall be a tile (with the possibility that the tiles are the
 %trivial tiling).
-
-The queue thread shall create the iterator indicated to it by the parameters
-passed to executeTask and shall be able to form all necessary units of work from
-this.  This is too specific.  What if it can just queue tiles to every team and
-the units of work are formed at dequeueing?  Who is responsible for the
-shipments then?  Who is responsible for bringing data back?
 
 %Consider a unit of runtime work that includes a GPU-concurrent task, a
 %CPU-concurrent task, and a Post-concurrency CPU task in its task bundle.  Then
@@ -1115,5 +1723,156 @@ shipments then?  Who is responsible for bringing data back?
 %host and some devices sharing the same physical memory, this requirement could
 %become more imporatant.  Therefore, giving the runtime more parameters to inform
 %data movements could be important.\\
+
+%Should we allow the Post-concurrency task to start immediately when blocks get
+%back from the GPU?  This would imply that this task is also independent from the
+%CPU-concurrent task.  Or, do we run the Post-concurrent task only after both the
+%CPU and GPU work have finished?  Note that we can never know that a single
+%routine will always run on either the host or either the device.  They must be
+%written in such a way that they can be run well on either without manual or
+%automatically updating the code beyond directives (OpenACC, OpenMP, CUDA, etc.).\\
+
+%\newpage
+%\begin{appendices}
+%\section{Hydro operations}
+%The Unsplit implementation of the Hydro step operation has at least three
+%variants and the variant executed at runtime is presently determined at each
+%time step based on the Grid unit AMR implementation chosen (known at setup) 
+%and whether or not flux correction should be applied (specified as a runtime
+%parameter).  Here we express each variant as an operation.\\
+%
+%\textcolor{red}{TODO: Add to requirements that parameter such as flux correction
+%should be both a setup and runtime parameter.  If the setup-time value is false,
+%then the task scheduler has the possibility to fuse tasks.  If it is true, then
+%the runtime parameter can still be set to turn this off.  However, the binary
+%built will not have been built with the potential for fusing tasks.}\\
+%
+%For the following subsections, the colorization is
+%\begin{itemize}
+%\item{a \ComposerKey{keyword} that is paired with a static Fortran routine in
+%the operation's dictionary,}
+%\item{a \RuntimeParam{runtime} parameter, and}
+%\item{a \SetuptimeParam{setup-time} and runtime parameter.}
+%\end{itemize}
+%
+%TODO: Add in a UG variant?!
+%
+%\newpage
+%\subsection{No flux correction variant}
+%\texttt{
+%\begin{tabbing}
+%\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
+%if \SetuptimeParam{shockDetectOn}:\\
+%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
+%\> Task 1:\\
+%\>\> \ComposerKey{doShockDetection}\\
+%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
+%Task 2:\\
+%\> if \RuntimeParam{updateHydroFluxes}:\\
+%\>\> \ComposerKey{updateHydroData}\\
+%\> \ComposerKey{zeroFluxData}\\
+%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
+%\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
+%\end{tabbing}
+%}
+%
+%For \ComposerKey{computeFluxesAndUpdateSolution}, the dictionary should know
+%that it needs to run \texttt{hy\_computeFluxes} with \texttt{Uout => Uin}.
+%
+%\subsection{Paramesh + flux correction variant}
+%\texttt{
+%\begin{tabbing}
+%\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
+%if \SetuptimeParam{shockDetectOn}:\\
+%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
+%\> Task 1:\\
+%\>\> \ComposerKey{doShockDetection}\\
+%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
+%Task 2:\\
+%\> if \RuntimeParam{updateHydroFluxes}:\\
+%\>\> \ComposerKey{updateHydroData}\\
+%\> \ComposerKey{zeroFluxData}\\
+%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
+%\>\> if level == finest:\\
+%\>\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
+%\>\> else:\\
+%\>\>\> \ComposerKey{computeFluxes}\\
+%\> \ComposerKey{storeFluxDataForFluxCorrect}\\
+%\ComposerKey{conserveFluxes} (global, internode data movement)\\
+%Task 3:\\
+%\> iterate \ComposerKey{LeavesWithoutTiling}:\\
+%\>\> if level == finest:\\
+%\>\>\> \ComposerKey{noOp}\\
+%\>\> else:\\
+%\>\>\> \ComposerKey{updateSolution}\\
+%\> \ComposerKey{updateBoundaries}
+%\end{tabbing}
+%}
+%
+%\newpage
+%\subsection{AMReX + flux correction variant - tiling}  
+%\textbf{Input:} \texttt{simTime, dt, dtOld, sweepOrder}\\
+%\textbf{Output:} the updated solution with EoS run on all leaf blocks.  GC data
+%not necessarily good.
+%
+%\texttt{
+%\begin{tabbing}
+%\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\=\hspace*{0.25in}\= \kill
+%if \SetuptimeParam{shockDetectOn}:\\
+%\>\ComposerKey{GcFillWithoutEoS} (global, internode data movement)\\
+%\> Task 1:\\
+%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
+%\>\>\> \ComposerKey{doShockDetection} (operates on single block)\\
+%\ComposerKey{GcFillWithEoS} (global, internode data movement)\\
+%Task 2:\\
+%\> if \RuntimeParam{updateHydroFluxes}:\\
+%\>\> SubTask 2.1 (Run in device so that data is already in device memory?):\\
+%\>\>\> \ComposerKey{updateHydroData} (doesn't operate on blocks, but sets
+%variables)\\
+%\> SubTask 2.2 (Run in CPU to avoid data movements?):\\
+%\>\> \ComposerKey{zeroFluxData} (iterates over all leaf blocks)\\
+%\ComposerKey{TaskBarrier} (fake data movement so that tasks are clean and efficient)\\
+%Task 3:\\
+%\> level = finest\\
+%\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
+%\>\> \ComposerKey{computeFluxesAndUpdateSolution}\\
+%\> if \ComposerKey{nLevels} > 1:\\
+%\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
+%\> level = finest-1 (NOTE: There might only be one level at any iteration!)\\
+%\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
+%\>\> \ComposerKey{computeFluxes}\\
+%\> if level != coarsest:\\
+%\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
+%\ComposerKey{conserveFluxes} (global, internode data movement)\\
+%loop level=finest-1..coarsest:\\
+%\>Task 3+i:\\
+%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
+%\>\>\> \ComposerKey{updateSolution}\\
+%\>\> level = finest-i\\
+%\>\> iterate \ComposerKey{LeavesOnLevelWithoutTiling}:\\
+%\>\>\> \ComposerKey{computeFluxes}\\
+%\>\> if level != coarsest:\\
+%\>\>\> \ComposerKey{storeFluxDataForFluxCorrect}\\
+%\ComposerKey{conserveFluxes} (global, internode data movement)\\[0.25in]
+%Task M:\\
+%if \SetuptimeParam{useGravity}:\\
+%\> \ComposerKey{prepareNewGravityAccelerations}\\
+%\ComposerKey{doGravityStep}
+%\ComposerKey{TaskBarrier} (Implied because we are at the end of the operation?)
+%\end{tabbing}
+%}
+%
+%Note that \texttt{hy\_updateSolution} calls \texttt{hy\_energyFix} and \texttt{Eos\_wrapped}
+%at the end.  These two could be pulled out and included as subtasks that could
+%be run on the CPU after \texttt{hy\_updateSolution} finishes running on a data
+%packet in the accelerator.\\
+%
+%Note that \texttt{hy\_prepareNewGravityAccelerations} can call
+%Gravity\_potential and GcFill in the end.  This needs to be moved up.\\
+%
+%Note that \texttt{hy\_gravityStep} iterates over all leaf blocks to update the
+%solution using the gravity accelerations.
+%
+%\end{appendices}
 
 \end{document}

@@ -3,9 +3,9 @@
 .ipynb_checkpoints
 gatherDataCpp_*_*_*_*_*_*.dat
 gatherDataF2003_*_*_*_*_*_*.dat
-docs/OrchestrationRuntime.log
-docs/OrchestrationRuntime.aux
-docs/OrchestrationRuntime.pdf
+docs/OrchestrationSystem.log
+docs/OrchestrationSystem.aux
+docs/OrchestrationSystem.pdf
 test_threadteam_cpp.x
 test_runtime_cpp.x
 gather_data_cpp.x
