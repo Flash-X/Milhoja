@@ -11,9 +11,10 @@ module Simulation_interface
 
     !!!!!----- DEFINE GENERAL ROUTINE INTERFACES
     interface
-        subroutine Simulation_initBlock(tilePtr) bind(c)
-            use iso_c_binding, ONLY : C_PTR
-            type(C_PTR), intent(IN) :: tilePtr
+        subroutine Simulation_initBlock(tId, tilePtr) bind(c)
+            use iso_c_binding, ONLY : C_INT, C_PTR
+            integer(C_INT), intent(IN), value :: tId
+            type(C_PTR),    intent(IN), value :: tilePtr
         end subroutine Simulation_initBlock
     end interface
 

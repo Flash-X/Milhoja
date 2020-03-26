@@ -9,6 +9,7 @@
 #include <AMReX_DistributionMapping.H>
 
 #include "constants.h"
+#include "ThreadTeam.h"
 
 template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
 Grid<NX,NY,NZ,NGC>*  Grid<NX,NY,NZ,NGC>::instance_ = nullptr;
@@ -60,7 +61,7 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
                                        const unsigned int nBlocksY,
                                        const unsigned int nBlocksZ,
                                        const unsigned int nVars,
-                                       SET_IC_FCN initBlock) {
+                                       TASK_FCN<Tile> initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
         throw std::logic_error("Grid unit's initDomain already called");
@@ -95,10 +96,16 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
 
     unsigned int   level = 0;
     unk_ = new amrex::MultiFab(ba, dm, nVars, NGC);
+
+    // TODO: Thread count should be a runtime variable
+    ThreadTeam<Tile>  team(4, 1, "no.log");
+    team.startTask(initBlock, 4, "init", "init");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
         Tile   tileDesc(itor, level);
-        initBlock(&tileDesc);
+        team.enqueue(tileDesc, true);
     }
+    team.closeTask();
+    team.wait();
 }
 
 /**

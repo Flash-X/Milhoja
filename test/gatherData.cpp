@@ -17,6 +17,7 @@
 #include "Flash.h"
 #include "constants.h"
 #include "estimateTimerResolution.h"
+#include "initTile_cpu.h"
 #include "Analysis.h"
 #include "scaleEnergy_cpu.h"
 #include "computeLaplacianDensity_cpu.h"
@@ -32,47 +33,12 @@ constexpr unsigned int   N_TRIALS = 5;
 constexpr unsigned int   N_THREAD_TEAMS = 3;
 constexpr unsigned int   N_THREADS_PER_TEAM = 4;
 
-// TODO: This routine should be contained in own file Simulation_initBlock
-void initBlock(Tile* tileDesc) {
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
-    amrex::Geometry             geometry = grid->geometry();
-    amrex::MultiFab&            unk = grid->unk();
-    amrex::FArrayBox&           fab = unk[tileDesc->gridIndex()];
-    grid = nullptr;
-
-    amrex::Array4<amrex::Real> const&   f = fab.array();
-
-    // Fill in the GC data as well as we aren't doing a GC fill in any
-    // of these tests
-    amrex::Real   x = 0.0;
-    amrex::Real   y = 0.0;
-    const amrex::Dim3 loGC = tileDesc->loGC();
-    const amrex::Dim3 hiGC = tileDesc->hiGC();
-    for     (int j = loGC.y; j <= hiGC.y; ++j) {
-        y = geometry.CellCenter(j, 1);
-        for (int i = loGC.x; i <= hiGC.x; ++i) {
-            x = geometry.CellCenter(i, 0);
-            // PROBLEM ONE
-            //  Approximated exactly by second-order discretized Laplacian
-            f(i, j, loGC.z, DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
-                                          - 2.0*y*y*y - 1.5*y*y + y
-                                          + 5.0;
-            // PROBLEM TWO
-            //  Approximation is not exact and we know the error term exactly
-            f(i, j, loGC.z, ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
-                                          -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
-                                          + 1.0;
-        }
-    }
-}
-
 void  setUp(void) {
-    // TODO: Use runtime here as well to get runtime down
-    amrex::MultiFab&  unk = Grid<NXB,NYB,NZB,NGUARD>::instance()->unk();
-    for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-        Tile     tileDesc(itor, LEVEL);
-        initBlock(&tileDesc);
-    }
+    OrchestrationRuntime::instance()->executeTasks("Task 1",
+                                                   Simulation::initTile_cpu,
+                                                   4, "cpuTask",
+                                                   nullptr, 0, "null_gpuTask",
+                                                   nullptr, 0, "null_postGpuTask");
 }
 
 void  tearDown(const std::string& filename,
@@ -97,7 +63,7 @@ void  tearDown(const std::string& filename,
     OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
     runtime->executeTasks("Task 1",
                           Analysis::computeErrors,
-                          2, "cpuTask",
+                          3, "cpuTask",
                           nullptr, 0, "null_gpuTask",
                           nullptr, 0, "null_postGpuTask");
     runtime = nullptr;
@@ -133,7 +99,7 @@ int   main(int argc, char* argv[]) {
     grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                      N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
                      NUNKVAR,
-                     initBlock);
+                     Simulation::initTile_cpu);
     amrex::MultiFab&  unk = grid->unk();
 
     // Setup logging of results

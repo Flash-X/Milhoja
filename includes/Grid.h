@@ -14,8 +14,7 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include "Tile.h"
-
-using SET_IC_FCN = void (*)(Tile* tileDesc);
+#include "runtimeTask.h"
 
 template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
 class Grid {
@@ -31,7 +30,7 @@ public:
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
                        const unsigned int nVars,
-                       SET_IC_FCN initBlock);
+                       TASK_FCN<Tile> initBlock);
     void    destroyDomain(void);
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }

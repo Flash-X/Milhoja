@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Flash.h"
+#include "runtimeTask.h"
 
 extern "C" {
 
@@ -23,7 +24,7 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int nVars,
-                               SET_IC_FCN initBlock) {
+                               TASK_FCN<Tile> initBlock) {
         Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
         grid->initDomain(static_cast<amrex::Real>(xMin),
                          static_cast<amrex::Real>(xMax),

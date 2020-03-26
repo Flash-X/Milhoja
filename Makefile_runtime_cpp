@@ -24,6 +24,7 @@ CXX_HDRS   = \
     $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h \
+    $(TESTDIR)/initTile_cpu.h \
     $(TESTDIR)/computeLaplacianDensity_cpu.h \
     $(TESTDIR)/computeLaplacianEnergy_cpu.h \
     $(TESTDIR)/scaleEnergy_cpu.h \
@@ -31,6 +32,7 @@ CXX_HDRS   = \
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(TESTDIR)/initTile_cpu.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \
     $(TESTDIR)/computeLaplacianDensity_cpu.cpp \

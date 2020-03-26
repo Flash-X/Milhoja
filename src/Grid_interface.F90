@@ -11,14 +11,6 @@ module Grid_interface
     implicit none
     public
 
-    !!!!!----- DEFINE PROCEDURE POINTER INTERFACES
-    abstract interface
-        subroutine setIcIface(tilePtr) bind(c)
-            use iso_c_binding, ONLY : C_PTR
-            type(C_PTR), intent(IN) :: tilePtr
-        end subroutine setIcIface
-    end interface
-
     !!!!!----- DEFINE GENERAL ROUTINE INTERFACES
     interface
         subroutine Grid_init()

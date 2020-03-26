@@ -1,15 +1,16 @@
 #include "Flash.h"
 #include "constants.h"
 
-subroutine Simulation_initBlock(tilePtr) bind(c)
-    use iso_c_binding,  ONLY : C_PTR
+subroutine Simulation_initBlock(tId, tilePtr) bind(c)
+    use iso_c_binding,  ONLY : C_INT, C_PTR
 
     use Grid_interface, ONLY : Grid_getCellCoords
     use tile_mod,       ONLY : tile_t
 
     implicit none
 
-    type(C_PTR), intent(IN), value :: tilePtr
+    integer(C_INT), intent(IN), value :: tId
+    type(C_PTR),    intent(IN), value :: tilePtr
 
     type(tile_t)                    :: tileDesc
     integer                         :: level
