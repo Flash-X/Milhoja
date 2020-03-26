@@ -1,7 +1,7 @@
 SHELL=/bin/sh
 
-BASE     = test_runtime_f2003
-MAKEFILE = Makefile_runtime_F2003
+BASE     = gather_data_F2003
+MAKEFILE = Makefile_gatherData_F2003
 BASEDIR  = .
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
@@ -29,7 +29,7 @@ CXX_SRCS       = \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp
-F90_SRCS       = \
+F2003_SRCS       = \
     $(SRCDIR)/tile_mod.F90 \
     $(SRCDIR)/Grid_interface.F90 \
     $(SRCDIR)/Orchestration_interface.F90 \
@@ -56,20 +56,20 @@ F90_SRCS       = \
     $(TESTDIR)/Physics_op1_executeTask2_Tile.F90 \
     $(TESTDIR)/Physics_op1_executeTask3_Tile.F90
 
-OBJS      = $(addsuffix .o, $(basename $(CXX_SRCS)))
-MODS      = $(addsuffix .mod, $(basename $(F90_SRCS)))
-COMMAND   =  $(BASE).x
+OBJS       = $(addsuffix .o, $(basename $(CXX_SRCS)))
+MODS       = $(addsuffix .mod, $(basename $(F2003_SRCS)))
+COMMAND    =  $(BASE).x
 
-CXX       = mpicxx
-CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -std=c++11
-CXXWARNS  =
+CXX        = mpicxx
+CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
+CXXWARNS   =
 
-F90       = mpif90
-F90FLAGS  = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
-F90WARNS  =
+F2003      = mpif90
+F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003WARNS =
 
-LIBS      = -lstdc++ -lamrex
-LDFLAGS   = -L$(AMREXDIR)/lib
+LIBS       = -lstdc++ -lamrex
+LDFLAGS    = -L$(AMREXDIR)/lib
  
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -81,15 +81,46 @@ all:    $(COMMAND)
 .SUFFIXES: .o .cpp .mod .F90
 
 $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE) 
-	$(F90) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
+	$(F2003) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
+# Move buildInfo.inc out so that we just write it once
+# Also, find commands that are universal
 .F90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
-	$(F90) -c $(F90FLAGS) $(F90WARNS) -o $@ $<
+	@/bin/rm -f $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: PROJECT_GIT_REPO_NAME = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `git config --get remote.origin.url` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: PROJECT_GIT_REPO_VER = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `git -C $(SRCDIR) describe --always` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: BUILD_DATETIME = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `date +"%Y-%m-%dT%H:%M:%S%z"` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: HOSTNAME = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `hostname` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: MACHINE_INFO = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: CXX_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" $(CXX) >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: CXX_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: F2003_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" $(F2003) >> $(TESTDIR)/buildInfo.inc
+
+	@printf "character(*), parameter :: F2003_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s\'\n" `$(F2003) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+
+	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
 
 clean:
+	/bin/rm -f $(TESTDIR)/buildInfo.inc
 	/bin/rm -f $(BASEDIR)/Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
@@ -97,4 +128,5 @@ clean:
 	/bin/rm -f $(BASEDIR)/*.mod
 	/bin/rm -f $(TESTDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/test_*.x 
+	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 

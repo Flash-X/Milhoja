@@ -94,4 +94,5 @@ clean:
 	/bin/rm -f $(BASEDIR)/*.mod
 	/bin/rm -f $(TESTDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/test_*.x 
+	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 

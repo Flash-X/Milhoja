@@ -137,19 +137,13 @@ int   main(int argc, char* argv[]) {
     amrex::MultiFab&  unk = grid->unk();
 
     // Setup logging of results
-    std::string  fname("gatherData_");
-    fname += std::to_string(NXB);
-    fname += "_";
-    fname += std::to_string(NYB);
-    fname += "_";
-    fname += std::to_string(NZB);
-    fname += "_";
-    fname += std::to_string(N_BLOCKS_X);
-    fname += "_";
-    fname += std::to_string(N_BLOCKS_Y);
-    fname += "_";
-    fname += std::to_string(N_BLOCKS_Z);
-    fname += "_cpp.dat";
+    std::string  fname("gatherDataCpp_");
+    fname += std::to_string(NXB) + "_";
+    fname += std::to_string(NYB) + "_";
+    fname += std::to_string(NZB) + "_";
+    fname += std::to_string(N_BLOCKS_X) + "_";
+    fname += std::to_string(N_BLOCKS_Y) + "_";
+    fname += std::to_string(N_BLOCKS_Z) + ".dat";
 
     // Write header to file
     std::ofstream  fptr;

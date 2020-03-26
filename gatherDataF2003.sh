@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Define test problems
-N_CELLS_PER_BLOCK=(8 16 32 64 128)
-N_BLOCKS=(2 4 8 16 32 64)
+N_CELLS_PER_BLOCK=(1 2 4 8 16 32 64 128 256 512)
+N_BLOCKS=(16)
 
-MAKEFILE=Makefile_gatherData_cpp
-BINARY=gather_data_cpp.x
+MAKEFILE=Makefile_gatherData_F2003
+BINARY=gather_data_F2003.x
 
-rm gatherDataCpp_*_*_*_*_*_*.dat
+rm gatherDataF2003_*_*_*_*_*_*.dat
 
 for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
     for n_blocks in ${N_BLOCKS[@]}; do
@@ -33,7 +33,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         make -f $MAKEFILE clean all
         if [[ $? -ne 0 ]]; then
             echo "Unable to compile n_cells=$n_cells / n_blocks=$n_blocks"
-            exit 1;
+            exit 3;
         fi
         rm ./test/Flash.h
         rm ./test/constants.h
@@ -41,7 +41,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         time ./$BINARY
         if [[ $? -ne 0 ]]; then
             echo "Unable to execute $BINARY successfully"
-            exit 2;
+            exit 4;
         fi
     done
 done

@@ -2,6 +2,9 @@
 #include "constants.h"
 
 program Driver_evolveFlash
+    use mpi,                     ONLY : MPI_Wtime, &
+                                        MPI_Wtick
+
     use Grid_interface,          ONLY : Grid_init, &
                                         Grid_finalize, &
                                         Grid_initDomain, &
@@ -20,12 +23,21 @@ program Driver_evolveFlash
 
     implicit none
 
+    ! Have make specify build-time constants for file header
+#include "buildInfo.inc"
     integer, parameter :: FOUT = 111
+
+    integer, parameter :: N_THD_TASK1 = 2
+    integer, parameter :: N_THD_TASK2 = 2
+    integer, parameter :: N_THD_TASK3 = 0
 
     character(128) :: fname
     real           :: LinfDens
     real           :: LinfEner
     real           :: deltas(1:MDIM)
+
+    double precision    tStart
+    double precision    walltime
 
     call Grid_init()
     call Orchestration_init()
@@ -37,12 +49,14 @@ program Driver_evolveFlash
     ph_op1_energyFactor = 3.2
     an_energyFactor = ph_op1_energyFactor
 
+    tStart = MPI_Wtime()
     call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask1_Tile, &
-                                    nCpuThreads=2, &
+                                    nCpuThreads=N_THD_TASK1, &
                                     gpuTask=Physics_op1_executeTask2_Tile, &
-                                    nGpuThreads=2, &
+                                    nGpuThreads=N_THD_TASK2, &
                                     postGpuTask=Physics_op1_executeTask3_Tile, &
-                                    nPostGpuThreads=0)
+                                    nPostGpuThreads=N_THD_TASK3)
+    walltime = MPI_Wtime() - tStart
 
     ! DEV: Since we are breaking up the high-level operations so that we can
     ! potentially mix tasks from different operations in execution cycles, we
@@ -70,11 +84,32 @@ program Driver_evolveFlash
 
     call Grid_getDeltas(1, deltas)
 
-    write(fname,'(A,I0,A,I0,A)') "RuntimeF90Test_", N_BLOCKS_X, "_", N_BLOCKS_Y, ".dat"
+    write(fname,'(A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A)') &
+            "gatherDataF2003_", &
+            NXB, "_", NYB, "_", NZB, "_", &
+            N_BLOCKS_X, "_", N_BLOCKS_Y, "_", N_BLOCKS_Z, &
+            ".dat"
     OPEN(unit=FOUT, FILE=fname, STATUS='new', ACTION='write')
-    write(FOUT,'(A)')                             "#dx,dy,Linf Density,Linf Energy"
-    write(FOUT,'(E15.8,A,E15.8,A,E15.8,A,E15.8)') deltas(IAXIS), ",", deltas(JAXIS), ",", &
-                                                  LinfDens, ',', LinfEner
+    write(FOUT,'(A,A)')       "# Git repository,", PROJECT_GIT_REPO_NAME
+    write(FOUT,'(A,A)')       "# Git Commit,", PROJECT_GIT_REPO_VER
+!    write(FOUT,'(A,A)')       "# AMReX version,", amrex::Version()
+    write(FOUT,'(A,A)')       "# C++ compiler,", CXX_COMPILER
+    write(FOUT,'(A,A)')       "# C++ compiler version,", CXX_COMPILER_VERSION
+    write(FOUT,'(A,A)')       "# F2003 compiler,", F2003_COMPILER
+    write(FOUT,'(A,A)')       "# F2003 compiler version,", F2003_COMPILER_VERSION
+    write(FOUT,'(A,A)')       "# Build date,", BUILD_DATETIME
+    write(FOUT,'(A,A)')       "# Hostname, ", HOSTNAME
+    write(FOUT,'(A,A)')       "# Host information,", MACHINE_INFO
+    write(FOUT,'(A,E15.8,A)') "# MPI_Wtick,", MPI_Wtick(), ",sec"
+    write(FOUT,'(A)')   "pmode,n_loops,n_thd_task1,n_thd_task2,n_thd_task3," // &
+                        "NXB,NYB,NZB,N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z,"      // &
+                        "dx,dy,Linf_density,Linf_energy,Walltime_sec"
+    write(FOUT,'(A,A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A,I0,A,E22.15,A,E22.15,A,E22.15,A,E22.15,A,E22.15)') &
+        'Runtime', ",", 1, ",", N_THD_TASK1, ",", N_THD_TASK2, ",", N_THD_TASK3, ",", &
+        NXB, ",", NYB, ",", NZB, ",", &
+        N_BLOCKS_X, ",", N_BLOCKS_Y, ",", N_BLOCKS_Z, ",", &
+        deltas(IAXIS), ",", deltas(JAXIS), ",", &
+        LinfDens, ',', LinfEner, ",", walltime
     CLOSE(unit=FOUT)
 
     deallocate(an_LinfErrors, an_meanAbsErrors)

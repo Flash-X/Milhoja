@@ -1,8 +1,10 @@
 Testing
 ===========
-* make -f Makefile_threadteam_cpp clean all DEBUG=T
-* make -f Makefile_threadteam_cpp clean all
-* make -f Makefile_runtime_cpp clean all DEBUG=T
-* make -f Makefile_runtime_cpp clean all
-* make -f Makefile_runtime_F2003 clean all
+* ./testThreadTeamCpp.sh
+* ./testThreadTeamCpp.sh --debug
+* ./testRuntimeCpp.sh
+* ./testRuntimeCpp.sh --debug
+* ./gatherDataCpp.sh
+* ./gatherDataF2003.sh
+* Manually confirm both gatherData results using GatherDataAnalysis.ipynb
 
