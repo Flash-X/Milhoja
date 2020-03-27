@@ -172,6 +172,14 @@ Device HW                        & Data Parallel & Device  & Comp.     & Schedul
 %%%%%----- ORCHESTRATION SYSTEM DEFINITIONS & OVERVIEW -----%%%%%
 \section{Definitions \& General Design}
 \label{sec:Definitions}
+The section introduces terms and concepts that will be used throughout the
+document.  Its purpose is to present the reader with a high-level overview of
+the orchestration system design.  The contents of this section are non-technical
+and should \textbf{not} be used to generate a design nor inform an
+implementation of the design.  Refer to later sections containing requirements
+and technical specifications to find technical details that can be used for such
+purposes.\\
+
 The term \textbf{unit} is used as per the normal Flash definition.  In
 particular, we would like to emphasize that a unit can contain
 \begin{itemize}
@@ -407,17 +415,17 @@ for task bundles of auxiliary tasks (all tasks in the bundle iterate over the
 empty set) and the runtime interface includes a routine for executing such a
 bundle.\\
 
-One can start to analyse the different data movements associated with particular
-task bundles.  For instance, data that is operated on by a concurrent GPU work
-task must obviously be transported back to the host memory in the case that a
-post-concurrency CPU task is also included in the bundle and operates on or uses
-the same data.  In the absence of this dependency, it is possible that the
-concurrent GPU work task data could be left in the GPU's memory for immediate
-use by following GPU-based tasks.  However, we cannot know that the device
-memory will be large enough to contain this memory as well as memory needed by
-the following GPU task.  Therefore, we must assume that all runtime executions
-that contain a work task run on a device with its own physical memory have an
-implied data transfer back to the host memory.\\
+The original motivation for structuring \texttt{Driver\_evolveFlash} as a
+sequence of runtime executions of task bundles was the desire to minimize the
+number of data movements between host and devices.  As part of arriving at this
+goal, we determined that \textbf{data movements} (\textit{e.g.} intranode,
+internode, or host-to-accelerator) should become first class members of an
+operation's algorithm and should therefore be expressed at the highest-level
+representation of the operation (\textit{e.g.} \texttt{Hyrdo.F90}) as opposed
+to residing in a function call deep in the operation's call stack.  Our hope was and still
+remains that the physics units can be restructured to accomplish this and to
+simultaneously uncover the largest blocks of code that can be run between data
+movements (\textit{i.e.} the tasks).\\
 
 The current implementation of the \texttt{simpleUnsplit} Hydro code, while temporary and
 brute force, contains an example of an implicit barrier that can exist between
@@ -462,6 +470,15 @@ an auxiliary task cannot be fused without also fusing in the auxiliary task,
 which could lead to either incorrect results or to unacceptable increases in
 runtime.}\\
 
+If the inclusion/exclusion of a data movement or barrier in a simulation depends
+on parameters known at configuration time, then parameter values that result in
+exclusion should be used by the toolchain to fuse tasks originally separated by
+the barrier or data movement.  This implies that the highest-level expression of
+an operation should include all such barriers and data movements with these
+connected to the configuration-time parameters.  As a result, developers of
+units with complex execution paths should only need to write a single high-level
+description of the unit.\\
+
 Note that runtime-compatible tasks that have no interdependence within a single
 time step can be bundled together or run in different runtime executions freely
 (\textit{e.g.} Gravity potential and hydro step) within their time step.  Also,
@@ -469,13 +486,6 @@ we can choose to fuse these two tasks in any desired order.  Runtime-compatible
 tasks that have a dependence can be bundled together in the same runtime
 execution if one is scheduled on the GPU and the other as the 
 post-concurrency CPU task.\\
-
-An potential side-effect of our design is that data movements (\textit{e.g.}
-intranode, internode, or host-to-accelerator) that are required by an operation
-will be expressed explicitly at the high-level representation of the operation.
-In this sense, data movements will be placed at the same level of importance in
-terms of algorithmic design as tasks.  Ideally, any two successive data
-movements will be separated by only a single runtime execution.\\
 
 Finally, we partition the code used at each time step into the three classes
 \begin{enumerate}
@@ -1297,6 +1307,18 @@ arranged into a pre-described topology and each thread team setup in a given
 state.  This should be useful for both debugging and designing meaningful direct
 tests of low-level functionality.
 \end{req}
+
+\textcolor{red}{One can start to analyse the different data movements associated with particular
+task bundles.  For instance, data that is operated on by a concurrent GPU work
+task must obviously be transported back to the host memory in the case that a
+post-concurrency CPU task is also included in the bundle and operates on or uses
+the same data.  In the absence of this dependency, it is possible that the
+concurrent GPU work task data could be left in the GPU's memory for immediate
+use by following GPU-based tasks.  However, we cannot know that the device
+memory will be large enough to contain this memory as well as memory needed by
+the following GPU task.  Therefore, we must assume that all runtime executions
+that contain a work task run on a device with its own physical memory have an
+implied data transfer back to the host memory.}\\
 
 %%%%%----- RUNTIME TECHNICAL SPECIFICATIONS & DESIGN SUBSECTION
 \subsection{Runtime Technical Specifications \& Design}
