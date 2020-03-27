@@ -53,13 +53,14 @@
 %%%%%----- ORCHESTRATION SYSTEM EXECUTIVE SUMMARY -----%%%%%
 \section{Executive Summary}
 This document is intended to be a static snapshot of the FLASH5 development
-team's understanding of the design and requirements associated with the design
-of the Orchestration System that is under development for inclusion in FLASH5.
-This document has been informed by discussions within the group and with
+team's understanding of the design and requirements associated with the
+Orchestration System that is under development for inclusion in FLASH5.  This
+document has been informed by discussions within the group and with
 collaborators as well as through some prototyping of the Orchestration Runtime
-in FLASH5 with the \texttt{simpleUnsplit} Hydro implementation.  However, as a static
-document, the contents here will likely not be updated as our understanding of
-the design of this system improves with implementation of the system.\\
+in FLASH5 with the \texttt{simpleUnsplit} Hydro implementation.  However, as a
+static document, the contents here will likely not be updated as our
+understanding of the design of this system improves with implementation of the
+system.\\
 
 The \textbf{orchestration system} is a performance portability system that will
 allow FLASH5 to run in CPU-only mode or to make good, efficient use of resources
@@ -73,8 +74,8 @@ offloading exists. The orchestration system is comprised of
     \item{reads in a general, high-level representation of each operation,}
     \item{creates a kernel graph of all kernels to be executed at each time step,}
     \item{attempts to optimize resource use for the given platform using the
-    above information by fusing tasks and bundling tasks for execution with the
-    orchestration runtime, and}
+    above information by fusing tasks and bundling tasks for
+    execution with the orchestration runtime, and}
     \item{writes to \texttt{Driver\_evolveFlash} the bundles as a sequence of runtime executions (one task
     bundle per runtime execution) in an order that preserves dependencies,}
     \end{itemize}
@@ -85,15 +86,26 @@ code that executes kernels and tasks on data defined on individual domain tiles,
 and}
 \item{an \textbf{orchestration runtime} that}
     \begin{itemize}
-    \item{is invoked for each task,}
+    \item{is invoked for each task bundle,}
+    \item{exposes to the client code multiple different mappings of tasks in a
+    bundle to hardware resources\footnote{It is the responsibility of the task
+    scheduler to pick a mapping that will maximize efficient use of parallel
+    computational resources without violating intertask dependencies.},}
+    \item{allows for balanced, dynamic loading of host processors,}
     \item{knows where and how to efficiently transfer data,}
     \item{manages memory and device resources to prevent incorrect access and
-    promote efficient resource use,}
-    \item{executes kernels in parallel on the appropriate devices and in an
-    order that satisfies dependencies, and}
+    promote efficient resource use, and}
     \item{leaves data in the appropriate memory resource.}
     \end{itemize}
 \end{enumerate}
+The orchestration runtime is needed to expose the hierarchy of parallelism of a
+given platform's hardware; the collection of offline tools, to adapt the
+software to the runtime so that the software can take advantage of the exposed
+parallelism.  The division of labor between multiple tools is made not only to
+achieve good encapsulation and modularity, but also to ensure that no single
+tool is too complex or requires too much intelligence.  Refer to
+Table~\ref{tab:ParallelHierarchy} for a detailed view of the aforementioned
+hierarchy.\\
 
 Our design is forward-looking in the sense that we hope our
 design will not preclude running on future heterogeneous platforms in which
@@ -111,13 +123,55 @@ on same chip) would require that user can dictate mapping of tasks onto HW.
 Same memory could mean that data movements become unnecessary.  This last point
 seems hard.}
 \item{Runtime adaptiveness/forecasting --- this is the interface between the
-runtime and the off line tools --- we have the Orchestration runtime public
+runtime and the offline tools --- we have the Orchestration runtime public
 interface that dictates task bundles and on the other side a task graph that is
 executed in task bundles on the runtime.}
 \end{itemize}
 
+We emphasize that not only should the design/implementation allow for us to
+account for such future developments, but also adjusting the
+design/implementation should be scalable such that updating the software to use
+new or different hardware features should be easy and result in maintainable
+code.
+
+\begin{table}[!t]
+\label{tab:ParallelHierarchy}
+\caption{The hierarchy of parallelism that the Orchestration System design
+should expose and capitalize on.  The table is ordered from coarsest parallelism
+(top) to finest.  Refer to Section~\ref{sec:Definitions} for definitions of
+terms that appear in the table and Section~\ref{sec:Runtime} for more
+information regarding Thread Teams.  \textcolor{red}{Should pipelining within a
+runtime configuration be added to this table?}}
+
+\begin{center}
+
+\begin{tabular}{|p{1.1in}|c|c|c|p{2.25in}|}
+\hline
+Title & Parallelism & HW Scope & SW Scope & Description\\
+\hline
+\hline
+MPI                              & Data Parallel & Machine & Domain    & Domain decomposition into blocks\\
+\hline
+Block Iterator                   & Asynchrony    & Machine & Time step & Overlay guardcell fill communication with computation\\
+\hline
+Task Bundles with concurrency    & Task Parallel & Node    & Time step & Run independent tasks concurrently across all node resources\\
+\hline
+Task Bundles with work splitting & Data Parallel & Node    & Time step & Use different devices to apply single task to assigned blocks\\ 
+\hline
+Thread Teams                     & Data Parallel & Node    & Task      & Apply a single task to assigned blocks using host and optionally accelerators\\
+\hline
+Device Kernels                   & Data Parallel & Device  & Kernel    & Oversubscribe device with kernels to hide latencies\\
+\hline
+Device HW                        & Data Parallel & Device  & Comp.     & Schedule individual computations across processing units in device\\
+\hline
+\end{tabular}
+
+\end{center}
+\end{table}
+
 %%%%%----- ORCHESTRATION SYSTEM DEFINITIONS & OVERVIEW -----%%%%%
 \section{Definitions \& General Design}
+\label{sec:Definitions}
 The term \textbf{unit} is used as per the normal Flash definition.  In
 particular, we would like to emphasize that a unit can contain
 \begin{itemize}
@@ -171,15 +225,37 @@ defined as \textbf{work tasks}.  Note that the design of the runtime does not
 allow for tasks that execute more than one tile iteration loop.\\
 
 An important aspect of the runtime is that each execution of the runtime exposes
-parallelism in at least two different ways.  The first level of parallelism can
-be exploited when certain Grid unit operations that involve global data
-communication can be overlaid asynchronously with one or more subsequent work
-tasks.  This type of parallelism is exposed through the Grid unit's iterator and
-therefore depends on whether a particular implementation of the Grid unit
-supports it and on which global communication operations it supports.  For
-example, the Paramesh implementation of the Grid unit does not have asynchronous
-tile iterators, but AMReX implementation of the Grid unit will allow overlaying
-the filling of guardcells with execution of work tasks.\\
+parallelism in at least two different ways (Table~\ref{tab:ParallelHierarchy}).
+The first level of parallelism can be exploited when certain Grid unit
+operations that involve global data communication can be overlaid asynchronously
+with one or more subsequent work tasks.  This type of parallelism is exposed
+through the Grid unit's iterator and therefore depends on whether a particular
+implementation of the Grid unit supports it and on which global communication
+operations it supports.  For example, the Paramesh implementation of the Grid
+unit does not have asynchronous tile iterators, but AMReX implementation of the
+Grid unit will allow overlaying the filling of guardcells with execution of work
+tasks.\\
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=5.5in]{ConcurrentItorExample.pdf}
+\caption[]{An example of a runtime configuration of thread teams that implements
+two concurrent pipelines using three thread teams.  We imagine that Task A and C
+were written so that all code is run in the host and that Task B was written so
+that it launches kernels on the GPU.  Therefore, the Task A pipeline runs
+only on the host and is given only two threads to do this.  The Task B/C
+pipline gives 7 threads to Team 2 so that it can flood the GPU as fast as possible with
+kernels.  Once a data packet has had Task B applied to it on the GPU as
+orchestrated by Team 2, the team moves the data back to the host, a work
+translator enqueues the tiles in the data packet with Team 3, and Team 3 applies
+Task C on a per-tile basis.  Note that there is little sense in giving Team 3
+threads at the beginning as it needs units of work to first pass through Team 2.
+Hence, it is given zero threads to start with.  However, as Teams 1 and 2 finish
+their tasks, Team 3 will have threads activated and begin work.  It follows that
+Team 3 could eventually have 9 activated threads applying Task C.}
+\label{fig:ConcurrentItor}
+\end{center}
+\end{figure}
 
 The second layer of parallelism exposed by the runtime design is that of forming
 \textbf{task bundles}.  Specifically, the runtime interface has been designed so
@@ -194,8 +270,8 @@ task has been completed.  The two tasks in a task bundle that run concurrently
 are called the \textbf{concurrent CPU} and \textbf{concurrent GPU tasks} if we are
 running on nodes with host CPUs that offload to GPUs.  On a system with such nodes, a
 task in the bundle that is run on blocks in the CPU memory after the concurrent
-GPU task has been applied to these blocks is called a \textbf{post-concurrency
-CPU task}.  Note that one can run the runtime with only one task in the bundle
+GPU task has been applied to these blocks is called a \textbf{post-GPU
+task}.  Note that one can run the runtime with only one task in the bundle
 if so desired.\\
 
 This design therefore allows for parallelism in the form of task parallelism as
@@ -203,7 +279,7 @@ well as parallelism in the form of pipelining work on devices.  For instance, if
 runtime execution is scheduled with the GC fill asynchronous iterator, then the
 stages in the pipeline are
 \begin{enumerate}
-\item{copy from the Grid unit's data structures in host memory to a host memory
+\item{copy from the Grid unit's data structures in host memory to a host pinned memory
 buffer those tiles with GC data already filled,}
 \item{assemble $N$ tiles into a data packet and initiate asynchronous data
 transfer to device,}
@@ -215,6 +291,103 @@ buffer,}
 host memory, and}
 \item{apply post-concurrency host task to all tiles in data packet.}
 \end{enumerate}
+
+In the concurrent CPU/GPU and post-GPU scenario we recognize that the runtime
+effectively runs two pipelines concurrently and such that the post-GPU task is
+an extension of the concurrent GPU task pipeline.  We understand, therefore,
+that the runtime uses a single iterator over blocks to feed the two pipelines
+and that each block is fed to both pipelines.  The code that iterates and feeds
+blocks identically to all pipelines is a \textbf{concurrent work distributor}.\\
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=5.5in]{WorkSplittingExample.pdf}
+\caption[]{An example of a runtime configuration of thread teams that implements
+a single, data-parallel pipeline.  We imagine that a host-only version of Task A
+and a GPU version of Task A have been written so that the task bundle contains a
+CPU Task A, a GPU task A, and Task B, which must be run after Task A.  The work
+splitting distributor passes a fraction of the tiles to Team 1 and the
+remaining tiles to Team 2 so that both host and GPU are used to apply Task A in
+parallel.  Both of these teams are work publishers to Team 3 so
+that this team can apply Task B to all tiles.}
+\label{fig:SplitItor}
+\end{center}
+\end{figure}
+
+The design of the runtime allows, however, for data parallel execution of a task
+bundle.  For example, a CPU version and a GPU version of a single task could
+be written by the offline toolchain and bundled together.  The single block
+iterator in the runtime would then be instructed to partition the blocks so that
+only a fraction of blocks are sent to the pipeline that runs the task on the
+CPU and the remaining blocks sent to a second pipeline that runs the task on the
+GPU.  In this case, the code that iterates over blocks and feeds the pipelines
+is a \textbf{work splitting distributor}.\\
+
+The concept of task is an element of a high-level software model.  The design of
+the runtime includes a lower-level software model element, known as a
+\textbf{thread team}, which are used to construct the aforementioned runtime
+pipelines so that tasks can be mapped to node hardware and to allow for load
+balancing of computing resources on the host, on which the thread teams run.
+At startup, the runtime will create $N$ thread teams, each of which contains $M$
+threads, where $N, M$ are setup-time parameters to be determined by the offline
+toolchain.\\
+
+Each thread team contains a single queue for holding pending \textbf{units of
+work}, where units of work are either a tile or a \textbf{data packet} comprised
+of one or more tiles.  While thread teams are not associated in any way with the
+different devices in a node, it is understood that a thread team whose unit of
+work is a tile will generally be used to apply its tasks to all given tiles
+using the CPU.  Similarly, a thread team whose unit of work is a data packet
+will generally be used to apply its task to all given tiles using an
+accelerator with its own dedicated memory, which implies that the data packet
+exists to manage the difficulties and time penalties associated with
+transferring data between host and device memories.\\
+
+For a single runtime execution cycle, each thread team to be used in the cycle
+will be given exactly one task in the associated task bundle.  In addition, it
+is instructed to activate a given number of its $M$ threads for applying its
+task.  The activated threads are used to apply the single task to all units of
+work given to the team during the execution cycle using dynamic scheduling.\\
+
+In the task parallel example, we imagine that the concurrent CPU and post-GPU
+tasks will be assigned to thread teams that work with tiles; the concurrent GPU
+task, to a thread team that works with data packets.  The concurrent work
+distributor will enqueue all tiles directly with the CPU task's team, aggregate
+tiles into data packets, and enqueue a data packet with the concurrent GPU
+task's team once each data packet contains enough tiles or there are no more
+tiles left.  When the concurrent GPU's team has finished applying its task to
+all tiles in a data packet, it gives ownership of the packet to a \textbf{work
+translator} that will enqueue separately each tile in the data packet with the
+team executing the post-GPU task.\\
+
+A design element of the runtime that can enqueue units of work with a thread
+team or a work translator is a \textbf{work publisher}.  The design elements
+that receive the units of work in their queue are known as \textbf{work
+subscribers}.  Similarly, thread teams can be configured as a \textbf{thread
+publisher} and as a \textbf{thread subscriber}.  When a thread in a thread
+publisher team determines that there is no more work to be done in the current
+execution cycle and therefore deactivates, the thread informs the team's
+subscriber that it can now activate another thread so that it can help the team
+finished its task.  This allows for some control of the load balancing of the
+threads running in the host.\\
+
+The pipeline and thread team layout pertaining to the above task parallel
+runtime example is shown in Figure~\ref{fig:ConcurrentItor}.  An example of a data parallel
+runtime thread team configuration is shown in Figure~\ref{fig:SplitItor}.  Note that the
+thread teams have been designed such that many different thread team
+configurations can be built in to the runtime.  We hope that this aspect of the
+design allows for easily scaling the runtime's capabilities as node architecture
+grows in device diversity and in hardware complexity.  As the offline toolchain
+determines how to bundle tasks, it is also hoped that having a large number of
+such configurations will allow for effective bundling that leads to efficient,
+parallel usage of all computational in-node resources.\\
+
+\textcolor{red}{TODO: Where does the interface between the runtime and offline
+tools lay?  Should the runtime be programmed with all possible thread team
+configurations and expose these to the offline tools?  Or should the offline
+tool determine which thread team configurations it needs and write the code
+that assembles the teams into a configuration and executes a task bundle with
+the configuration?}\\
 
 A group of tasks are said to be \textbf{runtime-compatible} and can therefore be
 bundled together into a single runtime execution if
@@ -660,6 +833,7 @@ tasks at each time step and such that tasks are still executed in correct order.
 
 %%%%%----- ORCHESTRATION RUNTIME DESIGN SECTION -----%%%%%
 \section{Runtime design}
+\label{sec:Runtime}
 
 \textcolor{red}{TODO: Need to add in brief explanation of thread teams,
 execution cycles, and topologies of thread teams.  This document should
@@ -1123,26 +1297,6 @@ arranged into a pre-described topology and each thread team setup in a given
 state.  This should be useful for both debugging and designing meaningful direct
 tests of low-level functionality.
 \end{req}
-
-\begin{figure}[!ht]
-\begin{center}
-\includegraphics[width=5.5in]{ConcurrentItorExample.pdf}
-\caption[]{\textcolor{red}{Add general information related to requirements.
-Also specify the assumptions about RW independence of tasks so that these
-topologies will give the correct results regardless of order of execution.}}
-\label{fig:ConcurrentItor}
-\end{center}
-\end{figure}
-
-\begin{figure}[!ht]
-\begin{center}
-\includegraphics[width=5.5in]{WorkSplittingExample.pdf}
-\caption[]{\textcolor{red}{Add general information related to requirements.
-Also specify the assumptions about RW indepence of tasks so that these
-topologies will give the correct results regardless of order of execution.}}
-\label{fig:SplitItor}
-\end{center}
-\end{figure}
 
 %%%%%----- RUNTIME TECHNICAL SPECIFICATIONS & DESIGN SUBSECTION
 \subsection{Runtime Technical Specifications \& Design}
