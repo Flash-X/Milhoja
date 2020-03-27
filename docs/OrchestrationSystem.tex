@@ -380,15 +380,17 @@ finished its task.  This allows for some control of the load balancing of the
 threads running in the host.\\
 
 The pipeline and thread team layout pertaining to the above task parallel
-runtime example is shown in Figure~\ref{fig:ConcurrentItor}.  An example of a data parallel
-runtime thread team configuration is shown in Figure~\ref{fig:SplitItor}.  Note that the
-thread teams have been designed such that many different thread team
-configurations can be built in to the runtime.  We hope that this aspect of the
-design allows for easily scaling the runtime's capabilities as node architecture
-grows in device diversity and in hardware complexity.  As the offline toolchain
-determines how to bundle tasks, it is also hoped that having a large number of
-such configurations will allow for effective bundling that leads to efficient,
-parallel usage of all computational in-node resources.\\
+runtime example is shown in Figure~\ref{fig:ConcurrentItor}.  An example of a
+data parallel runtime thread team configuration is shown in
+Figure~\ref{fig:SplitItor}.  Note that the thread teams have been designed such
+that many different such \textbf{thread team configurations} can be built in to the
+runtime.  Note that the specification of a thread team configuration includes the
+specification of work/thread publishers and subscribers.  We hope that this
+aspect of the design allows for easily scaling the runtime's capabilities as
+node architecture grows in device diversity and in hardware complexity.  As the
+offline toolchain determines how to bundle tasks, it is also hoped that having a
+large number of such configurations will allow for effective bundling that leads
+to efficient, parallel usage of all computational in-node resources.\\
 
 \textcolor{red}{TODO: Where does the interface between the runtime and offline
 tools lay?  Should the runtime be programmed with all possible thread team
@@ -507,20 +509,89 @@ implement each of the tasks being passed to a runtime execution.\\
 %%%%%----- ORCHESTRATION SYSTEM HIGH-LEVEL REQUIREMENTS -----%%%%%
 \section{Overall System}
 \subsection{Requirements}
-Users shall be able to setup each simulation to run
-\begin{enumerate}
-\item{on CPU-only platforms with no runtime (\textit{i.e.} run in FLASH4 mode),}
-\item{on CPU-only platforms but with a runtime so that independent tasks or
-independent tasks/communications can be overlaid, or}
-\item{on platforms that have host/accelerator heterogeneous node architecture.}
-\end{enumerate}
 
-We assume that FLASH5 will run on a variety of different machines including
-personal laptops and leadership class machines.  The Orchestration System design
-shall not expose to CPU-only/no-runtime users unnecessary configuration
-complexity nor additional runtime penalties.  In particular, when run in
-CPU-only mode, using FLASH5 shall be virtually identical to using FLASH4.\\
+\begin{req}
+The orchestration system implementation and dependencies shall not impede FLASH5
+from being used on *nix operation systems including macOS nor from being run for
+research on laptops.  Implementations shall not require more than the C++11
+standard and threading implementations shall be portable across platforms that
+conform to the aforemented operating systems.  \textcolor{red}{What
+Fortran standard are we shooting for?  If the runtime is written in C++, then we
+will need F2003 for the code that manages the C++/Fortran interoperability.
+Ideally, we can get rid of classes and restrict all other Fortran code to F95.}
+\end{req}
 
+\textcolor{red}{Present implementation of runtime is with pthreads, which is
+portable based on OS (is it compliant with the POSIX standard).  Is this good
+enough?  If we do accept the C++11 standard as reasonable, then the runtime
+implementation could be redone to use the C++ thread facilities.}\\
+
+\textcolor{red}{Memory managers such as AML and Umpire are dependent on
+LibNuma, which is linux based.  Therefore, macOS users would presently not be
+able to use a runtime based on these.  For laptops, this might be acceptable.
+However, this would preclude Mac Pro users from using their GPUs.}
+
+\begin{req}
+If a simulation is setup such that no runtime is needed, then the Orchestration
+runtime shall not be built into the simulation.  In particular, this means that
+there shall be no unnecessary resources allocated, no extra level of packing
+tiles into data packets, and no unnecessary configuration complexity.  This
+could allow for basic stub implementations such as initialization/finalization
+being called from Driver.  
+\end{req}
+
+It is possible that users might want to run a simulation on a CPU-only platform
+using the runtime so that indenpendent tasks or independent tasks/communications
+can be overlaid.
+
+\begin{req}
+At any point in time during the execution of a simulation, there shall be no more
+than one instance of the runtime in operation so that design complexity can
+be minimized (\textit{e.g.} resource allocation and management).
+\end{req}
+
+\begin{req}
+\label{req:UnitImplementations}
+The runtime shall be built into FLASH5 as a new unit and the unit shall allow
+for different implementations of the unit.  Some examples of different
+implementations will be
+\begin{itemize}
+\item{low-level (\textit{e.g.} CUDA) \textit{vs.} high-level
+(\textit{e.g.} OpenMP) and}
+\item{general (\textit{e.g.} CUDA) \textit{vs.}} platform-specific
+(\textit{e.g.} CUDA optimized for Summit).
+\end{itemize}
+\end{req}
+
+\begin{req}
+\label{req:Portability}
+All implementations shall be designed for portability.  As an example,
+\textit{general} use GPU-related code shall avoid using device-specific library
+functionality such as managed memory as other GPU-based platforms might not
+offer managed memory at all or in a portable way.
+\end{req}
+
+Clearly the above requirement is ill-defined and therefore decisions regarding
+what does and doesn't satisfy the requirement will involve personal judgement
+and trade-off analysis.  For example, emphasis was placed on the word
+``general'' in Req~\ref{req:Portability} as Req~\ref{req:UnitImplementations}
+would allow for a CUDA-based implementation that uses managed memory.  However,
+if we choose to have two different implementations of large, complex,
+general-use code that is hard to test such that the two implementations differ
+only in a few lines related to mananged memory, then we might decide that
+maintainability is being significantly decreased.
+
+\begin{req}
+The interface of the runtime shall be designed such  that when a new type of
+device is introduced in platform nodes, the routines for starting a runtime
+execution cycle can be extended trivially\footnote{Ideally by adding new function
+pointers to the parameter list of these routines.} for including the running of
+tasks on these devices.  If the nodes allow for running concurrently tasks on
+this device while running code on the host or on other devices, then the updated
+interface shall allow for this.
+\end{req}
+
+\begin{req}
 The system shall be comprised of
 \begin{enumerate}
 \item{an offline tool that constructs a decorated kernel control flow graph,}
@@ -531,6 +602,7 @@ therefore how to form task bundles,}
 based on the optimized scheduling of the previous tool, and}
 \item{an orchestration runtime subsystem.}
 \end{enumerate}
+\end{req}
 For more information regarding each of these subsystems, refer to its
 associated, detailed design section below.\\
 
@@ -549,6 +621,22 @@ However, this code shall not require automatic optimization of scheduling nor
 auto-generation of code and shall therefore not be included in the kernel/task
 graph.  An example of such code is the regridding of the domain by an AMR-based
 implementation of the Grid unit.\\
+
+\begin{req}
+Users and code contributors might want to build a simulation with
+computation-heavy code that is not presently and possibly cannot be made to
+conform to the needs of the runtime interface (\textit{e.g.} libraries such as
+Thornado that need to be useable by many applications).  The orchestration
+system shall allow such code to be run directly by calls in
+\texttt{Driver\_evolveFlash} between runtime execution cycles (as above).
+FLASH5 shall allow this code to be run
+\begin{itemize}
+\item{as serial code,}
+\item{as code that manages and coordinates parallel execution internally, or}
+\item{that is parallelized through another performance portability layer such as
+Kokkos or Raja.}
+\end{itemize}
+\end{req}
 
 While it could be possible to run concurrently the final tasks from the $n^{th}$
 time step with the beginning tasks for time step $n+1$, the orchestration
@@ -631,7 +719,7 @@ long parameter lists.  Does passing in so many parameters have an adverse effect
 on memory or performance?  Larger frame sizes?}
 
 %%%%%----- ORCHESTRATION OFFLINE TOOLCHAIN -----%%%%%
-\section{Composer design}
+\section{Offline Toolchain design}
 %The composer should have four levels of hierarchy, with each hierarchy
 %having its own set of meta information encodings. The meta information
 %encoded should be such that the composer tool can infer dependencies
@@ -988,92 +1076,6 @@ runtime designs and ideally require little change if our design changes
 significantly.  In other words, these statements should not be informed by
 implementation ideas or details.
 
-\begin{req}
-\textcolor{red}{We should be able to send tiles to CPUs but build data packets
-of blocks.}
-\end{req}
-
-\begin{req}
-The runtime implementation and dependencies shall not impede FLASH5 from being
-used on *nix operation systems including macOS nor from being run for research
-on laptops.  Implementations shall not require more than the C++-11 standard and
-threading implementations shall be portable.  \textcolor{red}{What Fortran
-standard are we shooting for?  If the runtime is written in C++, then we will
-need F2003 for the code that manages the C++/Fortran interoperability.  Ideally,
-we can get rid of classes and restrict all other Fortran code to F95.}
-\end{req}
-
-\textcolor{red}{Present implementation is with pthreads, which is portable based
-on OS (is it compliant with the POSIX standard).  If we do accept the C++-11
-standard as reasonable, then the runtime implementation could be redone to use
-the C++ thread facilities.}\\
-
-\textcolor{red}{Memory managers such as AML and Umpire are dependent on
-LibNuma, which is linux based.  Therefore, macOS users would presently not be
-able to use a runtime based on these.  For laptops, this might be acceptable.
-However, this would preclude Mac Pro users from using their GPUs.}
-
-\begin{req}
-If a simulation is setup such that no runtime is needed, then the Orchestration
-runtime shall not be built into the simulation.  In particular, this means that
-there shall be no unnecessary resources allocated nor an extra level of packing
-tiles into data packets.  This could allow for basic stub implementations such
-as initialization/finalization being called from Driver.
-\end{req}
-
-\begin{req}
-At any point in time during the execution of a simulation, there shall be no more
-than one instance of the runtime in operation so that design complexity can
-be minimized (\textit{e.g.} resource allocation and management).
-\end{req}
-
-\begin{req}
-\label{req:UnitImplementations}
-The runtime shall be built into FLASH5 as a new unit and the unit shall allow
-for different implementations of the unit.  Some examples of different
-implementations will be
-\begin{itemize}
-\item{low-level (\textit{e.g.} CUDA) \textit{vs.} high-level
-(\textit{e.g.} OpenMP) and}
-\item{general (\textit{e.g.} CUDA) \textit{vs.}} platform-specific
-(\textit{e.g.} CUDA optimized for Summit).
-\end{itemize}
-\end{req}
-
-\begin{req}
-All implementations shall be designed for portability.  As an example,
-\textit{general} use GPU-related code shall avoid using device-specific library
-functionality such as managed memory as other GPU-based platforms might not
-offer managed memory at all or in a portable way.
-\end{req}
-
-Clearly the above requirement is ill-defined and therefore decisions regarding
-what does and doesn't satisfy the requirement will involve personal judgement
-and trade-off analysis.  For example, emphasis was placed on the word
-``general'' above as Req~\ref{req:UnitImplementations} would allow for a
-CUDA-based implementation that uses managed memory.  However, if we choose to
-have two different implementations of large, complex, general-use code that is
-hard to test such that the two implementations differ only in a few lines
-related to mananged memory, then we might decide that maintainability is being
-significantly decreased.
-
-\begin{req}
-The interface of the runtime shall be designed such  that when a new type of
-device is introduced in platform nodes, the routines for starting a runtime
-execution cycle can be extended trivially\footnote{Ideally by adding new function
-pointers to the parameter list of these routines.} for including the running of
-tasks on these devices.  If the nodes allow for running concurrently tasks on
-this device while running code on the host or on other devices, then the updated
-interface shall allow for this.
-\end{req}
-
-\textcolor{red}{Where does the interface between the offline toolchain and
-runtime sit?  Should the runtime dictate what thread team topologies are
-available and therefore fix the number of thread teams available and how the
-toolchain maps work onto teams/HW?  Or should the offline toolchain write the
-code that creates the topologies and therefore customize the runtime's interface
-for launching execution cycles?}\\
-
 \textcolor{red}{Put in information regarding runtime parameters needed by
 runtime.  Does this include runtime parameters that depend upon how task were
 bundled/scheduled?  If we have a parameter that specifies how many blocks to
@@ -1082,19 +1084,12 @@ specifies that all blocks should be included.  This might be useful for some
 kernels that don't use the asynchronous iterator.}\\
 
 \textcolor{red}{Do we allow for specifying to the runtime which data should
-remain where?}
+remain where?  If so, where is that information coming from?}
 
 \begin{req}
 At instantiation, the runtime shall instantiate a given number, $N$, of distinct
 thread teams and each thread team shall be allowed to simultaneously use
-at most a given number, $M$, of threads.  \textcolor{red}{It remains to be seen
-if the threads should be created at instantiation and persist throughout the
-simulation or if they should be created each time the runtime executes a task
-bundle.  The former would be more runtime efficient, but permanently consume
-more memory in the form of thread stacks, etc. and increase the burden on the
-OS.  Is $M$ fixed across all thread teams?  TODO: Time thread team creation and
-a no-op execution cycle to get an idea of orders of magnitude.  Determine size
-of thread team in memory and size of thread footprint.}
+at most a given number, $M$, of threads.
 \end{req}
 
 Note that it is the client code's responsibility to determine $M$ and $N$ in
@@ -1161,11 +1156,9 @@ task-/computation-specific parameters available to the function that defines the
 task.  For FLASH, our present design is to implement all task functions as
 routines in a unit and all such parameters as data members in the unit.  This
 means that the code that calls the runtime will need to set the values of these
-data members before the call.  \textcolor{red}{For C++, would this mean wrapping
-each task or a set of related tasks in a class?  Could we just package up
-related parameters in a single namespace so that they are global but in an
-acceptable way?}
-
+data members before the call.  For C++ tests of the runtime, task parameters
+and task functions have been packaged up into a dedicated namespace so that they
+are global but in an acceptable way.
 
 \begin{req}
 The thread team interface shall allow for client code to assign units of
@@ -1187,7 +1180,7 @@ execution cycle that consists of executing potentially many distinct tasks (both
 auxiliary and work) on multiple different target devices.  The runtime interface
 shall provide the client code with a means to express what tasks are to be run
 as well as inter-task dependencies such that the runtime will be able to
-assemble an appropriate topology of thread teams that does not violate the
+assemble an appropriate thread team configuration that does not violate the
 inter-task dependencies.  The runtime shall throw an error if the number of
 tasks in the bundle is more than the number of thread teams created by the
 runtime.
@@ -1197,45 +1190,54 @@ runtime.
 determine the inter-task dependencies, the mapping of tasks to HW, and the
 mapping of tasks to thread teams.  Is the latter just choosing a thread team
 with the correct unit of work?  How does the toolchain specify to the runtime
-which topology to use and the mapping of task to teams in the topology?  Can it
-just be a long parameter list with multiple consecutive parameters in the list
-specifying the task for a particular device?  The runtime could then see which
-parameters specify a task and infer the topology from this.  We would need, for
-instance, a CPU concurrent task, a GPU concurrent task, and a post-GPU task.}
+which thread team configuration to use and the mapping of task to teams in the
+thread team configuration?  Can it just be a long parameter list with multiple
+consecutive parameters in the list specifying the task for a particular device?
+The runtime could then see which parameters specify a task and infer the thread
+team configuration from this.  We would need, for instance, a CPU concurrent
+task, a GPU concurrent task, and a post-GPU task.  How do you specify thread and
+work publishers/subscribers?}
 
 \begin{req}
-The runtime shall contain a \textbf{concurrent work distributor} that
-facilitates applying multiple distinct tasks to all the blocks managed by the
-runtime's MPI rank.  Specifically, this distributor shall gather tiles using the
-Grid unit's tile iterator (or asycnrhonous tile iterator), form these into the
-appropriate units of work, and give the units of work to the appropriate thread
-teams.  Refer to Figure~\ref{fig:ConcurrentItor} for an example of such a scheme.
+The runtime shall contain a concurrent work distributor that facilitates
+applying multiple distinct tasks to all the blocks managed by the runtime's MPI
+rank.  Specifically, this distributor shall gather tiles using the Grid unit's
+tile iterator (or asynchronous tile iterator), form these into the appropriate
+units of work, and give the units of work to the appropriate thread teams.
+Refer to Figure~\ref{fig:ConcurrentItor} for an example of such a scheme.
 \end{req}
 
 \begin{req}
-The runtime shall contain a \textbf{work splitting distributor} that facilitates
+The natural unit of data for a CPU is an appropriately sized tile.  However, we
+suspect that a tile will be too little data to merit the overhead associated
+with launching a kernel.  Therefore, the Grid unit shall be retooled such that
+work distributors are capable of feeding tiles (proper subsets of blocks) to
+some thread teams and data packets of blocks to
+others\footnote{\textcolor{red}{For AMReX, we might want to iterate over blocks
+and request a new iterator that iterates over the tiles that cover a given
+block.}}.
+\end{req}
+
+\begin{req}
+The runtime shall contain a work splitting distributor that facilitates
 using more than one thread team to apply a single task to all the
 blocks managed by the runtime's MPI rank where the task is applied to
 each block by one and only one team.  Specifically, this distributor shall
-gather tiles using the Grid unit's tile iterator (or asycnrhonous tile
+gather tiles using the Grid unit's tile iterator (or asynchronous tile
 iterator), use a distribution scheme to determine which tiles will be sent to
 which team, form these into the appropriate units of work based on the
 destination team, and send the units of work to the appropriate thread teams.
 Refer to Figure~\ref{fig:SplitItor} for an example of such a scheme.
 \textcolor{red}{Allow for scheme that selects routing of work to team
-dynamically?}
+dynamically based on current runtime telemetry data?}
 \end{req}
 
 \begin{req}
 A thread team may be configured to push units of work, to which it has already
-applied its task, to another thread team.  The team that pushes units of work is
-therefore a \textbf{work publisher} and a team to which units of work are
-pushed is a \textbf{work subscriber}.  It shall be possible for a single thread
+applied its task, to another thread team (\textit{i.e.} be a work publisher).
+It shall be possible for a single thread
 team to be a work subscriber for any number of distinct work
-publishers\footnote{Split the load of blocks between a thread team dedicated for
-FPGAs and a second team for GPUs.  We could have each team run the same task on
-its subset of blocks and then pipe the results into a single work subscriber
-that runs a quick, independent follow-up task on the CPU.}.  Note that work
+publishers (See Figure~\ref{fig:SplitItor}).  Note that work
 distributors are therefore work publishers and that a single thread team may be
 both a work subscriber and work publisher.  \textcolor{red}{The concurrent work
 distributor is an example of a publisher that pushes units of work to multiple
@@ -1253,8 +1255,8 @@ two-way knowledge?}
 
 \begin{req}
 \label{req:ThreadSubPub}
-Each thread team may be configured as a \textbf{thread publisher} and as a
-\textbf{thread subscriber}.  A thread publisher shall have at most one thread
+Each thread team may be configured as a thread publisher and as a
+thread subscriber.  A thread publisher shall have at most one thread
 subscriber and there shall be no limit to the number of thread publishers that a
 thread subscriber can have.  When a thread in a thread publisher team determines
 that there is no more work to be done in the current execution cycle and
@@ -1291,9 +1293,9 @@ determining the maximum number of threads in a thread subscriber team is importa
 The runtime shall allow for a thread team whose unit of work is a data packet of
 blocks to be a work publisher for a thread team whose unit of work is a data
 packet of blocks or whose unit of work is tiles.  Motivated by the latter case,
-the runtime shall provide an object that breaks data packets of blocks into its
+the runtime shall provide a work translator that breaks data packets of blocks into its
 constituent tiles and enqueues these individually with a thread team.  For this
-case, this object is the work subscriber of the first team and the work
+case, the translator is the work subscriber of the first team and the work
 publisher of the second team.  See Figures~\ref{fig:ConcurrentItor}
 and~\ref{fig:SplitItor}.
 \end{req}
@@ -1303,7 +1305,7 @@ object?}
 
 \begin{req}
 The runtime shall have a record/replay facility so that thread teams can be
-arranged into a pre-described topology and each thread team setup in a given
+arranged into a pre-described thread team configuration and each thread team setup in a given
 state.  This should be useful for both debugging and designing meaningful direct
 tests of low-level functionality.
 \end{req}
@@ -1470,13 +1472,32 @@ states, transitions, and events even though it could be proven that some
 states/transitions/events are precluded from happening by the design itself.
 Therefore, our design/implementation is hopefully robust and not sensitive to
 small design changes.  Also, the mental load associated with working with the
-design is lower since we do not have the burden of proving and maintaining
+design is lower since we decrease the burden of proving and maintaining
 proofs of impossible states/transitions/events.  This is especially important as
 the implementation of the thread team cannot make strong assumptions about the
 predictability of the order of execution of code and events, which increases the
 complexity of such proofs.  This philosophy is ugly in that the code might,
 without the developers' knowledge, carry out actions that it shouldn't.  It also
-means that we have not completely understood the full behavior of the EFSM.
+means that we have not completely understood the full behavior of the EFSM.\\
+
+It is important to have in mind some examples of out-of-order execution of the
+EFSM.  This list is meant only to clarify what is meant by out-of-order and to
+spur on the identification of other such interesting cases.  This list is
+not exhaustive.
+\begin{enumerate}
+\item{Work could be given to the team and as a result the
+\texttt{transitionThread} signal emitted.  However, a Computing thread could
+finish its computation and dequeue this unit of work before a Waiting thread
+receives the emitted signal.  Therefore, Waiting threads are programmed so that
+they transition back to Waiting if they find that the queue is empty (See
+Figure~\ref{fig:ThreadStateDiagram}).}
+\item{When \texttt{startTask} is called with $N$ threads to be activated, $N$
+\texttt{activateThread} signals are emitted.  However, if the task execution is
+quick, it is possible that the team's mode could transition all the way back to
+Idle before all of these signals are received.  Therefore, Idle threads are
+programmed to determine if a transition out of Idle is in accord with the
+present state of the EFSM.}
+\end{enumerate}
 
 \begin{figure}[!ht]
 \begin{center}
