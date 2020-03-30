@@ -41,6 +41,22 @@
 \newcommand{\ThreadWaiting}     {\textsc{ThreadWaiting}}
 \newcommand{\ThreadTerminating} {\textsc{ThreadTerminating}}
 
+% User comments/questions
+% If you have a comment/question directed to a particular person (including
+% yourself), please enter it using the command corresponding to that person.
+% Feel free to pick your own color.
+\newcommand{\Anshu}[1]          {\textcolor{red}{Anshu: #1}}
+\newcommand{\Austin}[1]         {\textcolor{green}{Austin: #1}}
+\newcommand{\Bronson}[1]        {\textcolor{blue}{Bronson: #1}}
+\newcommand{\Jared}[1]          {\textcolor{cyan}{Jared: #1}}
+\newcommand{\Klaus}[1]          {\textcolor{magenta}{Klaus: #1}}
+\newcommand{\Mike}[1]           {\textcolor{red}{Mike: #1}}
+\newcommand{\Paul}[1]           {\textcolor{green}{Paul: #1}}
+\newcommand{\Rajeev}[1]         {\textcolor{blue}{Rajeev: #1}}
+\newcommand{\Sean}[1]           {\textcolor{cyan}{Sean: #1}}
+\newcommand{\Tom}[1]            {\textcolor{magenta}{Tom: #1}}
+\newcommand{\Wahib}[1]          {\textcolor{red}{Wahib: #1}}
+
 \begin{document}
 
 % Setup numbered/referentiable environment for requirements
@@ -67,23 +83,27 @@ allow FLASH5 to run in CPU-only mode or to make good, efficient use of resources
 when run on heterogeneous platforms on which the notion of host-to-device
 offloading exists. The orchestration system is comprised of
 \begin{enumerate}
-\item{an offline \textbf{task scheduler} that}
+\item{an offline \textbf{kernel graph constructor} that}
     \begin{itemize}
     \item{reads in metadata orchestration files for all kernels, all tasks, all
     operations, and for the simulation,}
-    \item{reads in a general, high-level representation of each operation,}
-    \item{creates a kernel graph of all kernels to be executed at each time step,}
-    \item{attempts to optimize resource use for the given platform using the
-    above information by fusing tasks and bundling tasks for
-    execution with the orchestration runtime, and}
-    \item{writes to \texttt{Driver\_evolveFlash} the bundles as a sequence of runtime executions (one task
-    bundle per runtime execution) in an order that preserves dependencies,}
+    \item{reads in a general, high-level representation of each operation (refer
+    to Figure~\ref{fig:simpleUnsplitAlgo} for an example), and}
+    \item{constructs a decorated kernel control flow graph (refer to
+    Figure~\ref{fig:simpleUnsplitKernelGraph} for an example) for each operation,}
     \end{itemize}
-\item{an offline \textbf{code generator} that generates Fortran code optimized
-for the given platform and that serves as the code layer that patches
-orchestration runtime execution (\texttt{Driver\_evolveFlash}) with base Fortran
-code that executes kernels and tasks on data defined on individual domain tiles,
-and}
+\item{an offline \textbf{task scheduler} that attempts to optimize resource use
+for the given platform using the above information by fusing tasks and bundling
+tasks for execution with the orchestration runtime,}
+\item{an offline \textbf{code generator} that}
+    \begin{itemize}
+    \item{writes to \texttt{Driver\_evolveFlash} the bundles as a sequence of runtime executions (one task
+    bundle per runtime execution) in an order that preserves dependencies and}
+    \item{that generates Fortran code optimized for the given platform and that
+    serves as the code layer that patches orchestration runtime execution
+    (\texttt{Driver\_evolveFlash}) with base Fortran code that executes kernels
+    and tasks on data defined on individual domain tiles, and}
+    \end{itemize}
 \item{an \textbf{orchestration runtime} that}
     \begin{itemize}
     \item{is invoked for each task bundle,}
@@ -140,7 +160,7 @@ code.
 should expose and capitalize on.  The table is ordered from coarsest parallelism
 (top) to finest.  Refer to Section~\ref{sec:Definitions} for definitions of
 terms that appear in the table and Section~\ref{sec:Runtime} for more
-information regarding Thread Teams.  \textcolor{red}{Should pipelining within a
+information regarding Thread Teams.  \Jared{Should pipelining within a
 runtime configuration be added to this table?}}
 
 \begin{center}
@@ -169,7 +189,29 @@ Device HW                        & Data Parallel & Device  & Comp.     & Schedul
 \end{center}
 \end{table}
 
+\begin{figure}[!hp]
+\begin{center}
+\includegraphics[height=8.0in]{simpleUnsplitAlgo.pdf}
+\caption[]{An example of a python-like, high-level representation of the 
+\texttt{simpleUnsplit} operation for updating the hydrodynamics solution at a
+give time step.  The words in light blue indicate key values that index into a
+dictionary of tasks, data movements, and barriers.}
+\label{fig:simpleUnsplitAlgo}
+\end{center}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{center}
+\includegraphics[height=8.5in]{simpleUnsplitFlow.pdf}
+\caption[]{An example of what a decorated kernel graph might look like for the
+\texttt{simpleUnsplit} operation for updating the hydrodynamics solution at a
+give time step.}
+\label{fig:simpleUnsplitKernelGraph}
+\end{center}
+\end{figure}
+
 %%%%%----- ORCHESTRATION SYSTEM DEFINITIONS & OVERVIEW -----%%%%%
+\newpage
 \section{Definitions \& General Design}
 \label{sec:Definitions}
 The section introduces terms and concepts that will be used throughout the
@@ -196,13 +238,11 @@ This latter class of routines are referred to as \textbf{operations} and
 \item{execute the computation on all tiles in the domain by using the tile
 iterator at least once.}
 \end{itemize}
-An example of an
-operation is the updating of the solution at a single time step by the Hydro
-unit and its highest-level representation is the code in \texttt{Hydro.F90}.
-The Gravity unit has many different operations including ... and solving for the
-gravitational potential (\texttt{Gravity\_potential.F90}).  Note that operations
-can call operations.  For instance, the Hydro step operation may call the
-Gravity unit's operation that solves for the gravitational potential.\\
+An example of an operation is the updating of the solution at a single time step
+by the Hydro unit and its current highest-level representation in FLASH is the
+code is \texttt{Hydro.F90}.  Note that operations can call operations.  For
+instance, the Hydro step operation may need to call operations from other units
+in order to accomplish is goal.\\
 
 In this document the units of heavy-computation work that are written in the
 form of one or more nested loops are sensibly referred to as \textbf{loop
@@ -226,7 +266,7 @@ with code blocks to be run on the host.  In its simplest form, a task may
 consist of code that does not loop over tiles and such tasks are defined as
 \textbf{auxiliary tasks}.  Though relatively simple, these tasks may also launch
 non-trivial kernels.  For instance an auxiliary task may launch a kernel that
-populates via a loop nest an array variable allocated in device memory
+populates \textit{via} a loop nest an array variable allocated in device memory
 (\textit{e.g.} compute the speed of sound across the cells in a region of the
 domain).  Tasks that perform one loop over a subset of tiles in the domain are
 defined as \textbf{work tasks}.  Note that the design of the runtime does not
@@ -240,7 +280,7 @@ with one or more subsequent work tasks.  This type of parallelism is exposed
 through the Grid unit's iterator and therefore depends on whether a particular
 implementation of the Grid unit supports it and on which global communication
 operations it supports.  For example, the Paramesh implementation of the Grid
-unit does not have asynchronous tile iterators, but AMReX implementation of the
+unit does not have asynchronous tile iterators, but the AMReX implementation of the
 Grid unit will allow overlaying the filling of guardcells with execution of work
 tasks.\\
 
@@ -250,17 +290,18 @@ tasks.\\
 \caption[]{An example of a runtime configuration of thread teams that implements
 two concurrent pipelines using three thread teams.  We imagine that Task A and C
 were written so that all code is run in the host and that Task B was written so
-that it launches kernels on the GPU.  Therefore, the Task A pipeline runs
-only on the host and is given only two threads to do this.  The Task B/C
-pipline gives 7 threads to Team 2 so that it can flood the GPU as fast as possible with
+that it launches kernels on the GPU.  Therefore, the Task A pipeline runs only
+on the host and is given only two threads to apply its task.  The Task B/C pipline
+gives 7 threads to Team 2 so that it can flood the GPU as fast as possible with
 kernels.  Once a data packet has had Task B applied to it on the GPU as
 orchestrated by Team 2, the team moves the data back to the host, a work
 translator enqueues the tiles in the data packet with Team 3, and Team 3 applies
 Task C on a per-tile basis.  Note that there is little sense in giving Team 3
 threads at the beginning as it needs units of work to first pass through Team 2.
-Hence, it is given zero threads to start with.  However, as Teams 1 and 2 finish
-their tasks, Team 3 will have threads activated and begin work.  It follows that
-Team 3 could eventually have 9 activated threads applying Task C.}
+Hence, it is given zero threads to start with.  However, when a thread in Team 1
+or Team 2 deactivates as work winds down, the thread informs Team 3 to activate
+a thread.  It follows that Team 3 could eventually have 9 activated threads
+for applying Task C.}
 \label{fig:ConcurrentItor}
 \end{center}
 \end{figure}
@@ -323,17 +364,20 @@ that this team can apply Task B to all tiles.}
 \end{figure}
 
 The design of the runtime allows, however, for data parallel execution of a task
-bundle.  For example, a CPU version and a GPU version of a single task could
-be written by the offline toolchain and bundled together.  The single block
+bundle.  For example, a CPU version and a GPU version of a single task could be
+written by the offline toolchain and bundled together.  The single block
 iterator in the runtime would then be instructed to partition the blocks so that
-only a fraction of blocks are sent to the pipeline that runs the task on the
-CPU and the remaining blocks sent to a second pipeline that runs the task on the
-GPU.  In this case, the code that iterates over blocks and feeds the pipelines
-is a \textbf{work splitting distributor}.\\
+only a fraction of blocks are sent to the pipeline that runs the task on the CPU
+and the remaining blocks sent to a second pipeline that runs the task on the
+GPU\footnote{One could imagine either a pre-determined, static partitioning
+scheme or an online scheme that decides where to route a tile based on current
+and historic load and performance telemetry data.}.  In this case, the code that
+iterates over blocks and feeds the pipelines is a \textbf{work splitting
+distributor}.\\
 
 The concept of task is an element of a high-level software model.  The design of
 the runtime includes a lower-level software model element, known as a
-\textbf{thread team}, which are used to construct the aforementioned runtime
+\textbf{thread team}, which is used to construct the aforementioned runtime
 pipelines so that tasks can be mapped to node hardware and to allow for load
 balancing of computing resources on the host, on which the thread teams run.
 At startup, the runtime will create $N$ thread teams, each of which contains $M$
@@ -359,14 +403,17 @@ work given to the team during the execution cycle using dynamic scheduling.\\
 
 In the task parallel example, we imagine that the concurrent CPU and post-GPU
 tasks will be assigned to thread teams that work with tiles; the concurrent GPU
-task, to a thread team that works with data packets.  The concurrent work
-distributor will enqueue all tiles directly with the CPU task's team, aggregate
-tiles into data packets, and enqueue a data packet with the concurrent GPU
-task's team once each data packet contains enough tiles or there are no more
-tiles left.  When the concurrent GPU's team has finished applying its task to
-all tiles in a data packet, it gives ownership of the packet to a \textbf{work
-translator} that will enqueue separately each tile in the data packet with the
-team executing the post-GPU task.\\
+task, to a thread team that works with data packets of blocks\footnote{Each
+kernel launch in a task will apply its kernel to a single element in a data packet.  For
+the moment, we are assuming that it will be more runtime efficient for each
+kernel launch to work on a block rather than a proper subset of a block.}.  The concurrent
+work distributor will enqueue all tiles directly with the CPU task's team,
+aggregate blocks into data packets, and enqueue a data packet with the concurrent
+GPU task's team once each data packet contains enough blocks or there are no more
+blocks left.  When the concurrent GPU's team has finished applying its task to
+all blocks in a data packet, it gives ownership of the packet to a \textbf{work
+translator} that will enqueue separately each tile of the blocks in the data
+packet with the team executing the post-GPU task.\\
 
 A design element of the runtime that can enqueue units of work with a thread
 team or a work translator is a \textbf{work publisher}.  The design elements
@@ -376,8 +423,16 @@ publisher} and as a \textbf{thread subscriber}.  When a thread in a thread
 publisher team determines that there is no more work to be done in the current
 execution cycle and therefore deactivates, the thread informs the team's
 subscriber that it can now activate another thread so that it can help the team
-finished its task.  This allows for some control of the load balancing of the
+finish its task.  This allows for some control of the load balancing of the
 threads running in the host.\\
+
+Ideally, this load balancing will extend outside of FLASH to help manage host
+resources used by a simulation and third-party libraries used by the simulation.
+For instance, the asynchronous iterator will likely need many threads to do its
+work.  Therefore, the total number of initial threads activated across all
+thread teams that are fed by a work distributor using this iterator should be
+low so that the GC fill is given priority.  Once AMReX finishes the fill, the
+work distributor can activate more threads in the teams.\\
 
 The pipeline and thread team layout pertaining to the above task parallel
 runtime example is shown in Figure~\ref{fig:ConcurrentItor}.  An example of a
@@ -392,12 +447,12 @@ offline toolchain determines how to bundle tasks, it is also hoped that having a
 large number of such configurations will allow for effective bundling that leads
 to efficient, parallel usage of all computational in-node resources.\\
 
-\textcolor{red}{TODO: Where does the interface between the runtime and offline
-tools lay?  Should the runtime be programmed with all possible thread team
+\Jared{TODO: Where is the interface between the runtime and offline tools
+located?  Should the runtime be programmed with all possible thread team
 configurations and expose these to the offline tools?  Or should the offline
-tool determine which thread team configurations it needs and write the code
-that assembles the teams into a configuration and executes a task bundle with
-the configuration?}\\
+tool determine which thread team configurations it needs and write the code that
+assembles the teams into a configuration and as well as the code that executes a
+task bundle with the configuration?}\\
 
 A group of tasks are said to be \textbf{runtime-compatible} and can therefore be
 bundled together into a single runtime execution if
@@ -467,7 +522,7 @@ Note, however, that it might be more advantageous in terms of decreased runtime
 to avoid fusing so that the tasks can be run on different hardware.  Also,
 fusion could lead to performance degradation if the register pressure is too
 high for the fused task and frequent context switching is required by the data
-access pattern.  \textcolor{red}{Two work tasks that are separated by
+access pattern.  \Jared{Two work tasks that are separated by
 an auxiliary task cannot be fused without also fusing in the auxiliary task,
 which could lead to either incorrect results or to unacceptable increases in
 runtime.}\\
@@ -477,17 +532,18 @@ on parameters known at configuration time, then parameter values that result in
 exclusion should be used by the toolchain to fuse tasks originally separated by
 the barrier or data movement.  This implies that the highest-level expression of
 an operation should include all such barriers and data movements with these
-connected to the configuration-time parameters.  As a result, developers of
+decorated with the configuration-time parameters (refer to
+Figure~\ref{fig:simpleUnsplitKernelGraph}).  As a result, developers of
 units with complex execution paths should only need to write a single high-level
 description of the unit.\\
 
 Note that runtime-compatible tasks that have no interdependence within a single
 time step can be bundled together or run in different runtime executions freely
-(\textit{e.g.} Gravity potential and hydro step) within their time step.  Also,
-we can choose to fuse these two tasks in any desired order.  Runtime-compatible
-tasks that have a dependence can be bundled together in the same runtime
-execution if one is scheduled on the GPU and the other as the 
-post-concurrency CPU task.\\
+within their time step.  Also, we can choose to fuse these two tasks in any
+desired order.  Runtime-compatible tasks that have a dependence can be bundled
+together in the same runtime execution so long as the mapping of tasks onto
+teams in a specific thread team configuration maintain the correct order of
+operation.\\
 
 Finally, we partition the code used at each time step into the three classes
 \begin{enumerate}
@@ -500,11 +556,11 @@ static Fortran routines.}
 \end{enumerate}
 If a simulation is to be run in CPU-only mode, then the latter class of files
 would consist of auto-generated high-level representations of each operation
-(\textit{e.g.} Hydro.F90) that are functionally equivalent to the code presently
+(\textit{e.g.} \texttt{Hydro.F90}) that are functionally equivalent to the code presently
 in FLASH5.  Otherwise these files would be auto-generated Fortran files that
 implement each of the tasks being passed to a runtime execution.\\
 
-\textcolor{red}{Do we need to classify intermediate data used by kernels?}
+\Jared{Do we need to classify intermediate data used by kernels?}
 
 %%%%%----- ORCHESTRATION SYSTEM HIGH-LEVEL REQUIREMENTS -----%%%%%
 \section{Overall System}
@@ -515,18 +571,18 @@ The orchestration system implementation and dependencies shall not impede FLASH5
 from being used on *nix operation systems including macOS nor from being run for
 research on laptops.  Implementations shall not require more than the C++11
 standard and threading implementations shall be portable across platforms that
-conform to the aforemented operating systems.  \textcolor{red}{What
+conform to the aforemented operating systems.  \Jared{What
 Fortran standard are we shooting for?  If the runtime is written in C++, then we
 will need F2003 for the code that manages the C++/Fortran interoperability.
 Ideally, we can get rid of classes and restrict all other Fortran code to F95.}
 \end{req}
 
-\textcolor{red}{Present implementation of runtime is with pthreads, which is
+\Jared{Present implementation of runtime is with pthreads, which is
 portable based on OS (is it compliant with the POSIX standard).  Is this good
 enough?  If we do accept the C++11 standard as reasonable, then the runtime
 implementation could be redone to use the C++ thread facilities.}\\
 
-\textcolor{red}{Memory managers such as AML and Umpire are dependent on
+\Jared{Memory managers such as AML and Umpire are dependent on
 LibNuma, which is linux based.  Therefore, macOS users would presently not be
 able to use a runtime based on these.  For laptops, this might be acceptable.
 However, this would preclude Mac Pro users from using their GPUs.}
@@ -541,7 +597,7 @@ being called from Driver.
 \end{req}
 
 It is possible that users might want to run a simulation on a CPU-only platform
-using the runtime so that indenpendent tasks or independent tasks/communications
+using the runtime so that independent tasks or independent tasks/communications
 can be overlaid.
 
 \begin{req}
@@ -577,7 +633,7 @@ and trade-off analysis.  For example, emphasis was placed on the word
 ``general'' in Req~\ref{req:Portability} as Req~\ref{req:UnitImplementations}
 would allow for a CUDA-based implementation that uses managed memory.  However,
 if we choose to have two different implementations of large, complex,
-general-use code that is hard to test such that the two implementations differ
+general-use code that is hard to test and such that the two implementations differ
 only in a few lines related to mananged memory, then we might decide that
 maintainability is being significantly decreased.
 
@@ -629,7 +685,7 @@ conform to the needs of the runtime interface (\textit{e.g.} libraries such as
 Thornado that need to be useable by many applications).  The orchestration
 system shall allow such code to be run directly by calls in
 \texttt{Driver\_evolveFlash} between runtime execution cycles (as above).
-FLASH5 shall allow this code to be run
+FLASH5 shall allow such code to be run
 \begin{itemize}
 \item{as serial code,}
 \item{as code that manages and coordinates parallel execution internally, or}
@@ -646,7 +702,10 @@ The system shall be designed such that the bundling of tasks and relative
 scheduling of these can be done as either a static task at setup time or at
 runtime so that bundling and scheduling can be done dynamically in response to
 acquiring actual runtime performance and resource usage data during a simulation
-run.  \textcolor{red}{What does this mean in terms of configuration of this
+run.  Principally, this means that the breaking down of the offline toolchain into
+individual tools must be done so that this future goal is not precluded.
+Therefore, care needs to also be taken when establishing the interfaces between
+these tools.  \Jared{What does this mean in terms of configuration of this
 subsystem?}\\
 
 When the optimization of task/kernel scheduling is done at setup time, the 
@@ -675,7 +734,7 @@ This information shall not change during the computations made at a single time
 step so that available memory resources in different devices are fixed when the
 time step starts.\\
 
-\textcolor{red}{Should we insist that kernels also cache block-indexed values
+\Jared{Should we insist that kernels also cache block-indexed values
 like boundBox and physical size?  Do we get access to cached data through the
 tileDesc object methods?  For example, when called on the host, the method
 physicalSize will do the actual calculation.  However, when called on the GPU,
@@ -714,7 +773,7 @@ Rather, all tile-specific information shall be obtained from the Grid unit by
 the operation at the highest level and all such information passed to static
 Fortran routines as individual parameters.  This shall be implemented so that
 Grid information cached in device memory can be used immediately within device
-kernels.  \textcolor{red}{This means that the high-level routines will have very
+kernels.  \Jared{This means that the high-level routines will have very
 long parameter lists.  Does passing in so many parameters have an adverse effect
 on memory or performance?  Larger frame sizes?}
 
@@ -849,7 +908,7 @@ automatically for each kernel
 
 Rules shall be created that allow for determining task- and operation-level
 metainformation based solely on the metainformation of all kernels used by the
-task or operation.  \textcolor{red}{Say this with specific detail and
+task or operation.  \Jared{Say this with specific detail and
 potentially just write the rules.}\\
 
 Each work task should be labeled by the type of tiles on which it should be
@@ -897,9 +956,9 @@ possible need for multiple data packets per task.
 %For example, the stencil nature of \texttt{simpleUnsplit} means that if we use tiling,
 %then there is am implied barrier between computeFluxes and updateSoln.  However,
 %if tiling is turned off, then the barrier is not implied and we can fuse.
-%\textcolor{red}{How to determine this and/or encode it?}\\
+%\Jared{How to determine this and/or encode it?}\\
 
-%\textcolor{red}{What is the criterion for distinguishing between a task and a
+%\Jared{What is the criterion for distinguishing between a task and a
 %kernel?  For instance, we could say that energyFix and Eos are kernels within a
 %task or say that these are different tasks and they inherit their iterator info
 %from the enclosing updateSoln.  Some of this is encapsulation/design.  We would
@@ -933,12 +992,7 @@ tasks at each time step and such that tasks are still executed in correct order.
 \section{Runtime design}
 \label{sec:Runtime}
 
-\textcolor{red}{TODO: Need to add in brief explanation of thread teams,
-execution cycles, and topologies of thread teams.  This document should
-eventually end up in the Orchestration System design document, in which case
-this information could go in the executive summary.}\\
-
-\textcolor{red}{What classes of scalar values do we have in the physics units?
+\Jared{What classes of scalar values do we have in the physics units?
 For instance are there scalars that are constant for the duration of the
 simulation?  Constant for the duration of an iteration?  Constants that are
 changed by auxiliary tasks?  Constants that are updated by work tasks?  For the
@@ -1076,14 +1130,14 @@ runtime designs and ideally require little change if our design changes
 significantly.  In other words, these statements should not be informed by
 implementation ideas or details.
 
-\textcolor{red}{Put in information regarding runtime parameters needed by
+\Jared{Put in information regarding runtime parameters needed by
 runtime.  Does this include runtime parameters that depend upon how task were
 bundled/scheduled?  If we have a parameter that specifies how many blocks to
 include in the first data packet, then we should allow for a value that
 specifies that all blocks should be included.  This might be useful for some
 kernels that don't use the asynchronous iterator.}\\
 
-\textcolor{red}{Do we allow for specifying to the runtime which data should
+\Jared{Do we allow for specifying to the runtime which data should
 remain where?  If so, where is that information coming from?}
 
 \begin{req}
@@ -1128,7 +1182,7 @@ identify the location of the tile's data (cell-centered, face-centered,
 \textit{etc.}) in the host memory (i.e. the Grid unit's data structures).  If
 the task will run in both CPU and in accelerators, then the metainformation must
 specify pointers for all data in the memory accessible to the host and
-accelerators.  \textcolor{red}{This requirement will need improvement as the
+accelerators.  \Jared{This requirement will need improvement as the
 prototype evolves.  Basically, we are extending the notion of tile metadata to
 the notion of a data packet.}
 \end{req}
@@ -1140,7 +1194,7 @@ given computational task shall know where its block data resides in different
 memory and the task shall be written so that it can carry out its computations
 on the devices assigned to it.  This can include running code on the host CPU
 with the given team thread or using the team thread to launch computations on
-accelerator devices.  \textcolor{red}{This requirement is also related to data
+accelerator devices.  \Jared{This requirement is also related to data
 packets and will need improvement as the prototype evolves.}
 \end{req}
 
@@ -1186,7 +1240,7 @@ tasks in the bundle is more than the number of thread teams created by the
 runtime.
 \end{req}
 
-\textcolor{red}{What does this look like?  The offline toolchain should
+\Jared{What does this look like?  The offline toolchain should
 determine the inter-task dependencies, the mapping of tasks to HW, and the
 mapping of tasks to thread teams.  Is the latter just choosing a thread team
 with the correct unit of work?  How does the toolchain specify to the runtime
@@ -1213,7 +1267,7 @@ suspect that a tile will be too little data to merit the overhead associated
 with launching a kernel.  Therefore, the Grid unit shall be retooled such that
 work distributors are capable of feeding tiles (proper subsets of blocks) to
 some thread teams and data packets of blocks to
-others\footnote{\textcolor{red}{For AMReX, we might want to iterate over blocks
+others\footnote{\Jared{For AMReX, we might want to iterate over blocks
 and request a new iterator that iterates over the tiles that cover a given
 block.}}.
 \end{req}
@@ -1228,7 +1282,7 @@ iterator), use a distribution scheme to determine which tiles will be sent to
 which team, form these into the appropriate units of work based on the
 destination team, and send the units of work to the appropriate thread teams.
 Refer to Figure~\ref{fig:SplitItor} for an example of such a scheme.
-\textcolor{red}{Allow for scheme that selects routing of work to team
+\Jared{Allow for scheme that selects routing of work to team
 dynamically based on current runtime telemetry data?}
 \end{req}
 
@@ -1239,14 +1293,14 @@ It shall be possible for a single thread
 team to be a work subscriber for any number of distinct work
 publishers (See Figure~\ref{fig:SplitItor}).  Note that work
 distributors are therefore work publishers and that a single thread team may be
-both a work subscriber and work publisher.  \textcolor{red}{The concurrent work
+both a work subscriber and work publisher.  \Jared{The concurrent work
 distributor is an example of a publisher that pushes units of work to multiple
 subscribers.  Should this be allowed generally?  Use case would be using a
 single thread team to apply a single task that must be done first and then
 passing data to two teams that concurrently apply independent tasks.}
 \end{req}
 
-\textcolor{red}{The present implementation does not yet support multiple work
+\Jared{The present implementation does not yet support multiple work
 publishers for a single subscriber.  The design needs to be extended so that
 a subscriber with multiple publishers can keep track of which publisher has
 called closeTask.  The transition to Running \& Closed Queue would only occur
@@ -1300,7 +1354,7 @@ publisher of the second team.  See Figures~\ref{fig:ConcurrentItor}
 and~\ref{fig:SplitItor}.
 \end{req}
 
-\textcolor{red}{Is there a use case having a tile-to-data packet aggregation
+\Jared{Is there a use case having a tile-to-data packet aggregation
 object?}
 
 \begin{req}
@@ -1310,7 +1364,7 @@ state.  This should be useful for both debugging and designing meaningful direct
 tests of low-level functionality.
 \end{req}
 
-\textcolor{red}{One can start to analyse the different data movements associated with particular
+\Jared{One can start to analyse the different data movements associated with particular
 task bundles.  For instance, data that is operated on by a concurrent GPU work
 task must obviously be transported back to the host memory in the case that a
 post-concurrency CPU task is also included in the bundle and operates on or uses
@@ -1365,7 +1419,7 @@ M = (Q, X, I, O, s_0, T)
 where
 \begin{itemize}
 \item{$Q$ is the finite set of qualitative modes,}
-\item{$X = \set{(N_i, N_w, N_c, N_Q) \in \Z_{\ge 0}^4\,|\,N_i + N_w + N_c =
+\item{$X = \set{(N_i, N_w, N_c, N_Q) \in \Z[0,N_{max}]^3\times\Z_{\ge 0}\,|\,N_i + N_w + N_c =
 N_{max}}$ is the set of internal state variables where $N_{max}$ is the
 number of threads in the team,}
 \item{$I$ is the set of internal and external events,}
@@ -1594,7 +1648,7 @@ during each task execution.
 \textbf{Verification:}\hspace{0.125in}  Implemented a flag
 \texttt{isWaitBlocking\_} to track if a thread has already called \texttt{wait}.
 
-\textcolor{red}{Should we have a variant of wait that accepts a timeout?}
+\Jared{Should we have a variant of wait that accepts a timeout?}
 
 \begin{spec}
 To maintain a simple design, client code shall only be allowed to attach and
@@ -1807,7 +1861,7 @@ necessarily an error if $N_i = N_{max}$ in {\TeamRunningClosed} as the team
 could be a thread subscriber and have a thread activated by its publisher so
 that the team could eventually dequeue elements and determine that there is no
 more work.
-\textcolor{red}{Should each thread team store the pointer to its thread
+\Jared{Should each thread team store the pointer to its thread
 publisher so that we can implement a rule here that if a team isn't a thread
 subscriber and $N_i = N_{max}$, then we have an error?}
 \end{spec}
@@ -1911,7 +1965,7 @@ the transition to \TeamIdle.
 %launched on these.  The runtime shall not include these same blocks in a
 %subsequent data packet so that we avoid repeated work.  FLASH shall abort
 %execution if, at the end of a time step, we have blocks of persistent data
-%(\textit{e.g.} unk) that are not in the host memory.  \textcolor{red}{Are these
+%(\textit{e.g.} unk) that are not in the host memory.  \Jared{Are these
 %really requirements that we want?  If yes, then the blocks in the device memory
 %would be the first data packet and therefore we get the pipeline up and running
 %quicker.}  Example of this is unsplit Hydro.  The computeFluxes routine pulls in
@@ -1938,7 +1992,7 @@ the transition to \TeamIdle.
 %and whether or not flux correction should be applied (specified as a runtime
 %parameter).  Here we express each variant as an operation.\\
 %
-%\textcolor{red}{TODO: Add to requirements that parameter such as flux correction
+%\Jared{TODO: Add to requirements that parameter such as flux correction
 %should be both a setup and runtime parameter.  If the setup-time value is false,
 %then the task scheduler has the possibility to fuse tasks.  If it is true, then
 %the runtime parameter can still be set to turn this off.  However, the binary
