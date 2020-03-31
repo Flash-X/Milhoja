@@ -107,7 +107,7 @@ protected:
 
     // Structure used to pass data to each thread at thread creation
     struct ThreadData {
-        unsigned int   tId = -1;
+        unsigned int   tId =  0;
         ThreadTeam*    team = nullptr;
     };
 

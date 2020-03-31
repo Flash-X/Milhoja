@@ -6,10 +6,12 @@ gatherDataF2003_*_*_*_*_*_*.dat
 docs/OrchestrationSystem.log
 docs/OrchestrationSystem.aux
 docs/OrchestrationSystem.pdf
-test_threadteam_cpp.x
-test_runtime_cpp.x
-gather_data_cpp.x
-gather_data_F2003.x
+sites/*/test_threadteam_cpp.x
+sites/*/test_runtime_cpp.x
+sites/*/gather_data_cpp.x
+sites/*/gather_data_*_*.x
+sites/*/gather_data_F2003.x
+sites/summit/gatherDataCpp.*
 *.log
 *.mod
 *.dSYM

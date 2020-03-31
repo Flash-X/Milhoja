@@ -16,7 +16,6 @@
 
 #include "Flash.h"
 #include "constants.h"
-#include "estimateTimerResolution.h"
 #include "initTile_cpu.h"
 #include "Analysis.h"
 #include "scaleEnergy_cpu.h"
@@ -31,7 +30,6 @@ constexpr unsigned int   LEVEL = 0;
 
 constexpr unsigned int   N_TRIALS = 5;
 constexpr unsigned int   N_THREAD_TEAMS = 3;
-constexpr unsigned int   N_THREADS_PER_TEAM = 4;
 
 void  setUp(void) {
     OrchestrationRuntime::instance()->executeTasks("Task 1",
@@ -48,51 +46,67 @@ void  tearDown(const std::string& filename,
                const int nThdTask2, 
                const int nThdTask3,
                const double walltime) {
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
-    amrex::MultiFab&  unk = grid->unk();
-    amrex::Geometry   geometry = grid->geometry();
-    amrex::Real       dx = geometry.CellSize(0);
-    amrex::Real       dy = geometry.CellSize(1);
-    grid = nullptr;
+    int   rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    double   L_inf_dens = 0.0;
-    double   L_inf_ener = 0.0;
-    double   meanAbsError = 0.0;
-    Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
+    if (rank == 0) {
+        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        amrex::MultiFab&  unk = grid->unk();
+        amrex::Geometry   geometry = grid->geometry();
+        amrex::Real       dx = geometry.CellSize(0);
+        amrex::Real       dy = geometry.CellSize(1);
+        grid = nullptr;
 
-    OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
-    runtime->executeTasks("Task 1",
-                          Analysis::computeErrors,
-                          3, "cpuTask",
-                          nullptr, 0, "null_gpuTask",
-                          nullptr, 0, "null_postGpuTask");
-    runtime = nullptr;
+        double   L_inf_dens = 0.0;
+        double   L_inf_ener = 0.0;
+        double   meanAbsError = 0.0;
+        Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
 
-    Analysis::densityErrors(&L_inf_dens, &meanAbsError);
-    Analysis::energyErrors(&L_inf_ener, &meanAbsError);
+        OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
+        runtime->executeTasks("Task 1",
+                              Analysis::computeErrors,
+                              3, "cpuTask",
+                              nullptr, 0, "null_gpuTask",
+                              nullptr, 0, "null_postGpuTask");
+        runtime = nullptr;
 
-    std::ofstream  fptr;
-    fptr.open(filename, std::ios::out | std::ios::app);
-    fptr << std::setprecision(15) 
-         << mode << ","
-         << nLoops << ","
-         << (nThdTask1 < 0 ? "NaN" : std::to_string(nThdTask1)) << ","
-         << (nThdTask2 < 0 ? "NaN" : std::to_string(nThdTask2)) << ","
-         << (nThdTask3 < 0 ? "NaN" : std::to_string(nThdTask3)) << ","
-         << NXB << "," << NYB << "," << NZB << ","
-         << N_BLOCKS_X << ","
-         << N_BLOCKS_Y << ","
-         << N_BLOCKS_Z << ","
-         << dx << "," << dy << ","
-         << L_inf_dens << "," << L_inf_ener << ","
-         << walltime << std::endl;
-    fptr.close();
+        Analysis::densityErrors(&L_inf_dens, &meanAbsError);
+        Analysis::energyErrors(&L_inf_ener, &meanAbsError);
+
+        std::ofstream  fptr;
+        fptr.open(filename, std::ios::out | std::ios::app);
+        fptr << std::setprecision(15) 
+             << mode << ","
+             << nLoops << ","
+             << (nThdTask1 < 0 ? "NaN" : std::to_string(nThdTask1)) << ","
+             << (nThdTask2 < 0 ? "NaN" : std::to_string(nThdTask2)) << ","
+             << (nThdTask3 < 0 ? "NaN" : std::to_string(nThdTask3)) << ","
+             << NXB << "," << NYB << "," << NZB << ","
+             << N_BLOCKS_X << ","
+             << N_BLOCKS_Y << ","
+             << N_BLOCKS_Z << ","
+             << dx << "," << dy << ","
+             << L_inf_dens << "," << L_inf_ener << ","
+             << walltime << std::endl;
+        fptr.close();
+    }
 }
 
 int   main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "\nOne and only one command line argument please\n\n";
+        return 1;
+    }
+
+    int  nTotalThreads = std::stoi(std::string(argv[1]));
+    if (nTotalThreads <= 1) {
+        std::cerr << "\nNeed to use at least two threads\n\n";
+        return 2;
+    }
+
     // Initialize simulation
     OrchestrationRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
-    OrchestrationRuntime::setMaxThreadsPerTeam(N_THREADS_PER_TEAM);
+    OrchestrationRuntime::setMaxThreadsPerTeam(nTotalThreads);
     OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
 
     Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
@@ -123,9 +137,6 @@ int   main(int argc, char* argv[]) {
 	fptr << "# Hostname, " << HOSTNAME << std::endl;
     fptr << "# Host information," << MACHINE_INFO << std::endl;
     fptr << "# MPI_Wtick," << MPI_Wtick() << ",sec" << std::endl;
-    fptr << "# Measured MPI_Wtime resolution," 
-         << estimateTimerResolution() << ",sec"
-         << std::endl;
     fptr << "pmode,n_loops,n_thd_task1,n_thd_task2,n_thd_task3,"
          << "NXB,NYB,NZB,N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z,"
          << "dx,dy,Linf_density,Linf_energy,Walltime_sec\n";
@@ -185,31 +196,24 @@ int   main(int argc, char* argv[]) {
         tWalltime = MPI_Wtime() - tStart; 
         tearDown(fname, "Runtime", 3, 1, 0, 0, tWalltime);
 
-        /***** RUNTIME TEST - One thread per team *****/
-        setUp();
-        tStart = MPI_Wtime(); 
-        runtime->executeTasks("Task Bundle 1",
-                              ThreadRoutines::computeLaplacianDensity_cpu,
-                              1, "bundle1_cpuTask",
-                              ThreadRoutines::computeLaplacianEnergy_cpu,
-                              1, "bundle1_gpuTask",
-                              ThreadRoutines::scaleEnergy_cpu,
-                              1, "bundle1_postGpuTask");
-        tWalltime = MPI_Wtime() - tStart; 
-        tearDown(fname, "Runtime", 1, 1, 1, 1, tWalltime);
-
-        /***** RUNTIME TEST - One thread per team *****/
-        setUp();
-        tStart = MPI_Wtime(); 
-        runtime->executeTasks("Task Bundle 1",
-                              ThreadRoutines::computeLaplacianDensity_cpu,
-                              2, "bundle1_cpuTask",
-                              ThreadRoutines::computeLaplacianEnergy_cpu,
-                              2, "bundle1_gpuTask",
-                              ThreadRoutines::scaleEnergy_cpu,
-                              0, "bundle1_postGpuTask");
-        tWalltime = MPI_Wtime() - tStart; 
-        tearDown(fname, "Runtime", 1, 2, 2, 0, tWalltime);
+        /***** RUNTIME TEST - Try different thread combinations *****/
+        for (unsigned int n=2; n<nTotalThreads; ++n) {
+            int  nConcurrentThreads = n / 2;
+            int  nPostThreads       = n % 2;
+            setUp();
+            tStart = MPI_Wtime(); 
+            runtime->executeTasks("Task Bundle 1",
+                                  ThreadRoutines::computeLaplacianDensity_cpu,
+                                  nConcurrentThreads, "bundle1_cpuTask",
+                                  ThreadRoutines::computeLaplacianEnergy_cpu,
+                                  nConcurrentThreads, "bundle1_gpuTask",
+                                  ThreadRoutines::scaleEnergy_cpu,
+                                  nPostThreads, "bundle1_postGpuTask");
+            tWalltime = MPI_Wtime() - tStart; 
+            tearDown(fname, "Runtime", 1,
+                     nConcurrentThreads, nConcurrentThreads, nPostThreads,
+                     tWalltime);
+        }
     }
 
     grid->destroyDomain();

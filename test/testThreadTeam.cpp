@@ -95,7 +95,7 @@ TEST(ThreadTeamTest, TestDestruction) {
     team1->enqueue(work, false);
     for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-        if (N_comp == 1)      break;
+        if ((N_comp == 1) && (N_wait == 2))      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
@@ -883,7 +883,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Team 1 needs to delay long enough that we can catch transitions, 
         // but fast enough that all three units of work will be handled by
-        // team 2 simulataneously.  Similarly, we activate all threads in team 2
+        // team 2 simultaneously.  Similarly, we activate all threads in team 2
         // from the start
         team1.startTask(TestThreadRoutines::delay_10ms,  1, "quick",  "10ms");
         team2.startTask(TestThreadRoutines::delay_100ms, 4, "wait",   "100ms");
@@ -896,7 +896,7 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         team1.closeTask();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_comp == 1)     break;
+            if ((N_comp == 1) && (N_wait == 2))     break;
             std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
 
@@ -1199,7 +1199,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         team1.enqueue(work, false);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_comp == 3)     break;
+            if ((N_comp == 3) && (N_wait == 3))     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -1319,7 +1319,9 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
 #ifndef DEBUG_RUNTIME
 TEST(ThreadTeamTest, TestTimings) {
-    unsigned int   N_THREADS = 10;
+    using namespace std::chrono;
+
+    unsigned int   N_THREADS = 21;
     unsigned int   N_ITERS = 1000;
 
     int work = 1;
@@ -1327,53 +1329,59 @@ TEST(ThreadTeamTest, TestTimings) {
     ThreadTeam<int>* team1 = nullptr;
     ThreadTeam<int>  team2(N_THREADS, 2, "TestTimings2.log");
 
-    double conv = 1.0e6 / (double(CLOCKS_PER_SEC * N_ITERS));
-
-    clock_t   time = clock();
+    auto time = high_resolution_clock::now();
     for (unsigned int i=0; i<N_ITERS; ++i) {
         team1 = new ThreadTeam<int>(N_THREADS, 1, "TestTimings1.log");
         delete team1;
         team1 = nullptr;
     }
-    time = clock() - time;
+    auto   duration = high_resolution_clock::now() - time;
+    double mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                           / static_cast<double>(N_ITERS);
     std::cout << "Thread Team Create Time\t\t\t\t"
-              << (time * conv) << " us" << std::endl;
+              << mean_wtime_us << " us\n";
 
-    time = clock();
+    time = high_resolution_clock::now();
     for (unsigned int i=0; i<N_ITERS; ++i) {
         team2.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
         team2.closeTask();
         team2.wait();
     }
-    time = clock() - time;
+    duration = high_resolution_clock::now() - time;
+    mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                    / static_cast<double>(N_ITERS);
     std::cout << "Idle->Open->Idle Time\t\t\t\t"
-              << (time * conv) << " us" << std::endl;
+              << mean_wtime_us << " us\n";
 
     for (unsigned int n=1; n<=N_THREADS; ++n) {
-        time = clock();
+        time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
             team2.closeTask();
             team2.wait();
         }
-        time = clock() - time;
+        duration = high_resolution_clock::now() - time;
+        mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                        / static_cast<double>(N_ITERS);
         std::cout << std::to_string(n) 
                   << " thread/Idle->Open->NoMoreWork->Idle Time\t"
-                  << (time * conv) << " us" << std::endl;
+                  << mean_wtime_us << " us\n";
     }
 
     for (unsigned int n=1; n<=N_THREADS; ++n) {
-        time = clock();
+        time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
             team2.enqueue(work, false);
             team2.closeTask();
             team2.wait();
         }
-        time = clock() - time;
+        duration = high_resolution_clock::now() - time;
+        mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                        / static_cast<double>(N_ITERS);
         std::cout << std::to_string(n) 
                   << " thread/single no-op cycle Time\t\t" 
-                  << (time * conv) << " us" << std::endl;
+                  << mean_wtime_us << " us\n";
     }
 }
 #endif

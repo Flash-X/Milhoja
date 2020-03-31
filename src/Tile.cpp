@@ -46,9 +46,11 @@ Tile& Tile::operator=(Tile&& rhs) {
     GC_ = rhs.GC_;
 
     rhs.gridIdx_ = -1;
-    rhs.level_ = -1;
+    rhs.level_ = 0;
     rhs.interior_ = nullptr;
     rhs.GC_ = nullptr;
+
+    return *this;
 }
 
 /**
