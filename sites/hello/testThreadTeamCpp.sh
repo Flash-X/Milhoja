@@ -9,6 +9,8 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
+N_THREADS_PER_TEAM=4
+
 MAKEFILE=Makefile_threadteam_cpp
 BINARY=test_threadteam_cpp.x 
 
@@ -53,7 +55,7 @@ fi
 rm $TESTDIR/Flash.h
 rm $TESTDIR/constants.h
 
-time ./$BINARY
+time ./$BINARY $N_THREADS_PER_TEAM
 if [[ $? -ne 0 ]]; then
     echo "Unable to execute $BINARY successfully"
     exit 4;

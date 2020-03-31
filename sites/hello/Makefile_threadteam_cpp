@@ -18,10 +18,12 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamTerminating.h \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
-    $(INCDIR)/ThreadTeamRunningNoMoreWork.h
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(TESTDIR)/threadTeamTest.h 
 SRCS       = \
     $(TESTDIR)/testThreadRoutines.cpp \
-    $(TESTDIR)/testThreadTeam.cpp
+    $(TESTDIR)/testThreadTeam.cpp \
+    $(TESTDIR)/runThreadTeamTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
@@ -30,7 +32,7 @@ CXX       = g++
 CXXFLAGS  = -g -O0 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -std=c++11
 CXXWARNS  =
 
-LIBS      = -lstdc++ -lgtest -lgtest_main
+LIBS      = -lstdc++ -lgtest
 LDFLAGS   = -L$(GTESTDIR)/lib
 
 ifdef DEBUG

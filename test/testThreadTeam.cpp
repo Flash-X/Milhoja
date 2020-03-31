@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <pthread.h>
 
+#include "threadTeamTest.h"
 #include "testThreadRoutines.h"
 #include "ThreadTeam.h"
 
@@ -1321,17 +1322,16 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 TEST(ThreadTeamTest, TestTimings) {
     using namespace std::chrono;
 
-    unsigned int   N_THREADS = 21;
     unsigned int   N_ITERS = 1000;
 
     int work = 1;
 
     ThreadTeam<int>* team1 = nullptr;
-    ThreadTeam<int>  team2(N_THREADS, 2, "TestTimings2.log");
+    ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
 
     auto time = high_resolution_clock::now();
     for (unsigned int i=0; i<N_ITERS; ++i) {
-        team1 = new ThreadTeam<int>(N_THREADS, 1, "TestTimings1.log");
+        team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
         delete team1;
         team1 = nullptr;
     }
@@ -1353,7 +1353,7 @@ TEST(ThreadTeamTest, TestTimings) {
     std::cout << "Idle->Open->Idle Time\t\t\t\t"
               << mean_wtime_us << " us\n";
 
-    for (unsigned int n=1; n<=N_THREADS; ++n) {
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
         time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
@@ -1368,7 +1368,7 @@ TEST(ThreadTeamTest, TestTimings) {
                   << mean_wtime_us << " us\n";
     }
 
-    for (unsigned int n=1; n<=N_THREADS; ++n) {
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
         time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
