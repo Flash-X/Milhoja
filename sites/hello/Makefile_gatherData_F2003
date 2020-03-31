@@ -2,7 +2,7 @@ SHELL=/bin/sh
 
 BASE     = gather_data_F2003
 MAKEFILE = Makefile_gatherData_F2003
-BASEDIR  = .
+BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test
@@ -124,6 +124,7 @@ clean:
 	/bin/rm -f $(BASEDIR)/Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f *.mod
 	/bin/rm -f $(SRCDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/*.mod
 	/bin/rm -f $(TESTDIR)/*.mod

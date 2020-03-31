@@ -12,21 +12,23 @@ N_BLOCKS_Z=1
 MAKEFILE=Makefile_threadteam_cpp
 BINARY=test_threadteam_cpp.x 
 
+TESTDIR=../../test
+
 # Setup constants.h with current simulation's Grid parameters
-rm ./test/constants.h
+rm $TESTDIR/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
-        ./test/constants_base.h > \
-        ./test/constants.h
-sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" ./test/constants.h
-sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" ./test/constants.h
+        $TESTDIR/constants_base.h > \
+        $TESTDIR/constants.h
+sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/constants.h
+sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm ./test/Flash.h
+rm $TESTDIR/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
-        ./test/Flash_base.h > \
-        ./test/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" ./test/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" ./test/Flash.h
+        $TESTDIR/Flash_base.h > \
+        $TESTDIR/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Flash.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
@@ -48,8 +50,8 @@ if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 3;
 fi
-rm ./test/Flash.h
-rm ./test/constants.h
+rm $TESTDIR/Flash.h
+rm $TESTDIR/constants.h
 
 time ./$BINARY
 if [[ $? -ne 0 ]]; then
