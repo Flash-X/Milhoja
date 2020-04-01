@@ -22,8 +22,8 @@ sites/bebop/gather_data_F2003_bebop.[oe]*
 *.dSYM
 src/*.o
 src/*.mod
-test/buildInfo.h
-test/buildInfo.inc
+test/*/buildInfo.h
+test/*/buildInfo.inc
 test/Flash.h
 test/constants.h
 test/*/*.o

@@ -5,7 +5,7 @@ MAKEFILE = Makefile_gatherData_F2003
 BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test
+TESTDIR  = $(BASEDIR)/test/GatherDataF2003
 AMREXDIR = $(HOME)/Projects/amrex_install/2D
 
 # Common files
@@ -68,7 +68,7 @@ F2003      = mpif90
 F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
 F2003WARNS =
 
-LIBS       = -lstdc++ -lamrex
+LIBS       = -lpthread -lstdc++ -lamrex
 LDFLAGS    = -L$(AMREXDIR)/lib
  
 ifdef DEBUG
@@ -120,14 +120,10 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(TESTDIR)/buildInfo.inc
-	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f gather_data_F2003.x 
 	/bin/rm -f $(SRCDIR)/*.o
-	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f *.mod
 	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(TESTDIR)/buildInfo.inc
 	/bin/rm -f $(TESTDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/test_*.x 
-	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 
