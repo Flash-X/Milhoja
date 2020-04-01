@@ -2,16 +2,18 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE     = test_threadteam_cpp
-MAKEFILE = Makefile_threadteam_cpp
+BASE     = test_runtime_cpp
+MAKEFILE = Makefile_runtime_cpp
 BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test
-GTESTDIR = /home/oneal/local/googletest/gcc_7.1.0
+AMREXDIR = $(HOME)/local/gcc_7.1.0/amrex_2d
+GTESTDIR = $(HOME)/local/gcc_7.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
@@ -21,21 +23,35 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(TESTDIR)/threadTeamTest.h 
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h \
+    $(TESTDIR)/initTile_cpu.h \
+    $(TESTDIR)/computeLaplacianDensity_cpu.h \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
+    $(TESTDIR)/scaleEnergy_cpu.h \
+    $(TESTDIR)/Analysis.h
 SRCS       = \
-    $(TESTDIR)/testThreadRoutines.cpp \
-    $(TESTDIR)/testThreadTeam.cpp \
-    $(TESTDIR)/runThreadTeamTest.cpp
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(TESTDIR)/initTile_cpu.cpp \
+    $(TESTDIR)/testRuntimeInt.cpp \
+    $(TESTDIR)/testRuntimeTile.cpp \
+    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
+    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
+    $(TESTDIR)/scaleEnergy_cpu.cpp \
+    $(TESTDIR)/Analysis.cpp \
+    $(TESTDIR)/runRuntimeCppTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpic++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lgtest
-LDFLAGS   = -L$(CCDIR)/lib64 -L$(GTESTDIR)/lib64
+LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib64
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -53,11 +69,13 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(COMMAND)
 	/bin/rm -f $(BASEDIR)/Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f *.mod
 	/bin/rm -f $(SRCDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/*.mod
 	/bin/rm -f $(TESTDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/test_*.x 
+	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 

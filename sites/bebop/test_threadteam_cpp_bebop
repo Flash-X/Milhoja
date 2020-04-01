@@ -7,8 +7,8 @@
 #SBATCH --cpus-per-task=18
 #SBATCH -p bdwall
 #SBATCH -A AMREX
-#SBATCH -o test_threadteam_cpp_lcrc.o%A
-#SBATCH -e test_threadteam_cpp_lcrc.e%A
+#SBATCH -o test_threadteam_cpp_bebop.o%A
+#SBATCH -e test_threadteam_cpp_bebop.e%A
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=joneal@anl.gov
  
