@@ -9,11 +9,14 @@ docs/OrchestrationSystem.pdf
 sites/*/test_threadteam_cpp.x
 sites/*/test_runtime_cpp.x
 sites/*/gather_data_cpp.x
-sites/*/gather_data_*_*.x
+sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
+sites/*/gather_data_F2003_*_*.x
 sites/summit/gatherDataCpp.*
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*
+sites/bebop/gather_data_cpp_bebop.[oe]*
+sites/bebop/gather_data_F2003_bebop.[oe]*
 *.log
 *.mod
 *.dSYM

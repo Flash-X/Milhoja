@@ -1,27 +1,29 @@
 #!/bin/bash
 
 #SBATCH --ntasks=1
-#SBATCH --time=00:01:00
-#SBATCH --job-name=threadteam
+#SBATCH --time=00:30:00
+#SBATCH --job-name=gatherData
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=18
 #SBATCH -p bdwall
 #SBATCH -A AMREX
-#SBATCH -o test_threadteam_cpp_bebop.o%A
-#SBATCH -e test_threadteam_cpp_bebop.e%A
+#SBATCH -o gather_data_cpp_bebop.o%A
+#SBATCH -e gather_data_cpp_bebop.e%A
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=joneal@anl.gov
  
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
+rm gatherDataCpp_*_*_*_*_*_*.dat
+
 module purge
 module load gcc/7.1.0-4bgguyp
 module load mpich/3.2-bsq4vhr
 module list
 
 export OMP_NUM_THREADS=1
-export N_THREADS_PER_TEAM=$((36 / $SLURM_NTASKS_PER_NODE))
+N_THREADS_PER_TEAM=$((36 / $SLURM_NTASKS_PER_NODE))
 N_PROCS=$(($SLURM_NTASKS * $N_THREADS_PER_TEAM))
 echo "--------------------------------------------------------------"
 echo "Number of nodes   = $SLURM_NNODES"
@@ -32,5 +34,7 @@ echo "Number of CPUs    = $N_PROCS"
 echo "--------------------------------------------------------------"
 echo
 
-./test_threadteam_cpp.x $N_THREADS_PER_TEAM
+for binary in ./gather_data_cpp_*_*.x; do
+    $binary $N_THREADS_PER_TEAM
+done
 

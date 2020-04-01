@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --ntasks=2
+#SBATCH --ntasks=1
 #SBATCH --time=00:01:00
 #SBATCH --job-name=runtime
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=18
 #SBATCH -p bdwall
 #SBATCH -A AMREX
@@ -12,10 +12,6 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=joneal@anl.gov
  
-######################################################################
-#####-----              FULLY SPECIFY TEST RUN              -----#####
-######################################################################
-
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
@@ -36,16 +32,5 @@ echo "Number of CPUs    = $N_PROCS"
 echo "--------------------------------------------------------------"
 echo
 
-mpiexec -np $SLURM_NTASKS -ppn $SLURM_NTASKS_PER_NODE \
-        -genv OMP_DISPLAY_ENV false \
-        -genv OMP_NESTED false \
-        -genv OMP_DYNAMIC false \
-        -genv OMP_NUM_THREADS $OMP_NUM_THREADS \
-        -genv MKL_NUM_THREADS 1 \
-        -genv KMP_AFFINITY=noverbose \
-        -genv I_MPI_DEBUG=0 \
-        -genv I_MPI_PIN=enable \
-        -genv I_MPI_PIN_DOMAIN=$N_THREADS_PER_TEAM:compact \
-        -genv I_MPI_PIN_ORDER=scatter \
-         ./test_runtime_cpp.x
+./test_runtime_cpp.x
 
