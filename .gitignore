@@ -12,6 +12,7 @@ sites/*/gather_data_cpp.x
 sites/*/gather_data_*_*.x
 sites/*/gather_data_F2003.x
 sites/summit/gatherDataCpp.*
+sites/lcrc_jenkins/test_threadteam_cpp_lcrc.[oe]*
 *.log
 *.mod
 *.dSYM

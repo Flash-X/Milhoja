@@ -8,7 +8,6 @@ BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test
-CCDIR    = /blues/gpfs/home/software/spack-0.10.1/opt/spack/linux-centos7-x86_64/gcc-4.8.5/gcc-7.1.0-4bgguypumyezlt6vfhha3ukntrlrx7fq
 GTESTDIR = /home/oneal/local/googletest/gcc_7.1.0
 
 # Common files
@@ -31,7 +30,7 @@ SRCS       = \
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
-CXX       = $(CCDIR)/bin/g++
+CXX       = mpic++
 CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 

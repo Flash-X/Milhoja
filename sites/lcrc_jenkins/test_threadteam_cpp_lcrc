@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#SBATCH --ntasks=2
+#SBATCH --time=00:01:00
+#SBATCH --job-name=threadteam
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=18
+#SBATCH -p bdwall
+#SBATCH -A AMREX
+#SBATCH -o test_threadteam_cpp_lcrc.o%A
+#SBATCH -e test_threadteam_cpp_lcrc.e%A
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=joneal@anl.gov
+ 
+######################################################################
+#####-----              FULLY SPECIFY TEST RUN              -----#####
+######################################################################
+
+######################################################################
+#####-----             DO NOT ALTER LINES BELOW             -----#####
+######################################################################
+module purge
+module load gcc/7.1.0-4bgguyp
+module load mpich/3.2-bsq4vhr
+module list
+
+export OMP_NUM_THREADS=1
+export N_THREADS_PER_TEAM=$((36 / $SLURM_NTASKS_PER_NODE))
+N_PROCS=$(($SLURM_NTASKS * $N_THREADS_PER_TEAM))
+echo "--------------------------------------------------------------"
+echo "Number of nodes   = $SLURM_NNODES"
+echo "Number of tasks   = $SLURM_NTASKS"
+echo "Tasks per node    = $SLURM_NTASKS_PER_NODE"
+echo "Threads per task  = $N_THREADS_PER_TEAM"
+echo "Number of CPUs    = $N_PROCS"
+echo "--------------------------------------------------------------"
+echo
+
+mpiexec -np $SLURM_NTASKS -ppn $SLURM_NTASKS_PER_NODE \
+        -genv OMP_DISPLAY_ENV false \
+        -genv OMP_NESTED false \
+        -genv OMP_DYNAMIC false \
+        -genv OMP_NUM_THREADS $OMP_NUM_THREADS \
+        -genv MKL_NUM_THREADS 1 \
+        -genv KMP_AFFINITY=noverbose \
+        -genv I_MPI_DEBUG=0 \
+        -genv I_MPI_PIN=enable \
+        -genv I_MPI_PIN_DOMAIN=$N_THREADS_PER_TEAM:compact \
+        -genv I_MPI_PIN_ORDER=scatter \
+         ./test_threadteam_cpp.x $N_THREADS_PER_TEAM
+

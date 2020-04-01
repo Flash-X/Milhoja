@@ -14,6 +14,11 @@ BINARY=test_threadteam_cpp.x
 
 TESTDIR=../../test
 
+module purge
+module load gcc/7.1.0-4bgguyp
+module load mpich/3.2-bsq4vhr
+module list
+
 # Setup constants.h with current simulation's Grid parameters
 rm $TESTDIR/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
