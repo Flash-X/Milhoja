@@ -26,5 +26,5 @@ test/buildInfo.h
 test/buildInfo.inc
 test/Flash.h
 test/constants.h
-test/*.o
+test/*/*.o
 test/*.mod

@@ -12,7 +12,6 @@
 #include "testThreadRoutines.h"
 #include "ThreadTeam.h"
 
-#include "mpi.h"
 #include "gtest/gtest.h"
 
 namespace {
@@ -1323,72 +1322,66 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 TEST(ThreadTeamTest, TestTimings) {
     using namespace std::chrono;
 
-    int  rank = -1;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    unsigned int   N_ITERS = 1000;
 
-    // We only need the timings reported for 1 MPI rank
-    if (rank == 0) {
-        unsigned int   N_ITERS = 1000;
+    int work = 1;
 
-        int work = 1;
+    ThreadTeam<int>* team1 = nullptr;
+    ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
 
-        ThreadTeam<int>* team1 = nullptr;
-        ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
+    auto time = high_resolution_clock::now();
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
+        delete team1;
+        team1 = nullptr;
+    }
+    auto   duration = high_resolution_clock::now() - time;
+    double mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                           / static_cast<double>(N_ITERS);
+    std::cout << "Thread Team Create Time\t\t\t\t"
+              << mean_wtime_us << " us\n";
 
-        auto time = high_resolution_clock::now();
-        for (unsigned int i=0; i<N_ITERS; ++i) {
-            team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
-            delete team1;
-            team1 = nullptr;
-        }
-        auto   duration = high_resolution_clock::now() - time;
-        double mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                               / static_cast<double>(N_ITERS);
-        std::cout << "Thread Team Create Time\t\t\t\t"
-                  << mean_wtime_us << " us\n";
+    time = high_resolution_clock::now();
+    for (unsigned int i=0; i<N_ITERS; ++i) {
+        team2.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
+        team2.closeTask();
+        team2.wait();
+    }
+    duration = high_resolution_clock::now() - time;
+    mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                    / static_cast<double>(N_ITERS);
+    std::cout << "Idle->Open->Idle Time\t\t\t\t"
+              << mean_wtime_us << " us\n";
 
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
         time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
-            team2.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
             team2.closeTask();
             team2.wait();
         }
         duration = high_resolution_clock::now() - time;
         mean_wtime_us =   duration_cast<microseconds>(duration).count()
                         / static_cast<double>(N_ITERS);
-        std::cout << "Idle->Open->Idle Time\t\t\t\t"
+        std::cout << std::to_string(n) 
+                  << " thread/Idle->Open->NoMoreWork->Idle Time\t"
                   << mean_wtime_us << " us\n";
+    }
 
-        for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
-            time = high_resolution_clock::now();
-            for (unsigned int i=0; i<N_ITERS; ++i) {
-                team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
-                team2.closeTask();
-                team2.wait();
-            }
-            duration = high_resolution_clock::now() - time;
-            mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                            / static_cast<double>(N_ITERS);
-            std::cout << std::to_string(n) 
-                      << " thread/Idle->Open->NoMoreWork->Idle Time\t"
-                      << mean_wtime_us << " us\n";
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+        time = high_resolution_clock::now();
+        for (unsigned int i=0; i<N_ITERS; ++i) {
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
+            team2.enqueue(work, false);
+            team2.closeTask();
+            team2.wait();
         }
-
-        for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
-            time = high_resolution_clock::now();
-            for (unsigned int i=0; i<N_ITERS; ++i) {
-                team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
-                team2.enqueue(work, false);
-                team2.closeTask();
-                team2.wait();
-            }
-            duration = high_resolution_clock::now() - time;
-            mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                            / static_cast<double>(N_ITERS);
-            std::cout << std::to_string(n) 
-                      << " thread/single no-op cycle Time\t\t" 
-                      << mean_wtime_us << " us\n";
-        }
+        duration = high_resolution_clock::now() - time;
+        mean_wtime_us =   duration_cast<microseconds>(duration).count()
+                        / static_cast<double>(N_ITERS);
+        std::cout << std::to_string(n) 
+                  << " thread/single no-op cycle Time\t\t" 
+                  << mean_wtime_us << " us\n";
     }
 }
 #endif
