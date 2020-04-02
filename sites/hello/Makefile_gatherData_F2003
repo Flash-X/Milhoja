@@ -10,8 +10,8 @@ AMREXDIR = $(HOME)/Projects/amrex_install/2D
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/Tile.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
@@ -24,6 +24,7 @@ CXX_HDRS   = \
     $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
+    $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/tile_fi.cpp \

@@ -5,6 +5,7 @@
 
 #include "Grid.h"
 #include "Flash.h"
+#include "constants.h"
 
 extern "C" {
     void tile_set_limits_fi(Tile* tileDesc, int& gid, int& level,
@@ -27,7 +28,7 @@ extern "C" {
 
     void tile_get_data_ptr_fi(Tile* tileDesc,
                               amrex::Real*& cptr) {
-        amrex::MultiFab&    unk = Grid<NXB,NYB,NZB,NGUARD>::instance()->unk();
+        amrex::MultiFab&    unk = Grid::instance()->unk();
         amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
         cptr = fab.dataPtr();
     }

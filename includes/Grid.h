@@ -16,7 +16,6 @@
 #include "Tile.h"
 #include "runtimeTask.h"
 
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
 class Grid {
 public:
     ~Grid(void);
@@ -50,8 +49,6 @@ private:
     amrex::Geometry    geometry_;
     amrex::MultiFab*   unk_;
 };
-
-#include "../src/Grid.cpp"
 
 #endif
 

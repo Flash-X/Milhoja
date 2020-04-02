@@ -1,3 +1,5 @@
+#include "Grid.h"
+
 #include <stdexcept>
 
 #include <AMReX_Vector.H>
@@ -8,19 +10,18 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 
+#include "Flash.h"
 #include "constants.h"
 #include "ThreadTeam.h"
 
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-Grid<NX,NY,NZ,NGC>*  Grid<NX,NY,NZ,NGC>::instance_ = nullptr;
+Grid*  Grid::instance_ = nullptr;
 
 /**
  * 
  *
  * \return 
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-Grid<NX,NY,NZ,NGC>*   Grid<NX,NY,NZ,NGC>::instance(void) {
+Grid*   Grid::instance(void) {
     if (!instance_) {
         instance_ = new Grid();
     }
@@ -32,8 +33,7 @@ Grid<NX,NY,NZ,NGC>*   Grid<NX,NY,NZ,NGC>::instance(void) {
  *
  * \return 
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-Grid<NX,NY,NZ,NGC>::Grid(void) 
+Grid::Grid(void) 
     : unk_(nullptr)
 {
     amrex::Initialize(MPI_COMM_WORLD);
@@ -43,8 +43,7 @@ Grid<NX,NY,NZ,NGC>::Grid(void)
 /**
  * 
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-Grid<NX,NY,NZ,NGC>::~Grid(void) {
+Grid::~Grid(void) {
     destroyDomain();
     amrex::Finalize();
     instance_ = nullptr;
@@ -53,15 +52,14 @@ Grid<NX,NY,NZ,NGC>::~Grid(void) {
 /**
  *
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real xMax,
-                                       const amrex::Real yMin, const amrex::Real yMax,
-                                       const amrex::Real zMin, const amrex::Real zMax,
-                                       const unsigned int nBlocksX,
-                                       const unsigned int nBlocksY,
-                                       const unsigned int nBlocksZ,
-                                       const unsigned int nVars,
-                                       TASK_FCN<Tile> initBlock) {
+void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
+                         const amrex::Real yMin, const amrex::Real yMax,
+                         const amrex::Real zMin, const amrex::Real zMax,
+                         const unsigned int nBlocksX,
+                         const unsigned int nBlocksY,
+                         const unsigned int nBlocksZ,
+                         const unsigned int nVars,
+                         TASK_FCN<Tile> initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
         throw std::logic_error("Grid unit's initDomain already called");
@@ -72,12 +70,12 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
     //***** SETUP DOMAIN, PROBLEM, and MESH
     amrex::IndexType    ccIndexSpace(amrex::IntVect(AMREX_D_DECL(0, 0, 0)));
     amrex::IntVect      domainLo(AMREX_D_DECL(0, 0, 0));
-    amrex::IntVect      domainHi(AMREX_D_DECL(nBlocksX * NX - 1,
-                                              nBlocksY * NY - 1,
-                                              nBlocksZ * NZ - 1));
+    amrex::IntVect      domainHi(AMREX_D_DECL(nBlocksX * NXB - 1,
+                                              nBlocksY * NYB - 1,
+                                              nBlocksZ * NZB - 1));
     amrex::Box          domain = amrex::Box(domainLo, domainHi, ccIndexSpace);
     amrex::BoxArray     ba(domain);
-    ba.maxSize(amrex::IntVect(AMREX_D_DECL(NX, NY, NZ)));
+    ba.maxSize(amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
     amrex::DistributionMapping  dm(ba);
 
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
@@ -89,13 +87,13 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
                                 coordSystem, {AMREX_D_DECL(0, 0, 0)});
 
     assert(nBlocksX * nBlocksY * nBlocksZ == ba.size());
-    assert(NX*nBlocksX * NY*nBlocksY * NZ*nBlocksZ == ba.numPts());
+    assert(NXB*nBlocksX * NYB*nBlocksY * NZB*nBlocksZ == ba.numPts());
     for (unsigned int i=0; i<ba.size(); ++i) {
-        assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NX, NY, NZ)));
+        assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
     }
 
     unsigned int   level = 0;
-    unk_ = new amrex::MultiFab(ba, dm, nVars, NGC);
+    unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
 
     // TODO: Thread count should be a runtime variable
     ThreadTeam<Tile>  team(4, 1, "no.log");
@@ -111,8 +109,7 @@ void    Grid<NX,NY,NZ,NGC>::initDomain(const amrex::Real xMin, const amrex::Real
 /**
  *
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-void    Grid<NX,NY,NZ,NGC>::destroyDomain(void) {
+void    Grid::destroyDomain(void) {
     if (unk_) {
         delete unk_;
         unk_ = nullptr;
@@ -123,8 +120,7 @@ void    Grid<NX,NY,NZ,NGC>::destroyDomain(void) {
 /**
  *
  */
-template<unsigned int NX,unsigned int NY,unsigned int NZ,unsigned int NGC>
-void    Grid<NX,NY,NZ,NGC>::writeToFile(const std::string& filename) const {
+void    Grid::writeToFile(const std::string& filename) const {
     amrex::Vector<std::string>    names(unk_->nComp());
     names[0] = "Density";
     names[1] = "Energy";

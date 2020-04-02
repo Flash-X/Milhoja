@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
     // Initialize Grid unit/AMReX
-    Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*    grid = Grid::instance();
 
     int  rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);

@@ -5,7 +5,7 @@
 
 void ThreadRoutines::scaleEnergy_cpu(const int tId,
                                      Tile* tileDesc) {
-    amrex::MultiFab&    unk = Grid<NXB,NYB,NZB,NGUARD>::instance()->unk();
+    amrex::MultiFab&    unk = Grid::instance()->unk();
     amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
     amrex::Array4<amrex::Real> const&   f = fab.array();
 

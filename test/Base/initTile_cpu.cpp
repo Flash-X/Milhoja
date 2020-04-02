@@ -5,7 +5,7 @@
 #include "Grid.h"
 
 void Simulation::initTile_cpu(const int tId, Tile* tileDesc) {
-    Grid<NXB,NYB,NZB,NGUARD>*    grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*    grid = Grid::instance();
     amrex::Geometry     geometry = grid->geometry();
     amrex::MultiFab&    unk = grid->unk();
     amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];

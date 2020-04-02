@@ -141,7 +141,7 @@ const amrex::Box&  Tile::interiorAndGC(void) const {
  *
  */
 amrex::XDim3 Tile::deltas(void) const {
-    amrex::Geometry& geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
+    amrex::Geometry& geometry = Grid::instance()->geometry();
 
     amrex::XDim3   deltas;
 

@@ -14,6 +14,7 @@ GTESTDIR     = $(HOME)/local/gcc_7.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/Grid.h \
     $(INCDIR)/Tile.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
@@ -33,6 +34,7 @@ CXX_HDRS   = \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 SRCS       = \
+    $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/initTile_cpu.cpp \

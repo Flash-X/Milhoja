@@ -50,7 +50,7 @@ void  tearDown(const std::string& filename,
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        Grid*   grid = Grid::instance();
         amrex::MultiFab&  unk = grid->unk();
         amrex::Geometry   geometry = grid->geometry();
         amrex::Real       dx = geometry.CellSize(0);
@@ -109,7 +109,7 @@ int   main(int argc, char* argv[]) {
     OrchestrationRuntime::setMaxThreadsPerTeam(nTotalThreads);
     OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
 
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*   grid = Grid::instance();
     grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                      N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
                      NUNKVAR,

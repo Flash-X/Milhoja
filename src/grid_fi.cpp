@@ -11,7 +11,7 @@ extern "C" {
      *
      */
     void   grid_init_fi(void) {
-        Grid<NXB,NYB,NZB,NGUARD>::instance();
+        Grid::instance();
     }
 
     /**
@@ -25,7 +25,7 @@ extern "C" {
                                const int nBlocksZ,
                                const int nVars,
                                TASK_FCN<Tile> initBlock) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        Grid*   grid = Grid::instance();
         grid->initDomain(static_cast<amrex::Real>(xMin),
                          static_cast<amrex::Real>(xMax),
                          static_cast<amrex::Real>(yMin),
@@ -45,7 +45,7 @@ extern "C" {
      */
     void   grid_get_domain_bound_box_fi(double lo[AMREX_SPACEDIM], 
                                         double hi[AMREX_SPACEDIM]) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        Grid*   grid = Grid::instance();
         amrex::Geometry&  geometry = grid->geometry();
         grid = nullptr;
 
@@ -59,7 +59,7 @@ extern "C" {
      *
      */
     void   grid_get_deltas_fi(const int level, double deltas[AMREX_SPACEDIM]) {
-        Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+        Grid*   grid = Grid::instance();
         amrex::Geometry&  geometry = grid->geometry();
         grid = nullptr;
 
@@ -72,7 +72,7 @@ extern "C" {
      *
      */
     void   grid_finalize_fi(void) {
-        delete Grid<NXB,NYB,NZB,NGUARD>::instance();
+        delete Grid::instance();
     }
 }
 

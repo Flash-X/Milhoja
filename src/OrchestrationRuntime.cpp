@@ -218,7 +218,7 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
     unsigned int   level = 0;
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*   grid = Grid::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         // Ownership of tile resources is transferred to last team
@@ -268,7 +268,7 @@ void OrchestrationRuntime::executeCpuTask(const std::string& bundleName,
     cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
 
     unsigned int   level = 0;
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*   grid = Grid::instance();
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         // Ownership of tile resources is transferred immediately

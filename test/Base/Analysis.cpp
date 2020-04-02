@@ -28,7 +28,7 @@ void Analysis::initialize(const unsigned int nBlocks) {
 }
     
 void   Analysis::computeErrors(const int tId, Tile* tileDesc) {
-    Grid<NXB,NYB,NZB,NGUARD>*   grid = Grid<NXB,NYB,NZB,NGUARD>::instance();
+    Grid*   grid = Grid::instance();
     amrex::MultiFab&   unk = grid->unk();
     amrex::Geometry&   geometry = grid->geometry();
     grid = nullptr;
@@ -89,7 +89,7 @@ void Analysis::energyErrors(double* L_inf, double* meanAbsError) {
 }
 
 void Analysis::writeToFile(const std::string& filename) {
-    amrex::Geometry geometry = Grid<NXB,NYB,NZB,NGUARD>::instance()->geometry();
+    amrex::Geometry geometry = Grid::instance()->geometry();
     amrex::Real  dx = geometry.CellSize(0);
     amrex::Real  dy = geometry.CellSize(1);
 
