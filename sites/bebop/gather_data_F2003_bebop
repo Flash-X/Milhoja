@@ -32,7 +32,9 @@ echo
 
 folder=gather_data_F2003_bebop_$SLURM_JOB_ID ; mkdir $folder ; cd $folder
 
+date
 for binary in ../binaries/gather_data_F2003_*_*.x; do
     $binary $SLURM_CPUS_PER_TASK
 done
+date
 

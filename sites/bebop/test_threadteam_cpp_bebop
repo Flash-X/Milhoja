@@ -25,5 +25,6 @@ echo "Cores per task    = $SLURM_CPUS_PER_TASK"
 echo "--------------------------------------------------------------"
 echo
 
-./test_threadteam_cpp.x $SLURM_CPUS_PER_TASK
+./binaries/test_threadteam_cpp.x       $SLURM_CPUS_PER_TASK
+./binaries/test_threadteam_cpp_debug.x $SLURM_CPUS_PER_TASK
 

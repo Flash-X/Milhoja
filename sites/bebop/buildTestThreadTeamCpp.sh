@@ -10,7 +10,8 @@ N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
 MAKEFILE=Makefile_threadteam_cpp
-BINARY=test_threadteam_cpp.x 
+BINARY=test_threadteam_cpp.x
+DEBUG_BINARY=test_threadteam_cpp_debug.x
 
 TESTDIR=../../test
 
@@ -35,26 +36,22 @@ sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
 sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/ThreadTeam/Flash.h
 sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/ThreadTeam/Flash.h
 
-# Build test binary
-if   [[ "$#" -eq 0 ]]; then
-        make -f $MAKEFILE clean all
-elif [[ "$#" -eq 1 ]]; then
-    if [[ "$1" = "--debug" ]]; then
-        make -f $MAKEFILE clean all DEBUG=T
-    else
-        echo "Unknown command line argument", $1
-        exit 1;
-    fi
-elif [[ "$#" -gt 1 ]]; then
-    echo "At most one command line argument accepted"
-    exit 2;
-fi
-
-# Confirm build and clean-up
+# Build debug mode
+make -f $MAKEFILE clean all DEBUG=T
 if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 3;
 fi
+mv $BINARY ./binaries/$DEBUG_BINARY
+
+# Build non-debug mode
+make -f $MAKEFILE clean all
+if [[ $? -ne 0 ]]; then
+    echo "Unable to compile $BINARY"
+    exit 4;
+fi
+mv $BINARY ./binaries
+
 rm $TESTDIR/ThreadTeam/Flash.h
 rm $TESTDIR/ThreadTeam/constants.h
 

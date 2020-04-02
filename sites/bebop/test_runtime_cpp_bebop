@@ -28,5 +28,6 @@ echo "Tasks per node    = $SLURM_NTASKS_PER_NODE"
 echo "--------------------------------------------------------------"
 echo
 
-./test_runtime_cpp.x
+./binaries/test_runtime_cpp.x
+./binaries/test_runtime_cpp_debug.x
 
