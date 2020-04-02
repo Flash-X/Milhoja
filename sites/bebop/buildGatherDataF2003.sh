@@ -12,25 +12,31 @@ TESTDIR=../../test
 rm ./$BINARY
 rm ./gather_data_F2003_*_*.x
 
+module purge
+module load git
+module load gcc/7.1.0-4bgguyp
+module load mpich/3.2-bsq4vhr
+module list
+
 for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
     for n_blocks in ${N_BLOCKS[@]}; do
         # We need dx=dy for all
 
         # Setup constants.h with current simulation's Grid parameters
-        rm $TESTDIR/constants.h
+        rm $TESTDIR/GatherDataF2003/constants.h
         sed "s/N_CELLS_IN_X/$n_cells/g" \
                 $TESTDIR/constants_base.h > \
-                $TESTDIR/constants.h
-        sed -i "s/N_CELLS_IN_Y/$n_cells/g" $TESTDIR/constants.h
-        sed -i "s/N_CELLS_IN_Z/1/g"        $TESTDIR/constants.h
+                $TESTDIR/GatherDataF2003/constants.h
+        sed -i "s/N_CELLS_IN_Y/$n_cells/g" $TESTDIR/GatherDataF2003/constants.h
+        sed -i "s/N_CELLS_IN_Z/1/g"        $TESTDIR/GatherDataF2003/constants.h
 
         # Setup Flash.h with current simulation's Grid parameters
-        rm $TESTDIR/Flash.h
+        rm $TESTDIR/GatherDataF2003/Flash.h
         sed "s/N_BLOCKS_ALONG_X/$n_blocks/g" \
                 $TESTDIR/Flash_base.h > \
-                $TESTDIR/Flash.h
-        sed -i "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/Flash.h
-        sed -i "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/Flash.h
+                $TESTDIR/GatherDataF2003/Flash.h
+        sed -i "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/GatherDataF2003/Flash.h
+        sed -i "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/GatherDataF2003/Flash.h
 
         # Build test binary
         make -f $MAKEFILE clean all
@@ -43,6 +49,6 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
     done
 done
 
-rm $TESTDIR/Flash.h
-rm $TESTDIR/constants.h
+rm $TESTDIR/GatherDataF2003/Flash.h
+rm $TESTDIR/GatherDataF2003/constants.h
 

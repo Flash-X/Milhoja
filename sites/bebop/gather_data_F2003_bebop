@@ -23,18 +23,15 @@ module load mpich/3.2-bsq4vhr
 module list
 
 export OMP_NUM_THREADS=1
-N_THREADS_PER_TEAM=$((36 / $SLURM_NTASKS_PER_NODE))
-N_PROCS=$(($SLURM_NTASKS * $N_THREADS_PER_TEAM))
 echo "--------------------------------------------------------------"
 echo "Number of nodes   = $SLURM_NNODES"
 echo "Number of tasks   = $SLURM_NTASKS"
 echo "Tasks per node    = $SLURM_NTASKS_PER_NODE"
-echo "Threads per task  = $N_THREADS_PER_TEAM"
-echo "Number of CPUs    = $N_PROCS"
+echo "Cores per task    = $SLURM_CPUS_PER_TASK"
 echo "--------------------------------------------------------------"
 echo
 
 for binary in ./gather_data_F2003_*_*.x; do
-    $binary $N_THREADS_PER_TEAM
+    $binary $SLURM_CPUS_PER_TASK
 done
 

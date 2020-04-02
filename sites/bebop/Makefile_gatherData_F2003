@@ -7,7 +7,7 @@ MAKEFILE = Makefile_gatherData_F2003
 BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test
+TESTDIR  = $(BASEDIR)/test/GatherDataF2003
 AMREXDIR = $(HOME)/local/gcc_7.1.0/amrex_2d
 
 # Common files
@@ -24,6 +24,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
     $(SRCDIR)/Tile.cpp \
@@ -122,14 +123,11 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(TESTDIR)/buildInfo.inc
-	/bin/rm -f $(BASEDIR)/Test*.log
-	/bin/rm -f $(SRCDIR)/*.o
-	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(COMMAND)
 	/bin/rm -f *.mod
+	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTDIR)/buildInfo.inc
+	/bin/rm -f $(TESTDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/test_*.x 
-	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 
