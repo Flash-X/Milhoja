@@ -18,20 +18,20 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         # We need dx=dy for all
 
         # Setup constants.h with current simulation's Grid parameters
-        rm $TESTDIR/constants.h
+        rm $TESTDIR/GatherDataCpp/constants.h
         sed "s/N_CELLS_IN_X/$n_cells/g" \
                 $TESTDIR/constants_base.h > \
-                $TESTDIR/constants.h
-        sed -i '' "s/N_CELLS_IN_Y/$n_cells/g" $TESTDIR/constants.h
-        sed -i '' "s/N_CELLS_IN_Z/1/g"        $TESTDIR/constants.h
+                $TESTDIR/GatherDataCpp/constants.h
+        sed -i '' "s/N_CELLS_IN_Y/$n_cells/g" $TESTDIR/GatherDataCpp/constants.h
+        sed -i '' "s/N_CELLS_IN_Z/1/g"        $TESTDIR/GatherDataCpp/constants.h
 
         # Setup Flash.h with current simulation's Grid parameters
-        rm $TESTDIR/Flash.h
+        rm $TESTDIR/GatherDataCpp/Flash.h
         sed "s/N_BLOCKS_ALONG_X/$n_blocks/g" \
                 $TESTDIR/Flash_base.h > \
-                $TESTDIR/Flash.h
-        sed -i '' "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/Flash.h
-        sed -i '' "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/Flash.h
+                $TESTDIR/GatherDataCpp/Flash.h
+        sed -i '' "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/GatherDataCpp/Flash.h
+        sed -i '' "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/GatherDataCpp/Flash.h
 
         # Build test binary
         make -f $MAKEFILE clean all
@@ -39,8 +39,6 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
             echo "Unable to compile n_cells=$n_cells / n_blocks=$n_blocks"
             exit 1;
         fi
-        rm $TESTDIR/Flash.h
-        rm $TESTDIR/constants.h
 
         time ./$BINARY $N_THREADS
         if [[ $? -ne 0 ]]; then
@@ -49,4 +47,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         fi
     done
 done
+        
+rm $TESTDIR/GatherDataCpp/Flash.h
+rm $TESTDIR/GatherDataCpp/constants.h
 
