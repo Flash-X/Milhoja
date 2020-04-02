@@ -7,7 +7,7 @@ MAKEFILE = Makefile_threadteam_cpp
 BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test
+TESTDIR  = $(BASEDIR)/test/ThreadTeam
 GTESTDIR = $(HOME)/local/gcc_7.1.0/googletest
 
 # Common files
@@ -30,7 +30,7 @@ SRCS       = \
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
-CXX       = mpic++
+CXX       = g++
 CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
@@ -54,11 +54,7 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 
 clean:
 	/bin/rm -f $(COMMAND)
-	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f *.mod
-	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
-	/bin/rm -f $(TESTDIR)/*.mod
 

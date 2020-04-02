@@ -20,20 +20,20 @@ module load mpich/3.2-bsq4vhr
 module list
 
 # Setup constants.h with current simulation's Grid parameters
-rm $TESTDIR/constants.h
+rm $TESTDIR/ThreadTeam/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
         $TESTDIR/constants_base.h > \
-        $TESTDIR/constants.h
-sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/constants.h
-sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/constants.h
+        $TESTDIR/ThreadTeam/constants.h
+sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/ThreadTeam/constants.h
+sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/ThreadTeam/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm $TESTDIR/Flash.h
+rm $TESTDIR/ThreadTeam/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash_base.h > \
-        $TESTDIR/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Flash.h
+        $TESTDIR/ThreadTeam/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/ThreadTeam/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/ThreadTeam/Flash.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
@@ -55,6 +55,6 @@ if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 3;
 fi
-rm $TESTDIR/Flash.h
-rm $TESTDIR/constants.h
+rm $TESTDIR/ThreadTeam/Flash.h
+rm $TESTDIR/ThreadTeam/constants.h
 
