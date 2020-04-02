@@ -15,7 +15,6 @@
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
-rm gatherDataF2003_*_*_*_*_*_*.dat
 
 module purge
 module load gcc/7.1.0-4bgguyp
@@ -31,7 +30,9 @@ echo "Cores per task    = $SLURM_CPUS_PER_TASK"
 echo "--------------------------------------------------------------"
 echo
 
-for binary in ./gather_data_F2003_*_*.x; do
+folder=gather_data_F2003_bebop_$SLURM_JOB_ID ; mkdir $folder ; cd $folder
+
+for binary in ../binaries/gather_data_F2003_*_*.x; do
     $binary $SLURM_CPUS_PER_TASK
 done
 

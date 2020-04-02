@@ -12,6 +12,7 @@ sites/*/gather_data_cpp.x
 sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
+sites/*/binaries
 sites/summit/gatherDataCpp.*
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*

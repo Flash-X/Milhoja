@@ -2,13 +2,14 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE     = gather_data_cpp
-MAKEFILE = Makefile_gatherData_cpp
-BASEDIR  = ../..
-INCDIR   = $(BASEDIR)/includes
-SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test
-AMREXDIR = $(HOME)/local/gcc_7.1.0/amrex_2d
+BASE         = gather_data_cpp
+MAKEFILE     = Makefile_gatherData_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/GatherDataCpp
+AMREXDIR     = $(HOME)/local/gcc_7.1.0/amrex_2d
 
 # Common files
 CXX_HDRS   = \
@@ -23,31 +24,31 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/OrchestrationRuntime.h \
+    $(TESBASETDIR)/initTile_cpu.h \
+    $(TESBASETDIR)/Analysis.h \
+    $(TESBASETDIR)/computeLaplacianDensity_cpu.h \
+    $(TESBASETDIR)/computeLaplacianEnergy_cpu.h \
+    $(TESBASETDIR)/scaleEnergy_cpu.h \
     $(TESTDIR)/Flash.h \
-    $(TESTDIR)/constants.h \
-    $(TESTDIR)/initTile_cpu.h \
-    $(TESTDIR)/Analysis.h \
-    $(TESTDIR)/computeLaplacianDensity_cpu.h \
-    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTDIR)/scaleEnergy_cpu.h
+    $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTDIR)/initTile_cpu.cpp \
-    $(TESTDIR)/Analysis.cpp \
-    $(TESTDIR)/computeLaplacianDensity_cpu.cpp \
-    $(TESTDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(TESTDIR)/scaleEnergy_cpu.cpp \
+    $(TESTBASEDIR)/initTile_cpu.cpp \
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.cpp \
+    $(TESTBASEDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/gatherData.cpp 
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lamrex
+LIBS      = -lpthread -lstdc++ -lgfortran -lamrex
 LDFLAGS   = -L$(AMREXDIR)/lib
 
 all:    $(COMMAND)
@@ -86,14 +87,12 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(TESTDIR)/buildInfo.h
-	/bin/rm -f $(BASEDIR)/Test*.log
-	/bin/rm -f $(SRCDIR)/*.o
-	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(COMMAND)
 	/bin/rm -f *.mod
+	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTBASEDIR)/*.o
+	/bin/rm -f $(TESTDIR)/buildInfo.h
+	/bin/rm -f $(TESTDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/test_*.x 
-	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 

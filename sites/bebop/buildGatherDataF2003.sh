@@ -10,7 +10,7 @@ BINARY=gather_data_F2003.x
 TESTDIR=../../test
 
 rm ./$BINARY
-rm ./gather_data_F2003_*_*.x
+rm ./binaries/gather_data_F2003_*_*.x
 
 module purge
 module load git
@@ -45,10 +45,12 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
             exit 1;
         fi
 
-        mv ./$BINARY ./gather_data_F2003_${n_blocks}_${n_cells}.x
+        mv ./$BINARY ./binaries/gather_data_F2003_${n_blocks}_${n_cells}.x
     done
 done
 
 rm $TESTDIR/GatherDataF2003/Flash.h
 rm $TESTDIR/GatherDataF2003/constants.h
+ 
+make -f $MAKEFILE clean
 
