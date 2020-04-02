@@ -15,6 +15,8 @@
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
+# This should match the SW stack used to build the test binaries
+# as specified in buildTestRuntimeCpp.sh
 module purge
 module load gcc/7.1.0-4bgguyp
 module load mpich/3.2-bsq4vhr

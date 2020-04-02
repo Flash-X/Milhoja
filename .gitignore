@@ -14,9 +14,12 @@ sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
 sites/summit/gatherDataCpp.*
+sites/bebop/build/build_*.log
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*
+sites/bebop/gather_data_cpp_bebop_*
 sites/bebop/gather_data_cpp_bebop.[oe]*
+sites/bebop/gather_data_F2003_bebop_*
 sites/bebop/gather_data_F2003_bebop.[oe]*
 *.log
 *.mod

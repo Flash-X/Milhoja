@@ -1,16 +1,11 @@
 #!/bin/bash
 
+######################################################################
+#####-----               FULLY SPECIFY TEST RUN             -----#####
+######################################################################
 # Define test problems
 N_CELLS_PER_BLOCK=(1 2 4 8 16 32 64 128 256 512)
 N_BLOCKS=(16)
-
-MAKEFILE=Makefile_gatherData_F2003
-BINARY=gather_data_F2003.x
-
-TESTDIR=../../test
-
-rm ./$BINARY
-rm ./binaries/gather_data_F2003_*_*.x
 
 module purge
 module load git
@@ -18,9 +13,40 @@ module load gcc/7.1.0-4bgguyp
 module load mpich/3.2-bsq4vhr
 module list
 
+######################################################################
+#####-----             DO NOT ALTER LINES BELOW             -----#####
+######################################################################
+date
+echo
+echo "Current Branches in Repository"
+echo "-----------------------------------------------------------"
+git branch -vva
+echo
+echo "Last Git repository log entries"
+echo "-----------------------------------------------------------"
+git log --oneline -10
+echo
+echo "Current state of the local workspace"
+echo "-----------------------------------------------------------"
+git status
+
+# Run from location of Makefile
+cd ..
+
+# Specified relative to location of Makefile
+TESTDIR=../../test
+MAKEFILE=Makefile_gatherData_F2003
+BINARY=gather_data_F2003.x
+
+rm ./$BINARY
+rm ./binaries/gather_data_F2003_*_*.x
+
 for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
     for n_blocks in ${N_BLOCKS[@]}; do
         # We need dx=dy for all
+        echo
+        echo "Building for n_cells=$n_cells / n_blocks=$n_blocks"
+        echo "----------------------------------------------------------"
 
         # Setup constants.h with current simulation's Grid parameters
         rm $TESTDIR/GatherDataF2003/constants.h
@@ -45,6 +71,8 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
             exit 1;
         fi
 
+        echo
+        ldd $BINARY
         mv ./$BINARY ./binaries/gather_data_F2003_${n_blocks}_${n_cells}.x
     done
 done
@@ -53,4 +81,7 @@ rm $TESTDIR/GatherDataF2003/Flash.h
 rm $TESTDIR/GatherDataF2003/constants.h
  
 make -f $MAKEFILE clean
+        
+echo
+ls -lah ./binaries/gather_data_F2003_*_*.x
 
