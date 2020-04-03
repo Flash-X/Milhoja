@@ -1,4 +1,3 @@
-#include <mpi.h>
 #include <gtest/gtest.h>
 
 #include "threadTeamTest.h"

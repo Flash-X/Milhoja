@@ -7,8 +7,8 @@ MAKEFILE = Makefile_threadteam_cpp
 BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test
-GTESTDIR = $(HOME)/local/googletest
+TESTDIR  = $(BASEDIR)/test/ThreadTeam
+GTESTDIR = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
@@ -34,8 +34,8 @@ CXX       = g++
 CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
-LIBS      = -lstdc++ -lgtest
-LDFLAGS   = -L$(GTESTDIR)/lib64 -pthread
+LIBS      = -lpthread -lstdc++ -lgtest
+LDFLAGS   = -L$(GTESTDIR)/lib64
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -54,10 +54,7 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 
 clean:
 	/bin/rm -f $(COMMAND)
-	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
-	/bin/rm -f $(TESTDIR)/*.mod
 

@@ -4,9 +4,9 @@
 #BSUB -W 0:01
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
-#BSUB -J testThreadTeam
-#BSUB -o testThreadTeam.%J
-#BSUB -e testThreadTeam.%J
+#BSUB -J testRuntimeCpp
+#BSUB -o testRuntimeCpp.%J
+#BSUB -e testRuntimeCpp.%J
  
 ######################################################################
 #####-----              FULLY SPECIFY TEST RUN              -----#####
@@ -21,6 +21,7 @@ N_HYPERTHREADS_PER_CORE=1
 # as specified in buildGatherDataCpp.sh
 module purge
 module load gcc/9.1.0
+module load spectrum-mpi/10.3.1.2-20200121
 module list
 
 # Resource Set = One MPI process/socket + maximal number of cores per MPI process
@@ -66,12 +67,12 @@ jsrun -n $N_RS_PER_NODE \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      ./binaries/test_threadteam_cpp.x $N_THREADS_PER_PROC
+      ./binaries/test_runtime_cpp.x
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      ./binaries/test_threadteam_cpp_debug.x $N_THREADS_PER_PROC
+      ./binaries/test_runtime_cpp_debug.x
 
