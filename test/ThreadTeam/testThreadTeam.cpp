@@ -1,3 +1,10 @@
+/*******************************************************************************
+*
+*  IMPORTANT: If changes are made to tests, then the person making the changes
+*  must also update the test coverage information in RuntimeDesign.xlsx.
+*
+*******************************************************************************/
+
 #include <ctime>
 #include <cstdio>
 #include <cstdlib>
@@ -154,6 +161,11 @@ TEST(ThreadTeamTest, TestDestruction) {
  * nonsense is allowed.
  */
 TEST(ThreadTeamTest, TestIdleWait) {
+    unsigned int   N_idle = 0;
+    unsigned int   N_wait = 0;
+    unsigned int   N_comp = 0;
+    unsigned int   N_Q    = 0;
+
     ThreadTeam<int>    team1(3, 1, "TestIdleWait.log");
 
     // Call wait without having run a task
@@ -176,10 +188,18 @@ TEST(ThreadTeamTest, TestIdleWait) {
     team1.wait();
     team1.wait();
 
-    // Do an execution cycle with work
-    team1.startTask(TestThreadRoutines::noop, 1, "test1", "noop");
+    // We want the wait to be called before work finishes and the team
+    // transitions to Idle
+    team1.startTask(TestThreadRoutines::delay_10ms, 1, "test1", "10ms");
     int work = 1;
     team1.enqueue(work, false);
+
+    for (unsigned int i=0; i<10; ++i) {
+        team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+        if (N_comp == 1)      break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     team1.closeTask();
     // Legitimate wait call
     team1.wait();
@@ -249,18 +269,25 @@ TEST(ThreadTeamTest, TestIdleErrors) {
     ThreadTeam<int>    team4(2,  4, "TestIdleErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
-        // Ask for more threads than in team
-        EXPECT_THROW(team1.startTask(nullptr, 11, "teamName", "null"),
+        // No task given
+        EXPECT_THROW(team1.startTask(nullptr, 
+                                     team1.nMaximumThreads()-1,
+                                     "teamName", "null"),
                      std::logic_error);
+
+        // Ask for more threads than in team
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop,
                                      team1.nMaximumThreads()+1,
                                      "teamName", "noop"),
                      std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1), std::logic_error);
+
+        // No sense in increasing threads by zero
         EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
-        EXPECT_THROW(team1.increaseThreadCount(11), std::logic_error);
 
         // Use methods that are not allowed in Idle
-        EXPECT_THROW(team1.enqueue(work, false),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
         EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Detach when no teams have been attached
@@ -275,7 +302,7 @@ TEST(ThreadTeamTest, TestIdleErrors) {
         EXPECT_THROW(team1.attachThreadReceiver(&team1), std::logic_error);
         EXPECT_THROW(team1.attachWorkReceiver(&team1),   std::logic_error);
 
-        // Setup basic topology
+        // Setup basic thread team configuration
         team1.attachThreadReceiver(&team3);
         team2.attachThreadReceiver(&team3);
         team2.attachWorkReceiver(&team3);
@@ -290,7 +317,7 @@ TEST(ThreadTeamTest, TestIdleErrors) {
         EXPECT_THROW(team2.attachThreadReceiver(&team4), std::logic_error);
         EXPECT_THROW(team2.attachWorkReceiver(&team4),   std::logic_error);
 
-        // Break down topology so that destruction is clean
+        // Break down configuration so that destruction is clean
         team1.detachThreadReceiver();
         team2.detachThreadReceiver();
         team2.detachWorkReceiver();
@@ -316,7 +343,7 @@ TEST(ThreadTeamTest, TestIdleErrors) {
  *  forwards along the rest.
  */ 
 TEST(ThreadTeamTest, TestIdleForwardsThreads) {
-    unsigned int  N_ITERS = 10;
+    unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -414,7 +441,7 @@ TEST(ThreadTeamTest, TestIdleForwardsThreads) {
  * Confirm proper functionality when no work is given, but we still run cycles.
  */
 TEST(ThreadTeamTest, TestNoWork) {
-    unsigned int  N_ITERS = 100;
+    unsigned int   N_ITERS = 100;
 
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
@@ -465,7 +492,7 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
     unsigned int   N_Q    = 0;
 
     ThreadTeam<int>  team1(10, 1, "TestRunningOpenErrors.log");
-    ThreadTeam<int>  team2(10,  2, "TestRunningOpenErrors.log");
+    ThreadTeam<int>  team2(10, 2, "TestRunningOpenErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.startTask(TestThreadRoutines::noop, 5, "test", "noop");
@@ -485,14 +512,18 @@ TEST(ThreadTeamTest, TestRunningOpenErrors) {
         EXPECT_EQ(0, N_Q);
 
         // Call methods that are not allowed in Running & Open
-        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 5, "test", "noop"),
+        EXPECT_THROW(team1.startTask(nullptr, 0, "test", "null"),
+                     std::logic_error);
+
+        EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0, "test", "noop"),
                      std::runtime_error);
 
         EXPECT_THROW(team1.attachThreadReceiver(&team2), std::logic_error);
         EXPECT_THROW(team1.attachWorkReceiver(&team2),   std::logic_error);
 
         EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
-        EXPECT_THROW(team1.increaseThreadCount(11), std::logic_error);
+        EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
+                     std::logic_error);
 
         // Confirm that all of the above were called in the same mode
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
@@ -680,7 +711,7 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         team1.enqueue(work, false);
         work = 2;
         team1.enqueue(work, false);
-        for (unsigned int i=0; i<100; ++i) {
+        for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)   break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -703,17 +734,13 @@ TEST(ThreadTeamTest, TestRunningOpenEnqueue) {
         EXPECT_EQ(0, N_Q);
 
         // Wait until Team 2 gets work from Team 1
-        for (unsigned int i=0; i<1000; ++i) {
-            team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if (N_Q == 0)   break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-        for (unsigned int i=0; i<100; ++i) {
+        for (unsigned int i=0; i<110; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)   break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
+        // Working on second unit of work now
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
@@ -766,6 +793,8 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
         team1.closeTask();
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
+        EXPECT_THROW(team1.startTask(nullptr, 0,
+                                     "quick",  "fail"), std::logic_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
@@ -776,7 +805,8 @@ TEST(ThreadTeamTest, TestRunningClosedErrors) {
                                                std::logic_error);
 
         work = 1;
-        EXPECT_THROW(team1.enqueue(work, false),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
         EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
@@ -843,12 +873,10 @@ TEST(ThreadTeamTest, TestRunningClosedActivation) {
         EXPECT_EQ(1, N_Q);
 
         // Activate final thread so that it can start computing and transition mode
-        // The transition should also awaken the waiting thread so that it goes
-        // idle
         team1.increaseThreadCount(1);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if ((N_Q == 0) && (N_wait == 0))     break;
+            if (N_Q == 0)     break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -897,7 +925,12 @@ TEST(ThreadTeamTest, TestRunningClosedWorkPub) {
         team1.closeTask();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
-            if ((N_comp == 1) && (N_wait == 2))     break;
+            if (N_comp == 1)    break;
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
+        }
+        for (unsigned int i=0; i<10; ++i) {
+            team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
+            if (N_wait == 4)    break;
             std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
 
@@ -1018,7 +1051,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
     ThreadTeam<int>  team1(5, 1, "TestRunningNoMoreWorkErrors.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        // Team must have at least one thread and one unit of work to stay in
+        // Team must have at least one unit of work to stay in
         // Running & No More Work
         team1.startTask(TestThreadRoutines::delay_100ms, 1, "wait",  "100ms");
         team1.enqueue(work, false);
@@ -1030,6 +1063,8 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         }
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_NO_MORE_WORK, team1.mode());
+        EXPECT_THROW(team1.startTask(nullptr, 0,
+                                     "quick",  "null"), std::logic_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 0,
                                      "quick",  "fail"), std::runtime_error);
         EXPECT_THROW(team1.startTask(TestThreadRoutines::noop, 1,
@@ -1039,7 +1074,8 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
                                                std::logic_error);
 
-        EXPECT_THROW(team1.enqueue(work, false),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
         EXPECT_THROW(team1.closeTask(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
@@ -1190,7 +1226,7 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         // Setup Team 3 without any initial threads and no work to confirm that 
         // thread forwarding progresses when a thread transitions to Idle.
         team1.startTask(TestThreadRoutines::delay_100ms, 6, "wait1",  "100ms");
-        team2.startTask(TestThreadRoutines::delay_100ms, 0, "wait2",  "100ms");
+        team2.startTask(TestThreadRoutines::noop,        0, "quick2", "noop");
         team3.startTask(TestThreadRoutines::noop,        0, "quick3", "noop");
         work = 1;
         team1.enqueue(work, false);
@@ -1320,9 +1356,12 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
 #ifndef DEBUG_RUNTIME
 TEST(ThreadTeamTest, TestTimings) {
+    // TODO: Write timing results to file so that we can keep an archive of
+    // timings and therefore do regression testing of performance.
     using namespace std::chrono;
 
     unsigned int   N_ITERS = 1000;
+    unsigned int   N_WORK  = 100;
 
     int work = 1;
 
@@ -1338,7 +1377,7 @@ TEST(ThreadTeamTest, TestTimings) {
     auto   duration = high_resolution_clock::now() - time;
     double mean_wtime_us =   duration_cast<microseconds>(duration).count()
                            / static_cast<double>(N_ITERS);
-    std::cout << "Thread Team Create Time\t\t\t\t"
+    std::cout << "Thread Team Create Time\t\t\t\t\t\t\t"
               << mean_wtime_us << " us\n";
 
     time = high_resolution_clock::now();
@@ -1350,37 +1389,50 @@ TEST(ThreadTeamTest, TestTimings) {
     duration = high_resolution_clock::now() - time;
     mean_wtime_us =   duration_cast<microseconds>(duration).count()
                     / static_cast<double>(N_ITERS);
-    std::cout << "Idle->Open->Idle Time\t\t\t\t"
+    std::cout << "Idle->Open->Idle Time\t\t\t\t\t\t\t"
               << mean_wtime_us << " us\n";
 
+    // Enqueue one unit of work for each thread to activate so that we are 
+    // including in the timing something close to the amount of time needed
+    // to get all threads activated and doing work.
     for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
         time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
+            for (unsigned int j=0; j<n; ++j) {
+                team2.enqueue(work, false);
+            }
             team2.closeTask();
             team2.wait();
         }
         duration = high_resolution_clock::now() - time;
         mean_wtime_us =   duration_cast<microseconds>(duration).count()
                         / static_cast<double>(N_ITERS);
-        std::cout << std::to_string(n) 
-                  << " thread/Idle->Open->NoMoreWork->Idle Time\t"
+        std::cout << n << " thread/"
+                  << n << " units of work enqueued/"
+                  << "single no-op cycle Time\t\t" 
                   << mean_wtime_us << " us\n";
     }
 
+    // Enqueue same amount of work for each case so that we can get an idea of
+    // whether or not there is a speed-up associated with activating more
+    // threads
     for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
         time = high_resolution_clock::now();
         for (unsigned int i=0; i<N_ITERS; ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
-            team2.enqueue(work, false);
+            for (unsigned int j=0; j<N_WORK; ++j) {
+                team2.enqueue(work, false);
+            }
             team2.closeTask();
             team2.wait();
         }
         duration = high_resolution_clock::now() - time;
         mean_wtime_us =   duration_cast<microseconds>(duration).count()
                         / static_cast<double>(N_ITERS);
-        std::cout << std::to_string(n) 
-                  << " thread/single no-op cycle Time\t\t" 
+        std::cout << n      << " thread/"
+                  << N_WORK << " units of work enqueued/"
+                  << "single no-op cycle Time\t\t" 
                   << mean_wtime_us << " us\n";
     }
 }
