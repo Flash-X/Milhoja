@@ -60,18 +60,21 @@ echo "Number of HW Threads per Core = $N_HYPERTHREADS_PER_CORE"
 echo "Number of Threads per Process = $N_THREADS_PER_PROC"
 echo "---------------------------------------------------------------------"
 
+folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/testThreadTeam_$LSB_JOBID
+mkdir -p $folder ; cd $folder
+
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      ./binaries/test_threadteam_cpp.x $N_THREADS_PER_PROC
+      $LS_SUBCWD/binaries/test_threadteam_cpp.x $N_THREADS_PER_PROC
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      ./binaries/test_threadteam_cpp_debug.x $N_THREADS_PER_PROC
+      $LS_SUBCWD/binaries/test_threadteam_cpp_debug.x $N_THREADS_PER_PROC
 
