@@ -6,7 +6,7 @@ BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test/GatherDataF2003
-AMREXDIR = $(HOME)/Projects/amrex_install/2D
+AMREXDIR = $(HOME)/local/gcc_6.5.0/AMReX_2D
 
 # Common files
 CXX_HDRS   = \

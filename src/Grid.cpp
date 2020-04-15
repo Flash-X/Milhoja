@@ -1,5 +1,6 @@
 #include "Grid.h"
 
+#include <cassert>
 #include <stdexcept>
 
 #include <AMReX_Vector.H>
