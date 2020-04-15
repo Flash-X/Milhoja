@@ -13,6 +13,7 @@ sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
+sites/hello/manual_cpp.x
 sites/summit/gatherDataCpp.*
 sites/summit/testRuntimeCpp.*
 sites/summit/testThreadTeam.*

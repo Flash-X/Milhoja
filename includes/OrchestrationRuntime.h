@@ -52,6 +52,14 @@ private:
                         const unsigned int nCpuThreads,
                         const std::string& cpuTaskName);
 
+    void executeConcurrentCpuGpuTasks(const std::string& bundleName,
+                                      TASK_FCN<Tile> cpuTask,
+                                      const unsigned int nCpuThreads,
+                                      const std::string& cpuTaskName,
+                                      TASK_FCN<Tile> gpuTask,
+                                      const unsigned int nGpuThreads,
+                                      const std::string& gpuTaskName);
+
     void executeTasks_Full(const std::string& bundleName,
                            TASK_FCN<Tile> cpuTask,
                            const unsigned int nCpuThreads,

@@ -158,6 +158,10 @@ void OrchestrationRuntime::executeTasks(const std::string& bundleName,
     if (cpuTask && !gpuTask && !postGpuTask) {
         executeCpuTask(bundleName,
                        cpuTask, nCpuThreads, cpuTaskName);
+    } else if (cpuTask && gpuTask && !postGpuTask) {
+        executeConcurrentCpuGpuTasks(bundleName,
+                                     cpuTask, nCpuThreads, cpuTaskName,
+                                     gpuTask, nGpuThreads, gpuTaskName);
     } else if (cpuTask && gpuTask && postGpuTask) {
         executeTasks_Full(bundleName,
                           cpuTask,     nCpuThreads,     cpuTaskName,
@@ -184,6 +188,11 @@ void OrchestrationRuntime::executeTasks(const std::string& bundleName,
  * \return 
  */
 
+/**
+ * 
+ *
+ * \return 
+ */
 void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
                                              TASK_FCN<Tile> cpuTask,
                                              const unsigned int nCpuThreads,
@@ -252,6 +261,40 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     //      in postGpuTeam before the post-GPU thread pool can begin
     //      determining if it should terminate.
     postGpuTeam->wait();
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
+void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
+                                                        TASK_FCN<Tile> cpuTask,
+                                                        const unsigned int nCpuThreads,
+                                                        const std::string& cpuTaskName,
+                                                        TASK_FCN<Tile> gpuTask, 
+                                                        const unsigned int nGpuThreads,
+                                                        const std::string& gpuTaskName) {
+    ThreadTeam<Tile>*   cpuTeam = teams_[0];
+    ThreadTeam<Tile>*   gpuTeam = teams_[1];
+
+    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
+    gpuTeam->startTask(gpuTask, nGpuThreads, "GpuTask", gpuTaskName);
+
+    unsigned int   level = 0;
+    Grid*   grid = Grid::instance();
+    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+        Tile  work(itor, level);
+        // Ownership of tile resources is transferred to last team
+        cpuTeam->enqueue(work, false);
+        gpuTeam->enqueue(work, true);
+    }
+    grid = nullptr;
+    gpuTeam->closeTask();
+    cpuTeam->closeTask();
+
+    cpuTeam->wait();
+    gpuTeam->wait();
 }
 
 /**
