@@ -5,6 +5,7 @@
 *
 *******************************************************************************/
 
+#include <cmath>
 #include <ctime>
 #include <cstdio>
 #include <cstdlib>
@@ -1365,75 +1366,106 @@ TEST(ThreadTeamTest, TestTimings) {
 
     int work = 1;
 
+    unsigned int N = 0;
+    double       wtime_sum = 0.0;
+    double       wtime_sqr_sum = 0.0;
+    auto         time = high_resolution_clock::now();
+    double       duration = 0.0;
+
     ThreadTeam<int>* team1 = nullptr;
     ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
 
-    auto time = high_resolution_clock::now();
+    std::cout << "\nTiming using C++ standard library high-resolution clock\n";
+    std::cout << "-------------------------------------------------------\n";
+    std::cout << "Is steady\t\t"
+              << (high_resolution_clock::is_steady ? "T" : "F") << "\n";
+    std::cout << "Minimum duration\t"
+              << high_resolution_clock::duration::min().count() << "\n"; 
+    std::cout << "Maximum duration\t"
+              << high_resolution_clock::duration::max().count() << "\n"; 
+    std::cout << "Clock resolution\t"
+              <<                       std::chrono::high_resolution_clock::period::num
+                 / static_cast<double>(std::chrono::high_resolution_clock::period::den)
+              << " s\n\n";
+    std::cout << "NOTE: All timing data was collected under the assumption that each time\n"
+              << "      is much larger than the above clock resolution.\n" << std::endl; 
+
+    N = 0;
+    wtime_sum = 0.0;
+    wtime_sqr_sum = 0.0;
     for (unsigned int i=0; i<N_ITERS; ++i) {
+        time = high_resolution_clock::now();
         team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
+        duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
+
+        wtime_sum += duration;
+        wtime_sqr_sum += (duration*duration);
+        ++N;
+
         delete team1;
         team1 = nullptr;
     }
-    auto   duration = high_resolution_clock::now() - time;
-    double mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                           / static_cast<double>(N_ITERS);
+    double mean_wtime_us = wtime_sum / static_cast<double>(N);
+    double std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
+                                - mean_wtime_us*mean_wtime_us);
     std::cout << "Thread Team Create Time\t\t\t\t\t\t\t"
-              << mean_wtime_us << " us\n";
+              << mean_wtime_us << " +/- "
+              << std_wtime_us  << " us\n";
 
-    time = high_resolution_clock::now();
-    for (unsigned int i=0; i<N_ITERS; ++i) {
-        team2.startTask(TestThreadRoutines::noop, 0, "quick", "noop");
-        team2.closeTask();
-        team2.wait();
-    }
-    duration = high_resolution_clock::now() - time;
-    mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                    / static_cast<double>(N_ITERS);
-    std::cout << "Idle->Open->Idle Time\t\t\t\t\t\t\t"
-              << mean_wtime_us << " us\n";
-
-    // Enqueue one unit of work for each thread to activate so that we are 
-    // including in the timing something close to the amount of time needed
-    // to get all threads activated and doing work.
-    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
-        time = high_resolution_clock::now();
-        for (unsigned int i=0; i<N_ITERS; ++i) {
-            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
-            for (unsigned int j=0; j<n; ++j) {
-                team2.enqueue(work, false);
-            }
+    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
+        N = 0;
+        wtime_sum = 0.0;
+        wtime_sqr_sum = 0.0;
+        for (unsigned int i=0; i<10*N_ITERS; ++i) {
+            time = high_resolution_clock::now();
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
             team2.closeTask();
             team2.wait();
+            duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
+
+            wtime_sum += duration;
+            wtime_sqr_sum += (duration*duration);
+            ++N;
         }
-        duration = high_resolution_clock::now() - time;
-        mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                        / static_cast<double>(N_ITERS);
+        mean_wtime_us = wtime_sum / static_cast<double>(N);
+        std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
+                             - mean_wtime_us*mean_wtime_us);
         std::cout << n << " thread/"
-                  << n << " units of work enqueued/"
-                  << "single no-op cycle Time\t\t" 
-                  << mean_wtime_us << " us\n";
+                  << 0 << " units of work enqueued/"
+                  << "single no-op cycle Time/ wait=T\t" 
+                  << mean_wtime_us << " +/- "
+                  << std_wtime_us << " us\n";
     }
 
     // Enqueue same amount of work for each case so that we can get an idea of
     // whether or not there is a speed-up associated with activating more
     // threads
     for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
-        time = high_resolution_clock::now();
+        N = 0;
+        wtime_sum = 0.0;
+        wtime_sqr_sum = 0.0;
         for (unsigned int i=0; i<N_ITERS; ++i) {
-            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop");
+            time = high_resolution_clock::now();
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", false);
             for (unsigned int j=0; j<N_WORK; ++j) {
                 team2.enqueue(work, false);
             }
             team2.closeTask();
             team2.wait();
+            duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
+
+            wtime_sum += duration;
+            wtime_sqr_sum += (duration*duration);
+            ++N;
         }
-        duration = high_resolution_clock::now() - time;
-        mean_wtime_us =   duration_cast<microseconds>(duration).count()
-                        / static_cast<double>(N_ITERS);
+        mean_wtime_us = wtime_sum / static_cast<double>(N);
+        std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
+                             - mean_wtime_us*mean_wtime_us);
         std::cout << n      << " thread/"
                   << N_WORK << " units of work enqueued/"
-                  << "single no-op cycle Time\t\t" 
-                  << mean_wtime_us << " us\n";
+                  << "single no-op cycle Time/ wait=F\t" 
+                  << mean_wtime_us << " +/- "
+                  << std_wtime_us << " us\n";
     }
 }
 #endif

@@ -545,7 +545,8 @@ template<typename W>
 void ThreadTeam<W>::startTask(TASK_FCN<W> fcn,
                            const unsigned int nThreads,
                            const std::string& teamName, 
-                           const std::string& taskName) {
+                           const std::string& taskName,
+                           const bool waitForThreads) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -580,6 +581,15 @@ void ThreadTeam<W>::startTask(TASK_FCN<W> fcn,
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
+    }
+
+    // It is intended that this only be used during timing tests when trying to
+    // estimate the overhead of winding up and down a thread team with a given
+    // number of activated threads
+    if (waitForThreads) {
+        while (N_to_activate_ > 0) {
+            pthread_cond_wait(&(allActivated_), &(teamMutex_));
+        }
     }
 
     pthread_mutex_unlock(&teamMutex_);

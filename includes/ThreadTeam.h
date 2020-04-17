@@ -90,7 +90,8 @@ public:
     void         startTask(TASK_FCN<W> fcn,
                            const unsigned int nThreads,
                            const std::string& teamName, 
-                           const std::string& taskName);
+                           const std::string& taskName,
+                           const bool waitForThreads=false);
     void         enqueue(W& work, const bool move);
     void         closeTask(void);
     void         wait(void);
