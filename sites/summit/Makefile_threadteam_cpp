@@ -2,13 +2,14 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE     = test_threadteam_cpp
-MAKEFILE = Makefile_threadteam_cpp
-BASEDIR  = ../..
-INCDIR   = $(BASEDIR)/includes
-SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test/ThreadTeam
-GTESTDIR = $(HOME)/local/gcc_9.1.0/googletest
+BASE         = test_threadteam_cpp
+MAKEFILE     = Makefile_threadteam_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/ThreadTeam
+GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
@@ -21,8 +22,10 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(TESTBASEDIR)/estimateTimerResolution.h \
     $(TESTDIR)/threadTeamTest.h 
 SRCS       = \
+    $(TESTBASEDIR)/estimateTimerResolution.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testThreadTeam.cpp \
     $(TESTDIR)/runThreadTeamTest.cpp
@@ -31,7 +34,7 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = g++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -lgtest

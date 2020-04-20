@@ -1382,7 +1382,7 @@ TEST(ThreadTeamTest, TestTimings) {
 
     using microseconds = std::chrono::duration<double, std::micro>;
 
-    unsigned int   N_ITERS = 1000;
+    unsigned int   N_ITERS = 5000;
     unsigned int   N_WORK  = 100;
 
     int work = 1;
@@ -1395,7 +1395,15 @@ TEST(ThreadTeamTest, TestTimings) {
     std::ofstream        fptr;
     std::string          filename;
 
-    double resolution = estimateSteadyClockResolution();
+    double resolution = 0.0; 
+    std::string  resolution_str;
+    try {
+        resolution = estimateSteadyClockResolution();
+        resolution_str = std::to_string(resolution) + " us";
+    } catch (std::runtime_error&) {
+        resolution = -1.0;
+        resolution_str = "Too small to measure";
+    }
 
     ThreadTeam<int>* team1 = nullptr;
     ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
@@ -1411,7 +1419,7 @@ TEST(ThreadTeamTest, TestTimings) {
               << steady_clock::duration::min().count() << "\n"; 
     std::cout << "Maximum duration\t\t"
               << steady_clock::duration::max().count() << "\n"; 
-    std::cout << "Measured Clock resolution\t" << resolution << " us\n";
+    std::cout << "Measured Clock resolution\t" << resolution_str << "\n";
     std::cout << "Clock unit\t\t\t"
               <<                       std::chrono::steady_clock::period::num
                  / static_cast<double>(std::chrono::steady_clock::period::den)
@@ -1436,7 +1444,7 @@ TEST(ThreadTeamTest, TestTimings) {
               << std_wtime_us  << " us\n";
 
     //***** PROBE INFORMATION ON Idle->Wait TRANSITION TIMES
-    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             start = steady_clock::now();
             // By passing true, this should not return until all N_thread
@@ -1461,7 +1469,7 @@ TEST(ThreadTeamTest, TestTimings) {
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
         fptr << "# C++ steady_clock\n";
-        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "# Clock Resolution\t\t" << resolution_str << "\n";
         fptr << "N_threads,N_work,wtime_us\n";
         for (auto& wt_us : wtimes_us) {
             fptr << std::setprecision(15)
@@ -1473,7 +1481,7 @@ TEST(ThreadTeamTest, TestTimings) {
     }
 
     //***** PROBE INFORMATION ON Wait->Idle TRANSITION TIMES
-    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
 
@@ -1498,7 +1506,7 @@ TEST(ThreadTeamTest, TestTimings) {
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
         fptr << "# C++ steady_clock\n";
-        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "# Clock Resolution\t\t" << resolution_str << "\n";
         fptr << "N_threads,N_work,wtime_us\n";
         for (auto& wt_us : wtimes_us) {
             fptr << std::setprecision(15)
@@ -1515,7 +1523,7 @@ TEST(ThreadTeamTest, TestTimings) {
     // setup is setup well, then adding the above time samples together should
     // approximately equal the values measured here.  This might not be true,
     // for instance, if I switch true to false below.
-    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             start = steady_clock::now();
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
@@ -1537,7 +1545,7 @@ TEST(ThreadTeamTest, TestTimings) {
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
         fptr << "# C++ steady_clock\n";
-        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "# Clock Resolution\t\t" << resolution_str << "\n";
         fptr << "N_threads,N_work,wtime_us\n";
         for (auto& wt_us : wtimes_us) {
             fptr << std::setprecision(15)
@@ -1576,7 +1584,7 @@ TEST(ThreadTeamTest, TestTimings) {
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
         fptr << "# C++ steady_clock\n";
-        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "# Clock Resolution\t\t" << resolution_str << "\n";
         fptr << "N_threads,N_work,wtime_us\n";
         for (auto& wt_us : wtimes_us) {
             fptr << std::setprecision(15)

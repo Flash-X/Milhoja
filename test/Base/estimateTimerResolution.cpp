@@ -1,6 +1,6 @@
 #include "estimateTimerResolution.h"
 
-#include <mpi.h>
+//#include <mpi.h>
 #include <limits>
 #include <chrono>
 #include <iostream>
