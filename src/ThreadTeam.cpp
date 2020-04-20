@@ -1065,6 +1065,12 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     unsigned int     N_total          = 0;
     while (true) {
         mode = team->state_->mode();
+        // TODO: The amount of time that a thread locks the mutex will grow as
+        // the number of data items in the Q grows due to call like this.  A
+        // possible, but ugly, optimization would be to manage N_Q without
+        // getting it from the queue_.size().
+        // NOTE: It could be that the stdlib is already doing something like
+        // this, but this would likely be implementation-dependent.
         N_Q = team->queue_.size();
 
         // Finish transition, wait for event, do output, and loop back

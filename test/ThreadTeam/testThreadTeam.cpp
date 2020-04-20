@@ -6,15 +6,15 @@
 *******************************************************************************/
 
 #include <cmath>
-#include <ctime>
-#include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <fstream>
 #include <stdexcept>
 #include <pthread.h>
+
+#include "estimateTimerResolution.h"
 
 #include "threadTeamTest.h"
 #include "testThreadRoutines.h"
@@ -23,6 +23,27 @@
 #include "gtest/gtest.h"
 
 namespace {
+
+void processWalltimes(const std::vector<double>& wtimes, 
+                      double* mean_wtime, double* std_wtime) {
+    unsigned int   N = wtimes.size();
+
+    // Estimate mean wtime with sample mean
+    double sum = 0.0;
+    for (auto& wt : wtimes) {
+        sum += wt;
+    }
+    double mean = sum / static_cast<double>(N);
+
+    // Estimate standard deviation with sample variance
+    sum = 0.0;
+    for (auto& wt : wtimes) {
+        sum += (wt - mean) * (wt - mean);
+    }
+
+    *mean_wtime = mean;
+    *std_wtime = sqrt(sum / static_cast<double>(N-1));
+}
 
 /**
  *  Test that teams are created and start in the appropriate initial state.
@@ -1357,115 +1378,213 @@ TEST(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
 #ifndef DEBUG_RUNTIME
 TEST(ThreadTeamTest, TestTimings) {
-    // TODO: Write timing results to file so that we can keep an archive of
-    // timings and therefore do regression testing of performance.
     using namespace std::chrono;
+
+    using microseconds = std::chrono::duration<double, std::micro>;
 
     unsigned int   N_ITERS = 1000;
     unsigned int   N_WORK  = 100;
 
     int work = 1;
 
-    unsigned int N = 0;
-    double       wtime_sum = 0.0;
-    double       wtime_sqr_sum = 0.0;
-    auto         time = high_resolution_clock::now();
-    double       duration = 0.0;
+    std::vector<double>  wtimes_us(N_ITERS);
+    auto                 start = steady_clock::now();
+    auto                 end   = steady_clock::now();
+    double               mean_wtime_us = 0.0;
+    double               std_wtime_us = 0.0;
+    std::ofstream        fptr;
+    std::string          filename;
+
+    double resolution = estimateSteadyClockResolution();
 
     ThreadTeam<int>* team1 = nullptr;
     ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
 
-    std::cout << "\nTiming using C++ standard library high-resolution clock\n";
+    std::cout << "\nTiming using C++ standard library steady clock\n";
     std::cout << "-------------------------------------------------------\n";
-    std::cout << "Is steady\t\t"
-              << (high_resolution_clock::is_steady ? "T" : "F") << "\n";
-    std::cout << "Minimum duration\t"
-              << high_resolution_clock::duration::min().count() << "\n"; 
-    std::cout << "Maximum duration\t"
-              << high_resolution_clock::duration::max().count() << "\n"; 
-    std::cout << "Clock resolution\t"
-              <<                       std::chrono::high_resolution_clock::period::num
-                 / static_cast<double>(std::chrono::high_resolution_clock::period::den)
+    std::cout << "Is steady\t\t\t"
+              << (steady_clock::is_steady ? "T" : "F") << "\n";
+    std::cout << "Is duration FP\t\t\t"
+              << (std::chrono::treat_as_floating_point<microseconds::rep>::value ? "T" : "F")
+              << "\n";
+    std::cout << "Minimum duration\t\t"
+              << steady_clock::duration::min().count() << "\n"; 
+    std::cout << "Maximum duration\t\t"
+              << steady_clock::duration::max().count() << "\n"; 
+    std::cout << "Measured Clock resolution\t" << resolution << " us\n";
+    std::cout << "Clock unit\t\t\t"
+              <<                       std::chrono::steady_clock::period::num
+                 / static_cast<double>(std::chrono::steady_clock::period::den)
               << " s\n\n";
     std::cout << "NOTE: All timing data was collected under the assumption that each time\n"
               << "      is much larger than the above clock resolution.\n" << std::endl; 
 
-    N = 0;
-    wtime_sum = 0.0;
-    wtime_sqr_sum = 0.0;
-    for (unsigned int i=0; i<N_ITERS; ++i) {
-        time = high_resolution_clock::now();
+    //***** RUN CREATION TIME EXPERIMENT
+    for (unsigned int i=0; i<wtimes_us.size(); ++i) {
+        start = steady_clock::now();
         team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
-        duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
-
-        wtime_sum += duration;
-        wtime_sqr_sum += (duration*duration);
-        ++N;
+        end = steady_clock::now();
+        wtimes_us[i] = microseconds(end - start).count();
+        EXPECT_TRUE(wtimes_us[i] > 0.0);
 
         delete team1;
         team1 = nullptr;
     }
-    double mean_wtime_us = wtime_sum / static_cast<double>(N);
-    double std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
-                                - mean_wtime_us*mean_wtime_us);
+    processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
     std::cout << "Thread Team Create Time\t\t\t\t\t\t\t"
               << mean_wtime_us << " +/- "
               << std_wtime_us  << " us\n";
 
-    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
-        N = 0;
-        wtime_sum = 0.0;
-        wtime_sqr_sum = 0.0;
-        for (unsigned int i=0; i<10*N_ITERS; ++i) {
-            time = high_resolution_clock::now();
+    //***** PROBE INFORMATION ON Idle->Wait TRANSITION TIMES
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+        for (unsigned int i=0; i<wtimes_us.size(); ++i) {
+            start = steady_clock::now();
+            // By passing true, this should not return until all N_thread
+            // threads are in Wait
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
+            end = steady_clock::now();
+            wtimes_us[i] = microseconds(end - start).count();
+            EXPECT_TRUE(wtimes_us[i] > 0.0);
+
+            team2.closeTask();
+            team2.wait();
+        }
+        processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
+        std::cout << n << " thread/"
+                  << 0 << " units of work enqueued/"
+                  << "startTask Time/ wait=T\t\t" 
+                  << mean_wtime_us << " +/- "
+                  << std_wtime_us  << " us\n";
+
+        filename =   "StartTaskTimings_"
+                   + std::to_string(n)
+                   + "_threads.dat";
+        fptr.open(filename, std::ios::out);
+        fptr << "# C++ steady_clock\n";
+        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "N_threads,N_work,wtime_us\n";
+        for (auto& wt_us : wtimes_us) {
+            fptr << std::setprecision(15)
+                 << n << ","
+                 << 0 << ","
+                 << wt_us << "\n";
+        }
+        fptr.close();
+    }
+
+    //***** PROBE INFORMATION ON Wait->Idle TRANSITION TIMES
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+        for (unsigned int i=0; i<wtimes_us.size(); ++i) {
+            team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
+
+            start = steady_clock::now();
+            // Since true was passed above, all threads at the start of this
+            // measurement should be in Wait
+            team2.closeTask();
+            team2.wait();
+            end = steady_clock::now();
+            wtimes_us[i] = microseconds(end - start).count();
+            EXPECT_TRUE(wtimes_us[i] > 0.0);
+        }
+        processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
+        std::cout << n << " thread/"
+                  << 0 << " units of work enqueued/"
+                  << "closeTask Time/ wait=T\t\t" 
+                  << mean_wtime_us << " +/- "
+                  << std_wtime_us << " us\n";
+
+        filename =   "CloseTaskTimings_"
+                   + std::to_string(n)
+                   + "_threads.dat";
+        fptr.open(filename, std::ios::out);
+        fptr << "# C++ steady_clock\n";
+        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "N_threads,N_work,wtime_us\n";
+        for (auto& wt_us : wtimes_us) {
+            fptr << std::setprecision(15)
+                 << n << ","
+                 << 0 << ","
+                 << wt_us << "\n";
+        }
+        fptr.close();
+    }
+
+    //***** PROBE INFORMATION ON Wait->Idle->Wait TRANSITION TIMES
+    // This test is presently used to make certain that measuring startTask and 
+    // endTask separately is occuring as I expect.  Specifically, if the test
+    // setup is setup well, then adding the above time samples together should
+    // approximately equal the values measured here.  This might not be true,
+    // for instance, if I switch true to false below.
+    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+        for (unsigned int i=0; i<wtimes_us.size(); ++i) {
+            start = steady_clock::now();
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", true);
             team2.closeTask();
             team2.wait();
-            duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
-
-            wtime_sum += duration;
-            wtime_sqr_sum += (duration*duration);
-            ++N;
+            end = steady_clock::now();
+            wtimes_us[i] = microseconds(end - start).count();
+            EXPECT_TRUE(wtimes_us[i] > 0.0);
         }
-        mean_wtime_us = wtime_sum / static_cast<double>(N);
-        std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
-                             - mean_wtime_us*mean_wtime_us);
+        processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
         std::cout << n << " thread/"
                   << 0 << " units of work enqueued/"
-                  << "single no-op cycle Time/ wait=T\t" 
+                  << "single no-op Time/ wait=T\t\t" 
                   << mean_wtime_us << " +/- "
                   << std_wtime_us << " us\n";
+
+        filename =   "NoWorkTimings_"
+                   + std::to_string(n)
+                   + "_threads.dat";
+        fptr.open(filename, std::ios::out);
+        fptr << "# C++ steady_clock\n";
+        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "N_threads,N_work,wtime_us\n";
+        for (auto& wt_us : wtimes_us) {
+            fptr << std::setprecision(15)
+                 << n << ","
+                 << 0 << ","
+                 << wt_us << "\n";
+        }
+        fptr.close();
     }
 
+    //***** PROBE INFORMATION ON FULL CYCLE
     // Enqueue same amount of work for each case so that we can get an idea of
-    // whether or not there is a speed-up associated with activating more
-    // threads
+    // the overhead associated with the thread team
     for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
-        N = 0;
-        wtime_sum = 0.0;
-        wtime_sqr_sum = 0.0;
-        for (unsigned int i=0; i<N_ITERS; ++i) {
-            time = high_resolution_clock::now();
+        for (unsigned int i=0; i<wtimes_us.size(); ++i) {
+            start = steady_clock::now();
             team2.startTask(TestThreadRoutines::noop, n, "quick", "noop", false);
             for (unsigned int j=0; j<N_WORK; ++j) {
                 team2.enqueue(work, false);
             }
             team2.closeTask();
             team2.wait();
-            duration = duration_cast<microseconds>(high_resolution_clock::now() - time).count();
-
-            wtime_sum += duration;
-            wtime_sqr_sum += (duration*duration);
-            ++N;
+            end = steady_clock::now();
+            wtimes_us[i] = microseconds(end - start).count();
+            EXPECT_TRUE(wtimes_us[i] > 0.0);
         }
-        mean_wtime_us = wtime_sum / static_cast<double>(N);
-        std_wtime_us =  sqrt(  wtime_sqr_sum / static_cast<double>(N)
-                             - mean_wtime_us*mean_wtime_us);
+        processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
         std::cout << n      << " thread/"
                   << N_WORK << " units of work enqueued/"
                   << "single no-op cycle Time/ wait=F\t" 
                   << mean_wtime_us << " +/- "
                   << std_wtime_us << " us\n";
+
+        filename =   "FullCycleTimings_"
+                   + std::to_string(n)
+                   + "_threads.dat";
+        fptr.open(filename, std::ios::out);
+        fptr << "# C++ steady_clock\n";
+        fptr << "# Resolution " << resolution << " us\n";
+        fptr << "N_threads,N_work,wtime_us\n";
+        for (auto& wt_us : wtimes_us) {
+            fptr << std::setprecision(15)
+                 << n << ","
+                 << N_WORK << ","
+                 << wt_us << "\n";
+        }
+        fptr.close();
     }
 }
 #endif

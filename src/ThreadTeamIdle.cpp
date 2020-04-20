@@ -140,6 +140,11 @@ std::string ThreadTeamIdle<W,T>::increaseThreadCount_NotThreadsafe(
  */
 template<typename W, class T>
 std::string  ThreadTeamIdle<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+    // TODO: Consider (carefully!) allowing for enqueueing of data items when
+    // when the team is Idle and with a routine that will only acquire the mutex
+    // once.  This could allow for decreasing mutex contention when threads
+    // become active.  We want them to find work immediately and not box out the
+    // thread trying to give them work.
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Adding work in Idle state not allowed");
 }

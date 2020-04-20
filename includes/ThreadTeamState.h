@@ -15,6 +15,8 @@
 
 #include <string>
 
+// TODO: Can we get rid of the T by just replacing it with ThreadTeam<W>?  I
+// believe that this restriction is what is intended.
 template<typename W, class T>
 class ThreadTeamState {
 public:
