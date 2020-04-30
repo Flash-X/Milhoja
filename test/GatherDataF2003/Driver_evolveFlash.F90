@@ -36,8 +36,8 @@ program Driver_evolveFlash
     real           :: LinfEner
     real           :: deltas(1:MDIM)
 
-    double precision    tStart
-    double precision    walltime
+    double precision :: tStart
+    double precision :: walltime
 
     call Grid_init()
     call Orchestration_init()
@@ -45,8 +45,8 @@ program Driver_evolveFlash
     call Grid_initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX, &
                          N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z, NUNKVAR)
 
-    ! This work would be done in init's using a single runtime parameter
-    ph_op1_energyFactor = 3.2
+    ! This work would be done in inits using a single runtime parameter
+    ph_op1_energyFactor = 5.0
     an_energyFactor = ph_op1_energyFactor
 
     tStart = MPI_Wtime()

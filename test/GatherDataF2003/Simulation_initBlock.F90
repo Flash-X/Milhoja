@@ -24,6 +24,8 @@ subroutine Simulation_initBlock(tId, tilePtr) bind(c)
     real    :: x, y, z
     integer :: i, j, k
 
+    nullify(f)
+
     tileDesc = tilePtr
 
     loGC  = tileDesc%loGC
@@ -54,6 +56,7 @@ subroutine Simulation_initBlock(tId, tilePtr) bind(c)
             end do
         end do
     end do
+    nullify(f)
 
     deallocate(xCoords, yCoords, zCoords)
 end subroutine Simulation_initBlock

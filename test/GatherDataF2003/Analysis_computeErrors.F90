@@ -74,9 +74,9 @@ subroutine Analysis_computeErrors(tId, tilePtr) bind(c)
                 sumDens = sumDens + absErr
                 LinfDens = MAX(LinfDens, absErr)
 
-                fExpected = an_energyFactor * (  48.0*x*x - 18.0*x &
-                                               - 12.0*y*y + 12.0*y &
-                                               - 2.0)
+                fExpected = an_energyFactor * x * y * (  48.0*x*x - 18.0*x &
+                                                       - 12.0*y*y + 12.0*y &
+                                                       - 2.0)
                 absErr = ABS(f(i, j, k, ENER_VAR) - fExpected)
                 sumEner = sumEner + absErr
                 LinfEner = MAX(LinfEner, absErr)
