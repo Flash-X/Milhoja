@@ -24,7 +24,7 @@ void Analysis::initialize(const unsigned int nBlocks) {
     meanAbsError_ener.assign(nBlocks, 0.0);
 
     // Pretend that we load this from the RuntimeParameter unit
-    energyScaleFactor = 3.2;
+    energyScaleFactor = 5.0;
 }
     
 void   Analysis::computeErrors(const int tId, Tile* tileDesc) {
@@ -61,9 +61,9 @@ void   Analysis::computeErrors(const int tId, Tile* tileDesc) {
                  maxAbsErr1 = absErr;
             }
    
-            fExpected = energyScaleFactor*(  48.0*x*x - 18.0*x
-                                           - 12.0*y*y + 12.0*y
-                                           - 2.0); 
+            fExpected = energyScaleFactor*x*y*(  48.0*x*x - 18.0*x
+                                               - 12.0*y*y + 12.0*y
+                                               - 2.0); 
             absErr = fabs(fExpected - f(i, j, lo.z, ENER_VAR_C));
             sum2 += absErr;
             if (absErr > maxAbsErr2) {

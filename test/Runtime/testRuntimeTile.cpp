@@ -137,9 +137,9 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     EXPECT_TRUE(meanAbsErr1 <= 0.0);
 
     EXPECT_TRUE(0.0 <= L_inf2);
-    EXPECT_TRUE(L_inf2 <= 5.0e-6);
+    EXPECT_TRUE(L_inf2 <= 9.0e-6);
     EXPECT_TRUE(0.0 <= meanAbsErr2);
-    EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
+    EXPECT_TRUE(meanAbsErr2 <= 9.0e-6);
 }
 #endif
 
@@ -184,6 +184,8 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     double meanAbsErr2 = 0.0;
     Analysis::densityErrors(&L_inf1, &meanAbsErr1);
     Analysis::energyErrors(&L_inf2, &meanAbsErr2);
+//    std::cout << "L_inf1 = " << L_inf1 << "\n";
+//    std::cout << "L_inf2 = " << L_inf2 << std::endl;
 
     EXPECT_TRUE(0.0 <= L_inf1);
     EXPECT_TRUE(L_inf1 <= 1.0e-15);
@@ -191,9 +193,9 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     EXPECT_TRUE(meanAbsErr1 <= 1.0e-15);
 
     EXPECT_TRUE(0.0 <= L_inf2);
-    EXPECT_TRUE(L_inf2 <= 5.0e-6);
+    EXPECT_TRUE(L_inf2 <= 9.0e-6);
     EXPECT_TRUE(0.0 <= meanAbsErr2);
-    EXPECT_TRUE(meanAbsErr2 <= 5.0e-6);
+    EXPECT_TRUE(meanAbsErr2 <= 9.0e-6);
 }
 #endif
 
