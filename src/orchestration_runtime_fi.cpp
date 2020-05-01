@@ -13,11 +13,13 @@ extern "C" {
     /**
      * 
      */
-    int    orchestration_init_fi(const int nTeams,
+    int    orchestration_init_fi(const int nTileTeams,
+                                 const int nPacketTeams,
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
-            OrchestrationRuntime::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
+            OrchestrationRuntime::setNumberThreadTeams(static_cast<unsigned int>(nTileTeams),
+                                                       static_cast<unsigned int>(nPacketTeams));
             OrchestrationRuntime::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
             OrchestrationRuntime::setLogFilename(logFilename);
 
@@ -42,11 +44,11 @@ extern "C" {
     /**
      *
      */
-    int    orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuAction,
+    int    orchestration_execute_tasks_fi(TASK_FCN cpuAction,
                                           const int nCpuThreads,
-                                          TASK_FCN<Tile> gpuAction,
+                                          TASK_FCN gpuAction,
                                           const int nGpuThreads,
-                                          TASK_FCN<Tile> postGpuAction,
+                                          TASK_FCN postGpuAction,
                                           const int nPostGpuThreads) {
         ActionBundle    bundle;
         bundle.name                          = "Action Bundle from Fortran";

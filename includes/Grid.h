@@ -29,7 +29,7 @@ public:
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
                        const unsigned int nVars,
-                       TASK_FCN<Tile> initBlock);
+                       TASK_FCN initBlock);
     void    destroyDomain(void);
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }

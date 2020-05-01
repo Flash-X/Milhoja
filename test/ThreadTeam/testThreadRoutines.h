@@ -4,9 +4,9 @@
 #include <string>
 
 namespace TestThreadRoutines {
-    void noop(const int tId, int* work);
-    void delay_10ms(const int tId, int* work);
-    void delay_100ms(const int tId, int* work);
+    void noop(const int tId, void* dataItem);
+    void delay_10ms(const int tId, void* dataItem);
+    void delay_100ms(const int tId, void* dataItem);
 }
 
 #endif

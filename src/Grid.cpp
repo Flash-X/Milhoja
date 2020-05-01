@@ -60,7 +60,7 @@ void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
                          const unsigned int nBlocksY,
                          const unsigned int nBlocksZ,
                          const unsigned int nVars,
-                         TASK_FCN<Tile> initBlock) {
+                         TASK_FCN initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
         throw std::logic_error("Grid unit's initDomain already called");

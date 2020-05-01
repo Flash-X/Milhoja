@@ -11,6 +11,7 @@
 #include <string>
 
 #include "Tile.h"
+#include "DataPacket.h"
 #include "ThreadTeam.h"
 #include "ActionBundle.h"
 #include "RuntimeAction.h"
@@ -21,7 +22,8 @@ public:
 
     static OrchestrationRuntime* instance(void);
     static void setLogFilename(const std::string& filename);
-    static void setNumberThreadTeams(const unsigned int nTeams);
+    static void setNumberThreadTeams(const unsigned int nTileTeams,
+                                     const unsigned int nPacketTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
     void executeTasks(const ActionBundle& bundle);
@@ -42,6 +44,9 @@ private:
     void executeCpuTasks(const std::string& bundleName,
                          const RuntimeAction& cpuAction);
 
+    void executeGpuTasks(const std::string& bundleName,
+                         const RuntimeAction& gpuAction);
+
     void executeConcurrentCpuGpuTasks(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction);
@@ -52,11 +57,13 @@ private:
                            const RuntimeAction& postGpuAction);
 
     static std::string             logFilename_;
-    static unsigned int            nTeams_; 
+    static unsigned int            nTileTeams_; 
+    static unsigned int            nPacketTeams_; 
     static unsigned int            maxThreadsPerTeam_;
     static OrchestrationRuntime*   instance_;
 
-    ThreadTeam<Tile>**             teams_;
+    ThreadTeam<Tile>**             tileTeams_;
+    ThreadTeam<DataPacket>**       packetTeams_;
 
 #ifdef DEBUG_RUNTIME
     std::ofstream     logFile_; 

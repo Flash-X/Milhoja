@@ -5,17 +5,20 @@ subroutine Orchestration_init()
     use iso_c_binding,      ONLY : C_INT, C_CHAR, C_NULL_CHAR
     use Orchestration_data, ONLY : or_isRuntimeInitialized, &
                                    or_logFilename, &
-                                   or_nThreadTeams, &
+                                   or_nTileThreadTeams, &
+                                   or_nPacketThreadTeams, &
                                    or_nThreadsPerTeam
     implicit none
 
     interface
-        function orchestration_init_fi(nTeams, &
+        function orchestration_init_fi(nTileTeams, &
+                                       nPacketTeams, &
                                        nThreadsPerTeam, &
                                        logFilename) result(success) bind(c)
             import
             implicit none
-            integer,                      intent(IN), value :: nTeams
+            integer,                      intent(IN), value :: nTileTeams
+            integer,                      intent(IN), value :: nPacketTeams
             integer,                      intent(IN), value :: nThreadsPerTeam
             character(len=1,kind=C_CHAR), intent(IN)        :: logFilename(*)
             integer(C_INT)                                  :: success
@@ -36,7 +39,9 @@ subroutine Orchestration_init()
     end do
     cFilename(SIZE(cFilename)) = C_NULL_CHAR
 
-    success = orchestration_init_fi(or_nThreadTeams, or_nThreadsPerTeam, cFilename)
+    success = orchestration_init_fi(or_nTileThreadTeams, &
+                                    or_nPacketThreadTeams, &
+                                    or_nThreadsPerTeam, cFilename)
     if (success /= 1) then
         write(*,*) "[Orchestration_init] Unable to initialize orchestration runtime"
         STOP

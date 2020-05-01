@@ -27,7 +27,9 @@ void Analysis::initialize(const unsigned int nBlocks) {
     energyScaleFactor = 5.0;
 }
     
-void   Analysis::computeErrors(const int tId, Tile* tileDesc) {
+void   Analysis::computeErrors_block(const int tId, void* dataItem) {
+    Tile* tileDesc = static_cast<Tile*>(dataItem);
+
     Grid*   grid = Grid::instance();
     amrex::MultiFab&   unk = grid->unk();
     amrex::Geometry&   geometry = grid->geometry();

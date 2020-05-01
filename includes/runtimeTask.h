@@ -11,12 +11,12 @@
 #ifndef RUNTIME_TASK_H__
 #define RUNTIME_TASK_H__
 
-#include <string>
-
 // The work must be passed as a pointer for interoperability with Fortran
 // interface
-template<typename W>
-using TASK_FCN = void (*)(const int tId, W* work);
+// TODO: When the dust settles, determine if it is acceptable to send the void*
+//       without also sending information to know that a subsequent
+//       reinterpret_cast is valid.
+using TASK_FCN = void (*)(const int tId, void* work);
 
 #endif
 

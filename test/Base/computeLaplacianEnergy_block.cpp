@@ -1,13 +1,18 @@
-#include "computeLaplacianEnergy_cpu.h"
+#include "computeLaplacianEnergy_block.h"
 
 #include "Flash.h"
 #include "Grid.h"
 
-void ThreadRoutines::computeLaplacianEnergy_cpu(const int tId, Tile* tileDesc) {
+void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem) {
+    Tile* tileDesc = static_cast<Tile*>(dataItem);
+
     amrex::MultiFab&    unk = Grid::instance()->unk();
     amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
     amrex::Array4<amrex::Real> const&   f = fab.array();
 
+    // TODO: We should have scratch preallocated outside this routine.  It would
+    // either be setup by the operation or available through a memory manager
+    // and its location communicated as a pointer in a given data packet.
     amrex::FArrayBox                    fabBuffer(tileDesc->interior());
     amrex::Array4<amrex::Real> const&   buffer = fabBuffer.array();
 
@@ -39,6 +44,10 @@ void ThreadRoutines::computeLaplacianEnergy_cpu(const int tId, Tile* tileDesc) {
     }
 
     // Overwrite interior of given block with Laplacian result
+    // TODO: In the case of a data packet, we could have the input data given as
+    // a pointer to CC1 and directly write the result to CC2.  When copying the
+    // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
+    // would be unnecessary.
     for     (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
             f(i, j, lo.z, ENER_VAR_C) = buffer(i, j, lo.z, 0);

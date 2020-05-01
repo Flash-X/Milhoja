@@ -1,9 +1,12 @@
-#include "computeLaplacianDensity_cpu.h"
+#include "computeLaplacianDensity_block.h"
 
 #include "Flash.h"
 #include "Grid.h"
 
-void ThreadRoutines::computeLaplacianDensity_cpu(const int tId, Tile* tileDesc) {
+void ThreadRoutines::computeLaplacianDensity_block(const int tId, 
+                                                   void* dataItem) {
+    Tile*  tileDesc = static_cast<Tile*>(dataItem);
+
     amrex::MultiFab&    unk = Grid::instance()->unk();
     amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
     amrex::Array4<amrex::Real> const&   f = fab.array();

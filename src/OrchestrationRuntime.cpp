@@ -7,7 +7,8 @@
 #include "Flash.h"
 
 std::string           OrchestrationRuntime::logFilename_       = "";
-unsigned int          OrchestrationRuntime::nTeams_            = 1;
+unsigned int          OrchestrationRuntime::nTileTeams_        = 1;
+unsigned int          OrchestrationRuntime::nPacketTeams_      = 1;
 unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 5;
 OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
 
@@ -43,16 +44,18 @@ void OrchestrationRuntime::setLogFilename(const std::string& filename) {
  *
  * \return 
  */
-void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTeams) {
+void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTileTeams,
+                                                const unsigned int nPacketTeams) {
     if (instance_) {
         throw std::logic_error("[OrchestrationRuntime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
-    } else if(nTeams == 0) {
+    } else if ((nTileTeams == 0) && (nPacketTeams == 0)) {
         throw std::invalid_argument("[OrchestrationRuntime::setNumberThreadTeams] "
                                     "Need at least one ThreadTeam");
     }
 
-    nTeams_ = nTeams;
+    nTileTeams_   = nTileTeams;
+    nPacketTeams_ = nPacketTeams;
 }
 
 /**
@@ -84,9 +87,14 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
     logFile_.close();
 #endif
 
-    teams_ = new ThreadTeam<Tile>*[nTeams_];
-    for (unsigned int i=0; i<nTeams_; ++i) {
-        teams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i, logFilename_);
+    tileTeams_ = new ThreadTeam<Tile>*[nTileTeams_];
+    for (unsigned int i=0; i<nTileTeams_; ++i) {
+        tileTeams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i, logFilename_);
+    }
+
+    packetTeams_ = new ThreadTeam<DataPacket>*[nPacketTeams_];
+    for (unsigned int i=0; i<nPacketTeams_; ++i) {
+        packetTeams_[i] = new ThreadTeam<DataPacket>(maxThreadsPerTeam_, i, logFilename_);
     }
 
 #ifdef DEBUG_RUNTIME
@@ -108,13 +116,19 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
     logFile_.close();
 #endif
 
-    for (unsigned int i=0; i<nTeams_; ++i) {
-        delete teams_[i];
-        teams_[i] = nullptr;
+    for (unsigned int i=0; i<nTileTeams_; ++i) {
+        delete tileTeams_[i];
+        tileTeams_[i] = nullptr;
     }
+    delete [] tileTeams_;
+    tileTeams_ = nullptr;
 
-    delete [] teams_;
-    teams_ = nullptr;
+    for (unsigned int i=0; i<nPacketTeams_; ++i) {
+        delete packetTeams_[i];
+        packetTeams_[i] = nullptr;
+    }
+    delete [] packetTeams_;
+    packetTeams_ = nullptr;
 
     instance_ = nullptr;
 
@@ -158,6 +172,9 @@ void OrchestrationRuntime::executeTasks(const ActionBundle& bundle) {
     if (hasCpuAction && !hasGpuAction && !hasPostGpuAction) {
         executeCpuTasks(bundle.name,
                         bundle.cpuAction);
+    } else if (!hasCpuAction && hasGpuAction && !hasPostGpuAction) {
+        executeGpuTasks(bundle.name,
+                        bundle.gpuAction);
     } else if (hasCpuAction && hasGpuAction && !hasPostGpuAction) {
         executeConcurrentCpuGpuTasks(bundle.name, 
                                      bundle.cpuAction,
@@ -168,7 +185,8 @@ void OrchestrationRuntime::executeTasks(const ActionBundle& bundle) {
                           bundle.gpuAction,
                           bundle.postGpuAction);
     } else {
-        std::string   errMsg =   "No compatible thread team layout - ";
+        std::string   errMsg =   "[OrchestrationRuntime::executeTasks] ";
+        errMsg += "No compatible thread team layout - ";
         errMsg += bundle.name;
         errMsg += "\n";
         throw std::logic_error(errMsg);
@@ -211,9 +229,9 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
                                "thread team, which is not in configuration");
     }
 
-    ThreadTeam<Tile>*   cpuTeam     = teams_[0];
-    ThreadTeam<Tile>*   gpuTeam     = teams_[1];
-    ThreadTeam<Tile>*   postGpuTeam = teams_[2];
+    ThreadTeam<Tile>*   cpuTeam     = tileTeams_[0];
+    ThreadTeam<Tile>*   gpuTeam     = tileTeams_[1];
+    ThreadTeam<Tile>*   postGpuTeam = tileTeams_[2];
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -301,8 +319,8 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
                                "thread team, which is not in configuration");
     }
 
-    ThreadTeam<Tile>*   cpuTeam = teams_[0];
-    ThreadTeam<Tile>*   gpuTeam = teams_[1];
+    ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
+    ThreadTeam<Tile>*   gpuTeam = tileTeams_[1];
 
     cpuTeam->startTask(cpuAction.routine,
                        cpuAction.nInitialThreads,
@@ -336,13 +354,13 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
  */
 void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
                                            const RuntimeAction& cpuAction) {
-    if      (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+    if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[OrchestrationRuntime::executeCpuTasks] "
                                "Given CPU action should run on block-based "
                                "thread team, which is not in configuration");
     }
 
-    ThreadTeam<Tile>*   cpuTeam     = teams_[0];
+    ThreadTeam<Tile>*   cpuTeam     = tileTeams_[0];
 
     cpuTeam->startTask(cpuAction.routine,
                        cpuAction.nInitialThreads,
@@ -359,5 +377,39 @@ void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
     grid = nullptr;
     cpuTeam->closeTask();
     cpuTeam->wait();
+}
+
+void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
+                                           const RuntimeAction& gpuAction) {
+    if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[OrchestrationRuntime::executeGpuTasks] "
+                               "Given GPU action should run on a thread team"
+                               "that works with data packets of blocks");
+    }
+
+    ThreadTeam<DataPacket>*   gpuTeam     = packetTeams_[0];
+
+    gpuTeam->startTask(gpuAction.routine,
+                       gpuAction.nInitialThreads,
+                       "GPU_PacketOfBlocks_Team",
+                       gpuAction.name);
+
+    DataPacket  packet;
+    std::queue<Tile>().swap(packet.tileList);
+
+    unsigned int   level = 0;
+    Grid*   grid = Grid::instance();
+    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+        // Ownership of tile resources is transferred immediately
+        Tile  work(itor, level);
+        packet.tileList.push(work);
+//        packet.tileList.push(std::move(work));
+        gpuTeam->enqueue(packet, true);
+
+        std::queue<Tile>().swap(packet.tileList);
+    }
+    grid = nullptr;
+    gpuTeam->closeTask();
+    gpuTeam->wait();
 }
 

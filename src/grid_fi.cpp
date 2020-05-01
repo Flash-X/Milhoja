@@ -24,7 +24,7 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int nVars,
-                               TASK_FCN<Tile> initBlock) {
+                               TASK_FCN initBlock) {
         Grid*   grid = Grid::instance();
         grid->initDomain(static_cast<amrex::Real>(xMin),
                          static_cast<amrex::Real>(xMax),

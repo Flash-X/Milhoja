@@ -20,11 +20,11 @@
 
 #include "Flash.h"
 #include "constants.h"
-#include "initTile_cpu.h"
 #include "Analysis.h"
-#include "scaleEnergy_cpu.h"
-#include "computeLaplacianDensity_cpu.h"
-#include "computeLaplacianEnergy_cpu.h"
+#include "setInitialConditions_block.h"
+#include "scaleEnergy_block.h"
+#include "computeLaplacianDensity_block.h"
+#include "computeLaplacianEnergy_block.h"
 
 #include "gtest/gtest.h"
 
@@ -37,13 +37,15 @@ class TestRuntimeTile : public testing::Test {
 protected:
     // TASK_COMPOSER: The offline tool will need to determine how many thread
     // teams are needed as well as how many threads to allocate to each.
-    static constexpr unsigned int   N_THREAD_TEAMS = 3;
+    static constexpr unsigned int   N_TILE_THREAD_TEAMS   = 3;
+    static constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
     static constexpr unsigned int   MAX_THREADS    = 5;
 
     OrchestrationRuntime*   runtime_;
 
     TestRuntimeTile(void) {
-        OrchestrationRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
+        OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
+                                                   N_PACKET_THREAD_TEAMS);
         OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
         runtime_ = OrchestrationRuntime::instance();
 
@@ -51,7 +53,7 @@ protected:
         grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                          N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
                          NUNKVAR,
-                         Simulation::initTile_cpu);
+                         Simulation::setInitialConditions_block);
    }
 
     ~TestRuntimeTile(void) {
@@ -71,7 +73,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     unsigned int   level = 0;
 
     try {
-        cpu.startTask(ThreadRoutines::computeLaplacianEnergy_cpu, N_THREADS,
+        cpu.startTask(ThreadRoutines::computeLaplacianEnergy_block, N_THREADS,
                       "Cpu", "LaplacianEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
@@ -80,7 +82,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.closeTask();
         cpu.wait();
 
-        cpu.startTask(ThreadRoutines::computeLaplacianDensity_cpu, N_THREADS,
+        cpu.startTask(ThreadRoutines::computeLaplacianDensity_block, N_THREADS,
                       "Cpu", "LaplacianDensity");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
@@ -89,7 +91,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.closeTask();
         cpu.wait();
 
-        cpu.startTask(ThreadRoutines::scaleEnergy_cpu, N_THREADS,
+        cpu.startTask(ThreadRoutines::scaleEnergy_block, N_THREADS,
                       "Cpu", "scaleEnergy");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
@@ -99,7 +101,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         cpu.wait();
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        cpu.startTask(Analysis::computeErrors, N_THREADS,
+        cpu.startTask(Analysis::computeErrors_block, N_THREADS,
                       "Analysis", "computeErrors");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
@@ -154,15 +156,15 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         bundle.cpuAction.name                = "bundle1_cpuAction";
         bundle.cpuAction.nInitialThreads     = 1;
         bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.cpuAction.routine             = ThreadRoutines::computeLaplacianDensity_cpu;
+        bundle.cpuAction.routine             = ThreadRoutines::computeLaplacianDensity_block;
         bundle.gpuAction.name                = "bundle1_gpuAction";
         bundle.gpuAction.nInitialThreads     = 2;
         bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.gpuAction.routine             = ThreadRoutines::computeLaplacianEnergy_cpu;
+        bundle.gpuAction.routine             = ThreadRoutines::computeLaplacianEnergy_block;
         bundle.postGpuAction.name            = "bundle1_postGpuAction";
         bundle.postGpuAction.nInitialThreads = 0;
         bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
-        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_cpu;
+        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_block;
 
         runtime_->executeTasks(bundle);
 
@@ -170,7 +172,7 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         bundle.cpuAction.name                = "computeErrors";
         bundle.cpuAction.nInitialThreads     = 2;
         bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.cpuAction.routine             = Analysis::computeErrors;
+        bundle.cpuAction.routine             = Analysis::computeErrors_block;
         bundle.gpuAction.name                = "";
         bundle.gpuAction.nInitialThreads     = 0;
         bundle.gpuAction.routine             = nullptr;

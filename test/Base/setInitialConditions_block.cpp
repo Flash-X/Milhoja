@@ -1,10 +1,12 @@
-#include "initTile_cpu.h"
+#include "setInitialConditions_block.h"
 
 #include "Flash.h"
 #include "constants.h"
 #include "Grid.h"
 
-void Simulation::initTile_cpu(const int tId, Tile* tileDesc) {
+void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
+    Tile*  tileDesc = static_cast<Tile*>(dataItem);
+
     Grid*    grid = Grid::instance();
     amrex::Geometry     geometry = grid->geometry();
     amrex::MultiFab&    unk = grid->unk();

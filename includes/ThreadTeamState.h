@@ -7,7 +7,8 @@
  *
  * The template variable W defines the unit of work (e.g. a tile, data packet of
  * tiles); T, refers to the main State class in the State design pattern and
- * should therefore always be ThreadTeam.
+ * should therefore always be ThreadTeam<W>.  Note that T is necessary to break
+ * a circular dependence with ThreadTeam.h.
  */
 
 #ifndef THREAD_TEAM_STATE_H__
@@ -15,8 +16,6 @@
 
 #include <string>
 
-// TODO: Can we get rid of the T by just replacing it with ThreadTeam<W>?  I
-// believe that this restriction is what is intended.
 template<typename W, class T>
 class ThreadTeamState {
 public:
@@ -28,7 +27,7 @@ public:
     virtual std::string     increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) = 0;
     virtual std::string     startTask_NotThreadsafe(
-                                    TASK_FCN<W> fcn,
+                                    TASK_FCN fcn,
                                     const unsigned int nThreads,
                                     const std::string& teamName, 
                                     const std::string& taskName) = 0;

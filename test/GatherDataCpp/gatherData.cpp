@@ -17,11 +17,11 @@
 
 #include "Flash.h"
 #include "constants.h"
-#include "initTile_cpu.h"
 #include "Analysis.h"
-#include "scaleEnergy_cpu.h"
-#include "computeLaplacianDensity_cpu.h"
-#include "computeLaplacianEnergy_cpu.h"
+#include "setInitialConditions_block.h"
+#include "scaleEnergy_block.h"
+#include "computeLaplacianDensity_block.h"
+#include "computeLaplacianEnergy_block.h"
 
 // Have make specify build-time constants for file headers
 #include "buildInfo.h"
@@ -30,15 +30,16 @@
 constexpr unsigned int   LEVEL = 0;
 
 constexpr unsigned int   N_TRIALS = 5;
-constexpr unsigned int   N_THREAD_TEAMS = 3;
+constexpr unsigned int   N_TILE_THREAD_TEAMS = 3;
+constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
 
 void  setUp(void) {
     ActionBundle    bundle;
     bundle.name                          = "SetICs";
-    bundle.cpuAction.name                = "initTile_cpu";
+    bundle.cpuAction.name                = "setInitialConditions_block";
     bundle.cpuAction.nInitialThreads     = 4;
     bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
-    bundle.cpuAction.routine             = Simulation::initTile_cpu;
+    bundle.cpuAction.routine             = Simulation::setInitialConditions_block;
     bundle.gpuAction.name                = "";
     bundle.gpuAction.nInitialThreads     = 0;
     bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
@@ -79,7 +80,7 @@ void  tearDown(const std::string& filename,
         bundle.cpuAction.name                = "computeErrors";
         bundle.cpuAction.nInitialThreads     = 3;
         bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.cpuAction.routine             = Analysis::computeErrors;
+        bundle.cpuAction.routine             = Analysis::computeErrors_block;
         bundle.gpuAction.name                = "";
         bundle.gpuAction.nInitialThreads     = 0;
         bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
@@ -128,7 +129,8 @@ int   main(int argc, char* argv[]) {
     }
 
     // Initialize simulation
-    OrchestrationRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
+    OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
+                                               N_PACKET_THREAD_TEAMS);
     OrchestrationRuntime::setMaxThreadsPerTeam(nTotalThreads);
     OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
 
@@ -136,7 +138,7 @@ int   main(int argc, char* argv[]) {
     grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                      N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
                      NUNKVAR,
-                     Simulation::initTile_cpu);
+                     Simulation::setInitialConditions_block);
     amrex::MultiFab&  unk = grid->unk();
 
     // Setup logging of results
@@ -172,17 +174,17 @@ int   main(int argc, char* argv[]) {
         double tStart = MPI_Wtime(); 
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianDensity_cpu(0, &tileDesc);
+            ThreadRoutines::computeLaplacianDensity_block(0, &tileDesc);
         }
 
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianEnergy_cpu(0, &tileDesc);
+            ThreadRoutines::computeLaplacianEnergy_block(0, &tileDesc);
         }
 
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::scaleEnergy_cpu(0, &tileDesc);
+            ThreadRoutines::scaleEnergy_block(0, &tileDesc);
         }
         double tWalltime = MPI_Wtime() - tStart;
         tearDown(fname, "Serial", 3, -1, -1, -1, tWalltime);
@@ -192,9 +194,9 @@ int   main(int argc, char* argv[]) {
         tStart = MPI_Wtime(); 
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianDensity_cpu(0, &tileDesc);
-            ThreadRoutines::computeLaplacianEnergy_cpu(0, &tileDesc);
-            ThreadRoutines::scaleEnergy_cpu(0, &tileDesc);
+            ThreadRoutines::computeLaplacianDensity_block(0, &tileDesc);
+            ThreadRoutines::computeLaplacianEnergy_block(0, &tileDesc);
+            ThreadRoutines::scaleEnergy_block(0, &tileDesc);
         }
         tWalltime = MPI_Wtime() - tStart; 
         tearDown(fname, "Serial", 1, -1, -1, -1, tWalltime);
@@ -217,19 +219,19 @@ int   main(int argc, char* argv[]) {
         setUp();
 
         bundle.cpuAction.nInitialThreads = 1;
-        bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianDensity_cpu,
+        bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianDensity_block,
         tStart = MPI_Wtime(); 
         runtime->executeTasks(bundle);
         tWalltime = MPI_Wtime() - tStart; 
 
         bundle.cpuAction.nInitialThreads = 1;
-        bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianEnergy_cpu,
+        bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianEnergy_block,
         tStart = MPI_Wtime(); 
         runtime->executeTasks(bundle);
         tWalltime += MPI_Wtime() - tStart; 
 
         bundle.cpuAction.nInitialThreads = 1;
-        bundle.cpuAction.routine         = ThreadRoutines::scaleEnergy_cpu,
+        bundle.cpuAction.routine         = ThreadRoutines::scaleEnergy_block,
         tStart = MPI_Wtime(); 
         runtime->executeTasks(bundle);
         tWalltime += MPI_Wtime() - tStart; 
@@ -241,15 +243,15 @@ int   main(int argc, char* argv[]) {
         bundle.cpuAction.name                = "bundle1_cpuAction";
         bundle.cpuAction.nInitialThreads     = 0;
         bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.cpuAction.routine             = ThreadRoutines::computeLaplacianDensity_cpu;
+        bundle.cpuAction.routine             = ThreadRoutines::computeLaplacianDensity_block;
         bundle.gpuAction.name                = "bundle1_gpuAction";
         bundle.gpuAction.nInitialThreads     = 0;
         bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
-        bundle.gpuAction.routine             = ThreadRoutines::computeLaplacianEnergy_cpu;
+        bundle.gpuAction.routine             = ThreadRoutines::computeLaplacianEnergy_block;
         bundle.postGpuAction.name            = "bundle1_postGpuAction";
         bundle.postGpuAction.nInitialThreads = 0;
         bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
-        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_cpu;
+        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_block;
 
         for (unsigned int n=2; n<nTotalThreads; ++n) {
             int  nConcurrentThreads = n / 2;

@@ -24,7 +24,7 @@ public:
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
     std::string     startTask_NotThreadsafe(
-                            TASK_FCN<W> fcn,
+                            TASK_FCN fcn,
                             const unsigned int nThreads,
                             const std::string& teamName, 
                             const std::string& taskName) override;

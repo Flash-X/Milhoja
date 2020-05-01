@@ -542,7 +542,7 @@ void ThreadTeam<W>::increaseThreadCount(const unsigned int nThreads) {
  *                      logging the team during this execution cycle.
  */
 template<typename W>
-void ThreadTeam<W>::startTask(TASK_FCN<W> fcn,
+void ThreadTeam<W>::startTask(TASK_FCN fcn,
                            const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName,

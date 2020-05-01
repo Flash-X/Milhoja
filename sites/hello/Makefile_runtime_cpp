@@ -14,6 +14,7 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
@@ -27,10 +28,10 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/initTile_cpu.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_cpu.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTBASEDIR)/scaleEnergy_cpu.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
+    $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTBASEDIR)/Analysis.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
@@ -38,10 +39,10 @@ SRCS       = \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTBASEDIR)/initTile_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(TESTBASEDIR)/scaleEnergy_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
+    $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \

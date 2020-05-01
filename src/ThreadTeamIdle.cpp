@@ -57,10 +57,10 @@ std::string ThreadTeamIdle<W,T>::isStateValid_NotThreadSafe(void) const {
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN<W> fcn,
-                                                    const unsigned int nThreads,
-                                                    const std::string& teamName, 
-                                                    const std::string& taskName) {
+std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN fcn,
+                                                         const unsigned int nThreads,
+                                                         const std::string& teamName, 
+                                                         const std::string& taskName) {
     std::string   errMsg("");
 
 #ifdef DEBUG_RUNTIME

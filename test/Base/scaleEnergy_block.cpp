@@ -1,10 +1,12 @@
-#include "scaleEnergy_cpu.h"
+#include "scaleEnergy_block.h"
 
 #include "Flash.h"
 #include "Grid.h"
 
-void ThreadRoutines::scaleEnergy_cpu(const int tId,
-                                     Tile* tileDesc) {
+void ThreadRoutines::scaleEnergy_block(const int tId,
+                                       void* dataItem) {
+    Tile* tileDesc = static_cast<Tile*>(dataItem);
+
     Grid*    grid = Grid::instance();
     amrex::Geometry     geometry = grid->geometry();
     amrex::MultiFab&    unk = grid->unk();

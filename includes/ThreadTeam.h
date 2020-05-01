@@ -87,7 +87,7 @@ public:
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
     void         increaseThreadCount(const unsigned int nThreads);
-    void         startTask(TASK_FCN<W> fcn,
+    void         startTask(TASK_FCN fcn,
                            const unsigned int nThreads,
                            const std::string& teamName, 
                            const std::string& taskName,
@@ -192,7 +192,7 @@ private:
     pthread_cond_t    threadTerminated_;   //!< Each thread emits this signal upon termination
     pthread_cond_t    unblockWaitThread_;  //!< Wake single thread blocked by calling wait()
 
-    TASK_FCN<W>       taskFcn_;            /*!< Computational task to be applied to
+    TASK_FCN          taskFcn_;            /*!< Computational task to be applied to
                                             *   all units of enqueued work */
 
     ThreadTeam*       threadReceiver_;     //!< Thread team to notify when threads terminate
