@@ -3,7 +3,10 @@
 #include <stdexcept>
 
 #include "Tile.h"
+
 #include "runtimeTask.h"
+#include "ActionBundle.h"
+#include "ThreadTeamDataType.h"
 #include "OrchestrationRuntime.h"
 
 extern "C" {
@@ -39,21 +42,31 @@ extern "C" {
     /**
      *
      */
-    int    orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuTask,
+    int    orchestration_execute_tasks_fi(TASK_FCN<Tile> cpuAction,
                                           const int nCpuThreads,
-                                          TASK_FCN<Tile> gpuTask,
+                                          TASK_FCN<Tile> gpuAction,
                                           const int nGpuThreads,
-                                          TASK_FCN<Tile> postGpuTask,
+                                          TASK_FCN<Tile> postGpuAction,
                                           const int nPostGpuThreads) {
+        ActionBundle    bundle;
+        bundle.name                          = "Action Bundle from Fortran";
+        bundle.cpuAction.name                = "cpuAction";
+        bundle.cpuAction.nInitialThreads     = static_cast<unsigned int>(nCpuThreads);
+        bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
+        bundle.cpuAction.routine             = cpuAction;
+        bundle.gpuAction.name                = "gpuAction";
+        bundle.gpuAction.nInitialThreads     = static_cast<unsigned int>(nGpuThreads);
+        bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
+        bundle.gpuAction.routine             = gpuAction;
+        bundle.postGpuAction.name            = "postGpuAction";
+        bundle.postGpuAction.nInitialThreads = static_cast<unsigned int>(nPostGpuThreads);
+        bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
+        bundle.postGpuAction.routine         = postGpuAction;
+
         try {
             OrchestrationRuntime*  runtime = OrchestrationRuntime::instance();
-            runtime->executeTasks("Task1",
-                                  cpuTask,
-                                  static_cast<unsigned int>(nCpuThreads), "CpuTask",
-                                  gpuTask,
-                                  static_cast<unsigned int>(nGpuThreads), "GpuTask",
-                                  postGpuTask,
-                                  static_cast<unsigned int>(nPostGpuThreads), "postGpuTask");
+            runtime->executeTasks(bundle);
+            runtime = nullptr;
         } catch (std::invalid_argument& e) {
             std::cerr << "\nINVALID ARGUMENT: " << e.what() << "\n\n";
             return 0;

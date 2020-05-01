@@ -145,22 +145,41 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
+    ActionBundle    bundle;
+
     try {
         // Give an extra thread to the GPU task so that it can start to get work
         // to the postGpu task quicker.
-        runtime_->executeTasks("Task Bundle 1",
-                               ThreadRoutines::computeLaplacianDensity_cpu,
-                               1, "bundle1_cpuTask",
-                               ThreadRoutines::computeLaplacianEnergy_cpu,
-                               2, "bundle1_gpuTask",
-                               ThreadRoutines::scaleEnergy_cpu,
-                               0, "bundle1_postGpuTask");
+        bundle.name                          = "Action Bundle 1";
+        bundle.cpuAction.name                = "bundle1_cpuAction";
+        bundle.cpuAction.nInitialThreads     = 1;
+        bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
+        bundle.cpuAction.routine             = ThreadRoutines::computeLaplacianDensity_cpu;
+        bundle.gpuAction.name                = "bundle1_gpuAction";
+        bundle.gpuAction.nInitialThreads     = 2;
+        bundle.gpuAction.teamType            = ThreadTeamDataType::BLOCK;
+        bundle.gpuAction.routine             = ThreadRoutines::computeLaplacianEnergy_cpu;
+        bundle.postGpuAction.name            = "bundle1_postGpuAction";
+        bundle.postGpuAction.nInitialThreads = 0;
+        bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
+        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_cpu;
+
+        runtime_->executeTasks(bundle);
+
+        bundle.name                          = "Analysis Bundle";
+        bundle.cpuAction.name                = "computeErrors";
+        bundle.cpuAction.nInitialThreads     = 2;
+        bundle.cpuAction.teamType            = ThreadTeamDataType::BLOCK;
+        bundle.cpuAction.routine             = Analysis::computeErrors;
+        bundle.gpuAction.name                = "";
+        bundle.gpuAction.nInitialThreads     = 0;
+        bundle.gpuAction.routine             = nullptr;
+        bundle.postGpuAction.name            = "";
+        bundle.postGpuAction.nInitialThreads = 0;
+        bundle.postGpuAction.routine         = nullptr;
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        runtime_->executeTasks("Analysis bundle",
-                               Analysis::computeErrors, 2, "bundle1_cpuTask",
-                               nullptr, 0, "null_gpuTask",
-                               nullptr, 0, "null_postGpuTask");
+        runtime_->executeTasks(bundle);
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";

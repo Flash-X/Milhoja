@@ -12,7 +12,8 @@
 
 #include "Tile.h"
 #include "ThreadTeam.h"
-#include "runtimeTask.h"
+#include "ActionBundle.h"
+#include "RuntimeAction.h"
 
 class OrchestrationRuntime {
 public:
@@ -23,16 +24,7 @@ public:
     static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
-    void executeTasks(const std::string& bundleName,
-                      TASK_FCN<Tile> cpuTask,
-                      const unsigned int nCpuThreads,
-                      const std::string& cpuTaskName,
-                      TASK_FCN<Tile> gpuTask, 
-                      const unsigned int nGpuThreads,
-                      const std::string& gpuTaskName, 
-                      TASK_FCN<Tile> postGpuTask,
-                      const unsigned int nPostGpuThreads,
-                      const std::string& postGpuTaskName);
+    void executeTasks(const ActionBundle& bundle);
 
 private:
     OrchestrationRuntime(void);
@@ -47,29 +39,17 @@ private:
     OrchestrationRuntime& operator=(OrchestrationRuntime&&) = delete;
     OrchestrationRuntime& operator=(const OrchestrationRuntime&&) = delete;
 
-    void executeCpuTask(const std::string& bundleName,
-                        TASK_FCN<Tile> cpuTask,
-                        const unsigned int nCpuThreads,
-                        const std::string& cpuTaskName);
+    void executeCpuTasks(const std::string& bundleName,
+                         const RuntimeAction& cpuAction);
 
     void executeConcurrentCpuGpuTasks(const std::string& bundleName,
-                                      TASK_FCN<Tile> cpuTask,
-                                      const unsigned int nCpuThreads,
-                                      const std::string& cpuTaskName,
-                                      TASK_FCN<Tile> gpuTask,
-                                      const unsigned int nGpuThreads,
-                                      const std::string& gpuTaskName);
+                                      const RuntimeAction& cpuAction,
+                                      const RuntimeAction& gpuAction);
 
     void executeTasks_Full(const std::string& bundleName,
-                           TASK_FCN<Tile> cpuTask,
-                           const unsigned int nCpuThreads,
-                           const std::string& cpuTaskName,
-                           TASK_FCN<Tile> gpuTask, 
-                           const unsigned int nGpuThreads,
-                           const std::string& gpuTaskName, 
-                           TASK_FCN<Tile> postGpuTask,
-                           const unsigned int nPostGpuThreads,
-                           const std::string& postGpuTaskName);
+                           const RuntimeAction& cpuAction,
+                           const RuntimeAction& gpuAction,
+                           const RuntimeAction& postGpuAction);
 
     static std::string             logFilename_;
     static unsigned int            nTeams_; 

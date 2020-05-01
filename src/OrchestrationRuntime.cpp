@@ -130,22 +130,22 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
  *
  * \return 
  */
-void OrchestrationRuntime::executeTasks(const std::string& bundleName,
-                                        TASK_FCN<Tile> cpuTask,
-                                        const unsigned int nCpuThreads,
-                                        const std::string& cpuTaskName,
-                                        TASK_FCN<Tile> gpuTask, 
-                                        const unsigned int nGpuThreads,
-                                        const std::string& gpuTaskName, 
-                                        TASK_FCN<Tile> postGpuTask,
-                                        const unsigned int nPostGpuThreads,
-                                        const std::string& postGpuTaskName) {
+void OrchestrationRuntime::executeTasks(const ActionBundle& bundle) {
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Start execution of " 
-             << bundleName << std::endl;
+             << bundle.name << std::endl;
     logFile_.close();
 #endif
+
+    if      (bundle.distribution != WorkDistribution::Concurrent) {
+        throw std::logic_error("[OrchestrationRuntime::executeTasks] "
+                               "The runtime only handles concurrent work distriution");
+    }
+
+    bool  hasCpuAction     = (bundle.cpuAction.routine     != nullptr);
+    bool  hasGpuAction     = (bundle.gpuAction.routine     != nullptr);
+    bool  hasPostGpuAction = (bundle.postGpuAction.routine != nullptr);
 
     // TODO: The pipeline construction would be done dynamically.
     // Realistically, we would have multiple different implementations and 
@@ -155,21 +155,21 @@ void OrchestrationRuntime::executeTasks(const std::string& bundleName,
     // TASK_COMPOSER: Should the task composer identify the pipelines that it
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
-    if (cpuTask && !gpuTask && !postGpuTask) {
-        executeCpuTask(bundleName,
-                       cpuTask, nCpuThreads, cpuTaskName);
-    } else if (cpuTask && gpuTask && !postGpuTask) {
-        executeConcurrentCpuGpuTasks(bundleName,
-                                     cpuTask, nCpuThreads, cpuTaskName,
-                                     gpuTask, nGpuThreads, gpuTaskName);
-    } else if (cpuTask && gpuTask && postGpuTask) {
-        executeTasks_Full(bundleName,
-                          cpuTask,     nCpuThreads,     cpuTaskName,
-                          gpuTask,     nGpuThreads,     gpuTaskName,
-                          postGpuTask, nPostGpuThreads, postGpuTaskName);
+    if (hasCpuAction && !hasGpuAction && !hasPostGpuAction) {
+        executeCpuTasks(bundle.name,
+                        bundle.cpuAction);
+    } else if (hasCpuAction && hasGpuAction && !hasPostGpuAction) {
+        executeConcurrentCpuGpuTasks(bundle.name, 
+                                     bundle.cpuAction,
+                                     bundle.gpuAction);
+    } else if (hasCpuAction && hasGpuAction && hasPostGpuAction) {
+        executeTasks_Full(bundle.name,
+                          bundle.cpuAction,
+                          bundle.gpuAction,
+                          bundle.postGpuAction);
     } else {
         std::string   errMsg =   "No compatible thread team layout - ";
-        errMsg += bundleName;
+        errMsg += bundle.name;
         errMsg += "\n";
         throw std::logic_error(errMsg);
     }
@@ -194,22 +194,32 @@ void OrchestrationRuntime::executeTasks(const std::string& bundleName,
  * \return 
  */
 void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
-                                             TASK_FCN<Tile> cpuTask,
-                                             const unsigned int nCpuThreads,
-                                             const std::string& cpuTaskName,
-                                             TASK_FCN<Tile> gpuTask, 
-                                             const unsigned int nGpuThreads,
-                                             const std::string& gpuTaskName, 
-                                             TASK_FCN<Tile> postGpuTask,
-                                             const unsigned int nPostGpuThreads,
-                                             const std::string& postGpuTaskName) {
+                                             const RuntimeAction& cpuAction,
+                                             const RuntimeAction& gpuAction,
+                                             const RuntimeAction& postGpuAction) {
+    if      (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeTasks_Full] "
+                               "Given CPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    } else if (gpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeTasks_Full] "
+                               "Given GPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    } else if (postGpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeTasks_Full] "
+                               "Given post-GPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    }
+
     ThreadTeam<Tile>*   cpuTeam     = teams_[0];
     ThreadTeam<Tile>*   gpuTeam     = teams_[1];
     ThreadTeam<Tile>*   postGpuTeam = teams_[2];
 
-    unsigned int nTotalThreads = nCpuThreads + nGpuThreads + nPostGpuThreads;
+    unsigned int nTotalThreads =       cpuAction.nInitialThreads
+                                 +     gpuAction.nInitialThreads
+                                 + postGpuAction.nInitialThreads;
     if (nTotalThreads > postGpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[OrchestrationRuntime::executeTask] "
+        throw std::logic_error("[OrchestrationRuntime::executeTasks_Full] "
                                 "Post-GPU could receive too many threads "
                                 "from the CPU and GPU teams");
     }
@@ -219,9 +229,19 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachWorkReceiver(postGpuTeam);
 
-    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
-    gpuTeam->startTask(gpuTask, nGpuThreads, "GpuTask", gpuTaskName);
-    postGpuTeam->startTask(postGpuTask, nPostGpuThreads, "PostGpuTask", postGpuTaskName);
+    // TODO: These should take a reference to a RuntimeAction
+    cpuTeam->startTask(cpuAction.routine,
+                       cpuAction.nInitialThreads,
+                       "Concurrent_CPU_Block_Team",
+                       cpuAction.name);
+    gpuTeam->startTask(gpuAction.routine,
+                       gpuAction.nInitialThreads,
+                       "Concurrent_GPU_Block_Team",
+                       gpuAction.name);
+    postGpuTeam->startTask(postGpuAction.routine,
+                           postGpuAction.nInitialThreads,
+                           "Post_GPU_Block_Team",
+                           postGpuAction.name);
 
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
@@ -269,17 +289,29 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
  * \return 
  */
 void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
-                                                        TASK_FCN<Tile> cpuTask,
-                                                        const unsigned int nCpuThreads,
-                                                        const std::string& cpuTaskName,
-                                                        TASK_FCN<Tile> gpuTask, 
-                                                        const unsigned int nGpuThreads,
-                                                        const std::string& gpuTaskName) {
+                                                        const RuntimeAction& cpuAction,
+                                                        const RuntimeAction& gpuAction) {
+    if      (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeConcurrentCpuGpuTasks] "
+                               "Given CPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    } else if (gpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeConcurrentCpuGpuTasks] "
+                               "Given GPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    }
+
     ThreadTeam<Tile>*   cpuTeam = teams_[0];
     ThreadTeam<Tile>*   gpuTeam = teams_[1];
 
-    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
-    gpuTeam->startTask(gpuTask, nGpuThreads, "GpuTask", gpuTaskName);
+    cpuTeam->startTask(cpuAction.routine,
+                       cpuAction.nInitialThreads,
+                       "Concurrent_CPU_Block_Team",
+                       cpuAction.name);
+    gpuTeam->startTask(gpuAction.routine,
+                       gpuAction.nInitialThreads,
+                       "Concurrent_GPU_Block_Team",
+                       gpuAction.name);
 
     unsigned int   level = 0;
     Grid*   grid = Grid::instance();
@@ -302,13 +334,20 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
  *
  * \return 
  */
-void OrchestrationRuntime::executeCpuTask(const std::string& bundleName,
-                                          TASK_FCN<Tile> cpuTask,
-                                          const unsigned int nCpuThreads,
-                                          const std::string& cpuTaskName) {
+void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
+                                           const RuntimeAction& cpuAction) {
+    if      (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[OrchestrationRuntime::executeCpuTasks] "
+                               "Given CPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    }
+
     ThreadTeam<Tile>*   cpuTeam     = teams_[0];
 
-    cpuTeam->startTask(cpuTask, nCpuThreads, "CpuTask", cpuTaskName);
+    cpuTeam->startTask(cpuAction.routine,
+                       cpuAction.nInitialThreads,
+                       "Concurrent_CPU_Block_Team",
+                       cpuAction.name);
 
     unsigned int   level = 0;
     Grid*   grid = Grid::instance();
