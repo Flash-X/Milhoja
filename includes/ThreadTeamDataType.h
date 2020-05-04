@@ -4,7 +4,8 @@
 enum class ThreadTeamDataType {TILE, 
                                BLOCK,
                                SET_OF_TILES,
-                               SET_OF_BLOCKS};
+                               SET_OF_BLOCKS,
+                               OTHER};
 
 #endif
 

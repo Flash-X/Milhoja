@@ -13,6 +13,8 @@
 
 #include "Flash.h"
 #include "constants.h"
+#include "RuntimeAction.h"
+#include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
 Grid*  Grid::instance_ = nullptr;
@@ -97,8 +99,14 @@ void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
     unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
 
     // TODO: Thread count should be a runtime variable
+    RuntimeAction    action;
+    action.name = "initBlock";
+    action.nInitialThreads = 4;
+    action.teamType = ThreadTeamDataType::BLOCK;
+    action.routine = initBlock;
+
     ThreadTeam<Tile>  team(4, 1, "no.log");
-    team.startTask(initBlock, 4, "init", "init");
+    team.startTask(action, "Cpu");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
         Tile   tileDesc(itor, level);
         team.enqueue(tileDesc, true);

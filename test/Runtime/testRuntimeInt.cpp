@@ -11,28 +11,38 @@
 
 namespace {
 
-// No-op set of task routines
-void cpuNoop(const int tId, void* work) { }
+// No-op action routine that assume that give dataItem is an int
+void noopActionRoutine_int(const int tId, void* dataItem) { }
 
-void gpuNoop(const int tId, void* work) { }
-
-void postGpuNoop(const int tId, void* work) { }
-
-// Set of task routines that sleep for a random amount of time
-void cpuRandom(const int tId, void* work) {
+// Action routine that assume that give dataItem is an int
+// and that sleepsfor a random amount of time
+void randomActionRoutine_int(const int tId, void* dataItem) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
 
-void gpuRandom(const int tId, void* work) {
-    int  time = rand() % 100;
-    std::this_thread::sleep_for(std::chrono::microseconds(time));
-}
+/**
+ *   Define a test fixture
+ */ 
+class ThreadRuntimeInt : public testing::Test {
+protected:
+    RuntimeAction    noop_int;
+    RuntimeAction    random_int;
 
-void postGpuRandom(const int tId, void* work) {
-    int  time = rand() % 100;
-    std::this_thread::sleep_for(std::chrono::microseconds(time));
-}
+    ThreadRuntimeInt(void) {
+        noop_int.name = "noop_int";
+        noop_int.nInitialThreads = 0;
+        noop_int.teamType = ThreadTeamDataType::OTHER;
+        noop_int.routine = noopActionRoutine_int;
+
+        random_int.name = "Random Wait";
+        random_int.nInitialThreads = 0;
+        random_int.teamType = ThreadTeamDataType::OTHER;
+        random_int.routine = randomActionRoutine_int;
+    }
+
+    ~ThreadRuntimeInt(void) { }
+};
 
 /**
  * Build up a runtime manually where the unit of work is a single unsigned int.
@@ -40,38 +50,41 @@ void postGpuRandom(const int tId, void* work) {
  * Only one execution cycle is run with the intent that the log file be manually
  * studied to confirm correctness.
  */
-TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
+TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
     std::vector<int>   work = {-5, 4, -1, 0, -6, 25};
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu(3,      1, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   gpu(6,      2, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   postGpu(10, 3, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   cpu_int(3,      1, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   gpu_int(6,      2, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   postGpu_int(10, 3, "TestSingle_ManualCheck.log");
 
-    cpu.attachThreadReceiver(&postGpu);
-    gpu.attachThreadReceiver(&postGpu);
-    gpu.attachWorkReceiver(&postGpu);
+    cpu_int.attachThreadReceiver(&postGpu_int);
+    gpu_int.attachThreadReceiver(&postGpu_int);
+    gpu_int.attachWorkReceiver(&postGpu_int);
 
     try {
-        cpu.startTask(cpuNoop,         2, "Cpu",     "cpuNoop");
-        gpu.startTask(gpuNoop,         5, "Gpu",     "gpuNoop");
-        postGpu.startTask(postGpuNoop, 0, "postGpu", "postGpuNoop");
+        noop_int.nInitialThreads = 2;
+        cpu_int.startTask(noop_int,     "Cpu");
+        noop_int.nInitialThreads = 5;
+        gpu_int.startTask(noop_int,     "Gpu");
+        noop_int.nInitialThreads = 0;
+        postGpu_int.startTask(noop_int, "postGpu");
 
         for (unsigned int i=0; i<work.size(); ++i) {
-            cpu.enqueue(work[i], false);
-            gpu.enqueue(work[i], true);
+            cpu_int.enqueue(work[i], false);
+            gpu_int.enqueue(work[i], true);
         }
         // gpu will call closeTask of postGpu when gpu transitions to Idle
-        gpu.closeTask();
-        cpu.closeTask();
+        gpu_int.closeTask();
+        cpu_int.closeTask();
 
-        cpu.wait();
-        gpu.wait();
-        postGpu.wait();
+        cpu_int.wait();
+        gpu_int.wait();
+        postGpu_int.wait();
 
-        cpu.detachThreadReceiver();
-        gpu.detachThreadReceiver();
-        gpu.detachWorkReceiver();
+        cpu_int.detachThreadReceiver();
+        gpu_int.detachThreadReceiver();
+        gpu_int.detachWorkReceiver();
     } catch (std::invalid_argument  e) {
         printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         EXPECT_TRUE(false);
@@ -95,7 +108,7 @@ TEST(ThreadRuntimeInt, TestSingle_ManualCheck) {
  * possible.  As no real work is being done, there is no means to check that the
  * runtime produced the correct result.  No exceptions means the test passed.
  */
-TEST(ThreadRuntimeInt, TestMultipleFast) {
+TEST_F(ThreadRuntimeInt, TestMultipleFast) {
 #ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
 #else
@@ -109,30 +122,33 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu(3,      1, "TestMultipleFast.log");
-    ThreadTeam<int>   gpu(6,      2, "TestMultipleFast.log");
-    ThreadTeam<int>   postGpu(10, 3, "TestMultipleFast.log");
+    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleFast.log");
+    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleFast.log");
+    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleFast.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
-        cpu.attachThreadReceiver(&postGpu);
-        gpu.attachThreadReceiver(&postGpu);
-        gpu.attachWorkReceiver(&postGpu);
+        cpu_int.attachThreadReceiver(&postGpu_int);
+        gpu_int.attachThreadReceiver(&postGpu_int);
+        gpu_int.attachWorkReceiver(&postGpu_int);
 
         try {
-            cpu.startTask(cpuNoop,         2, "Cpu",     "cpuNoop");
-            gpu.startTask(gpuNoop,         5, "Gpu",     "gpuNoop");
-            postGpu.startTask(postGpuNoop, 0, "postGpu", "postGpuNoop");
+            noop_int.nInitialThreads = 2;
+            cpu_int.startTask(noop_int,     "Cpu");
+            noop_int.nInitialThreads = 5;
+            gpu_int.startTask(noop_int,     "Gpu");
+            noop_int.nInitialThreads = 0;
+            postGpu_int.startTask(noop_int, "postGpu");
 
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu.enqueue(work[i], false);
-                gpu.enqueue(work[i], true);
+                cpu_int.enqueue(work[i], false);
+                gpu_int.enqueue(work[i], true);
             }
-            gpu.closeTask();
-            cpu.closeTask();
+            gpu_int.closeTask();
+            cpu_int.closeTask();
 
-            cpu.wait();
-            gpu.wait();
-            postGpu.wait();
+            cpu_int.wait();
+            gpu_int.wait();
+            postGpu_int.wait();
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
             EXPECT_TRUE(false);
@@ -147,9 +163,9 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
             EXPECT_TRUE(false);
         }
 
-        cpu.detachThreadReceiver();
-        gpu.detachThreadReceiver();
-        gpu.detachWorkReceiver();
+        cpu_int.detachThreadReceiver();
+        gpu_int.detachThreadReceiver();
+        gpu_int.detachWorkReceiver();
     }
 }
 
@@ -163,7 +179,7 @@ TEST(ThreadRuntimeInt, TestMultipleFast) {
  * means to check that the runtime produced the correct result.  No exceptions
  * means the test passed.
  */
-TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
+TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
     srand(1000);
 
 #ifdef DEBUG_RUNTIME
@@ -179,30 +195,33 @@ TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu(3,      1, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   gpu(6,      2, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   postGpu(10, 3, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleRandomWait.log");
 
-    cpu.attachThreadReceiver(&postGpu);
-    gpu.attachThreadReceiver(&postGpu);
-    gpu.attachWorkReceiver(&postGpu);
+    cpu_int.attachThreadReceiver(&postGpu_int);
+    gpu_int.attachThreadReceiver(&postGpu_int);
+    gpu_int.attachWorkReceiver(&postGpu_int);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         try {
-            cpu.startTask(cpuRandom,         2, "Cpu",     "cpuRandom");
-            gpu.startTask(gpuRandom,         5, "Gpu",     "gpuRandom");
-            postGpu.startTask(postGpuRandom, 0, "postGpu", "postGpuRandom");
+            random_int.nInitialThreads = 2;
+            cpu_int.startTask(random_int,     "Cpu");
+            random_int.nInitialThreads = 5;
+            gpu_int.startTask(random_int,     "Gpu");
+            random_int.nInitialThreads = 0;
+            postGpu_int.startTask(random_int, "postGpu");
 
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu.enqueue(work[i], false);
-                gpu.enqueue(work[i], true);
+                cpu_int.enqueue(work[i], false);
+                gpu_int.enqueue(work[i], true);
             }
-            gpu.closeTask();
-            cpu.closeTask();
+            gpu_int.closeTask();
+            cpu_int.closeTask();
 
-            cpu.wait();
-            gpu.wait();
-            postGpu.wait();
+            cpu_int.wait();
+            gpu_int.wait();
+            postGpu_int.wait();
         } catch (std::invalid_argument  e) {
             printf("\nINVALID ARGUMENT: %s\n\n", e.what());
             EXPECT_TRUE(false);
@@ -218,9 +237,9 @@ TEST(ThreadRuntimeInt, TestMultipleRandomWait) {
         }
     }
 
-    cpu.detachThreadReceiver();
-    gpu.detachThreadReceiver();
-    gpu.detachWorkReceiver();
+    cpu_int.detachThreadReceiver();
+    gpu_int.detachThreadReceiver();
+    gpu_int.detachWorkReceiver();
 }
 
 }

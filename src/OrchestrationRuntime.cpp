@@ -247,19 +247,9 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachWorkReceiver(postGpuTeam);
 
-    // TODO: These should take a reference to a RuntimeAction
-    cpuTeam->startTask(cpuAction.routine,
-                       cpuAction.nInitialThreads,
-                       "Concurrent_CPU_Block_Team",
-                       cpuAction.name);
-    gpuTeam->startTask(gpuAction.routine,
-                       gpuAction.nInitialThreads,
-                       "Concurrent_GPU_Block_Team",
-                       gpuAction.name);
-    postGpuTeam->startTask(postGpuAction.routine,
-                           postGpuAction.nInitialThreads,
-                           "Post_GPU_Block_Team",
-                           postGpuAction.name);
+    cpuTeam->startTask(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startTask(gpuAction, "Concurrent_GPU_Block_Team");
+    postGpuTeam->startTask(postGpuAction, "Post_GPU_Block_Team");
 
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
@@ -322,14 +312,8 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
     ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
     ThreadTeam<Tile>*   gpuTeam = tileTeams_[1];
 
-    cpuTeam->startTask(cpuAction.routine,
-                       cpuAction.nInitialThreads,
-                       "Concurrent_CPU_Block_Team",
-                       cpuAction.name);
-    gpuTeam->startTask(gpuAction.routine,
-                       gpuAction.nInitialThreads,
-                       "Concurrent_GPU_Block_Team",
-                       gpuAction.name);
+    cpuTeam->startTask(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startTask(gpuAction, "Concurrent_GPU_Block_Team");
 
     unsigned int   level = 0;
     Grid*   grid = Grid::instance();
@@ -362,10 +346,7 @@ void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
 
     ThreadTeam<Tile>*   cpuTeam     = tileTeams_[0];
 
-    cpuTeam->startTask(cpuAction.routine,
-                       cpuAction.nInitialThreads,
-                       "Concurrent_CPU_Block_Team",
-                       cpuAction.name);
+    cpuTeam->startTask(cpuAction, "CPU_Block_Team");
 
     unsigned int   level = 0;
     Grid*   grid = Grid::instance();
@@ -389,10 +370,7 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
 
     ThreadTeam<DataPacket>*   gpuTeam     = packetTeams_[0];
 
-    gpuTeam->startTask(gpuAction.routine,
-                       gpuAction.nInitialThreads,
-                       "GPU_PacketOfBlocks_Team",
-                       gpuAction.name);
+    gpuTeam->startTask(gpuAction, "GPU_PacketOfBlocks_Team");
 
     DataPacket  packet;
     std::queue<Tile>().swap(packet.tileList);

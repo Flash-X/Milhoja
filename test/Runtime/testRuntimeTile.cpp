@@ -41,9 +41,34 @@ protected:
     static constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
     static constexpr unsigned int   MAX_THREADS    = 5;
 
+    RuntimeAction    computeLaplacianDensity_block;
+    RuntimeAction    computeLaplacianEnergy_block;
+    RuntimeAction    scaleEnergy_block;
+    RuntimeAction    computeErrors_block;
+
     OrchestrationRuntime*   runtime_;
 
     TestRuntimeTile(void) {
+        computeLaplacianDensity_block.name = "computeLaplacianDensity";
+        computeLaplacianDensity_block.nInitialThreads = 0;
+        computeLaplacianDensity_block.teamType = ThreadTeamDataType::BLOCK;
+        computeLaplacianDensity_block.routine = ThreadRoutines::computeLaplacianDensity_block;
+
+        computeLaplacianEnergy_block.name = "computeLaplacianEnergy";
+        computeLaplacianEnergy_block.nInitialThreads = 0;
+        computeLaplacianEnergy_block.teamType = ThreadTeamDataType::BLOCK;
+        computeLaplacianEnergy_block.routine = ThreadRoutines::computeLaplacianEnergy_block;
+
+        scaleEnergy_block.name = "scaleEnergy";
+        scaleEnergy_block.nInitialThreads = 0;
+        scaleEnergy_block.teamType = ThreadTeamDataType::BLOCK;
+        scaleEnergy_block.routine = ThreadRoutines::scaleEnergy_block;
+
+        computeErrors_block.name = "computeErrors";
+        computeErrors_block.nInitialThreads = 0;
+        computeErrors_block.teamType = ThreadTeamDataType::BLOCK;
+        computeErrors_block.routine = Analysis::computeErrors_block;
+
         OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
                                                    N_PACKET_THREAD_TEAMS);
         OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
@@ -67,48 +92,48 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     amrex::MultiFab&   unk = Grid::instance()->unk();
 
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<Tile>  cpu(N_THREADS, 1, "TestSingleTeam.log");
+    ThreadTeam<Tile>  cpu_block(N_THREADS, 1, "TestSingleTeam.log");
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
 
     try {
-        cpu.startTask(ThreadRoutines::computeLaplacianEnergy_block, N_THREADS,
-                      "Cpu", "LaplacianEnergy");
+        computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
+        cpu_block.startTask(computeLaplacianEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
-            cpu.enqueue(myTile, true);
+            cpu_block.enqueue(myTile, true);
         }
-        cpu.closeTask();
-        cpu.wait();
+        cpu_block.closeTask();
+        cpu_block.wait();
 
-        cpu.startTask(ThreadRoutines::computeLaplacianDensity_block, N_THREADS,
-                      "Cpu", "LaplacianDensity");
+        computeLaplacianDensity_block.nInitialThreads = N_THREADS;
+        cpu_block.startTask(computeLaplacianDensity_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
-            cpu.enqueue(myTile, true);
+            cpu_block.enqueue(myTile, true);
         }
-        cpu.closeTask();
-        cpu.wait();
+        cpu_block.closeTask();
+        cpu_block.wait();
 
-        cpu.startTask(ThreadRoutines::scaleEnergy_block, N_THREADS,
-                      "Cpu", "scaleEnergy");
+        scaleEnergy_block.nInitialThreads = N_THREADS;
+        cpu_block.startTask(scaleEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
-            cpu.enqueue(myTile, true);
+            cpu_block.enqueue(myTile, true);
         }
-        cpu.closeTask();
-        cpu.wait();
+        cpu_block.closeTask();
+        cpu_block.wait();
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        cpu.startTask(Analysis::computeErrors_block, N_THREADS,
-                      "Analysis", "computeErrors");
+        computeErrors_block.nInitialThreads = N_THREADS;
+        cpu_block.startTask(computeErrors_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
-            cpu.enqueue(myTile, true);
+            cpu_block.enqueue(myTile, true);
         }
-        cpu.closeTask();
-        cpu.wait();
+        cpu_block.closeTask();
+        cpu_block.wait();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";

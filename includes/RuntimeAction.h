@@ -2,6 +2,7 @@
 #define RUNTIME_ACTION_H__
 
 #include "ThreadTeamDataType.h"
+#include "runtimeTask.h"
 
 // TODO: We need to create the concept of an action chain
 //       These are a sequence of RuntimeActions with consecutive teams 
