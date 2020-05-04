@@ -195,7 +195,7 @@ void OrchestrationRuntime::executeTasks(const ActionBundle& bundle) {
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finished execution of " 
-             << bundleName << std::endl;
+             << bundle.name << std::endl;
     logFile_.close();
 #endif
 }

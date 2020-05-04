@@ -16,8 +16,10 @@ GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -25,11 +27,13 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/initTile_cpu.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_cpu.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTBASEDIR)/scaleEnergy_cpu.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
+    $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTBASEDIR)/Analysis.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
@@ -37,10 +41,10 @@ SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTBASEDIR)/initTile_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(TESTBASEDIR)/scaleEnergy_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
+    $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \

@@ -15,8 +15,10 @@ AMREXDIR     = $(HOME)/local/gcc_9.1.0/AMReX_2d
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -24,23 +26,25 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTDIR)/Flash.h \
-    $(TESTDIR)/constants.h \
-    $(TESTDIR)/initTile_cpu.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
+    $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTDIR)/Analysis.h \
-    $(TESTDIR)/computeLaplacianDensity_cpu.h \
-    $(TESTDIR)/computeLaplacianEnergy_cpu.h \
-    $(TESTDIR)/scaleEnergy_cpu.h
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTBASEDIR)/initTile_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
+    $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_cpu.cpp \
-    $(TESTBASEDIR)/scaleEnergy_cpu.cpp \
     $(TESTDIR)/gatherData.cpp 
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
