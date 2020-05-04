@@ -542,11 +542,9 @@ void ThreadTeam<W>::increaseThreadCount(const unsigned int nThreads) {
  *                      logging the team during this execution cycle.
  */
 template<typename W>
-void ThreadTeam<W>::startTask(TASK_FCN fcn,
-                           const unsigned int nThreads,
-                           const std::string& teamName, 
-                           const std::string& taskName,
-                           const bool waitForThreads) {
+void ThreadTeam<W>::startTask(const RuntimeAction& action,
+                              const std::string& teamName,
+                              const bool waitForThreads) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -561,23 +559,23 @@ void ThreadTeam<W>::startTask(TASK_FCN fcn,
         errMsg = printState_NotThreadsafe("startTask", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
-    } else if (nThreads > N_idle_) {
+    } else if (action.nInitialThreads > N_idle_) {
         // Derived classes that implement startTask should account for nonzero
         // N_to_activate_
-        std::string  msg  = "nThreads (";
-        msg += std::to_string(nThreads);
+        std::string  msg  = "nInitialThreads (";
+        msg += std::to_string(action.nInitialThreads);
         msg += ") exceeds the number of threads available for activation";
         errMsg = printState_NotThreadsafe("startTask", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
-    } else if (!fcn) {
+    } else if (!action.routine) {
         errMsg = printState_NotThreadsafe("startTask", 0,
                  "null task funtion pointer given");
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    errMsg = state_->startTask_NotThreadsafe(fcn, nThreads, teamName, taskName);
+    errMsg = state_->startTask_NotThreadsafe(action, teamName);
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);

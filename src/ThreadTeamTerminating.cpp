@@ -32,10 +32,8 @@ ThreadTeamTerminating<W,T>::ThreadTeamTerminating(T* team)
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename W, class T>
-std::string ThreadTeamTerminating<W,T>::startTask_NotThreadsafe(TASK_FCN fcn,
-                                                                const unsigned int nThreads,
-                                                                const std::string& teamName, 
-                                                                const std::string& taskName) {
+std::string ThreadTeamTerminating<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
+                                                                const std::string& teamName) {
     return team_->printState_NotThreadsafe("startTask", 0,
                   "Cannot start a task if team is terminating");
 }

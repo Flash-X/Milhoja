@@ -57,10 +57,8 @@ std::string ThreadTeamIdle<W,T>::isStateValid_NotThreadSafe(void) const {
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN fcn,
-                                                         const unsigned int nThreads,
-                                                         const std::string& teamName, 
-                                                         const std::string& taskName) {
+std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
+                                                         const std::string& teamName) {
     std::string   errMsg("");
 
 #ifdef DEBUG_RUNTIME
@@ -68,28 +66,28 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(TASK_FCN fcn,
     team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
                     << teamName << std::endl;
     team_->logFile_ << "[" << teamName << "] Starting task "
-                    << taskName
+                    << action.name
                     << " with "
-                    << std::to_string(nThreads)
+                    << std::to_string(action.nInitialThreads)
                     << " initial threads\n";
     team_->logFile_.close();
 #endif
 
     team_->hdr_ = teamName;
-    team_->taskFcn_ = fcn;
+    team_->taskFcn_ = action.routine;
 
     // Timing tests originally failed on occasion when a single thread no-op
     // cycle was run after many 10 thread no-op cycles.  The execution cycles
     // were so fast that they were finishing before many threads had the chance
     // to be activated.  Eventually, there were more pending threads than
     // requested threads when startTask was called on the single thread cycle.
-    while (team_->N_to_activate_ > nThreads) {
+    while (team_->N_to_activate_ > action.nInitialThreads) {
         pthread_cond_wait(&(team_->allActivated_), &(team_->teamMutex_));
     }
     // This cannot rollover
-    unsigned int nEventsToEmit = nThreads - team_->N_to_activate_;
+    unsigned int nEventsToEmit = action.nInitialThreads - team_->N_to_activate_;
 
-    team_->N_to_activate_ = nThreads;
+    team_->N_to_activate_ = action.nInitialThreads;
     errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::RUNNING_OPEN_QUEUE);
     if (errMsg != "") {
         return errMsg;

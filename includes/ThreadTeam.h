@@ -59,6 +59,7 @@
 #include <fstream>
 
 #include "runtimeTask.h"
+#include "RuntimeAction.h"
 #include "ThreadTeamMode.h"
 
 #include "ThreadTeamState.h"
@@ -87,10 +88,8 @@ public:
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
     void         increaseThreadCount(const unsigned int nThreads);
-    void         startTask(TASK_FCN fcn,
-                           const unsigned int nThreads,
-                           const std::string& teamName, 
-                           const std::string& taskName,
+    void         startTask(const RuntimeAction& action,
+                           const std::string& teamName,
                            const bool waitForThreads=false);
     void         enqueue(W& work, const bool move);
     void         closeTask(void);

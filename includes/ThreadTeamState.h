@@ -16,6 +16,8 @@
 
 #include <string>
 
+#include "RuntimeAction.h"
+
 template<typename W, class T>
 class ThreadTeamState {
 public:
@@ -27,10 +29,8 @@ public:
     virtual std::string     increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) = 0;
     virtual std::string     startTask_NotThreadsafe(
-                                    TASK_FCN fcn,
-                                    const unsigned int nThreads,
-                                    const std::string& teamName, 
-                                    const std::string& taskName) = 0;
+                                    const RuntimeAction& action,
+                                    const std::string& teamName) = 0;
     virtual std::string     enqueue_NotThreadsafe(W& work, const bool move) = 0;
     virtual std::string     closeTask_NotThreadsafe(void) = 0;
 

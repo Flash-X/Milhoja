@@ -24,10 +24,8 @@ public:
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
     std::string     startTask_NotThreadsafe(
-                            TASK_FCN fcn,
-                            const unsigned int nThreads,
-                            const std::string& teamName, 
-                            const std::string& taskName) override;
+                            const RuntimeAction& action,
+                            const std::string& teamName) override;
     std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
     std::string     closeTask_NotThreadsafe(void) override;
 
