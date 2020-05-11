@@ -19,6 +19,7 @@ CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -33,7 +34,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
-    $(TESTDIR)/Analysis.h \
+    $(TESTBASEDIR)/Analysis.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 SRCS       = \

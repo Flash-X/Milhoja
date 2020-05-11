@@ -13,8 +13,8 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
-    $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamBase.h \
+    $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
     $(INCDIR)/ThreadTeamTerminating.h \

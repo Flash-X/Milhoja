@@ -17,6 +17,8 @@ CXX_HDRS   = \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -24,6 +26,8 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
