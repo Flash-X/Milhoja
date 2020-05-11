@@ -748,7 +748,9 @@ void ThreadTeam<W>::wait(void) {
 
 /**
  * Attach given thread team as a thread subscriber.  Therefore, this converts
- * the calling object into a thread publisher.
+ * the calling object into a thread publisher.  A thread team shall be able
+ * to attach to any other thread team as a subscriber regardless of the data
+ * types of both teams. 
  *
  * It is a logic error
  *   - to attach a team to itself
@@ -763,7 +765,7 @@ void ThreadTeam<W>::wait(void) {
  *                    published.
  */
 template<typename W>
-void ThreadTeam<W>::attachThreadReceiver(ThreadTeam* receiver) {
+void ThreadTeam<W>::attachThreadReceiver(ThreadTeamBase* receiver) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -853,7 +855,8 @@ void ThreadTeam<W>::detachThreadReceiver(void) {
 
 /**
  * Register given thread team as a work subscriber.  Therefore, this converts
- * the calling object into a work publisher.
+ * the calling object into a work publisher.  A work publisher and work
+ * subscriber must have the same same data type.
  *
  * This routine is handled outside of the State design pattern as the mode
  * dependence is simple.  Also, the state variable publisher/not publisher was
@@ -863,7 +866,7 @@ void ThreadTeam<W>::detachThreadReceiver(void) {
  * \param  receiver - the team to which units of work shall be published.
  */
 template<typename W>
-void ThreadTeam<W>::attachWorkReceiver(ThreadTeam* receiver) {
+void ThreadTeam<W>::attachWorkReceiver(ThreadTeam<W>* receiver) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -1367,6 +1370,8 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 // publisher, we can use move semantics to transfer ownership of
                 // the tile from publisher to subscriber
                 team->workReceiver_->enqueue(work, true);
+                // TODO:  If W is a packet and there is no subscriber, do we
+                // need to explicitly destroy the packet to clean-up resources?
             }
 
             if (team->N_comp_ <= 0) {

@@ -61,6 +61,7 @@
 #include "runtimeTask.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamMode.h"
+#include "ThreadTeamBase.h"
 
 #include "ThreadTeamState.h"
 #include "ThreadTeamIdle.h"
@@ -70,7 +71,7 @@
 #include "ThreadTeamRunningNoMoreWork.h"
 
 template<typename W>
-class ThreadTeam {
+class ThreadTeam : public ThreadTeamBase {
 public:
     ThreadTeam(const unsigned int nMaxThreads,
                const unsigned int id,
@@ -87,7 +88,7 @@ public:
 
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
-    void         increaseThreadCount(const unsigned int nThreads);
+    void         increaseThreadCount(const unsigned int nThreads) override;
     void         startTask(const RuntimeAction& action,
                            const std::string& teamName,
                            const bool waitForThreads=false);
@@ -96,10 +97,10 @@ public:
     void         wait(void);
 
     // State-dependent methods whose simple dependence is handled by this class
-    void         attachThreadReceiver(ThreadTeam* receiver);
+    void         attachThreadReceiver(ThreadTeamBase* receiver);
     void         detachThreadReceiver(void);
 
-    void         attachWorkReceiver(ThreadTeam* receiver);
+    void         attachWorkReceiver(ThreadTeam<W>* receiver);
     void         detachWorkReceiver(void);
 
 protected:
@@ -194,8 +195,8 @@ private:
     TASK_FCN          taskFcn_;            /*!< Computational task to be applied to
                                             *   all units of enqueued work */
 
-    ThreadTeam*       threadReceiver_;     //!< Thread team to notify when threads terminate
-    ThreadTeam*       workReceiver_;       //!< Thread team to pass work to when finished
+    ThreadTeamBase*   threadReceiver_;     //!< Thread team to notify when threads terminate
+    ThreadTeam<W>*    workReceiver_;       //!< Thread team to pass work to when finished
 
     // Keep track of when wait() is blocking and when it is released
     bool              isWaitBlocking_;     //!< Only a single thread can be blocked 

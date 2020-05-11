@@ -12,6 +12,13 @@ struct RuntimeAction {
     std::string           name = "NoName";
     unsigned int          nInitialThreads = 0;
     ThreadTeamDataType    teamType = ThreadTeamDataType::BLOCK;
+    // Client code should be able to specify a different number of tiles/packet
+    // for each action.  A motivating example is an action bundle that will
+    // execute one action using a packet-based team that will drive a GPU
+    // and another action using another packet-based team that will drive an
+    // FPGA.  It's possible that using one packet size for the FPGA and distinct
+    // size for the GPU packet will be necessary to get the best performance.
+    unsigned int          nTilesPerPacket = 0;
     TASK_FCN              routine = nullptr;
 };
 

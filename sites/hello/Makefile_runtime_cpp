@@ -18,6 +18,7 @@ CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -32,6 +33,9 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
+    $(TESTBASEDIR)/scaleEnergy_packet.h \
     $(TESTBASEDIR)/Analysis.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
@@ -43,9 +47,13 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
+    $(TESTBASEDIR)/scaleEnergy_packet.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \
+    $(TESTDIR)/testRuntimePacket.cpp \
     $(TESTDIR)/runRuntimeCppTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))

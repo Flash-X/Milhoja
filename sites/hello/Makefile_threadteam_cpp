@@ -14,6 +14,7 @@ CXX_HDRS   = \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
     $(INCDIR)/ThreadTeamTerminating.h \

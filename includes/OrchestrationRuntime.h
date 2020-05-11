@@ -56,6 +56,11 @@ private:
                            const RuntimeAction& gpuAction,
                            const RuntimeAction& postGpuAction);
 
+    void executeTasks_FullPacket(const std::string& bundleName,
+                                 const RuntimeAction& cpuAction,
+                                 const RuntimeAction& gpuAction,
+                                 const RuntimeAction& postGpuAction);
+
     static std::string             logFilename_;
     static unsigned int            nTileTeams_; 
     static unsigned int            nPacketTeams_; 

@@ -20,6 +20,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
     $(INCDIR)/ThreadTeamTerminating.h \
