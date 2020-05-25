@@ -2,6 +2,7 @@
 
 #include "Flash.h"
 #include "Grid.h"
+#include "Tile.h"
 
 void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem) {
     Tile* tileDesc = static_cast<Tile*>(dataItem);

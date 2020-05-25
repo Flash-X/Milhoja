@@ -3,6 +3,7 @@
 #include "Flash.h"
 #include "constants.h"
 #include "Grid.h"
+#include "Tile.h"
 
 void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     Tile*  tileDesc = static_cast<Tile*>(dataItem);

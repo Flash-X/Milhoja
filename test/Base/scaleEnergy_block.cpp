@@ -2,6 +2,7 @@
 
 #include "Flash.h"
 #include "Grid.h"
+#include "Tile.h"
 
 void ThreadRoutines::scaleEnergy_block(const int tId,
                                        void* dataItem) {

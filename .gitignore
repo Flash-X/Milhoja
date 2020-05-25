@@ -17,6 +17,7 @@ sites/hello/manual_cpp.x
 sites/hello/*.dat
 sites/summit/gatherDataCpp.*
 sites/summit/testRuntimeCpp.*
+sites/summit/testRuntimeCuda.*
 sites/summit/testThreadTeam.*
 sites/bebop/build/build_*.log
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
