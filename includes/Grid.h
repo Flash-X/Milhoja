@@ -13,7 +13,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
-#include "Tile.h"
 #include "runtimeTask.h"
 
 class Grid {

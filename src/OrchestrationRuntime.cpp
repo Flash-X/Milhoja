@@ -525,13 +525,14 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
 
     ThreadTeam<DataPacket>*   gpuTeam = packetTeams_[0];
 
-    gpuTeam->startTask(gpuAction, "GPU_PacketOfBlocks_Team");
-
     DataPacket  packet;
     packet.clear();
 
     unsigned int   level = 0;
     Grid*   grid = Grid::instance();
+
+    gpuTeam->startTask(gpuAction, "GPU_PacketOfBlocks_Team");
+
     for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         packet.tileList.push_front(std::move(work));
@@ -545,10 +546,11 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
 
     if (packet.tileList.size() != 0) {
         gpuTeam->enqueue(packet, true);
+        gpuTeam->closeTask();
+        packet.clear();
+    } else {
+        gpuTeam->closeTask();
     }
-
-    gpuTeam->closeTask();
-    packet.clear();
     gpuTeam->wait();
 }
 

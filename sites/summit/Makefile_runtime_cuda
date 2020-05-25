@@ -1,0 +1,75 @@
+SHELL=/bin/sh
+
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
+BASE         = test_runtime_cuda
+MAKEFILE     = Makefile_runtime_cuda
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTDIR      = $(BASEDIR)/test/RuntimeCuda
+AMREXDIR     = $(HOME)/local/gcc_6.4.0/AMReX_2d
+GTESTDIR     = $(HOME)/local/gcc_6.4.0/googletest
+CUDADIR      = $(OLCF_CUDA_ROOT)
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid.h \
+    $(TESTDIR)/CudaStream.h \
+    $(TESTDIR)/cudaTestConstants.h
+CU_HDRS   = \
+    $(INCDIR)/CudaGpuArray.h \
+    $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/CudaDataPacket.h \
+    $(TESTDIR)/gpuKernel.h
+SRCS       = \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/CudaStream.cpp \
+    $(TESTDIR)/runCudaTests.cpp
+CU_SRCS       = \
+    $(SRCDIR)/CudaStreamManager.cu \
+    $(SRCDIR)/CudaDataPacket.cu \
+    $(TESTDIR)/gpuKernel.cu \
+    $(TESTDIR)/testCudaStreamManager.cu \
+    $(TESTDIR)/testCudaDataPacket.cu
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXWARNS  =
+
+CU        = nvcc
+CUFLAGS   = -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CUWARNS   =
+
+LIBS      = -lstdc++ -lgfortran -lamrex -lgtest -lcudart
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib64 -L$(CUDADIR)/lib64
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp .cu
+
+$(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.cu.o: $(CU_HDRS) $(MAKEFILE)
+	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND)
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+

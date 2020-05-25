@@ -13,6 +13,7 @@
 
 #include "Flash.h"
 #include "constants.h"
+#include "Tile.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
@@ -65,9 +66,9 @@ void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
                          TASK_FCN initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
-        throw std::logic_error("Grid unit's initDomain already called");
+        throw std::logic_error("[Grid::initDomain] Grid unit's initDomain already called");
     } else if (!initBlock) {
-        throw std::logic_error("Null initBlock function pointer given");
+        throw std::logic_error("[Grid::initDomain] Null initBlock function pointer given");
     }
 
     //***** SETUP DOMAIN, PROBLEM, and MESH

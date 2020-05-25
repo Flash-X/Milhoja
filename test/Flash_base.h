@@ -19,5 +19,12 @@
 #define N_BLOCKS_Y N_BLOCKS_ALONG_Y
 #define N_BLOCKS_Z N_BLOCKS_ALONG_Z
 
+#if 0
+Assuming 2D only for now
+#endif
+#define K1D        1
+#define K2D        1
+#define K3D        0
+
 #endif
 
