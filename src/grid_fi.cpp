@@ -25,19 +25,18 @@ extern "C" {
                                const int nBlocksZ,
                                const int nVars,
                                TASK_FCN initBlock) {
-        Grid*   grid = Grid::instance();
-        grid->initDomain(static_cast<amrex::Real>(xMin),
-                         static_cast<amrex::Real>(xMax),
-                         static_cast<amrex::Real>(yMin),
-                         static_cast<amrex::Real>(yMax),
-                         static_cast<amrex::Real>(zMin),
-                         static_cast<amrex::Real>(zMax),
-                         static_cast<unsigned int>(nBlocksX),
-                         static_cast<unsigned int>(nBlocksY),
-                         static_cast<unsigned int>(nBlocksZ),
-                         static_cast<unsigned int>(nVars),
-                         initBlock);
-        grid = nullptr;
+        Grid&   grid = Grid::instance();
+        grid.initDomain(static_cast<amrex::Real>(xMin),
+                        static_cast<amrex::Real>(xMax),
+                        static_cast<amrex::Real>(yMin),
+                        static_cast<amrex::Real>(yMax),
+                        static_cast<amrex::Real>(zMin),
+                        static_cast<amrex::Real>(zMax),
+                        static_cast<unsigned int>(nBlocksX),
+                        static_cast<unsigned int>(nBlocksY),
+                        static_cast<unsigned int>(nBlocksZ),
+                        static_cast<unsigned int>(nVars),
+                        initBlock);
     }
 
     /**
@@ -45,9 +44,8 @@ extern "C" {
      */
     void   grid_get_domain_bound_box_fi(double lo[AMREX_SPACEDIM], 
                                         double hi[AMREX_SPACEDIM]) {
-        Grid*   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid->geometry();
-        grid = nullptr;
+        Grid&   grid = Grid::instance();
+        amrex::Geometry&  geometry = grid.geometry();
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
             lo[i] = static_cast<double>(geometry.ProbLo(i));
@@ -59,9 +57,8 @@ extern "C" {
      *
      */
     void   grid_get_deltas_fi(const int level, double deltas[AMREX_SPACEDIM]) {
-        Grid*   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid->geometry();
-        grid = nullptr;
+        Grid&   grid = Grid::instance();
+        amrex::Geometry&  geometry = grid.geometry();
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
             deltas[i] = static_cast<double>(geometry.CellSize(i));
@@ -72,7 +69,8 @@ extern "C" {
      *
      */
     void   grid_finalize_fi(void) {
-        delete Grid::instance();
+        // The Grid singleton will be destroyed once it goes out of scope
+        // Its destructor is reponsible for finalization.
     }
 }
 

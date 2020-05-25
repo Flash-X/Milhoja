@@ -45,7 +45,7 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
       interior_{new amrex::Box(itor.validbox())},
       GC_{new amrex::Box(itor.fabbox())}
 {
-    amrex::MultiFab&  unk = Grid::instance()->unk();
+    amrex::MultiFab&  unk = Grid::instance().unk();
     amrex::FArrayBox& fab = unk[gridIdx_];
     CC_h_ = fab.dataPtr();
 }
@@ -257,7 +257,7 @@ const amrex::Box&  Tile::interiorAndGC(void) const {
  *
  */
 amrex::XDim3 Tile::deltas(void) const {
-    amrex::Geometry& geometry = Grid::instance()->geometry();
+    amrex::Geometry& geometry = Grid::instance().geometry();
 
     amrex::XDim3   deltas;
 

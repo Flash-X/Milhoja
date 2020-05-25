@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     cudaTestConstants::N_WAIT_CYCLES = std::stoi(std::string(argv[1]));
 
     // Initialize Grid unit/AMReX
-    Grid*    grid = Grid::instance();
+    Grid::instance();
 
     CudaStreamManager::setMaxNumberStreams(cudaTestConstants::N_STREAMS);
 
@@ -33,12 +33,7 @@ int main(int argc, char* argv[]) {
         delete listeners.Release(listeners.default_result_printer());
     }
 
-    int  errorCode = RUN_ALL_TESTS();
-
-    // Finalize Grid unit/AMReX
-    delete grid;
-    grid = nullptr;
-
-    return errorCode;
+    // Grid/AMReX/MPI will finalize when grid goes out of scope and is destroyed
+    return RUN_ALL_TESTS();
 }
 

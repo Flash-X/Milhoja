@@ -74,22 +74,22 @@ protected:
         OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
         runtime_ = OrchestrationRuntime::instance();
 
-        Grid*    grid = Grid::instance();
-        grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                         N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                         NUNKVAR,
-                         Simulation::setInitialConditions_block);
+        Grid&    grid = Grid::instance();
+        grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
+                        N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
+                        NUNKVAR,
+                        Simulation::setInitialConditions_block);
    }
 
     ~TestRuntimeTile(void) {
         delete OrchestrationRuntime::instance();
-        Grid::instance()->destroyDomain();
+        Grid::instance().destroyDomain();
     }
 };
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestSingleTeam) {
-    amrex::MultiFab&   unk = Grid::instance()->unk();
+    amrex::MultiFab&   unk = Grid::instance().unk();
 
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam<Tile>  cpu_block(N_THREADS, 1, "TestSingleTeam.log");

@@ -283,14 +283,13 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
     unsigned int   level = 0;
-    Grid*   grid = Grid::instance();
-    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+    Grid&   grid = Grid::instance();
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
     }
-    grid = nullptr;
     gpuTeam->closeTask();
     cpuTeam->closeTask();
 
@@ -385,9 +384,9 @@ void OrchestrationRuntime::executeTasks_FullPacket(const std::string& bundleName
     // is enqueued automatically with the post-GPU team.
     DataPacket     gpuPacket;
     unsigned int   level = 0;
-    Grid*          grid = Grid::instance();
+    Grid&          grid = Grid::instance();
     gpuPacket.clear();
-    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         // TODO: What is the best way to manage the copy/move actions here?
         //       I am just playing around at the moment.
         Tile  work(itor, level);
@@ -399,7 +398,6 @@ void OrchestrationRuntime::executeTasks_FullPacket(const std::string& bundleName
             gpuPacket.clear();
         }
     }
-    grid = nullptr;
 
     if (gpuPacket.tileList.size() != 0) {
         gpuTeam->enqueue(gpuPacket, true);
@@ -460,14 +458,13 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
     gpuTeam->startTask(gpuAction, "Concurrent_GPU_Block_Team");
 
     unsigned int   level = 0;
-    Grid*   grid = Grid::instance();
-    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+    Grid&   grid = Grid::instance();
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
     }
-    grid = nullptr;
     gpuTeam->closeTask();
     cpuTeam->closeTask();
 
@@ -499,12 +496,11 @@ void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
     cpuTeam->startTask(cpuAction, "CPU_Block_Team");
 
     unsigned int   level = 0;
-    Grid*   grid = Grid::instance();
-    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+    Grid&   grid = Grid::instance();
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         cpuTeam->enqueue(work, true);
     }
-    grid = nullptr;
     cpuTeam->closeTask();
     cpuTeam->wait();
 }
@@ -529,11 +525,11 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
     packet.clear();
 
     unsigned int   level = 0;
-    Grid*   grid = Grid::instance();
+    Grid&   grid = Grid::instance();
 
     gpuTeam->startTask(gpuAction, "GPU_PacketOfBlocks_Team");
 
-    for (amrex::MFIter  itor(grid->unk()); itor.isValid(); ++itor) {
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         Tile  work(itor, level);
         packet.tileList.push_front(std::move(work));
 
@@ -542,7 +538,6 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
             packet.clear();
         }
     }
-    grid = nullptr;
 
     if (packet.tileList.size() != 0) {
         gpuTeam->enqueue(packet, true);

@@ -19,7 +19,7 @@ class Grid {
 public:
     ~Grid(void);
 
-    static Grid* instance(void);
+    static Grid& instance(void);
 
     void    initDomain(const amrex::Real xMin, const amrex::Real xMax,
                        const amrex::Real yMin, const amrex::Real yMax,
@@ -42,8 +42,6 @@ private:
     Grid(const Grid&&) = delete;
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(const Grid&&) = delete;
-
-    static Grid*       instance_;
 
     amrex::Geometry    geometry_;
     amrex::MultiFab*   unk_;

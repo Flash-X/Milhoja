@@ -18,18 +18,14 @@
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
-Grid*  Grid::instance_ = nullptr;
-
 /**
  * 
  *
  * \return 
  */
-Grid*   Grid::instance(void) {
-    if (!instance_) {
-        instance_ = new Grid();
-    }
-    return instance_;
+Grid&   Grid::instance(void) {
+    static Grid     gridSingleton;
+    return gridSingleton;
 }
 
 /**
@@ -48,9 +44,9 @@ Grid::Grid(void)
  * 
  */
 Grid::~Grid(void) {
+    // All Grid finalization is carried out here
     destroyDomain();
     amrex::Finalize();
-    instance_ = nullptr;
 }
 
 /**

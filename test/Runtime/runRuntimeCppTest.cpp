@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
     // Initialize Grid unit/AMReX
-    Grid*    grid = Grid::instance();
+    Grid::instance();
 
     int  rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -23,12 +23,9 @@ int main(int argc, char* argv[]) {
         delete listeners.Release(listeners.default_result_printer());
     }
 
-    int  errorCode = RUN_ALL_TESTS();
+    // Grid/AMReX/MPI will finalize when grid is automatically destroyed at the
+    // end of main
 
-    // Finalize Grid unit/AMReX
-    delete grid;
-    grid = nullptr;
-
-    return errorCode;
+    return RUN_ALL_TESTS();
 }
 

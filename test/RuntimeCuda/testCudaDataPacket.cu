@@ -27,10 +27,9 @@ protected:
     static void setInitialConditions_block(const int tId, void* dataItem) {
         Tile*  tileDesc = static_cast<Tile*>(dataItem);
 
-        Grid*    grid = Grid::instance();
-        amrex::MultiFab&    unk = grid->unk();
+        Grid&    grid = Grid::instance();
+        amrex::MultiFab&    unk = grid.unk();
         amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
-        grid = nullptr;
 
         amrex::Array4<amrex::Real> const&   f = fab.array();
     
@@ -49,16 +48,15 @@ protected:
     }
 
     TestCudaDataPacket(void) {
-        Grid*    grid = Grid::instance();
-        grid->initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                         N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                         NUNKVAR, 
-                         TestCudaDataPacket::setInitialConditions_block);
-        grid = nullptr;
+        Grid&    grid = Grid::instance();
+        grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
+                        N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
+                        NUNKVAR, 
+                        TestCudaDataPacket::setInitialConditions_block);
    }
 
     ~TestCudaDataPacket(void) {
-        Grid::instance()->destroyDomain();
+        Grid::instance().destroyDomain();
     }
 };
 
@@ -104,7 +102,7 @@ TEST_F(TestCudaDataPacket, TestNullPacket) {
 }
 
 TEST_F(TestCudaDataPacket, TestNullifyPacket) {
-    amrex::MultiFab&   unk = Grid::instance()->unk();
+    amrex::MultiFab&   unk = Grid::instance().unk();
 
     CudaDataPacket    packet;
     EXPECT_TRUE(packet.isNull());
@@ -125,7 +123,7 @@ TEST_F(TestCudaDataPacket, TestNDataItems) {
     constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z; 
 
     Tile dataItem;
-    amrex::MultiFab&   unk = Grid::instance()->unk();
+    amrex::MultiFab&   unk = Grid::instance().unk();
 
     CudaDataPacket    packet;
 
@@ -144,7 +142,7 @@ TEST_F(TestCudaDataPacket, TestNDataItems) {
 TEST_F(TestCudaDataPacket, TestAddDataItem) {
     constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z; 
 
-    amrex::MultiFab&   unk = Grid::instance()->unk();
+    amrex::MultiFab&   unk = Grid::instance().unk();
 
     CudaDataPacket    packet1;
     CudaDataPacket    packet2;
@@ -195,7 +193,7 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
     // Add all tiles to packet
     unsigned int n = 0;
     CudaDataPacket    packet;
-    amrex::MultiFab&   unk = Grid::instance()->unk();
+    amrex::MultiFab&   unk = Grid::instance().unk();
     for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
         // Put tile directly in packet using move
         packet.addDataItem( Tile(itor, LEVEL) );

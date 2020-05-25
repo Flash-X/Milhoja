@@ -8,11 +8,10 @@ void ThreadRoutines::scaleEnergy_block(const int tId,
                                        void* dataItem) {
     Tile* tileDesc = static_cast<Tile*>(dataItem);
 
-    Grid*    grid = Grid::instance();
-    amrex::Geometry     geometry = grid->geometry();
-    amrex::MultiFab&    unk = grid->unk();
+    Grid&    grid = Grid::instance();
+    amrex::Geometry     geometry = grid.geometry();
+    amrex::MultiFab&    unk = grid.unk();
     amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
-    grid = nullptr;
 
     amrex::Array4<amrex::Real> const&   f = fab.array();
 
