@@ -32,9 +32,9 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationRuntime.h
-    #$(TESTBASEDIR)/setInitialConditions_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h
+    #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
@@ -43,11 +43,12 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
+    $(TESTDIR)/testGrid.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    #$(TESTBASEDIR)/setInitialConditions_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp
+    #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
