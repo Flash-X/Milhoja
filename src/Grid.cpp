@@ -124,12 +124,15 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
-  * getDomainBoundBox contructs and returns an amrex::RealBox
-  * containing the physical boundaries of the domain.
+  * getDomainBoundBox fills a 2x3 array with 
+  * the physical boundaries of the domain.
   */
-amrex::RealBox    Grid::getDomainBoundBox(void) {
-    return amrex::RealBox({AMREX_D_DECL(0.0,0.0,0.0)},
-                          {AMREX_D_DECL(0.0,0.0,0.0)});
+void    Grid::getDomainBoundBox(double bbox[][3]) {
+    for(int i=0;i<=1;i++){
+        for(int j=0;j<=2;j++){
+          bbox[i][j] = 0.0;
+        }
+    }
 }
 
 /**

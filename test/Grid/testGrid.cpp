@@ -27,15 +27,15 @@ TEST_F(TestGrid,TestSample){
 }
 
 TEST_F(TestGrid,TestDomainBoundBox){
-        amrex::RealBox rb = Grid::instance().getDomainBoundBox();
+        double bbox[2][3];
+        Grid::instance().getDomainBoundBox(bbox);
 
-        EXPECT_TRUE(rb.lo()[0] == X_MIN );
-        EXPECT_TRUE(rb.lo()[1] == Y_MIN );
-        //EXPECT_TRUE(rb.lo()[2] == Z_MIN );
-        EXPECT_TRUE(rb.hi()[0] == X_MAX );
-        EXPECT_TRUE(rb.hi()[1] == Y_MAX );
-        //EXPECT_TRUE(rb.hi()[2] == Z_MAX );
-
+        EXPECT_TRUE(bbox[0][0] == X_MIN );
+        EXPECT_TRUE(bbox[0][1] == Y_MIN );
+        EXPECT_TRUE(bbox[0][2] == Z_MIN );
+        EXPECT_TRUE(bbox[1][0] == X_MAX );
+        EXPECT_TRUE(bbox[1][1] == Y_MAX );
+        EXPECT_TRUE(bbox[1][2] == Z_MAX );
 }
 
 }
