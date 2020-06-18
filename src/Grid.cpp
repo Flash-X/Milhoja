@@ -124,6 +124,15 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
+  * getDomainBoundBox contructs and returns an amrex::RealBox
+  * containing the physical boundaries of the domain.
+  */
+amrex::RealBox    Grid::getDomainBoundBox(void) {
+    return amrex::RealBox({AMREX_D_DECL(0.0,0.0,0.0)},
+                          {AMREX_D_DECL(0.0,0.0,0.0)});
+}
+
+/**
  *
  */
 void    Grid::writeToFile(const std::string& filename) const {

@@ -34,6 +34,8 @@ public:
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
+    amrex::RealBox     getDomainBoundBox(void);
+
     void    writeToFile(const std::string& filename) const;
 
 private:
