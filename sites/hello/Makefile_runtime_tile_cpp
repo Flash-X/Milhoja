@@ -1,12 +1,12 @@
 SHELL=/bin/sh
 
-BASE         = test_runtime_cpp
-MAKEFILE     = Makefile_runtime_cpp
+BASE         = test_runtime_tile_cpp
+MAKEFILE     = Makefile_runtime_tile_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
-TESTDIR      = $(BASEDIR)/test/Runtime
+TESTDIR      = $(BASEDIR)/test/RuntimeTile
 AMREXDIR     = $(HOME)/local/gcc_6.5.0/AMReX_2D
 GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-6y5spjfzq4uiazxbcb7sw3qrloxbrhgw
 
@@ -14,7 +14,6 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
-    $(INCDIR)/DataPacket.h \
     $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
@@ -33,9 +32,6 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
-    $(TESTBASEDIR)/scaleEnergy_packet.h \
     $(TESTBASEDIR)/Analysis.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
@@ -47,13 +43,8 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
-    $(TESTBASEDIR)/scaleEnergy_packet.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/testRuntimeInt.cpp \
     $(TESTDIR)/testRuntimeTile.cpp \
-    $(TESTDIR)/testRuntimePacket.cpp \
     $(TESTDIR)/runRuntimeCppTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
@@ -91,5 +82,4 @@ clean:
 	/bin/rm -f $(BASEDIR)/*.mod
 	/bin/rm -f $(TESTDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/test_*.x 
-	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 

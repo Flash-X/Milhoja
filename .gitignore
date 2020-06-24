@@ -7,7 +7,9 @@ docs/OrchestrationSystem.log
 docs/OrchestrationSystem.aux
 docs/OrchestrationSystem.pdf
 sites/*/test_threadteam_cpp.x
-sites/*/test_runtime_cpp.x
+sites/*/test_runtime_int_cpp.x
+sites/*/test_runtime_tile_cpp.x
+sites/*/test_runtime_packet_cpp.x
 sites/*/gather_data_cpp.x
 sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x

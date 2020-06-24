@@ -20,7 +20,7 @@ class OrchestrationRuntime {
 public:
     ~OrchestrationRuntime(void);
 
-    static OrchestrationRuntime* instance(void);
+    static OrchestrationRuntime& instance(void);
     static void setLogFilename(const std::string& filename);
     static void setNumberThreadTeams(const unsigned int nTileTeams,
                                      const unsigned int nPacketTeams);
@@ -65,7 +65,7 @@ private:
     static unsigned int            nTileTeams_; 
     static unsigned int            nPacketTeams_; 
     static unsigned int            maxThreadsPerTeam_;
-    static OrchestrationRuntime*   instance_;
+    static bool                    instantiated_;
 
     ThreadTeam<Tile>**             tileTeams_;
     ThreadTeam<DataPacket>**       packetTeams_;

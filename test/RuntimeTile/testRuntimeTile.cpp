@@ -35,18 +35,10 @@ namespace {
  */
 class TestRuntimeTile : public testing::Test {
 protected:
-    // TASK_COMPOSER: The offline tool will need to determine how many thread
-    // teams are needed as well as how many threads to allocate to each.
-    static constexpr unsigned int   N_TILE_THREAD_TEAMS   = 3;
-    static constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
-    static constexpr unsigned int   MAX_THREADS    = 5;
-
     RuntimeAction    computeLaplacianDensity_block;
     RuntimeAction    computeLaplacianEnergy_block;
     RuntimeAction    scaleEnergy_block;
     RuntimeAction    computeErrors_block;
-
-    OrchestrationRuntime*   runtime_;
 
     TestRuntimeTile(void) {
         computeLaplacianDensity_block.name = "computeLaplacianDensity";
@@ -69,11 +61,6 @@ protected:
         computeErrors_block.teamType = ThreadTeamDataType::BLOCK;
         computeErrors_block.routine = Analysis::computeErrors_block;
 
-        OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
-                                                   N_PACKET_THREAD_TEAMS);
-        OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
-        runtime_ = OrchestrationRuntime::instance();
-
         Grid&    grid = Grid::instance();
         grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                         N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
@@ -82,7 +69,6 @@ protected:
    }
 
     ~TestRuntimeTile(void) {
-        delete OrchestrationRuntime::instance();
         Grid::instance().destroyDomain();
     }
 };
@@ -174,6 +160,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     ActionBundle    bundle;
 
+    OrchestrationRuntime& runtime = OrchestrationRuntime::instance();
+
     try {
         // Give an extra thread to the GPU task so that it can start to get work
         // to the postGpu task quicker.
@@ -191,7 +179,7 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
         bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_block;
 
-        runtime_->executeTasks(bundle);
+        runtime.executeTasks(bundle);
 
         bundle.name                          = "Analysis Bundle";
         bundle.cpuAction.name                = "computeErrors";
@@ -206,7 +194,7 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
         bundle.postGpuAction.routine         = nullptr;
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        runtime_->executeTasks(bundle);
+        runtime.executeTasks(bundle);
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";

@@ -1,0 +1,92 @@
+SHELL=/bin/sh
+
+BASE         = test_runtime_packet_cpp
+MAKEFILE     = Makefile_runtime_packet_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/RuntimePacket
+AMREXDIR     = $(HOME)/local/gcc_6.5.0/AMReX_2D
+GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-6y5spjfzq4uiazxbcb7sw3qrloxbrhgw
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid.h \
+    $(INCDIR)/DataPacket.h \
+    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeamBase.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/RuntimeAction.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
+    $(TESTBASEDIR)/scaleEnergy_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
+    $(TESTBASEDIR)/scaleEnergy_packet.h \
+    $(TESTBASEDIR)/Analysis.h \
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h
+SRCS       = \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
+    $(TESTBASEDIR)/scaleEnergy_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
+    $(TESTBASEDIR)/scaleEnergy_packet.cpp \
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/testRuntimePacket.cpp \
+    $(TESTDIR)/runRuntimeCppTest.cpp
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXWARNS  =
+
+LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+
+$(COMMAND): $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f Test*.log
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTBASEDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f *.mod
+	/bin/rm -f $(SRCDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/*.mod
+	/bin/rm -f $(TESTDIR)/*.mod
+	/bin/rm -f $(BASEDIR)/test_*.x 
+

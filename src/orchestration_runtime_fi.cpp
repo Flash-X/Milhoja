@@ -66,9 +66,7 @@ extern "C" {
         bundle.postGpuAction.routine         = postGpuAction;
 
         try {
-            OrchestrationRuntime*  runtime = OrchestrationRuntime::instance();
-            runtime->executeTasks(bundle);
-            runtime = nullptr;
+            OrchestrationRuntime::instance().executeTasks(bundle);
         } catch (std::invalid_argument& e) {
             std::cerr << "\nINVALID ARGUMENT: " << e.what() << "\n\n";
             return 0;
@@ -89,8 +87,6 @@ extern "C" {
     /**
      *
      */
-    void   orchestration_finalize_fi(void) {
-        delete OrchestrationRuntime::instance();
-    }
+    void   orchestration_finalize_fi(void) {}
 }
 

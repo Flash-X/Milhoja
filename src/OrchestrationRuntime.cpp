@@ -6,23 +6,21 @@
 #include "Grid.h"
 #include "Flash.h"
 
-std::string           OrchestrationRuntime::logFilename_       = "";
-unsigned int          OrchestrationRuntime::nTileTeams_        = 0;
-unsigned int          OrchestrationRuntime::nPacketTeams_      = 0;
-unsigned int          OrchestrationRuntime::maxThreadsPerTeam_ = 0;
-OrchestrationRuntime* OrchestrationRuntime::instance_          = nullptr;
+std::string     OrchestrationRuntime::logFilename_       = "";
+unsigned int    OrchestrationRuntime::nTileTeams_        = 0;
+unsigned int    OrchestrationRuntime::nPacketTeams_      = 0;
+unsigned int    OrchestrationRuntime::maxThreadsPerTeam_ = 0;
+bool            OrchestrationRuntime::instantiated_      = false;
 
 /**
  * 
  *
  * \return 
  */
-OrchestrationRuntime* OrchestrationRuntime::instance(void) {
-    if (!instance_) {
-        instance_ = new OrchestrationRuntime();
-    }
-
-    return instance_;
+OrchestrationRuntime& OrchestrationRuntime::instance(void) {
+    instantiated_ = true;
+    static OrchestrationRuntime     orSingleton;
+    return orSingleton;
 }
 
 /**
@@ -31,7 +29,7 @@ OrchestrationRuntime* OrchestrationRuntime::instance(void) {
  * \return 
  */
 void OrchestrationRuntime::setLogFilename(const std::string& filename) {
-    if (instance_) {
+    if (instantiated_) {
         throw std::logic_error("[OrchestrationRuntime::setLogFilename] "
                                "Set only when runtime does not exist");
     }
@@ -46,7 +44,7 @@ void OrchestrationRuntime::setLogFilename(const std::string& filename) {
  */
 void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTileTeams,
                                                 const unsigned int nPacketTeams) {
-    if (instance_) {
+    if (instantiated_) {
         throw std::logic_error("[OrchestrationRuntime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
     } else if ((nTileTeams == 0) && (nPacketTeams == 0)) {
@@ -64,7 +62,7 @@ void OrchestrationRuntime::setNumberThreadTeams(const unsigned int nTileTeams,
  * \return 
  */
 void OrchestrationRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
-    if (instance_) {
+    if (instantiated_) {
         throw std::logic_error("[OrchestrationRuntime::setMaxThreadsPerTeam] "
                                "Set only when runtime does not exist");
     } else if (nThreads == 0) {
@@ -115,6 +113,8 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
  * \return 
  */
 OrchestrationRuntime::~OrchestrationRuntime(void) {
+    instantiated_ = false;
+
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
     logFile_ << "[OrchestrationRuntime] Finalizing\n";
@@ -134,8 +134,6 @@ OrchestrationRuntime::~OrchestrationRuntime(void) {
     }
     delete [] packetTeams_;
     packetTeams_ = nullptr;
-
-    instance_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
     logFile_.open(logFilename_, std::ios::out | std::ios::app);
@@ -215,12 +213,6 @@ void OrchestrationRuntime::executeTasks(const ActionBundle& bundle) {
     logFile_.close();
 #endif
 }
-
-/**
- * 
- *
- * \return 
- */
 
 /**
  * 

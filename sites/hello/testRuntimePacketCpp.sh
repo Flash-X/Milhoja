@@ -9,33 +9,35 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
-MAKEFILE=Makefile_runtime_cpp
-BINARY=test_runtime_cpp.x 
+MAKEFILE=Makefile_runtime_packet_cpp
+BINARY=test_runtime_packet_cpp.x 
 
 TESTDIR=../../test
 
 # Setup constants.h with current simulation's Grid parameters
-rm $TESTDIR/Runtime/constants.h
+rm $TESTDIR/RuntimePacket/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
         $TESTDIR/constants_base.h > \
-        $TESTDIR/Runtime/constants.h
-sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Runtime/constants.h
-sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Runtime/constants.h
+        $TESTDIR/RuntimePacket/constants.h
+sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/RuntimePacket/constants.h
+sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/RuntimePacket/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm $TESTDIR/Runtime/Flash.h
+rm $TESTDIR/RuntimePacket/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash_base.h > \
-        $TESTDIR/Runtime/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Runtime/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash.h
+        $TESTDIR/RuntimePacket/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/RuntimePacket/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/RuntimePacket/Flash.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
         make -f $MAKEFILE clean all
 elif [[ "$#" -eq 1 ]]; then
     if [[ "$1" = "--debug" ]]; then
-        make -f $MAKEFILE clean all DEBUG=T
+        echo "No debug-compatible tests in suite"
+        exit 5;
+#        make -f $MAKEFILE clean all DEBUG=T
     else
         echo "Unknown command line argument", $1
         exit 1;
@@ -50,8 +52,8 @@ if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 3;
 fi
-rm $TESTDIR/Runtime/Flash.h
-rm $TESTDIR/Runtime/constants.h
+rm $TESTDIR/RuntimePacket/Flash.h
+rm $TESTDIR/RuntimePacket/constants.h
 
 time ./$BINARY
 if [[ $? -ne 0 ]]; then

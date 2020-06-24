@@ -49,7 +49,7 @@ void  setUp(void) {
     bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
     bundle.postGpuAction.routine         = nullptr;
 
-    OrchestrationRuntime::instance()->executeTasks(bundle);
+    OrchestrationRuntime::instance().executeTasks(bundle);
 }
 
 void  tearDown(const std::string& filename,
@@ -89,9 +89,7 @@ void  tearDown(const std::string& filename,
         bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
         bundle.postGpuAction.routine         = nullptr;
 
-        OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
-        runtime->executeTasks(bundle);
-        runtime = nullptr;
+        OrchestrationRuntime::instance().executeTasks(bundle);
 
         Analysis::densityErrors(&L_inf_dens, &meanAbsError);
         Analysis::energyErrors(&L_inf_ener, &meanAbsError);
@@ -131,7 +129,7 @@ int   main(int argc, char* argv[]) {
     OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
                                                N_PACKET_THREAD_TEAMS);
     OrchestrationRuntime::setMaxThreadsPerTeam(nTotalThreads);
-    OrchestrationRuntime*   runtime = OrchestrationRuntime::instance();
+    OrchestrationRuntime&   runtime = OrchestrationRuntime::instance();
 
     Grid&   grid = Grid::instance();
     grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
@@ -220,19 +218,19 @@ int   main(int argc, char* argv[]) {
         bundle.cpuAction.nInitialThreads = 1;
         bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianDensity_block,
         tStart = MPI_Wtime(); 
-        runtime->executeTasks(bundle);
+        runtime.executeTasks(bundle);
         tWalltime = MPI_Wtime() - tStart; 
 
         bundle.cpuAction.nInitialThreads = 1;
         bundle.cpuAction.routine         = ThreadRoutines::computeLaplacianEnergy_block,
         tStart = MPI_Wtime(); 
-        runtime->executeTasks(bundle);
+        runtime.executeTasks(bundle);
         tWalltime += MPI_Wtime() - tStart; 
 
         bundle.cpuAction.nInitialThreads = 1;
         bundle.cpuAction.routine         = ThreadRoutines::scaleEnergy_block,
         tStart = MPI_Wtime(); 
-        runtime->executeTasks(bundle);
+        runtime.executeTasks(bundle);
         tWalltime += MPI_Wtime() - tStart; 
 
         tearDown(fname, "Runtime", 3, 1, 0, 0, tWalltime);
@@ -262,7 +260,7 @@ int   main(int argc, char* argv[]) {
             bundle.postGpuAction.nInitialThreads = nPostThreads;
 
             tStart = MPI_Wtime(); 
-            runtime->executeTasks(bundle);
+            runtime.executeTasks(bundle);
             tWalltime = MPI_Wtime() - tStart; 
 
             tearDown(fname, "Runtime", 1,
@@ -272,8 +270,6 @@ int   main(int argc, char* argv[]) {
     }
 
     grid.destroyDomain();
-    delete runtime;
-    runtime = nullptr;
 
     return 0;
 }
