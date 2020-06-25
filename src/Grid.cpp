@@ -130,7 +130,7 @@ void    Grid::destroyDomain(void) {
   * Note: returns 0.0 for lo and hi of any dimension
   * higher than NDIM.
   *
-  * @param bbox A double array of size 2x3 (OUT)
+  * @param bbox A 2d array (OUT). 1st index: {LO,HI}, 2nd index: {IAXIS,JAXIS,KAXIS}.
   */
 void    Grid::getDomainBoundBox(double bbox[][3]) {
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
