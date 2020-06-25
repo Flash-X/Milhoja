@@ -127,23 +127,20 @@ void    Grid::destroyDomain(void) {
 /**
   * getDomainBoundBox fills a 2x3 array with 
   * the physical boundaries of the domain.
+  * Note: returns 0.0 for lo and hi of any dimension
+  * higher than NDIM.
   *
   * @param bbox A double array of size 2x3 (OUT)
   */
 void    Grid::getDomainBoundBox(double bbox[][3]) {
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    int ndim = 2;
-    for(int i=0;i<=2;i++){
-      if(i<ndim) {
-        bbox[0][i] = geom->ProbLo(i);
-      } else {
-        bbox[0][i] = 0.0;
-      }
-      if(i<ndim) {
-        bbox[1][i] = geom->ProbHi(i);
-      } else {
-        bbox[1][i] = 0.0;
-      }
+    for(int i=0;i<NDIM;i++){
+      bbox[0][i] = geom->ProbLo(i);
+      bbox[1][i] = geom->ProbHi(i);
+    }
+    for(int i=NDIM;i<3;i++){
+      bbox[0][i] = 0.0;
+      bbox[1][i] = 0.0;
     }
 }
 
