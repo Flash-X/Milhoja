@@ -35,14 +35,15 @@ public:
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
-    void    getDomainBoundBox(double bbox[][3]);
-    void    getDeltas(int lev, double deltas[]);
-    void    getBlkCenterCoords(Tile blockDesc, double blockCenter[]);
-    void    getCellCoords(int axis, int edge, int lev, int lo[], int hi[], double coord[]);
-    void    getCellFaceAreas(int axis, int lev, int lo[], int hi[], double areas[][3]);
-    void    getCellVolumes(int lev, int lo[], int hi[], int volumes[][3]);
-    void    getMaxRefinement(int* maxRef, int mode);
-    void    updateRefinement(int* nstep, double* time, bool* gridChanged);
+    std::vector<double>    getDomainLo();
+    std::vector<double>    getDomainHi();
+    std::vector<double>    getDeltas(const unsigned int lev);
+    std::vector<double>    getBlkCenterCoords(Tile blockDesc);
+    std::vector<double>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, std::vector<int> lo, std::vector<int> hi);
+    double                 getCellFaceArea(const unsigned int axis, const unsigned int lev, std::vector<int> coord);
+    double                 getCellVolume(const unsigned int lev, std::vector<int> coord);
+    unsigned int           getMaxRefinement();
+    unsigned int           getMaxLevel();
 
     void    writeToFile(const std::string& filename) const;
 

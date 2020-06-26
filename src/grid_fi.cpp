@@ -45,11 +45,12 @@ extern "C" {
     void   grid_get_domain_bound_box_fi(double lo[AMREX_SPACEDIM], 
                                         double hi[AMREX_SPACEDIM]) {
         Grid&   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid.geometry();
+        std::vector<double> domainLo = grid.getDomainLo();
+        std::vector<double> domainHi = grid.getDomainLo();
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
-            lo[i] = static_cast<double>(geometry.ProbLo(i));
-            hi[i] = static_cast<double>(geometry.ProbHi(i));
+            lo[i] = static_cast<double>(domainLo[i]);
+            hi[i] = static_cast<double>(domainHi[i]);
         }
     }
 

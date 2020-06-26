@@ -27,15 +27,16 @@ TEST_F(TestGrid,TestSample){
 }
 
 TEST_F(TestGrid,TestDomainBoundBox){
-        double bbox[2][3];
-        Grid::instance().getDomainBoundBox(bbox);
+        Grid& grid = Grid::instance();
+        std::vector<double> domainLo = grid.getDomainLo();
+        std::vector<double> domainHi = grid.getDomainHi();
 
-        EXPECT_TRUE(bbox[0][0] == X_MIN );
-        EXPECT_TRUE(bbox[0][1] == Y_MIN );
-        EXPECT_TRUE(bbox[0][2] == Z_MIN );
-        EXPECT_TRUE(bbox[1][0] == X_MAX );
-        EXPECT_TRUE(bbox[1][1] == Y_MAX );
-        EXPECT_TRUE(bbox[1][2] == Z_MAX );
+        EXPECT_TRUE(domainLo[0] == X_MIN );
+        EXPECT_TRUE(domainLo[1] == Y_MIN );
+        EXPECT_TRUE(domainLo[2] == Z_MIN );
+        EXPECT_TRUE(domainHi[0] == X_MAX );
+        EXPECT_TRUE(domainHi[1] == Y_MAX );
+        EXPECT_TRUE(domainHi[2] == Z_MAX );
 }
 
 }

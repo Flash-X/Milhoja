@@ -125,23 +125,33 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
-  * getDomainBoundBox fills a 2x3 array with 
-  * the physical boundaries of the domain.
-  * Note: returns 0.0 for lo and hi of any dimension
+  * getDomainLo returns a vector with 
+  * the lower boundary of the domain.
+  * Note: returns 0.0 for any dimension
   * higher than NDIM.
-  *
-  * @param bbox A 2d array (OUT). 1st index: {LO,HI}, 2nd index: {IAXIS,JAXIS,KAXIS}.
   */
-void    Grid::getDomainBoundBox(double bbox[][3]) {
+std::vector<double>    Grid::getDomainLo() {
+    std::vector<double> domainLo{0.0,0.0,0.0};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    for(int i=0;i<NDIM;i++){
-      bbox[0][i] = geom->ProbLo(i);
-      bbox[1][i] = geom->ProbHi(i);
+    for(unsigned int i=0;i<NDIM;i++){
+      domainLo[i] = geom->ProbLo(i);
     }
-    for(int i=NDIM;i<3;i++){
-      bbox[0][i] = 0.0;
-      bbox[1][i] = 0.0;
+    return domainLo;
+}
+
+/**
+  * getDomainHi returns a vector with 
+  * the upper boundary of the domain.
+  * Note: returns 0.0 for any dimension
+  * higher than NDIM.
+  */
+std::vector<double>    Grid::getDomainHi() {
+    std::vector<double> domainHi{0.0,0.0,0.0};
+    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    for(unsigned int i=0;i<NDIM;i++){
+      domainHi[i] = geom->ProbHi(i);
     }
+    return domainHi;
 }
 
 /**
