@@ -52,6 +52,8 @@ public:
     // memory
     amrex::Real*    CC_h_;
 
+    // TODO: Replace amrex::Real and double with grid::Real ??
+
     // If a Tile object has been added to a DataPacket, then these pointers will
     // point to the location of useful data in the DataPacket's pinned memory
     // buffer in the host's memory.

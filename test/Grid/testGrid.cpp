@@ -3,7 +3,7 @@
 #include "constants.h"
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
-#include <AMReX_RealBox.H>
+#include <AMReX.H>
 
 namespace {
 
@@ -26,10 +26,17 @@ TEST_F(TestGrid,TestSample){
         EXPECT_TRUE(0==0);
 }
 
+TEST_F(TestGrid,TestRealTypeDef){
+        grid::Real realzero = 0_rt;
+        grid::Real mypi = 3.14_rt;
+        bool amrexReal_eq_gridReal = std::is_same<amrex::Real,grid::Real>::value;
+        EXPECT_TRUE(amrexReal_eq_gridReal);
+}
+
 TEST_F(TestGrid,TestDomainBoundBox){
         Grid& grid = Grid::instance();
-        std::vector<double> domainLo = grid.getDomainLo();
-        std::vector<double> domainHi = grid.getDomainHi();
+        std::vector<grid::Real> domainLo = grid.getDomainLo();
+        std::vector<grid::Real> domainHi = grid.getDomainHi();
 
         EXPECT_TRUE(domainLo[0] == X_MIN );
         EXPECT_TRUE(domainLo[1] == Y_MIN );

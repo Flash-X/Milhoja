@@ -13,6 +13,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include "Grid_REAL.h"
 #include "Tile.h"
 #include "runtimeTask.h"
 
@@ -22,9 +23,9 @@ public:
 
     static Grid& instance(void);
 
-    void    initDomain(const amrex::Real xMin, const amrex::Real xMax,
-                       const amrex::Real yMin, const amrex::Real yMax,
-                       const amrex::Real zMin, const amrex::Real zMax,
+    void    initDomain(const grid::Real xMin, const grid::Real xMax,
+                       const grid::Real yMin, const grid::Real yMax,
+                       const grid::Real zMin, const grid::Real zMax,
                        const unsigned int nBlocksX,
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
@@ -35,13 +36,13 @@ public:
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
-    std::vector<double>    getDomainLo();
-    std::vector<double>    getDomainHi();
-    std::vector<double>    getDeltas(const unsigned int lev);
-    std::vector<double>    getBlkCenterCoords(Tile blockDesc);
-    std::vector<double>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, std::vector<int> lo, std::vector<int> hi);
-    double                 getCellFaceArea(const unsigned int axis, const unsigned int lev, std::vector<int> coord);
-    double                 getCellVolume(const unsigned int lev, std::vector<int> coord);
+    std::vector<grid::Real>    getDomainLo();
+    std::vector<grid::Real>    getDomainHi();
+    std::vector<grid::Real>    getDeltas(const unsigned int lev);
+    std::vector<grid::Real>    getBlkCenterCoords(const Tile blockDesc);
+    std::vector<grid::Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const std::vector<int> lo, const std::vector<int> hi);
+    grid::Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const std::vector<int> coord);
+    grid::Real                 getCellVolume(const unsigned int lev, const std::vector<int> coord);
     unsigned int           getMaxRefinement();
     unsigned int           getMaxLevel();
 

@@ -53,9 +53,9 @@ Grid::~Grid(void) {
 /**
  *
  */
-void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
-                         const amrex::Real yMin, const amrex::Real yMax,
-                         const amrex::Real zMin, const amrex::Real zMax,
+void    Grid::initDomain(const grid::Real xMin, const grid::Real xMax,
+                         const grid::Real yMin, const grid::Real yMax,
+                         const grid::Real zMin, const grid::Real zMax,
                          const unsigned int nBlocksX,
                          const unsigned int nBlocksY,
                          const unsigned int nBlocksZ,
@@ -130,8 +130,8 @@ void    Grid::destroyDomain(void) {
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
   */
-std::vector<double>    Grid::getDomainLo() {
-    std::vector<double> domainLo{0.0,0.0,0.0};
+std::vector<grid::Real>    Grid::getDomainLo() {
+    std::vector<grid::Real> domainLo{0_rt,0_rt,0_rt};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -145,8 +145,8 @@ std::vector<double>    Grid::getDomainLo() {
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
   */
-std::vector<double>    Grid::getDomainHi() {
-    std::vector<double> domainHi{0.0,0.0,0.0};
+std::vector<grid::Real>    Grid::getDomainHi() {
+    std::vector<grid::Real> domainHi{0_rt,0_rt,0_rt};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
