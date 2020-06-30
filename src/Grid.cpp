@@ -173,6 +173,42 @@ std::vector<grid::Real>    Grid::getDeltas(unsigned int level) {
 }
 
 /**
+  * getBlkCenterCoords returns the (real) coordinates of the
+  * center of the given block/tile.
+  * Note: returns 0.0 for any dimension higher than NDIM.
+  *
+  * @param tileDesc A Tile object.
+  */
+std::vector<grid::Real>    Grid::getBlkCenterCoords(const Tile tileDesc) {
+    std::vector<grid::Real> coords{0_rt,0_rt,0_rt};
+    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    //Grid&   grid = Grid::instance();
+    //amrex::Geometry&  geom = grid.geometry();
+    //for(unsigned int i=0;i<NDIM;i++){
+      //coords[i] = ;
+    //}
+    return coords;
+}
+
+/**
+  * getMaxRefinement returns lrefine_max (the maximum possible refinement level).
+  * Note: 0-based.
+  */
+unsigned int Grid::getMaxRefinement() {
+    //TODO obviously has to change when AMR is implemented
+    return 0;
+}
+
+/**
+  * getMaxRefinement returns the highest level of blocks actually in existence. 
+  * Note: 0-based.
+  */
+unsigned int Grid::getMaxLevel() {
+    //TODO obviously has to change when AMR is implemented
+    return 0;
+}
+
+/**
  *
  */
 void    Grid::writeToFile(const std::string& filename) const {

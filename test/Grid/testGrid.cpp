@@ -58,6 +58,12 @@ TEST_F(TestGrid,TestGetters){
         EXPECT_TRUE(dx == deltas[0]);
         EXPECT_TRUE(dy == deltas[1]);
         EXPECT_TRUE(dz == deltas[2]);
+
+        //Testing Grid::getBlkCenterCoords
+
+        //Testing Grid::getMaxRefinement and getMaxLevel
+        EXPECT_TRUE(0 == grid.getMaxRefinement());
+        EXPECT_TRUE(0 == grid.getMaxLevel());
 }
 
 }

@@ -44,8 +44,8 @@ public:
     std::vector<grid::Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const std::vector<int> lo, const std::vector<int> hi);
     grid::Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const std::vector<int> coord);
     grid::Real                 getCellVolume(const unsigned int lev, const std::vector<int> coord);
-    unsigned int           getMaxRefinement();
-    unsigned int           getMaxLevel();
+    unsigned int               getMaxRefinement();
+    unsigned int               getMaxLevel();
 
     void    writeToFile(const std::string& filename) const;
 
