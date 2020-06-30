@@ -59,10 +59,10 @@ extern "C" {
      */
     void   grid_get_deltas_fi(const int level, double deltas[AMREX_SPACEDIM]) {
         Grid&   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid.geometry();
+        std::vector<grid::Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
-            deltas[i] = static_cast<double>(geometry.CellSize(i));
+            deltas[i] = static_cast<double>(deltas[i]);
         }
     }
 

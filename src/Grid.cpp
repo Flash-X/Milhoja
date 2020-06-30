@@ -155,6 +155,24 @@ std::vector<grid::Real>    Grid::getDomainHi() {
 }
 
 /**
+  * getDeltas returns the vector {dx,dy,dz} for a given level.
+  * Note: returns 0.0 for any dimension higher than NDIM.
+  *
+  * @param level The level of refinement (0-based).
+  */
+std::vector<grid::Real>    Grid::getDeltas(unsigned int level) {
+    std::vector<grid::Real> deltas{0_rt,0_rt,0_rt};
+    //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
+    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+    for(unsigned int i=0;i<NDIM;i++){
+      deltas[i] = geom.CellSize(i);
+    }
+    return deltas;
+}
+
+/**
  *
  */
 void    Grid::writeToFile(const std::string& filename) const {

@@ -36,6 +36,7 @@ public:
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
+    //Basic getter functions.
     std::vector<grid::Real>    getDomainLo();
     std::vector<grid::Real>    getDomainHi();
     std::vector<grid::Real>    getDeltas(const unsigned int lev);

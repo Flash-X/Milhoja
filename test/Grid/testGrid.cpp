@@ -46,4 +46,18 @@ TEST_F(TestGrid,TestDomainBoundBox){
         EXPECT_TRUE(domainHi[2] == Z_MAX );
 }
 
+TEST_F(TestGrid,TestGetters){
+        Grid& grid = Grid::instance();
+
+        //Testing Grid::getDeltas
+        //TODO: loop over all levels when AMR is implemented
+        std::vector<grid::Real> deltas = grid.getDeltas(0);
+        grid::Real dx = (X_MAX - X_MIN) / static_cast<grid::Real>(N_BLOCKS_X * NXB);
+        grid::Real dy = (Y_MAX - Y_MIN) / static_cast<grid::Real>(N_BLOCKS_Y * NYB);
+        grid::Real dz = (Z_MAX - Z_MIN) / static_cast<grid::Real>(N_BLOCKS_Z * NZB);
+        EXPECT_TRUE(dx == deltas[0]);
+        EXPECT_TRUE(dy == deltas[1]);
+        EXPECT_TRUE(dz == deltas[2]);
+}
+
 }
