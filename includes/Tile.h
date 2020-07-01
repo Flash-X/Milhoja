@@ -4,6 +4,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_MFIter.H>
+#include "Grid_Vector.h"
 
 /**
  * TODO: The construction of this class should be well done.  In particular, we
@@ -32,8 +33,8 @@ public:
     // general.  Can we get references instead?
     amrex::Dim3          lo(void) const;
     amrex::Dim3          hi(void) const;
-    std::vector<int>           loVect(void) const;
-    std::vector<int>           hiVect(void) const;
+    grid::Vector<int>           loVect(void) const;
+    grid::Vector<int>           hiVect(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;

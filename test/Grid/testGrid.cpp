@@ -33,10 +33,24 @@ TEST_F(TestGrid,TestRealTypeDef){
         EXPECT_TRUE(amrexReal_eq_gridReal);
 }
 
+TEST_F(TestGrid,TestVectorClass){
+        grid::Vector<grid::Real> realVec1 = {1.5_rt,3.2_rt,5.8_rt};
+        grid::Vector<int> intVec1 = {3,10,2};
+
+        grid::Vector<int> intVec2 = grid::Vector<int>(realVec1);
+        EXPECT_TRUE(intVec2[0] == 1);
+        EXPECT_TRUE(intVec2[1] == 3);
+        EXPECT_TRUE(intVec2[2] == 5);
+        grid::Vector<grid::Real> realVecSum = realVec1 + grid::Vector<grid::Real>(intVec1);
+        EXPECT_TRUE(realVecSum[0] == 4.5_rt);
+        EXPECT_TRUE(realVecSum[1] == 13.2_rt);
+        EXPECT_TRUE(realVecSum[2] == 7.8_rt);
+}
+
 TEST_F(TestGrid,TestDomainBoundBox){
         Grid& grid = Grid::instance();
-        std::vector<grid::Real> domainLo = grid.getDomainLo();
-        std::vector<grid::Real> domainHi = grid.getDomainHi();
+        grid::Vector<grid::Real> domainLo = grid.getDomainLo();
+        grid::Vector<grid::Real> domainHi = grid.getDomainHi();
 
         EXPECT_TRUE(domainLo[0] == X_MIN );
         EXPECT_TRUE(domainLo[1] == Y_MIN );
@@ -48,10 +62,13 @@ TEST_F(TestGrid,TestDomainBoundBox){
 
 TEST_F(TestGrid,TestGetters){
         Grid& grid = Grid::instance();
+        grid::Vector<grid::Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
+        grid::Vector<int> n_blocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
+        grid::Vector<int> ncells = {NXB,NYB,NZB};
 
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
-        std::vector<grid::Real> deltas = grid.getDeltas(0);
+        grid::Vector<grid::Real> deltas = grid.getDeltas(0);
         grid::Real dx = (X_MAX - X_MIN) / static_cast<grid::Real>(N_BLOCKS_X * NXB);
         grid::Real dy = (Y_MAX - Y_MIN) / static_cast<grid::Real>(N_BLOCKS_Y * NYB);
         grid::Real dz = (Z_MAX - Z_MIN) / static_cast<grid::Real>(N_BLOCKS_Z * NZB);
@@ -62,12 +79,11 @@ TEST_F(TestGrid,TestGetters){
         //Testing Grid::getBlkCenterCoords
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            std::vector<int> loV = tileDesc.loVect();
-            std::vector<int> hiV = tileDesc.hiVect();
-            grid::Real x = X_MIN + dx * static_cast<grid::Real>(loV[0]+hiV[0]) / 2.0;
-            grid::Real y = Y_MIN + dy * static_cast<grid::Real>(loV[1]+hiV[1]) / 2.0;
-            grid::Real z = Z_MIN + dz * static_cast<grid::Real>(loV[2]+hiV[2]) / 2.0;
-            std::vector<grid::Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
+            grid::Vector<grid::Real> sumVec = grid::Vector<grid::Real>( tileDesc.loVect()+tileDesc.hiVect());
+            grid::Real x = X_MIN + dx * sumVec[0]/2.0;
+            grid::Real y = Y_MIN + dy * sumVec[1]/2.0;
+            grid::Real z = Z_MIN + dz * sumVec[2]/2.0;
+            grid::Vector<grid::Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
             ASSERT_TRUE(x == blkCenterCoords[0]);
             ASSERT_TRUE(y == blkCenterCoords[1]);
             ASSERT_TRUE(z == blkCenterCoords[2]);

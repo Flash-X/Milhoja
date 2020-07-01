@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "Grid_Vector.h"
 #include "Flash.h"
 #include "runtimeTask.h"
 
@@ -45,8 +46,8 @@ extern "C" {
     void   grid_get_domain_bound_box_fi(double lo[AMREX_SPACEDIM], 
                                         double hi[AMREX_SPACEDIM]) {
         Grid&   grid = Grid::instance();
-        std::vector<grid::Real> domainLo = grid.getDomainLo();
-        std::vector<grid::Real> domainHi = grid.getDomainLo();
+        grid::Vector<grid::Real> domainLo = grid.getDomainLo();
+        grid::Vector<grid::Real> domainHi = grid.getDomainLo();
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
             lo[i] = static_cast<double>(domainLo[i]);
@@ -59,7 +60,7 @@ extern "C" {
      */
     void   grid_get_deltas_fi(const int level, double deltas[AMREX_SPACEDIM]) {
         Grid&   grid = Grid::instance();
-        std::vector<grid::Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
+        grid::Vector<grid::Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
 
         for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
             deltas[i] = static_cast<double>(deltas[i]);

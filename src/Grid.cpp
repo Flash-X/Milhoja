@@ -130,8 +130,8 @@ void    Grid::destroyDomain(void) {
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
   */
-std::vector<grid::Real>    Grid::getDomainLo() {
-    std::vector<grid::Real> domainLo{0_rt,0_rt,0_rt};
+grid::Vector<grid::Real>    Grid::getDomainLo() {
+    grid::Vector<grid::Real> domainLo{0_rt,0_rt,0_rt};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -145,8 +145,8 @@ std::vector<grid::Real>    Grid::getDomainLo() {
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
   */
-std::vector<grid::Real>    Grid::getDomainHi() {
-    std::vector<grid::Real> domainHi{0_rt,0_rt,0_rt};
+grid::Vector<grid::Real>    Grid::getDomainHi() {
+    grid::Vector<grid::Real> domainHi{0_rt,0_rt,0_rt};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -160,8 +160,8 @@ std::vector<grid::Real>    Grid::getDomainHi() {
   *
   * @param level The level of refinement (0-based).
   */
-std::vector<grid::Real>    Grid::getDeltas(unsigned int level) {
-    std::vector<grid::Real> deltas{0_rt,0_rt,0_rt};
+grid::Vector<grid::Real>    Grid::getDeltas(unsigned int level) {
+    grid::Vector<grid::Real> deltas{0_rt,0_rt,0_rt};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
@@ -179,13 +179,13 @@ std::vector<grid::Real>    Grid::getDeltas(unsigned int level) {
   *
   * @param tileDesc A Tile object.
   */
-std::vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
-    std::vector<grid::Real> coords{0_rt,0_rt,0_rt};
+grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
+    grid::Vector<grid::Real> coords{0_rt,0_rt,0_rt};
     Grid&   grid = Grid::instance();
-    std::vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
-    std::vector<grid::Real> x0 = grid.getDomainLo();
-    std::vector<int> lo = tileDesc.loVect();
-    std::vector<int> hi = tileDesc.hiVect();
+    grid::Vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
+    grid::Vector<grid::Real> x0 = grid.getDomainLo();
+    grid::Vector<int> lo = tileDesc.loVect();
+    grid::Vector<int> hi = tileDesc.hiVect();
     for(unsigned int i=0;i<NDIM;i++){
       coords[i] = x0[i] + dx[i] * static_cast<grid::Real>(lo[i]+hi[i]) / 2.0;
     }
