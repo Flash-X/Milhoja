@@ -32,8 +32,8 @@ public:
     // general.  Can we get references instead?
     amrex::Dim3          lo(void) const;
     amrex::Dim3          hi(void) const;
-    const int*           loVect(void) const;
-    const int*           hiVect(void) const;
+    std::vector<int>           loVect(void) const;
+    std::vector<int>           hiVect(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;

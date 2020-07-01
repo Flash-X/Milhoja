@@ -179,14 +179,16 @@ std::vector<grid::Real>    Grid::getDeltas(unsigned int level) {
   *
   * @param tileDesc A Tile object.
   */
-std::vector<grid::Real>    Grid::getBlkCenterCoords(const Tile tileDesc) {
+std::vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
     std::vector<grid::Real> coords{0_rt,0_rt,0_rt};
-    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    //Grid&   grid = Grid::instance();
-    //amrex::Geometry&  geom = grid.geometry();
-    //for(unsigned int i=0;i<NDIM;i++){
-      //coords[i] = ;
-    //}
+    Grid&   grid = Grid::instance();
+    std::vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
+    std::vector<grid::Real> x0 = grid.getDomainLo();
+    std::vector<int> lo = tileDesc.loVect();
+    std::vector<int> hi = tileDesc.hiVect();
+    for(unsigned int i=0;i<NDIM;i++){
+      coords[i] = x0[i] + dx[i] * static_cast<grid::Real>(lo[i]+hi[i]) / 2.0;
+    }
     return coords;
 }
 

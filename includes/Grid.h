@@ -40,7 +40,7 @@ public:
     std::vector<grid::Real>    getDomainLo();
     std::vector<grid::Real>    getDomainHi();
     std::vector<grid::Real>    getDeltas(const unsigned int lev);
-    std::vector<grid::Real>    getBlkCenterCoords(const Tile blockDesc);
+    std::vector<grid::Real>    getBlkCenterCoords(const Tile& tileDesc);
     std::vector<grid::Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const std::vector<int> lo, const std::vector<int> hi);
     grid::Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const std::vector<int> coord);
     grid::Real                 getCellVolume(const unsigned int lev, const std::vector<int> coord);

@@ -60,6 +60,18 @@ TEST_F(TestGrid,TestGetters){
         EXPECT_TRUE(dz == deltas[2]);
 
         //Testing Grid::getBlkCenterCoords
+        for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
+            Tile tileDesc(itor, 0);
+            std::vector<int> loV = tileDesc.loVect();
+            std::vector<int> hiV = tileDesc.hiVect();
+            grid::Real x = X_MIN + dx * static_cast<grid::Real>(loV[0]+hiV[0]) / 2.0;
+            grid::Real y = Y_MIN + dy * static_cast<grid::Real>(loV[1]+hiV[1]) / 2.0;
+            grid::Real z = Z_MIN + dz * static_cast<grid::Real>(loV[2]+hiV[2]) / 2.0;
+            std::vector<grid::Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
+            ASSERT_TRUE(x == blkCenterCoords[0]);
+            ASSERT_TRUE(y == blkCenterCoords[1]);
+            ASSERT_TRUE(z == blkCenterCoords[2]);
+        }
 
         //Testing Grid::getMaxRefinement and getMaxLevel
         EXPECT_TRUE(0 == grid.getMaxRefinement());
