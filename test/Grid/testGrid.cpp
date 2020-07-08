@@ -31,7 +31,7 @@ TEST_F(TestGrid,TestSample){
 TEST_F(TestGrid,TestRealTypeDef){
         Real realzero = 0.0_wp;
         Real mypi = 3.14_wp;
-        bool amrexReal_eq_gridReal = std::is_same<amrex::Real,grid::Real>::value;
+        bool amrexReal_eq_gridReal = std::is_same<amrex::Real,Real>::value;
         EXPECT_TRUE(amrexReal_eq_gridReal);
 }
 
