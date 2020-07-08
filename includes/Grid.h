@@ -40,15 +40,15 @@ public:
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
     //Basic getter functions.
-    Vector<Real>    getDomainLo();
-    Vector<Real>    getDomainHi();
-    Vector<Real>    getDeltas(const unsigned int lev);
-    Vector<Real>    getBlkCenterCoords(const Tile& tileDesc);
-    Vector<Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const Vector<int> lo, const Vector<int> hi);
-    Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const Vector<int> coord);
-    Real                 getCellVolume(const unsigned int lev, const Vector<int> coord);
-    unsigned int               getMaxRefinement();
-    unsigned int               getMaxLevel();
+    Vector<Real>    getDomainLo() const;
+    Vector<Real>    getDomainHi() const;
+    Vector<Real>    getDeltas(const unsigned int lev) const;
+    Vector<Real>    getBlkCenterCoords(const Tile& tileDesc) const;
+    Vector<Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const Vector<int> lo, const Vector<int> hi) const;
+    Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const Vector<int> coord) const;
+    Real                 getCellVolume(const unsigned int lev, const Vector<int> coord) const;
+    unsigned int               getMaxRefinement() const;
+    unsigned int               getMaxLevel() const;
 
     void    writeToFile(const std::string& filename) const;
 
