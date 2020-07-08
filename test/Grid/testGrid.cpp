@@ -71,9 +71,9 @@ TEST_F(TestGrid,TestGetters){
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
             Vector<Real> sumVec = Vector<Real>( tileDesc.loVect()+tileDesc.hiVect());
-            Real x = X_MIN + dx * sumVec[0]/2.0;
-            Real y = Y_MIN + dy * sumVec[1]/2.0;
-            Real z = Z_MIN + dz * sumVec[2]/2.0;
+            Real x = X_MIN + dx * sumVec[0]*0.5_wp;
+            Real y = Y_MIN + dy * sumVec[1]*0.5_wp;
+            Real z = Z_MIN + dz * sumVec[2]*0.5_wp;
             Vector<Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
             ASSERT_TRUE(x == blkCenterCoords[0]);
             ASSERT_TRUE(y == blkCenterCoords[1]);
