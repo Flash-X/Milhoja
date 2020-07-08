@@ -125,10 +125,11 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
-  * getDomainLo returns a vector with 
-  * the lower boundary of the domain.
+  * getDomainLo gets the lower boundary of the domain.
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
+  *
+  * @return A real vector: <xlo, ylo, zlo>
   */
 grid::Vector<grid::Real>    Grid::getDomainLo() {
     grid::Vector<grid::Real> domainLo{0_rt,0_rt,0_rt};
@@ -140,10 +141,11 @@ grid::Vector<grid::Real>    Grid::getDomainLo() {
 }
 
 /**
-  * getDomainHi returns a vector with 
-  * the upper boundary of the domain.
+  * getDomainHi gets the upper boundary of the domain.
   * Note: returns 0.0 for any dimension
   * higher than NDIM.
+  *
+  * @return A real vector: <xhi, yhi, zhi>
   */
 grid::Vector<grid::Real>    Grid::getDomainHi() {
     grid::Vector<grid::Real> domainHi{0_rt,0_rt,0_rt};
@@ -155,12 +157,13 @@ grid::Vector<grid::Real>    Grid::getDomainHi() {
 }
 
 /**
-  * getDeltas returns the vector {dx,dy,dz} for a given level.
+  * getDeltas gets the cell size for a given level.
   * Note: returns 0.0 for any dimension higher than NDIM.
   *
-  * @param level The level of refinement (0-based).
+  * @param level The level of refinement (0 is coarsest).
+  * @return The vector <dx,dy,dz> for a given level.
   */
-grid::Vector<grid::Real>    Grid::getDeltas(unsigned int level) {
+grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
     grid::Vector<grid::Real> deltas{0_rt,0_rt,0_rt};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
@@ -173,11 +176,12 @@ grid::Vector<grid::Real>    Grid::getDeltas(unsigned int level) {
 }
 
 /**
-  * getBlkCenterCoords returns the (real) coordinates of the
-  * center of the given block/tile.
+  * getBlkCenterCoords gets the physical coordinates of the
+  * center of the given tile.
   * Note: returns 0.0 for any dimension higher than NDIM.
   *
   * @param tileDesc A Tile object.
+  * @return A real vector with the physical center coordinates of the tile.
   */
 grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
     grid::Vector<grid::Real> coords{0_rt,0_rt,0_rt};
@@ -193,8 +197,9 @@ grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
 }
 
 /**
-  * getMaxRefinement returns lrefine_max (the maximum possible refinement level).
-  * Note: 0-based.
+  * getMaxRefinement returns the maximum possible refinement level. (Specified by user).
+  *
+  * @return Maximum refinement level of simulation.
   */
 unsigned int Grid::getMaxRefinement() {
     //TODO obviously has to change when AMR is implemented
@@ -203,7 +208,8 @@ unsigned int Grid::getMaxRefinement() {
 
 /**
   * getMaxRefinement returns the highest level of blocks actually in existence. 
-  * Note: 0-based.
+  *
+  * @return The max level of existing blocks (0 is coarsest).
   */
 unsigned int Grid::getMaxLevel() {
     //TODO obviously has to change when AMR is implemented

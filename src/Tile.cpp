@@ -201,10 +201,10 @@ amrex::Dim3  Tile::hi(void) const {
  *
  */
 grid::Vector<int>  Tile::loVect(void) const {
-    const int* l = interior_->loVect(); 
+    const int* lo = interior_->loVect();
     grid::Vector<int> loVec = {0,0,0};
     for (unsigned int i=0;i<NDIM;++i){
-        loVec[i] = l[i];
+        loVec[i] = lo[i];
     }
     return loVec;
 }
@@ -213,10 +213,10 @@ grid::Vector<int>  Tile::loVect(void) const {
  *
  */
 grid::Vector<int>  Tile::hiVect(void) const {
-    const int* h = interior_->hiVect(); 
+    const int* hi = interior_->hiVect();
     grid::Vector<int> hiVec = {0,0,0};
     for (unsigned int i=0;i<NDIM;++i){
-        hiVec[i] = h[i];
+        hiVec[i] = hi[i];
     }
     return hiVec;
 }

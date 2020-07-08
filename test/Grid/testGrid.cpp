@@ -63,8 +63,8 @@ TEST_F(TestGrid,TestDomainBoundBox){
 TEST_F(TestGrid,TestGetters){
         Grid& grid = Grid::instance();
         grid::Vector<grid::Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
-        grid::Vector<int> n_blocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
-        grid::Vector<int> ncells = {NXB,NYB,NZB};
+        grid::Vector<int> nBlocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
+        grid::Vector<int> nCells = {NXB,NYB,NZB};
 
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
