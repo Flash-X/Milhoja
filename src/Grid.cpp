@@ -37,6 +37,9 @@ Grid&   Grid::instance(void) {
 Grid::Grid(void) 
     : unk_(nullptr)
 {
+    if(!std::is_same<amrex::Real,grid::Real>::value) {
+      throw std::logic_error("amrex::Real does not match grid::Real");
+    }
     amrex::Initialize(MPI_COMM_WORLD);
     destroyDomain();
 }
@@ -132,7 +135,7 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 grid::Vector<grid::Real>    Grid::getDomainLo() {
-    grid::Vector<grid::Real> domainLo{0_rt,0_rt,0_rt};
+    grid::Vector<grid::Real> domainLo{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -148,7 +151,7 @@ grid::Vector<grid::Real>    Grid::getDomainLo() {
   * @return A real vector: <xhi, yhi, zhi>
   */
 grid::Vector<grid::Real>    Grid::getDomainHi() {
-    grid::Vector<grid::Real> domainHi{0_rt,0_rt,0_rt};
+    grid::Vector<grid::Real> domainHi{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -164,7 +167,7 @@ grid::Vector<grid::Real>    Grid::getDomainHi() {
   * @return The vector <dx,dy,dz> for a given level.
   */
 grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
-    grid::Vector<grid::Real> deltas{0_rt,0_rt,0_rt};
+    grid::Vector<grid::Real> deltas{0.0_wp,0.0_wp,0.0_wp};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
@@ -184,7 +187,7 @@ grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
   * @return A real vector with the physical center coordinates of the tile.
   */
 grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
-    grid::Vector<grid::Real> coords{0_rt,0_rt,0_rt};
+    grid::Vector<grid::Real> coords{0.0_wp,0.0_wp,0.0_wp};
     Grid&   grid = Grid::instance();
     grid::Vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
     grid::Vector<grid::Real> x0 = grid.getDomainLo();

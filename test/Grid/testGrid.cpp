@@ -27,14 +27,14 @@ TEST_F(TestGrid,TestSample){
 }
 
 TEST_F(TestGrid,TestRealTypeDef){
-        grid::Real realzero = 0_rt;
-        grid::Real mypi = 3.14_rt;
+        grid::Real realzero = 0.0_wp;
+        grid::Real mypi = 3.14_wp;
         bool amrexReal_eq_gridReal = std::is_same<amrex::Real,grid::Real>::value;
         EXPECT_TRUE(amrexReal_eq_gridReal);
 }
 
 TEST_F(TestGrid,TestVectorClass){
-        grid::Vector<grid::Real> realVec1 = {1.5_rt,3.2_rt,5.8_rt};
+        grid::Vector<grid::Real> realVec1 = {1.5_wp,3.2_wp,5.8_wp};
         grid::Vector<int> intVec1 = {3,10,2};
 
         grid::Vector<int> intVec2 = grid::Vector<int>(realVec1);
@@ -42,9 +42,9 @@ TEST_F(TestGrid,TestVectorClass){
         EXPECT_TRUE(intVec2[1] == 3);
         EXPECT_TRUE(intVec2[2] == 5);
         grid::Vector<grid::Real> realVecSum = realVec1 + grid::Vector<grid::Real>(intVec1);
-        EXPECT_TRUE(realVecSum[0] == 4.5_rt);
-        EXPECT_TRUE(realVecSum[1] == 13.2_rt);
-        EXPECT_TRUE(realVecSum[2] == 7.8_rt);
+        EXPECT_TRUE(realVecSum[0] == 4.5_wp);
+        EXPECT_TRUE(realVecSum[1] == 13.2_wp);
+        EXPECT_TRUE(realVecSum[2] == 7.8_wp);
 }
 
 TEST_F(TestGrid,TestDomainBoundBox){

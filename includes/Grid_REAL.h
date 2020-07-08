@@ -43,22 +43,22 @@ namespace grid {
 }
 inline namespace literals {
   /**
-    C++ user literals ``_rt`` for short-hand notations
+    C++ user literals ``_wp`` for short-hand notations
 
     Use this to properly add types to constant such as
     ```
-    auto const mypi = 3.14_rt;
-    auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
+    Real const mypi = 3.14_wp;
+    Real const sphere_volume = 4.0_wp / 3.0_wp * pow(r, 3.0) * mypi;
     ```
   */
   constexpr grid::Real
-  operator"" _rt( long double x )
+  operator"" _wp( long double x )
   {
       return grid::Real( x );
   }
 
   constexpr grid::Real
-  operator"" _rt( unsigned long long int x )
+  operator"" _wp( unsigned long long int x )
   {
       return grid::Real( x );
   }
