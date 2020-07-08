@@ -8,6 +8,7 @@
 #include "ActionBundle.h"
 #include "ThreadTeamDataType.h"
 #include "OrchestrationRuntime.h"
+using namespace orchestration;
 
 extern "C" {
     /**

@@ -3,6 +3,8 @@
 
 #include "RuntimeAction.h"
 
+namespace orchestration {
+
 enum class WorkDistribution     {Concurrent, Partitioned};
 
 // WIP: This is just a rough draft to get things working.  This could
@@ -14,6 +16,8 @@ struct ActionBundle {
     RuntimeAction     gpuAction;
     RuntimeAction     postGpuAction;
 };
+
+}
 
 #endif
 

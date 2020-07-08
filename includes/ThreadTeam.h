@@ -70,6 +70,8 @@
 #include "ThreadTeamRunningClosed.h"
 #include "ThreadTeamRunningNoMoreWork.h"
 
+namespace orchestration {
+
 template<typename W>
 class ThreadTeam : public ThreadTeamBase {
 public:
@@ -206,6 +208,8 @@ private:
     std::ofstream     logFile_; 
 #endif
 };
+
+}
 
 #include "../src/ThreadTeam.cpp"
 

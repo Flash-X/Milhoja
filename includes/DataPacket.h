@@ -5,6 +5,8 @@
 
 #include "Tile.h"
 
+namespace orchestration {
+
 // FIXME: This needs to be written as a full implementation and cleanly.
 // TODO:  Should we preset the size of the deque to avoid automatic 
 //        resizing when the runtime is active?
@@ -29,6 +31,8 @@ private:
 //    DataPacket& operator=(const DataPacket&) = delete;
 //    DataPacket& operator=(DataPacket&&) = delete;
 };
+
+}
 
 #endif
 

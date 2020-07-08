@@ -4,6 +4,8 @@
 #include "ThreadTeamDataType.h"
 #include "runtimeTask.h"
 
+namespace orchestration {
+
 // TODO: We need to create the concept of an action chain
 //       These are a sequence of RuntimeActions with consecutive teams 
 //       linked as publisher/subscriber.  The first team in the chain
@@ -21,6 +23,8 @@ struct RuntimeAction {
     unsigned int          nTilesPerPacket = 0;
     TASK_FCN              routine = nullptr;
 };
+
+}
 
 #endif
 

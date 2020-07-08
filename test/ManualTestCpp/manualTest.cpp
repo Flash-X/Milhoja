@@ -10,6 +10,8 @@
 #include "Flash.h"
 #include "constants.h"
 
+using namespace orchestration;
+
 void delay_1s(const int tId, int* work) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 }

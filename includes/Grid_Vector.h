@@ -3,7 +3,7 @@
 
 #include <vector>
 
-namespace grid {
+namespace orchestration {
 
 template <class T, class Allocator=std::allocator<T>> class Vector : public std::vector<T, Allocator>
 {

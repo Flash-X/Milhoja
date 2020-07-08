@@ -1,4 +1,5 @@
 #include "ThreadTeamIdle.h"
+namespace orchestration {
 
 /**
  * Instantiate a ThreadTeamIdle object for internal use by a ThreadTeam object
@@ -163,4 +164,4 @@ std::string ThreadTeamIdle<W,T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "Cannot close the queue when no task is being executed");
 }
-
+}

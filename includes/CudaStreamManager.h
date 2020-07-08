@@ -20,6 +20,8 @@
 
 #include "CudaStream.h"
 
+namespace orchestration {
+
 class CudaStreamManager {
 public:
     ~CudaStreamManager();
@@ -49,6 +51,8 @@ private:
     pthread_mutex_t   idxMutex_;         //!< Use to access queue of free streams
     pthread_cond_t    streamReleased_;   //!< To be emitted when a thread releases a stream
 };
+
+}
 
 #endif
 

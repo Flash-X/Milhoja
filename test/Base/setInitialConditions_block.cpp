@@ -5,6 +5,8 @@
 #include "Grid.h"
 #include "Tile.h"
 
+using namespace orchestration;
+
 void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     Tile*  tileDesc = static_cast<Tile*>(dataItem);
 

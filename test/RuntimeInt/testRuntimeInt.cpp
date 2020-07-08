@@ -9,6 +9,8 @@
 
 #include "gtest/gtest.h"
 
+using namespace orchestration;
+
 namespace {
 
 // No-op action routine that assume that give dataItem is an int

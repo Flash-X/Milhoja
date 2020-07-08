@@ -4,6 +4,8 @@
 #include "Grid.h"
 #include "Tile.h"
 
+using namespace orchestration;
+
 void ThreadRoutines::computeLaplacianDensity_block(const int tId, 
                                                    void* dataItem) {
     Tile*  tileDesc = static_cast<Tile*>(dataItem);

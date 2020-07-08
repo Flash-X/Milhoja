@@ -23,6 +23,8 @@
 
 #include "gtest/gtest.h"
 
+using namespace orchestration;
+
 namespace {
 
 void processWalltimes(const std::vector<double>& wtimes, 

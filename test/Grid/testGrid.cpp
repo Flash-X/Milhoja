@@ -5,6 +5,8 @@
 #include "gtest/gtest.h"
 #include <AMReX.H>
 
+using namespace orchestration;
+
 namespace {
 
 //test fixture
@@ -27,21 +29,21 @@ TEST_F(TestGrid,TestSample){
 }
 
 TEST_F(TestGrid,TestRealTypeDef){
-        grid::Real realzero = 0.0_wp;
-        grid::Real mypi = 3.14_wp;
+        Real realzero = 0.0_wp;
+        Real mypi = 3.14_wp;
         bool amrexReal_eq_gridReal = std::is_same<amrex::Real,grid::Real>::value;
         EXPECT_TRUE(amrexReal_eq_gridReal);
 }
 
 TEST_F(TestGrid,TestVectorClass){
-        grid::Vector<grid::Real> realVec1 = {1.5_wp,3.2_wp,5.8_wp};
-        grid::Vector<int> intVec1 = {3,10,2};
+        Vector<Real> realVec1 = {1.5_wp,3.2_wp,5.8_wp};
+        Vector<int> intVec1 = {3,10,2};
 
-        grid::Vector<int> intVec2 = grid::Vector<int>(realVec1);
+        Vector<int> intVec2 = Vector<int>(realVec1);
         EXPECT_TRUE(intVec2[0] == 1);
         EXPECT_TRUE(intVec2[1] == 3);
         EXPECT_TRUE(intVec2[2] == 5);
-        grid::Vector<grid::Real> realVecSum = realVec1 + grid::Vector<grid::Real>(intVec1);
+        Vector<Real> realVecSum = realVec1 + Vector<Real>(intVec1);
         EXPECT_TRUE(realVecSum[0] == 4.5_wp);
         EXPECT_TRUE(realVecSum[1] == 13.2_wp);
         EXPECT_TRUE(realVecSum[2] == 7.8_wp);
@@ -49,8 +51,8 @@ TEST_F(TestGrid,TestVectorClass){
 
 TEST_F(TestGrid,TestDomainBoundBox){
         Grid& grid = Grid::instance();
-        grid::Vector<grid::Real> domainLo = grid.getDomainLo();
-        grid::Vector<grid::Real> domainHi = grid.getDomainHi();
+        Vector<Real> domainLo = grid.getDomainLo();
+        Vector<Real> domainHi = grid.getDomainHi();
 
         EXPECT_TRUE(domainLo[0] == X_MIN );
         EXPECT_TRUE(domainLo[1] == Y_MIN );
@@ -62,16 +64,16 @@ TEST_F(TestGrid,TestDomainBoundBox){
 
 TEST_F(TestGrid,TestGetters){
         Grid& grid = Grid::instance();
-        grid::Vector<grid::Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
-        grid::Vector<int> nBlocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
-        grid::Vector<int> nCells = {NXB,NYB,NZB};
+        Vector<Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
+        Vector<int> nBlocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
+        Vector<int> nCells = {NXB,NYB,NZB};
 
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
-        grid::Vector<grid::Real> deltas = grid.getDeltas(0);
-        grid::Real dx = (X_MAX - X_MIN) / static_cast<grid::Real>(N_BLOCKS_X * NXB);
-        grid::Real dy = (Y_MAX - Y_MIN) / static_cast<grid::Real>(N_BLOCKS_Y * NYB);
-        grid::Real dz = (Z_MAX - Z_MIN) / static_cast<grid::Real>(N_BLOCKS_Z * NZB);
+        Vector<Real> deltas = grid.getDeltas(0);
+        Real dx = (X_MAX - X_MIN) / static_cast<Real>(N_BLOCKS_X * NXB);
+        Real dy = (Y_MAX - Y_MIN) / static_cast<Real>(N_BLOCKS_Y * NYB);
+        Real dz = (Z_MAX - Z_MIN) / static_cast<Real>(N_BLOCKS_Z * NZB);
         EXPECT_TRUE(dx == deltas[0]);
         EXPECT_TRUE(dy == deltas[1]);
         EXPECT_TRUE(dz == deltas[2]);
@@ -79,11 +81,11 @@ TEST_F(TestGrid,TestGetters){
         //Testing Grid::getBlkCenterCoords
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            grid::Vector<grid::Real> sumVec = grid::Vector<grid::Real>( tileDesc.loVect()+tileDesc.hiVect());
-            grid::Real x = X_MIN + dx * sumVec[0]/2.0;
-            grid::Real y = Y_MIN + dy * sumVec[1]/2.0;
-            grid::Real z = Z_MIN + dz * sumVec[2]/2.0;
-            grid::Vector<grid::Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
+            Vector<Real> sumVec = Vector<Real>( tileDesc.loVect()+tileDesc.hiVect());
+            Real x = X_MIN + dx * sumVec[0]/2.0;
+            Real y = Y_MIN + dy * sumVec[1]/2.0;
+            Real z = Z_MIN + dz * sumVec[2]/2.0;
+            Vector<Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
             ASSERT_TRUE(x == blkCenterCoords[0]);
             ASSERT_TRUE(y == blkCenterCoords[1]);
             ASSERT_TRUE(z == blkCenterCoords[2]);

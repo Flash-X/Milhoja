@@ -6,6 +6,7 @@
 #include "Grid.h"
 #include "Flash.h"
 #include "constants.h"
+using namespace orchestration;
 
 extern "C" {
     void tile_set_limits_fi(Tile* tileDesc, int& gid, int& level,

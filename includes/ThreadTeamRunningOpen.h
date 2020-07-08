@@ -10,6 +10,7 @@
 #define THREAD_TEAM_RUNNING_OPEN_H__
 
 #include "ThreadTeamState.h"
+namespace orchestration {
 
 template<typename W, class T>
 class ThreadTeamRunningOpen : public ThreadTeamState<W,T> {
@@ -39,6 +40,7 @@ private:
 
     T*    team_;
 };
+}
 
 // Include class definition in header since this is a class template
 //   => no need to compile the .cpp file directly as part of build

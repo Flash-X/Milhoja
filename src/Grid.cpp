@@ -19,6 +19,8 @@
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
+namespace orchestration {
+
 /**
  * 
  *
@@ -37,8 +39,8 @@ Grid&   Grid::instance(void) {
 Grid::Grid(void) 
     : unk_(nullptr)
 {
-    if(!std::is_same<amrex::Real,grid::Real>::value) {
-      throw std::logic_error("amrex::Real does not match grid::Real");
+    if(!std::is_same<amrex::Real,Real>::value) {
+      throw std::logic_error("amrex::Real does not match orchestration::Real");
     }
     amrex::Initialize(MPI_COMM_WORLD);
     destroyDomain();
@@ -56,9 +58,9 @@ Grid::~Grid(void) {
 /**
  *
  */
-void    Grid::initDomain(const grid::Real xMin, const grid::Real xMax,
-                         const grid::Real yMin, const grid::Real yMax,
-                         const grid::Real zMin, const grid::Real zMax,
+void    Grid::initDomain(const Real xMin, const Real xMax,
+                         const Real yMin, const Real yMax,
+                         const Real zMin, const Real zMax,
                          const unsigned int nBlocksX,
                          const unsigned int nBlocksY,
                          const unsigned int nBlocksZ,
@@ -134,8 +136,8 @@ void    Grid::destroyDomain(void) {
   *
   * @return A real vector: <xlo, ylo, zlo>
   */
-grid::Vector<grid::Real>    Grid::getDomainLo() {
-    grid::Vector<grid::Real> domainLo{0.0_wp,0.0_wp,0.0_wp};
+Vector<Real>    Grid::getDomainLo() {
+    Vector<Real> domainLo{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -150,8 +152,8 @@ grid::Vector<grid::Real>    Grid::getDomainLo() {
   *
   * @return A real vector: <xhi, yhi, zhi>
   */
-grid::Vector<grid::Real>    Grid::getDomainHi() {
-    grid::Vector<grid::Real> domainHi{0.0_wp,0.0_wp,0.0_wp};
+Vector<Real>    Grid::getDomainHi() {
+    Vector<Real> domainHi{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -166,8 +168,8 @@ grid::Vector<grid::Real>    Grid::getDomainHi() {
   * @param level The level of refinement (0 is coarsest).
   * @return The vector <dx,dy,dz> for a given level.
   */
-grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
-    grid::Vector<grid::Real> deltas{0.0_wp,0.0_wp,0.0_wp};
+Vector<Real>    Grid::getDeltas(const unsigned int level) {
+    Vector<Real> deltas{0.0_wp,0.0_wp,0.0_wp};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
@@ -186,15 +188,15 @@ grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
   * @param tileDesc A Tile object.
   * @return A real vector with the physical center coordinates of the tile.
   */
-grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
-    grid::Vector<grid::Real> coords{0.0_wp,0.0_wp,0.0_wp};
+Vector<Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
+    Vector<Real> coords{0.0_wp,0.0_wp,0.0_wp};
     Grid&   grid = Grid::instance();
-    grid::Vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
-    grid::Vector<grid::Real> x0 = grid.getDomainLo();
-    grid::Vector<int> lo = tileDesc.loVect();
-    grid::Vector<int> hi = tileDesc.hiVect();
+    Vector<Real> dx = grid.getDeltas(tileDesc.level());
+    Vector<Real> x0 = grid.getDomainLo();
+    Vector<int> lo = tileDesc.loVect();
+    Vector<int> hi = tileDesc.hiVect();
     for(unsigned int i=0;i<NDIM;i++){
-      coords[i] = x0[i] + dx[i] * static_cast<grid::Real>(lo[i]+hi[i]) / 2.0;
+      coords[i] = x0[i] + dx[i] * static_cast<Real>(lo[i]+hi[i]) / 2.0;
     }
     return coords;
 }
@@ -230,3 +232,5 @@ void    Grid::writeToFile(const std::string& filename) const {
     amrex::WriteSingleLevelPlotfile(filename, *unk_, names, geometry_, 0.0, 0);
 }
 
+
+}

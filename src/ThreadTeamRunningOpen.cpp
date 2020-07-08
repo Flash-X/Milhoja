@@ -1,4 +1,5 @@
 #include "ThreadTeamRunningOpen.h"
+namespace orchestration {
 
 /**
  * Instantiate a ThreadTeamRunningOpen object for internal use by a ThreadTeam
@@ -159,4 +160,4 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
 
     return errMsg;
 }
-
+}

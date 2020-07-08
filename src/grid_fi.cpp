@@ -6,6 +6,8 @@
 #include "Flash.h"
 #include "runtimeTask.h"
 
+using namespace orchestration;
+
 extern "C" {
 
     /**
@@ -27,12 +29,12 @@ extern "C" {
                                const int nVars,
                                TASK_FCN initBlock) {
         Grid&   grid = Grid::instance();
-        grid.initDomain(static_cast<grid::Real>(xMin),
-                        static_cast<grid::Real>(xMax),
-                        static_cast<grid::Real>(yMin),
-                        static_cast<grid::Real>(yMax),
-                        static_cast<grid::Real>(zMin),
-                        static_cast<grid::Real>(zMax),
+        grid.initDomain(static_cast<Real>(xMin),
+                        static_cast<Real>(xMax),
+                        static_cast<Real>(yMin),
+                        static_cast<Real>(yMax),
+                        static_cast<Real>(zMin),
+                        static_cast<Real>(zMax),
                         static_cast<unsigned int>(nBlocksX),
                         static_cast<unsigned int>(nBlocksY),
                         static_cast<unsigned int>(nBlocksZ),
@@ -46,8 +48,8 @@ extern "C" {
     void   grid_get_domain_bound_box_fi(double lo[NDIM],
                                         double hi[NDIM]) {
         Grid&   grid = Grid::instance();
-        grid::Vector<grid::Real> domainLo = grid.getDomainLo();
-        grid::Vector<grid::Real> domainHi = grid.getDomainLo();
+        Vector<Real> domainLo = grid.getDomainLo();
+        Vector<Real> domainHi = grid.getDomainLo();
 
         for (unsigned int i=0; i<NDIM; ++i) {
             lo[i] = static_cast<double>(domainLo[i]);
@@ -60,7 +62,7 @@ extern "C" {
      */
     void   grid_get_deltas_fi(const int level, double deltas[NDIM]) {
         Grid&   grid = Grid::instance();
-        grid::Vector<grid::Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
+        Vector<Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
 
         for (unsigned int i=0; i<NDIM; ++i) {
             deltas[i] = static_cast<double>(deltas[i]);

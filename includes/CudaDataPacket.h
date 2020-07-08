@@ -6,6 +6,8 @@
 #include "Tile.h"
 #include "CudaStream.h"
 
+namespace orchestration {
+
 // TODO: This DataPacket is linked to CUDA.  Is this acceptable?
 // Will the offline toolchain write this?  If so, could we have templates that
 // just need tweaking?
@@ -95,6 +97,8 @@ private:
     CudaDataPacket& operator=(const CudaDataPacket&) = delete;
     CudaDataPacket& operator=(CudaDataPacket&& rhs) = delete;
 };
+
+}
 
 #endif
 

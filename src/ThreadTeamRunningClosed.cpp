@@ -1,4 +1,5 @@
 #include "ThreadTeamRunningClosed.h"
+namespace orchestration {
 
 /**
  * Instantiate a ThreadTeamRunningClosed object for internal use by a ThreadTeam
@@ -119,4 +120,4 @@ std::string ThreadTeamRunningClosed<W,T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "The task is already closed");
 }
-
+}
