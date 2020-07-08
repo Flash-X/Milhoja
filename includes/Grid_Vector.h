@@ -2,6 +2,8 @@
 #define GRID_VECTOR_H__
 
 #include <vector>
+#include <algorithm>
+#include <functional>
 
 namespace orchestration {
 
@@ -11,7 +13,7 @@ public:
     using std::vector<T>::vector;
 
     template <class W>
-    Vector<T> (const Vector<W>& vec){
+    Vector (const Vector<W>& vec){
       Vector<T> result;
       result.reserve(vec.size());
       std::transform(vec.begin(), vec.end(), std::back_inserter(result), [](const W& x) -> T { return x; });
