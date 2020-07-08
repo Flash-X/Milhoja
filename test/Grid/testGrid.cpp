@@ -24,17 +24,6 @@ protected:
         }
 };
 
-TEST_F(TestGrid,TestSample){
-        EXPECT_TRUE(0==0);
-}
-
-TEST_F(TestGrid,TestRealTypeDef){
-        Real realzero = 0.0_wp;
-        Real mypi = 3.14_wp;
-        bool amrexReal_eq_gridReal = std::is_same<amrex::Real,Real>::value;
-        EXPECT_TRUE(amrexReal_eq_gridReal);
-}
-
 TEST_F(TestGrid,TestVectorClass){
         Vector<Real> realVec1 = {1.5_wp,3.2_wp,5.8_wp};
         Vector<int> intVec1 = {3,10,2};
