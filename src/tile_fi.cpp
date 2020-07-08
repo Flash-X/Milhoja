@@ -18,7 +18,7 @@ extern "C" {
         const int* hiPt   = tileDesc->hiVect();
         const int* loGCPt = tileDesc->loGCVect();
         const int* hiGCPt = tileDesc->hiGCVect();
-        for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
+        for (unsigned int i=0; i<NDIM; ++i) {
             lo[i]   = loPt[i];
             hi[i]   = hiPt[i];
             loGC[i] = loGCPt[i];

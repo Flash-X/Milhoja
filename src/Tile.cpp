@@ -200,15 +200,25 @@ amrex::Dim3  Tile::hi(void) const {
 /**
  *
  */
-const int*  Tile::loVect(void) const {
-    return interior_->loVect();
+grid::Vector<int>  Tile::loVect(void) const {
+    const int* lo = interior_->loVect();
+    grid::Vector<int> loVec = {0,0,0};
+    for (unsigned int i=0;i<NDIM;++i){
+        loVec[i] = lo[i];
+    }
+    return loVec;
 }
 
 /**
  *
  */
-const int*  Tile::hiVect(void) const {
-    return interior_->hiVect();
+grid::Vector<int>  Tile::hiVect(void) const {
+    const int* hi = interior_->hiVect();
+    grid::Vector<int> hiVec = {0,0,0};
+    for (unsigned int i=0;i<NDIM;++i){
+        hiVec[i] = hi[i];
+    }
+    return hiVec;
 }
 
 /**

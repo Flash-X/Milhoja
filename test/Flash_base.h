@@ -19,6 +19,8 @@
 #define N_BLOCKS_Y N_BLOCKS_ALONG_Y
 #define N_BLOCKS_Z N_BLOCKS_ALONG_Z
 
+#define REAL_IS_DOUBLE
+
 #if 0
 Assuming 2D only for now
 #endif

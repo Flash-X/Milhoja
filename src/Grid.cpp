@@ -10,6 +10,7 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_Geometry.H>
 
 #include "Flash.h"
 #include "constants.h"
@@ -36,6 +37,9 @@ Grid&   Grid::instance(void) {
 Grid::Grid(void) 
     : unk_(nullptr)
 {
+    if(!std::is_same<amrex::Real,grid::Real>::value) {
+      throw std::logic_error("amrex::Real does not match grid::Real");
+    }
     amrex::Initialize(MPI_COMM_WORLD);
     destroyDomain();
 }
@@ -52,9 +56,9 @@ Grid::~Grid(void) {
 /**
  *
  */
-void    Grid::initDomain(const amrex::Real xMin, const amrex::Real xMax,
-                         const amrex::Real yMin, const amrex::Real yMax,
-                         const amrex::Real zMin, const amrex::Real zMax,
+void    Grid::initDomain(const grid::Real xMin, const grid::Real xMax,
+                         const grid::Real yMin, const grid::Real yMax,
+                         const grid::Real zMin, const grid::Real zMax,
                          const unsigned int nBlocksX,
                          const unsigned int nBlocksY,
                          const unsigned int nBlocksZ,
@@ -121,6 +125,98 @@ void    Grid::destroyDomain(void) {
         unk_ = nullptr;
     }
     geometry_ = amrex::Geometry();
+}
+
+/**
+  * getDomainLo gets the lower boundary of the domain.
+  * Note: returns 0.0 for any dimension
+  * higher than NDIM.
+  *
+  * @return A real vector: <xlo, ylo, zlo>
+  */
+grid::Vector<grid::Real>    Grid::getDomainLo() {
+    grid::Vector<grid::Real> domainLo{0.0_wp,0.0_wp,0.0_wp};
+    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    for(unsigned int i=0;i<NDIM;i++){
+      domainLo[i] = geom->ProbLo(i);
+    }
+    return domainLo;
+}
+
+/**
+  * getDomainHi gets the upper boundary of the domain.
+  * Note: returns 0.0 for any dimension
+  * higher than NDIM.
+  *
+  * @return A real vector: <xhi, yhi, zhi>
+  */
+grid::Vector<grid::Real>    Grid::getDomainHi() {
+    grid::Vector<grid::Real> domainHi{0.0_wp,0.0_wp,0.0_wp};
+    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    for(unsigned int i=0;i<NDIM;i++){
+      domainHi[i] = geom->ProbHi(i);
+    }
+    return domainHi;
+}
+
+/**
+  * getDeltas gets the cell size for a given level.
+  * Note: returns 0.0 for any dimension higher than NDIM.
+  *
+  * @param level The level of refinement (0 is coarsest).
+  * @return The vector <dx,dy,dz> for a given level.
+  */
+grid::Vector<grid::Real>    Grid::getDeltas(const unsigned int level) {
+    grid::Vector<grid::Real> deltas{0.0_wp,0.0_wp,0.0_wp};
+    //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
+    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+    for(unsigned int i=0;i<NDIM;i++){
+      deltas[i] = geom.CellSize(i);
+    }
+    return deltas;
+}
+
+/**
+  * getBlkCenterCoords gets the physical coordinates of the
+  * center of the given tile.
+  * Note: returns 0.0 for any dimension higher than NDIM.
+  *
+  * @param tileDesc A Tile object.
+  * @return A real vector with the physical center coordinates of the tile.
+  */
+grid::Vector<grid::Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
+    grid::Vector<grid::Real> coords{0.0_wp,0.0_wp,0.0_wp};
+    Grid&   grid = Grid::instance();
+    grid::Vector<grid::Real> dx = grid.getDeltas(tileDesc.level());
+    grid::Vector<grid::Real> x0 = grid.getDomainLo();
+    grid::Vector<int> lo = tileDesc.loVect();
+    grid::Vector<int> hi = tileDesc.hiVect();
+    for(unsigned int i=0;i<NDIM;i++){
+      coords[i] = x0[i] + dx[i] * static_cast<grid::Real>(lo[i]+hi[i]) / 2.0;
+    }
+    return coords;
+}
+
+/**
+  * getMaxRefinement returns the maximum possible refinement level. (Specified by user).
+  *
+  * @return Maximum refinement level of simulation.
+  */
+unsigned int Grid::getMaxRefinement() {
+    //TODO obviously has to change when AMR is implemented
+    return 0;
+}
+
+/**
+  * getMaxRefinement returns the highest level of blocks actually in existence. 
+  *
+  * @return The max level of existing blocks (0 is coarsest).
+  */
+unsigned int Grid::getMaxLevel() {
+    //TODO obviously has to change when AMR is implemented
+    return 0;
 }
 
 /**

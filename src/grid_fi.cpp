@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "Grid_Vector.h"
 #include "Flash.h"
 #include "runtimeTask.h"
 
@@ -26,12 +27,12 @@ extern "C" {
                                const int nVars,
                                TASK_FCN initBlock) {
         Grid&   grid = Grid::instance();
-        grid.initDomain(static_cast<amrex::Real>(xMin),
-                        static_cast<amrex::Real>(xMax),
-                        static_cast<amrex::Real>(yMin),
-                        static_cast<amrex::Real>(yMax),
-                        static_cast<amrex::Real>(zMin),
-                        static_cast<amrex::Real>(zMax),
+        grid.initDomain(static_cast<grid::Real>(xMin),
+                        static_cast<grid::Real>(xMax),
+                        static_cast<grid::Real>(yMin),
+                        static_cast<grid::Real>(yMax),
+                        static_cast<grid::Real>(zMin),
+                        static_cast<grid::Real>(zMax),
                         static_cast<unsigned int>(nBlocksX),
                         static_cast<unsigned int>(nBlocksY),
                         static_cast<unsigned int>(nBlocksZ),
@@ -42,26 +43,27 @@ extern "C" {
     /**
      *
      */
-    void   grid_get_domain_bound_box_fi(double lo[AMREX_SPACEDIM], 
-                                        double hi[AMREX_SPACEDIM]) {
+    void   grid_get_domain_bound_box_fi(double lo[NDIM],
+                                        double hi[NDIM]) {
         Grid&   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid.geometry();
+        grid::Vector<grid::Real> domainLo = grid.getDomainLo();
+        grid::Vector<grid::Real> domainHi = grid.getDomainLo();
 
-        for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
-            lo[i] = static_cast<double>(geometry.ProbLo(i));
-            hi[i] = static_cast<double>(geometry.ProbHi(i));
+        for (unsigned int i=0; i<NDIM; ++i) {
+            lo[i] = static_cast<double>(domainLo[i]);
+            hi[i] = static_cast<double>(domainHi[i]);
         }
     }
 
     /**
      *
      */
-    void   grid_get_deltas_fi(const int level, double deltas[AMREX_SPACEDIM]) {
+    void   grid_get_deltas_fi(const int level, double deltas[NDIM]) {
         Grid&   grid = Grid::instance();
-        amrex::Geometry&  geometry = grid.geometry();
+        grid::Vector<grid::Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
 
-        for (unsigned int i=0; i<AMREX_SPACEDIM; ++i) {
-            deltas[i] = static_cast<double>(geometry.CellSize(i));
+        for (unsigned int i=0; i<NDIM; ++i) {
+            deltas[i] = static_cast<double>(deltas[i]);
         }
     }
 

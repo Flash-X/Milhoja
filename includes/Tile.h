@@ -4,6 +4,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_MFIter.H>
+#include "Grid_Vector.h"
 
 /**
  * TODO: The construction of this class should be well done.  In particular, we
@@ -32,8 +33,8 @@ public:
     // general.  Can we get references instead?
     amrex::Dim3          lo(void) const;
     amrex::Dim3          hi(void) const;
-    const int*           loVect(void) const;
-    const int*           hiVect(void) const;
+    grid::Vector<int>           loVect(void) const;
+    grid::Vector<int>           hiVect(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;
@@ -51,6 +52,8 @@ public:
     // Pointers to source data in the original data structures in the host
     // memory
     amrex::Real*    CC_h_;
+
+    // TODO: Replace amrex::Real and double with grid::Real ??
 
     // If a Tile object has been added to a DataPacket, then these pointers will
     // point to the location of useful data in the DataPacket's pinned memory
