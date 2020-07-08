@@ -3,12 +3,16 @@
 #include "Flash.h"
 
 #ifdef REAL_IS_FLOAT
-#  undef REAL_IS_FLOAT
-#  undef REAL_IS_DOUBLE
-#  define REAL_IS_FLOAT 1
-/* Use REAL_IS_FLOAT if AMReX was configured to use floats for its real type
-   (AMReX was configured with the macro BL_USE_FLOAT).
+#  ifdef REAL_IS_DOUBLE
+#    error Cannot define Real as both Double and Float.
+#  else
+#    undef REAL_IS_FLOAT
+#    undef REAL_IS_DOUBLE
+#    define REAL_IS_FLOAT 1
+/*   Use REAL_IS_FLOAT if AMReX was configured to use floats for its real type
+     (AMReX was configured with the macro BL_USE_FLOAT).
 */
+#  endif
 #else
 #  undef REAL_IS_FLOAT
 #  undef REAL_IS_DOUBLE
@@ -27,14 +31,14 @@
 #ifdef REAL_IS_FLOAT
 typedef float orch_real;
 // We need to define these to get around a CUDA 9.2 bug that breaks std::numeric_limits
-#define GRID_REAL_MIN     FLT_MIN
-#define GRID_REAL_MAX     FLT_MAX
-#define GRID_REAL_LOWEST -FLT_MAX
+#define ORCH_REAL_MIN     FLT_MIN
+#define ORCH_REAL_MAX     FLT_MAX
+#define ORCH_REAL_LOWEST -FLT_MAX
 #else
 typedef double orch_real;
-#define GRID_REAL_MIN     DBL_MIN
-#define GRID_REAL_MAX     DBL_MAX
-#define GRID_REAL_LOWEST -DBL_MAX
+#define ORCH_REAL_MIN     DBL_MIN
+#define ORCH_REAL_MAX     DBL_MAX
+#define ORCH_REAL_LOWEST -DBL_MAX
 #endif
 
 #ifdef __cplusplus
