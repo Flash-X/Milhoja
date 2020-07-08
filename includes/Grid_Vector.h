@@ -13,11 +13,11 @@ public:
     using std::vector<T>::vector;
 
     template <class W>
-    Vector (const Vector<W>& vec){
-      Vector<T> result;
-      result.reserve(vec.size());
-      std::transform(vec.begin(), vec.end(), std::back_inserter(result), [](const W& x) -> T { return x; });
-      *this= result;
+    operator Vector<W> () {
+      Vector<W> result;
+      result.reserve(this->size());
+      std::transform(this->begin(), this->end(), std::back_inserter(result), [](const T& x) -> W { return x; });
+      return result;
     }
 };
 
