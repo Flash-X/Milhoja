@@ -15,6 +15,8 @@
 
 #include "Grid_REAL.h"
 #include "Grid_Vector.h"
+#include "Grid_RealVect.h"
+#include "Grid_IntVect.h"
 #include "Tile.h"
 #include "runtimeTask.h"
 

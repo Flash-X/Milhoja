@@ -24,18 +24,34 @@ protected:
         }
 };
 
-TEST_F(TestGrid,TestVectorClass){
-        Vector<Real> realVec1 = {1.5_wp,3.2_wp,5.8_wp};
-        Vector<int> intVec1 = {3,10,2};
+TEST_F(TestGrid,TestVectorClasses){
+        using namespace orchestration;
+        //test creation and conversion
+        IntVect intVec1 = IntVect(3,10,2);
+        RealVect realVec1 = RealVect(1.5_wp,3.2_wp,5.8_wp);
+        IntVect intVec2 = IntVect(realVec1);
+        RealVect realVec2 = RealVect(intVec1);
 
-        Vector<int> intVec2 = Vector<int>(realVec1);
-        EXPECT_TRUE(intVec2[0] == 1);
-        EXPECT_TRUE(intVec2[1] == 3);
-        EXPECT_TRUE(intVec2[2] == 5);
-        Vector<Real> realVecSum = realVec1 + Vector<Real>(intVec1);
-        EXPECT_TRUE(realVecSum[0] == 4.5_wp);
-        EXPECT_TRUE(realVecSum[1] == 13.2_wp);
-        EXPECT_TRUE(realVecSum[2] == 7.8_wp);
+        EXPECT_TRUE( intVec2 == IntVect(1,3,5) );
+        EXPECT_TRUE( realVec2 == RealVect(3_wp,10_wp,2_wp) );
+
+        //test operators for IntVect
+        EXPECT_TRUE( intVec1 != intVec2 );
+        EXPECT_TRUE( intVec1+intVec2 == IntVect(4,13,7) );
+        EXPECT_TRUE( intVec1-intVec2 == IntVect(2,7,-3) );
+        EXPECT_TRUE( intVec1*intVec2 == IntVect(3,30,10) );
+        EXPECT_TRUE( intVec1*2 == IntVect(6,20,4) );
+        EXPECT_TRUE( 2*intVec1 == IntVect(6,20,4) );
+        EXPECT_TRUE( intVec1/2 == IntVect(1,5,1) );
+
+        //test operators for RealVect
+        EXPECT_TRUE( realVec1 != realVec2 );
+        EXPECT_TRUE( realVec1+realVec2 == RealVect(4.5_wp,13.2_wp,7.8_wp) );
+        EXPECT_TRUE( realVec1-realVec2 == RealVect(-1.5_wp,-6.8_wp,3.8_wp) );
+        EXPECT_TRUE( realVec1*realVec2 == RealVect(4.5_wp,32_wp,11.6_wp) );
+        EXPECT_TRUE( realVec1*-3.14_wp == RealVect(-4.71_wp,-10.048_wp,-18.212_wp) );
+        EXPECT_TRUE( -3.14_wp*realVec1 == RealVect(-4.71_wp,-10.048_wp,-18.212_wp) );
+        EXPECT_TRUE( realVec1/2_wp == RealVect(.75_wp,1.6_wp,2.9_wp) );
 }
 
 TEST_F(TestGrid,TestDomainBoundBox){

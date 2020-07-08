@@ -44,6 +44,13 @@ typedef double orch_real;
 #ifdef __cplusplus
 namespace orchestration {
   using Real = orch_real;
+
+  //TODO: change epsilon!!
+  inline bool AreSame(const Real& lhs, const Real& rhs, const Real eps = 1.0e-10){
+    if(lhs>rhs) return (lhs-rhs)<eps && (rhs-lhs)>-eps;
+    else return (rhs-lhs)<eps && (lhs-rhs)>-eps;
+  }
+
 }
 inline namespace literals {
   /**

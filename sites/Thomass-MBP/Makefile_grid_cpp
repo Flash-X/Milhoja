@@ -45,6 +45,8 @@ SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
     $(TESTDIR)/testGrid.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp
