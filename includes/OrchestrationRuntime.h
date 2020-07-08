@@ -16,6 +16,8 @@
 #include "ActionBundle.h"
 #include "RuntimeAction.h"
 
+namespace orchestration {
+
 class OrchestrationRuntime {
 public:
     ~OrchestrationRuntime(void);
@@ -74,6 +76,8 @@ private:
     std::ofstream     logFile_; 
 #endif
 };
+
+}
 
 #endif
 

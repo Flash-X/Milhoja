@@ -13,11 +13,13 @@
 #ifndef THREAD_TEAM_MODES_H__
 #define THREAD_TEAM_MODES_H__
 
+namespace orchestration {
+
 enum class ThreadTeamMode {IDLE,
                            TERMINATING,
                            RUNNING_OPEN_QUEUE,
                            RUNNING_CLOSED_QUEUE,
                            RUNNING_NO_MORE_WORK};
-
+}
 #endif
 

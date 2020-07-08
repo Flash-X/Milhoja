@@ -9,6 +9,8 @@
 #include "CudaStreamManager.h"
 #include "CudaGpuArray.h"
 
+namespace orchestration {
+
 /**
  * Create a CudaDataPacket object that null.
  */
@@ -365,3 +367,4 @@ const Tile& CudaDataPacket::operator[](const std::size_t idx) const {
     return tileList_.at(idx);
 }
 
+}

@@ -18,15 +18,17 @@
 #include "Tile.h"
 #include "runtimeTask.h"
 
+namespace orchestration {
+
 class Grid {
 public:
     ~Grid(void);
 
     static Grid& instance(void);
 
-    void    initDomain(const grid::Real xMin, const grid::Real xMax,
-                       const grid::Real yMin, const grid::Real yMax,
-                       const grid::Real zMin, const grid::Real zMax,
+    void    initDomain(const Real xMin, const Real xMax,
+                       const Real yMin, const Real yMax,
+                       const Real zMin, const Real zMax,
                        const unsigned int nBlocksX,
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
@@ -38,13 +40,13 @@ public:
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
     //Basic getter functions.
-    grid::Vector<grid::Real>    getDomainLo();
-    grid::Vector<grid::Real>    getDomainHi();
-    grid::Vector<grid::Real>    getDeltas(const unsigned int lev);
-    grid::Vector<grid::Real>    getBlkCenterCoords(const Tile& tileDesc);
-    grid::Vector<grid::Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const grid::Vector<int> lo, const grid::Vector<int> hi);
-    grid::Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const grid::Vector<int> coord);
-    grid::Real                 getCellVolume(const unsigned int lev, const grid::Vector<int> coord);
+    Vector<Real>    getDomainLo();
+    Vector<Real>    getDomainHi();
+    Vector<Real>    getDeltas(const unsigned int lev);
+    Vector<Real>    getBlkCenterCoords(const Tile& tileDesc);
+    Vector<Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const Vector<int> lo, const Vector<int> hi);
+    Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const Vector<int> coord);
+    Real                 getCellVolume(const unsigned int lev, const Vector<int> coord);
     unsigned int               getMaxRefinement();
     unsigned int               getMaxLevel();
 
@@ -60,6 +62,8 @@ private:
     amrex::Geometry    geometry_;
     amrex::MultiFab*   unk_;
 };
+
+}
 
 #endif
 

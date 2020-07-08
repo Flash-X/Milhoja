@@ -15,6 +15,8 @@
 #ifndef THREAD_TEAM_BASE_H__
 #define THREAD_TEAM_BASE_H__
 
+namespace orchestration {
+
 class ThreadTeamBase {
 public:
     virtual void increaseThreadCount(const unsigned int nThreads) = 0;
@@ -31,6 +33,8 @@ private:
     ThreadTeamBase& operator=(const ThreadTeamBase&) = delete;
     ThreadTeamBase& operator=(ThreadTeamBase&&) = delete;
 };
+
+}
 
 #endif
 

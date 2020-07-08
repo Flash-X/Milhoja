@@ -6,6 +6,8 @@
 #include "Grid.h"
 #include "Flash.h"
 
+namespace orchestration {
+
 std::string     OrchestrationRuntime::logFilename_       = "";
 unsigned int    OrchestrationRuntime::nTileTeams_        = 0;
 unsigned int    OrchestrationRuntime::nPacketTeams_      = 0;
@@ -539,5 +541,7 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
         gpuTeam->closeTask();
     }
     gpuTeam->wait();
+}
+
 }
 

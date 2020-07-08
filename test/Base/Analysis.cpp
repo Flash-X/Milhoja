@@ -8,6 +8,8 @@
 #include "Grid.h"
 #include "DataPacket.h"
 
+using namespace orchestration;
+
 namespace Analysis {
     double                energyScaleFactor;
     unsigned int          nCells;

@@ -8,6 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace orchestration {
+
 // TODO:  Determine if this should be implemented with C++ threads instead of
 // pthreads.  If no, then the pthread implementation needs to be cleaned
 // up seriously.  See TODOs below.
@@ -1392,3 +1394,4 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     throw std::logic_error(msg);
 }
 
+}

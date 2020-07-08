@@ -6,6 +6,8 @@
 #include <AMReX_MFIter.H>
 #include "Grid_Vector.h"
 
+namespace orchestration {
+
 /**
  * TODO: The construction of this class should be well done.  In particular, we
  * want to make sure that we limit creating copies as much as possible in terms
@@ -33,8 +35,8 @@ public:
     // general.  Can we get references instead?
     amrex::Dim3          lo(void) const;
     amrex::Dim3          hi(void) const;
-    grid::Vector<int>           loVect(void) const;
-    grid::Vector<int>           hiVect(void) const;
+    Vector<int>           loVect(void) const;
+    Vector<int>           hiVect(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;
@@ -53,7 +55,7 @@ public:
     // memory
     amrex::Real*    CC_h_;
 
-    // TODO: Replace amrex::Real and double with grid::Real ??
+    // TODO: Replace amrex::Real and double with Real ??
 
     // If a Tile object has been added to a DataPacket, then these pointers will
     // point to the location of useful data in the DataPacket's pinned memory
@@ -88,6 +90,8 @@ private:
     amrex::Box*   interior_;
     amrex::Box*   GC_;
 };
+
+}
 
 #endif
 

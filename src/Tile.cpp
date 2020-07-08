@@ -7,6 +7,8 @@
 #include "Flash.h"
 #include "constants.h"
 
+namespace orchestration {
+
 /**
  *
  */
@@ -200,9 +202,9 @@ amrex::Dim3  Tile::hi(void) const {
 /**
  *
  */
-grid::Vector<int>  Tile::loVect(void) const {
+Vector<int>  Tile::loVect(void) const {
     const int* lo = interior_->loVect();
-    grid::Vector<int> loVec = {0,0,0};
+    Vector<int> loVec = {0,0,0};
     for (unsigned int i=0;i<NDIM;++i){
         loVec[i] = lo[i];
     }
@@ -212,9 +214,9 @@ grid::Vector<int>  Tile::loVect(void) const {
 /**
  *
  */
-grid::Vector<int>  Tile::hiVect(void) const {
+Vector<int>  Tile::hiVect(void) const {
     const int* hi = interior_->hiVect();
-    grid::Vector<int> hiVec = {0,0,0};
+    Vector<int> hiVec = {0,0,0};
     for (unsigned int i=0;i<NDIM;++i){
         hiVec[i] = hi[i];
     }
@@ -278,3 +280,4 @@ amrex::XDim3 Tile::deltas(void) const {
     return deltas;
 }
 
+}

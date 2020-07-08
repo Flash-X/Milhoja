@@ -2,8 +2,10 @@
 #define GRID_VECTOR_H__
 
 #include <vector>
+#include <algorithm>
+#include <functional>
 
-namespace grid {
+namespace orchestration {
 
 template <class T, class Allocator=std::allocator<T>> class Vector : public std::vector<T, Allocator>
 {
@@ -11,11 +13,11 @@ public:
     using std::vector<T>::vector;
 
     template <class W>
-    Vector<T> (const Vector<W>& vec){
-      Vector<T> result;
-      result.reserve(vec.size());
-      std::transform(vec.begin(), vec.end(), std::back_inserter(result), [](const W& x) -> T { return x; });
-      *this= result;
+    operator Vector<W> () {
+      Vector<W> result;
+      result.reserve(this->size());
+      std::transform(this->begin(), this->end(), std::back_inserter(result), [](const T& x) -> W { return x; });
+      return result;
     }
 };
 

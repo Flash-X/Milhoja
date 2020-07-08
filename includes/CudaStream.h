@@ -3,6 +3,8 @@
 
 #include <driver_types.h>
 
+namespace orchestration {
+
 struct CudaStream {
     static constexpr unsigned int NULL_STREAM_ID = 0;
 
@@ -42,5 +44,6 @@ struct CudaStream {
     CudaStream& operator=(const CudaStream&) = delete;
 };
 
+}
 #endif
 

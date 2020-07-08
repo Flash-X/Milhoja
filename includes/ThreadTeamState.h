@@ -18,6 +18,8 @@
 
 #include "RuntimeAction.h"
 
+namespace orchestration {
+
 template<typename W, class T>
 class ThreadTeamState {
 public:
@@ -39,6 +41,8 @@ protected:
 
     virtual std::string     isStateValid_NotThreadSafe(void) const = 0;
 };
+
+}
 
 #endif
 

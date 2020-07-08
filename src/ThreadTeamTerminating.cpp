@@ -1,4 +1,5 @@
 #include "ThreadTeamTerminating.h"
+namespace orchestration {
 
 /**
  * Instantiate a ThreadTeamTerminating object for internal use by a ThreadTeam
@@ -86,4 +87,4 @@ std::string ThreadTeamTerminating<W,T>::closeTask_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeTask", 0,
                   "Cannot close queue if team is terminating");
 }
-
+}

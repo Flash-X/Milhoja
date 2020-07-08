@@ -3,6 +3,7 @@
 
 #include "Tile.h"
 #include "DataPacket.h"
+using namespace orchestration;
 
 void ThreadRoutines::scaleEnergy_packet(const int tId, void* dataItem) {
     DataPacket*  packet = static_cast<DataPacket*>(dataItem);

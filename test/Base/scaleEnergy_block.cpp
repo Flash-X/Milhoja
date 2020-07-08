@@ -3,6 +3,7 @@
 #include "Flash.h"
 #include "Grid.h"
 #include "Tile.h"
+using namespace orchestration;
 
 void ThreadRoutines::scaleEnergy_block(const int tId,
                                        void* dataItem) {

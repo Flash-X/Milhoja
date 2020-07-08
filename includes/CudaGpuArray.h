@@ -3,6 +3,8 @@
 
 #include <AMReX_Dim3.H>
 
+namespace orchestration {
+
 // TODO: Could we just replace this class with an offline tool that just writes
 // the index out?
 // TODO: Get rid of Dim3 so that this is generally useful.
@@ -32,6 +34,8 @@ struct CudaGpuArray {
         return p[(i-begin.x) + (j-begin.y)*jstride + (k-begin.z)*kstride + n*nstride];
     }
 };
+
+}
 
 #endif
 

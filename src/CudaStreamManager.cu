@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace orchestration {
+
 // Default value chosen in conjunction with the error checking in the
 // constructor such that client code will get an error if they do not explicitly
 // set the numer of streams before accessing the manager.
@@ -253,3 +255,4 @@ void   CudaStreamManager::releaseStream(CudaStream& stream) {
     pthread_mutex_unlock(&idxMutex_);
 }
 
+}
