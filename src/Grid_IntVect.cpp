@@ -7,7 +7,7 @@ IntVect::operator RealVect() const {
 }
 
 // Scalar multiply a vector (c * V)
-IntVect operator* (int c, const IntVect& a) {
+IntVect operator* (const int c, const IntVect& a) {
     return IntVect(a[0]*c, a[1]*c, a[2]*c);
 }
 

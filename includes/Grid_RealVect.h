@@ -11,14 +11,16 @@ class IntVect;
 class RealVect
 {
   public:
-    //generic constructor from 3 Reals
-    explicit RealVect (Real x, Real y, Real z) : vect{x,y,z} {}
+    //generic constructor
+    explicit RealVect () {}
+    //constructor from 3 Reals
+    explicit RealVect (const Real x, const Real y, const Real z) : vect{x,y,z} {}
     //"cast" a RealVect to an IntVect
     explicit operator IntVect() const;
 
     //get and set values of the internal array with [] operator
-    Real& operator[] (int i) { return vect[i]; }
-    const Real& operator[] (int i) const { return vect[i]; }
+    Real& operator[] (const int i) { return vect[i]; }
+    const Real& operator[] (const int i) const { return vect[i]; }
 
     //TODO: Potential operators
     // ==, != scalar
@@ -53,6 +55,13 @@ class RealVect
       return RealVect(vect[0]/c, vect[1]/c, vect[2]/c);
     }
 
+    //move and copy constructors all should be fine
+    RealVect(RealVect&&) = default;
+    RealVect& operator=(RealVect&&) = default;
+    RealVect(RealVect&) = default;
+    RealVect(const RealVect&) = default;
+    RealVect& operator=(RealVect&) = default;
+    RealVect& operator=(const RealVect&) = default;
   private:
     //TODO: >> and << operators
 
@@ -60,7 +69,7 @@ class RealVect
 };
 
 // Scalar multiply a vector (c * V), defined in cpp file
-RealVect operator* (Real c, const RealVect& a);
+RealVect operator* (const Real c, const RealVect& a);
 
 } //namespace orchestration
 

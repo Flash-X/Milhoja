@@ -11,14 +11,16 @@ class RealVect;
 class IntVect
 {
   public:
-    //generic constructor from 3 ints
-    explicit IntVect (int x, int y, int z) : vect{x,y,z} {}
+    //genric constructor
+    explicit IntVect () {}
+    //constructor from 3 ints
+    explicit IntVect (const int x, const int y, const int z) : vect{x,y,z} {}
     //"cast" an IntVect to a RealVect
     explicit operator RealVect () const;
 
     //get and set values of the internal array with [] operator
-    int& operator[] (int i) { return vect[i]; }
-    const int& operator[] (int i) const { return vect[i]; }
+    int& operator[] (const int i) { return vect[i]; }
+    const int& operator[] (const int i) const { return vect[i]; }
 
     //check if two vectors are equal element-by-element
     bool operator== (const IntVect& b) {
@@ -63,6 +65,13 @@ class IntVect
       return IntVect(vect[0]/c, vect[1]/c, vect[2]/c);
     }
 
+    //move and copy constructors all should be fine
+    IntVect(IntVect&&) = default;
+    IntVect& operator=(IntVect&&) = default;
+    IntVect(IntVect&) = default;
+    IntVect(const IntVect&) = default;
+    IntVect& operator=(IntVect&) = default;
+    IntVect& operator=(const IntVect&) = default;
   private:
     //TODO: >> and << operators
 
@@ -70,7 +79,7 @@ class IntVect
 };
 
 // Scalar multiply a vector (c * V), defined in cpp file
-IntVect operator* (int c, const IntVect& a);
+IntVect operator* (const int c, const IntVect& a);
 
 } //namespace orchestration
 
