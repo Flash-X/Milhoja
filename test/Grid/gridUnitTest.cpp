@@ -32,10 +32,8 @@ TEST_F(GridUnitTest,TestVectorClasses){
         IntVect intVec2 = IntVect(realVec1);
         RealVect realVec2 = RealVect(intVec1);
 
-        EXPECT_TRUE( intVec2 == IntVect(1,3,5) );
-        EXPECT_TRUE( realVec2 == RealVect(3_wp,10_wp,2_wp) );
-
         //test operators for IntVect
+        EXPECT_TRUE( intVec2 == IntVect(1,3,5) );
         EXPECT_TRUE( intVec1 != intVec2 );
         EXPECT_TRUE( intVec1+intVec2 == IntVect(4,13,7) );
         EXPECT_TRUE( intVec1-intVec2 == IntVect(2,7,-3) );
@@ -45,13 +43,16 @@ TEST_F(GridUnitTest,TestVectorClasses){
         EXPECT_TRUE( intVec1/2 == IntVect(1,5,1) );
 
         //test operators for RealVect
-        EXPECT_TRUE( realVec1 != realVec2 );
-        EXPECT_TRUE( realVec1+realVec2 == RealVect(4.5_wp,13.2_wp,7.8_wp) );
-        EXPECT_TRUE( realVec1-realVec2 == RealVect(-1.5_wp,-6.8_wp,3.8_wp) );
-        EXPECT_TRUE( realVec1*realVec2 == RealVect(4.5_wp,32_wp,11.6_wp) );
-        EXPECT_TRUE( realVec1*-3.14_wp == RealVect(-4.71_wp,-10.048_wp,-18.212_wp) );
-        EXPECT_TRUE( -3.14_wp*realVec1 == RealVect(-4.71_wp,-10.048_wp,-18.212_wp) );
-        EXPECT_TRUE( realVec1/2_wp == RealVect(.75_wp,1.6_wp,2.9_wp) );
+        float eps = 1.0e-14;
+        for (int i=0;i<NDIM;++i) {
+            EXPECT_NEAR( realVec2[i] , RealVect(3_wp,10_wp,2_wp)[i] , eps );
+            EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(4.5_wp,13.2_wp,7.8_wp)[i] , eps);
+            EXPECT_NEAR( (realVec1-realVec2)[i] , RealVect(-1.5_wp,-6.8_wp,3.8_wp)[i] , eps);
+            EXPECT_NEAR( (realVec1*realVec2)[i] , RealVect(4.5_wp,32.0_wp,11.6_wp)[i] , eps);
+            EXPECT_NEAR( (realVec1*-3.14_wp)[i] , RealVect(-4.71_wp,-10.048_wp,-18.212_wp)[i] , eps);
+            EXPECT_NEAR( (-3.14_wp*realVec1)[i] , RealVect(-4.71_wp,-10.048_wp,-18.212_wp)[i] , eps);
+            EXPECT_NEAR( (realVec1/2.0_wp)[i] , RealVect(.75_wp,1.6_wp,2.9_wp)[i] , eps);
+        }
 }
 
 TEST_F(GridUnitTest,TestDomainBoundBox){
@@ -59,15 +60,18 @@ TEST_F(GridUnitTest,TestDomainBoundBox){
         RealVect domainLo = grid.getDomainLo();
         RealVect domainHi = grid.getDomainHi();
 
-        EXPECT_TRUE(domainLo[0] == X_MIN );
-        EXPECT_TRUE(domainLo[1] == Y_MIN );
-        EXPECT_TRUE(domainLo[2] == Z_MIN );
-        EXPECT_TRUE(domainHi[0] == X_MAX );
-        EXPECT_TRUE(domainHi[1] == Y_MAX );
-        EXPECT_TRUE(domainHi[2] == Z_MAX );
+        float eps = 1.0e-14;
+        EXPECT_NEAR(domainLo[0] , X_MIN , eps);
+        EXPECT_NEAR(domainLo[1] , Y_MIN , eps);
+        EXPECT_NEAR(domainLo[2] , Z_MIN , eps);
+        EXPECT_NEAR(domainHi[0] , X_MAX , eps);
+        EXPECT_NEAR(domainHi[1] , Y_MAX , eps);
+        EXPECT_NEAR(domainHi[2] , Z_MAX , eps);
 }
 
 TEST_F(GridUnitTest,TestGetters){
+        float eps = 1.0e-14;
+
         Grid& grid = Grid::instance();
         RealVect domainLo = RealVect(X_MIN,Y_MIN,Z_MIN);
         IntVect nBlocks = IntVect(N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z);
@@ -76,19 +80,24 @@ TEST_F(GridUnitTest,TestGetters){
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
         RealVect deltas = grid.getDeltas(0);
-        Real dx = (X_MAX - X_MIN) / static_cast<Real>(N_BLOCKS_X * NXB);
-        Real dy = (Y_MAX - Y_MIN) / static_cast<Real>(N_BLOCKS_Y * NYB);
-        Real dz = (Z_MAX - Z_MIN) / static_cast<Real>(N_BLOCKS_Z * NZB);
-        RealVect deltas_actual = RealVect(dx,dy,dz);
-        EXPECT_TRUE(deltas_actual == deltas);
+        RealVect deltas_actual{ (X_MAX - X_MIN) / Real(N_BLOCKS_X * NXB),
+                                (Y_MAX - Y_MIN) / Real(N_BLOCKS_Y * NYB),
+                                (Z_MAX - Z_MIN) / Real(N_BLOCKS_Z * NZB) };
+        for(int i=1;i<NDIM;++i) {
+            EXPECT_NEAR(deltas_actual[i] , deltas[i], eps);
+        }
 
         //Testing Grid::getBlkCenterCoords
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
             RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect());
             RealVect coords = domainLo + deltas_actual*sumVec*0.5_wp;
+
             RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
-            ASSERT_TRUE(coords == blkCenterCoords);
+
+            for(int i=1;i<NDIM;++i) {
+                ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
+            }
         }
 
         //Testing Grid::getMaxRefinement and getMaxLevel
