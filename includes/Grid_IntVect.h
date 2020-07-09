@@ -65,14 +65,16 @@ class IntVect
       return IntVect(vect[0]/c, vect[1]/c, vect[2]/c);
     }
 
-    //move and copy constructors all should be fine
+    //move constructors
     IntVect(IntVect&&) = default;
     IntVect& operator=(IntVect&&) = default;
-    IntVect(IntVect&) = default;
-    IntVect(const IntVect&) = default;
-    IntVect& operator=(IntVect&) = default;
-    IntVect& operator=(const IntVect&) = default;
   private:
+    //copy constructors disabled for now
+    IntVect(IntVect&) = delete;
+    IntVect(const IntVect&) = delete;
+    IntVect& operator=(IntVect&) = delete;
+    IntVect& operator=(const IntVect&) = delete;
+
     //TODO: >> and << operators
 
     int vect[MDIM];

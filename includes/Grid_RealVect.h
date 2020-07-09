@@ -55,14 +55,16 @@ class RealVect
       return RealVect(vect[0]/c, vect[1]/c, vect[2]/c);
     }
 
-    //move and copy constructors all should be fine
+    //move constructors
     RealVect(RealVect&&) = default;
     RealVect& operator=(RealVect&&) = default;
-    RealVect(RealVect&) = default;
-    RealVect(const RealVect&) = default;
-    RealVect& operator=(RealVect&) = default;
-    RealVect& operator=(const RealVect&) = default;
   private:
+    //copy constructors disabled for now
+    RealVect(RealVect&) = delete;
+    RealVect(const RealVect&) = delete;
+    RealVect& operator=(RealVect&) = delete;
+    RealVect& operator=(const RealVect&) = delete;
+
     //TODO: >> and << operators
 
     Real vect[MDIM];

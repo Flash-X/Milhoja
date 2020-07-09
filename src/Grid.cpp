@@ -137,7 +137,7 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getDomainLo() const {
-    RealVect domainLo = RealVect(0.0_wp,0.0_wp,0.0_wp);
+    RealVect domainLo{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -153,7 +153,7 @@ RealVect    Grid::getDomainLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getDomainHi() const {
-    RealVect domainHi = RealVect(0.0_wp,0.0_wp,0.0_wp);
+    RealVect domainHi{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -169,7 +169,7 @@ RealVect    Grid::getDomainHi() const {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    RealVect deltas = RealVect(0.0_wp,0.0_wp,0.0_wp);
+    RealVect deltas{0.0_wp,0.0_wp,0.0_wp};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
@@ -189,15 +189,12 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   * @return A real vector with the physical center coordinates of the tile.
   */
 RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
-    RealVect coords = RealVect(0.0_wp,0.0_wp,0.0_wp);
     Grid&   grid = Grid::instance();
     RealVect dx = grid.getDeltas(tileDesc.level());
     RealVect x0 = grid.getDomainLo();
     IntVect lo = tileDesc.loVect();
     IntVect hi = tileDesc.hiVect();
-    for(unsigned int i=0;i<NDIM;i++){
-      coords[i] = x0[i] + dx[i] * static_cast<Real>(lo[i]+hi[i]) * 0.5_wp;
-    }
+    RealVect coords = x0 + dx*RealVect(lo+hi)*0.5_wp;
     return coords;
 }
 

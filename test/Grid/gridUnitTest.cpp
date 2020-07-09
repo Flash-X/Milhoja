@@ -27,8 +27,8 @@ protected:
 TEST_F(GridUnitTest,TestVectorClasses){
         using namespace orchestration;
         //test creation and conversion
-        IntVect intVec1 = IntVect(3,10,2);
-        RealVect realVec1 = RealVect(1.5_wp,3.2_wp,5.8_wp);
+        IntVect intVec1{3,10,2};
+        RealVect realVec1{1.5_wp,3.2_wp,5.8_wp};
         IntVect intVec2 = IntVect(realVec1);
         RealVect realVec2 = RealVect(intVec1);
 
@@ -45,13 +45,13 @@ TEST_F(GridUnitTest,TestVectorClasses){
         //test operators for RealVect
         float eps = 1.0e-14;
         for (int i=0;i<NDIM;++i) {
-            EXPECT_NEAR( realVec2[i] , RealVect(3_wp,10_wp,2_wp)[i] , eps );
+            EXPECT_NEAR( realVec2[i] , RealVect(3.0_wp,10.0_wp,2.0_wp)[i] , eps );
             EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(4.5_wp,13.2_wp,7.8_wp)[i] , eps);
             EXPECT_NEAR( (realVec1-realVec2)[i] , RealVect(-1.5_wp,-6.8_wp,3.8_wp)[i] , eps);
             EXPECT_NEAR( (realVec1*realVec2)[i] , RealVect(4.5_wp,32.0_wp,11.6_wp)[i] , eps);
             EXPECT_NEAR( (realVec1*-3.14_wp)[i] , RealVect(-4.71_wp,-10.048_wp,-18.212_wp)[i] , eps);
             EXPECT_NEAR( (-3.14_wp*realVec1)[i] , RealVect(-4.71_wp,-10.048_wp,-18.212_wp)[i] , eps);
-            EXPECT_NEAR( (realVec1/2.0_wp)[i] , RealVect(.75_wp,1.6_wp,2.9_wp)[i] , eps);
+            EXPECT_NEAR( (realVec1/2.0_wp)[i] , RealVect(0.75_wp,1.6_wp,2.9_wp)[i] , eps);
         }
 }
 
@@ -73,9 +73,9 @@ TEST_F(GridUnitTest,TestGetters){
         float eps = 1.0e-14;
 
         Grid& grid = Grid::instance();
-        RealVect domainLo = RealVect(X_MIN,Y_MIN,Z_MIN);
-        IntVect nBlocks = IntVect(N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z);
-        IntVect nCells = IntVect(NXB,NYB,NZB);
+        RealVect domainLo{X_MIN, Y_MIN, Z_MIN};
+        IntVect nBlocks{N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z};
+        IntVect nCells{NXB, NYB, NZB};
 
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
