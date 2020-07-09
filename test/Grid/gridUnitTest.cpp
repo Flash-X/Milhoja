@@ -10,21 +10,21 @@ using namespace orchestration;
 namespace {
 
 //test fixture
-class TestGrid : public testing::Test {
+class GridUnitTest : public testing::Test {
 protected:
-        TestGrid(void) {
+        GridUnitTest(void) {
                 Grid&    grid = Grid::instance();
                 grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
                   N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
                   NUNKVAR,Simulation::setInitialConditions_block);
         }
 
-        ~TestGrid(void) {
+        ~GridUnitTest(void) {
                 Grid::instance().destroyDomain();
         }
 };
 
-TEST_F(TestGrid,TestVectorClasses){
+TEST_F(GridUnitTest,TestVectorClasses){
         using namespace orchestration;
         //test creation and conversion
         IntVect intVec1 = IntVect(3,10,2);
@@ -54,7 +54,7 @@ TEST_F(TestGrid,TestVectorClasses){
         EXPECT_TRUE( realVec1/2_wp == RealVect(.75_wp,1.6_wp,2.9_wp) );
 }
 
-TEST_F(TestGrid,TestDomainBoundBox){
+TEST_F(GridUnitTest,TestDomainBoundBox){
         Grid& grid = Grid::instance();
         Vector<Real> domainLo = grid.getDomainLo();
         Vector<Real> domainHi = grid.getDomainHi();
@@ -67,7 +67,7 @@ TEST_F(TestGrid,TestDomainBoundBox){
         EXPECT_TRUE(domainHi[2] == Z_MAX );
 }
 
-TEST_F(TestGrid,TestGetters){
+TEST_F(GridUnitTest,TestGetters){
         Grid& grid = Grid::instance();
         Vector<Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
         Vector<int> nBlocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};

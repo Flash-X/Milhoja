@@ -43,7 +43,8 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/testGrid.cpp \
+    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTDIR)/gridTimingTest.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
