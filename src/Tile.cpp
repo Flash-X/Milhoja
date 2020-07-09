@@ -202,9 +202,9 @@ amrex::Dim3  Tile::hi(void) const {
 /**
  *
  */
-Vector<int>  Tile::loVect(void) const {
+IntVect  Tile::loVect(void) const {
     const int* lo = interior_->loVect();
-    Vector<int> loVec = {0,0,0};
+    IntVect loVec = IntVect(0,0,0);
     for (unsigned int i=0;i<NDIM;++i){
         loVec[i] = lo[i];
     }
@@ -214,9 +214,9 @@ Vector<int>  Tile::loVect(void) const {
 /**
  *
  */
-Vector<int>  Tile::hiVect(void) const {
+IntVect  Tile::hiVect(void) const {
     const int* hi = interior_->hiVect();
-    Vector<int> hiVec = {0,0,0};
+    IntVect hiVec = IntVect(0,0,0);
     for (unsigned int i=0;i<NDIM;++i){
         hiVec[i] = hi[i];
     }

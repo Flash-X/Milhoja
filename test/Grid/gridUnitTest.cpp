@@ -56,8 +56,8 @@ TEST_F(GridUnitTest,TestVectorClasses){
 
 TEST_F(GridUnitTest,TestDomainBoundBox){
         Grid& grid = Grid::instance();
-        Vector<Real> domainLo = grid.getDomainLo();
-        Vector<Real> domainHi = grid.getDomainHi();
+        RealVect domainLo = grid.getDomainLo();
+        RealVect domainHi = grid.getDomainHi();
 
         EXPECT_TRUE(domainLo[0] == X_MIN );
         EXPECT_TRUE(domainLo[1] == Y_MIN );
@@ -69,31 +69,26 @@ TEST_F(GridUnitTest,TestDomainBoundBox){
 
 TEST_F(GridUnitTest,TestGetters){
         Grid& grid = Grid::instance();
-        Vector<Real> domainLo = {X_MIN,Y_MIN,Z_MIN};
-        Vector<int> nBlocks = {N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z};
-        Vector<int> nCells = {NXB,NYB,NZB};
+        RealVect domainLo = RealVect(X_MIN,Y_MIN,Z_MIN);
+        IntVect nBlocks = IntVect(N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z);
+        IntVect nCells = IntVect(NXB,NYB,NZB);
 
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
-        Vector<Real> deltas = grid.getDeltas(0);
+        RealVect deltas = grid.getDeltas(0);
         Real dx = (X_MAX - X_MIN) / static_cast<Real>(N_BLOCKS_X * NXB);
         Real dy = (Y_MAX - Y_MIN) / static_cast<Real>(N_BLOCKS_Y * NYB);
         Real dz = (Z_MAX - Z_MIN) / static_cast<Real>(N_BLOCKS_Z * NZB);
-        EXPECT_TRUE(dx == deltas[0]);
-        EXPECT_TRUE(dy == deltas[1]);
-        EXPECT_TRUE(dz == deltas[2]);
+        RealVect deltas_actual = RealVect(dx,dy,dz);
+        EXPECT_TRUE(deltas_actual == deltas);
 
         //Testing Grid::getBlkCenterCoords
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            Vector<Real> sumVec = Vector<Real>( tileDesc.loVect()+tileDesc.hiVect());
-            Real x = X_MIN + dx * sumVec[0]*0.5_wp;
-            Real y = Y_MIN + dy * sumVec[1]*0.5_wp;
-            Real z = Z_MIN + dz * sumVec[2]*0.5_wp;
-            Vector<Real> blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
-            ASSERT_TRUE(x == blkCenterCoords[0]);
-            ASSERT_TRUE(y == blkCenterCoords[1]);
-            ASSERT_TRUE(z == blkCenterCoords[2]);
+            RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect());
+            RealVect coords = domainLo + deltas_actual*sumVec*0.5_wp;
+            RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
+            ASSERT_TRUE(coords == blkCenterCoords);
         }
 
         //Testing Grid::getMaxRefinement and getMaxLevel

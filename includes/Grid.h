@@ -14,7 +14,6 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include "Grid_REAL.h"
-#include "Grid_Vector.h"
 #include "Grid_RealVect.h"
 #include "Grid_IntVect.h"
 #include "Tile.h"
@@ -42,15 +41,15 @@ public:
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
     //Basic getter functions.
-    Vector<Real>    getDomainLo() const;
-    Vector<Real>    getDomainHi() const;
-    Vector<Real>    getDeltas(const unsigned int lev) const;
-    Vector<Real>    getBlkCenterCoords(const Tile& tileDesc) const;
-    Vector<Real>    getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const Vector<int> lo, const Vector<int> hi) const;
-    Real                 getCellFaceArea(const unsigned int axis, const unsigned int lev, const Vector<int> coord) const;
-    Real                 getCellVolume(const unsigned int lev, const Vector<int> coord) const;
-    unsigned int               getMaxRefinement() const;
-    unsigned int               getMaxLevel() const;
+    RealVect       getDomainLo() const;
+    RealVect       getDomainHi() const;
+    RealVect       getDeltas(const unsigned int lev) const;
+    RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
+    RealVect       getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi) const;
+    Real           getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
+    Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
+    unsigned int   getMaxRefinement() const;
+    unsigned int   getMaxLevel() const;
 
     void    writeToFile(const std::string& filename) const;
 

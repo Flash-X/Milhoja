@@ -4,7 +4,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_MFIter.H>
-#include "Grid_Vector.h"
+#include "Grid_IntVect.h"
 
 namespace orchestration {
 
@@ -35,8 +35,8 @@ public:
     // general.  Can we get references instead?
     amrex::Dim3          lo(void) const;
     amrex::Dim3          hi(void) const;
-    Vector<int>           loVect(void) const;
-    Vector<int>           hiVect(void) const;
+    IntVect              loVect(void) const;
+    IntVect              hiVect(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;
