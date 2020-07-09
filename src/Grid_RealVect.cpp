@@ -4,7 +4,7 @@
 namespace orchestration {
 
 RealVect::operator IntVect() const {
-    return IntVect(int(vect[0]),int(vect[1]),int(vect[2]));
+    return IntVect(int(vect_[0]),int(vect_[1]),int(vect_[2]));
 }
 
 // Scalar multiply a vector (c * V)

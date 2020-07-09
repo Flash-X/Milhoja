@@ -14,13 +14,13 @@ class RealVect
     //generic constructor
     explicit RealVect () {}
     //constructor from 3 Reals
-    explicit RealVect (const Real x, const Real y, const Real z) : vect{x,y,z} {}
+    explicit RealVect (const Real x, const Real y, const Real z) : vect_{x,y,z} {}
     //"cast" a RealVect to an IntVect
     explicit operator IntVect() const;
 
     //get and set values of the internal array with [] operator
-    Real& operator[] (const int i) { return vect[i]; }
-    const Real& operator[] (const int i) const { return vect[i]; }
+    Real& operator[] (const int i) { return vect_[i]; }
+    const Real& operator[] (const int i) const { return vect_[i]; }
 
     //TODO: Potential operators
     // ==, != scalar
@@ -32,27 +32,27 @@ class RealVect
 
     //add two vectors
     RealVect operator+ (const RealVect& b) const {
-      return RealVect(vect[0]+b[0], vect[1]+b[1], vect[2]+b[2]);
+      return RealVect(vect_[0]+b[0], vect_[1]+b[1], vect_[2]+b[2]);
     }
 
     //subtract one vector from another
     RealVect operator- (const RealVect& b) const {
-      return RealVect(vect[0]-b[0], vect[1]-b[1], vect[2]-b[2]);
+      return RealVect(vect_[0]-b[0], vect_[1]-b[1], vect_[2]-b[2]);
     }
 
     //multiply two vectors component-wise
     RealVect operator* (const RealVect& b) const {
-      return RealVect(vect[0]*b[0], vect[1]*b[1], vect[2]*b[2]);
+      return RealVect(vect_[0]*b[0], vect_[1]*b[1], vect_[2]*b[2]);
     }
 
     //multiply a vector by a scalar (V * c)
     RealVect operator* (const Real c) const {
-      return RealVect(vect[0]*c, vect[1]*c, vect[2]*c);
+      return RealVect(vect_[0]*c, vect_[1]*c, vect_[2]*c);
     }
 
     //divide a vector by a scalar
     RealVect operator/ (const Real c) const {
-      return RealVect(vect[0]/c, vect[1]/c, vect[2]/c);
+      return RealVect(vect_[0]/c, vect_[1]/c, vect_[2]/c);
     }
 
     //move constructors
@@ -67,7 +67,7 @@ class RealVect
 
     //TODO: >> and << operators
 
-    Real vect[MDIM];
+    Real vect_[MDIM];
 };
 
 // Scalar multiply a vector (c * V), defined in cpp file
