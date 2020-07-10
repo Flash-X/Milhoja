@@ -1,4 +1,5 @@
 #include "Grid.h"
+#include "Grid_Macros.h"
 #include "Flash.h"
 #include "constants.h"
 #include "setInitialConditions_block.h"
@@ -26,9 +27,9 @@ protected:
 TEST_F(GridTimingTest,VectorDirectInitialization){
         using namespace orchestration;
         //test creation and conversion
-        IntVect expected = IntVect(3,10,2);
+        IntVect expected = IntVect(LIST_NDIM(3,10,2));
         for (int i=0;i<=1000000;i++){
-          IntVect intVec1{3,10,2};
+          IntVect intVec1{LIST_NDIM(3,10,2)};
           EXPECT_TRUE( intVec1 == expected );
         }
 }
@@ -36,9 +37,9 @@ TEST_F(GridTimingTest,VectorDirectInitialization){
 TEST_F(GridTimingTest,VectorCopyInitialization){
         using namespace orchestration;
         //test creation and conversion
-        IntVect expected = IntVect(3,10,2);
+        IntVect expected = IntVect(LIST_NDIM(3,10,2));
         for (int i=0;i<=1000000;i++){
-          IntVect intVec1 = IntVect(3,10,2);
+          IntVect intVec1 = IntVect(LIST_NDIM(3,10,2));
           EXPECT_TRUE( intVec1 == expected );
         }
 }
