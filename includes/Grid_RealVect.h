@@ -3,6 +3,7 @@
 
 #include "constants.h"
 #include "Grid_REAL.h"
+#include <stdexcept>
 
 namespace orchestration {
 
@@ -11,16 +12,32 @@ class IntVect;
 class RealVect
 {
   public:
-    //generic constructor
+
+    // Generic constructor, returns a vector with undefined components.
+    // TODO: return a default value aka 0?
     explicit RealVect () {}
-    //constructor from 3 Reals
-    explicit RealVect (const Real x, const Real y, const Real z) : vect_{x,y,z} {}
-    //"cast" a RealVect to an IntVect
+
+    // Constructor from 3 Reals.
+    constexpr explicit RealVect (const Real x, const Real y, const Real z) : vect_{x,y,z} {}
+
+    // Operator to explicitly cast a RealVect to an IntVect.
+    // (Implicit cast disabled by `explicit` keyword).
     explicit operator IntVect() const;
 
-    //get and set values of the internal array with [] operator
-    Real& operator[] (const int i) { return vect_[i]; }
-    const Real& operator[] (const int i) const { return vect_[i]; }
+    // Get and set values of the internal array with [] operator.
+    // Perform bounds check unless GRID_ERRCHECK_OFF is set.
+    Real& operator[] (const int i) {
+#ifndef GRID_ERRCHECK_OFF
+        if(i>=MDIM || i<0) throw std::logic_error("Index out-of-bounds in RealVect.");
+#endif
+        return vect_[i];
+    }
+    const Real& operator[] (const int i) const {
+#ifndef GRID_ERRCHECK_OFF
+        if(i>=MDIM || i<0) throw std::logic_error("Index out-of-bounds in RealVect.");
+#endif
+        return vect_[i];
+    }
 
     //TODO: Potential operators
     // ==, != scalar
@@ -30,36 +47,36 @@ class RealVect
     // + scalar, - scalar
     // min, max, etc
 
-    //add two vectors
+    // Add vectors component-wise.
     RealVect operator+ (const RealVect& b) const {
       return RealVect(vect_[0]+b[0], vect_[1]+b[1], vect_[2]+b[2]);
     }
 
-    //subtract one vector from another
+    // Subtract vectors component-wise.
     RealVect operator- (const RealVect& b) const {
       return RealVect(vect_[0]-b[0], vect_[1]-b[1], vect_[2]-b[2]);
     }
 
-    //multiply two vectors component-wise
+    // Multiply two vectors component-wise.
     RealVect operator* (const RealVect& b) const {
       return RealVect(vect_[0]*b[0], vect_[1]*b[1], vect_[2]*b[2]);
     }
 
-    //multiply a vector by a scalar (V * c)
+    // Multiply a vector by a scalar (V * c).
     RealVect operator* (const Real c) const {
       return RealVect(vect_[0]*c, vect_[1]*c, vect_[2]*c);
     }
 
-    //divide a vector by a scalar
+    // Divide a vector by a scalar.
     RealVect operator/ (const Real c) const {
       return RealVect(vect_[0]/c, vect_[1]/c, vect_[2]/c);
     }
 
-    //move constructors
+    /* A Note on move/copy sematics.
+       */
     RealVect(RealVect&&) = default;
     RealVect& operator=(RealVect&&) = default;
   private:
-    //copy constructors disabled for now
     RealVect(RealVect&) = delete;
     RealVect(const RealVect&) = delete;
     RealVect& operator=(RealVect&) = delete;
@@ -70,11 +87,10 @@ class RealVect
     Real vect_[MDIM];
 };
 
-// Scalar multiply a vector (c * V), defined in cpp file
+// Scalar multiply a vector (c * V).
 RealVect operator* (const Real c, const RealVect& a);
 
+
+
 } //namespace orchestration
-
-
-
 #endif
