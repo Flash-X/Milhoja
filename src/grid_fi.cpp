@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "Grid_Vector.h"
+#include "Grid_RealVect.h"
 #include "Flash.h"
 #include "runtimeTask.h"
 
@@ -48,8 +48,8 @@ extern "C" {
     void   grid_get_domain_bound_box_fi(double lo[NDIM],
                                         double hi[NDIM]) {
         Grid&   grid = Grid::instance();
-        Vector<Real> domainLo = grid.getDomainLo();
-        Vector<Real> domainHi = grid.getDomainLo();
+        RealVect domainLo = grid.getDomainLo();
+        RealVect domainHi = grid.getDomainLo();
 
         for (unsigned int i=0; i<NDIM; ++i) {
             lo[i] = static_cast<double>(domainLo[i]);
@@ -62,7 +62,7 @@ extern "C" {
      */
     void   grid_get_deltas_fi(const int level, double deltas[NDIM]) {
         Grid&   grid = Grid::instance();
-        Vector<Real> deltas = grid.getDeltas(static_cast<unsigned int>(level));
+        RealVect deltas = grid.getDeltas(static_cast<unsigned int>(level));
 
         for (unsigned int i=0; i<NDIM; ++i) {
             deltas[i] = static_cast<double>(deltas[i]);

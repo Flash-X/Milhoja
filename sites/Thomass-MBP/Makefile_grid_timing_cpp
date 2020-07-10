@@ -2,7 +2,7 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_grid_cpp
+BASE         = test_grid_timing_cpp
 MAKEFILE     = Makefile_grid_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
@@ -43,7 +43,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTDIR)/gridTimingTest.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \

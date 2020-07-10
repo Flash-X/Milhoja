@@ -136,8 +136,8 @@ void    Grid::destroyDomain(void) {
   *
   * @return A real vector: <xlo, ylo, zlo>
   */
-Vector<Real>    Grid::getDomainLo() {
-    Vector<Real> domainLo{0.0_wp,0.0_wp,0.0_wp};
+RealVect    Grid::getDomainLo() const {
+    RealVect domainLo{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -152,8 +152,8 @@ Vector<Real>    Grid::getDomainLo() {
   *
   * @return A real vector: <xhi, yhi, zhi>
   */
-Vector<Real>    Grid::getDomainHi() {
-    Vector<Real> domainHi{0.0_wp,0.0_wp,0.0_wp};
+RealVect    Grid::getDomainHi() const {
+    RealVect domainHi{0.0_wp,0.0_wp,0.0_wp};
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -168,8 +168,8 @@ Vector<Real>    Grid::getDomainHi() {
   * @param level The level of refinement (0 is coarsest).
   * @return The vector <dx,dy,dz> for a given level.
   */
-Vector<Real>    Grid::getDeltas(const unsigned int level) {
-    Vector<Real> deltas{0.0_wp,0.0_wp,0.0_wp};
+RealVect    Grid::getDeltas(const unsigned int level) const {
+    RealVect deltas{0.0_wp,0.0_wp,0.0_wp};
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
@@ -188,16 +188,13 @@ Vector<Real>    Grid::getDeltas(const unsigned int level) {
   * @param tileDesc A Tile object.
   * @return A real vector with the physical center coordinates of the tile.
   */
-Vector<Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
-    Vector<Real> coords{0.0_wp,0.0_wp,0.0_wp};
+RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
     Grid&   grid = Grid::instance();
-    Vector<Real> dx = grid.getDeltas(tileDesc.level());
-    Vector<Real> x0 = grid.getDomainLo();
-    Vector<int> lo = tileDesc.loVect();
-    Vector<int> hi = tileDesc.hiVect();
-    for(unsigned int i=0;i<NDIM;i++){
-      coords[i] = x0[i] + dx[i] * static_cast<Real>(lo[i]+hi[i]) / 2.0;
-    }
+    RealVect dx = grid.getDeltas(tileDesc.level());
+    RealVect x0 = grid.getDomainLo();
+    IntVect lo = tileDesc.loVect();
+    IntVect hi = tileDesc.hiVect();
+    RealVect coords = x0 + dx*RealVect(lo+hi)*0.5_wp;
     return coords;
 }
 
@@ -206,7 +203,7 @@ Vector<Real>    Grid::getBlkCenterCoords(const Tile& tileDesc) {
   *
   * @return Maximum refinement level of simulation.
   */
-unsigned int Grid::getMaxRefinement() {
+unsigned int Grid::getMaxRefinement() const {
     //TODO obviously has to change when AMR is implemented
     return 0;
 }
@@ -216,7 +213,7 @@ unsigned int Grid::getMaxRefinement() {
   *
   * @return The max level of existing blocks (0 is coarsest).
   */
-unsigned int Grid::getMaxLevel() {
+unsigned int Grid::getMaxLevel() const {
     //TODO obviously has to change when AMR is implemented
     return 0;
 }
