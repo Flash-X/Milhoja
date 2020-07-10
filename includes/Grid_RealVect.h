@@ -3,6 +3,7 @@
 
 #include "constants.h"
 #include "Grid_REAL.h"
+#include <iosfwd>
 #include <stdexcept>
 
 namespace orchestration {
@@ -71,6 +72,8 @@ class RealVect
     RealVect operator/ (const Real c) const {
       return RealVect(vect_[0]/c, vect_[1]/c, vect_[2]/c);
     }
+
+    friend std::ostream& operator<< (std::ostream& os, const RealVect& vout);
 
     /* A Note on move/copy sematics.
        */

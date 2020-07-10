@@ -2,6 +2,7 @@
 #define GRID_INTVECT_H__
 
 #include "constants.h"
+#include <iosfwd>
 #include <stdexcept>
 
 namespace orchestration {
@@ -81,6 +82,8 @@ class IntVect
       return IntVect(vect_[0]/c, vect_[1]/c, vect_[2]/c);
     }
 
+    friend std::ostream& operator<< (std::ostream& os, const IntVect& vout);
+
     /* A Note on move/copy sematics.
        */
     IntVect(IntVect&&) = default;
@@ -90,8 +93,6 @@ class IntVect
     IntVect(const IntVect&) = delete;
     IntVect& operator=(IntVect&) = delete;
     IntVect& operator=(const IntVect&) = delete;
-
-    //TODO: >> and << operators
 
     int vect_[MDIM];
 };

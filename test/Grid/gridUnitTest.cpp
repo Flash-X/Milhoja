@@ -33,6 +33,7 @@ TEST_F(GridUnitTest,TestVectorClasses){
         RealVect realVec2 = RealVect(intVec1);
 
         //test operators for IntVect
+        std::cout << "Test print of intVec1: " << intVec1 << std::endl;
         EXPECT_TRUE( intVec2 == IntVect(1,3,5) );
         EXPECT_TRUE( intVec1 != intVec2 );
         EXPECT_TRUE( intVec1+intVec2 == IntVect(4,13,7) );
@@ -44,6 +45,7 @@ TEST_F(GridUnitTest,TestVectorClasses){
 
         //test operators for RealVect
         float eps = 1.0e-14;
+        std::cout << "Test print of realVec1: " << realVec1 << std::endl;
         for (int i=0;i<NDIM;++i) {
             EXPECT_NEAR( realVec2[i] , RealVect(3.0_wp,10.0_wp,2.0_wp)[i] , eps );
             EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(4.5_wp,13.2_wp,7.8_wp)[i] , eps);
