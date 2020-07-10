@@ -137,7 +137,7 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getDomainLo() const {
-    RealVect domainLo{0.0_wp,0.0_wp,0.0_wp};
+    RealVect domainLo;
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainLo[i] = geom->ProbLo(i);
@@ -153,7 +153,7 @@ RealVect    Grid::getDomainLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getDomainHi() const {
-    RealVect domainHi{0.0_wp,0.0_wp,0.0_wp};
+    RealVect domainHi;
     amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     for(unsigned int i=0;i<NDIM;i++){
       domainHi[i] = geom->ProbHi(i);
@@ -169,7 +169,7 @@ RealVect    Grid::getDomainHi() const {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    RealVect deltas{0.0_wp,0.0_wp,0.0_wp};
+    RealVect deltas;
     //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
     //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();

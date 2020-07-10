@@ -61,14 +61,14 @@ TEST_F(GridUnitTest,TestDomainBoundBox){
         Grid& grid = Grid::instance();
         RealVect domainLo = grid.getDomainLo();
         RealVect domainHi = grid.getDomainHi();
+        RealVect actual_min{X_MIN,Y_MIN,Z_MIN};
+        RealVect actual_max{X_MAX,Y_MAX,Z_MAX};
 
         float eps = 1.0e-14;
-        EXPECT_NEAR(domainLo[Axis::I] , X_MIN , eps);
-        EXPECT_NEAR(domainLo[Axis::J] , Y_MIN , eps);
-        EXPECT_NEAR(domainLo[Axis::K] , Z_MIN , eps);
-        EXPECT_NEAR(domainHi[Axis::I] , X_MAX , eps);
-        EXPECT_NEAR(domainHi[Axis::J] , Y_MAX , eps);
-        EXPECT_NEAR(domainHi[Axis::K] , Z_MAX , eps);
+        for (int i=0;i<NDIM;++i) {
+            EXPECT_NEAR(domainLo[i] , actual_min[i] , eps);
+            EXPECT_NEAR(domainHi[i] , actual_max[i] , eps);
+        }
 }
 
 TEST_F(GridUnitTest,TestGetters){
