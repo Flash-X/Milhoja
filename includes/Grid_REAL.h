@@ -13,15 +13,17 @@
      (AMReX was configured with the macro BL_USE_FLOAT).
 */
 #  endif
-#elif REAL_IS_DOUBLE
-#  undef REAL_IS_FLOAT
-#  undef REAL_IS_DOUBLE
-#  define REAL_IS_DOUBLE 1
+#else
+#  ifdef REAL_IS_DOUBLE
+#    undef REAL_IS_FLOAT
+#    undef REAL_IS_DOUBLE
+#    define REAL_IS_DOUBLE 1
 /* Use REAL_IS_DOUBLE if AMReX was configured to use doubles for its real type
    (AMReX was configured with the macro BL_USE_DOUBLE).
 */
-#else
-#  error Please define either REAL_IS_DOUBLE or REAL_IS_FLOAT to match the configuration of AMReX.
+#  else
+#    error Please define either REAL_IS_DOUBLE or REAL_IS_FLOAT to match the configuration of AMReX.
+#  endif
 #endif
 
 #ifdef __cplusplus
