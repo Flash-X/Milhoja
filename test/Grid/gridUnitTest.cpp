@@ -85,16 +85,16 @@ TEST_F(GridUnitTest,TestGetters){
         //Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
         RealVect deltas = grid.getDeltas(0);
-        Real actual_x,actual_y,actual_z;
-        if(NDIM>=1) actual_x = (X_MAX - X_MIN) / Real(N_BLOCKS_X * NXB);
-        if(NDIM>=2) actual_y = (Y_MAX - Y_MIN) / Real(N_BLOCKS_Y * NYB);
-        if(NDIM>=3) actual_z = (Z_MAX - Z_MIN) / Real(N_BLOCKS_Z * NZB);
-        RealVect deltas_actual{LIST_NDIM(actual_x, actual_y, actual_z)};
+        Real dx_t,dy_t,dz_t;
+        if(NDIM>=1) dx_t = (X_MAX - X_MIN) / Real(N_BLOCKS_X * NXB);
+        if(NDIM>=2) dy_t = (Y_MAX - Y_MIN) / Real(N_BLOCKS_Y * NYB);
+        if(NDIM>=3) dz_t = (Z_MAX - Z_MIN) / Real(N_BLOCKS_Z * NZB);
+        RealVect deltas_actual{LIST_NDIM(dx_t, dy_t, dz_t)};
         for(int i=1;i<NDIM;++i) {
             EXPECT_NEAR(deltas_actual[i] , deltas[i], eps);
         }
 
-        //Testing Grid::getBlkCenterCoords
+        // Test Grid::getBlkCenterCoords with block iterator
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
             RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect()+1);
@@ -103,6 +103,19 @@ TEST_F(GridUnitTest,TestGetters){
             RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
             for(int i=1;i<NDIM;++i) {
                 ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
+            }
+        }
+
+        // Test Grid::getCellVolume and Grid::getCellFaceArea with cell-by-cell iterator
+        for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
+            Tile tileDesc(itor, 0);
+            Real actual_vol = CONCAT_NDIM( dx_t, * dy_t, * dz_t);
+            RealVect actual_fa = RealVect( dy_t, dx_t);
+
+            IntVect coord = tileDesc.loVect();
+            ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
+            for(int i=1;i<NDIM;++i) {
+                ASSERT_NEAR( actual_fa[i] , grid.getCellFaceArea(0,i,coord) , eps);
             }
         }
 

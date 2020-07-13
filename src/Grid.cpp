@@ -18,6 +18,7 @@
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
+#include "Grid_Axis.h"
 
 namespace orchestration {
 
@@ -137,11 +138,12 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getDomainLo() const {
-    RealVect domainLo;
-    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    for(unsigned int i=0;i<NDIM;i++){
-      domainLo[i] = geom->ProbLo(i);
-    }
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+
+    const Real* probLo = geom.ProbLo();
+    RealVect domainLo{LIST_NDIM(probLo[0],probLo[1],probLo[2])};
+
     return domainLo;
 }
 
@@ -153,11 +155,12 @@ RealVect    Grid::getDomainLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getDomainHi() const {
-    RealVect domainHi;
-    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    for(unsigned int i=0;i<NDIM;i++){
-      domainHi[i] = geom->ProbHi(i);
-    }
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+
+    const Real* probHi = geom.ProbHi();
+    RealVect domainHi{LIST_NDIM(probHi[0],probHi[1],probHi[2])};
+
     return domainHi;
 }
 
@@ -169,14 +172,14 @@ RealVect    Grid::getDomainHi() const {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    RealVect deltas;
-    //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
-    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
+
+    RealVect deltas;
     for(unsigned int i=0;i<NDIM;i++){
       deltas[i] = geom.CellSize(i);
     }
+
     return deltas;
 }
 
@@ -196,6 +199,42 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
     IntVect hi = tileDesc.hiVect();
     RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
     return coords;
+}
+
+/** getCellFaceArea gets face area of a cell with given (integer) coordinates
+  *
+  * @param lev level (0-based)
+  * @param coord coordinates (integer, 0-based)
+  * @return Area of face (Real)
+  */
+Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+
+    Real area{0.0_wp};
+    amrex::IntVect coord_am = amrex::IntVect(LIST_NDIM(coord[0],coord[1],coord[2]));
+    area = geom.AreaLo(coord_am,axis);
+    if (area != geom.AreaHi(coord_am,axis)) throw std::logic_error("Something going on in getCellFaceArea");
+
+    return area;
+}
+
+/** getCellVolume gets the volume of a cell with given (integer) coordinates
+  *
+  * @param lev Level (0-based)
+  * @param coord Coordinates (integer, 0-based)
+  * @return Volume of cell (Real)
+  */
+Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+    RealVect deltas = grid.getDeltas(lev);
+
+    Real vol{0.0_wp};
+    amrex::IntVect coord_am = amrex::IntVect(LIST_NDIM(coord[0],coord[1],coord[2]));
+    vol = geom.Volume(coord_am);
+
+    return vol;
 }
 
 /**
