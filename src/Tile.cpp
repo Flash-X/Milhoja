@@ -44,7 +44,7 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
       CC1_array_d_{nullptr},
       gridIdx_{itor.index()},
       level_{0},
-      interior_{new amrex::Box(itor.validbox())},
+      interior_{new amrex::Box(itor.tilebox())},
       GC_{new amrex::Box(itor.fabbox())}
 {
     amrex::MultiFab&  unk = Grid::instance().unk();
