@@ -83,6 +83,11 @@ class IntVect
       return IntVect(LIST_NDIM(vect_[0]*b[0], vect_[1]*b[1], vect_[2]*b[2]));
     }
 
+    // Add a scaler to each element.
+    IntVect operator+ (const int c) const {
+      return IntVect(LIST_NDIM(vect_[0]+c, vect_[1]+c, vect_[2]+c));
+    }
+
     // Multiply a vector by a scalar (V * c).
     IntVect operator* (const int c) const {
       return IntVect(LIST_NDIM(vect_[0]*c, vect_[1]*c, vect_[2]*c));
@@ -108,6 +113,9 @@ class IntVect
 
     int vect_[NDIM];
 };
+
+// Add a scalar to each elements ((c,c,c) + V).
+IntVect operator+ (const int c, const IntVect& a);
 
 // Scalar multiply a vector (c * V).
 IntVect operator* (const int c, const IntVect& a);

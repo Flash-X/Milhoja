@@ -41,6 +41,7 @@ TEST_F(GridUnitTest,TestVectorClasses){
         EXPECT_TRUE( intVec1+intVec2 == IntVect(LIST_NDIM(4,13,7)) );
         EXPECT_TRUE( intVec1-intVec2 == IntVect(LIST_NDIM(2,7,-3)) );
         EXPECT_TRUE( intVec1*intVec2 == IntVect(LIST_NDIM(3,30,10)) );
+        EXPECT_TRUE( intVec1+5 == IntVect(LIST_NDIM(8,15,7)) );
         EXPECT_TRUE( intVec1*2 == IntVect(LIST_NDIM(6,20,4)) );
         EXPECT_TRUE( 2*intVec1 == IntVect(LIST_NDIM(6,20,4)) );
         EXPECT_TRUE( intVec1/2 == IntVect(LIST_NDIM(1,5,1)) );
@@ -96,11 +97,10 @@ TEST_F(GridUnitTest,TestGetters){
         //Testing Grid::getBlkCenterCoords
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect());
+            RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect()+1);
             RealVect coords = domainLo + deltas_actual*sumVec*0.5_wp;
 
             RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
-
             for(int i=1;i<NDIM;++i) {
                 ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
             }

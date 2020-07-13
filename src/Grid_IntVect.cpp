@@ -8,6 +8,11 @@ IntVect::operator RealVect() const {
     return RealVect(LIST_NDIM(Real(vect_[0]),Real(vect_[1]),Real(vect_[2])));
 }
 
+// Add a scalar ((c,c,c) * V).
+IntVect operator+ (const int c, const IntVect& a) {
+    return IntVect(LIST_NDIM(a[0]+c, a[1]+c, a[2]+c));
+}
+
 // Scalar multiply a vector (c * V).
 IntVect operator* (const int c, const IntVect& a) {
     return IntVect(LIST_NDIM(a[0]*c, a[1]*c, a[2]*c));
