@@ -84,6 +84,11 @@ class RealVect
       return RealVect(LIST_NDIM(vect_[0]/c, vect_[1]/c, vect_[2]/c));
     }
 
+    // Return pointer to underlying array
+    const Real* dataPtr() const {
+      return vect_;
+    }
+
     friend std::ostream& operator<< (std::ostream& os, const RealVect& vout);
 
     /* A Note on move/copy sematics.

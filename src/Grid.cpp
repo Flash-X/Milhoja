@@ -57,14 +57,17 @@ Grid::~Grid(void) {
 }
 
 /**
+ * initDomain creates the domain in AMReX.
  *
+ * @param probMin The physical lower boundary of the domain.
+ * @param probMax The physical upper boundary of the domain.
+ * @param nBlocks The number of root blocks in each direction.
+ * @param nVars Number of physical variables.
+ * @param initBlock Function pointer to the simulation's initBlock routine.
  */
-void    Grid::initDomain(const Real xMin, const Real xMax,
-                         const Real yMin, const Real yMax,
-                         const Real zMin, const Real zMax,
-                         const unsigned int nBlocksX,
-                         const unsigned int nBlocksY,
-                         const unsigned int nBlocksZ,
+void    Grid::initDomain(const RealVect& probMin,
+                         const RealVect& probMax,
+                         const IntVect& nBlocks,
                          const unsigned int nVars,
                          TASK_FCN initBlock) {
     // TODO: Error check all given parameters
@@ -74,29 +77,32 @@ void    Grid::initDomain(const Real xMin, const Real xMax,
         throw std::logic_error("[Grid::initDomain] Null initBlock function pointer given");
     }
 
+    IntVect nCells{LIST_NDIM(NXB,NYB,NZB)};
+
     //***** SETUP DOMAIN, PROBLEM, and MESH
-    amrex::IndexType    ccIndexSpace(amrex::IntVect(AMREX_D_DECL(0, 0, 0)));
-    amrex::IntVect      domainLo(AMREX_D_DECL(0, 0, 0));
-    amrex::IntVect      domainHi(AMREX_D_DECL(nBlocksX * NXB - 1,
-                                              nBlocksY * NYB - 1,
-                                              nBlocksZ * NZB - 1));
+    amrex::IndexType    ccIndexSpace(amrex::IntVect(LIST_NDIM(0,0,0)));
+    amrex::IntVect      domainLo{LIST_NDIM(0,0,0)};
+    IntVect hi = nBlocks * nCells - 1;
+    amrex::IntVect      domainHi{LIST_NDIM(hi[0],hi[1],hi[2])};
     amrex::Box          domain = amrex::Box(domainLo, domainHi, ccIndexSpace);
+
     amrex::BoxArray     ba(domain);
-    ba.maxSize(amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
+    ba.maxSize(amrex::IntVect(LIST_NDIM(nCells[0],nCells[1],nCells[2])));
+
     amrex::DistributionMapping  dm(ba);
 
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
     // the BC ourselves
     int coordSystem = 0;  // Cartesian
-    amrex::RealBox   physicalDomain = amrex::RealBox({AMREX_D_DECL(xMin, yMin, zMin)},
-                                                     {AMREX_D_DECL(xMax, yMax, zMax)});
+    amrex::RealBox   physicalDomain = amrex::RealBox(probMin.dataPtr(),
+                                                     probMax.dataPtr());
     geometry_ = amrex::Geometry(domain, physicalDomain,
-                                coordSystem, {AMREX_D_DECL(0, 0, 0)});
+                                coordSystem, {LIST_NDIM(0, 0, 0)});
 
-    assert(nBlocksX * nBlocksY * nBlocksZ == ba.size());
-    assert(NXB*nBlocksX * NYB*nBlocksY * NZB*nBlocksZ == ba.numPts());
+    assert(nBlocks.product() == ba.size());
+    assert((nBlocks*nCells).product() == ba.numPts());
     for (unsigned int i=0; i<ba.size(); ++i) {
-        assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
+        assert(ba[i].size() == amrex::IntVect(LIST_NDIM(nCells[0],nCells[1],nCells[2])));
     }
 
     unsigned int   level = 0;

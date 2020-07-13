@@ -88,6 +88,11 @@ class IntVect
       return IntVect(LIST_NDIM(vect_[0]+c, vect_[1]+c, vect_[2]+c));
     }
 
+    // Subtract a scaler from each element.
+    IntVect operator- (const int c) const {
+      return IntVect(LIST_NDIM(vect_[0]-c, vect_[1]-c, vect_[2]-c));
+    }
+
     // Multiply a vector by a scalar (V * c).
     IntVect operator* (const int c) const {
       return IntVect(LIST_NDIM(vect_[0]*c, vect_[1]*c, vect_[2]*c));
@@ -96,6 +101,10 @@ class IntVect
     // Divide a vector by a scalar.
     IntVect operator/ (const int c) const {
       return IntVect(LIST_NDIM(vect_[0]/c, vect_[1]/c, vect_[2]/c));
+    }
+
+    int product() const {
+      return CONCAT_NDIM(vect_[0], *vect_[1], *vect_[2]);
     }
 
     friend std::ostream& operator<< (std::ostream& os, const IntVect& vout);

@@ -15,10 +15,12 @@ namespace {
 class GridUnitTest : public testing::Test {
 protected:
         GridUnitTest(void) {
+                RealVect probMin{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
+                RealVect probMax{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
+                IntVect  nBlocks{LIST_NDIM(N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z)};
                 Grid&    grid = Grid::instance();
-                grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                  N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                  NUNKVAR,Simulation::setInitialConditions_block);
+                grid.initDomain(probMin,probMax,nBlocks,NUNKVAR,
+                                Simulation::setInitialConditions_block);
         }
 
         ~GridUnitTest(void) {
@@ -42,9 +44,11 @@ TEST_F(GridUnitTest,TestVectorClasses){
         EXPECT_TRUE( intVec1-intVec2 == IntVect(LIST_NDIM(2,7,-3)) );
         EXPECT_TRUE( intVec1*intVec2 == IntVect(LIST_NDIM(3,30,10)) );
         EXPECT_TRUE( intVec1+5 == IntVect(LIST_NDIM(8,15,7)) );
+        EXPECT_TRUE( intVec1-9 == IntVect(LIST_NDIM(-6,1,-7)) );
         EXPECT_TRUE( intVec1*2 == IntVect(LIST_NDIM(6,20,4)) );
         EXPECT_TRUE( 2*intVec1 == IntVect(LIST_NDIM(6,20,4)) );
         EXPECT_TRUE( intVec1/2 == IntVect(LIST_NDIM(1,5,1)) );
+        EXPECT_TRUE( intVec1.product() == CONCAT_NDIM(3,*10,*2) );
 
         //test operators for RealVect
         float eps = 1.0e-14;

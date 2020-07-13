@@ -27,12 +27,9 @@ public:
 
     static Grid& instance(void);
 
-    void    initDomain(const Real xMin, const Real xMax,
-                       const Real yMin, const Real yMax,
-                       const Real zMin, const Real zMax,
-                       const unsigned int nBlocksX,
-                       const unsigned int nBlocksY,
-                       const unsigned int nBlocksZ,
+    void    initDomain(const RealVect& probMin,
+                       const RealVect& probMax,
+                       const IntVect& nBlocks,
                        const unsigned int nVars,
                        TASK_FCN initBlock);
     void    destroyDomain(void);
@@ -45,9 +42,11 @@ public:
     RealVect       getDomainHi() const;
     RealVect       getDeltas(const unsigned int lev) const;
     RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
-    RealVect       getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi) const;
+
+    Real           getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
     Real           getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
     Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
+
     unsigned int   getMaxRefinement() const;
     unsigned int   getMaxLevel() const;
 
