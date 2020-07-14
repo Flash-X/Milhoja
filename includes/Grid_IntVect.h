@@ -104,7 +104,7 @@ class IntVect
     }
 
     int product() const {
-      return CONCAT_NDIM(vect_[0], *vect_[1], *vect_[2]);
+      return CONCAT_NDIM(vect_[0], * vect_[1], * vect_[2]);
     }
 
     friend std::ostream& operator<< (std::ostream& os, const IntVect& vout);

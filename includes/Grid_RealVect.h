@@ -79,9 +79,18 @@ class RealVect
       return RealVect(LIST_NDIM(vect_[0]*c, vect_[1]*c, vect_[2]*c));
     }
 
+    // Divide two vectors component-wise.
+    RealVect operator/ (const RealVect& b) const {
+      return RealVect(LIST_NDIM(vect_[0]/b[0], vect_[1]/b[1], vect_[2]/b[2]));
+    }
+
     // Divide a vector by a scalar.
     RealVect operator/ (const Real c) const {
       return RealVect(LIST_NDIM(vect_[0]/c, vect_[1]/c, vect_[2]/c));
+    }
+
+    Real product() const {
+      return CONCAT_NDIM(vect_[0], * vect_[1], * vect_[2]);
     }
 
     // Return pointer to underlying array
