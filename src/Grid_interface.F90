@@ -57,6 +57,17 @@ module Grid_interface
         end subroutine Grid_getCellCoords
     end interface
 
+    interface Grid_getCellVolumes
+        subroutine Grid_getCellVolumes(level, lo, hi, volumes)
+            integer, intent(in)  :: level
+            integer, intent(in)  :: lo(1:MDIM)
+            integer, intent(in)  :: hi(1:MDIM)
+            real,    intent(out) :: volumes(lo(IAXIS):hi(IAXIS), &
+                                            lo(JAXIS):hi(JAXIS), &
+                                            lo(KAXIS):hi(KAXIS))
+        end subroutine Grid_getCellVolumes
+    end interface
+
     interface
         subroutine Grid_finalize()
         end subroutine Grid_finalize
