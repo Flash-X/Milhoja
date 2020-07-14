@@ -9,7 +9,9 @@
 #include <AMReX_Box.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_CoordSys.H>
 #include <AMReX_Geometry.H>
 
 #include "Flash.h"
@@ -234,13 +236,33 @@ Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, con
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
-    RealVect deltas = grid.getDeltas(lev);
 
     Real vol{0.0_wp};
     amrex::IntVect coord_am = amrex::IntVect(LIST_NDIM(coord[0],coord[1],coord[2]));
     vol = geom.Volume(coord_am);
 
     return vol;
+}
+
+
+/** fillCellVolumes fills a Real array (passed by pointer) with the
+  * volumes of a cell in a given range
+  *
+  * @param lev Level (0-based)
+  * @param lo lower bound of coordinates (integer, 0-based)
+  * @param hi upper bound of coordinates (integer, 0-based)
+  * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
+  */
+void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
+    Grid&   grid = Grid::instance();
+    amrex::Geometry&  geom = grid.geometry();
+
+    amrex::IntVect vlo(LIST_NDIM(lo[0],lo[1],lo[2]));
+    amrex::IntVect vhi(LIST_NDIM(hi[0],hi[1],hi[2]));
+    amrex::Box range(vlo,vhi);
+    amrex::FArrayBox vol_fab(range,1,volPtr);
+
+    geom.CoordSys::SetVolume(vol_fab,range);
 }
 
 /**

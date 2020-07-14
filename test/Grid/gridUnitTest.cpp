@@ -37,7 +37,6 @@ TEST_F(GridUnitTest,TestVectorClasses){
         RealVect realVec2 = RealVect(intVec1);
 
         //test operators for IntVect
-        std::cout << "Test print of intVec1: " << intVec1 << std::endl;
         EXPECT_TRUE( intVec2 == IntVect(LIST_NDIM(1,3,5)) );
         EXPECT_TRUE( intVec1 != intVec2 );
         EXPECT_TRUE( intVec1+intVec2 == IntVect(LIST_NDIM(4,13,7)) );
@@ -52,7 +51,6 @@ TEST_F(GridUnitTest,TestVectorClasses){
 
         //test operators for RealVect
         float eps = 1.0e-14;
-        std::cout << "Test print of realVec1: " << realVec1 << std::endl;
         for (int i=0;i<NDIM;++i) {
             EXPECT_NEAR( realVec2[i] , RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
             EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(LIST_NDIM(4.5_wp,13.2_wp,7.8_wp))[i] , eps);
@@ -64,29 +62,25 @@ TEST_F(GridUnitTest,TestVectorClasses){
         }
 }
 
-TEST_F(GridUnitTest,TestDomainBoundBox){
+TEST_F(GridUnitTest,TestGetters){
+        float eps = 1.0e-14;
+        int count;
+
         Grid& grid = Grid::instance();
-        RealVect domainLo = grid.getDomainLo();
-        RealVect domainHi = grid.getDomainHi();
         RealVect actual_min{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
         RealVect actual_max{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
+        IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
+        IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
 
-        float eps = 1.0e-14;
+        // Testing Grid::getDomain{Lo,Hi}
+        RealVect domainLo = grid.getDomainLo();
+        RealVect domainHi = grid.getDomainHi();
         for (int i=0;i<NDIM;++i) {
             EXPECT_NEAR(domainLo[i] , actual_min[i] , eps);
             EXPECT_NEAR(domainHi[i] , actual_max[i] , eps);
         }
-}
 
-TEST_F(GridUnitTest,TestGetters){
-        float eps = 1.0e-14;
-
-        Grid& grid = Grid::instance();
-        RealVect domainLo{LIST_NDIM(X_MIN, Y_MIN, Z_MIN)};
-        IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
-        IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
-
-        //Testing Grid::getDeltas
+        // Testing Grid::getDeltas
         //TODO: loop over all levels when AMR is implemented
         RealVect deltas = grid.getDeltas(0);
         Real dx_t,dy_t,dz_t;
@@ -99,10 +93,14 @@ TEST_F(GridUnitTest,TestGetters){
         }
 
         // Test Grid::getBlkCenterCoords with block iterator
+        count = 0;
         for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
+            count++;
+            if(count%3 != 0) continue;
+
             Tile tileDesc(itor, 0);
             RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect()+1);
-            RealVect coords = domainLo + deltas_actual*sumVec*0.5_wp;
+            RealVect coords = actual_min + deltas_actual*sumVec*0.5_wp;
 
             RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
             for(int i=1;i<NDIM;++i) {
@@ -111,7 +109,11 @@ TEST_F(GridUnitTest,TestGetters){
         }
 
         // Test Grid::getCellVolume and Grid::getCellFaceArea with cell-by-cell iterator
+        count = 0;
         for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
+            count++;
+            if(count%7 != 0) continue;
+
             Tile tileDesc(itor, 0);
             Real actual_vol = CONCAT_NDIM( dx_t, * dy_t, * dz_t);
             RealVect actual_fa = RealVect( dy_t, dx_t);
@@ -120,6 +122,20 @@ TEST_F(GridUnitTest,TestGetters){
             ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
             for(int i=1;i<NDIM;++i) {
                 ASSERT_NEAR( actual_fa[i] , grid.getCellFaceArea(0,i,coord) , eps);
+            }
+        }
+
+
+        // Test Grid::fillCellVolumes over an arbitrary range
+        amrex::IntVect vlo(1,2);
+        amrex::IntVect vhi(2,4);
+        amrex::Box bx(vlo,vhi);
+        amrex::FArrayBox vol_fab(bx,1);
+        Real* vol_ptr = vol_fab.dataPtr();
+        grid.fillCellVolumes(0,IntVect(1,2),IntVect(2,4),vol_ptr);
+        for (int i=vlo[0]; i<=(vhi-vlo)[0]; ++i){
+            for (int j=vlo[1]; j<=(vhi-vlo)[1]; ++j) {
+                EXPECT_NEAR( vol_fab({1+i,2+j},0) , CONCAT_NDIM( dx_t, * dy_t, * dz_t), eps);
             }
         }
 
