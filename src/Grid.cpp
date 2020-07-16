@@ -79,32 +79,33 @@ void    Grid::initDomain(const RealVect& probMin,
         throw std::logic_error("[Grid::initDomain] Null initBlock function pointer given");
     }
 
-    IntVect nCells{LIST_NDIM(NXB,NYB,NZB)};
+    amrex::IntVect nCells_am{LIST_NDIM(NXB,NYB,NZB)};
+    amrex::RealVect probMin_am = amrex::RealVect(probMin);
+    amrex::RealVect probMax_am = amrex::RealVect(probMax);
+    amrex::IntVect nBlocks_am = amrex::IntVect(nBlocks);
 
     //***** SETUP DOMAIN, PROBLEM, and MESH
-    amrex::IndexType    ccIndexSpace(amrex::IntVect(LIST_NDIM(0,0,0)));
-    amrex::IntVect      domainLo{LIST_NDIM(0,0,0)};
-    IntVect hi = nBlocks * nCells - 1;
-    amrex::IntVect      domainHi{LIST_NDIM(hi[0],hi[1],hi[2])};
-    amrex::Box          domain = amrex::Box(domainLo, domainHi, ccIndexSpace);
+    amrex::IndexType    ccIndexSpace(amrex::IntVect(0));
+    amrex::IntVect      domainLo{0};
+    amrex::IntVect      domainHi = nBlocks_am * nCells_am - 1;
+    amrex::Box          domain{domainLo, domainHi, ccIndexSpace};
 
-    amrex::BoxArray     ba(domain);
-    ba.maxSize(amrex::IntVect(LIST_NDIM(nCells[0],nCells[1],nCells[2])));
+    amrex::BoxArray     ba{domain};
+    ba.maxSize(nCells_am);
 
-    amrex::DistributionMapping  dm(ba);
+    amrex::DistributionMapping  dm{ba};
 
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
     // the BC ourselves
     int coordSystem = 0;  // Cartesian
-    amrex::RealBox   physicalDomain = amrex::RealBox(probMin.dataPtr(),
-                                                     probMax.dataPtr());
+    amrex::RealBox      physicalDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
     geometry_ = amrex::Geometry(domain, physicalDomain,
-                                coordSystem, {LIST_NDIM(0, 0, 0)});
+                                coordSystem, {LIST_NDIM(0,0,0)} );
 
     assert(nBlocks.product() == ba.size());
-    assert((nBlocks*nCells).product() == ba.numPts());
+    assert((nBlocks*IntVect(nCells_am)).product() == ba.numPts());
     for (unsigned int i=0; i<ba.size(); ++i) {
-        assert(ba[i].size() == amrex::IntVect(LIST_NDIM(nCells[0],nCells[1],nCells[2])));
+        assert(ba[i].size() == nCells_am);
     }
 
     unsigned int   level = 0;
@@ -140,41 +141,28 @@ void    Grid::destroyDomain(void) {
 
 /**
   * getDomainLo gets the lower boundary of the domain.
-  * Note: returns 0.0 for any dimension
-  * higher than NDIM.
   *
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getDomainLo() const {
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
-
-    const Real* probLo = geom.ProbLo();
-    RealVect domainLo{LIST_NDIM(probLo[0],probLo[1],probLo[2])};
-
-    return domainLo;
+    return RealVect{geom.ProbLo()};
 }
 
 /**
   * getDomainHi gets the upper boundary of the domain.
-  * Note: returns 0.0 for any dimension
-  * higher than NDIM.
   *
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getDomainHi() const {
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
-
-    const Real* probHi = geom.ProbHi();
-    RealVect domainHi{LIST_NDIM(probHi[0],probHi[1],probHi[2])};
-
-    return domainHi;
+    return RealVect{geom.ProbHi()};
 }
 
 /**
   * getDeltas gets the cell size for a given level.
-  * Note: returns 0.0 for any dimension higher than NDIM.
   *
   * @param level The level of refinement (0 is coarsest).
   * @return The vector <dx,dy,dz> for a given level.
@@ -182,19 +170,12 @@ RealVect    Grid::getDomainHi() const {
 RealVect    Grid::getDeltas(const unsigned int level) const {
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
-
-    RealVect deltas;
-    for(unsigned int i=0;i<NDIM;i++){
-      deltas[i] = geom.CellSize(i);
-    }
-
-    return deltas;
+    return RealVect{geom.CellSize()};
 }
 
 /**
   * getBlkCenterCoords gets the physical coordinates of the
   * center of the given tile.
-  * Note: returns 0.0 for any dimension higher than NDIM.
   *
   * @param tileDesc A Tile object.
   * @return A real vector with the physical center coordinates of the tile.
@@ -220,9 +201,8 @@ Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, con
     amrex::Geometry&  geom = grid.geometry();
 
     Real area{0.0_wp};
-    amrex::IntVect coord_am = amrex::IntVect(LIST_NDIM(coord[0],coord[1],coord[2]));
-    area = geom.AreaLo(coord_am,axis);
-    if (area != geom.AreaHi(coord_am,axis)) throw std::logic_error("Something going on in getCellFaceArea");
+    area = geom.AreaLo( amrex::IntVect(coord) , axis);
+    if (area != geom.AreaHi( amrex::IntVect(coord) ,axis)) throw std::logic_error("Something going on in getCellFaceArea");
 
     return area;
 }
@@ -236,12 +216,7 @@ Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, con
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
-
-    Real vol{0.0_wp};
-    amrex::IntVect coord_am = amrex::IntVect(LIST_NDIM(coord[0],coord[1],coord[2]));
-    vol = geom.Volume(coord_am);
-
-    return vol;
+    return geom.Volume( amrex::IntVect(coord) );
 }
 
 
@@ -257,10 +232,8 @@ void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const I
     Grid&   grid = Grid::instance();
     amrex::Geometry&  geom = grid.geometry();
 
-    amrex::IntVect vlo(LIST_NDIM(lo[0],lo[1],lo[2]));
-    amrex::IntVect vhi(LIST_NDIM(hi[0],hi[1],hi[2]));
-    amrex::Box range(vlo,vhi);
-    amrex::FArrayBox vol_fab(range,1,volPtr);
+    amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
+    amrex::FArrayBox vol_fab{range,1,volPtr};
 
     geom.CoordSys::SetVolume(vol_fab,range);
 }
