@@ -124,6 +124,11 @@ class IntVect
       return CONCAT_NDIM(vect_[0], * vect_[1], * vect_[2]);
     }
 
+    // Return pointer to underlying array
+    const int* dataPtr() const {
+      return vect_;
+    }
+
     friend std::ostream& operator<< (std::ostream& os, const IntVect& vout);
 
     /* A Note on move/copy sematics.
