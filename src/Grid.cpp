@@ -184,8 +184,8 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
     Grid&   grid = Grid::instance();
     RealVect dx = grid.getDeltas(tileDesc.level());
     RealVect x0 = grid.getDomainLo();
-    IntVect lo = tileDesc.loVect();
-    IntVect hi = tileDesc.hiVect();
+    IntVect lo = tileDesc.lo();
+    IntVect hi = tileDesc.hi();
     RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
     return coords;
 }

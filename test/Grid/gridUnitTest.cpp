@@ -95,7 +95,7 @@ TEST_F(GridUnitTest,TestGetters){
             if(count%3 != 0) continue;
 
             Tile tileDesc(itor, 0);
-            RealVect sumVec = RealVect(tileDesc.loVect()+tileDesc.hiVect()+1);
+            RealVect sumVec = RealVect(tileDesc.lo()+tileDesc.hi()+1);
             RealVect coords = actual_min + deltas_actual*sumVec*0.5_wp;
 
             RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
@@ -112,7 +112,7 @@ TEST_F(GridUnitTest,TestGetters){
             count++;
             if(count%7 != 0) continue;
             Tile tileDesc(itor, 0);
-            IntVect coord = tileDesc.loVect();
+            IntVect coord = tileDesc.lo();
             ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
             for(int i=1;i<NDIM;++i) {
                 ASSERT_NEAR( actual_fa[i] , grid.getCellFaceArea(0,i,coord) , eps);
