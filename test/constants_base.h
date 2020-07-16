@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H__
 #define CONSTANTS_H__
 
+#define GRID_AMREX
+
 #define NXB N_CELLS_IN_X
 #define NYB N_CELLS_IN_Y
 #define NZB N_CELLS_IN_Z

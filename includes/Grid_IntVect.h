@@ -6,6 +6,10 @@
 #include <iosfwd>
 #include <stdexcept>
 
+#ifdef GRID_AMREX
+#include <AMReX_IntVect.H>
+#endif
+
 #include <iostream>
 
 namespace orchestration {
@@ -24,11 +28,24 @@ class IntVect
     // Constructor from NDIM ints.
     constexpr explicit IntVect (LIST_NDIM(const int x, const int y, const int z)) : vect_{LIST_NDIM(x,y,z)} {}
 
+    // Copy constructor from int*. Make sure int* points to a data structure of at least size NDIM.
+    constexpr explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
+
 #if NDIM<3
     // Constructor from 3 ints
     explicit IntVect (const int x, const int y, const int z) : vect_{LIST_NDIM(x,y,z)} {
         if(!i_printed_warning) std::cout << "Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n";
         i_printed_warning = true;
+    }
+#endif
+
+#ifdef GRID_AMREX
+    // Constructor from amrex::IntVect
+    constexpr explicit IntVect (const amrex::IntVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+
+    // Operator to explicitly cast an IntVect to an AMReX IntVect
+    explicit operator amrex::IntVect () const {
+        return amrex::IntVect(LIST_NDIM(vect_[0],vect_[1],vect_[2]));
     }
 #endif
 
@@ -113,7 +130,6 @@ class IntVect
        */
     IntVect(IntVect&&) = default;
     IntVect& operator=(IntVect&&) = default;
-    static bool i_printed_warning;
   private:
     IntVect(IntVect&) = delete;
     IntVect(const IntVect&) = delete;
@@ -121,6 +137,7 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     int vect_[NDIM];
+    static bool i_printed_warning;
 };
 
 // Add a scalar to each elements ((c,c,c) + V).
