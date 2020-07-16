@@ -7,6 +7,10 @@
 #include <iosfwd>
 #include <stdexcept>
 
+#ifdef GRID_AMREX
+#include <AMReX_RealVect.H>
+#endif
+
 #include <iostream>
 
 namespace orchestration {
@@ -24,11 +28,24 @@ class RealVect
     // Constructor from NDIM Reals.
     constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z)) : vect_{LIST_NDIM(x,y,z)} {}
 
+    // Constructor from Real*.
+    constexpr explicit RealVect (const Real* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
+
 #if NDIM<3
     // Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z) : vect_{LIST_NDIM(x,y,z)} {
         if(!r_printed_warning) std::cout << "Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n";
         r_printed_warning = true;
+    }
+#endif
+
+#ifdef GRID_AMREX
+    // Constructor from amrex::RealVect
+    constexpr explicit RealVect (const amrex::RealVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+
+    // Operator to explicitly cast an RealVect to an AMReX RealVect
+    explicit operator amrex::RealVect () const {
+        return amrex::RealVect(LIST_NDIM(vect_[0],vect_[1],vect_[2]));
     }
 #endif
 
@@ -104,7 +121,6 @@ class RealVect
        */
     RealVect(RealVect&&) = default;
     RealVect& operator=(RealVect&&) = default;
-    static bool r_printed_warning;
   private:
     RealVect(RealVect&) = delete;
     RealVect(const RealVect&) = delete;
@@ -114,6 +130,7 @@ class RealVect
     //TODO: >> and << operators
 
     Real vect_[MDIM];
+    static bool r_printed_warning;
 };
 
 // Scalar multiply a vector (c * V).
