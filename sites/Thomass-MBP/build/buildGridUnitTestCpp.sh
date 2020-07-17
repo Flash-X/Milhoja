@@ -43,6 +43,7 @@ cp $TESTDIR/constants_base.h $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Grid/constants.h
+sed -i '' "s/N_DIMENSIONS/2/g" $TESTDIR/Grid/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
 rm $TESTDIR/Grid/Flash.h

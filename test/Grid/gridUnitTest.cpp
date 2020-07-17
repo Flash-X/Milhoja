@@ -106,7 +106,12 @@ TEST_F(GridUnitTest,TestGetters){
 
         // Test Grid::getCellVolume and Grid::getCellFaceArea with cell-by-cell iterator
         Real actual_vol = deltas_actual.product();
-        RealVect actual_fa = RealVect( deltas_actual[1], deltas_actual[0] );
+        RealVect actual_fa;
+        for (int i=0;i<NDIM;++i) {
+            int p1 = int(i==0);
+            int p2 = 2 - int(i==2);
+            actual_fa[i] = CONCAT_NDIM( 1.0_wp, *deltas_actual[p1], *deltas_actual[p2] );
+        }
         count = 0;
         for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
             count++;
@@ -121,17 +126,28 @@ TEST_F(GridUnitTest,TestGetters){
 
 
         // Test Grid::fillCellVolumes over an arbitrary range
-        amrex::IntVect vlo(1,2);
-        amrex::IntVect vhi(2,4);
-        amrex::Box bx(vlo,vhi);
-        amrex::FArrayBox vol_fab(bx,1);
+        IntVect vlo{LIST_NDIM(1,2,3)};
+        IntVect vhi{LIST_NDIM(2,4,7)};
+        amrex::Box bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
+        amrex::FArrayBox vol_fab{bx,1};
         Real* vol_ptr = vol_fab.dataPtr();
-        grid.fillCellVolumes(0,IntVect(1,2),IntVect(2,4),vol_ptr);
-        for (int i=0; i<=(vhi-vlo)[0]; ++i){
-            for (int j=0; j<=(vhi-vlo)[1]; ++j) {
-                EXPECT_NEAR( vol_fab({1+i,2+j},0) , actual_vol , eps);
+        grid.fillCellVolumes(0,vlo,vhi,vol_ptr);
+#if NDIM==2
+        for (int i=vlo[0]; i<=vhi[0]; ++i){
+            for (int j=vlo[1]; j<=vhi[1]; ++j) {
+                EXPECT_NEAR( vol_fab({i,j},0) , actual_vol , eps);
             }
         }
+#endif
+#if NDIM==3
+        for (int i=vlo[0]; i<=vhi[0]; ++i){
+            for (int j=vlo[1]; j<=vhi[1]; ++j) {
+                for (int k=vlo[2]; k<=vhi[2]; ++k) {
+                    EXPECT_NEAR( vol_fab({i,j,k},0) , actual_vol , eps);
+                }
+            }
+        }
+#endif
 
         //Testing Grid::getMaxRefinement and getMaxLevel
         EXPECT_TRUE(0 == grid.getMaxRefinement());

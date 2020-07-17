@@ -8,7 +8,7 @@
 #define NZB N_CELLS_IN_Z
 
 #define MDIM 3
-#define NDIM 2
+#define NDIM N_DIMENSIONS
 
 #define LOW 1
 #define HIGH 2
