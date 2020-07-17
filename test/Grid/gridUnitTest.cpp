@@ -48,11 +48,13 @@ TEST_F(GridUnitTest,VectorClasses){
     //test creation and conversion
     IntVect intVec1{LIST_NDIM(3,10,2)};
     RealVect realVec1{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
-    IntVect intVec2 = IntVect(realVec1);
+    IntVect intVec2 = realVec1.floor();
     RealVect realVec2 = RealVect(intVec1);
 
     //test operators for IntVect
-    EXPECT_TRUE( intVec2 == IntVect(LIST_NDIM(1,3,5)) );
+    EXPECT_TRUE( realVec1.round() == IntVect(LIST_NDIM(2,3,6)) );
+    EXPECT_TRUE( realVec1.floor() == IntVect(LIST_NDIM(1,3,5)) );
+    EXPECT_TRUE( realVec1.ceil() == IntVect(LIST_NDIM(2,4,6)) );
     EXPECT_TRUE( intVec1 != intVec2 );
     EXPECT_TRUE( intVec1+intVec2 == IntVect(LIST_NDIM(4,13,7)) );
     EXPECT_TRUE( intVec1-intVec2 == IntVect(LIST_NDIM(2,7,-3)) );
@@ -193,8 +195,8 @@ TEST_F(GridUnitTest,MultiCellGetters){
     )
 
     // Test Grid::fillCellVolumes over an arbitrary range
-    IntVect vlo = dlo + IntVect( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) );
-    IntVect vhi = dlo + IntVect( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) );
+    IntVect vlo = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) ).floor();
+    IntVect vhi = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) ).floor();
     amrex::Box vol_bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
     amrex::FArrayBox vol_fab{vol_bx,1};
     Real* vol_ptr = vol_fab.dataPtr();

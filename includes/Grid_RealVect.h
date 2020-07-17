@@ -46,9 +46,10 @@ class RealVect
     }
 #endif
 
-    // Operator to explicitly cast a RealVect to an IntVect.
-    // (Implicit cast disabled by `explicit` keyword).
-    explicit operator IntVect() const;
+    // Functions to get IntVects.
+    IntVect round() const;
+    IntVect floor() const;
+    IntVect ceil() const;
 
     // Get and set values of the internal array with [] operator.
     // Perform bounds check unless GRID_ERRCHECK_OFF is set.
@@ -100,7 +101,7 @@ class RealVect
 
     // Divide a vector by a scalar.
     RealVect operator/ (const Real c) const {
-      return RealVect(LIST_NDIM(vect_[0]/c, vect_[1]/c, vect_[2]/c));
+      return (*this)*(1.0_wp/c);
     }
 
     Real product() const {
