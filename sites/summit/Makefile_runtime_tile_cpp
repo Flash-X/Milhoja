@@ -2,14 +2,15 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = gather_data_cpp
-MAKEFILE     = Makefile_gatherData_cpp
+BASE         = test_runtime_tile_cpp
+MAKEFILE     = Makefile_runtime_tile_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
-TESTDIR      = $(BASEDIR)/test/GatherDataCpp
+TESTDIR      = $(BASEDIR)/test/RuntimeTile
 AMREXDIR     = $(HOME)/local/gcc_9.1.0/AMReX_2d
+GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
@@ -17,8 +18,7 @@ CXX_HDRS   = \
     $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
-    $(INCDIR)/DataPacket.h \
-    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \
@@ -50,17 +50,22 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/gatherData.cpp 
+    $(TESTDIR)/testRuntimeTile.cpp \
+    $(TESTDIR)/runRuntimeCppTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
-CXX       = mpic++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lgfortran -lamrex
-LDFLAGS   = -L$(AMREXDIR)/lib
+LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib64
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
 
 all:    $(COMMAND)
 
@@ -70,40 +75,13 @@ all:    $(COMMAND)
 $(COMMAND): $(OBJS) $(MAKEFILE) 
 	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
 
-# Move buildInfo.h out so that we just write it once
-# Also, find commands that are universal
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
-	@/bin/rm -f $(TESTDIR)/buildInfo.h
-	@printf "constexpr char PROJECT_GIT_REPO_NAME[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `git config --get remote.origin.url` >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char PROJECT_GIT_REPO_VER[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `git -C $(SRCDIR) describe --always` >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char BUILD_DATETIME[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `date +"%Y-%m-%dT%H:%M:%S%z"` >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char HOSTNAME[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `hostname` >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char MACHINE_INFO[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char CXX_COMPILER[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" $(CXX) >> $(TESTDIR)/buildInfo.h
-
-	@printf "constexpr char CXX_COMPILER_VERSION[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.h
-
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 clean:
 	/bin/rm -f $(COMMAND)
-	/bin/rm -f *.mod
+	/bin/rm -f Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
-	/bin/rm -f $(SRCDIR)/*.mod
 	/bin/rm -f $(TESTBASEDIR)/*.o
-	/bin/rm -f $(TESTDIR)/buildInfo.h
 	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f $(TESTDIR)/*.mod
 

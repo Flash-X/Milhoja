@@ -2,19 +2,21 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_runtime_cpp
-MAKEFILE     = Makefile_runtime_cpp
+BASE         = test_runtime_packet_cpp
+MAKEFILE     = Makefile_runtime_packet_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
-TESTDIR      = $(BASEDIR)/test/Runtime
+TESTDIR      = $(BASEDIR)/test/RuntimePacket
 AMREXDIR     = $(HOME)/local/gcc_9.1.0/AMReX_2d
 GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
@@ -43,6 +45,8 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
@@ -53,8 +57,6 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
     $(TESTBASEDIR)/scaleEnergy_packet.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/testRuntimeInt.cpp \
-    $(TESTDIR)/testRuntimeTile.cpp \
     $(TESTDIR)/testRuntimePacket.cpp \
     $(TESTDIR)/runRuntimeCppTest.cpp
 
