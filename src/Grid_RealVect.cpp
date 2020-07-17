@@ -31,5 +31,4 @@ std::ostream& operator<< (std::ostream& os, const RealVect& vout) {
     return os;
 }
 
-bool RealVect::r_printed_warning = false;
 }

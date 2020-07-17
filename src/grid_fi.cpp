@@ -38,7 +38,8 @@ extern "C" {
                                   static_cast<Real>(zMax))};
         IntVect nBlocks{LIST_NDIM(nBlocksX, nBlocksY, nBlocksZ)};
 
-        grid.initDomain(probLo, probHi, nBlocks, nVars, initBlock);
+        grid.initDomain(probLo, probHi, nBlocks,
+                        static_cast<unsigned int>(nVars), initBlock);
     }
 
     /**

@@ -16,7 +16,7 @@
 // Make a comma-separated list of NDIM elements from a list of 3
 #define LIST_NDIM(x,y,z) x
 
-// Concatenate NDIM elements from a list of 3
+// Make a space-separated list of NDIM elements from a list of 3
 #define CONCAT_NDIM(x,y,z) x
 
 #elif NDIM==2
@@ -34,11 +34,11 @@
 // std::cout << "iterating over " << lo3[0]<<","<<lo3[1]<<","<<lo3[2] << " "<<hi3[0]<<","<<hi3[1]<<","<<hi3[2] <<std::endl;
 
 #define ITERATE_REGION(lo,hi,i,j,k, function) {\
-std::vector<int> lo3 = lo.as3D(); \
-std::vector<int> hi3 = hi.as3D(); \
-for(int i=lo3[0];i<=hi3[0];++i) {\
-for(int j=lo3[1];j<=hi3[1];++j) {\
-for(int k=lo3[2];k<=hi3[2];++k) {\
+std::vector<int> lo_vec3 = lo.as3D(); \
+std::vector<int> hi_vec3 = hi.as3D(); \
+for(int i=lo_vec3[0];i<=hi_vec3[0];++i) {\
+for(int j=lo_vec3[1];j<=hi_vec3[1];++j) {\
+for(int k=lo_vec3[2];k<=hi_vec3[2];++k) {\
     function \
 }}}}
 

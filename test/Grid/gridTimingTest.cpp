@@ -77,7 +77,7 @@ TEST_F(GridTimingTest,TestGetVolumeSingle){
         // Fill volume array cell-by-cell
         for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            IntVect coord =  tileDesc.loVect();
+            IntVect coord =  tileDesc.lo();
             volumes[ coord[0]-vlo[0] ][ coord[1]-vlo[1] ] = grid.getCellVolume(0,coord);
         }
 
@@ -102,7 +102,7 @@ TEST_F(GridTimingTest,TestGetVolumeSingle2){
 
         for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
             Tile tileDesc(itor, 0);
-            IntVect coord =  tileDesc.loVect();
+            IntVect coord =  tileDesc.lo();
             ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
         }
 }

@@ -29,6 +29,4 @@ std::ostream& operator<< (std::ostream& os, const IntVect& vout) {
     return os;
 }
 
-bool IntVect::i_printed_warning = false;
-
 }

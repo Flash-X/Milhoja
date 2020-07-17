@@ -11,8 +11,6 @@
 #include <AMReX_RealVect.H>
 #endif
 
-#include <iostream>
-
 namespace orchestration {
 
 class IntVect;
@@ -34,8 +32,7 @@ class RealVect
 #if NDIM<3
     // Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z) : vect_{LIST_NDIM(x,y,z)} {
-        if(!r_printed_warning) std::cout << "Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n";
-        r_printed_warning = true;
+        throw std::logic_error("Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
 
@@ -130,7 +127,6 @@ class RealVect
     //TODO: >> and << operators
 
     Real vect_[MDIM];
-    static bool r_printed_warning;
 };
 
 // Scalar multiply a vector (c * V).

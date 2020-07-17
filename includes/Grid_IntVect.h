@@ -11,8 +11,6 @@
 #include <AMReX_IntVect.H>
 #endif
 
-#include <iostream>
-
 namespace orchestration {
 
 //forward declaration so we can have a "converter" operator
@@ -35,8 +33,7 @@ class IntVect
 #if NDIM<3
     // Constructor from 3 ints
     explicit IntVect (const int x, const int y, const int z) : vect_{LIST_NDIM(x,y,z)} {
-        if(!i_printed_warning) std::cout << "Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n";
-        i_printed_warning = true;
+        throw std::logic_error("Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
 
@@ -54,6 +51,8 @@ class IntVect
     // (Implicit cast disabled by `explicit` keyword).
     explicit operator RealVect () const;
 
+    // Return a std::vector of length 3 regardless of NDIM.
+    // Useful for iterating over regions of coordinate space.
     std::vector<int> as3D() const {
         std::vector<int> vecout;
         for(int i=0;i<3;++i) {
@@ -152,7 +151,6 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     int vect_[NDIM];
-    static bool i_printed_warning;
 };
 
 // Add a scalar to each elements ((c,c,c) + V).
