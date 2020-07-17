@@ -95,8 +95,8 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     }
 
     // Testing Grid::getDomain{Lo,Hi}
-    RealVect domainLo = grid.getDomainLo();
-    RealVect domainHi = grid.getDomainHi();
+    RealVect domainLo = grid.getProbLo();
+    RealVect domainHi = grid.getProbHi();
     for (int i=0;i<NDIM;++i) {
         EXPECT_NEAR(domainLo[i] , actual_min[i] , eps);
         EXPECT_NEAR(domainHi[i] , actual_max[i] , eps);
@@ -148,7 +148,7 @@ TEST_F(GridUnitTest,PerTileGetters){
         }
     }
 
-    // Test Grid::getCellVolume and Grid::getCellFaceArea with cell-by-cell iterator
+    // Test Grid::getCellVolume and Grid::getCellFaceAreaLo with cell-by-cell iterator
     count = 0;
     for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
         count++;
@@ -157,7 +157,7 @@ TEST_F(GridUnitTest,PerTileGetters){
         IntVect coord = tileDesc.lo();
         ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
         for(int i=1;i<NDIM;++i) {
-            ASSERT_NEAR( actual_fa[i] , grid.getCellFaceArea(0,i,coord) , eps);
+            ASSERT_NEAR( actual_fa[i] , grid.getCellFaceAreaLo(0,i,coord) , eps);
         }
     }
 }

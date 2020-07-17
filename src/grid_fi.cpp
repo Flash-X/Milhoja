@@ -48,12 +48,12 @@ extern "C" {
     void   grid_get_domain_bound_box_fi(double lo[NDIM],
                                         double hi[NDIM]) {
         Grid&   grid = Grid::instance();
-        RealVect domainLo = grid.getDomainLo();
-        RealVect domainHi = grid.getDomainLo();
+        RealVect probLo = grid.getProbLo();
+        RealVect probHi = grid.getProbHi();
 
         for (unsigned int i=0; i<NDIM; ++i) {
-            lo[i] = static_cast<double>(domainLo[i]);
-            hi[i] = static_cast<double>(domainHi[i]);
+            lo[i] = static_cast<double>(probLo[i]);
+            hi[i] = static_cast<double>(probHi[i]);
         }
     }
 

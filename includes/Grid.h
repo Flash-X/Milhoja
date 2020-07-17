@@ -38,13 +38,13 @@ public:
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
     //Basic getter functions.
-    RealVect       getDomainLo() const;
-    RealVect       getDomainHi() const;
+    RealVect       getProbLo() const;
+    RealVect       getProbHi() const;
     RealVect       getDeltas(const unsigned int lev) const;
     RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
 
     Real           getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
-    Real           getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
+    Real           getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
     Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
 
     void           fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;

@@ -98,8 +98,8 @@ void    Grid::initDomain(const RealVect& probMin,
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
     // the BC ourselves
     int coordSystem = 0;  // Cartesian
-    amrex::RealBox      physicalDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
-    geometry_ = amrex::Geometry(domain, physicalDomain,
+    amrex::RealBox      probDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
+    geometry_ = amrex::Geometry(domain, probDomain,
                                 coordSystem, {LIST_NDIM(0,0,0)} );
 
     unsigned int   level = 0;
@@ -134,20 +134,20 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
-  * getDomainLo gets the lower boundary of the domain.
+  * getProbLo gets the physical lower boundary of the domain.
   *
   * @return A real vector: <xlo, ylo, zlo>
   */
-RealVect    Grid::getDomainLo() const {
+RealVect    Grid::getProbLo() const {
     return RealVect{geometry_.ProbLo()};
 }
 
 /**
-  * getDomainHi gets the upper boundary of the domain.
+  * getProbHi gets the physical upper boundary of the domain.
   *
   * @return A real vector: <xhi, yhi, zhi>
   */
-RealVect    Grid::getDomainHi() const {
+RealVect    Grid::getProbHi() const {
     return RealVect{geometry_.ProbHi()};
 }
 
@@ -170,33 +170,28 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   */
 RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
     RealVect dx = getDeltas(tileDesc.level());
-    RealVect x0 = getDomainLo();
+    RealVect x0 = getProbLo();
     IntVect lo = tileDesc.lo();
     IntVect hi = tileDesc.hi();
     RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
     return coords;
 }
 
-/** getCellFaceArea gets face area of a cell with given (integer) coordinates
+/** getCellFaceAreaLo gets lo face area of a cell with given (integer) coordinates
   *
-  * @param lev level (0-based)
-  * @param coord coordinates (integer, 0-based)
-  * @return Area of face (Real)
+  * @param axis Axis of desired face, returns the area of the lo side.
+  * @param lev Level (0-based)
+  * @param coord Cell-centered coordinates (integer, 0-based)
+  * @return area of face (Real)
   */
-Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
-    Real area{0.0_wp};
-    area = geometry_.AreaLo( amrex::IntVect(coord) , axis);
-    if (area != geometry_.AreaHi( amrex::IntVect(coord) ,axis)) {
-        throw std::logic_error("Something going on in getCellFaceArea");
-    }
-
-    return area;
+Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
+    return geometry_.AreaLo( amrex::IntVect(coord) , axis);
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
   *
   * @param lev Level (0-based)
-  * @param coord Coordinates (integer, 0-based)
+  * @param coord Cell-centered coordinates (integer, 0-based)
   * @return Volume of cell (Real)
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
@@ -205,12 +200,13 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
 
 
 /** fillCellVolumes fills a Real array (passed by pointer) with the
-  * volumes of a cell in a given range
+  * volumes of cells in a given range
   *
   * @param lev Level (0-based)
-  * @param lo lower bound of coordinates (integer, 0-based)
-  * @param hi upper bound of coordinates (integer, 0-based)
+  * @param lo Lower bound of range (integer, 0-based)
+  * @param hi Upper bound of range (integer, 0-based)
   * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
+  *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
