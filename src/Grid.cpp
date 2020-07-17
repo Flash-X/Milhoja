@@ -145,9 +145,7 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getDomainLo() const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-    return RealVect{geom.ProbLo()};
+    return RealVect{geometry_.ProbLo()};
 }
 
 /**
@@ -156,9 +154,7 @@ RealVect    Grid::getDomainLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getDomainHi() const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-    return RealVect{geom.ProbHi()};
+    return RealVect{geometry_.ProbHi()};
 }
 
 /**
@@ -168,9 +164,7 @@ RealVect    Grid::getDomainHi() const {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-    return RealVect{geom.CellSize()};
+    return RealVect{geometry_.CellSize()};
 }
 
 /**
@@ -181,9 +175,8 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   * @return A real vector with the physical center coordinates of the tile.
   */
 RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
-    Grid&   grid = Grid::instance();
-    RealVect dx = grid.getDeltas(tileDesc.level());
-    RealVect x0 = grid.getDomainLo();
+    RealVect dx = getDeltas(tileDesc.level());
+    RealVect x0 = getDomainLo();
     IntVect lo = tileDesc.lo();
     IntVect hi = tileDesc.hi();
     RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
@@ -197,12 +190,11 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
   * @return Area of face (Real)
   */
 Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-
     Real area{0.0_wp};
-    area = geom.AreaLo( amrex::IntVect(coord) , axis);
-    if (area != geom.AreaHi( amrex::IntVect(coord) ,axis)) throw std::logic_error("Something going on in getCellFaceArea");
+    area = geometry_.AreaLo( amrex::IntVect(coord) , axis);
+    if (area != geometry_.AreaHi( amrex::IntVect(coord) ,axis)) {
+        throw std::logic_error("Something going on in getCellFaceArea");
+    }
 
     return area;
 }
@@ -214,9 +206,7 @@ Real  Grid::getCellFaceArea(const unsigned int axis, const unsigned int lev, con
   * @return Volume of cell (Real)
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-    return geom.Volume( amrex::IntVect(coord) );
+    return geometry_.Volume( amrex::IntVect(coord) );
 }
 
 
@@ -229,13 +219,9 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
   */
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox vol_fab{range,1,volPtr};
-
-    geom.CoordSys::SetVolume(vol_fab,range);
+    geometry_.CoordSys::SetVolume(vol_fab,range);
 }
 
 /**
