@@ -27,12 +27,9 @@ public:
 
     static Grid& instance(void);
 
-    void    initDomain(const Real xMin, const Real xMax,
-                       const Real yMin, const Real yMax,
-                       const Real zMin, const Real zMax,
-                       const unsigned int nBlocksX,
-                       const unsigned int nBlocksY,
-                       const unsigned int nBlocksZ,
+    void    initDomain(const RealVect& probMin,
+                       const RealVect& probMax,
+                       const IntVect& nBlocks,
                        const unsigned int nVars,
                        TASK_FCN initBlock);
     void    destroyDomain(void);
@@ -41,13 +38,17 @@ public:
     amrex::Geometry&   geometry(void)  { return geometry_; }
 
     //Basic getter functions.
-    RealVect       getDomainLo() const;
-    RealVect       getDomainHi() const;
+    RealVect       getProbLo() const;
+    RealVect       getProbHi() const;
     RealVect       getDeltas(const unsigned int lev) const;
     RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
-    RealVect       getCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi) const;
-    Real           getCellFaceArea(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
+
+    Real           getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
+    Real           getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
     Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
+
+    void           fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
+
     unsigned int   getMaxRefinement() const;
     unsigned int   getMaxLevel() const;
 
@@ -56,9 +57,9 @@ public:
 private:
     Grid(void);
     Grid(const Grid&) = delete;
-    Grid(const Grid&&) = delete;
+    Grid(Grid&&) = delete;
     Grid& operator=(const Grid&) = delete;
-    Grid& operator=(const Grid&&) = delete;
+    Grid& operator=(Grid&&) = delete;
 
     amrex::Geometry    geometry_;
     amrex::MultiFab*   unk_;

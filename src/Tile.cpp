@@ -44,7 +44,7 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
       CC1_array_d_{nullptr},
       gridIdx_{itor.index()},
       level_{0},
-      interior_{new amrex::Box(itor.validbox())},
+      interior_{new amrex::Box(itor.tilebox())},
       GC_{new amrex::Box(itor.fabbox())}
 {
     amrex::MultiFab&  unk = Grid::instance().unk();
@@ -184,43 +184,18 @@ bool   Tile::isNull(void) const {
             && (hiGC_d_      == nullptr)
             && (CC1_array_d_ == nullptr));
 }
-
 /**
  *
  */
-amrex::Dim3  Tile::lo(void) const {
-    return amrex::lbound(*interior_);
+IntVect  Tile::lo(void) const {
+    return IntVect(interior_->smallEnd());
 }
 
 /**
  *
  */
-amrex::Dim3  Tile::hi(void) const {
-    return amrex::ubound(*interior_);
-}
-
-/**
- *
- */
-IntVect  Tile::loVect(void) const {
-    const int* lo = interior_->loVect();
-    IntVect loVec{0,0,0};
-    for (unsigned int i=0;i<NDIM;++i){
-        loVec[i] = lo[i];
-    }
-    return loVec;
-}
-
-/**
- *
- */
-IntVect  Tile::hiVect(void) const {
-    const int* hi = interior_->hiVect();
-    IntVect hiVec{0,0,0};
-    for (unsigned int i=0;i<NDIM;++i){
-        hiVec[i] = hi[i];
-    }
-    return hiVec;
+IntVect  Tile::hi(void) const {
+    return IntVect(interior_->bigEnd());
 }
 
 /**

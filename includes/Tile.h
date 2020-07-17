@@ -33,10 +33,8 @@ public:
 
     // TODO: Get rid of the amrex::Dim3/XDim3 so that the interface is more
     // general.  Can we get references instead?
-    amrex::Dim3          lo(void) const;
-    amrex::Dim3          hi(void) const;
-    IntVect              loVect(void) const;
-    IntVect              hiVect(void) const;
+    IntVect              lo(void) const;
+    IntVect              hi(void) const;
 
     amrex::Dim3          loGC(void) const;
     amrex::Dim3          hiGC(void) const;

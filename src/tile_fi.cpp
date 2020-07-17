@@ -15,8 +15,8 @@ extern "C" {
         gid = static_cast<int>(tileDesc->gridIndex());
         level = static_cast<int>(tileDesc->level());
 
-        const int* loPt   = tileDesc->loVect();
-        const int* hiPt   = tileDesc->hiVect();
+        IntVect loPt = tileDesc->lo();
+        IntVect hiPt   = tileDesc->hi();
         const int* loGCPt = tileDesc->loGCVect();
         const int* hiGCPt = tileDesc->hiGCVect();
         for (unsigned int i=0; i<NDIM; ++i) {

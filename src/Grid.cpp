@@ -9,7 +9,9 @@
 #include <AMReX_Box.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_CoordSys.H>
 #include <AMReX_Geometry.H>
 
 #include "Flash.h"
@@ -18,6 +20,7 @@
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
+#include "Grid_Axis.h"
 
 namespace orchestration {
 
@@ -56,14 +59,17 @@ Grid::~Grid(void) {
 }
 
 /**
+ * initDomain creates the domain in AMReX.
  *
+ * @param probMin The physical lower boundary of the domain.
+ * @param probMax The physical upper boundary of the domain.
+ * @param nBlocks The number of root blocks in each direction.
+ * @param nVars Number of physical variables.
+ * @param initBlock Function pointer to the simulation's initBlock routine.
  */
-void    Grid::initDomain(const Real xMin, const Real xMax,
-                         const Real yMin, const Real yMax,
-                         const Real zMin, const Real zMax,
-                         const unsigned int nBlocksX,
-                         const unsigned int nBlocksY,
-                         const unsigned int nBlocksZ,
+void    Grid::initDomain(const RealVect& probMin,
+                         const RealVect& probMax,
+                         const IntVect& nBlocks,
                          const unsigned int nVars,
                          TASK_FCN initBlock) {
     // TODO: Error check all given parameters
@@ -73,30 +79,28 @@ void    Grid::initDomain(const Real xMin, const Real xMax,
         throw std::logic_error("[Grid::initDomain] Null initBlock function pointer given");
     }
 
+    amrex::IntVect nCells_am{LIST_NDIM(NXB,NYB,NZB)};
+    amrex::RealVect probMin_am = amrex::RealVect(probMin);
+    amrex::RealVect probMax_am = amrex::RealVect(probMax);
+    amrex::IntVect nBlocks_am = amrex::IntVect(nBlocks);
+
     //***** SETUP DOMAIN, PROBLEM, and MESH
-    amrex::IndexType    ccIndexSpace(amrex::IntVect(AMREX_D_DECL(0, 0, 0)));
-    amrex::IntVect      domainLo(AMREX_D_DECL(0, 0, 0));
-    amrex::IntVect      domainHi(AMREX_D_DECL(nBlocksX * NXB - 1,
-                                              nBlocksY * NYB - 1,
-                                              nBlocksZ * NZB - 1));
-    amrex::Box          domain = amrex::Box(domainLo, domainHi, ccIndexSpace);
-    amrex::BoxArray     ba(domain);
-    ba.maxSize(amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
-    amrex::DistributionMapping  dm(ba);
+    amrex::IndexType    ccIndexSpace(amrex::IntVect(0));
+    amrex::IntVect      domainLo{0};
+    amrex::IntVect      domainHi = nBlocks_am * nCells_am - 1;
+    amrex::Box          domain{domainLo, domainHi, ccIndexSpace};
+
+    amrex::BoxArray     ba{domain};
+    ba.maxSize(nCells_am);
+
+    amrex::DistributionMapping  dm{ba};
 
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
     // the BC ourselves
     int coordSystem = 0;  // Cartesian
-    amrex::RealBox   physicalDomain = amrex::RealBox({AMREX_D_DECL(xMin, yMin, zMin)},
-                                                     {AMREX_D_DECL(xMax, yMax, zMax)});
-    geometry_ = amrex::Geometry(domain, physicalDomain,
-                                coordSystem, {AMREX_D_DECL(0, 0, 0)});
-
-    assert(nBlocksX * nBlocksY * nBlocksZ == ba.size());
-    assert(NXB*nBlocksX * NYB*nBlocksY * NZB*nBlocksZ == ba.numPts());
-    for (unsigned int i=0; i<ba.size(); ++i) {
-        assert(ba[i].size() == amrex::IntVect(AMREX_D_DECL(NXB, NYB, NZB)));
-    }
+    amrex::RealBox      probDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
+    geometry_ = amrex::Geometry(domain, probDomain,
+                                coordSystem, {LIST_NDIM(0,0,0)} );
 
     unsigned int   level = 0;
     unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
@@ -130,72 +134,84 @@ void    Grid::destroyDomain(void) {
 }
 
 /**
-  * getDomainLo gets the lower boundary of the domain.
-  * Note: returns 0.0 for any dimension
-  * higher than NDIM.
+  * getProbLo gets the physical lower boundary of the domain.
   *
   * @return A real vector: <xlo, ylo, zlo>
   */
-RealVect    Grid::getDomainLo() const {
-    RealVect domainLo{0.0_wp,0.0_wp,0.0_wp};
-    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    for(unsigned int i=0;i<NDIM;i++){
-      domainLo[i] = geom->ProbLo(i);
-    }
-    return domainLo;
+RealVect    Grid::getProbLo() const {
+    return RealVect{geometry_.ProbLo()};
 }
 
 /**
-  * getDomainHi gets the upper boundary of the domain.
-  * Note: returns 0.0 for any dimension
-  * higher than NDIM.
+  * getProbHi gets the physical upper boundary of the domain.
   *
   * @return A real vector: <xhi, yhi, zhi>
   */
-RealVect    Grid::getDomainHi() const {
-    RealVect domainHi{0.0_wp,0.0_wp,0.0_wp};
-    amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    for(unsigned int i=0;i<NDIM;i++){
-      domainHi[i] = geom->ProbHi(i);
-    }
-    return domainHi;
+RealVect    Grid::getProbHi() const {
+    return RealVect{geometry_.ProbHi()};
 }
 
 /**
   * getDeltas gets the cell size for a given level.
-  * Note: returns 0.0 for any dimension higher than NDIM.
   *
   * @param level The level of refinement (0 is coarsest).
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    RealVect deltas{0.0_wp,0.0_wp,0.0_wp};
-    //DEV NOTE: Why does top()->GetDefaultGeometry() not get the right cell sizes? 
-    //amrex::Geometry* geom = amrex::AMReX::top()->getDefaultGeometry();
-    Grid&   grid = Grid::instance();
-    amrex::Geometry&  geom = grid.geometry();
-    for(unsigned int i=0;i<NDIM;i++){
-      deltas[i] = geom.CellSize(i);
-    }
-    return deltas;
+    return RealVect{geometry_.CellSize()};
 }
 
 /**
   * getBlkCenterCoords gets the physical coordinates of the
   * center of the given tile.
-  * Note: returns 0.0 for any dimension higher than NDIM.
   *
   * @param tileDesc A Tile object.
   * @return A real vector with the physical center coordinates of the tile.
   */
 RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
-    Grid&   grid = Grid::instance();
-    RealVect dx = grid.getDeltas(tileDesc.level());
-    RealVect x0 = grid.getDomainLo();
-    IntVect lo = tileDesc.loVect();
-    IntVect hi = tileDesc.hiVect();
-    RealVect coords = x0 + dx*RealVect(lo+hi)*0.5_wp;
+    RealVect dx = getDeltas(tileDesc.level());
+    RealVect x0 = getProbLo();
+    IntVect lo = tileDesc.lo();
+    IntVect hi = tileDesc.hi();
+    RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
     return coords;
+}
+
+/** getCellFaceAreaLo gets lo face area of a cell with given (integer) coordinates
+  *
+  * @param axis Axis of desired face, returns the area of the lo side.
+  * @param lev Level (0-based)
+  * @param coord Cell-centered coordinates (integer, 0-based)
+  * @return area of face (Real)
+  */
+Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
+    return geometry_.AreaLo( amrex::IntVect(coord) , axis);
+}
+
+/** getCellVolume gets the volume of a cell with given (integer) coordinates
+  *
+  * @param lev Level (0-based)
+  * @param coord Cell-centered coordinates (integer, 0-based)
+  * @return Volume of cell (Real)
+  */
+Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
+    return geometry_.Volume( amrex::IntVect(coord) );
+}
+
+
+/** fillCellVolumes fills a Real array (passed by pointer) with the
+  * volumes of cells in a given range
+  *
+  * @param lev Level (0-based)
+  * @param lo Lower bound of range (integer, 0-based)
+  * @param hi Upper bound of range (integer, 0-based)
+  * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
+  *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  */
+void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
+    amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
+    amrex::FArrayBox vol_fab{range,1,volPtr};
+    geometry_.CoordSys::SetVolume(vol_fab,range);
 }
 
 /**
