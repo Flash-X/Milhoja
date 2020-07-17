@@ -102,12 +102,6 @@ void    Grid::initDomain(const RealVect& probMin,
     geometry_ = amrex::Geometry(domain, physicalDomain,
                                 coordSystem, {LIST_NDIM(0,0,0)} );
 
-    assert(nBlocks.product() == ba.size());
-    assert((nBlocks*IntVect(nCells_am)).product() == ba.numPts());
-    for (unsigned int i=0; i<ba.size(); ++i) {
-        assert(ba[i].size() == nCells_am);
-    }
-
     unsigned int   level = 0;
     unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
 
