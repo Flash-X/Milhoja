@@ -1,6 +1,4 @@
 #include <iostream>
-#include <iomanip>
-#include <sstream>
 
 #include "Grid_RealVect.h"
 #include "Grid_IntVect.h"
@@ -20,11 +18,7 @@ RealVect operator* (const Real c, const RealVect& a) {
 std::ostream& operator<< (std::ostream& os, const RealVect& vout) {
     os << '(';
     for (int i=0; i<NDIM; ++i){
-        std::ostringstream elem;
-        elem << std::fixed;
-        elem << std::setprecision(4);
-        elem << vout[i];
-        os << elem.str();
+        os << vout[i];
         if(i<(NDIM-1)) os << ", ";
     }
     os << ')';

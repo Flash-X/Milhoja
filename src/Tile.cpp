@@ -188,14 +188,14 @@ bool   Tile::isNull(void) const {
  *
  */
 IntVect  Tile::lo(void) const {
-    return IntVect(interior_->loVect());
+    return IntVect(interior_->smallEnd());
 }
 
 /**
  *
  */
 IntVect  Tile::hi(void) const {
-    return IntVect(interior_->hiVect());
+    return IntVect(interior_->bigEnd());
 }
 
 /**

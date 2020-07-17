@@ -1,3 +1,7 @@
+! DEV NOTE: this was developed as a way of testing the passing of
+!           Fortran arrays to Grid.cpp. Not necessary in the long run.
+! TODO: remove this file
+
 #include "constants.h"
   
 subroutine Grid_getCellVolumes(level, lo, hi, volumes)

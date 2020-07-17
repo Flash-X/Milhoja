@@ -70,7 +70,7 @@ extern "C" {
     }
 
     /**
-     *
+     * TODO remove this, as FLASH already has a library-agnostic way of doing this.
      * @param vols Pointer to a fortran array of shape (loVect(IAXIS):hiVect(IAXIS),
      *             loVect(JAXIS):hiVect(JAXIS), loVect(KAXIS):hiVect(KAXIS)).
      */

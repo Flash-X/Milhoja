@@ -57,9 +57,9 @@ public:
 private:
     Grid(void);
     Grid(const Grid&) = delete;
-    Grid(const Grid&&) = delete;
+    Grid(Grid&&) = delete;
     Grid& operator=(const Grid&) = delete;
-    Grid& operator=(const Grid&&) = delete;
+    Grid& operator=(Grid&&) = delete;
 
     amrex::Geometry    geometry_;
     amrex::MultiFab*   unk_;
