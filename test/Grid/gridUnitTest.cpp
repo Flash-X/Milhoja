@@ -7,6 +7,21 @@
 #include "gtest/gtest.h"
 #include <AMReX.H>
 
+// Macro for iterating over all coordinates in the
+// region defined by two IntVects lo and hi.
+// Middle three arguments are the iteration variables,
+// which can be used in 'function'.
+
+#define ITERATE_REGION(lo,hi,i,j,k, function) {\
+std::vector<int> lo_vec3 = lo.as3D(); \
+std::vector<int> hi_vec3 = hi.as3D(); \
+for(int i=lo_vec3[0];i<=hi_vec3[0];++i) {\
+for(int j=lo_vec3[1];j<=hi_vec3[1];++j) {\
+for(int k=lo_vec3[2];k<=hi_vec3[2];++k) {\
+    function \
+}}}}
+
+
 using namespace orchestration;
 
 namespace {
