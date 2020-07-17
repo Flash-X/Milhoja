@@ -3,6 +3,7 @@
 
 #include "constants.h"
 #include "Grid_Macros.h"
+#include <vector>
 #include <iosfwd>
 #include <stdexcept>
 
@@ -52,6 +53,15 @@ class IntVect
     // Operator to explicitly cast an IntVect to a RealVect.
     // (Implicit cast disabled by `explicit` keyword).
     explicit operator RealVect () const;
+
+    std::vector<int> as3D() const {
+        std::vector<int> vecout;
+        for(int i=0;i<3;++i) {
+            if(i<NDIM) vecout.push_back(vect_[i]);
+            else vecout.push_back(0);
+        }
+        return vecout;
+    }
 
     // Get and set values of the internal array with [] operator.
     int& operator[] (const int i) {

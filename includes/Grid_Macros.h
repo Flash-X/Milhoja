@@ -27,5 +27,21 @@
 #define CONCAT_NDIM(x,y,z) x y z
 #endif
 
+// Macro for iterating over all coordinates in the
+// region defined by two IntVects lo and hi.
+// Middle three arguments are the iteration variables,
+// which can be used in 'function'.
+// std::cout << "iterating over " << lo3[0]<<","<<lo3[1]<<","<<lo3[2] << " "<<hi3[0]<<","<<hi3[1]<<","<<hi3[2] <<std::endl;
+
+#define ITERATE_REGION(lo,hi,i,j,k, function) {\
+std::vector<int> lo3 = lo.as3D(); \
+std::vector<int> hi3 = hi.as3D(); \
+for(int i=lo3[0];i<=hi3[0];++i) {\
+for(int j=lo3[1];j<=hi3[1];++j) {\
+for(int k=lo3[2];k<=hi3[2];++k) {\
+    function \
+}}}}
+
+
 
 #endif
