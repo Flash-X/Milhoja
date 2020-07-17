@@ -28,7 +28,9 @@ class IntVect
     constexpr explicit IntVect (LIST_NDIM(const int x, const int y, const int z)) : vect_{LIST_NDIM(x,y,z)} {}
 
     // Copy constructor from int*. Make sure int* points to a data structure of at least size NDIM.
-    constexpr explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
+    explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {
+        throw std::logic_error("used int* constructor");
+    }
 
 #if NDIM<3
     // Constructor from 3 ints
@@ -54,10 +56,9 @@ class IntVect
     // Return a std::vector of length 3 regardless of NDIM.
     // Useful for iterating over regions of coordinate space.
     std::vector<int> as3D() const {
-        std::vector<int> vecout;
-        for(int i=0;i<3;++i) {
-            if(i<NDIM) vecout.push_back(vect_[i]);
-            else vecout.push_back(0);
+        std::vector<int> vecout = {0,0,0};
+        for(int i=0;i<NDIM;++i) {
+            vecout[i] = vect_[i];
         }
         return vecout;
     }
