@@ -111,7 +111,7 @@ TEST_F(ThreadTeamTest, TestInitialState) {
 
     // Confirm indirectly that no subscribers are attached
     EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
-    EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+    EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
 
     // Check that teams must have minimum number of threads
     EXPECT_THROW(new ThreadTeam<int>(0, 2, "TestInitialState.log"), std::logic_error);
@@ -129,7 +129,7 @@ TEST_F(ThreadTeamTest, TestInitialState) {
         EXPECT_EQ(0, N_Q);
 
         EXPECT_THROW(team2->detachThreadReceiver(), std::logic_error);
-        EXPECT_THROW(team2->detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team2->detachDataReceiver(),   std::logic_error);
 
         delete team2;
         team2 = nullptr;
@@ -160,7 +160,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
 
     // Test in Running & Open 
     delay_100ms.nInitialThreads = 3;
-    team1->startTask(delay_100ms, "teamName");
+    team1->startCycle(delay_100ms, "teamName");
     team1->enqueue(work, false);
     for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -188,7 +188,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     // The mode will transition to Running & No More Work as there
     // won't be any work in the queue
     delay_100ms.nInitialThreads = 3;
-    team1->startTask(delay_100ms, "teamName");
+    team1->startCycle(delay_100ms, "teamName");
     team1->enqueue(work, false);
     for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -197,7 +197,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     }
 
     // Close task & let Waiting threads go Idle
-    team1->closeTask();
+    team1->closeQueue();
     for (unsigned int i=0; i<100; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if (N_idle == 3)      break;
@@ -239,8 +239,8 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
     // Do an execution cycle with no threads/no work and call wait 
     // as many times as we want
     noop.nInitialThreads = 0;
-    team1.startTask(noop, "test1");
-    team1.closeTask();
+    team1.startCycle(noop, "test1");
+    team1.closeQueue();
     for (unsigned int i=0; i<10; ++i) {
         if (team1.mode() == ThreadTeamMode::IDLE)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -254,7 +254,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
     // We want the wait to be called before work finishes and the team
     // transitions to Idle
     delay_10ms.nInitialThreads = 1;
-    team1.startTask(delay_10ms, "test1");
+    team1.startCycle(delay_10ms, "test1");
     int work = 1;
     team1.enqueue(work, false);
 
@@ -264,7 +264,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    team1.closeTask();
+    team1.closeQueue();
     // Legitimate wait call
     team1.wait();
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -290,7 +290,7 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
     ThreadTeam<int>    team1(3, 1, "TestNoWorkNoThreads.log");
     ThreadTeam<int>    team2(2, 2, "TestNoWorkNoThreads.log");
 
-    team1.attachWorkReceiver(&team2);
+    team1.attachDataReceiver(&team2);
 
     EXPECT_EQ(3, team1.nMaximumThreads());
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -299,8 +299,8 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
     EXPECT_EQ(ThreadTeamMode::IDLE, team2.mode());
 
     noop.nInitialThreads = 0;
-    team1.startTask(noop, "test1");
-    team2.startTask(noop, "test2");
+    team1.startCycle(noop, "test1");
+    team2.startCycle(noop, "test2");
 
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
     EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
@@ -310,9 +310,9 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
     EXPECT_EQ(0, N_comp);
     EXPECT_EQ(0, N_Q);
 
-    team1.closeTask();
+    team1.closeQueue();
     team1.wait();
-    // Next line will hang if team1 doesn't call team2's closeTask()
+    // Next line will hang if team1 doesn't call team2's closeQueue()
     team2.wait();
 
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -336,12 +336,12 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // No task given
         nullRoutine.nInitialThreads = team1.nMaximumThreads() - 1;
-        EXPECT_THROW(team1.startTask(nullRoutine, "teamName"),
+        EXPECT_THROW(team1.startCycle(nullRoutine, "teamName"),
                      std::logic_error);
 
         // Ask for more threads than in team
         noop.nInitialThreads = team1.nMaximumThreads() + 1;
-        EXPECT_THROW(team1.startTask(noop, "teamName"),
+        EXPECT_THROW(team1.startCycle(noop, "teamName"),
                      std::logic_error);
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1), std::logic_error);
 
@@ -351,52 +351,52 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
         // Use methods that are not allowed in Idle
         EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
         EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
-        EXPECT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Detach when no teams have been attached
         EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
-        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
 
         // Attach null team
         EXPECT_THROW(team1.attachThreadReceiver(nullptr), std::logic_error);
-        EXPECT_THROW(team1.attachWorkReceiver(nullptr),   std::logic_error);
+        EXPECT_THROW(team1.attachDataReceiver(nullptr),   std::logic_error);
 
         // Attach team to itself
         EXPECT_THROW(team1.attachThreadReceiver(&team1), std::logic_error);
-        EXPECT_THROW(team1.attachWorkReceiver(&team1),   std::logic_error);
+        EXPECT_THROW(team1.attachDataReceiver(&team1),   std::logic_error);
 
         // Setup basic thread team configuration
         team1.attachThreadReceiver(&team3);
         team2.attachThreadReceiver(&team3);
-        team2.attachWorkReceiver(&team3);
+        team2.attachDataReceiver(&team3);
 
         // Not allowed to attach more than one receiver
         //  - try with same and different teams
         EXPECT_THROW(team1.attachThreadReceiver(&team3), std::logic_error);
         EXPECT_THROW(team2.attachThreadReceiver(&team3), std::logic_error);
-        EXPECT_THROW(team2.attachWorkReceiver(&team3),   std::logic_error);
+        EXPECT_THROW(team2.attachDataReceiver(&team3),   std::logic_error);
 
         EXPECT_THROW(team1.attachThreadReceiver(&team4), std::logic_error);
         EXPECT_THROW(team2.attachThreadReceiver(&team4), std::logic_error);
-        EXPECT_THROW(team2.attachWorkReceiver(&team4),   std::logic_error);
+        EXPECT_THROW(team2.attachDataReceiver(&team4),   std::logic_error);
 
         // Break down configuration so that destruction is clean
         team1.detachThreadReceiver();
         team2.detachThreadReceiver();
-        team2.detachWorkReceiver();
+        team2.detachDataReceiver();
 
         // If these were properly detached above, these should fail
         EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
         EXPECT_THROW(team2.detachThreadReceiver(), std::logic_error);
-        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
-        EXPECT_THROW(team2.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
+        EXPECT_THROW(team2.detachDataReceiver(),   std::logic_error);
 
         // Run an execution cycle so that we test the above with and without
         // having run a cycle
         noop.nInitialThreads = 5;
-        team1.startTask(noop, "test1");
+        team1.startCycle(noop, "test1");
         team1.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
         team1.wait();
     }
 }
@@ -433,14 +433,14 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
         //        It will finish quickly once it gets a thread
         noop.nInitialThreads = 0;
         delay_100ms.nInitialThreads = 0;
-        team2.startTask(delay_100ms, "wait");
-        team3.startTask(noop,        "quick");
+        team2.startCycle(delay_100ms, "wait");
+        team3.startCycle(noop,        "quick");
         work = 1;
         team2.enqueue(work, false);
         work = 2;
         team3.enqueue(work, false);
-        team2.closeTask();
-        team3.closeTask();
+        team2.closeQueue();
+        team3.closeQueue();
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -518,7 +518,7 @@ TEST_F(ThreadTeamTest, TestNoWork) {
 
     noop.nInitialThreads = 3;
     for (unsigned int i=0; i<N_ITERS; ++i) {
-        team1.startTask(noop, "test");
+        team1.startCycle(noop, "test");
         for (unsigned int i=0; i<100; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 3)  break;
@@ -533,7 +533,7 @@ TEST_F(ThreadTeamTest, TestNoWork) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team1.closeTask();
+        team1.closeQueue();
         team1.wait();
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -563,7 +563,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         noop.nInitialThreads = 5;
-        team1.startTask(noop, "test");
+        team1.startCycle(noop, "test");
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -581,15 +581,15 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
 
         // Call methods that are not allowed in Running & Open
         nullRoutine.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(nullRoutine, "test"),
+        EXPECT_THROW(team1.startCycle(nullRoutine, "test"),
                      std::logic_error);
 
         noop.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(noop, "test"),
+        EXPECT_THROW(team1.startCycle(noop, "test"),
                      std::runtime_error);
 
         EXPECT_THROW(team1.attachThreadReceiver(&team2), std::logic_error);
-        EXPECT_THROW(team1.attachWorkReceiver(&team2),   std::logic_error);
+        EXPECT_THROW(team1.attachDataReceiver(&team2),   std::logic_error);
 
         EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
@@ -598,18 +598,18 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
         // Confirm that all of the above were called in the same mode
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
 
-        team1.closeTask();
+        team1.closeQueue();
         team1.wait();
     }
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.attachThreadReceiver(&team2);
-        team1.attachWorkReceiver(&team2);
+        team1.attachDataReceiver(&team2);
 
         noop.nInitialThreads = 5;
-        team1.startTask(noop, "quick1");
+        team1.startCycle(noop, "quick1");
         noop.nInitialThreads = 0;
-        team2.startTask(noop, "quick2");
+        team2.startCycle(noop, "quick2");
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -626,17 +626,17 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
         EXPECT_EQ(0, N_Q);
 
         EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
-        EXPECT_THROW(team1.detachWorkReceiver(),   std::logic_error);
+        EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
 
         // Confirm that all of the above were called in the same mode
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
 
-        team1.closeTask();
+        team1.closeQueue();
         team1.wait();
         team2.wait();
 
         team1.detachThreadReceiver();
-        team1.detachWorkReceiver();
+        team1.detachDataReceiver();
     }
 }
 
@@ -659,11 +659,11 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
     team1.attachThreadReceiver(&team2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        // All teams should generally have startTask called before we start
+        // All teams should generally have startCycle called before we start
         // interacting with any team (e.g. increasing threads or adding work)
         noop.nInitialThreads = 0;
-        team1.startTask(noop, "test1");
-        team2.startTask(noop, "test2");
+        team1.startCycle(noop, "test1");
+        team2.startCycle(noop, "test2");
         team1.enqueue(work, false);
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -709,7 +709,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_Q);
 
         // This should result in threads being sent to Team 2
-        team1.closeTask();
+        team1.closeQueue();
         team1.wait();
         for (unsigned int i=0; i<10; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -733,7 +733,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team2.closeTask();
+        team2.closeQueue();
         team2.wait();
     }
 
@@ -759,12 +759,12 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
     ThreadTeam<int>  team2(2, 2, "TestRunningOpenEnqueue.log");
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
-        team1.attachWorkReceiver(&team2);
+        team1.attachDataReceiver(&team2);
 
         delay_100ms.nInitialThreads = 1;
-        team1.startTask(delay_100ms, "wait1");
+        team1.startCycle(delay_100ms, "wait1");
         delay_100ms.nInitialThreads = 2;
-        team2.startTask(delay_100ms, "wait2");
+        team2.startCycle(delay_100ms, "wait2");
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_wait == 1)   break;
@@ -833,12 +833,12 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
         EXPECT_EQ(1, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        // Thread team 1 will call closeTask for team 2
-        team1.closeTask();
+        // Thread team 1 will call closeQueue for team 2
+        team1.closeQueue();
         team1.wait();
         team2.wait();
 
-        team1.detachWorkReceiver();
+        team1.detachDataReceiver();
     }
 }
 
@@ -861,20 +861,20 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team has one active thread and two units of work to stay closed
         delay_100ms.nInitialThreads = 1;
-        team1.startTask(delay_100ms, "wait");
+        team1.startCycle(delay_100ms, "wait");
         work = 1;
         team1.enqueue(work, false);
         work = 2;
         team1.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
         nullRoutine.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(nullRoutine, "fail"), std::logic_error);
+        EXPECT_THROW(team1.startCycle(nullRoutine, "fail"), std::logic_error);
         noop.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(noop, "fail"), std::runtime_error);
+        EXPECT_THROW(team1.startCycle(noop, "fail"), std::runtime_error);
         noop.nInitialThreads = 1;
-        EXPECT_THROW(team1.startTask(noop, "fail"), std::runtime_error);
+        EXPECT_THROW(team1.startCycle(noop, "fail"), std::runtime_error);
 
         EXPECT_THROW(team1.increaseThreadCount(0), std::logic_error);
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
@@ -883,7 +883,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
         work = 1;
         EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
         EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
-        EXPECT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
@@ -911,14 +911,14 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
         // Add enough work to test all necessary transitions and wait until the
         // single thread starts computing
         delay_100ms.nInitialThreads = 1;
-        team1.startTask(delay_100ms, "wait");
+        team1.startCycle(delay_100ms, "wait");
         work = 1;
         team1.enqueue(work, false);
         work = 2;
         team1.enqueue(work, false);
         work = 3;
         team1.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_Q == 2)     break;
@@ -984,7 +984,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
     ThreadTeam<int>  team1(3, 1, "TestRunningClosedWorkPub.log");
     ThreadTeam<int>  team2(4, 2, "TestRunningClosedWorkPub.log");
 
-    team1.attachWorkReceiver(&team2);
+    team1.attachDataReceiver(&team2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Team 1 needs to delay long enough that we can catch transitions, 
@@ -992,16 +992,16 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
         // team 2 simultaneously.  Similarly, we activate all threads in team 2
         // from the start
         delay_10ms.nInitialThreads = 1;
-        team1.startTask(delay_10ms,  "quick");
+        team1.startCycle(delay_10ms,  "quick");
         delay_100ms.nInitialThreads = 4;
-        team2.startTask(delay_100ms, "wait");
+        team2.startCycle(delay_100ms, "wait");
         work = 1;
         team1.enqueue(work, false);
         work = 2;
         team1.enqueue(work, false);
         work = 3;
         team1.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)    break;
@@ -1088,7 +1088,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
         EXPECT_EQ(0, N_Q);
 
         // When the final work is finished, it should be enqueued
-        // on team 2 and team 1 should call closeTask for team 2
+        // on team 2 and team 1 should call closeQueue for team 2
         team1.wait();
 
         // Wait until computing on final unit begins *and* the single waiting
@@ -1110,7 +1110,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
         team2.wait();
     }
 
-    team1.detachWorkReceiver();
+    team1.detachDataReceiver();
 }
 
 /**
@@ -1133,9 +1133,9 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         // Team must have at least one unit of work to stay in
         // Running & No More Work
         delay_100ms.nInitialThreads = 1;
-        team1.startTask(delay_100ms, "wait");
+        team1.startCycle(delay_100ms, "wait");
         team1.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
         for (unsigned int i=0; i<50; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)     break;
@@ -1144,11 +1144,11 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_NO_MORE_WORK, team1.mode());
         nullRoutine.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(nullRoutine, "null"), std::logic_error);
+        EXPECT_THROW(team1.startCycle(nullRoutine, "null"), std::logic_error);
         noop.nInitialThreads = 0;
-        EXPECT_THROW(team1.startTask(noop, "fail"), std::runtime_error);
+        EXPECT_THROW(team1.startCycle(noop, "fail"), std::runtime_error);
         noop.nInitialThreads = 1;
-        EXPECT_THROW(team1.startTask(noop, "fail"), std::runtime_error);
+        EXPECT_THROW(team1.startCycle(noop, "fail"), std::runtime_error);
 
         EXPECT_THROW(team1.increaseThreadCount(0), std::logic_error);
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
@@ -1156,7 +1156,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
 
         EXPECT_THROW(team1.enqueue(work, true),  std::runtime_error);
         EXPECT_THROW(team1.enqueue(work, false), std::runtime_error);
-        EXPECT_THROW(team1.closeTask(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeamMode::RUNNING_NO_MORE_WORK, team1.mode());
@@ -1191,14 +1191,14 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         // Team 2 shall be in Running & Open with a pending unit of work
         //        but no threads
         delay_100ms.nInitialThreads = 1;
-        team1.startTask(delay_100ms, "wait");
+        team1.startCycle(delay_100ms, "wait");
         delay_100ms.nInitialThreads = 0;
-        team2.startTask(delay_100ms, "wait");
+        team2.startCycle(delay_100ms, "wait");
         work = 1;
         team1.enqueue(work, false);
         work = 2;
         team2.enqueue(work, false);
-        team1.closeTask();
+        team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)     break;
@@ -1269,7 +1269,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team2.closeTask();
+        team2.closeQueue();
         team2.wait();
     }
 
@@ -1294,7 +1294,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     ThreadTeam<int>  team2(3, 2, "TestRunningNoMoreWorkTransition.log");
     ThreadTeam<int>  team3(8, 3, "TestRunningNoMoreWorkTransition.log");
 
-    team1.attachWorkReceiver(&team2);
+    team1.attachDataReceiver(&team2);
     team1.attachThreadReceiver(&team3);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
@@ -1309,9 +1309,9 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         // thread forwarding progresses when a thread transitions to Idle.
         delay_100ms.nInitialThreads = 6;
         noop.nInitialThreads = 0;
-        team1.startTask(delay_100ms, "wait1");
-        team2.startTask(noop,        "quick2");
-        team3.startTask(noop,        "quick3");
+        team1.startCycle(delay_100ms, "wait1");
+        team2.startCycle(noop,        "quick2");
+        team3.startCycle(noop,        "quick3");
         work = 1;
         team1.enqueue(work, false);
         work = 2;
@@ -1349,11 +1349,11 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        // Calling closeTask in this state should result in the broadcast
+        // Calling closeQueue in this state should result in the broadcast
         // of transitionThread to all waiting threads
         // Confirm here that the waiting threads are correctly transitioned to Idle
         // and that thread resources are forwarded to Team 3
-        team1.closeTask();
+        team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_idle == 5)     break;
@@ -1391,7 +1391,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         // As work is finished by Team 1, it should be forwarded to Team 2.
         // Also, when Team 1 finishes its work, it should unblock this wait
-        // and call closeTask on Team 2.  This should transition the mode of Team 2.
+        // and call closeQueue on Team 2.  This should transition the mode of Team 2.
         // Finally, the remaining thread resources should be transferred to
         // Team 3
         team1.wait();
@@ -1430,11 +1430,11 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         team2.increaseThreadCount(3);
         team2.wait();
-        team3.closeTask();
+        team3.closeQueue();
         team3.wait();
     }
 
-    team1.detachWorkReceiver();
+    team1.detachDataReceiver();
     team1.detachThreadReceiver();
 }
 
@@ -1512,22 +1512,22 @@ TEST_F(ThreadTeamTest, TestTimings) {
             // By passing true, this should not return until all N_thread
             // threads are in Wait
             noop.nInitialThreads = n;
-            team2.startTask(noop, "quick", true);
+            team2.startCycle(noop, "quick", true);
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();
             EXPECT_TRUE(wtimes_us[i] > 0.0);
 
-            team2.closeTask();
+            team2.closeQueue();
             team2.wait();
         }
         processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
         std::cout << n << " thread/"
                   << 0 << " units of work enqueued/"
-                  << "startTask Time/ wait=T\t\t" 
+                  << "startCycle Time/ wait=T\t\t" 
                   << mean_wtime_us << " +/- "
                   << std_wtime_us  << " us\n";
 
-        filename =   "StartTaskTimings_"
+        filename =   "StartCycleTimings_"
                    + std::to_string(n)
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
@@ -1547,12 +1547,12 @@ TEST_F(ThreadTeamTest, TestTimings) {
     for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             noop.nInitialThreads = n;
-            team2.startTask(noop, "quick", true);
+            team2.startCycle(noop, "quick", true);
 
             start = steady_clock::now();
             // Since true was passed above, all threads at the start of this
             // measurement should be in Wait
-            team2.closeTask();
+            team2.closeQueue();
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();
@@ -1561,11 +1561,11 @@ TEST_F(ThreadTeamTest, TestTimings) {
         processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
         std::cout << n << " thread/"
                   << 0 << " units of work enqueued/"
-                  << "closeTask Time/ wait=T\t\t" 
+                  << "closeQueue Time/ wait=T\t\t" 
                   << mean_wtime_us << " +/- "
                   << std_wtime_us << " us\n";
 
-        filename =   "CloseTaskTimings_"
+        filename =   "CloseQueueTimings_"
                    + std::to_string(n)
                    + "_threads.dat";
         fptr.open(filename, std::ios::out);
@@ -1582,8 +1582,8 @@ TEST_F(ThreadTeamTest, TestTimings) {
     }
 
     //***** PROBE INFORMATION ON Wait->Idle->Wait TRANSITION TIMES
-    // This test is presently used to make certain that measuring startTask and 
-    // endTask separately is occuring as I expect.  Specifically, if the test
+    // This test is presently used to make certain that measuring startCycle and 
+    // endCycle separately is occuring as I expect.  Specifically, if the test
     // setup is setup well, then adding the above time samples together should
     // approximately equal the values measured here.  This might not be true,
     // for instance, if I switch true to false below.
@@ -1592,8 +1592,8 @@ TEST_F(ThreadTeamTest, TestTimings) {
             noop.nInitialThreads = n;
 
             start = steady_clock::now();
-            team2.startTask(noop, "quick", true);
-            team2.closeTask();
+            team2.startCycle(noop, "quick", true);
+            team2.closeQueue();
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();
@@ -1629,11 +1629,11 @@ TEST_F(ThreadTeamTest, TestTimings) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             noop.nInitialThreads = n;
             start = steady_clock::now();
-            team2.startTask(noop, "quick", false);
+            team2.startCycle(noop, "quick", false);
             for (unsigned int j=0; j<N_WORK; ++j) {
                 team2.enqueue(work, false);
             }
-            team2.closeTask();
+            team2.closeQueue();
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();

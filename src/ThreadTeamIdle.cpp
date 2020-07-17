@@ -9,9 +9,9 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename W, class T>
-ThreadTeamIdle<W,T>::ThreadTeamIdle(T* team)
-    : ThreadTeamState<W,T>(),
+template<typename DT, class T>
+ThreadTeamIdle<DT,T>::ThreadTeamIdle(T* team)
+    : ThreadTeamState<DT,T>(),
       team_(team)
 {
     if (!team_) {
@@ -30,8 +30,8 @@ ThreadTeamIdle<W,T>::ThreadTeamIdle(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::isStateValid_NotThreadSafe(void) const {
+template<typename DT, class T>
+std::string ThreadTeamIdle<DT,T>::isStateValid_NotThreadSafe(void) const {
     std::string errMsg("");
 
     if (team_->N_idle_ != team_->nMaxThreads_) {
@@ -43,7 +43,7 @@ std::string ThreadTeamIdle<W,T>::isStateValid_NotThreadSafe(void) const {
     } else if (team_->N_terminate_ != 0) {
         errMsg = "N_terminate not zero";
     } else if (!(team_->queue_.empty())) {
-        errMsg = "Pending work queue not empty";
+        errMsg = "Data item queue not empty";
    }
 
     return errMsg;
@@ -57,16 +57,16 @@ std::string ThreadTeamIdle<W,T>::isStateValid_NotThreadSafe(void) const {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
-                                                         const std::string& teamName) {
+template<typename DT, class T>
+std::string ThreadTeamIdle<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                           const std::string& teamName) {
     std::string   errMsg("");
 
 #ifdef DEBUG_RUNTIME
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
     team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
                     << teamName << std::endl;
-    team_->logFile_ << "[" << teamName << "] Starting task "
+    team_->logFile_ << "[" << teamName << "] Starting action "
                     << action.name
                     << " with "
                     << std::to_string(action.nInitialThreads)
@@ -75,13 +75,13 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(const RuntimeAction& ac
 #endif
 
     team_->hdr_ = teamName;
-    team_->taskFcn_ = action.routine;
+    team_->actionRoutine_ = action.routine;
 
     // Timing tests originally failed on occasion when a single thread no-op
     // cycle was run after many 10 thread no-op cycles.  The execution cycles
     // were so fast that they were finishing before many threads had the chance
     // to be activated.  Eventually, there were more pending threads than
-    // requested threads when startTask was called on the single thread cycle.
+    // requested threads when startCycle was called on the single thread cycle.
     while (team_->N_to_activate_ > action.nInitialThreads) {
         pthread_cond_wait(&(team_->allActivated_), &(team_->teamMutex_));
     }
@@ -108,7 +108,7 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(const RuntimeAction& ac
  * Otherwise, it does nothing.  This behavior is motivated by the case that a
  * Thread Subscriber has gone Idle before its Thread Publisher has finished its
  * task.  Note that all subsequent teams that are Idle and that receive this
- * signal will ignore it as well since adding threads to a team with no task is
+ * signal will ignore it as well since adding threads to a team with no action is
  * nonsensical.
  *
  * \warning This method is *not* thread safe and therefore should only be called
@@ -116,8 +116,8 @@ std::string ThreadTeamIdle<W,T>::startTask_NotThreadsafe(const RuntimeAction& ac
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::increaseThreadCount_NotThreadsafe(
+template<typename DT, class T>
+std::string ThreadTeamIdle<DT,T>::increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) {
     // No need to alter N_to_activate_ as we forward the thread activation on
     if (team_->threadReceiver_) {
@@ -130,22 +130,22 @@ std::string ThreadTeamIdle<W,T>::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * To simplify the design, we do not allow for adding work in Idle mode.
+ * To simplify the design, we do not allow for adding data items in Idle mode.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string  ThreadTeamIdle<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+template<typename DT, class T>
+std::string  ThreadTeamIdle<DT,T>::enqueue_NotThreadsafe(DT& dataItem, const bool move) {
     // TODO: Consider (carefully!) allowing for enqueueing of data items when
-    // when the team is Idle and with a routine that will only acquire the mutex
+    // the team is Idle and with a routine that will only acquire the mutex
     // once.  This could allow for decreasing mutex contention when threads
-    // become active.  We want them to find work immediately and not box out the
-    // thread trying to give them work.
+    // become active.  We want them to find data items immediately and not box out the
+    // thread trying to give them data items.
     return team_->printState_NotThreadsafe("enqueue", 0,
-                  "Adding work in Idle state not allowed");
+                  "Adding dataItem in Idle state not allowed");
 }
 
 /**
@@ -159,9 +159,9 @@ std::string  ThreadTeamIdle<W,T>::enqueue_NotThreadsafe(W& work, const bool move
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamIdle<W,T>::closeTask_NotThreadsafe(void) {
-    return team_->printState_NotThreadsafe("closeTask", 0,
+template<typename DT, class T>
+std::string ThreadTeamIdle<DT,T>::closeQueue_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeQueue", 0,
                   "Cannot close the queue when no task is being executed");
 }
 }

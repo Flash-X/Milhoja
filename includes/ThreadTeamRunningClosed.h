@@ -13,8 +13,8 @@
 
 namespace orchestration {
 
-template<typename W, class T>
-class ThreadTeamRunningClosed : public ThreadTeamState<W,T> {
+template<typename DT, class T>
+class ThreadTeamRunningClosed : public ThreadTeamState<DT,T> {
 public:
     ThreadTeamRunningClosed(T* team);
     ~ThreadTeamRunningClosed(void)                { };
@@ -25,19 +25,23 @@ public:
 
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
-    std::string     startTask_NotThreadsafe(
+    std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
-    std::string     closeTask_NotThreadsafe(void) override;
+    std::string     enqueue_NotThreadsafe(DT& dataItem, const bool move) override;
+    std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const override;
 
 private:
-    // Disallow copying of objects to create new objects
-    ThreadTeamRunningClosed& operator=(const ThreadTeamRunningClosed& rhs);
-    ThreadTeamRunningClosed(const ThreadTeamRunningClosed& other);
+    // Disallow copying/moving
+    ThreadTeamRunningClosed(ThreadTeamRunningClosed& other)                = delete;
+    ThreadTeamRunningClosed(const ThreadTeamRunningClosed& other)          = delete;
+    ThreadTeamRunningClosed(ThreadTeamRunningClosed&& other)               = delete;
+    ThreadTeamRunningClosed& operator=(ThreadTeamRunningClosed& rhs)       = delete;
+    ThreadTeamRunningClosed& operator=(const ThreadTeamRunningClosed& rhs) = delete;
+    ThreadTeamRunningClosed& operator=(ThreadTeamRunningClosed&& rhs)      = delete;
 
     T*    team_;
 };

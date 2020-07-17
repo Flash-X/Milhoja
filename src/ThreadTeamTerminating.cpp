@@ -1,4 +1,5 @@
 #include "ThreadTeamTerminating.h"
+
 namespace orchestration {
 
 /**
@@ -9,9 +10,9 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename W, class T>
-ThreadTeamTerminating<W,T>::ThreadTeamTerminating(T* team)
-    : ThreadTeamState<W,T>(),
+template<typename DT, class T>
+ThreadTeamTerminating<DT,T>::ThreadTeamTerminating(T* team)
+    : ThreadTeamState<DT,T>(),
       team_(team)
 {
     if (!team_) {
@@ -25,18 +26,18 @@ ThreadTeamTerminating<W,T>::ThreadTeamTerminating(T* team)
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * Do not start a new task if the team is terminating.
+ * Do not start a new cycle if the team is terminating.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamTerminating<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
+template<typename DT, class T>
+std::string ThreadTeamTerminating<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
                                                                 const std::string& teamName) {
-    return team_->printState_NotThreadsafe("startTask", 0,
-                  "Cannot start a task if team is terminating");
+    return team_->printState_NotThreadsafe("startCycle", 0,
+                  "Cannot start a cycle if team is terminating");
 }
 
 /**
@@ -49,8 +50,8 @@ std::string ThreadTeamTerminating<W,T>::startTask_NotThreadsafe(const RuntimeAct
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamTerminating<W,T>::increaseThreadCount_NotThreadsafe(
+template<typename DT, class T>
+std::string ThreadTeamTerminating<DT,T>::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     return team_->printState_NotThreadsafe("increaseThreadCount", 0,
         "Cannot increase thread count if team is terminating");
@@ -59,32 +60,32 @@ std::string ThreadTeamTerminating<W,T>::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * Do not allow for work to be added if the team is terminating.
+ * Do not allow for data items to be added if the team is terminating.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamTerminating<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+template<typename DT, class T>
+std::string ThreadTeamTerminating<DT,T>::enqueue_NotThreadsafe(DT& dataItem, const bool move) {
     return team_->printState_NotThreadsafe("enqueue", 0,
-                  "Cannot add more work if team is terminating");
+                  "Cannot add more data items if team is terminating");
 }
 
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * No task can be running if the team is terminating.
+ * No cycle can be running if the team is terminating.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamTerminating<W,T>::closeTask_NotThreadsafe(void) {
-    return team_->printState_NotThreadsafe("closeTask", 0,
-                  "Cannot close queue if team is terminating");
+template<typename DT, class T>
+std::string ThreadTeamTerminating<DT,T>::closeQueue_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeQueue", 0,
+                  "Cannot close data item queue if team is terminating");
 }
 }

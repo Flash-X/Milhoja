@@ -4,7 +4,7 @@
 
 #include "Grid_RealVect.h"
 #include "Flash.h"
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 
 using namespace orchestration;
 
@@ -27,7 +27,7 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int nVars,
-                               TASK_FCN initBlock) {
+                               ACTION_ROUTINE initBlock) {
         Grid&   grid = Grid::instance();
         grid.initDomain(static_cast<Real>(xMin),
                         static_cast<Real>(xMax),
@@ -62,10 +62,10 @@ extern "C" {
      */
     void   grid_get_deltas_fi(const int level, double deltas[NDIM]) {
         Grid&   grid = Grid::instance();
-        RealVect deltas = grid.getDeltas(static_cast<unsigned int>(level));
+        RealVect del = grid.getDeltas(static_cast<unsigned int>(level));
 
         for (unsigned int i=0; i<NDIM; ++i) {
-            deltas[i] = static_cast<double>(deltas[i]);
+            deltas[i] = static_cast<double>(del[i]);
         }
     }
 

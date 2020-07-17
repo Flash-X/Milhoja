@@ -22,23 +22,23 @@ int main(int argc, char* argv[]) {
     for (unsigned int n=0; n<N_LOOPS; ++n) {
     	team1.attachThreadReceiver(&team3);
     	team2.attachThreadReceiver(&team3);
-    	team2.attachWorkReceiver(&team3);
+    	team2.attachDataReceiver(&team3);
 
     	noop.nInitialThreads = 2;
-    	team1.startTask(noop, "team1");
+    	team1.startCycle(noop, "team1");
 
     	noop.nInitialThreads = 2;
-    	team2.startTask(noop, "team2");
+    	team2.startCycle(noop, "team2");
 
     	noop.nInitialThreads = 0;
-    	team3.startTask(noop, "team3");
+    	team3.startCycle(noop, "team3");
 
 	for (int data=0; data<N_DATA; ++data) {
              team1.enqueue(data, false);
              team2.enqueue(data, false);
 	}
-    	team1.closeTask();
-    	team2.closeTask();
+    	team1.closeQueue();
+    	team2.closeQueue();
 
     	team1.wait();
     	team2.wait();
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 
     	team1.detachThreadReceiver();
     	team2.detachThreadReceiver();
-    	team2.detachWorkReceiver();
+    	team2.detachDataReceiver();
     }
 
     return 0;

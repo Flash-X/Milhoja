@@ -13,8 +13,8 @@
 
 namespace orchestration {
 
-template<typename W, class T>
-class ThreadTeamRunningNoMoreWork : public ThreadTeamState<W,T> {
+template<typename DT, class T>
+class ThreadTeamRunningNoMoreWork : public ThreadTeamState<DT,T> {
 public:
     ThreadTeamRunningNoMoreWork(T* team);
     ~ThreadTeamRunningNoMoreWork(void)                { };
@@ -26,19 +26,23 @@ public:
 
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
-    std::string     startTask_NotThreadsafe(
+    std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
-    std::string     closeTask_NotThreadsafe(void) override;
+    std::string     enqueue_NotThreadsafe(DT& dataItem, const bool move) override;
+    std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const override;
 
 private:
-    // Disallow copying of objects to create new objects
-    ThreadTeamRunningNoMoreWork& operator=(const ThreadTeamRunningNoMoreWork& rhs);
-    ThreadTeamRunningNoMoreWork(const ThreadTeamRunningNoMoreWork& other);
+    // Disallow copying/moving
+    ThreadTeamRunningNoMoreWork(ThreadTeamRunningNoMoreWork& other)                = delete;
+    ThreadTeamRunningNoMoreWork(const ThreadTeamRunningNoMoreWork& other)          = delete;
+    ThreadTeamRunningNoMoreWork(ThreadTeamRunningNoMoreWork&& other)               = delete;
+    ThreadTeamRunningNoMoreWork& operator=(ThreadTeamRunningNoMoreWork& rhs)       = delete;
+    ThreadTeamRunningNoMoreWork& operator=(const ThreadTeamRunningNoMoreWork& rhs) = delete;
+    ThreadTeamRunningNoMoreWork& operator=(ThreadTeamRunningNoMoreWork&& rhs)      = delete;
 
     T*    team_;
 };

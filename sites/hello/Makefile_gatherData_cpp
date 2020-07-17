@@ -14,9 +14,11 @@ AMREXDIR     = $(HOME)/local/gcc_6.5.0/AMReX_2D
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \
@@ -39,6 +41,8 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \

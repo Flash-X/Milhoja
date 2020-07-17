@@ -13,12 +13,12 @@ int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
     // Instantiate Grid unit, which initializes AMReX and MPI
-    Grid::instance();
+    orchestration::Grid::instance();
 
-    OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
-                                               N_PACKET_THREAD_TEAMS);
-    OrchestrationRuntime::setMaxThreadsPerTeam(MAX_THREADS);
-    OrchestrationRuntime::instance();
+    orchestration::Runtime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
+                                                 N_PACKET_THREAD_TEAMS);
+    orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
+    orchestration::Runtime::instance();
 
     int  rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);

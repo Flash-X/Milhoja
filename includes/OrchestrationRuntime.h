@@ -18,11 +18,11 @@
 
 namespace orchestration {
 
-class OrchestrationRuntime {
+class Runtime {
 public:
-    ~OrchestrationRuntime(void);
+    ~Runtime(void);
 
-    static OrchestrationRuntime& instance(void);
+    static Runtime& instance(void);
     static void setLogFilename(const std::string& filename);
     static void setNumberThreadTeams(const unsigned int nTileTeams,
                                      const unsigned int nPacketTeams);
@@ -31,17 +31,15 @@ public:
     void executeTasks(const ActionBundle& bundle);
 
 private:
-    OrchestrationRuntime(void);
+    Runtime(void);
 
-    OrchestrationRuntime(OrchestrationRuntime&) = delete;
-    OrchestrationRuntime(const OrchestrationRuntime&) = delete;
-    OrchestrationRuntime(OrchestrationRuntime&&) = delete;
-    OrchestrationRuntime(const OrchestrationRuntime&&) = delete;
+    Runtime(Runtime&) = delete;
+    Runtime(const Runtime&) = delete;
+    Runtime(Runtime&&) = delete;
 
-    OrchestrationRuntime& operator=(OrchestrationRuntime&) = delete;
-    OrchestrationRuntime& operator=(const OrchestrationRuntime&) = delete;
-    OrchestrationRuntime& operator=(OrchestrationRuntime&&) = delete;
-    OrchestrationRuntime& operator=(const OrchestrationRuntime&&) = delete;
+    Runtime& operator=(Runtime&) = delete;
+    Runtime& operator=(const Runtime&) = delete;
+    Runtime& operator=(Runtime&&) = delete;
 
     void executeCpuTasks(const std::string& bundleName,
                          const RuntimeAction& cpuAction);

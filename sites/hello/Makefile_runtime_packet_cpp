@@ -13,9 +13,10 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \
@@ -41,6 +42,7 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \

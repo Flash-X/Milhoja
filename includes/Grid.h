@@ -17,7 +17,7 @@
 #include "Grid_RealVect.h"
 #include "Grid_IntVect.h"
 #include "Tile.h"
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 
 namespace orchestration {
 
@@ -34,7 +34,7 @@ public:
                        const unsigned int nBlocksY,
                        const unsigned int nBlocksZ,
                        const unsigned int nVars,
-                       TASK_FCN initBlock);
+                       ACTION_ROUTINE initBlock);
     void    destroyDomain(void);
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }

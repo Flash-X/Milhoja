@@ -17,7 +17,7 @@ CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \

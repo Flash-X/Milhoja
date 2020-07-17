@@ -62,23 +62,23 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
-    gpu_int.attachWorkReceiver(&postGpu_int);
+    gpu_int.attachDataReceiver(&postGpu_int);
 
     try {
         noop_int.nInitialThreads = 2;
-        cpu_int.startTask(noop_int,     "Cpu");
+        cpu_int.startCycle(noop_int,     "Cpu");
         noop_int.nInitialThreads = 5;
-        gpu_int.startTask(noop_int,     "Gpu");
+        gpu_int.startCycle(noop_int,     "Gpu");
         noop_int.nInitialThreads = 0;
-        postGpu_int.startTask(noop_int, "postGpu");
+        postGpu_int.startCycle(noop_int, "postGpu");
 
         for (unsigned int i=0; i<work.size(); ++i) {
             cpu_int.enqueue(work[i], false);
             gpu_int.enqueue(work[i], true);
         }
-        // gpu will call closeTask of postGpu when gpu transitions to Idle
-        gpu_int.closeTask();
-        cpu_int.closeTask();
+        // gpu will call closeQueue of postGpu when gpu transitions to Idle
+        gpu_int.closeQueue();
+        cpu_int.closeQueue();
 
         cpu_int.wait();
         gpu_int.wait();
@@ -86,7 +86,7 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
 
         cpu_int.detachThreadReceiver();
         gpu_int.detachThreadReceiver();
-        gpu_int.detachWorkReceiver();
+        gpu_int.detachDataReceiver();
     } catch (std::invalid_argument  e) {
         printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         EXPECT_TRUE(false);
@@ -131,22 +131,22 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
     for (unsigned int i=0; i<N_ITERS; ++i) {
         cpu_int.attachThreadReceiver(&postGpu_int);
         gpu_int.attachThreadReceiver(&postGpu_int);
-        gpu_int.attachWorkReceiver(&postGpu_int);
+        gpu_int.attachDataReceiver(&postGpu_int);
 
         try {
             noop_int.nInitialThreads = 2;
-            cpu_int.startTask(noop_int,     "Cpu");
+            cpu_int.startCycle(noop_int,     "Cpu");
             noop_int.nInitialThreads = 5;
-            gpu_int.startTask(noop_int,     "Gpu");
+            gpu_int.startCycle(noop_int,     "Gpu");
             noop_int.nInitialThreads = 0;
-            postGpu_int.startTask(noop_int, "postGpu");
+            postGpu_int.startCycle(noop_int, "postGpu");
 
             for (unsigned int i=0; i<work.size(); ++i) {
                 cpu_int.enqueue(work[i], false);
                 gpu_int.enqueue(work[i], true);
             }
-            gpu_int.closeTask();
-            cpu_int.closeTask();
+            gpu_int.closeQueue();
+            cpu_int.closeQueue();
 
             cpu_int.wait();
             gpu_int.wait();
@@ -167,7 +167,7 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
 
         cpu_int.detachThreadReceiver();
         gpu_int.detachThreadReceiver();
-        gpu_int.detachWorkReceiver();
+        gpu_int.detachDataReceiver();
     }
 }
 
@@ -203,23 +203,23 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
-    gpu_int.attachWorkReceiver(&postGpu_int);
+    gpu_int.attachDataReceiver(&postGpu_int);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         try {
             random_int.nInitialThreads = 2;
-            cpu_int.startTask(random_int,     "Cpu");
+            cpu_int.startCycle(random_int,     "Cpu");
             random_int.nInitialThreads = 5;
-            gpu_int.startTask(random_int,     "Gpu");
+            gpu_int.startCycle(random_int,     "Gpu");
             random_int.nInitialThreads = 0;
-            postGpu_int.startTask(random_int, "postGpu");
+            postGpu_int.startCycle(random_int, "postGpu");
 
             for (unsigned int i=0; i<work.size(); ++i) {
                 cpu_int.enqueue(work[i], false);
                 gpu_int.enqueue(work[i], true);
             }
-            gpu_int.closeTask();
-            cpu_int.closeTask();
+            gpu_int.closeQueue();
+            cpu_int.closeQueue();
 
             cpu_int.wait();
             gpu_int.wait();
@@ -241,7 +241,7 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
 
     cpu_int.detachThreadReceiver();
     gpu_int.detachThreadReceiver();
-    gpu_int.detachWorkReceiver();
+    gpu_int.detachDataReceiver();
 }
 
 }

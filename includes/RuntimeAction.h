@@ -2,7 +2,7 @@
 #define RUNTIME_ACTION_H__
 
 #include "ThreadTeamDataType.h"
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 
 namespace orchestration {
 
@@ -21,7 +21,7 @@ struct RuntimeAction {
     // FPGA.  It's possible that using one packet size for the FPGA and distinct
     // size for the GPU packet will be necessary to get the best performance.
     unsigned int          nTilesPerPacket = 0;
-    TASK_FCN              routine = nullptr;
+    ACTION_ROUTINE        routine = nullptr;
 };
 
 }

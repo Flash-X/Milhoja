@@ -1,4 +1,5 @@
 #include "ThreadTeamRunningOpen.h"
+
 namespace orchestration {
 
 /**
@@ -9,9 +10,9 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename W, class T>
-ThreadTeamRunningOpen<W,T>::ThreadTeamRunningOpen(T* team)
-    : ThreadTeamState<W,T>(),
+template<typename DT, class T>
+ThreadTeamRunningOpen<DT,T>::ThreadTeamRunningOpen(T* team)
+    : ThreadTeamState<DT,T>(),
       team_(team)
 {
     if (!team_) {
@@ -30,8 +31,8 @@ ThreadTeamRunningOpen<W,T>::ThreadTeamRunningOpen(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::isStateValid_NotThreadSafe(void) const {
+template<typename DT, class T>
+std::string ThreadTeamRunningOpen<DT,T>::isStateValid_NotThreadSafe(void) const {
     if (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     }
@@ -42,18 +43,18 @@ std::string ThreadTeamRunningOpen<W,T>::isStateValid_NotThreadSafe(void) const {
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * Do not allow for starting a new task if one is still on-going.
+ * Do not allow for starting a new cycle if one is still on-going.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
-                                                                const std::string& teamName) {
-    return team_->printState_NotThreadsafe("startTask", 0,
-                  "Cannot start a task when one is already running");
+template<typename DT, class T>
+std::string ThreadTeamRunningOpen<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                                  const std::string& teamName) {
+    return team_->printState_NotThreadsafe("startCycle", 0,
+                  "Cannot start a cycle when one is already running");
 }
 
 /**
@@ -64,8 +65,8 @@ std::string ThreadTeamRunningOpen<W,T>::startTask_NotThreadsafe(const RuntimeAct
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::increaseThreadCount_NotThreadsafe(
+template<typename DT, class T>
+std::string ThreadTeamRunningOpen<DT,T>::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     team_->N_to_activate_ += nThreads;
     for (unsigned int i=0; i<nThreads; ++i) {
@@ -83,21 +84,21 @@ std::string ThreadTeamRunningOpen<W,T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+template<typename DT, class T>
+std::string ThreadTeamRunningOpen<DT,T>::enqueue_NotThreadsafe(DT& dataItem, const bool move) {
     if (move) {
-        // Force move to new Tile object so that the object pushed to queue has
+        // Force move to new data item so that the object pushed to queue has
         // ownership of tile resources
-        team_->queue_.push(std::move(work));
+        team_->queue_.push(std::move(dataItem));
     } else {
-        // Copy the tile resources and push copy on queue.  The copy gets its
+        // Copy the data item and push copy on queue.  The copy gets its
         // own tile resources.
-        team_->queue_.push(work);
+        team_->queue_.push(dataItem);
     }
 
 #ifdef DEBUG_RUNTIME
     team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[" << team_->hdr_ << "] Enqueued work\n";
+    team_->logFile_ << "[" << team_->hdr_ << "] Enqueued dataItem\n";
     team_->logFile_.close();
 #endif
 
@@ -116,14 +117,14 @@ std::string ThreadTeamRunningOpen<W,T>::enqueue_NotThreadsafe(W& work, const boo
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
+template<typename DT, class T>
+std::string ThreadTeamRunningOpen<DT,T>::closeQueue_NotThreadsafe(void) {
     std::string    errMsg("");
 
     bool isQueueEmpty = team_->queue_.empty();
     if        (    isQueueEmpty
                && (team_->N_idle_ == team_->nMaxThreads_) ) {
-        // No more work can be added and there are no threads that are active
+        // No more data items can be added and there are no threads that are active
         //   => no need to transition threads.
         // If N_to_activate_ > 0, then activated threads will transition back
         // to Idle based on the new Mode
@@ -132,11 +133,11 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
             return errMsg;
         }
 
-        if (team_->workReceiver_) {
-            team_->workReceiver_->closeTask();
+        if (team_->dataReceiver_) {
+            team_->dataReceiver_->closeQueue();
         }
     } else if (isQueueEmpty) {
-        // No more work, but we have threads that need to transition to Idle
+        // No more data items, but we have threads that need to transition to Idle
         // - Awaken Waiting threads so that they find no work and transition
         // - Computing threads will find no work eventually and transition
         errMsg = team_->setMode_NotThreadsafe(ThreadTeamMode::RUNNING_NO_MORE_WORK);
@@ -146,7 +147,7 @@ std::string ThreadTeamRunningOpen<W,T>::closeTask_NotThreadsafe(void) {
         pthread_cond_broadcast(&(team_->transitionThread_));
     } else {
         // We could add an optimization here.  If there are N waiting threads
-        // and M<N units of pending work, then we could transition N-M waiting
+        // and M<N pending data items, then we could transition N-M waiting
         // threads to Idle to free up resources as quickly as possible.  To do
         // this properly, we would need to keep track of the actual number of
         // waiting threads as well as the number of transitionThread events

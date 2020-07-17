@@ -13,8 +13,8 @@
 
 namespace orchestration {
 
-template<typename W, class T>
-class ThreadTeamIdle : public ThreadTeamState<W, T> {
+template<typename DT, class T>
+class ThreadTeamIdle : public ThreadTeamState<DT, T> {
 public:
     ThreadTeamIdle(T* team);
     ~ThreadTeamIdle(void)                 { };
@@ -25,19 +25,23 @@ public:
 
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
-    std::string     startTask_NotThreadsafe(
+    std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
-    std::string     closeTask_NotThreadsafe(void) override;
+    std::string     enqueue_NotThreadsafe(DT& dataItem, const bool move) override;
+    std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const override;
 
 private:
-    // Disallow copying of objects to create new objects
-    ThreadTeamIdle& operator=(const ThreadTeamIdle& rhs);
-    ThreadTeamIdle(const ThreadTeamIdle& other);
+    // Disallow copying/moving
+    ThreadTeamIdle(ThreadTeamIdle& other)                = delete;
+    ThreadTeamIdle(const ThreadTeamIdle& other)          = delete;
+    ThreadTeamIdle(ThreadTeamIdle&& other)               = delete;
+    ThreadTeamIdle& operator=(ThreadTeamIdle& rhs)       = delete;
+    ThreadTeamIdle& operator=(const ThreadTeamIdle& rhs) = delete;
+    ThreadTeamIdle& operator=(ThreadTeamIdle&& rhs)      = delete;
 
     T*    team_;
 };

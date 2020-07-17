@@ -11,7 +11,7 @@ TESTDIR      = $(BASEDIR)/test/ThreadTeamValgrind
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \

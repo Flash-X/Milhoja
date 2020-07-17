@@ -10,7 +10,7 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \

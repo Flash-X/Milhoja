@@ -16,7 +16,7 @@ GTESTDIR     = $(HOME)/local/gcc_7.1.0/googletest
 CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/Tile.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \

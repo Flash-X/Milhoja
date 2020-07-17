@@ -87,40 +87,40 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 
     try {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeLaplacianEnergy_block, "Cpu");
+        cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
             cpu_block.enqueue(myTile, true);
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeLaplacianDensity_block, "Cpu");
+        cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
             cpu_block.enqueue(myTile, true);
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         scaleEnergy_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(scaleEnergy_block, "Cpu");
+        cpu_block.startCycle(scaleEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
             cpu_block.enqueue(myTile, true);
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeErrors_block, "Cpu");
+        cpu_block.startCycle(computeErrors_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
             Tile   myTile(itor, level);
             cpu_block.enqueue(myTile, true);
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
@@ -162,7 +162,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     ActionBundle    bundle;
 
-    OrchestrationRuntime& runtime = OrchestrationRuntime::instance();
+    orchestration::Runtime& runtime = orchestration::Runtime::instance();
 
     try {
         // Give an extra thread to the GPU task so that it can start to get work
