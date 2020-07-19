@@ -1,0 +1,52 @@
+\documentclass[letterpaper,12pt]{article}
+\usepackage{tabularx} % extra features for tabular environment
+\usepackage{amsmath}  % improve math presentation
+\usepackage{graphicx} % takes care of graphic including machinery\
+\usepackage[margin=1in,letterpaper]{geometry} % decreases margins
+\usepackage{cite} % takes care of citations
+\usepackage[final]{hyperref} % adds hyper links inside the generated pdf file
+\hypersetup{
+	colorlinks=true,       % false: boxed links; true: colored links
+	linkcolor=blue,        % color of internal links
+	citecolor=blue,        % color of links to bibliography
+	filecolor=magenta,     % color of file links
+	urlcolor=blue         
+}
+
+%++++++++++++++++++++++++++++++++++++++++
+
+
+\begin{document}
+
+\title{Orchestration Runtime Notes}
+\author{Tom Klosterman}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+
+\section{Orchestration Namespace}
+
+The Grid and Tile classes, as well as related classes and functions, live inside the Orchestration namespace.
+
+
+\section{Real Type}
+
+For the sake of flexibility in type-matching, the Orchestration System maintains its own floating point type: orchestration::Real. This is a typedef for either double or float, depending on the macro defined at compilation, REAL\_IS\_DOUBLE or REAL\_IS\_FLOAT.
+
+\section{Vectors}
+\subsection{IntVect}
+
+The IntVect class represents NDIM-tuples of integers. Most frequently, they represent vectors in the index-space of the domain. Users are responsible of tracking whether they represent cell-based or node-based indices. They have basic math operators defined, such as component-wise addition, scalar multiplication, etc.
+
+
+
+\subsection{RealVect}
+
+The RealVect class represents NDIM-tuples of Reals. They typically represent points of the domain in physical space. They also have basic math operators defined.
+
+
+\end{document}
