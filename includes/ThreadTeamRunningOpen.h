@@ -27,7 +27,7 @@ public:
     std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(DT& dataItem, const bool move) override;
+    std::string     enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) override;
     std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:

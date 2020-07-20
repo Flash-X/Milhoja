@@ -92,7 +92,7 @@ std::string ThreadTeamRunningNoMoreWork<DT,T>::increaseThreadCount_NotThreadsafe
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename DT, class T>
-std::string ThreadTeamRunningNoMoreWork<DT,T>::enqueue_NotThreadsafe(DT& dataItem, const bool move) {
+std::string ThreadTeamRunningNoMoreWork<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Cannot enqueue data items if cycle is closed");
 }

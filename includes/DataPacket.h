@@ -2,6 +2,7 @@
 #define DATA_PACKET_H__
 
 #include <deque>
+#include <memory>
 
 #include "Tile.h"
 
@@ -12,24 +13,23 @@ namespace orchestration {
 //        resizing when the runtime is active?
 class DataPacket {
 public:
-    int                id = -1;
-    std::deque<Tile>   tileList;
+    int                                 id = -1;
+    std::deque<std::shared_ptr<Tile>>   tileList;
 
     DataPacket(void)  { clear(); }
     ~DataPacket(void) { clear(); }
 
     // TODO: Do we need to do something elementwise to make certain that 
     //       we are managing memory correctly?
-    void clear(void) { id = -1; std::deque<Tile>().swap(this->tileList); }
+    void clear(void) { id = -1; std::deque<std::shared_ptr<Tile>>().swap(this->tileList); }
 
 private:
-    // TODO: Do we need copy/move constructors/assignment?
-//    DataPacket(DataPacket&) = delete;
-//    DataPacket(const DataPacket&) = delete;
-//    DataPacket(DataPacket&&) = delete;
-//    DataPacket& operator=(DataPacket&) = delete;
-//    DataPacket& operator=(const DataPacket&) = delete;
-//    DataPacket& operator=(DataPacket&&) = delete;
+    DataPacket(DataPacket&) = delete;
+    DataPacket(const DataPacket&) = delete;
+    DataPacket(DataPacket&&) = delete;
+    DataPacket& operator=(DataPacket&) = delete;
+    DataPacket& operator=(const DataPacket&) = delete;
+    DataPacket& operator=(DataPacket&&) = delete;
 };
 
 }

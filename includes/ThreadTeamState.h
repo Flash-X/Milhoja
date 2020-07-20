@@ -33,7 +33,7 @@ public:
     virtual std::string     startCycle_NotThreadsafe(
                                     const RuntimeAction& action,
                                     const std::string& teamName) = 0;
-    virtual std::string     enqueue_NotThreadsafe(DT& dataItem, const bool move) = 0;
+    virtual std::string     enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) = 0;
     virtual std::string     closeQueue_NotThreadsafe(void) = 0;
 
 protected:

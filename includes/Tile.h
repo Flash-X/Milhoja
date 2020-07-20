@@ -18,11 +18,9 @@ namespace orchestration {
  */
 class Tile {
 public:
-    Tile(void);
     Tile(amrex::MFIter& itor, const unsigned int level);
     ~Tile(void);
 
-    Tile(const Tile&);
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
@@ -82,6 +80,7 @@ public:
 private:
     // Limit all copies as much as possible
     Tile(Tile&) = delete;
+    Tile(const Tile&) = delete;
     Tile& operator=(Tile&) = delete;
     Tile& operator=(const Tile&) = delete;
 

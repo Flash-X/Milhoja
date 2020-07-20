@@ -72,9 +72,15 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
         noop_int.nInitialThreads = 0;
         postGpu_int.startCycle(noop_int, "postGpu");
 
+        std::shared_ptr<int>   dataItem_cpu{};
+        std::shared_ptr<int>   dataItem_gpu{};
         for (unsigned int i=0; i<work.size(); ++i) {
-            cpu_int.enqueue(work[i], false);
-            gpu_int.enqueue(work[i], true);
+            // Make all copies before enqueueing any copy
+            dataItem_cpu = std::make_shared<int>(work[i]);
+            dataItem_gpu = dataItem_cpu;
+
+            cpu_int.enqueue( std::move(dataItem_cpu) );
+            gpu_int.enqueue( std::move(dataItem_gpu) );
         }
         // gpu will call closeQueue of postGpu when gpu transitions to Idle
         gpu_int.closeQueue();
@@ -141,9 +147,15 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
             noop_int.nInitialThreads = 0;
             postGpu_int.startCycle(noop_int, "postGpu");
 
+            std::shared_ptr<int>   dataItem_cpu{};
+            std::shared_ptr<int>   dataItem_gpu{};
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu_int.enqueue(work[i], false);
-                gpu_int.enqueue(work[i], true);
+                // Make all copies before enqueueing any copy
+                dataItem_cpu = std::make_shared<int>(work[i]);
+                dataItem_gpu = dataItem_cpu;
+
+                cpu_int.enqueue( std::move(dataItem_cpu) );
+                gpu_int.enqueue( std::move(dataItem_gpu) );
             }
             gpu_int.closeQueue();
             cpu_int.closeQueue();
@@ -214,9 +226,15 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
             random_int.nInitialThreads = 0;
             postGpu_int.startCycle(random_int, "postGpu");
 
+            std::shared_ptr<int>   dataItem_cpu{};
+            std::shared_ptr<int>   dataItem_gpu{};
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu_int.enqueue(work[i], false);
-                gpu_int.enqueue(work[i], true);
+                // Make all copies before enqueueing any copy
+                dataItem_cpu = std::make_shared<int>(work[i]);
+                dataItem_gpu = dataItem_cpu;
+
+                cpu_int.enqueue( std::move(dataItem_cpu) );
+                gpu_int.enqueue( std::move(dataItem_gpu) );
             }
             gpu_int.closeQueue();
             cpu_int.closeQueue();

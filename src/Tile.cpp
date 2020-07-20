@@ -12,25 +12,6 @@ namespace orchestration {
 /**
  *
  */
-Tile::Tile(void)
-    : CC_h_{nullptr},
-      CC1_p_{nullptr},
-      CC2_p_{nullptr},
-      loGC_p_{nullptr},
-      hiGC_p_{nullptr},
-      CC1_d_{nullptr},
-      CC2_d_{nullptr},
-      loGC_d_{nullptr},
-      hiGC_d_{nullptr},
-      CC1_array_d_{nullptr},
-      gridIdx_{-1},
-      level_{0},
-      interior_{nullptr},
-      GC_{nullptr}    { }
-
-/**
- *
- */
 Tile::Tile(amrex::MFIter& itor, const unsigned int level)
     : CC_h_{nullptr},
       CC1_p_{nullptr},
@@ -50,23 +31,10 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
     amrex::MultiFab&  unk = Grid::instance().unk();
     amrex::FArrayBox& fab = unk[gridIdx_];
     CC_h_ = fab.dataPtr();
+//    std::cout << "[Tile] Created Tile object "
+//              << gridIdx_
+//              << " from MFIter\n";
 }
-
-Tile::Tile(const Tile& other)
-    : CC_h_{other.CC_h_},
-      CC1_p_{other.CC1_p_},
-      CC2_p_{other.CC2_p_},
-      loGC_p_{other.loGC_p_},
-      hiGC_p_{other.hiGC_p_},
-      CC1_d_{other.CC1_d_},
-      CC2_d_{other.CC2_d_},
-      loGC_d_{other.loGC_d_},
-      hiGC_d_{other.hiGC_d_},
-      CC1_array_d_{other.CC1_array_d_},
-      gridIdx_{other.gridIdx_},
-      level_{other.level_},
-      interior_{new amrex::Box(*(other.interior_))},
-      GC_{new amrex::Box(*(other.GC_))}   { }
 
 Tile::Tile(Tile&& other)
     : CC_h_{other.CC_h_},
@@ -101,6 +69,9 @@ Tile::Tile(Tile&& other)
     other.level_       = 0;
     other.interior_    = nullptr;
     other.GC_          = nullptr;
+//    std::cout << "[Tile] Moved Tile object "
+//              << gridIdx_
+//              << " by move constructor\n";
 }
 
 Tile& Tile::operator=(Tile&& rhs) {
@@ -136,6 +107,9 @@ Tile& Tile::operator=(Tile&& rhs) {
     rhs.level_       = 0;
     rhs.interior_    = nullptr;
     rhs.GC_          = nullptr;
+//    std::cout << "[Tile] Moved Tile object "
+//              << gridIdx_
+//              << " by move assignment\n";
 
     return *this;
 }
@@ -144,6 +118,8 @@ Tile& Tile::operator=(Tile&& rhs) {
  *
  */
 Tile::~Tile(void) {
+//    std::cout << "[Tile] Destroying Tile object "
+//              << gridIdx_ << std::endl;
     CC_h_        = nullptr;
     CC1_p_       = nullptr;
     CC2_p_       = nullptr;

@@ -85,88 +85,84 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam<DataPacket>  cpu_packet(N_THREADS, 1, "TestSinglePacketTeam.log");
 
-    DataPacket  packet;
+    auto packet = std::make_shared<DataPacket>();
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
 
     try {
-        packet.clear();
         computeLaplacianEnergy_packet.nInitialThreads = N_THREADS;
         computeLaplacianEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET;
         cpu_packet.startCycle(computeLaplacianEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
 
-            if (packet.tileList.size() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->tileList.size() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::make_shared<DataPacket>();
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->tileList.size() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::make_shared<DataPacket>();
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         computeLaplacianDensity_packet.nInitialThreads = N_THREADS;
         computeLaplacianDensity_packet.nTilesPerPacket = N_TILES_PER_PACKET - 2;
         cpu_packet.startCycle(computeLaplacianDensity_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
 
-            if (packet.tileList.size() >= computeLaplacianDensity_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->tileList.size() >= computeLaplacianDensity_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::make_shared<DataPacket>();
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->tileList.size() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::make_shared<DataPacket>();
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         scaleEnergy_packet.nInitialThreads = N_THREADS;
         scaleEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET - 5;
         cpu_packet.startCycle(scaleEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
 
-            if (packet.tileList.size() >= scaleEnergy_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->tileList.size() >= scaleEnergy_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::make_shared<DataPacket>();
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->tileList.size() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::make_shared<DataPacket>();
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_packet.nInitialThreads = N_THREADS;
         computeErrors_packet.nTilesPerPacket = N_TILES_PER_PACKET - 11;
         cpu_packet.startCycle(computeErrors_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
 
-            if (packet.tileList.size() >= computeErrors_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->tileList.size() >= computeErrors_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::make_shared<DataPacket>();
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->tileList.size() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
+        packet.reset();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";

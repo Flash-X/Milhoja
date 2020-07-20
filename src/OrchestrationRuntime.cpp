@@ -269,20 +269,57 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(postGpuTeam);
 
-    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
-    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Block_Team");
-    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
-
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread pools.  When a work unit is finished on the GPU, the work unit
     // shall be enqueued automatically for the post-GPU pool.
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
+    std::shared_ptr<Tile>  dataItem_cpu{};
+    std::shared_ptr<Tile>  dataItem_gpu{};
+    if ((dataItem_cpu.get() != nullptr) || (dataItem_cpu.use_count() != 0)) {
+        throw std::logic_error("CPU shared_ptr not NULLED at creation");
+    }
+    if ((dataItem_gpu.get() != nullptr) || (dataItem_gpu.use_count() != 0)) {
+        throw std::logic_error("GPU shared_ptr not NULLED at creation");
+    }
+
+    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Block_Team");
+    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
-        // Ownership of tile resources is transferred to last team
-        cpuTeam->enqueue(work, false);
-        gpuTeam->enqueue(work, true);
+        // If we create a first shared_ptr and enqueue it with one team, it is
+        // possible that this shared_ptr could have the action applied to its
+        // data and go out of scope before we create a second shared_ptr.  In
+        // this case, the data item's resources would be released prematurely.
+        // To avoid this, we create all copies up front and before enqueing any
+        // copy.
+        dataItem_cpu = std::make_shared<Tile>(itor, level);
+        dataItem_gpu = dataItem_cpu;
+        if ((dataItem_cpu.get()) != (dataItem_gpu.get())) {
+            throw std::logic_error("shared_ptr copy didn't work");
+        } else if (dataItem_cpu.use_count() != 2) {
+            throw std::logic_error("Unexpected shared_ptr count");
+        }
+//        std::cout << "[Runtime] Created " 
+//                  << dataItem_cpu.use_count()
+//                  << " copies of block "
+//                  << dataItem_cpu->gridIndex()
+//                  << " shared_ptr\n";
+
+        // Move so that the shared ownership gets transferred with the data item
+        // to the Thread Teams and the data items here gets nulled.  Therefore,
+        // the shared_ptr counter should not change with these calls and
+        // the release of the Tile resources does not depend on the shared_ptrs
+        // in this scope.
+        cpuTeam->enqueue(std::move(dataItem_cpu));
+        gpuTeam->enqueue(std::move(dataItem_gpu));
+
+        if ((dataItem_cpu.get() != nullptr) || (dataItem_cpu.use_count() != 0)) {
+            throw std::logic_error("CPU shared_ptr not NULLED");
+        }
+        if ((dataItem_gpu.get() != nullptr) || (dataItem_gpu.use_count() != 0)) {
+            throw std::logic_error("GPU shared_ptr not NULLED");
+        }
     }
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
@@ -369,38 +406,42 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(postGpuTeam);
 
-    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
-    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
-    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
-
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread teams.  When a data item is finished on the GPU, the data item
     // is enqueued automatically with the post-GPU team.
-    DataPacket     gpuPacket;
     unsigned int   level = 0;
     Grid&          grid = Grid::instance();
-    gpuPacket.clear();
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        // TODO: What is the best way to manage the copy/move actions here?
-        //       I am just playing around at the moment.
-        Tile  work(itor, level);
-        cpuTeam->enqueue(work, false);
-        gpuPacket.tileList.push_front(std::move(work));
 
-        if (gpuPacket.tileList.size() >= gpuAction.nTilesPerPacket) {
-            gpuTeam->enqueue(gpuPacket, true);
-            gpuPacket.clear();
+    std::shared_ptr<Tile>         dataItem_cpu{};
+    std::shared_ptr<DataPacket>   dataItem_gpu = std::make_shared<DataPacket>();
+    if (dataItem_gpu->tileList.size() != 0) {
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
+                               "Default DataPacket not empty");
+    }
+
+    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
+    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
+    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
+        dataItem_cpu = std::make_shared<Tile>(itor, level);
+        dataItem_gpu->tileList.push_front( dataItem_cpu );
+        // TODO: Confirm that this was copy to the tileList
+
+        cpuTeam->enqueue( std::move(dataItem_cpu) );
+        if (dataItem_gpu->tileList.size() >= gpuAction.nTilesPerPacket) {
+            gpuTeam->enqueue( std::move(dataItem_gpu) );
+            dataItem_gpu = std::make_shared<DataPacket>();
         }
     }
 
-    if (gpuPacket.tileList.size() != 0) {
-        gpuTeam->enqueue(gpuPacket, true);
+    if (dataItem_gpu->tileList.size() != 0) {
+        gpuTeam->enqueue( std::move(dataItem_gpu) );
+    } else {
+        dataItem_gpu.reset();
     }
 
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
-
-    gpuPacket.clear();
 
     // TODO: We could give subscribers a pointer to the publisher so that during
     // the subscriber's wait() it can determine if it should terminate yet.  The
@@ -453,11 +494,15 @@ void Runtime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
 
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
+
+    std::shared_ptr<Tile>   dataItem_cpu{};
+    std::shared_ptr<Tile>   dataItem_gpu{};
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
-        // Ownership of tile resources is transferred to last team
-        cpuTeam->enqueue(work, false);
-        gpuTeam->enqueue(work, true);
+        dataItem_cpu = std::make_shared<Tile>(itor, level);
+        dataItem_gpu = dataItem_cpu;
+
+        cpuTeam->enqueue( std::move(dataItem_cpu) );
+        gpuTeam->enqueue( std::move(dataItem_gpu) );
     }
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
@@ -492,8 +537,7 @@ void Runtime::executeCpuTasks(const std::string& bundleName,
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
-        cpuTeam->enqueue(work, true);
+        cpuTeam->enqueue( std::make_shared<Tile>(itor, level) );
     }
     cpuTeam->closeQueue();
     cpuTeam->wait();
@@ -515,30 +559,31 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     ThreadTeam<DataPacket>*   gpuTeam = packetTeams_[0];
 
-    DataPacket  packet;
-    packet.clear();
-
+    // TODO: For this configuration, could I make the dataItems unique_ptrs?
+    //       Would this work at the level of the ThreadTeam?  What about the
+    //       case when there is a data parallel helper in the pipeline?
+    //       It might lead to
+    //       better performance and would be more explicit.  
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
+    auto dataItem_gpu = std::make_shared<DataPacket>();
 
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
-
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
-        packet.tileList.push_front(std::move(work));
+        dataItem_gpu->tileList.push_front( std::make_shared<Tile>(itor, level) );
 
-        if (packet.tileList.size() >= gpuAction.nTilesPerPacket) {
-            gpuTeam->enqueue(packet, true);
-            packet.clear();
+        if (dataItem_gpu->tileList.size() >= gpuAction.nTilesPerPacket) {
+            gpuTeam->enqueue( std::move(dataItem_gpu) );
+            dataItem_gpu = std::make_shared<DataPacket>();
         }
     }
 
-    if (packet.tileList.size() != 0) {
-        gpuTeam->enqueue(packet, true);
+    if (dataItem_gpu->tileList.size() != 0) {
+        gpuTeam->enqueue( std::move(dataItem_gpu) );
         gpuTeam->closeQueue();
-        packet.clear();
     } else {
         gpuTeam->closeQueue();
+        dataItem_gpu.reset();
     }
     gpuTeam->wait();
 }

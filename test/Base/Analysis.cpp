@@ -86,8 +86,7 @@ void   Analysis::computeErrors_packet(const int tId, void* dataItem) {
     DataPacket*  packet = static_cast<DataPacket*>(dataItem);
 
     for (unsigned int i=0; i<packet->tileList.size(); ++i) {
-        Tile&    work = packet->tileList[i];
-        computeErrors_block(tId, &work);
+        computeErrors_block(tId, packet->tileList[i].get());
     }
 }
 

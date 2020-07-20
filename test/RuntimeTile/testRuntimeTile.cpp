@@ -89,8 +89,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -98,8 +97,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -107,8 +105,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         scaleEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(scaleEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -117,8 +114,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeErrors_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeErrors_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
         }
         cpu_block.closeQueue();
         cpu_block.wait();

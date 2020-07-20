@@ -631,11 +631,9 @@ void ThreadTeam<DT>::closeQueue(void) {
  * execution cycle's action.
  *
  * \param   dataItem - the data item
- * \param   move - true means that the enqueue is done with move semantics.
- *                 else, by copy semantics.
  */
 template<typename DT>
-void ThreadTeam<DT>::enqueue(DT& dataItem, const bool move) {
+void ThreadTeam<DT>::enqueue(std::shared_ptr<DT>&& dataItem) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -652,7 +650,7 @@ void ThreadTeam<DT>::enqueue(DT& dataItem, const bool move) {
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->enqueue_NotThreadsafe(dataItem, move);
+    errMsg = state_->enqueue_NotThreadsafe(std::move(dataItem));
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -1064,7 +1062,16 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
     bool             isThreadStarting = true;
     unsigned int     N_Q              = 0;
     unsigned int     N_total          = 0;
+    std::shared_ptr<DT>   dataItem{};
     while (true) {
+        if ((dataItem.get() != nullptr) || (dataItem.use_count() != 0)) {
+            std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "dataItem should be NULL at top of loop body");
+            std::cerr << msg << std::endl;
+            pthread_mutex_unlock(&(team->teamMutex_));
+            throw std::logic_error(msg);
+        }
+
         mode = team->state_->mode();
         // TODO: The amount of time that a thread locks the mutex will grow as
         // the number of data items in the Q grows due to call like this.  A
@@ -1316,8 +1323,13 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             team->logFile_.close();
 #endif
 
-            // TODO: Make certain that this is a move.  Ditto when we enqueue.
-            DT   dataItem = std::move(team->queue_.front());
+            // dataItem is assumed to be null at this point.
+            // Move the data item from the queue to here
+            // The item still in the queue will be nulled and will no longer
+            // be sharing the data item.   This should, therefore, not change
+            // the shared_ptr's counter.
+            dataItem = std::move(team->queue_.front());
+            // This pop should not decrease the internal counter of the shared_ptr
             team->queue_.pop();
             --N_Q;
 
@@ -1353,7 +1365,19 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
 
             // Do work!  No need to keep mutex.
             pthread_mutex_unlock(&(team->teamMutex_));
-            team->actionRoutine_(tId, &dataItem);
+
+            // The shared-ness of dataItem stays here, which means that the 
+            // object pointed to cannot be destroyed until dataItem is reset.
+            // Therefore, we can just pass the bare pointer and know
+            // that actionRoutine_ can use it correctly.
+            if ((dataItem.get() == nullptr) || (dataItem.use_count() <= 0)) {
+                std::string  msg = team->printState_NotThreadsafe(
+                        "threadRoutine", tId, "dataItem is unexpectedly NULLed");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::logic_error(msg);
+            }
+            team->actionRoutine_(tId, dataItem.get());
 
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));
@@ -1366,12 +1390,20 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
 #endif
 
             if (team->dataReceiver_) {
-                // Since there is presently only one data item subscriber per
-                // publisher, we can use move semantics to transfer ownership of
-                // the tile from publisher to subscriber
-                team->dataReceiver_->enqueue(dataItem, true);
-                // TODO:  If DT is a packet and there is no subscriber, do we
-                // need to explicitly destroy the packet to clean-up resources?
+                // Move the data item along so that dataItem is null
+                team->dataReceiver_->enqueue(std::move(dataItem));
+            } else {
+                // The data item is done.  Null dataItem so that the current
+                // data item's resources can be released if this was the last
+                // shared pointer to the data item.
+                dataItem.reset();
+            }
+            if ((dataItem.get() != nullptr) || (dataItem.use_count() != 0)) {
+                std::string  msg = team->printState_NotThreadsafe(
+                        "threadRoutine", tId, "dataItem is unexpectedly NULLed after computation");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::logic_error(msg);
             }
 
             if (team->N_comp_ <= 0) {

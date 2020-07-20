@@ -138,7 +138,7 @@ std::string ThreadTeamIdle<DT,T>::increaseThreadCount_NotThreadsafe(
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
 template<typename DT, class T>
-std::string  ThreadTeamIdle<DT,T>::enqueue_NotThreadsafe(DT& dataItem, const bool move) {
+std::string ThreadTeamIdle<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
     // TODO: Consider (carefully!) allowing for enqueueing of data items when
     // the team is Idle and with a routine that will only acquire the mutex
     // once.  This could allow for decreasing mutex contention when threads

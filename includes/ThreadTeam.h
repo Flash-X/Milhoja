@@ -57,6 +57,7 @@
 #include <queue>
 #include <string>
 #include <fstream>
+#include <memory>
 
 #include "actionRoutine.h"
 #include "RuntimeAction.h"
@@ -94,7 +95,7 @@ public:
     void         startCycle(const RuntimeAction& action,
                             const std::string& teamName,
                             const bool waitForThreads=false);
-    void         enqueue(DT& dataItem, const bool move);
+    void         enqueue(std::shared_ptr<DT>&& dataItem);
     void         closeQueue(void);
     void         wait(void);
 
@@ -168,8 +169,8 @@ private:
     unsigned int   N_terminate_; /*!< Number of threads that are terminating
                                   *   or that have terminated. */
 
-    std::queue<DT>   queue_;    /*!< Internal data item queue to which the
-                                 * team's actions need to be applied. */
+    std::queue<std::shared_ptr<DT>>   queue_;    /*!< Internal data item queue to which the
+                                                  * team's actions need to be applied. */
 
     //***** Data members not directly related to state
     // Calling code could set the number of Idle threads by calling startCycle()
