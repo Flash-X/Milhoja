@@ -19,6 +19,9 @@ int main(int argc, char* argv[]) {
     noop.teamType = ThreadTeamDataType::BLOCK;
     noop.routine = TestThreadRoutines::noop;
 
+    std::shared_ptr<int>   dataItem_1{};
+    std::shared_ptr<int>   dataItem_2{};
+
     for (unsigned int n=0; n<N_LOOPS; ++n) {
     	team1.attachThreadReceiver(&team3);
     	team2.attachThreadReceiver(&team3);
@@ -34,8 +37,11 @@ int main(int argc, char* argv[]) {
     	team3.startCycle(noop, "team3");
 
 	for (int data=0; data<N_DATA; ++data) {
-             team1.enqueue(data, false);
-             team2.enqueue(data, false);
+             dataItem_1 = std::make_shared<int>(data);
+             dataItem_2 = dataItem_1;
+
+             team1.enqueue( std::move(dataItem_1) );
+             team2.enqueue( std::move(dataItem_2) );
 	}
     	team1.closeQueue();
     	team2.closeQueue();
