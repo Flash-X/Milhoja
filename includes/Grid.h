@@ -47,6 +47,8 @@ public:
     Real           getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
     Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
 
+    void           fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const;
+    void           fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const;
     void           fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
 
     unsigned int   getMaxRefinement() const;
