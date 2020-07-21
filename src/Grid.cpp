@@ -207,8 +207,7 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param lev Level (0-based)
   * @param lo Lower bound of range (integer, 0-based)
   * @param hi Upper bound of range (integer, 0-based)
-  * @param coordPtr Real Ptr to some fortran-style data structure. Will be filled with coordinates.
-  *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   */
 void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const {
 #ifndef GRID_ERRCHECK_OFF
@@ -220,13 +219,33 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
     }
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::FArrayBox coord_fab{range,1,coordPtr};
-    coord_fab.setVal(0.0);
-    //geometry_.CoordSys::SetVolume(coord_fab,range);
+    int nElements = hi[axis] - lo[axis] + 1;
+    int offset = 0; //accounts for indexing of left/right cases
+
+    //coordvec is length nElements + 1 if edge is Left or Right
+    amrex::Vector<amrex::Real> coordvec;
+    switch (edge) {
+        case Edge::Left:
+            geometry_.GetEdgeLoc(coordvec,range,axis);
+            break;
+        case Edge::Right:
+            offset = 1;
+            geometry_.GetEdgeLoc(coordvec,range,axis);
+            break;
+        case Edge::Center:
+            geometry_.GetCellLoc(coordvec,range,axis);
+            break;
+    }
+
+    //copy results to output
+    for(int i=0; i<nElements; ++i) {
+        coordPtr[i] = coordvec[i+offset];
+    }
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
-  * cell face areas in a given range
+  * cell face areas in a given range.
+  * DEV NOTE: I assumed CoordSys::SetFaceArea corresponds to AreaLo (not AreaHi)
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param lev Level (0-based)
@@ -243,8 +262,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox area_fab{range,1,areaPtr};
-    area_fab.setVal(0.0);
-    //geometry_.CoordSys::SetVolume(coord_fab,range);
+    geometry_.CoordSys::SetFaceArea(area_fab,range,axis);
 }
 
 

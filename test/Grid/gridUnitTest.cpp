@@ -196,10 +196,10 @@ TEST_F(GridUnitTest,MultiCellGetters){
     )
 
     // Test Grid::fillCellVolumes over an arbitrary range
-    //IntVect vlo = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) ).floor();
-    //IntVect vhi = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) ).floor();
-    IntVect vlo{LIST_NDIM(1,2,1)};
-    IntVect vhi{LIST_NDIM(1,3,1)};
+    IntVect vlo = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) ).floor();
+    IntVect vhi = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) ).floor();
+    //IntVect vlo{LIST_NDIM(1,2,1)};
+    //IntVect vhi{LIST_NDIM(1,3,1)};
     amrex::Box vol_bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
 
     amrex::FArrayBox vol_fab{vol_bx,1};
@@ -221,9 +221,8 @@ TEST_F(GridUnitTest,MultiCellGetters){
 
     // Test Grid::fillCellCoords over an arbitrary range
     int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
-    amrex::FArrayBox coord_fab{vol_bx,1};
-    Real* coord_ptr = coord_fab.dataPtr();
-    Real actual_coord, dir_coord;
+    int nElements;
+    Real actual_coord;
     for (int j=0; j<3; ++j) {
         //loop over edge cases
         Real offset;
@@ -240,22 +239,13 @@ TEST_F(GridUnitTest,MultiCellGetters){
         }
         for(int n=0;n<NDIM;++n) {
             //loop over axis cases
+            nElements = vhi[n] - vlo[n] + 1;
+            Real coord_ptr[nElements];
             grid.fillCellCoords(n,edge[j],0,vlo,vhi,coord_ptr);
-            ITERATE_REGION(vlo,vhi,i,j,k,
-                switch (n) {
-                    case Axis::I:
-                        dir_coord = Real(i);
-                        break;
-                    case Axis::J:
-                        dir_coord = Real(j);
-                        break;
-                    case Axis::K:
-                        dir_coord = Real(k);
-                        break;
-                }
-                actual_coord = actual_min[n] + (dir_coord + offset) * actual_deltas[n];
-                EXPECT_NEAR( coord_fab({LIST_NDIM(i,j,k)},0), actual_coord, eps);
-            )
+            for(int i=0; i<nElements; ++i) {
+                actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset) * actual_deltas[n];
+                EXPECT_NEAR( coord_ptr[i], actual_coord, eps);
+            }
         }
     }
 
