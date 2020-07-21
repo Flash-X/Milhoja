@@ -205,8 +205,8 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param edge Edge of desired coord (allowed: Edge::{Left,Right,Center})
   * @param lev Level (0-based)
-  * @param lo Lower bound of range (integer, 0-based)
-  * @param hi Upper bound of range (integer, 0-based)
+  * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
+  * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   */
 void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const {
@@ -249,8 +249,8 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param lev Level (0-based)
-  * @param lo Lower bound of range (integer, 0-based)
-  * @param hi Upper bound of range (integer, 0-based)
+  * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
+  * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled with areas.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
@@ -270,8 +270,8 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
   * volumes of cells in a given range
   *
   * @param lev Level (0-based)
-  * @param lo Lower bound of range (integer, 0-based)
-  * @param hi Upper bound of range (integer, 0-based)
+  * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
+  * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
