@@ -3,6 +3,8 @@
 
 #include "Grid.h"
 #include "Grid_Macros.h"
+#include "Grid_Edge.h"
+#include "Grid_Axis.h"
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
@@ -185,11 +187,10 @@ TEST_F(GridUnitTest,MultiCellGetters){
     amrex::Geometry&  geom = grid.geometry();
     IntVect dlo = IntVect( geom.Domain().smallEnd() );
     IntVect dhi = IntVect( geom.Domain().bigEnd() );
+
     amrex::FArrayBox  vol_domain{geom.Domain(),1};
     Real* vol_domain_ptr = vol_domain.dataPtr();
-
     grid.fillCellVolumes(0,dlo,dhi,vol_domain_ptr);
-
     ITERATE_REGION(dlo,dhi,i,j,k,
         EXPECT_NEAR( vol_domain({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
     )
@@ -197,15 +198,57 @@ TEST_F(GridUnitTest,MultiCellGetters){
     // Test Grid::fillCellVolumes over an arbitrary range
     IntVect vlo = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) ).floor();
     IntVect vhi = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) ).floor();
+    //IntVect vlo{LIST_NDIM(1,2,1)};
+    //IntVect vhi{LIST_NDIM(1,3,1)};
     amrex::Box vol_bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
+
     amrex::FArrayBox vol_fab{vol_bx,1};
     Real* vol_ptr = vol_fab.dataPtr();
-
     grid.fillCellVolumes(0,vlo,vhi,vol_ptr);
-
     ITERATE_REGION(vlo,vhi,i,j,k,
         EXPECT_NEAR( vol_fab({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
     )
+
+    // Test Grid::fillCellAreasLo over an arbitrary range
+    amrex::FArrayBox  area_fab{vol_bx,1};
+    Real* area_ptr = area_fab.dataPtr();
+    for(int n=0;n<NDIM;++n) {
+        grid.fillCellFaceAreasLo(n,0,vlo,vhi,area_ptr);
+        ITERATE_REGION(vlo,vhi,i,j,k,
+            EXPECT_NEAR( area_fab({LIST_NDIM(i,j,k)},0), actual_fa[n], eps);
+        )
+    }
+
+    // Test Grid::fillCellCoords over an arbitrary range
+    int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
+    int nElements;
+    Real actual_coord;
+    for (int j=0; j<3; ++j) {
+        //loop over edge cases
+        Real offset;
+        switch (edge[j]) {
+            case Edge::Left:
+                offset = 0.0_wp;
+                break;
+            case Edge::Right:
+                offset = 1.0_wp;
+                break;
+            case Edge::Center:
+                offset = 0.5_wp;
+                break;
+        }
+        for(int n=0;n<NDIM;++n) {
+            //loop over axis cases
+            nElements = vhi[n] - vlo[n] + 1;
+            Real coord_ptr[nElements];
+            grid.fillCellCoords(n,edge[j],0,vlo,vhi,coord_ptr);
+            for(int i=0; i<nElements; ++i) {
+                actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset) * actual_deltas[n];
+                EXPECT_NEAR( coord_ptr[i], actual_coord, eps);
+            }
+        }
+    }
+
 }
 
 }
