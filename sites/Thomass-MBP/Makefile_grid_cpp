@@ -45,6 +45,7 @@ SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
     $(TESTDIR)/gridUnitTest.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \

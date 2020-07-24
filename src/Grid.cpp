@@ -15,6 +15,7 @@
 #include <AMReX_CoordSys.H>
 #include <AMReX_Geometry.H>
 #include "Grid_AmrCoreFlash.h"
+#include "GridAmrex.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -33,7 +34,11 @@ namespace orchestration {
  * \return 
  */
 Grid&   Grid::instance(void) {
-    static Grid     gridSingleton;
+#ifdef GRID_AMREX
+    static GridAmrex     gridSingleton;
+#else
+    throw std::logic_error("Need to specify Grid implementation with GRID_[NAME] macro.");
+#endif
     return gridSingleton;
 }
 
@@ -153,23 +158,6 @@ void    Grid::destroyDomain(void) {
     //geometry_ = amrex::Geometry();
 }
 
-/**
-  * getProbLo gets the physical lower boundary of the domain.
-  *
-  * @return A real vector: <xlo, ylo, zlo>
-  */
-RealVect    Grid::getProbLo() const {
-    return RealVect{amrcore_->Geom(0).ProbLo()};
-}
-
-/**
-  * getProbHi gets the physical upper boundary of the domain.
-  *
-  * @return A real vector: <xhi, yhi, zhi>
-  */
-RealVect    Grid::getProbHi() const {
-    return RealVect{amrcore_->Geom(0).ProbHi()};
-}
 
 /**
   * getDeltas gets the cell size for a given level.

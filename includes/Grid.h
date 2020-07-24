@@ -39,8 +39,8 @@ public:
     amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
 
     //Basic getter functions.
-    RealVect       getProbLo() const;
-    RealVect       getProbHi() const;
+    virtual RealVect       getProbLo() const = 0;
+    virtual RealVect       getProbHi() const = 0;
     RealVect       getDeltas(const unsigned int lev) const;
     RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
 
@@ -59,15 +59,15 @@ public:
 
     amrex::MultiFab*   unk_;
 
-private:
+protected:
     Grid(void);
+    AmrCoreFlash*      amrcore_;
+
+// TODO make these private??
     Grid(const Grid&) = delete;
     Grid(Grid&&) = delete;
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
-
-    //amrex::Geometry    geometry_;
-    AmrCoreFlash*      amrcore_;
 };
 
 }

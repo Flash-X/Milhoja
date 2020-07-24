@@ -29,7 +29,7 @@ class A {
 //B.h
 class B : public A {
     public:
-    virtual void foo(int vin) override {
+    void foo(int vin) override {
         std::cout << "B foo: " << vin*2 <<std::endl;
     }
     
