@@ -18,6 +18,7 @@
 #include "scaleEnergy_packet.h"
 #include "computeLaplacianDensity_packet.h"
 #include "computeLaplacianEnergy_packet.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -82,8 +83,10 @@ protected:
 TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
     amrex::MultiFab&   unk = Grid::instance().unk();
 
+    orchestration::Logger::setLogFilename("TestSinglePacketTeam.log");
+
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<DataPacket>  cpu_packet(N_THREADS, 1, "TestSinglePacketTeam.log");
+    ThreadTeam<DataPacket>  cpu_packet(N_THREADS, 1);
 
     auto packet = std::make_shared<DataPacket>();
 
@@ -201,6 +204,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimePacket, TestRuntimeSingle) {
+    orchestration::Logger::setLogFilename("TestRuntimeSingle.log");
+
     ActionBundle    bundle;
 
     try {

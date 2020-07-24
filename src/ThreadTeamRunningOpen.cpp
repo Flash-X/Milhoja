@@ -1,5 +1,7 @@
 #include "ThreadTeamRunningOpen.h"
 
+#include "OrchestrationLogger.h"
+
 namespace orchestration {
 
 /**
@@ -89,9 +91,8 @@ std::string ThreadTeamRunningOpen<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<D
     team_->queue_.push(std::move(dataItem));
 
 #ifdef DEBUG_RUNTIME
-    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[" << team_->hdr_ << "] Enqueued dataItem\n";
-    team_->logFile_.close();
+    std::string msg = "[" + team_->hdr_ + "] Enqueued dataItem";
+    Logger::instance().log(msg);
 #endif
 
     // Wake a waiting thread (if there is one) so that it can start

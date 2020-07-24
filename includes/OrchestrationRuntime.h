@@ -61,7 +61,6 @@ private:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
 
-    static std::string             logFilename_;
     static unsigned int            nTileTeams_; 
     static unsigned int            nPacketTeams_; 
     static unsigned int            maxThreadsPerTeam_;
@@ -69,10 +68,6 @@ private:
 
     ThreadTeam<Tile>**             tileTeams_;
     ThreadTeam<DataPacket>**       packetTeams_;
-
-#ifdef DEBUG_RUNTIME
-    std::ofstream     logFile_; 
-#endif
 };
 
 }

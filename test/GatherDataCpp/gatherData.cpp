@@ -135,6 +135,7 @@ int   main(int argc, char* argv[]) {
     orchestration::Runtime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
                                                  N_PACKET_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(nTotalThreads);
+    orchestration::Runtime::setLogFilename("GatherDataCpp.log");
     orchestration::Runtime&   runtime = orchestration::Runtime::instance();
 
     Grid&   grid = Grid::instance();

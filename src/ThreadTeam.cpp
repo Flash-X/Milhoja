@@ -8,6 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "OrchestrationLogger.h"
+
 namespace orchestration {
 
 // TODO:  The pthread implementation needs to be cleaned up seriously.  See
@@ -33,9 +35,9 @@ namespace orchestration {
  */
 template<typename DT>
 ThreadTeam<DT>::ThreadTeam(const unsigned int nMaxThreads,
-                          const unsigned int id,
-                          const std::string& logFilename)
-    : state_(nullptr),
+                           const unsigned int id)
+    : ThreadPubSub(),
+      state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
       stateRunOpen_(nullptr),
@@ -52,10 +54,8 @@ ThreadTeam<DT>::ThreadTeam(const unsigned int nMaxThreads,
       hdr_("No Header Yet"),
       actionName_("No Action Yet"),
       actionRoutine_(nullptr),
-      threadReceiver_(nullptr),
       dataReceiver_(nullptr),
-      isWaitBlocking_(false),
-      logFilename_(logFilename)
+      isWaitBlocking_(false)
 {
     hdr_ = "Thread Team " + std::to_string(id_);
     
@@ -208,12 +208,10 @@ ThreadTeam<DT>::ThreadTeam(const unsigned int nMaxThreads,
     }
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[" << hdr_ << "] Team initialized in state " 
-                 << getModeName(state_->mode())
-                 << " with "
-                 << N_idle_ << " threads idling\n";
-        logFile_.close();
+    msg =   "[" + hdr_ + "] Team initialized in state " 
+          + getModeName(state_->mode()) + " with "
+          + std::to_string(N_idle_) + " threads idling";
+    Logger::instance().log(msg);
 #endif
 
     pthread_mutex_unlock(&teamMutex_);
@@ -273,11 +271,9 @@ ThreadTeam<DT>::~ThreadTeam(void) {
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] " 
-             << nMaxThreads_
-             << " Threads terminated\n";
-    logFile_.close();
+    std::string msg =   "[" + hdr_ + "] " 
+                      + std::to_string(nMaxThreads_) + " Threads terminated";
+    Logger::instance().log(msg);
 #endif
 
     pthread_cond_destroy(&unblockWaitThread_);
@@ -316,9 +312,8 @@ ThreadTeam<DT>::~ThreadTeam(void) {
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] Team destroyed\n";
-    logFile_.close();
+    msg = "[" + hdr_ + "] Team destroyed";
+    Logger::instance().log(msg);
 #endif
 }
 
@@ -413,12 +408,9 @@ std::string ThreadTeam<DT>::setMode_NotThreadsafe(const ThreadTeamMode nextMode)
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] Transitioned from "
-             << getModeName(currentMode)
-             << " to "
-             << getModeName(state_->mode()) << std::endl;
-    logFile_.close();
+    msg = "[" + hdr_ + "] Transitioned from "
+          + getModeName(currentMode) + " to " + getModeName(state_->mode());
+    Logger::instance().log(msg);
 #endif
 
     return errMsg;
@@ -702,22 +694,16 @@ void ThreadTeam<DT>::wait(void) {
         // Idle before a calling thread got a chance to call wait().  Therefore,
         // this method is a no-op so that it won't block.
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Called no-op wait on " 
-                 << hdr_
-                 << " team (Idle)\n";
-        logFile_.close();
+        std::string msg = "[Client Thread] Called no-op wait on " 
+                          + hdr_ + " team (Idle)";
+        Logger::instance().log(msg);
 #endif
     } else {
         isWaitBlocking_ = true;
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Waiting on "
-                 << hdr_ 
-                 << " team - "
-                 << getModeName(mode) << std::endl;
-        logFile_.close();
+        msg = "[Client Thread] Waiting on " + hdr_ + " team - " + getModeName(mode);
+        Logger::instance().log(msg);
 #endif
 
         pthread_cond_wait(&unblockWaitThread_, &teamMutex_);
@@ -730,12 +716,8 @@ void ThreadTeam<DT>::wait(void) {
         }
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Received unblockWaitSignal for "
-                 << hdr_ 
-                 << " team\n";
-
-        logFile_.close();
+        msg = "[Client Thread] Received unblockWaitSignal for " + hdr_ + " team";
+        Logger::instance().log(msg);
 #endif
 
         isWaitBlocking_ = false;
@@ -763,7 +745,7 @@ void ThreadTeam<DT>::wait(void) {
  *                    published.
  */
 template<typename DT>
-void ThreadTeam<DT>::attachThreadReceiver(ThreadTeamBase* receiver) {
+std::string ThreadTeam<DT>::attachThreadReceiver(ThreadPubSub* receiver) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -785,26 +767,16 @@ void ThreadTeam<DT>::attachThreadReceiver(ThreadTeamBase* receiver) {
         throw std::logic_error(errMsg);
     }
 
-    if (!receiver) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "Null thread subscriber team given");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (receiver == this) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "Cannot attach team to itself");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (threadReceiver_) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "A thread subscriber is already attached");
+    errMsg = ThreadPubSub::attachThreadReceiver(receiver);
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    threadReceiver_ = receiver;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
@@ -817,7 +789,7 @@ void ThreadTeam<DT>::attachThreadReceiver(ThreadTeamBase* receiver) {
  * outputs use this information.
  */
 template<typename DT>
-void ThreadTeam<DT>::detachThreadReceiver(void) {
+std::string ThreadTeam<DT>::detachThreadReceiver(void) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -839,16 +811,16 @@ void ThreadTeam<DT>::detachThreadReceiver(void) {
         throw std::logic_error(errMsg);
     }
 
-    if (!threadReceiver_) {
-        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
-                 "No thread subscriber attached");
+    errMsg = ThreadPubSub::detachThreadReceiver();
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    threadReceiver_ = nullptr;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
@@ -985,7 +957,6 @@ std::string  ThreadTeam<DT>::printState_NotThreadsafe(const std::string& method,
     state += "\n\tN threads Terminating\t\t\t"    + std::to_string(N_terminate_);
     state += "\n\tN data items in queue\t\t\t\t"  + std::to_string(queue_.size());
     state += "\n\tN threads pending activation\t" + std::to_string(N_to_activate_);
-    state += "\n";
 
     return state;
 }
@@ -1100,13 +1071,12 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
-                           << "Terminated - " 
-                           << team->N_terminate_
-                           << " terminated out of "
-                           << team->nMaxThreads_ << std::endl;
-            team->logFile_.close();
+            std::string msg =   "[" + team->hdr_ + " / Thread "
+                              + std::to_string(tId) + "] Terminated - " 
+                              + std::to_string(team->N_terminate_)
+                              + " terminated out of "
+                              + std::to_string(team->nMaxThreads_);
+            Logger::instance().log(msg);
 #endif
 
             // Inform team that thread has terminated & terminate
@@ -1156,10 +1126,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Idle");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Idle"));
 #endif
 
             // These two conditionals must appear in this order as the first
@@ -1197,10 +1165,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
                 }
 
 #ifdef DEBUG_RUNTIME
-                team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-                team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                                  "Sent unblockWaitThread signal");
-                team->logFile_.close();
+                Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                      "Sent unblockWaitThread signal"));
 #endif
 
                 // reset team name to generic name
@@ -1214,10 +1180,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
 
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Activated");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Activated"));
 #endif
 
             if (team->N_to_activate_ <= 0) {
@@ -1269,17 +1233,13 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Waiting");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Waiting"));
 #endif
             pthread_cond_wait(&(team->transitionThread_), &(team->teamMutex_));
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Awakened");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Awakened"));
 #endif
 
             if (team->N_wait_ <= 0) {
@@ -1317,10 +1277,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Computing");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Computing"));
 #endif
 
             // dataItem is assumed to be null at this point.
@@ -1334,10 +1292,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             --N_Q;
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Dequeued dataItem");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Dequeued dataItem"));
 #endif
 
             // Since this emits events, only emit event after updating the mode
@@ -1383,10 +1339,8 @@ void* ThreadTeam<DT>::threadRoutine(void* varg) {
             pthread_mutex_lock(&(team->teamMutex_));
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Finished computing");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Finished computing"));
 #endif
 
             if (team->dataReceiver_) {

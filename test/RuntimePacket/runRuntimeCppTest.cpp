@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
     orchestration::Runtime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
                                                  N_PACKET_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
+    orchestration::Runtime::setLogFilename("DeleteMe.log");
     orchestration::Runtime::instance();
 
     int  rank = -1;

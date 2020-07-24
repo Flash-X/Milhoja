@@ -16,6 +16,7 @@
 #include "Tile.h"
 #include "Grid.h"
 #include "ThreadTeam.h"
+#include "OrchestrationLogger.h"
 #include "OrchestrationRuntime.h"
 
 #include "Flash.h"
@@ -77,10 +78,12 @@ protected:
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestSingleTeam) {
+    orchestration::Logger::setLogFilename("TestSingleTeam.log");
+
     amrex::MultiFab&   unk = Grid::instance().unk();
 
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<Tile>  cpu_block(N_THREADS, 1, "TestSingleTeam.log");
+    ThreadTeam<Tile>  cpu_block(N_THREADS, 1);
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
@@ -154,8 +157,9 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 }
 #endif
 
-#ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
+    orchestration::Logger::setLogFilename("TestRuntimeSingle.log");
+
     ActionBundle    bundle;
 
     orchestration::Runtime& runtime = orchestration::Runtime::instance();
@@ -229,7 +233,6 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     EXPECT_TRUE(0.0 <= meanAbsErr2);
     EXPECT_TRUE(meanAbsErr2 <= 9.0e-6);
 }
-#endif
 
 }
 

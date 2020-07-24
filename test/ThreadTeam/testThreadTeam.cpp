@@ -20,6 +20,7 @@
 #include "testThreadRoutines.h"
 #include "RuntimeAction.h"
 #include "ThreadTeam.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -95,9 +96,11 @@ TEST_F(ThreadTeamTest, TestInitialState) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
+    orchestration::Logger::setLogFilename("TestInitialState.log");
+
     // Check that having two thread teams available at the same time
     // is OK in terms of initial state
-    ThreadTeam<int>   team1(10, 1, "TestInitialState.log");
+    ThreadTeam<int>   team1(10, 1);
     ThreadTeam<int>*  team2 = nullptr;
 
     // Confirm explicit state
@@ -114,11 +117,11 @@ TEST_F(ThreadTeamTest, TestInitialState) {
     EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
 
     // Check that teams must have minimum number of threads
-    EXPECT_THROW(new ThreadTeam<int>(0, 2, "TestInitialState.log"), std::logic_error);
-    EXPECT_THROW(new ThreadTeam<int>(1, 2, "TestInitialState.log"), std::logic_error);
+    EXPECT_THROW(new ThreadTeam<int>(0, 2), std::logic_error);
+    EXPECT_THROW(new ThreadTeam<int>(1, 2), std::logic_error);
 
     for (unsigned int i=2; i<=N_ITERS; ++i) {
-        team2 = new ThreadTeam<int>(i, 2, "TestInitialState.log");
+        team2 = new ThreadTeam<int>(i, 2);
 
         team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(i, team2->nMaximumThreads());
@@ -152,7 +155,9 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>*    team1 = new ThreadTeam<int>(4, 1, "TestDestruction.log");
+    orchestration::Logger::setLogFilename("TestDestruction.log");
+
+    ThreadTeam<int>*    team1 = new ThreadTeam<int>(4, 1);
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamMode::IDLE, team1->mode());
 
@@ -178,7 +183,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     delete  team1;
     team1 = nullptr;
  
-    team1 = new ThreadTeam<int>(4, 1, "TestDestruction.log");
+    team1 = new ThreadTeam<int>(4, 1);
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamMode::IDLE, team1->mode());
  
@@ -226,7 +231,9 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>    team1(3, 1, "TestIdleWait.log");
+    orchestration::Logger::setLogFilename("TestIdleWait.log");
+
+    ThreadTeam<int>    team1(3, 1);
 
     // Call wait without having run a task
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -284,8 +291,10 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>    team1(3, 1, "TestNoWorkNoThreads.log");
-    ThreadTeam<int>    team2(2, 2, "TestNoWorkNoThreads.log");
+    orchestration::Logger::setLogFilename("TestNoWorkNoThreads.log");
+
+    ThreadTeam<int>    team1(3, 1);
+    ThreadTeam<int>    team2(2, 2);
 
     team1.attachDataReceiver(&team2);
 
@@ -323,10 +332,12 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
 TEST_F(ThreadTeamTest, TestIdleErrors) {
     unsigned int   N_ITERS = 10;
 
-    ThreadTeam<int>    team1(10, 1, "TestIdleErrors.log");
-    ThreadTeam<int>    team2(5,  2, "TestIdleErrors.log");
-    ThreadTeam<int>    team3(2,  3, "TestIdleErrors.log");
-    ThreadTeam<int>    team4(2,  4, "TestIdleErrors.log");
+    orchestration::Logger::setLogFilename("TestIdleErrors.log");
+
+    ThreadTeam<int>    team1(10, 1);
+    ThreadTeam<int>    team2(5,  2);
+    ThreadTeam<int>    team3(2,  3);
+    ThreadTeam<int>    team4(2,  4);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // No action routine given
@@ -408,9 +419,11 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(2, 1, "TestIdleForwardsThreads.log");
-    ThreadTeam<int>  team2(4, 2, "TestIdleForwardsThreads.log");
-    ThreadTeam<int>  team3(6, 3, "TestIdleForwardsThreads.log");
+    orchestration::Logger::setLogFilename("TestIdleForwardsThreads.log");
+
+    ThreadTeam<int>  team1(2, 1);
+    ThreadTeam<int>  team2(4, 2);
+    ThreadTeam<int>  team3(6, 3);
 
     // Team 2 is a thread subscriber and publisher
     team1.attachThreadReceiver(&team2);
@@ -491,6 +504,9 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
         EXPECT_EQ(ThreadTeamMode::IDLE, team2.mode());
         EXPECT_EQ(ThreadTeamMode::IDLE, team3.mode());
     }
+
+    team1.detachThreadReceiver();
+    team2.detachThreadReceiver();
 }
 
 /**
@@ -504,7 +520,9 @@ TEST_F(ThreadTeamTest, TestNoWork) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(5, 1, "TestNoWork.log");
+    orchestration::Logger::setLogFilename("TestNoWork.log");
+
+    ThreadTeam<int>  team1(5, 1);
 
     noop.nInitialThreads = 3;
     for (unsigned int i=0; i<N_ITERS; ++i) {
@@ -548,8 +566,10 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(10, 1, "TestRunningOpenErrors.log");
-    ThreadTeam<int>  team2(10, 2, "TestRunningOpenErrors.log");
+    orchestration::Logger::setLogFilename("TestRunningOpenErrors.log");
+
+    ThreadTeam<int>  team1(10, 1);
+    ThreadTeam<int>  team2(10, 2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         noop.nInitialThreads = 5;
@@ -641,8 +661,10 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(3, 1, "TestRunningOpenIncreaseThreads.log");
-    ThreadTeam<int>  team2(4, 2, "TestRunningOpenIncreaseThreads.log");
+    orchestration::Logger::setLogFilename("TestRunningOpenIncreaseThreads.log");
+
+    ThreadTeam<int>  team1(3, 1);
+    ThreadTeam<int>  team2(4, 2);
 
     team1.attachThreadReceiver(&team2);
 
@@ -742,8 +764,10 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(3, 1, "TestRunningOpenEnqueue.log");
-    ThreadTeam<int>  team2(2, 2, "TestRunningOpenEnqueue.log");
+    orchestration::Logger::setLogFilename("TestRunningOpenEnqueue.log");
+
+    ThreadTeam<int>  team1(3, 1);
+    ThreadTeam<int>  team2(2, 2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.attachDataReceiver(&team2);
@@ -839,7 +863,9 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(5, 1, "TestRunningClosedErrors.log");
+    orchestration::Logger::setLogFilename("TestRunningClosedErrors.log");
+
+    ThreadTeam<int>  team1(5, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team has one active thread and two data items to stay closed
@@ -882,7 +908,9 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(4, 1, "TestRunningClosedActivation.log");
+    orchestration::Logger::setLogFilename("TestRunningClosedActivation.log");
+
+    ThreadTeam<int>  team1(4, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Add enough work to test all necessary transitions and wait until the
@@ -953,8 +981,10 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(3, 1, "TestRunningClosedWorkPub.log");
-    ThreadTeam<int>  team2(4, 2, "TestRunningClosedWorkPub.log");
+    orchestration::Logger::setLogFilename("TestRunningClosedWorkPub.log");
+
+    ThreadTeam<int>  team1(3, 1);
+    ThreadTeam<int>  team2(4, 2);
 
     team1.attachDataReceiver(&team2);
 
@@ -1094,7 +1124,9 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(5, 1, "TestRunningNoMoreWorkErrors.log");
+    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkErrors.log");
+
+    ThreadTeam<int>  team1(5, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team must have at least one data item to stay in
@@ -1143,8 +1175,10 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(2, 1, "TestRunningNoMoreWorkForward.log");
-    ThreadTeam<int>  team2(3, 2, "TestRunningNoMoreWorkForward.log");
+    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkForward.log");
+
+    ThreadTeam<int>  team1(2, 1);
+    ThreadTeam<int>  team2(3, 2);
 
     team1.attachThreadReceiver(&team2);
 
@@ -1250,9 +1284,11 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    ThreadTeam<int>  team1(8, 1, "TestRunningNoMoreWorkTransition.log");
-    ThreadTeam<int>  team2(3, 2, "TestRunningNoMoreWorkTransition.log");
-    ThreadTeam<int>  team3(8, 3, "TestRunningNoMoreWorkTransition.log");
+    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkTransition.log");
+
+    ThreadTeam<int>  team1(8, 1);
+    ThreadTeam<int>  team2(3, 2);
+    ThreadTeam<int>  team3(8, 3);
 
     team1.attachDataReceiver(&team2);
     team1.attachThreadReceiver(&team3);
@@ -1422,8 +1458,10 @@ TEST_F(ThreadTeamTest, TestTimings) {
         resolution_str = "Too small to measure";
     }
 
+    orchestration::Logger::setLogFilename("TestTimings2.log");
+
     ThreadTeam<int>* team1 = nullptr;
-    ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2, "TestTimings2.log");
+    ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2);
 
     std::cout << "\nTiming using C++ standard library steady clock\n";
     std::cout << "-------------------------------------------------------\n";
@@ -1445,9 +1483,11 @@ TEST_F(ThreadTeamTest, TestTimings) {
               << "      is much larger than the above clock resolution.\n" << std::endl; 
 
     //***** RUN CREATION TIME EXPERIMENT
+    orchestration::Logger::setLogFilename("TestTimings1.log");
+
     for (unsigned int i=0; i<wtimes_us.size(); ++i) {
         start = steady_clock::now();
-        team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1, "TestTimings1.log");
+        team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1);
         end = steady_clock::now();
         wtimes_us[i] = microseconds(end - start).count();
         EXPECT_TRUE(wtimes_us[i] > 0.0);

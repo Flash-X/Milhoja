@@ -11,9 +11,10 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
+    $(INCDIR)/ThreadPubSub.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -23,6 +24,8 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/RuntimeAction.h
 SRCS       = \
+    $(SRCDIR)/OrchestrationLogger.cpp  \
+    $(SRCDIR)/ThreadPubSub.cpp  \
     $(TESTDIR)/testRuntimeInt.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))

@@ -12,8 +12,9 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/ThreadTeamModes.h \
-    $(INCDIR)/ThreadTeamBase.h \
+    $(INCDIR)/ThreadPubSub.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -25,6 +26,8 @@ CXX_HDRS   = \
     $(TESTDIR)/threadTeamTest.h \
     $(TESTDIR)/testThreadRoutines.h
 SRCS       = \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/ThreadPubSub.cpp \
     $(TESTBASEDIR)/estimateTimerResolution.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testThreadTeam.cpp \

@@ -1,4 +1,5 @@
 #include "ThreadTeamRunningClosed.h"
+
 namespace orchestration {
 
 /**

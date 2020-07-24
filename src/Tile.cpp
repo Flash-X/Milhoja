@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 #include "Grid.h"
+#include "OrchestrationLogger.h"
 #include "Flash.h"
 #include "constants.h"
 
@@ -31,9 +32,13 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
     amrex::MultiFab&  unk = Grid::instance().unk();
     amrex::FArrayBox& fab = unk[gridIdx_];
     CC_h_ = fab.dataPtr();
-//    std::cout << "[Tile] Created Tile object "
-//              << gridIdx_
-//              << " from MFIter\n";
+
+#ifdef DEBUG_RUNTIME
+    std::string   msg =   "[Tile] Created Tile object "
+                        + std::to_string(gridIdx_)
+                        + " from MFIter";
+    Logger::instance().log(msg);
+#endif
 }
 
 Tile::Tile(Tile&& other)
@@ -69,9 +74,12 @@ Tile::Tile(Tile&& other)
     other.level_       = 0;
     other.interior_    = nullptr;
     other.GC_          = nullptr;
-//    std::cout << "[Tile] Moved Tile object "
-//              << gridIdx_
-//              << " by move constructor\n";
+
+#ifdef DEBUG_RUNTIME
+    std::string msg =    "[Tile] Moved Tile object "
+                      +  std::to_string(gridIdx_) +  " by move constructor";
+    Logger::instance().log(msg);
+#endif
 }
 
 Tile& Tile::operator=(Tile&& rhs) {
@@ -107,9 +115,11 @@ Tile& Tile::operator=(Tile&& rhs) {
     rhs.level_       = 0;
     rhs.interior_    = nullptr;
     rhs.GC_          = nullptr;
-//    std::cout << "[Tile] Moved Tile object "
-//              << gridIdx_
-//              << " by move assignment\n";
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Moved Tile object "
+                      + std::to_string(gridIdx_) + " by move assignment";
+    Logger::instance().log(msg);
+#endif
 
     return *this;
 }
@@ -118,8 +128,11 @@ Tile& Tile::operator=(Tile&& rhs) {
  *
  */
 Tile::~Tile(void) {
-//    std::cout << "[Tile] Destroying Tile object "
-//              << gridIdx_ << std::endl;
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Destroying Tile object " + std::to_string(gridIdx_);
+    Logger::instance().log(msg);
+#endif
+
     CC_h_        = nullptr;
     CC1_p_       = nullptr;
     CC2_p_       = nullptr;

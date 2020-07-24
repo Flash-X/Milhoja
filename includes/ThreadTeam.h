@@ -62,7 +62,7 @@
 #include "actionRoutine.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamMode.h"
-#include "ThreadTeamBase.h"
+#include "ThreadPubSub.h"
 
 #include "ThreadTeamState.h"
 #include "ThreadTeamIdle.h"
@@ -74,11 +74,10 @@
 namespace orchestration {
 
 template<typename DT>
-class ThreadTeam : public ThreadTeamBase {
+class ThreadTeam : public ThreadPubSub {
 public:
     ThreadTeam(const unsigned int nMaxThreads,
-               const unsigned int id,
-               const std::string& logFilename);
+               const unsigned int id);
     virtual ~ThreadTeam(void);
 
     // State-independent methods
@@ -100,8 +99,8 @@ public:
     void         wait(void);
 
     // State-dependent methods whose simple dependence is handled by this class
-    void         attachThreadReceiver(ThreadTeamBase* receiver);
-    void         detachThreadReceiver(void);
+    std::string  attachThreadReceiver(ThreadPubSub* receiver) override;
+    std::string  detachThreadReceiver(void) override;
 
     void         attachDataReceiver(ThreadTeam<DT>* receiver);
     void         detachDataReceiver(void);
@@ -203,7 +202,6 @@ private:
     ACTION_ROUTINE    actionRoutine_;      /*!< Computational routine to be applied to
                                             *   all data items enqueued with team*/
 
-    ThreadTeamBase*   threadReceiver_;     //!< Thread team to notify when threads terminate
     ThreadTeam<DT>*   dataReceiver_;       /*!< Thread team to pass data items
                                                 to once this team's action has
                                                 already been applied to the

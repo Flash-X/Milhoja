@@ -108,7 +108,7 @@ void    Grid::initDomain(const Real xMin, const Real xMax,
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock;
 
-    ThreadTeam<Tile>  team(4, 1, "no.log");
+    ThreadTeam<Tile>  team(4, 1);
     team.startCycle(action, "Cpu");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
         team.enqueue( std::make_shared<Tile>(itor, level) );

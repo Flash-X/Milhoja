@@ -4,11 +4,11 @@
 #include <iostream>
 
 #include "Grid.h"
+#include "OrchestrationLogger.h"
 #include "Flash.h"
 
 namespace orchestration {
 
-std::string     Runtime::logFilename_       = "";
 unsigned int    Runtime::nTileTeams_        = 0;
 unsigned int    Runtime::nPacketTeams_      = 0;
 unsigned int    Runtime::maxThreadsPerTeam_ = 0;
@@ -27,16 +27,11 @@ Runtime& Runtime::instance(void) {
 
 /**
  * 
- *
+ * 
  * \return 
  */
 void Runtime::setLogFilename(const std::string& filename) {
-    if (instantiated_) {
-        throw std::logic_error("[Runtime::setLogFilename] "
-                               "Set only when runtime does not exist");
-    }
-
-    logFilename_ = filename;
+    orchestration::Logger::setLogFilename(filename);
 }
 
 /**
@@ -82,9 +77,7 @@ void Runtime::setMaxThreadsPerTeam(const unsigned int nThreads) {
  */
 Runtime::Runtime(void) {
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Initializing\n";
-    logFile_.close();
+    Logger::instance().log("[Runtime] Initializing");
 #endif
 
     if ((nTileTeams_ <= 0) && (nPacketTeams_ <= 0)) {
@@ -94,18 +87,16 @@ Runtime::Runtime(void) {
 
     tileTeams_ = new ThreadTeam<Tile>*[nTileTeams_];
     for (unsigned int i=0; i<nTileTeams_; ++i) {
-        tileTeams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i, logFilename_);
+        tileTeams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i);
     }
 
     packetTeams_ = new ThreadTeam<DataPacket>*[nPacketTeams_];
     for (unsigned int i=0; i<nPacketTeams_; ++i) {
-        packetTeams_[i] = new ThreadTeam<DataPacket>(maxThreadsPerTeam_, i, logFilename_);
+        packetTeams_[i] = new ThreadTeam<DataPacket>(maxThreadsPerTeam_, i);
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Initialized\n";
-    logFile_.close();
+    Logger::instance().log("[Runtime] Initialized");
 #endif
 }
 
@@ -118,9 +109,7 @@ Runtime::~Runtime(void) {
     instantiated_ = false;
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Finalizing\n";
-    logFile_.close();
+    Logger::instance().log("[Runtime] Finalizing");
 #endif
 
     for (unsigned int i=0; i<nTileTeams_; ++i) {
@@ -138,9 +127,7 @@ Runtime::~Runtime(void) {
     packetTeams_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Finalized\n";
-    logFile_.close();
+    Logger::instance().log("[Runtime] Finalized");
 #endif
 }
 
@@ -151,10 +138,8 @@ Runtime::~Runtime(void) {
  */
 void Runtime::executeTasks(const ActionBundle& bundle) {
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Start execution of " 
-             << bundle.name << std::endl;
-    logFile_.close();
+    std::string msg = "[Runtime] Start execution of " + bundle.name;
+    Logger::instance().log(msg);
 #endif
 
     if      (bundle.distribution != WorkDistribution::Concurrent) {
@@ -209,10 +194,8 @@ void Runtime::executeTasks(const ActionBundle& bundle) {
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[Runtime] Finished execution of " 
-             << bundle.name << std::endl;
-    logFile_.close();
+    msg  = "[Runtime] Finished execution of " + bundle.name;
+    Logger::instance().log(msg);
 #endif
 }
 

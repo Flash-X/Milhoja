@@ -1,4 +1,7 @@
 #include "ThreadTeamIdle.h"
+
+#include "OrchestrationLogger.h"
+
 namespace orchestration {
 
 /**
@@ -63,15 +66,11 @@ std::string ThreadTeamIdle<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& 
     std::string   errMsg("");
 
 #ifdef DEBUG_RUNTIME
-    team_->logFile_.open(team_->logFilename_, std::ios::out | std::ios::app);
-    team_->logFile_ << "[" << team_->hdr_ << "] Assigned team name "
-                    << teamName << std::endl;
-    team_->logFile_ << "[" << teamName << "] Starting action "
-                    << action.name
-                    << " with "
-                    << std::to_string(action.nInitialThreads)
-                    << " initial threads\n";
-    team_->logFile_.close();
+    std::string msg = "[" + team_->hdr_ + "] Assigned team name " + teamName;
+    Logger::instance().log(msg);
+    msg = "[" + teamName + "] Starting action " + action.name + " with "
+          + std::to_string(action.nInitialThreads) + " initial threads";
+    Logger::instance().log(msg);
 #endif
 
     team_->hdr_ = teamName;

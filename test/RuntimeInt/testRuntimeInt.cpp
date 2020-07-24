@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "ThreadTeam.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -53,12 +54,14 @@ protected:
  * studied to confirm correctness.
  */
 TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
+    orchestration::Logger::setLogFilename("TestSingle_ManualCheck.log");
+
     std::vector<int>   work = {-5, 4, -1, 0, -6, 25};
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestSingle_ManualCheck.log");
+    ThreadTeam<int>   cpu_int(3,      1);
+    ThreadTeam<int>   gpu_int(6,      2);
+    ThreadTeam<int>   postGpu_int(10, 3);
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
@@ -117,6 +120,8 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
  * runtime produced the correct result.  No exceptions means the test passed.
  */
 TEST_F(ThreadRuntimeInt, TestMultipleFast) {
+    orchestration::Logger::setLogFilename("TestMultipleFast.log");
+
 #ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
 #else
@@ -130,9 +135,9 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleFast.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleFast.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleFast.log");
+    ThreadTeam<int>   cpu_int(3,      1);
+    ThreadTeam<int>   gpu_int(6,      2);
+    ThreadTeam<int>   postGpu_int(10, 3);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         cpu_int.attachThreadReceiver(&postGpu_int);
@@ -194,6 +199,8 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
  * means the test passed.
  */
 TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
+    orchestration::Logger::setLogFilename("TestMultipleRandomWait.log");
+
     srand(1000);
 
 #ifdef DEBUG_RUNTIME
@@ -209,9 +216,9 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleRandomWait.log");
+    ThreadTeam<int>   cpu_int(3,      1);
+    ThreadTeam<int>   gpu_int(6,      2);
+    ThreadTeam<int>   postGpu_int(10, 3);
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
