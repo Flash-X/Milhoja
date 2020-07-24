@@ -2,8 +2,8 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_grid_cpp
-MAKEFILE     = Makefile_grid_cpp
+BASE         = test_gridamr_cpp
+MAKEFILE     = Makefile_gridamr_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
@@ -43,7 +43,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTDIR)/gridAMRTest.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \

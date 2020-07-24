@@ -12,6 +12,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
+#include "Grid_AmrCoreFlash.h"
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -35,7 +36,7 @@ public:
     void    destroyDomain(void);
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }
-    amrex::Geometry&   geometry(void)  { return geometry_; }
+    amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
 
     //Basic getter functions.
     RealVect       getProbLo() const;
@@ -56,6 +57,8 @@ public:
 
     void    writeToFile(const std::string& filename) const;
 
+    amrex::MultiFab*   unk_;
+
 private:
     Grid(void);
     Grid(const Grid&) = delete;
@@ -63,8 +66,8 @@ private:
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
 
-    amrex::Geometry    geometry_;
-    amrex::MultiFab*   unk_;
+    //amrex::Geometry    geometry_;
+    AmrCoreFlash*      amrcore_;
 };
 
 }

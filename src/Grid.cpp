@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <string>
 
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
@@ -13,6 +14,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_Geometry.H>
+#include "Grid_AmrCoreFlash.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -46,7 +48,17 @@ Grid::Grid(void)
     if(!std::is_same<amrex::Real,Real>::value) {
       throw std::logic_error("amrex::Real does not match orchestration::Real");
     }
-    amrex::Initialize(MPI_COMM_WORLD);
+
+    // TODO : do parm parse manually instead of pretending to pass from command line
+    std::string parfile = "/Users/tklosterman/Documents/orchestrationruntime/amrex_inputs";
+    std::vector<char*> argvec;
+    argvec.push_back( (char*)parfile.data() ); //technically should be binary name
+    argvec.push_back( (char*)parfile.data() );
+    argvec.push_back( nullptr );
+    int argc = 2;
+    char** argv = argvec.data();
+
+    amrex::Initialize( argc , argv ,true,MPI_COMM_WORLD);
     destroyDomain();
 }
 
@@ -86,25 +98,28 @@ void    Grid::initDomain(const RealVect& probMin,
     amrex::IntVect nBlocks_am = amrex::IntVect(nBlocks);
 
     //***** SETUP DOMAIN, PROBLEM, and MESH
-    amrex::IndexType    ccIndexSpace(amrex::IntVect(0));
-    amrex::IntVect      domainLo{0};
-    amrex::IntVect      domainHi = nBlocks_am * nCells_am - 1;
-    amrex::Box          domain{domainLo, domainHi, ccIndexSpace};
+    //amrex::IndexType    ccIndexSpace(amrex::IntVect(0));
+    //amrex::IntVect      domainLo{0};
+    //amrex::IntVect      domainHi = nBlocks_am * nCells_am - 1;
+    //amrex::Box          domain{domainLo, domainHi, ccIndexSpace};
 
-    amrex::BoxArray     ba{domain};
-    ba.maxSize(nCells_am);
+    //amrex::BoxArray     ba{domain};
+    //ba.maxSize(nCells_am);
 
-    amrex::DistributionMapping  dm{ba};
+    //amrex::DistributionMapping  dm{ba};
 
     // Setup with Cartesian coordinate and non-periodic BC so that we can set
     // the BC ourselves
-    int coordSystem = 0;  // Cartesian
-    amrex::RealBox      probDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
-    geometry_ = amrex::Geometry(domain, probDomain,
-                                coordSystem, {LIST_NDIM(0,0,0)} );
+    //int coordSystem = 0;  // Cartesian
+    //amrex::RealBox      probDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
+    //geometry_ = amrex::Geometry(domain, probDomain,
+    //                            coordSystem, {LIST_NDIM(0,0,0)} );
 
     unsigned int   level = 0;
-    unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
+    //unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
+
+    amrcore_ = new AmrCoreFlash;
+    amrcore_->InitFromScratch(0.0_wp);
 
     // TODO: Thread count should be a runtime variable
     RuntimeAction    action;
@@ -131,7 +146,11 @@ void    Grid::destroyDomain(void) {
         delete unk_;
         unk_ = nullptr;
     }
-    geometry_ = amrex::Geometry();
+    if (amrcore_) {
+        delete amrcore_;
+        amrcore_ = nullptr;
+    }
+    //geometry_ = amrex::Geometry();
 }
 
 /**
@@ -140,7 +159,7 @@ void    Grid::destroyDomain(void) {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    Grid::getProbLo() const {
-    return RealVect{geometry_.ProbLo()};
+    return RealVect{amrcore_->Geom(0).ProbLo()};
 }
 
 /**
@@ -149,7 +168,7 @@ RealVect    Grid::getProbLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    Grid::getProbHi() const {
-    return RealVect{geometry_.ProbHi()};
+    return RealVect{amrcore_->Geom(0).ProbHi()};
 }
 
 /**
@@ -159,7 +178,7 @@ RealVect    Grid::getProbHi() const {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    return RealVect{geometry_.CellSize()};
+    return RealVect{amrcore_->Geom(0).CellSize()};
 }
 
 /**
@@ -186,7 +205,7 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
   * @return area of face (Real)
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
-    return geometry_.AreaLo( amrex::IntVect(coord) , axis);
+    return amrcore_->Geom(0).AreaLo( amrex::IntVect(coord) , axis);
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
@@ -196,7 +215,7 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   * @return Volume of cell (Real)
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
-    return geometry_.Volume( amrex::IntVect(coord) );
+    return amrcore_->Geom(0).Volume( amrex::IntVect(coord) );
 }
 
 /** fillCellCoords fills a Real array (passed by pointer) with the
@@ -226,14 +245,14 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
     amrex::Vector<amrex::Real> coordvec;
     switch (edge) {
         case Edge::Left:
-            geometry_.GetEdgeLoc(coordvec,range,axis);
+            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
             break;
         case Edge::Right:
             offset = 1;
-            geometry_.GetEdgeLoc(coordvec,range,axis);
+            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
             break;
         case Edge::Center:
-            geometry_.GetCellLoc(coordvec,range,axis);
+            amrcore_->Geom(0).GetCellLoc(coordvec,range,axis);
             break;
     }
 
@@ -262,7 +281,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox area_fab{range,1,areaPtr};
-    geometry_.CoordSys::SetFaceArea(area_fab,range,axis);
+    amrcore_->Geom(0).CoordSys::SetFaceArea(area_fab,range,axis);
 }
 
 
@@ -278,7 +297,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox vol_fab{range,1,volPtr};
-    geometry_.CoordSys::SetVolume(vol_fab,range);
+    amrcore_->Geom(0).CoordSys::SetVolume(vol_fab,range);
 }
 
 /**
@@ -309,7 +328,7 @@ void    Grid::writeToFile(const std::string& filename) const {
     names[0] = "Density";
     names[1] = "Energy";
 
-    amrex::WriteSingleLevelPlotfile(filename, *unk_, names, geometry_, 0.0, 0);
+    amrex::WriteSingleLevelPlotfile(filename, *unk_, names, amrcore_->Geom(0), 0.0, 0);
 }
 
 
