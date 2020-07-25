@@ -8,10 +8,9 @@
 #ifndef GRID_H__
 #define GRID_H__
 
-#include <AMReX.H>
+//TODO delete these
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_PlotFileUtil.H>
 #include "Grid_AmrCoreFlash.h"
 
 #include "Grid_REAL.h"
@@ -24,43 +23,42 @@ namespace orchestration {
 
 class Grid {
 public:
-    ~Grid(void);
+    ~Grid(void) { instantiated_ = false; }
 
     static Grid& instance(void);
-
-    void    initDomain(const RealVect& probMin,
-                       const RealVect& probMax,
-                       const IntVect& nBlocks,
-                       const unsigned int nVars,
-                       TASK_FCN initBlock);
-    void    destroyDomain(void);
+    static void  instantiate(void);
+    virtual void destroyDomain(void) {}
 
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
 
-    //Basic getter functions.
+    // Pure virtual functions that must be implemented by derived class.
+    virtual void  initDomain(TASK_FCN initBlock) = 0;
     virtual RealVect       getProbLo() const = 0;
     virtual RealVect       getProbHi() const = 0;
-    RealVect       getDeltas(const unsigned int lev) const;
-    RealVect       getBlkCenterCoords(const Tile& tileDesc) const;
+    virtual unsigned int   getMaxRefinement() const = 0;
+    virtual unsigned int   getMaxLevel() const = 0;
+    virtual void     writeToFile(const std::string& filename) const = 0;
 
-    Real           getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
-    Real           getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
-    Real           getCellVolume(const unsigned int lev, const IntVect& coord) const;
 
-    void           fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const;
-    void           fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const;
-    void           fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
+    // Virtual functions with a default implementation that may be
+    // overwritten by derived class.
+    virtual RealVect getDeltas(const unsigned int lev) const;
+    virtual RealVect getBlkCenterCoords(const Tile& tileDesc) const;
 
-    unsigned int   getMaxRefinement() const;
-    unsigned int   getMaxLevel() const;
+    //virtual Real     getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
+    virtual Real     getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
+    virtual Real     getCellVolume(const unsigned int lev, const IntVect& coord) const;
 
-    void    writeToFile(const std::string& filename) const;
+    virtual void     fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const;
+    virtual void     fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const;
+    virtual void     fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
 
     amrex::MultiFab*   unk_;
 
 protected:
-    Grid(void);
+    Grid(void) : unk_(nullptr) {}
+    static bool instantiated_;
     AmrCoreFlash*      amrcore_;
 
 // TODO make these private??

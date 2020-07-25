@@ -4,7 +4,7 @@
 int main(int argc, char* argv[]) {
         ::testing::InitGoogleTest(&argc, argv);
 
-        orchestration::Grid::instance();
+        orchestration::Grid::instantiate();
 
         return RUN_ALL_TESTS();
 }

@@ -32,12 +32,7 @@ namespace {
 class GridUnitTest : public testing::Test {
 protected:
     GridUnitTest(void) {
-            RealVect probMin{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
-            RealVect probMax{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
-            IntVect  nBlocks{LIST_NDIM(N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z)};
-            Grid&    grid = Grid::instance();
-            grid.initDomain(probMin,probMax,nBlocks,NUNKVAR,
-                            Simulation::setInitialConditions_block);
+            Grid::instance().initDomain(Simulation::setInitialConditions_block);
     }
 
     ~GridUnitTest(void) {

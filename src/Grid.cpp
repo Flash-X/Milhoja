@@ -1,163 +1,48 @@
 #include "Grid.h"
 
-#include <cassert>
 #include <stdexcept>
-#include <string>
-
-#include <AMReX_Vector.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_IndexType.H>
-#include <AMReX_Box.H>
-#include <AMReX_RealBox.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_CoordSys.H>
-#include <AMReX_Geometry.H>
-#include "Grid_AmrCoreFlash.h"
-#include "GridAmrex.h"
-
-#include "Flash.h"
-#include "constants.h"
-#include "Tile.h"
-#include "RuntimeAction.h"
-#include "ThreadTeamDataType.h"
-#include "ThreadTeam.h"
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
 
+// TODO: move to a header?
+#ifdef GRID_AMREX
+#include "GridAmrex.h"
+namespace orchestration {
+    typedef GridAmrex GridVersion;
+}
+#else
+throw std::logic_error("Need to specify Grid implementation with GRID_[NAME] macro.");
+#endif
+
+
 namespace orchestration {
 
+
 /**
- * 
+ * instace gets a reference to the singleton Grid object.
  *
- * \return 
+ * @return A reference to the singleton object, which has been downcast to Grid type.
  */
 Grid&   Grid::instance(void) {
-#ifdef GRID_AMREX
-    static GridAmrex     gridSingleton;
-#else
-    throw std::logic_error("Need to specify Grid implementation with GRID_[NAME] macro.");
-#endif
+    if(!instantiated_) {
+        throw std::logic_error("Cannot call Grid::instance until after Grid::instantiate has been called.");
+    }
+    static GridVersion gridSingleton;
     return gridSingleton;
 }
 
 /**
- * 
- *
- * \return 
+ * instantiate allows the user to easily distinguish the first call to instance(), which
+ * calls the Grid constructor, from all subsequent calls. It must be called exactly once in
+ * the program, before all calls to instance().
  */
-Grid::Grid(void) 
-    : unk_(nullptr)
-{
-    if(!std::is_same<amrex::Real,Real>::value) {
-      throw std::logic_error("amrex::Real does not match orchestration::Real");
+void   Grid::instantiate(void) {
+    if(instantiated_) {
+        throw std::logic_error("Cannot call Grid::instantiate after Grid has already been initialized.");
     }
-
-    // TODO : do parm parse manually instead of pretending to pass from command line
-    std::string parfile = "/Users/tklosterman/Documents/orchestrationruntime/amrex_inputs";
-    std::vector<char*> argvec;
-    argvec.push_back( (char*)parfile.data() ); //technically should be binary name
-    argvec.push_back( (char*)parfile.data() );
-    argvec.push_back( nullptr );
-    int argc = 2;
-    char** argv = argvec.data();
-
-    amrex::Initialize( argc , argv ,true,MPI_COMM_WORLD);
-    destroyDomain();
+    instantiated_ = true;
+    Grid::instance();
 }
-
-/**
- * 
- */
-Grid::~Grid(void) {
-    // All Grid finalization is carried out here
-    destroyDomain();
-    amrex::Finalize();
-}
-
-/**
- * initDomain creates the domain in AMReX.
- *
- * @param probMin The physical lower boundary of the domain.
- * @param probMax The physical upper boundary of the domain.
- * @param nBlocks The number of root blocks in each direction.
- * @param nVars Number of physical variables.
- * @param initBlock Function pointer to the simulation's initBlock routine.
- */
-void    Grid::initDomain(const RealVect& probMin,
-                         const RealVect& probMax,
-                         const IntVect& nBlocks,
-                         const unsigned int nVars,
-                         TASK_FCN initBlock) {
-    // TODO: Error check all given parameters
-    if (unk_) {
-        throw std::logic_error("[Grid::initDomain] Grid unit's initDomain already called");
-    } else if (!initBlock) {
-        throw std::logic_error("[Grid::initDomain] Null initBlock function pointer given");
-    }
-
-    amrex::IntVect nCells_am{LIST_NDIM(NXB,NYB,NZB)};
-    amrex::RealVect probMin_am = amrex::RealVect(probMin);
-    amrex::RealVect probMax_am = amrex::RealVect(probMax);
-    amrex::IntVect nBlocks_am = amrex::IntVect(nBlocks);
-
-    //***** SETUP DOMAIN, PROBLEM, and MESH
-    //amrex::IndexType    ccIndexSpace(amrex::IntVect(0));
-    //amrex::IntVect      domainLo{0};
-    //amrex::IntVect      domainHi = nBlocks_am * nCells_am - 1;
-    //amrex::Box          domain{domainLo, domainHi, ccIndexSpace};
-
-    //amrex::BoxArray     ba{domain};
-    //ba.maxSize(nCells_am);
-
-    //amrex::DistributionMapping  dm{ba};
-
-    // Setup with Cartesian coordinate and non-periodic BC so that we can set
-    // the BC ourselves
-    //int coordSystem = 0;  // Cartesian
-    //amrex::RealBox      probDomain{probMin_am.dataPtr(), probMax_am.dataPtr()};
-    //geometry_ = amrex::Geometry(domain, probDomain,
-    //                            coordSystem, {LIST_NDIM(0,0,0)} );
-
-    unsigned int   level = 0;
-    //unk_ = new amrex::MultiFab(ba, dm, nVars, NGUARD);
-
-    amrcore_ = new AmrCoreFlash;
-    amrcore_->InitFromScratch(0.0_wp);
-
-    // TODO: Thread count should be a runtime variable
-    RuntimeAction    action;
-    action.name = "initBlock";
-    action.nInitialThreads = 4;
-    action.teamType = ThreadTeamDataType::BLOCK;
-    action.routine = initBlock;
-
-    ThreadTeam<Tile>  team(4, 1, "no.log");
-    team.startTask(action, "Cpu");
-    for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        Tile   tileDesc(itor, level);
-        team.enqueue(tileDesc, true);
-    }
-    team.closeTask();
-    team.wait();
-}
-
-/**
- *
- */
-void    Grid::destroyDomain(void) {
-    if (unk_) {
-        delete unk_;
-        unk_ = nullptr;
-    }
-    if (amrcore_) {
-        delete amrcore_;
-        amrcore_ = nullptr;
-    }
-    //geometry_ = amrex::Geometry();
-}
-
 
 /**
   * getDeltas gets the cell size for a given level.
@@ -166,7 +51,8 @@ void    Grid::destroyDomain(void) {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    return RealVect{amrcore_->Geom(0).CellSize()};
+    throw std::logic_error("Grid::getDeltas not implemented");
+    return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
 /**
@@ -193,7 +79,8 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
   * @return area of face (Real)
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
-    return amrcore_->Geom(0).AreaLo( amrex::IntVect(coord) , axis);
+    throw std::logic_error("Grid::getCellFaceAreaLo not implemented");
+    return 0.0_wp;
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
@@ -203,7 +90,8 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   * @return Volume of cell (Real)
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
-    return amrcore_->Geom(0).Volume( amrex::IntVect(coord) );
+    throw std::logic_error("Grid::getCellVolume not implemented");
+    return 0.0_wp;
 }
 
 /** fillCellCoords fills a Real array (passed by pointer) with the
@@ -225,34 +113,11 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
         throw std::logic_error("Grid::fillCellCoords: Invalid edge.");
     }
 #endif
-    amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    int nElements = hi[axis] - lo[axis] + 1;
-    int offset = 0; //accounts for indexing of left/right cases
-
-    //coordvec is length nElements + 1 if edge is Left or Right
-    amrex::Vector<amrex::Real> coordvec;
-    switch (edge) {
-        case Edge::Left:
-            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Right:
-            offset = 1;
-            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Center:
-            amrcore_->Geom(0).GetCellLoc(coordvec,range,axis);
-            break;
-    }
-
-    //copy results to output
-    for(int i=0; i<nElements; ++i) {
-        coordPtr[i] = coordvec[i+offset];
-    }
+    throw std::logic_error("Grid::fillCellCoords not implemented");
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
   * cell face areas in a given range.
-  * DEV NOTE: I assumed CoordSys::SetFaceArea corresponds to AreaLo (not AreaHi)
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param lev Level (0-based)
@@ -267,9 +132,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
         throw std::logic_error("Grid::fillCellFaceAreasLo: Invalid axis.");
     }
 #endif
-    amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::FArrayBox area_fab{range,1,areaPtr};
-    amrcore_->Geom(0).CoordSys::SetFaceArea(area_fab,range,axis);
+    throw std::logic_error("Grid::fillCellFaceAreasLo not implemented");
 }
 
 
@@ -283,41 +146,11 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
-    amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::FArrayBox vol_fab{range,1,volPtr};
-    amrcore_->Geom(0).CoordSys::SetVolume(vol_fab,range);
+    throw std::logic_error("Grid::fillCellVolumes not implemented");
 }
 
-/**
-  * getMaxRefinement returns the maximum possible refinement level. (Specified by user).
-  *
-  * @return Maximum refinement level of simulation.
-  */
-unsigned int Grid::getMaxRefinement() const {
-    //TODO obviously has to change when AMR is implemented
-    return 0;
-}
 
-/**
-  * getMaxRefinement returns the highest level of blocks actually in existence. 
-  *
-  * @return The max level of existing blocks (0 is coarsest).
-  */
-unsigned int Grid::getMaxLevel() const {
-    //TODO obviously has to change when AMR is implemented
-    return 0;
-}
-
-/**
- *
- */
-void    Grid::writeToFile(const std::string& filename) const {
-    amrex::Vector<std::string>    names(unk_->nComp());
-    names[0] = "Density";
-    names[1] = "Energy";
-
-    amrex::WriteSingleLevelPlotfile(filename, *unk_, names, amrcore_->Geom(0), 0.0, 0);
-}
+bool Grid::instantiated_ = false;
 
 
 }
