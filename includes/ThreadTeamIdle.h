@@ -13,10 +13,12 @@
 
 namespace orchestration {
 
-template<typename DT, class T>
-class ThreadTeamIdle : public ThreadTeamState<DT, T> {
+class DataItem;
+class ThreadTeam;
+
+class ThreadTeamIdle : public ThreadTeamState {
 public:
-    ThreadTeamIdle(T* team);
+    ThreadTeamIdle(ThreadTeam* team);
     ~ThreadTeamIdle(void)                 { };
 
     ThreadTeamMode  mode(void) const override {
@@ -28,7 +30,7 @@ public:
     std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) override;
+    std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) override;
     std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
@@ -43,13 +45,10 @@ private:
     ThreadTeamIdle& operator=(const ThreadTeamIdle& rhs) = delete;
     ThreadTeamIdle& operator=(ThreadTeamIdle&& rhs)      = delete;
 
-    T*    team_;
+    ThreadTeam*    team_;
 };
 
 }
-// Include class definition in header since this is a class template
-//   => no need to compile the .cpp file directly as part of build
-#include "../src/ThreadTeamIdle.cpp"
 
 #endif
 

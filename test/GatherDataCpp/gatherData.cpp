@@ -30,8 +30,7 @@
 constexpr unsigned int   LEVEL = 0;
 
 constexpr unsigned int   N_TRIALS = 5;
-constexpr unsigned int   N_TILE_THREAD_TEAMS = 3;
-constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
+constexpr unsigned int   N_THREAD_TEAMS = 3;
 
 void  setUp(void) {
     using namespace orchestration;
@@ -132,8 +131,7 @@ int   main(int argc, char* argv[]) {
     }
 
     // Initialize simulation
-    orchestration::Runtime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
-                                                 N_PACKET_THREAD_TEAMS);
+    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(nTotalThreads);
     orchestration::Runtime::setLogFilename("GatherDataCpp.log");
     orchestration::Runtime&   runtime = orchestration::Runtime::instance();

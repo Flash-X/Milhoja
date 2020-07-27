@@ -1,6 +1,8 @@
 #include "ThreadTeamIdle.h"
 
 #include "OrchestrationLogger.h"
+#include "DataItem.h"
+#include "ThreadTeam.h"
 
 namespace orchestration {
 
@@ -12,9 +14,8 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename DT, class T>
-ThreadTeamIdle<DT,T>::ThreadTeamIdle(T* team)
-    : ThreadTeamState<DT,T>(),
+ThreadTeamIdle::ThreadTeamIdle(ThreadTeam* team)
+    : ThreadTeamState(),
       team_(team)
 {
     if (!team_) {
@@ -33,8 +34,7 @@ ThreadTeamIdle<DT,T>::ThreadTeamIdle(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamIdle<DT,T>::isStateValid_NotThreadSafe(void) const {
+std::string ThreadTeamIdle::isStateValid_NotThreadSafe(void) const {
     std::string errMsg("");
 
     if (team_->N_idle_ != team_->nMaxThreads_) {
@@ -60,9 +60,8 @@ std::string ThreadTeamIdle<DT,T>::isStateValid_NotThreadSafe(void) const {
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamIdle<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
-                                                           const std::string& teamName) {
+std::string ThreadTeamIdle::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                     const std::string& teamName) {
     std::string   errMsg("");
 
 #ifdef DEBUG_RUNTIME
@@ -115,8 +114,7 @@ std::string ThreadTeamIdle<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& 
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamIdle<DT,T>::increaseThreadCount_NotThreadsafe(
+std::string ThreadTeamIdle::increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) {
     // No need to alter N_to_activate_ as we forward the thread activation on
     if (team_->threadReceiver_) {
@@ -136,8 +134,7 @@ std::string ThreadTeamIdle<DT,T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamIdle<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
+std::string ThreadTeamIdle::enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) {
     // TODO: Consider (carefully!) allowing for enqueueing of data items when
     // the team is Idle and with a routine that will only acquire the mutex
     // once.  This could allow for decreasing mutex contention when threads
@@ -158,8 +155,7 @@ std::string ThreadTeamIdle<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& da
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamIdle<DT,T>::closeQueue_NotThreadsafe(void) {
+std::string ThreadTeamIdle::closeQueue_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeQueue", 0,
                   "Cannot close the queue when no task is being executed");
 }

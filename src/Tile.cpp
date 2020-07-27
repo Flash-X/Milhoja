@@ -14,7 +14,8 @@ namespace orchestration {
  *
  */
 Tile::Tile(amrex::MFIter& itor, const unsigned int level)
-    : CC_h_{nullptr},
+    : DataItem{},
+      CC_h_{nullptr},
       CC1_p_{nullptr},
       CC2_p_{nullptr},
       loGC_p_{nullptr},
@@ -42,7 +43,8 @@ Tile::Tile(amrex::MFIter& itor, const unsigned int level)
 }
 
 Tile::Tile(Tile&& other)
-    : CC_h_{other.CC_h_},
+    : DataItem{},
+      CC_h_{other.CC_h_},
       CC1_p_{other.CC1_p_},
       CC2_p_{other.CC2_p_},
       loGC_p_{other.loGC_p_},
@@ -267,6 +269,20 @@ amrex::XDim3 Tile::deltas(void) const {
     deltas.z = geometry.CellSize(2);
 
     return deltas;
+}
+
+/**
+ *
+ */
+std::size_t Tile::nSubItems(void) const {
+    throw std::logic_error("[Tile::nSubItems] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
+void  Tile::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
+    throw std::logic_error("[Tile::addSubItem] Tiles do not have sub items");
 }
 
 }

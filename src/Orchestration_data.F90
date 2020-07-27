@@ -6,8 +6,7 @@ module Orchestration_data
     implicit none
 
     character(18), parameter :: or_logFilename        = "TestRuntimeF90.log"
-    integer,       parameter :: or_nTileThreadTeams   = 3
-    integer,       parameter :: or_nPacketThreadTeams = 0
+    integer,       parameter :: or_nThreadTeams       = 3
     integer,       parameter :: or_nThreadsPerTeam    = 5
 
     ! Keep track of the initialization status of the OrchestrationRuntime

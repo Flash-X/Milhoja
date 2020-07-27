@@ -83,7 +83,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     amrex::MultiFab&   unk = Grid::instance().unk();
 
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<Tile>  cpu_block(N_THREADS, 1);
+    ThreadTeam  cpu_block(N_THREADS, 1);
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
@@ -92,7 +92,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -100,7 +100,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -108,7 +108,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         scaleEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(scaleEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -117,7 +117,7 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         computeErrors_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeErrors_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::make_shared<Tile>(itor, level) );
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
         cpu_block.closeQueue();
         cpu_block.wait();

@@ -13,10 +13,13 @@
 
 namespace orchestration {
 
-template<typename DT, class T>
-class ThreadTeamRunningNoMoreWork : public ThreadTeamState<DT,T> {
+class DataItem;
+class ThreadTeam;
+class ThreadTeamState;
+
+class ThreadTeamRunningNoMoreWork : public ThreadTeamState {
 public:
-    ThreadTeamRunningNoMoreWork(T* team);
+    ThreadTeamRunningNoMoreWork(ThreadTeam* team);
     ~ThreadTeamRunningNoMoreWork(void)                { };
 
     // State-dependent methods
@@ -29,7 +32,7 @@ public:
     std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) override;
+    std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) override;
     std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
@@ -44,13 +47,9 @@ private:
     ThreadTeamRunningNoMoreWork& operator=(const ThreadTeamRunningNoMoreWork& rhs) = delete;
     ThreadTeamRunningNoMoreWork& operator=(ThreadTeamRunningNoMoreWork&& rhs)      = delete;
 
-    T*    team_;
+    ThreadTeam*    team_;
 };
 }
-
-// Include class definition in header since this is a class template
-//   => no need to compile the .cpp file directly as part of build
-#include "../src/ThreadTeamRunningNoMoreWork.cpp"
 
 #endif
 

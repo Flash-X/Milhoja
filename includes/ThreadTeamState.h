@@ -15,12 +15,16 @@
 #define THREAD_TEAM_STATE_H__
 
 #include <string>
+#include <memory>
 
+#include "ThreadTeamMode.h"
 #include "RuntimeAction.h"
 
 namespace orchestration {
 
-template<typename DT, class T>
+class DataItem;
+class ThreadTeam;
+
 class ThreadTeamState {
 public:
     ThreadTeamState(void)          {  }
@@ -33,11 +37,11 @@ public:
     virtual std::string     startCycle_NotThreadsafe(
                                     const RuntimeAction& action,
                                     const std::string& teamName) = 0;
-    virtual std::string     enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) = 0;
+    virtual std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) = 0;
     virtual std::string     closeQueue_NotThreadsafe(void) = 0;
 
 protected:
-    friend T;
+    friend ThreadTeam;
 
     virtual std::string     isStateValid_NotThreadSafe(void) const = 0;
 };

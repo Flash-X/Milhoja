@@ -19,9 +19,9 @@ CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamPubSub.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -47,7 +47,13 @@ SRCS       = \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(SRCDIR)/ThreadPubSub.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \

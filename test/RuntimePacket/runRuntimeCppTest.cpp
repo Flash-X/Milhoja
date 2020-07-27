@@ -3,9 +3,8 @@
 
 #include <gtest/gtest.h>
 
-static constexpr unsigned int   N_TILE_THREAD_TEAMS   = 1;
-static constexpr unsigned int   N_PACKET_THREAD_TEAMS = 3;
-static constexpr unsigned int   MAX_THREADS           = 5;
+static constexpr unsigned int   N_THREAD_TEAMS   = 3;
+static constexpr unsigned int   MAX_THREADS      = 5;
 
 // We need to create our own main for the testsuite since we can only call
 // MPI_Init/MPI_Finalize once per testsuite execution.
@@ -15,8 +14,7 @@ int main(int argc, char* argv[]) {
     // Instantiate Grid unit, which initializes AMReX and MPI
     orchestration::Grid::instance();
 
-    orchestration::Runtime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
-                                                 N_PACKET_THREAD_TEAMS);
+    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
     orchestration::Runtime::setLogFilename("DeleteMe.log");
     orchestration::Runtime::instance();

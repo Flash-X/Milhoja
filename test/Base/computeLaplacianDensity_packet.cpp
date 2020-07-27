@@ -9,8 +9,8 @@ void ThreadRoutines::computeLaplacianDensity_packet(const int tId, void* dataIte
 
     // TODO: Check if it is more efficient to use the iterator rather than
     // indexing.  Check when the the tile list is both small and large.
-    for (unsigned int i=0; i<packet->tileList.size(); ++i) {
-        computeLaplacianDensity_block(tId, packet->tileList[i].get());
+    for (unsigned int i=0; i<packet->nSubItems(); ++i) {
+        computeLaplacianDensity_block(tId, packet->getSubItem(i));
     }
 }
 

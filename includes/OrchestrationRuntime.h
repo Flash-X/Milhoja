@@ -24,8 +24,7 @@ public:
 
     static Runtime& instance(void);
     static void setLogFilename(const std::string& filename);
-    static void setNumberThreadTeams(const unsigned int nTileTeams,
-                                     const unsigned int nPacketTeams);
+    static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
     void executeTasks(const ActionBundle& bundle);
@@ -61,13 +60,11 @@ private:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
 
-    static unsigned int            nTileTeams_; 
-    static unsigned int            nPacketTeams_; 
-    static unsigned int            maxThreadsPerTeam_;
-    static bool                    instantiated_;
+    static unsigned int      nTeams_; 
+    static unsigned int      maxThreadsPerTeam_;
+    static bool              instantiated_;
 
-    ThreadTeam<Tile>**             tileTeams_;
-    ThreadTeam<DataPacket>**       packetTeams_;
+    ThreadTeam**             teams_;
 };
 
 }

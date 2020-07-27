@@ -14,7 +14,8 @@ CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/ThreadTeamModes.h \
-    $(INCDIR)/ThreadPubSub.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -22,12 +23,19 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(TESTBASEDIR)/NullItem.h \
     $(TESTBASEDIR)/estimateTimerResolution.h \
     $(TESTDIR)/threadTeamTest.h \
     $(TESTDIR)/testThreadRoutines.h
 SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/ThreadPubSub.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(TESTBASEDIR)/estimateTimerResolution.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testThreadTeam.cpp \

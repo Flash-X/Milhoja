@@ -86,9 +86,9 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
     orchestration::Logger::setLogFilename("TestSinglePacketTeam.log");
 
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<DataPacket>  cpu_packet(N_THREADS, 1);
+    ThreadTeam  cpu_packet(N_THREADS, 1);
 
-    auto packet = std::make_shared<DataPacket>();
+    auto packet = std::shared_ptr<DataItem>{ new DataPacket{} };
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
@@ -98,16 +98,16 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET;
         cpu_packet.startCycle(computeLaplacianEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet->tileList.size() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
+            if (packet->nSubItems() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
-                packet = std::make_shared<DataPacket>();
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet->tileList.size() != 0) {
+        if (packet->nSubItems() != 0) {
             cpu_packet.enqueue( std::move(packet) );
-            packet = std::make_shared<DataPacket>();
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
@@ -116,16 +116,16 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianDensity_packet.nTilesPerPacket = N_TILES_PER_PACKET - 2;
         cpu_packet.startCycle(computeLaplacianDensity_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet->tileList.size() >= computeLaplacianDensity_packet.nTilesPerPacket) {
+            if (packet->nSubItems() >= computeLaplacianDensity_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
-                packet = std::make_shared<DataPacket>();
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet->tileList.size() != 0) {
+        if (packet->nSubItems() != 0) {
             cpu_packet.enqueue( std::move(packet) );
-            packet = std::make_shared<DataPacket>();
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
@@ -134,16 +134,16 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         scaleEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET - 5;
         cpu_packet.startCycle(scaleEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet->tileList.size() >= scaleEnergy_packet.nTilesPerPacket) {
+            if (packet->nSubItems() >= scaleEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
-                packet = std::make_shared<DataPacket>();
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet->tileList.size() != 0) {
+        if (packet->nSubItems() != 0) {
             cpu_packet.enqueue( std::move(packet) );
-            packet = std::make_shared<DataPacket>();
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
         cpu_packet.closeQueue();
         cpu_packet.wait();
@@ -153,14 +153,14 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeErrors_packet.nTilesPerPacket = N_TILES_PER_PACKET - 11;
         cpu_packet.startCycle(computeErrors_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->tileList.push_front( std::make_shared<Tile>(itor, level) );
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet->tileList.size() >= computeErrors_packet.nTilesPerPacket) {
+            if (packet->nSubItems() >= computeErrors_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
-                packet = std::make_shared<DataPacket>();
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet->tileList.size() != 0) {
+        if (packet->nSubItems() != 0) {
             cpu_packet.enqueue( std::move(packet) );
         }
         cpu_packet.closeQueue();

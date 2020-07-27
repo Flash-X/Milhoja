@@ -9,8 +9,7 @@
 
 namespace orchestration {
 
-unsigned int    Runtime::nTileTeams_        = 0;
-unsigned int    Runtime::nPacketTeams_      = 0;
+unsigned int    Runtime::nTeams_            = 0;
 unsigned int    Runtime::maxThreadsPerTeam_ = 0;
 bool            Runtime::instantiated_      = false;
 
@@ -39,18 +38,16 @@ void Runtime::setLogFilename(const std::string& filename) {
  *
  * \return 
  */
-void Runtime::setNumberThreadTeams(const unsigned int nTileTeams,
-                                   const unsigned int nPacketTeams) {
+void Runtime::setNumberThreadTeams(const unsigned int nTeams) {
     if (instantiated_) {
         throw std::logic_error("[Runtime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
-    } else if ((nTileTeams == 0) && (nPacketTeams == 0)) {
+    } else if (nTeams == 0) {
         throw std::invalid_argument("[Runtime::setNumberThreadTeams] "
                                     "Need at least one ThreadTeam");
     }
 
-    nTileTeams_   = nTileTeams;
-    nPacketTeams_ = nPacketTeams;
+    nTeams_ = nTeams;
 }
 
 /**
@@ -80,19 +77,14 @@ Runtime::Runtime(void) {
     Logger::instance().log("[Runtime] Initializing");
 #endif
 
-    if ((nTileTeams_ <= 0) && (nPacketTeams_ <= 0)) {
+    if (nTeams_ <= 0) {
         throw std::invalid_argument("[Runtime::Runtime] "
                                     "Need to create at least one team");
     }
 
-    tileTeams_ = new ThreadTeam<Tile>*[nTileTeams_];
-    for (unsigned int i=0; i<nTileTeams_; ++i) {
-        tileTeams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i);
-    }
-
-    packetTeams_ = new ThreadTeam<DataPacket>*[nPacketTeams_];
-    for (unsigned int i=0; i<nPacketTeams_; ++i) {
-        packetTeams_[i] = new ThreadTeam<DataPacket>(maxThreadsPerTeam_, i);
+    teams_ = new ThreadTeam*[nTeams_];
+    for (unsigned int i=0; i<nTeams_; ++i) {
+        teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
     }
 
 #ifdef DEBUG_RUNTIME
@@ -112,19 +104,12 @@ Runtime::~Runtime(void) {
     Logger::instance().log("[Runtime] Finalizing");
 #endif
 
-    for (unsigned int i=0; i<nTileTeams_; ++i) {
-        delete tileTeams_[i];
-        tileTeams_[i] = nullptr;
+    for (unsigned int i=0; i<nTeams_; ++i) {
+        delete teams_[i];
+        teams_[i] = nullptr;
     }
-    delete [] tileTeams_;
-    tileTeams_ = nullptr;
-
-    for (unsigned int i=0; i<nPacketTeams_; ++i) {
-        delete packetTeams_[i];
-        packetTeams_[i] = nullptr;
-    }
-    delete [] packetTeams_;
-    packetTeams_ = nullptr;
+    delete [] teams_;
+    teams_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
     Logger::instance().log("[Runtime] Finalized");
@@ -229,14 +214,14 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
     } else if (postGpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeTasks_Full] "
                                     "Post-GPU tiles/packet should be zero since it is tile-based");
-    } else if (nTileTeams_ < 3) {
+    } else if (nTeams_ < 3) {
         throw std::logic_error("[Runtime::executeTasks_Full] "
-                               "Need at least three tile ThreadTeams in runtime");
+                               "Need at least three ThreadTeams in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam     = tileTeams_[0];
-    ThreadTeam<Tile>*   gpuTeam     = tileTeams_[1];
-    ThreadTeam<Tile>*   postGpuTeam = tileTeams_[2];
+    ThreadTeam*   cpuTeam     = teams_[0];
+    ThreadTeam*   gpuTeam     = teams_[1];
+    ThreadTeam*   postGpuTeam = teams_[2];
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -257,8 +242,8 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
     // shall be enqueued automatically for the post-GPU pool.
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    std::shared_ptr<Tile>  dataItem_cpu{};
-    std::shared_ptr<Tile>  dataItem_gpu{};
+    std::shared_ptr<DataItem>  dataItem_cpu{};
+    std::shared_ptr<DataItem>  dataItem_gpu{};
     if ((dataItem_cpu.get() != nullptr) || (dataItem_cpu.use_count() != 0)) {
         throw std::logic_error("CPU shared_ptr not NULLED at creation");
     }
@@ -276,7 +261,7 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
         // this case, the data item's resources would be released prematurely.
         // To avoid this, we create all copies up front and before enqueing any
         // copy.
-        dataItem_cpu = std::make_shared<Tile>(itor, level);
+        dataItem_cpu = std::shared_ptr<DataItem>{ new Tile{itor, level} };
         dataItem_gpu = dataItem_cpu;
         if ((dataItem_cpu.get()) != (dataItem_gpu.get())) {
             throw std::logic_error("shared_ptr copy didn't work");
@@ -363,17 +348,14 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Post-GPU should have zero tiles/packet as "
                                     "client code cannot control this");
-    } else if (nTileTeams_ < 1) {
+    } else if (nTeams_ < 1) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Need at least one tile ThreadTeam in runtime");
-    } else if (nPacketTeams_ < 2) {
-        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Need at least two packet ThreadTeams in runtime");
+                               "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam<Tile>*         cpuTeam     = tileTeams_[0];
-    ThreadTeam<DataPacket>*   gpuTeam     = packetTeams_[0];
-    ThreadTeam<DataPacket>*   postGpuTeam = packetTeams_[1];
+    ThreadTeam*   cpuTeam     = teams_[0];
+    ThreadTeam*   gpuTeam     = teams_[1];
+    ThreadTeam*   postGpuTeam = teams_[2];
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -395,29 +377,26 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     unsigned int   level = 0;
     Grid&          grid = Grid::instance();
 
-    std::shared_ptr<Tile>         dataItem_cpu{};
-    std::shared_ptr<DataPacket>   dataItem_gpu = std::make_shared<DataPacket>();
-    if (dataItem_gpu->tileList.size() != 0) {
-        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Default DataPacket not empty");
-    }
+    std::shared_ptr<DataItem>   dataItem_cpu{};
+    std::shared_ptr<DataItem>   dataItem_tmp{};
+    std::shared_ptr<DataItem>   dataItem_gpu{ new DataPacket{} };
 
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_cpu = std::make_shared<Tile>(itor, level);
-        dataItem_gpu->tileList.push_front( dataItem_cpu );
-        // TODO: Confirm that this was copy to the tileList
+        dataItem_cpu = std::shared_ptr<DataItem>{ new Tile{itor, level} };
+        dataItem_tmp = dataItem_cpu;
+        dataItem_gpu->addSubItem( std::move(dataItem_tmp) );
 
         cpuTeam->enqueue( std::move(dataItem_cpu) );
-        if (dataItem_gpu->tileList.size() >= gpuAction.nTilesPerPacket) {
+        if (dataItem_gpu->nSubItems() >= gpuAction.nTilesPerPacket) {
             gpuTeam->enqueue( std::move(dataItem_gpu) );
-            dataItem_gpu = std::make_shared<DataPacket>();
+            dataItem_gpu = std::shared_ptr<DataItem>{ new DataPacket{} };
         }
     }
 
-    if (dataItem_gpu->tileList.size() != 0) {
+    if (dataItem_gpu->nSubItems() > 0) {
         gpuTeam->enqueue( std::move(dataItem_gpu) );
     } else {
         dataItem_gpu.reset();
@@ -464,13 +443,13 @@ void Runtime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
     } else if (gpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeConcurrentCpuGpuTasks] "
                                     "GPU tiles/packet should be zero since it is tile-based");
-    } else if (nTileTeams_ < 2) {
+    } else if (nTeams_ < 2) {
         throw std::logic_error("[Runtime::executeConcurrentCpuGpuTasks] "
-                               "Need at least two tile ThreadTeams in runtime");
+                               "Need at least two ThreadTeams in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
-    ThreadTeam<Tile>*   gpuTeam = tileTeams_[1];
+    ThreadTeam*   cpuTeam = teams_[0];
+    ThreadTeam*   gpuTeam = teams_[1];
 
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Block_Team");
@@ -478,10 +457,10 @@ void Runtime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
 
-    std::shared_ptr<Tile>   dataItem_cpu{};
-    std::shared_ptr<Tile>   dataItem_gpu{};
+    std::shared_ptr<DataItem>   dataItem_cpu{};
+    std::shared_ptr<DataItem>   dataItem_gpu{};
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_cpu = std::make_shared<Tile>(itor, level);
+        dataItem_cpu = std::shared_ptr<DataItem>{ new Tile{itor, level} };
         dataItem_gpu = dataItem_cpu;
 
         cpuTeam->enqueue( std::move(dataItem_cpu) );
@@ -508,19 +487,19 @@ void Runtime::executeCpuTasks(const std::string& bundleName,
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
-    } else if (nTileTeams_ < 1) {
+    } else if (nTeams_ < 1) {
         throw std::logic_error("[Runtime::executeCpuTasks] "
                                "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
+    ThreadTeam*   cpuTeam = teams_[0];
 
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
 
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        cpuTeam->enqueue( std::make_shared<Tile>(itor, level) );
+        cpuTeam->enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
     }
     cpuTeam->closeQueue();
     cpuTeam->wait();
@@ -535,12 +514,12 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeGpuTasks] "
                                     "Need at least one tile per packet");
-    } else if (nPacketTeams_ < 1) {
+    } else if (nTeams_ < 1) {
         throw std::logic_error("[Runtime::executeGpuTasks] "
-                               "Need at least one ThreadTeams in runtime");
+                               "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam<DataPacket>*   gpuTeam = packetTeams_[0];
+    ThreadTeam*   gpuTeam = teams_[0];
 
     // TODO: For this configuration, could I make the dataItems unique_ptrs?
     //       Would this work at the level of the ThreadTeam?  What about the
@@ -549,19 +528,19 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     //       better performance and would be more explicit.  
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    auto dataItem_gpu = std::make_shared<DataPacket>();
+    auto dataItem_gpu = std::shared_ptr<DataItem>{ new DataPacket{} };
 
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_gpu->tileList.push_front( std::make_shared<Tile>(itor, level) );
+        dataItem_gpu->addSubItem( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
 
-        if (dataItem_gpu->tileList.size() >= gpuAction.nTilesPerPacket) {
+        if (dataItem_gpu->nSubItems() >= gpuAction.nTilesPerPacket) {
             gpuTeam->enqueue( std::move(dataItem_gpu) );
-            dataItem_gpu = std::make_shared<DataPacket>();
+            dataItem_gpu = std::shared_ptr<DataItem>{ new DataPacket{} };
         }
     }
 
-    if (dataItem_gpu->tileList.size() != 0) {
+    if (dataItem_gpu->nSubItems() != 0) {
         gpuTeam->enqueue( std::move(dataItem_gpu) );
         gpuTeam->closeQueue();
     } else {

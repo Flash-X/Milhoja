@@ -1,5 +1,8 @@
 #include "ThreadTeamRunningClosed.h"
 
+#include "DataItem.h"
+#include "ThreadTeam.h"
+
 namespace orchestration {
 
 /**
@@ -10,9 +13,8 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename DT, class T>
-ThreadTeamRunningClosed<DT,T>::ThreadTeamRunningClosed(T* team)
-    : ThreadTeamState<DT,T>(),
+ThreadTeamRunningClosed::ThreadTeamRunningClosed(ThreadTeam* team)
+    : ThreadTeamState(),
       team_(team)
 {
     if (!team_) {
@@ -31,8 +33,7 @@ ThreadTeamRunningClosed<DT,T>::ThreadTeamRunningClosed(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningClosed<DT,T>::isStateValid_NotThreadSafe(void) const {
+std::string ThreadTeamRunningClosed::isStateValid_NotThreadSafe(void) const {
     if        (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     } else if (team_->queue_.empty()) {
@@ -52,9 +53,8 @@ std::string ThreadTeamRunningClosed<DT,T>::isStateValid_NotThreadSafe(void) cons
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningClosed<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
-                                                                    const std::string& teamName) {
+std::string ThreadTeamRunningClosed::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                              const std::string& teamName) {
     return team_->printState_NotThreadsafe("startCycle", 0,
                   "Cannot start a cycle when one is already running");
 }
@@ -67,8 +67,7 @@ std::string ThreadTeamRunningClosed<DT,T>::startCycle_NotThreadsafe(const Runtim
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningClosed<DT,T>::increaseThreadCount_NotThreadsafe(
+std::string ThreadTeamRunningClosed::increaseThreadCount_NotThreadsafe(
                                                 const unsigned int nThreads) {
     // Don't activate all threads if we are asked to activate more threads than
     // there is remaining work
@@ -100,8 +99,7 @@ std::string ThreadTeamRunningClosed<DT,T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningClosed<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
+std::string ThreadTeamRunningClosed::enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Cannot enqueue data item if cycle is closed");
 }
@@ -116,8 +114,7 @@ std::string ThreadTeamRunningClosed<DT,T>::enqueue_NotThreadsafe(std::shared_ptr
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningClosed<DT,T>::closeQueue_NotThreadsafe(void) {
+std::string ThreadTeamRunningClosed::closeQueue_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeQueue", 0,
                   "Data item queue is already closed");
 }

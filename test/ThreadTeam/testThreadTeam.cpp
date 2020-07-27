@@ -16,6 +16,8 @@
 
 #include "estimateTimerResolution.h"
 
+#include "DataItem.h"
+#include "NullItem.h"
 #include "threadTeamTest.h"
 #include "testThreadRoutines.h"
 #include "RuntimeAction.h"
@@ -100,8 +102,8 @@ TEST_F(ThreadTeamTest, TestInitialState) {
 
     // Check that having two thread teams available at the same time
     // is OK in terms of initial state
-    ThreadTeam<int>   team1(10, 1);
-    ThreadTeam<int>*  team2 = nullptr;
+    ThreadTeam   team1(10, 1);
+    ThreadTeam*  team2 = nullptr;
 
     // Confirm explicit state
     team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -117,11 +119,11 @@ TEST_F(ThreadTeamTest, TestInitialState) {
     EXPECT_THROW(team1.detachDataReceiver(),   std::logic_error);
 
     // Check that teams must have minimum number of threads
-    EXPECT_THROW(new ThreadTeam<int>(0, 2), std::logic_error);
-    EXPECT_THROW(new ThreadTeam<int>(1, 2), std::logic_error);
+    EXPECT_THROW(new ThreadTeam(0, 2), std::logic_error);
+    EXPECT_THROW(new ThreadTeam(1, 2), std::logic_error);
 
     for (unsigned int i=2; i<=N_ITERS; ++i) {
-        team2 = new ThreadTeam<int>(i, 2);
+        team2 = new ThreadTeam(i, 2);
 
         team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(i, team2->nMaximumThreads());
@@ -157,14 +159,14 @@ TEST_F(ThreadTeamTest, TestDestruction) {
 
     orchestration::Logger::setLogFilename("TestDestruction.log");
 
-    ThreadTeam<int>*    team1 = new ThreadTeam<int>(4, 1);
+    ThreadTeam*    team1 = new ThreadTeam(4, 1);
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamMode::IDLE, team1->mode());
 
     // Test in Running & Open 
     delay_100ms.nInitialThreads = 3;
     team1->startCycle(delay_100ms, "teamName");
-    team1->enqueue( std::make_shared<int>(1) );
+    team1->enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
     for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if ((N_comp == 1) && (N_wait == 2))      break;
@@ -183,7 +185,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     delete  team1;
     team1 = nullptr;
  
-    team1 = new ThreadTeam<int>(4, 1);
+    team1 = new ThreadTeam(4, 1);
     EXPECT_EQ(4, team1->nMaximumThreads());
     EXPECT_EQ(ThreadTeamMode::IDLE, team1->mode());
  
@@ -192,7 +194,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     // won't be any work in the queue
     delay_100ms.nInitialThreads = 3;
     team1->startCycle(delay_100ms, "teamName");
-    team1->enqueue( std::make_shared<int>(1) );
+    team1->enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
     for (unsigned int i=0; i<10; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if (N_Q == 0)      break;
@@ -233,7 +235,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
 
     orchestration::Logger::setLogFilename("TestIdleWait.log");
 
-    ThreadTeam<int>    team1(3, 1);
+    ThreadTeam    team1(3, 1);
 
     // Call wait without having run a task
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -260,7 +262,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
     // transitions to Idle
     delay_10ms.nInitialThreads = 1;
     team1.startCycle(delay_10ms, "test1");
-    team1.enqueue( std::make_shared<int>(1) );
+    team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
 
     for (unsigned int i=0; i<10; ++i) {
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -293,8 +295,8 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
 
     orchestration::Logger::setLogFilename("TestNoWorkNoThreads.log");
 
-    ThreadTeam<int>    team1(3, 1);
-    ThreadTeam<int>    team2(2, 2);
+    ThreadTeam    team1(3, 1);
+    ThreadTeam    team2(2, 2);
 
     team1.attachDataReceiver(&team2);
 
@@ -323,6 +325,8 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
 
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
     EXPECT_EQ(ThreadTeamMode::IDLE, team2.mode());
+
+    team1.detachDataReceiver();
 }
 
 /**
@@ -334,10 +338,10 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
 
     orchestration::Logger::setLogFilename("TestIdleErrors.log");
 
-    ThreadTeam<int>    team1(10, 1);
-    ThreadTeam<int>    team2(5,  2);
-    ThreadTeam<int>    team3(2,  3);
-    ThreadTeam<int>    team4(2,  4);
+    ThreadTeam    team1(10, 1);
+    ThreadTeam    team2(5,  2);
+    ThreadTeam    team3(2,  3);
+    ThreadTeam    team4(2,  4);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // No action routine given
@@ -355,7 +359,8 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
         EXPECT_THROW(team1.increaseThreadCount(0),  std::logic_error);
 
         // Use methods that are not allowed in Idle
-        EXPECT_THROW(team1.enqueue( std::make_shared<int>(1) ),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
+                     std::runtime_error);
         EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Detach when no teams have been attached
@@ -400,7 +405,7 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
         // having run a cycle
         noop.nInitialThreads = 5;
         team1.startCycle(noop, "test1");
-        team1.enqueue( std::make_shared<int>(1) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
         team1.wait();
     }
@@ -421,9 +426,9 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
 
     orchestration::Logger::setLogFilename("TestIdleForwardsThreads.log");
 
-    ThreadTeam<int>  team1(2, 1);
-    ThreadTeam<int>  team2(4, 2);
-    ThreadTeam<int>  team3(6, 3);
+    ThreadTeam  team1(2, 1);
+    ThreadTeam  team2(4, 2);
+    ThreadTeam  team3(6, 3);
 
     // Team 2 is a thread subscriber and publisher
     team1.attachThreadReceiver(&team2);
@@ -440,8 +445,8 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
         delay_100ms.nInitialThreads = 0;
         team2.startCycle(delay_100ms, "wait");
         team3.startCycle(noop,        "quick");
-        team2.enqueue( std::make_shared<int>(1) );
-        team3.enqueue( std::make_shared<int>(2) );
+        team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team3.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team2.closeQueue();
         team3.closeQueue();
 
@@ -522,7 +527,7 @@ TEST_F(ThreadTeamTest, TestNoWork) {
 
     orchestration::Logger::setLogFilename("TestNoWork.log");
 
-    ThreadTeam<int>  team1(5, 1);
+    ThreadTeam  team1(5, 1);
 
     noop.nInitialThreads = 3;
     for (unsigned int i=0; i<N_ITERS; ++i) {
@@ -568,8 +573,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
 
     orchestration::Logger::setLogFilename("TestRunningOpenErrors.log");
 
-    ThreadTeam<int>  team1(10, 1);
-    ThreadTeam<int>  team2(10, 2);
+    ThreadTeam  team1(10, 1);
+    ThreadTeam  team2(10, 2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         noop.nInitialThreads = 5;
@@ -663,8 +668,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
 
     orchestration::Logger::setLogFilename("TestRunningOpenIncreaseThreads.log");
 
-    ThreadTeam<int>  team1(3, 1);
-    ThreadTeam<int>  team2(4, 2);
+    ThreadTeam  team1(3, 1);
+    ThreadTeam  team2(4, 2);
 
     team1.attachThreadReceiver(&team2);
 
@@ -675,8 +680,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         noop.nInitialThreads = 0;
         team1.startCycle(noop, "test1");
         team2.startCycle(noop, "test2");
-        team1.enqueue( std::make_shared<int>(1) );
-
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+ 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
         EXPECT_EQ(3, team1.nMaximumThreads());
@@ -766,8 +771,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
 
     orchestration::Logger::setLogFilename("TestRunningOpenEnqueue.log");
 
-    ThreadTeam<int>  team1(3, 1);
-    ThreadTeam<int>  team2(2, 2);
+    ThreadTeam  team1(3, 1);
+    ThreadTeam  team2(2, 2);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         team1.attachDataReceiver(&team2);
@@ -793,8 +798,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
         // Enqueue two data items so that the single thread will necessarily
         // finish work on one, emit/receive computationFinished and find the
         // next data item
-        team1.enqueue( std::make_shared<int>(1) );
-        team1.enqueue( std::make_shared<int>(2) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)   break;
@@ -865,14 +870,14 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
 
     orchestration::Logger::setLogFilename("TestRunningClosedErrors.log");
 
-    ThreadTeam<int>  team1(5, 1);
+    ThreadTeam  team1(5, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team has one active thread and two data items to stay closed
         delay_100ms.nInitialThreads = 1;
         team1.startCycle(delay_100ms, "wait");
-        team1.enqueue( std::make_shared<int>(1) );
-        team1.enqueue( std::make_shared<int>(2) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
@@ -887,7 +892,8 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
                                                std::logic_error);
 
-        EXPECT_THROW(team1.enqueue( std::make_shared<int>(1) ),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
+                                    std::runtime_error);
         EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
@@ -910,16 +916,16 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
 
     orchestration::Logger::setLogFilename("TestRunningClosedActivation.log");
 
-    ThreadTeam<int>  team1(4, 1);
+    ThreadTeam  team1(4, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         // Add enough work to test all necessary transitions and wait until the
         // single thread starts computing
         delay_100ms.nInitialThreads = 1;
         team1.startCycle(delay_100ms, "wait");
-        team1.enqueue( std::make_shared<int>(1) );
-        team1.enqueue( std::make_shared<int>(2) );
-        team1.enqueue( std::make_shared<int>(3) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -983,8 +989,8 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
 
     orchestration::Logger::setLogFilename("TestRunningClosedWorkPub.log");
 
-    ThreadTeam<int>  team1(3, 1);
-    ThreadTeam<int>  team2(4, 2);
+    ThreadTeam  team1(3, 1);
+    ThreadTeam  team2(4, 2);
 
     team1.attachDataReceiver(&team2);
 
@@ -997,9 +1003,9 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
         team1.startCycle(delay_10ms,  "quick");
         delay_100ms.nInitialThreads = 4;
         team2.startCycle(delay_100ms, "wait");
-        team1.enqueue( std::make_shared<int>(1) );
-        team1.enqueue( std::make_shared<int>(2) );
-        team1.enqueue( std::make_shared<int>(3) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -1126,14 +1132,14 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
 
     orchestration::Logger::setLogFilename("TestRunningNoMoreWorkErrors.log");
 
-    ThreadTeam<int>  team1(5, 1);
+    ThreadTeam  team1(5, 1);
 
     for (unsigned int i=0; i<N_ITERS; ++i) { 
         // Team must have at least one data item to stay in
         // Running & No More Work
         delay_100ms.nInitialThreads = 1;
         team1.startCycle(delay_100ms, "wait");
-        team1.enqueue( std::make_shared<int>(1) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
         for (unsigned int i=0; i<50; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -1153,7 +1159,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         EXPECT_THROW(team1.increaseThreadCount(team1.nMaximumThreads()+1),
                                                std::logic_error);
 
-        EXPECT_THROW(team1.enqueue( std::make_shared<int>(1) ),  std::runtime_error);
+        EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
+                                    std::runtime_error);
         EXPECT_THROW(team1.closeQueue(), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
@@ -1177,8 +1184,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
 
     orchestration::Logger::setLogFilename("TestRunningNoMoreWorkForward.log");
 
-    ThreadTeam<int>  team1(2, 1);
-    ThreadTeam<int>  team2(3, 2);
+    ThreadTeam  team1(2, 1);
+    ThreadTeam  team2(3, 2);
 
     team1.attachThreadReceiver(&team2);
 
@@ -1192,8 +1199,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         team1.startCycle(delay_100ms, "wait");
         delay_100ms.nInitialThreads = 0;
         team2.startCycle(delay_100ms, "wait");
-        team1.enqueue( std::make_shared<int>(1) );
-        team2.enqueue( std::make_shared<int>(2) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.closeQueue();
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -1286,9 +1293,9 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
     orchestration::Logger::setLogFilename("TestRunningNoMoreWorkTransition.log");
 
-    ThreadTeam<int>  team1(8, 1);
-    ThreadTeam<int>  team2(3, 2);
-    ThreadTeam<int>  team3(8, 3);
+    ThreadTeam  team1(8, 1);
+    ThreadTeam  team2(3, 2);
+    ThreadTeam  team3(8, 3);
 
     team1.attachDataReceiver(&team2);
     team1.attachThreadReceiver(&team3);
@@ -1308,9 +1315,9 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         team1.startCycle(delay_100ms, "wait1");
         team2.startCycle(noop,        "quick2");
         team3.startCycle(noop,        "quick3");
-        team1.enqueue( std::make_shared<int>(1) );
-        team1.enqueue( std::make_shared<int>(2) );
-        team1.enqueue( std::make_shared<int>(3) );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
+        team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if ((N_comp == 3) && (N_wait == 3))     break;
@@ -1460,8 +1467,8 @@ TEST_F(ThreadTeamTest, TestTimings) {
 
     orchestration::Logger::setLogFilename("TestTimings2.log");
 
-    ThreadTeam<int>* team1 = nullptr;
-    ThreadTeam<int>  team2(T3::nThreadsPerTeam, 2);
+    ThreadTeam* team1 = nullptr;
+    ThreadTeam  team2(T3::nThreadsPerTeam, 2);
 
     std::cout << "\nTiming using C++ standard library steady clock\n";
     std::cout << "-------------------------------------------------------\n";
@@ -1487,7 +1494,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
 
     for (unsigned int i=0; i<wtimes_us.size(); ++i) {
         start = steady_clock::now();
-        team1 = new ThreadTeam<int>(T3::nThreadsPerTeam, 1);
+        team1 = new ThreadTeam(T3::nThreadsPerTeam, 1);
         end = steady_clock::now();
         wtimes_us[i] = microseconds(end - start).count();
         EXPECT_TRUE(wtimes_us[i] > 0.0);
@@ -1626,7 +1633,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
             start = steady_clock::now();
             team2.startCycle(noop, "quick", false);
             for (unsigned int j=0; j<N_WORK; ++j) {
-                team2.enqueue( std::make_shared<int>(1) );
+                team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
             }
             team2.closeQueue();
             team2.wait();

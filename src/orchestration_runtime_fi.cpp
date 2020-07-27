@@ -14,13 +14,11 @@ extern "C" {
     /**
      * 
      */
-    int    orchestration_init_fi(const int nTileTeams,
-                                 const int nPacketTeams,
+    int    orchestration_init_fi(const int nTeams,
                                  const int nThreadsPerTeam,
                                  char* logFilename) {
         try {
-            orchestration::Runtime::setNumberThreadTeams(static_cast<unsigned int>(nTileTeams),
-                                                         static_cast<unsigned int>(nPacketTeams));
+            orchestration::Runtime::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
             orchestration::Runtime::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
             orchestration::Runtime::setLogFilename(logFilename);
 

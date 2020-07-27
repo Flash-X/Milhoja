@@ -1,5 +1,8 @@
 #include "ThreadTeamTerminating.h"
 
+#include "DataItem.h"
+#include "ThreadTeam.h"
+
 namespace orchestration {
 
 /**
@@ -10,9 +13,8 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename DT, class T>
-ThreadTeamTerminating<DT,T>::ThreadTeamTerminating(T* team)
-    : ThreadTeamState<DT,T>(),
+ThreadTeamTerminating::ThreadTeamTerminating(ThreadTeam* team)
+    : ThreadTeamState(),
       team_(team)
 {
     if (!team_) {
@@ -33,9 +35,8 @@ ThreadTeamTerminating<DT,T>::ThreadTeamTerminating(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamTerminating<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
-                                                                const std::string& teamName) {
+std::string ThreadTeamTerminating::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                            const std::string& teamName) {
     return team_->printState_NotThreadsafe("startCycle", 0,
                   "Cannot start a cycle if team is terminating");
 }
@@ -50,8 +51,7 @@ std::string ThreadTeamTerminating<DT,T>::startCycle_NotThreadsafe(const RuntimeA
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamTerminating<DT,T>::increaseThreadCount_NotThreadsafe(
+std::string ThreadTeamTerminating::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     return team_->printState_NotThreadsafe("increaseThreadCount", 0,
         "Cannot increase thread count if team is terminating");
@@ -67,8 +67,7 @@ std::string ThreadTeamTerminating<DT,T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamTerminating<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
+std::string ThreadTeamTerminating::enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) {
     return team_->printState_NotThreadsafe("enqueue", 0,
                   "Cannot add more data items if team is terminating");
 }
@@ -83,8 +82,7 @@ std::string ThreadTeamTerminating<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<D
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamTerminating<DT,T>::closeQueue_NotThreadsafe(void) {
+std::string ThreadTeamTerminating::closeQueue_NotThreadsafe(void) {
     return team_->printState_NotThreadsafe("closeQueue", 0,
                   "Cannot close data item queue if team is terminating");
 }

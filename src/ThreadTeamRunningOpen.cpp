@@ -1,6 +1,8 @@
 #include "ThreadTeamRunningOpen.h"
 
 #include "OrchestrationLogger.h"
+#include "DataItem.h"
+#include "ThreadTeam.h"
 
 namespace orchestration {
 
@@ -12,9 +14,8 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename DT, class T>
-ThreadTeamRunningOpen<DT,T>::ThreadTeamRunningOpen(T* team)
-    : ThreadTeamState<DT,T>(),
+ThreadTeamRunningOpen::ThreadTeamRunningOpen(ThreadTeam* team)
+    : ThreadTeamState(),
       team_(team)
 {
     if (!team_) {
@@ -33,8 +34,7 @@ ThreadTeamRunningOpen<DT,T>::ThreadTeamRunningOpen(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningOpen<DT,T>::isStateValid_NotThreadSafe(void) const {
+std::string ThreadTeamRunningOpen::isStateValid_NotThreadSafe(void) const {
     if (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     }
@@ -52,9 +52,8 @@ std::string ThreadTeamRunningOpen<DT,T>::isStateValid_NotThreadSafe(void) const 
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningOpen<DT,T>::startCycle_NotThreadsafe(const RuntimeAction& action,
-                                                                  const std::string& teamName) {
+std::string ThreadTeamRunningOpen::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                            const std::string& teamName) {
     return team_->printState_NotThreadsafe("startCycle", 0,
                   "Cannot start a cycle when one is already running");
 }
@@ -67,8 +66,7 @@ std::string ThreadTeamRunningOpen<DT,T>::startCycle_NotThreadsafe(const RuntimeA
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningOpen<DT,T>::increaseThreadCount_NotThreadsafe(
+std::string ThreadTeamRunningOpen::increaseThreadCount_NotThreadsafe(
                                             const unsigned int nThreads) {
     team_->N_to_activate_ += nThreads;
     for (unsigned int i=0; i<nThreads; ++i) {
@@ -86,8 +84,7 @@ std::string ThreadTeamRunningOpen<DT,T>::increaseThreadCount_NotThreadsafe(
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningOpen<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<DT>&& dataItem) {
+std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) {
     team_->queue_.push(std::move(dataItem));
 
 #ifdef DEBUG_RUNTIME
@@ -110,8 +107,7 @@ std::string ThreadTeamRunningOpen<DT,T>::enqueue_NotThreadsafe(std::shared_ptr<D
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename DT, class T>
-std::string ThreadTeamRunningOpen<DT,T>::closeQueue_NotThreadsafe(void) {
+std::string ThreadTeamRunningOpen::closeQueue_NotThreadsafe(void) {
     std::string    errMsg("");
 
     bool isQueueEmpty = team_->queue_.empty();
