@@ -7,6 +7,6 @@
    fun:_dl_allocate_tls
    fun:allocate_stack
    fun:pthread_create@@GLIBC_2.2.5
-   fun:_ZN13orchestration10ThreadTeamIiEC1EjjRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN13orchestration10ThreadTeamC1Ejj
    fun:main
 }
