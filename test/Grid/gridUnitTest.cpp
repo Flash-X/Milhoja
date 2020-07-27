@@ -90,7 +90,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     EXPECT_TRUE( nBlocks.product() == grid.unk().boxArray().size() );
     EXPECT_TRUE((nBlocks*nCells).product() == grid.unk().boxArray().numPts());
     for (unsigned int i=0; i<nBlocks.product(); ++i) {
-        EXPECT_TRUE(IntVect(grid.unk().boxArray()[i].size()) == nCells);
+        ASSERT_TRUE(IntVect(grid.unk().boxArray()[i].size()) == nCells);
     }
 
     // Testing Grid::getDomain{Lo,Hi}

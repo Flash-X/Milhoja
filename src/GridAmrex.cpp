@@ -2,9 +2,11 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_ParmParse.H>
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
@@ -14,23 +16,53 @@
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
+#include "Flash.h"
+#include "constants.h"
+
 namespace orchestration {
+
+void passRPToAmrex() {
+    {
+        amrex::ParmParse pp("geometry");
+        pp.addarr("is_periodic", std::vector<int>{1,1,1} );
+        pp.add("coord_sys",0); //cartesian
+        pp.addarr("prob_lo",std::vector<Real>{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)});
+        pp.addarr("prob_hi",std::vector<Real>{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)});
+    }
+
+    {
+        amrex::ParmParse pp("amr");
+
+        pp.add("v",1); //verbosity
+        //pp.add("regrid_int",nrefs); //how often to refine
+        pp.add("max_level",LREFINE_MAX-1); //0-based
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB*N_BLOCKS_X,
+                                      NYB*N_BLOCKS_Y,
+                                      NZB*N_BLOCKS_Z)});
+
+        //octree mode:
+        pp.add("max_grid_size_x",NXB);
+        pp.add("max_grid_size_y",NYB);
+        pp.add("max_grid_size_z",NZB);
+        pp.add("blocking_factor_x",NXB*2);
+        pp.add("blocking_factor_y",NYB*2);
+        pp.add("blocking_factor_z",NZB*2);
+        pp.add("refine_grid_layout",0);
+        pp.add("grid_eff",1.0);
+        pp.add("n_proper",1);
+        pp.add("n_error_buf",0);
+        pp.addarr("ref_ratio",std::vector<int>(LREFINE_MAX,2));
+    }
+
+}
 
 GridAmrex::GridAmrex(void) {
     if(!std::is_same<amrex::Real,Real>::value) {
       throw std::logic_error("amrex::Real does not match orchestration::Real");
     }
 
-    // TODO : do parm parse manually instead of pretending to pass from command line
-    std::string parfile = "/Users/tklosterman/Documents/orchestrationruntime/amrex_inputs";
-    std::vector<char*> argvec;
-    argvec.push_back( (char*)parfile.data() ); //technically should be binary name
-    argvec.push_back( (char*)parfile.data() );
-    argvec.push_back( nullptr );
-    int argc = 2;
-    char** argv = argvec.data();
-
-    amrex::Initialize( argc , argv ,true,MPI_COMM_WORLD);
+    passRPToAmrex();
+    amrex::Initialize(MPI_COMM_WORLD);
     destroyDomain();
 }
 
