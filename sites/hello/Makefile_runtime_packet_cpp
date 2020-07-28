@@ -29,6 +29,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/DataItemSplitter.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
@@ -54,6 +55,7 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \

@@ -6,6 +6,7 @@
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 #include "Flash.h"
+#include "DataItemSplitter.h"
 
 namespace orchestration {
 
@@ -219,9 +220,9 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
                                "Need at least three ThreadTeams in runtime");
     }
 
-    ThreadTeam*   cpuTeam     = teams_[0];
-    ThreadTeam*   gpuTeam     = teams_[1];
-    ThreadTeam*   postGpuTeam = teams_[2];
+    ThreadTeam*      cpuTeam     = teams_[0];
+    ThreadTeam*      gpuTeam     = teams_[1];
+    ThreadTeam*      postGpuTeam = teams_[2];
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -353,9 +354,10 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam*   cpuTeam     = teams_[0];
-    ThreadTeam*   gpuTeam     = teams_[1];
-    ThreadTeam*   postGpuTeam = teams_[2];
+    ThreadTeam*      cpuTeam     = teams_[0];
+    ThreadTeam*      gpuTeam     = teams_[1];
+    ThreadTeam*      postGpuTeam = teams_[2];
+    DataItemSplitter splitter{};
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -369,7 +371,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     //***** Construct thread and work pipelines
     cpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachDataReceiver(postGpuTeam);
+    gpuTeam->attachDataReceiver(&splitter);
+    splitter.attachDataReceiver(postGpuTeam);
 
     // Data is enqueued for both the concurrent CPU and concurrent GPU
     // thread teams.  When a data item is finished on the GPU, the data item
@@ -417,6 +420,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->wait();
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
+    splitter.detachDataReceiver();
 
     postGpuTeam->wait();
 }

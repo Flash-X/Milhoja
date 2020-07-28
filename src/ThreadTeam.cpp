@@ -1331,7 +1331,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             }
             if ((dataItem.get() != nullptr) || (dataItem.use_count() != 0)) {
                 std::string  msg = team->printState_NotThreadsafe(
-                        "threadRoutine", tId, "dataItem is unexpectedly NULLed after computation");
+                        "threadRoutine", tId, "dataItem is not NULLed after computation");
                 std::cerr << msg << std::endl;
                 pthread_mutex_unlock(&(team->teamMutex_));
                 throw std::logic_error(msg);
