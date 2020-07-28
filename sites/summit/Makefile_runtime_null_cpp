@@ -2,20 +2,23 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_runtime_int_cpp
-MAKEFILE     = Makefile_runtime_int_cpp
+BASE         = test_runtime_null_cpp
+MAKEFILE     = Makefile_runtime_null_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
-TESTDIR      = $(BASEDIR)/test/RuntimeInt
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/RuntimeNull
 GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -23,15 +26,24 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(INCDIR)/RuntimeAction.h
+    $(INCDIR)/RuntimeAction.h \
+    $(TESTBASEDIR)/NullItem.h
 SRCS       = \
-    $(TESTDIR)/testRuntimeInt.cpp
+    $(SRCDIR)/OrchestrationLogger.cpp  \
+    $(SRCDIR)/RuntimeElement.cpp  \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(TESTDIR)/testRuntimeNull.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -lgtest -lgtest_main

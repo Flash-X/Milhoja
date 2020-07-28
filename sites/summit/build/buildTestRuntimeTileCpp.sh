@@ -42,7 +42,7 @@ cd ..
 TESTDIR=../../test
 MAKEFILE=Makefile_runtime_tile_cpp
 BINARY=test_runtime_tile_cpp.x 
-#DEBUG_BINARY=test_runtime_tile_cpp_debug.x
+DEBUG_BINARY=test_runtime_tile_cpp_debug.x
 
 # Setup constants.h with current simulation's Grid parameters
 rm $TESTDIR/RuntimeTile/constants.h
@@ -61,15 +61,15 @@ sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/RuntimeTile/Flash.h
 sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/RuntimeTile/Flash.h
 
 # Build debug mode
-#echo ""
-#echo "Building debug version"
-#echo "----------------------------------------------------------"
-#make -f $MAKEFILE clean all DEBUG=T
-#if [[ $? -ne 0 ]]; then
-#    echo "Unable to compile $BINARY"
-#    exit 3;
-#fi
-#mv $BINARY ./binaries/$DEBUG_BINARY
+echo ""
+echo "Building debug version"
+echo "----------------------------------------------------------"
+make -f $MAKEFILE clean all DEBUG=T
+if [[ $? -ne 0 ]]; then
+    echo "Unable to compile $BINARY"
+    exit 3;
+fi
+mv $BINARY ./binaries/$DEBUG_BINARY
 
 # Build non-debug mode
 echo ""
@@ -89,7 +89,7 @@ echo ""
 ls -lah ./binaries/$BINARY
 ldd ./binaries/$BINARY
 echo ""
-#ls -lah ./binaries/$DEBUG_BINARY
-#echo ""
-#ldd ./binaries/$DEBUG_BINARY
+ls -lah ./binaries/$DEBUG_BINARY
+ldd ./binaries/$DEBUG_BINARY
+echo ""
 

@@ -31,9 +31,9 @@ cd ..
 
 # Specified relative to location of Makefile
 TESTDIR=../../test
-MAKEFILE=Makefile_runtime_int_cpp
-BINARY=test_runtime_int_cpp.x 
-DEBUG_BINARY=test_runtime_int_cpp_debug.x
+MAKEFILE=Makefile_runtime_null_cpp
+BINARY=test_runtime_null_cpp.x 
+DEBUG_BINARY=test_runtime_null_cpp_debug.x
 
 # Build debug mode
 echo ""
