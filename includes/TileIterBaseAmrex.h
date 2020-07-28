@@ -1,14 +1,14 @@
 /**
- * \file    TileIterAmrex.h
+ * \file    TileIterBaseAmrex.h
  *
  * \brief
  *
  */
 
-#ifndef TILEITERAMREX_H__
-#define TILEITERAMREX_H__
+#ifndef TILEITERBASEAMREX_H__
+#define TILEITERBASEAMREX_H__
 
-#include "TileIter.h"
+#include "TileIterBase.h"
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
@@ -16,17 +16,17 @@
 
 namespace orchestration {
 
-class TileIterAmrex : public TileIter {
+class TileIterBaseAmrex : public TileIterBase {
 public:
-    TileIterAmrex(amrex::MultiFab* mf_in, const unsigned int lev, const bool use_tiling=false) 
-        : TileIter{lev, use_tiling},
+    TileIterBaseAmrex(amrex::MultiFab* mf_in, const unsigned int lev)
+        : TileIterBase{lev},
           mfi_{*mf_in}
     {
         currentIdx_ = mfi_.tileIndex();
         endIdx_ = currentIdx_ + mfi_.length();
     }
 
-    ~TileIterAmrex() {}
+    ~TileIterBaseAmrex() {}
 
     bool isValid() const override { return mfi_.isValid(); }
     void operator++() override { ++mfi_; currentIdx_++; }
