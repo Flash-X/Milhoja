@@ -25,9 +25,10 @@ public:
     RealVect       getProbLo() const override;
     RealVect       getProbHi() const override;
     void           initDomain(TASK_FCN initBlock) override;
-    virtual unsigned int   getMaxRefinement() const override;
-    virtual unsigned int   getMaxLevel() const override;
-    virtual void     writeToFile(const std::string& filename) const override;
+    unsigned int   getMaxRefinement() const override;
+    unsigned int   getMaxLevel() const override;
+    void     writeToFile(const std::string& filename) const override;
+    std::unique_ptr<TileIter> getTileIter(const unsigned int lev, const bool use_tiling=false) override;
 
     // Other virtual function overrides.
     virtual RealVect getDeltas(const unsigned int lev) const override;

@@ -7,6 +7,7 @@
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
+#include "TileIterAmrex.h"
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
@@ -166,6 +167,14 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
 
     amrex::WriteSingleLevelPlotfile(filename, *unk_, names, amrcore_->Geom(0), 0.0, 0);
 }
+
+/**
+  *
+  */
+std::unique_ptr<TileIter> GridAmrex::getTileIter(const unsigned int lev, const bool use_tiling) {
+    return std::unique_ptr<TileIterAmrex>(new TileIterAmrex(unk_, lev, use_tiling));
+}
+
 
 /**
   * getDeltas gets the cell size for a given level.

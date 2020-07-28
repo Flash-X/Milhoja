@@ -133,11 +133,11 @@ TEST_F(GridUnitTest,PerTileGetters){
 
     // Test Grid::getBlkCenterCoords with tile iterator
     count = 0;
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
+    for (std::unique_ptr<TileIter> ti = grid.getTileIter(0) ; ti->isValid(); ++(*ti)) {
         count++;
         if(count%3 != 0) continue;
 
-        Tile tileDesc(itor, 0);
+        Tile tileDesc = ti->currentTile();
         RealVect sumVec = RealVect(tileDesc.lo()+tileDesc.hi()+1);
         RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
 
@@ -146,6 +146,7 @@ TEST_F(GridUnitTest,PerTileGetters){
             ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
         }
     }
+
 
     // Test Grid::getCellVolume and Grid::getCellFaceAreaLo with cell-by-cell iterator
     count = 0;
