@@ -18,9 +18,9 @@
 #include <string>
 #include <memory>
 
-namespace orchestration {
+#include "DataItem.h"
 
-class DataItem;
+namespace orchestration {
 
 class RuntimeElement {
 public:

@@ -16,11 +16,15 @@ public:
     DataPacket(void) : DataItem{} { clear(); }
     ~DataPacket(void)             { clear(); }
 
-    std::size_t nSubItems(void) const override
+    std::size_t                nSubItems(void) const override
             { return subItems_.size(); };
-    void        addSubItem(std::shared_ptr<DataItem>&& dataItem) override
+    void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override
             { subItems_.push_front( std::move(dataItem) ); };
-    DataItem* getSubItem(const std::size_t i)
+    std::shared_ptr<DataItem>  popSubItem(void) override
+            { std::shared_ptr<DataItem> item{ std::move(subItems_.front()) };
+              subItems_.pop_front();
+              return item; };
+    DataItem*                  getSubItem(const std::size_t i) override
             { return subItems_[i].get(); };
 
     // TODO: Do we need to do something elementwise to make certain that 

@@ -166,7 +166,7 @@ void Runtime::executeTasks(const ActionBundle& bundle) {
     } else if (   hasCpuAction && hasGpuAction && hasPostGpuAction
                && bundle.cpuAction.teamType     == ThreadTeamDataType::BLOCK 
                && bundle.gpuAction.teamType     == ThreadTeamDataType::SET_OF_BLOCKS
-               && bundle.postGpuAction.teamType == ThreadTeamDataType::SET_OF_BLOCKS) {
+               && bundle.postGpuAction.teamType == ThreadTeamDataType::BLOCK) {
         executeTasks_FullPacket(bundle.name,
                                 bundle.cpuAction,
                                 bundle.gpuAction,
@@ -341,17 +341,17 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Need at least one tile per GPU packet");
-    } else if (postGpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+    } else if (postGpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Given post-GPU action should run on packet-based "
+                               "Given post-GPU action should run on tile-based "
                                "thread team, which is not in configuration");
     } else if (postGpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Post-GPU should have zero tiles/packet as "
                                     "client code cannot control this");
-    } else if (nTeams_ < 1) {
+    } else if (nTeams_ < 3) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Need at least one ThreadTeam in runtime");
+                               "Need at least three ThreadTeams in runtime");
     }
 
     ThreadTeam*      cpuTeam     = teams_[0];
@@ -381,7 +381,6 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     Grid&          grid = Grid::instance();
 
     std::shared_ptr<DataItem>   dataItem_cpu{};
-    std::shared_ptr<DataItem>   dataItem_tmp{};
     std::shared_ptr<DataItem>   dataItem_gpu{ new DataPacket{} };
 
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
@@ -389,8 +388,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         dataItem_cpu = std::shared_ptr<DataItem>{ new Tile{itor, level} };
-        dataItem_tmp = dataItem_cpu;
-        dataItem_gpu->addSubItem( std::move(dataItem_tmp) );
+        dataItem_gpu->addSubItem( std::shared_ptr<DataItem>{dataItem_cpu} );
 
         cpuTeam->enqueue( std::move(dataItem_cpu) );
         if (dataItem_gpu->nSubItems() >= gpuAction.nTilesPerPacket) {

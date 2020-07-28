@@ -228,9 +228,9 @@ TEST_F(TestRuntimePacket, TestRuntimeSingle) {
 
         bundle.postGpuAction.name            = "bundle1_postGpuAction";
         bundle.postGpuAction.nInitialThreads = 1;
-        bundle.postGpuAction.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+        bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
         bundle.postGpuAction.nTilesPerPacket = 0;
-        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_packet;
+        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_block;
 
         orchestration::Runtime::instance().executeTasks(bundle);
 

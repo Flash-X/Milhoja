@@ -281,6 +281,20 @@ std::size_t Tile::nSubItems(void) const {
 /**
  *
  */
+std::shared_ptr<DataItem>  Tile::popSubItem(void) {
+    throw std::logic_error("[Tile::popSubItem] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
+DataItem*  Tile::getSubItem(const std::size_t i) {
+    throw std::logic_error("[Tile::getSubItem] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
 void  Tile::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
     throw std::logic_error("[Tile::addSubItem] Tiles do not have sub items");
 }

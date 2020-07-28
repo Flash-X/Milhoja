@@ -51,8 +51,10 @@ public:
 
     amrex::XDim3         deltas(void) const;
 
-    std::size_t nSubItems(void) const override;
-    void        addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
+    std::size_t                nSubItems(void) const override;
+    std::shared_ptr<DataItem>  popSubItem(void) override;
+    DataItem*                  getSubItem(const std::size_t i) override;
+    void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
 
     // Pointers to source data in the original data structures in the host
     // memory

@@ -8,6 +8,9 @@ public:
     virtual std::size_t nSubItems(void) const = 0;
     virtual void        addSubItem(std::shared_ptr<DataItem>&& dataItem) = 0;
 
+    virtual std::shared_ptr<DataItem>  popSubItem(void) = 0;
+    virtual DataItem*                  getSubItem(const std::size_t i) = 0;
+
 protected:
     DataItem(void) {}
     virtual ~DataItem(void) {}

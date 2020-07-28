@@ -15,9 +15,13 @@ void DataItemSplitter::enqueue(std::shared_ptr<DataItem>&& dataItem) {
                                  "No data subscriber attached");
     }
 
-    // TODO: Just forward along for now.  Program in the splitting later.
-    std::cout << "[DataItemSplitter::enqueue] I'm enqueuing with my subscriber\n";
-    dataReceiver_->enqueue( std::move(dataItem) );
+    // Move over all subitems as individual elements and then
+    // remove the now empty data packet from circulation and so that
+    // the calling code has a nulled dataItem as expected.
+    while (dataItem->nSubItems() > 0) {
+        dataReceiver_->enqueue( dataItem->popSubItem() );
+    }
+    dataItem.reset();
 }
 
 void DataItemSplitter::closeQueue(void) {
@@ -26,7 +30,6 @@ void DataItemSplitter::closeQueue(void) {
                                  "No data subscriber attached");
     }
 
-    std::cout << "[DataItemSplitter::closeQueue] I'm closing my subscriber's queue\n";
     dataReceiver_->closeQueue();
 }
 
