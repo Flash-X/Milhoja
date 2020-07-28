@@ -8,5 +8,4 @@
    fun:allocate_stack
    fun:pthread_create@@GLIBC_2.2.5
    fun:_ZN13orchestration10ThreadTeamC1Ejj
-   fun:main
 }

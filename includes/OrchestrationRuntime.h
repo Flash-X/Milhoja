@@ -10,8 +10,6 @@
 
 #include <string>
 
-#include "Tile.h"
-#include "DataPacket.h"
 #include "ThreadTeam.h"
 #include "ActionBundle.h"
 #include "RuntimeAction.h"

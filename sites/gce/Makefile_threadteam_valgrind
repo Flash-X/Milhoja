@@ -24,6 +24,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/DataItemSplitter.h \
     $(TESTBASEDIR)/NullItem.h
 SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp \
@@ -34,6 +35,7 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTDIR)/runThreadTeamTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
