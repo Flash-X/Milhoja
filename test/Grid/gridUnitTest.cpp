@@ -133,7 +133,7 @@ TEST_F(GridUnitTest,PerTileGetters){
 
     // Test Grid::getBlkCenterCoords with tile iterator
     count = 0;
-    for (TileIter ti = grid.getTileIter(0); ti.isValid(); ++ti) {
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
         count++;
         if(count%3 != 0) continue;
 

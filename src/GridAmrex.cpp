@@ -172,7 +172,7 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
 /**
   *
   */
-TileIter GridAmrex::getTileIter(const unsigned int lev) {
+TileIter GridAmrex::buildTileIter(const unsigned int lev) {
     std::unique_ptr<TileIterBaseAmrex> tiPtr{new TileIterBaseAmrex(unk_, lev)};
     return TileIter( std::move(tiPtr) );
 }

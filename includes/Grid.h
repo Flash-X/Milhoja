@@ -40,7 +40,7 @@ public:
     virtual unsigned int   getMaxRefinement() const = 0;
     virtual unsigned int   getMaxLevel() const = 0;
     virtual void     writeToFile(const std::string& filename) const = 0;
-    virtual TileIter getTileIter(const unsigned int lev) = 0;
+    virtual TileIter buildTileIter(const unsigned int lev) = 0;
 
 
     // Virtual functions with a default implementation that may be
