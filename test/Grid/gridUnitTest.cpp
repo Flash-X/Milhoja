@@ -137,11 +137,11 @@ TEST_F(GridUnitTest,PerTileGetters){
         count++;
         if(count%3 != 0) continue;
 
-        Tile tileDesc = ti->currentTile();
-        RealVect sumVec = RealVect(tileDesc.lo()+tileDesc.hi()+1);
+        std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+        RealVect sumVec = RealVect(tileDesc->lo()+tileDesc->hi()+1);
         RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
 
-        RealVect blkCenterCoords = grid.getBlkCenterCoords(tileDesc);
+        RealVect blkCenterCoords = grid.getBlkCenterCoords(*tileDesc);
         for(int i=1;i<NDIM;++i) {
             ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
         }

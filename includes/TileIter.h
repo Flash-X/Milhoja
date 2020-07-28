@@ -16,13 +16,13 @@ public:
     TileIter(TileIter&&) = default;
     virtual ~TileIter(void) {}
 
-    virtual bool isValid() const { return currentIdx_ < maxIdx_; }
+    virtual bool isValid() const { return currentIdx_ < endIdx_; }
     virtual void operator++() { currentIdx_++; }
-    virtual Tile currentTile() = 0;
+    virtual std::unique_ptr<Tile> buildCurrentTile() = 0;
 
 protected:
     int currentIdx_;
-    int maxIdx_;
+    int endIdx_;
     int nodetype_;
     unsigned int lev_;
 

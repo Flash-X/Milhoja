@@ -30,7 +30,9 @@ public:
 
     bool isValid() const override { return mfi_.isValid(); }
     void operator++() override { ++mfi_; currentIdx_++; }
-    Tile currentTile() override { Tile t(mfi_,0); return t; }
+    std::unique_ptr<Tile> buildCurrentTile() override {
+        return std::unique_ptr<Tile>{ new Tile(mfi_,lev_) };
+    }
 
 private:
     amrex::MFIter mfi_;
