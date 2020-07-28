@@ -1,0 +1,94 @@
+\documentclass[letterpaper,12pt]{article}
+\usepackage{tabularx} % extra features for tabular environment
+\usepackage{amsmath}  % improve math presentation
+\usepackage{graphicx} % takes care of graphic including machinery\
+\usepackage[margin=1in,letterpaper]{geometry} % decreases margins
+\usepackage{cite} % takes care of citations
+\usepackage[final]{hyperref} % adds hyper links inside the generated pdf file
+\hypersetup{
+	colorlinks=true,       % false: boxed links; true: colored links
+	linkcolor=blue,        % color of internal links
+	citecolor=blue,        % color of links to bibliography
+	filecolor=magenta,     % color of file links
+	urlcolor=blue         
+}
+
+%++++++++++++++++++++++++++++++++++++++++
+
+
+\begin{document}
+
+\title{Polymorphism in Grid}
+\author{Tom Klosterman}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+Section of dev guide explaining how polymorphism was achieved in Grid base classes.
+\end{abstract}
+
+
+\section{Polymorphism}
+
+Base classes in the Grid unit (e.g. Grid, Tile) need to have package-agnostic public interfaces so they can be used in physics code without regard to the AMR package. However, the implementation of these classes is highly dependent on the package, so polymorphism is needed. All of the Grid base classes use the same class design pattern to achieve polymorphism - an abstract base class with virtual methods that are implemented in concrete derived classes (e.g. GridAmrex, TileAmrex). The abstract base classes control the public interface while the derived classes contain private data members and methods as needed for the implementation. However, the way these classes are instantiated and passed through public interfaces varies. Three patterns are explained below, with examples.
+
+
+\section{Reference-Based Singleton (e.g. Grid)}
+The Grid class was designed to be instantiated exactly once, i.e. the Singleton design pattern. Polymorphism is achieved by storing the derived-class object in the static namespace of the Grid::instance() member function. The exact type of derived class is chosen by a preprocessor macro. After the singleton is instantiated, the user can obtain a reference to it by calling Grid::instance(). Note that the dervied class reference decays to a base class reference in the return statement.
+
+\begin{verbatim}
+// Access
+Grid&   Grid::instance(void) {
+    ...
+    static GridAmrex gridSingleton;
+    return gridSingleton;
+}
+
+// Usage
+
+IntVect del = Grid::instance().getDeltas();
+//    or
+Grid& grid = Grid::instance();
+IntVect del = grid.getDeltas();
+\end{verbatim}
+
+
+\section{Smart Pointer Encapsulation (e.g. Tile)}
+
+Unlike Grid, Tile objects are instantiated very frequently throughout physics code. In addition, memory management is very important for Tile objects, since they need to be passed through the Orchestration Runtime data pipeline. To account for these restraints, when derived class Tile objects are created, they should be immediately encapsulated into derived-class smart pointers (default $\texttt{std::unique\_ptr}$) which can then decay into base-class smart pointers to be returned by a public interface. This means a $\texttt{std::unique\_ptr<Tile>}$ object will contain the original derived class object but can be used in a package-agnostic way.
+
+\begin{verbatim}
+// Creation
+std::unique_ptr<Tile> TileIterBaseAmrex::currentTile() override {
+    return std::unique_ptr<TileAmrex>( TileAmrex(mfi_,lev_) };
+}
+
+// Usage
+std::unique_ptr<Tile> t = itor.currentTile();
+IntVect coord = t->lo();
+\end{verbatim}
+
+\section{Smart Pointer Wrapper (e.g. TileIter) }
+
+For a third type of object, Tile Iterators,  instantiation is needed multiple times, but memory management is less critical. Thus, in order to hide some C++ ugliness, the smart pointers from the above pattern are stuffed into a simple wrapper class (TileIter) which passes through public interface function calls to the underlying pointer. Thus users can treat TileIter objects as simple objects despite the fact that they behave in a polymorphic way.
+
+This design pattern was inspired by StackOverflow user Jens in \href{https://stackoverflow.com/a/38011637}{this post}.
+
+\begin{verbatim}
+// Creation
+TileIter GridAmrex::makeTileIter(const unsigned int lev) {
+    std::unique_ptr<TileIterBaseAmrex> tiPtr{ TileIterBaseAmrex(unk_, lev) };
+    return TileIter( std::move(tiPtr) );
+}
+
+// Usage
+for (TileIter ti = grid.makeTileIter(0); ti.isValid(); ++ti ) {
+    std::unique_ptr<Tile> tileDesc = ti.buildCurrentTile();
+    ...
+}
+
+
+\end{verbatim}
+
+
+\end{document}
