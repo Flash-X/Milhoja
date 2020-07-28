@@ -8,6 +8,7 @@
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
+#include "TileAmrex.h"
 
 // Macro for iterating over all coordinates in the
 // region defined by two IntVects lo and hi.
@@ -153,7 +154,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
         count++;
         if(count%7 != 0) continue;
-        Tile tileDesc(itor, 0);
+        TileAmrex tileDesc(itor, 0);
         IntVect coord = tileDesc.lo();
         ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
         for(int i=1;i<NDIM;++i) {

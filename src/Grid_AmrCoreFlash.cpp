@@ -28,7 +28,9 @@ void AmrCoreFlash::ClearLevel (int lev) {
 }
 
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm){
-    Grid::instance().unk_ =  new amrex::MultiFab(ba, dm, NUNKVAR, NGUARD);
+    if(lev==0) {
+        Grid::instance().unk_ =  new amrex::MultiFab(ba, dm, NUNKVAR, NGUARD);
+    }
     std::cout << "Doing MakeNewLevelFromScratch Callback" << std::endl;
 }
 

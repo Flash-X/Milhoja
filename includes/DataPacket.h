@@ -3,7 +3,7 @@
 
 #include <deque>
 
-#include "Tile.h"
+#include "TileAmrex.h"
 
 namespace orchestration {
 
@@ -13,14 +13,14 @@ namespace orchestration {
 class DataPacket {
 public:
     int                id = -1;
-    std::deque<Tile>   tileList;
+    std::deque<TileAmrex>   tileList;
 
     DataPacket(void)  { clear(); }
     ~DataPacket(void) { clear(); }
 
     // TODO: Do we need to do something elementwise to make certain that 
     //       we are managing memory correctly?
-    void clear(void) { id = -1; std::deque<Tile>().swap(this->tileList); }
+    void clear(void) { id = -1; std::deque<TileAmrex>().swap(this->tileList); }
 
 private:
     // TODO: Do we need copy/move constructors/assignment?

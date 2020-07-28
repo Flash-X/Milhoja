@@ -28,29 +28,6 @@ Tile::Tile(void)
       interior_{nullptr},
       GC_{nullptr}    { }
 
-/**
- *
- */
-Tile::Tile(amrex::MFIter& itor, const unsigned int level)
-    : CC_h_{nullptr},
-      CC1_p_{nullptr},
-      CC2_p_{nullptr},
-      loGC_p_{nullptr},
-      hiGC_p_{nullptr},
-      CC1_d_{nullptr},
-      CC2_d_{nullptr},
-      loGC_d_{nullptr},
-      hiGC_d_{nullptr},
-      CC1_array_d_{nullptr},
-      gridIdx_{itor.index()},
-      level_{0},
-      interior_{new amrex::Box(itor.tilebox())},
-      GC_{new amrex::Box(itor.fabbox())}
-{
-    amrex::MultiFab&  unk = Grid::instance().unk();
-    amrex::FArrayBox& fab = unk[gridIdx_];
-    CC_h_ = fab.dataPtr();
-}
 
 Tile::Tile(const Tile& other)
     : CC_h_{other.CC_h_},
@@ -165,94 +142,12 @@ Tile::~Tile(void) {
     }
 }
 
-/**
- *
- */
-bool   Tile::isNull(void) const {
-    return (   (gridIdx_ < 0)
-            && (level_ == 0) 
-            && (interior_    == nullptr)
-            && (GC_          == nullptr)
-            && (CC_h_        == nullptr)
-            && (CC1_p_       == nullptr)
-            && (CC2_p_       == nullptr)
-            && (loGC_p_      == nullptr)
-            && (hiGC_p_      == nullptr)
-            && (CC1_d_       == nullptr)
-            && (CC2_d_       == nullptr)
-            && (loGC_d_      == nullptr)
-            && (hiGC_d_      == nullptr)
-            && (CC1_array_d_ == nullptr));
-}
-/**
- *
- */
-IntVect  Tile::lo(void) const {
-    return IntVect(interior_->smallEnd());
-}
 
 /**
  *
  */
-IntVect  Tile::hi(void) const {
-    return IntVect(interior_->bigEnd());
-}
-
-/**
- *
- */
-const amrex::Box&  Tile::interior(void) const {
-    return (*interior_);
-}
-
-/**
- *
- */
-amrex::Dim3  Tile::loGC(void) const {
-    return amrex::lbound(*GC_);
-}
-
-/**
- *
- */
-amrex::Dim3  Tile::hiGC(void) const {
-    return amrex::ubound(*GC_);
-}
-
-/**
- *
- */
-const int*  Tile::loGCVect(void) const {
-    return GC_->loVect();
-}
-
-/**
- *
- */
-const int*  Tile::hiGCVect(void) const {
-    return GC_->hiVect();
-}
-
-/**
- *
- */
-const amrex::Box&  Tile::interiorAndGC(void) const {
-    return (*GC_);
-}
-
-/**
- *
- */
-amrex::XDim3 Tile::deltas(void) const {
-    amrex::Geometry& geometry = Grid::instance().geometry();
-
-    amrex::XDim3   deltas;
-
-    deltas.x = geometry.CellSize(0);
-    deltas.y = geometry.CellSize(1);
-    deltas.z = geometry.CellSize(2);
-
-    return deltas;
+RealVect Tile::deltas(void) const {
+    return Grid::instance().getDeltas(level_);
 }
 
 }

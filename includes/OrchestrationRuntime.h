@@ -69,7 +69,7 @@ private:
     static unsigned int            maxThreadsPerTeam_;
     static bool                    instantiated_;
 
-    ThreadTeam<Tile>**             tileTeams_;
+    ThreadTeam<TileAmrex>**             tileTeams_;
     ThreadTeam<DataPacket>**       packetTeams_;
 
 #ifdef DEBUG_RUNTIME

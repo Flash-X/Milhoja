@@ -19,35 +19,25 @@ namespace orchestration {
 class Tile {
 public:
     Tile(void);
-    Tile(amrex::MFIter& itor, const unsigned int level);
-    ~Tile(void);
+    virtual ~Tile(void);
 
     Tile(const Tile&);
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
-    bool                 isNull(void) const;
+    virtual bool         isNull(void) const = 0;
 
-    int                  gridIndex(void) const  { return gridIdx_; }
-    unsigned int         level(void) const      { return level_; }
+    virtual int          gridIndex(void) const  { return gridIdx_; }
+    virtual unsigned int level(void) const      { return level_; }
 
-    // TODO: Get rid of the amrex::Dim3/XDim3 so that the interface is more
-    // general.  Can we get references instead?
-    IntVect              lo(void) const;
-    IntVect              hi(void) const;
+    // Pure virtual functions.
+    virtual IntVect      lo(void) const = 0;
+    virtual IntVect      hi(void) const = 0;
+    virtual IntVect      loGC(void) const = 0;
+    virtual IntVect      hiGC(void) const = 0;
 
-    amrex::Dim3          loGC(void) const;
-    amrex::Dim3          hiGC(void) const;
-    const int*           loGCVect(void) const;
-    const int*           hiGCVect(void) const;
-
-    // TODO: Do we need these in the interface?  I'd like to avoid having
-    //       the AMReX data structures in the interface.
-    //       If needed, can they be made protected or private?
-    const amrex::Box&    interior(void) const;
-    const amrex::Box&    interiorAndGC(void) const;
-
-    amrex::XDim3         deltas(void) const;
+    // Functions with a default implementation.
+    virtual RealVect     deltas(void) const;
 
     // Pointers to source data in the original data structures in the host
     // memory
@@ -77,16 +67,17 @@ public:
     // ugly hack to just get things working, I use void*.
     void*           CC1_array_d_;
 
+protected:
+    int           gridIdx_;
+    unsigned int  level_;
+    amrex::Box*   interior_;
+    amrex::Box*   GC_;
+
 private:
     // Limit all copies as much as possible
     Tile(Tile&) = delete;
     Tile& operator=(Tile&) = delete;
     Tile& operator=(const Tile&) = delete;
-
-    int           gridIdx_;
-    unsigned int  level_;
-    amrex::Box*   interior_;
-    amrex::Box*   GC_;
 };
 
 }

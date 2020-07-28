@@ -21,6 +21,8 @@
 #include "Flash.h"
 #include "constants.h"
 
+#include "TileAmrex.h"
+
 namespace orchestration {
 
 void passRPToAmrex() {
@@ -109,10 +111,10 @@ void GridAmrex::initDomain(TASK_FCN initBlock) {
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock;
 
-    ThreadTeam<Tile>  team(4, 1, "no.log");
+    ThreadTeam<TileAmrex>  team(4, 1, "no.log");
     team.startTask(action, "Cpu");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        Tile   tileDesc(itor, level);
+        TileAmrex   tileDesc(itor, level);
         team.enqueue(tileDesc, true);
     }
     team.closeTask();

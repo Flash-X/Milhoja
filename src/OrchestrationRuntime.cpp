@@ -5,6 +5,7 @@
 
 #include "Grid.h"
 #include "Flash.h"
+#include "TileAmrex.h"
 
 namespace orchestration {
 
@@ -92,9 +93,9 @@ OrchestrationRuntime::OrchestrationRuntime(void) {
                                     "Need to create at least one team");
     }
 
-    tileTeams_ = new ThreadTeam<Tile>*[nTileTeams_];
+    tileTeams_ = new ThreadTeam<TileAmrex>*[nTileTeams_];
     for (unsigned int i=0; i<nTileTeams_; ++i) {
-        tileTeams_[i] = new ThreadTeam<Tile>(maxThreadsPerTeam_, i, logFilename_);
+        tileTeams_[i] = new ThreadTeam<TileAmrex>(maxThreadsPerTeam_, i, logFilename_);
     }
 
     packetTeams_ = new ThreadTeam<DataPacket>*[nPacketTeams_];
@@ -251,9 +252,9 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
                                "Need at least three tile ThreadTeams in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam     = tileTeams_[0];
-    ThreadTeam<Tile>*   gpuTeam     = tileTeams_[1];
-    ThreadTeam<Tile>*   postGpuTeam = tileTeams_[2];
+    ThreadTeam<TileAmrex>*   cpuTeam     = tileTeams_[0];
+    ThreadTeam<TileAmrex>*   gpuTeam     = tileTeams_[1];
+    ThreadTeam<TileAmrex>*   postGpuTeam = tileTeams_[2];
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -279,7 +280,7 @@ void OrchestrationRuntime::executeTasks_Full(const std::string& bundleName,
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
+        TileAmrex  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
@@ -351,7 +352,7 @@ void OrchestrationRuntime::executeTasks_FullPacket(const std::string& bundleName
                                "Need at least two packet ThreadTeams in runtime");
     }
 
-    ThreadTeam<Tile>*         cpuTeam     = tileTeams_[0];
+    ThreadTeam<TileAmrex>*         cpuTeam     = tileTeams_[0];
     ThreadTeam<DataPacket>*   gpuTeam     = packetTeams_[0];
     ThreadTeam<DataPacket>*   postGpuTeam = packetTeams_[1];
 
@@ -383,7 +384,7 @@ void OrchestrationRuntime::executeTasks_FullPacket(const std::string& bundleName
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
         // TODO: What is the best way to manage the copy/move actions here?
         //       I am just playing around at the moment.
-        Tile  work(itor, level);
+        TileAmrex  work(itor, level);
         cpuTeam->enqueue(work, false);
         gpuPacket.tileList.push_front(std::move(work));
 
@@ -445,8 +446,8 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
                                "Need at least two tile ThreadTeams in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
-    ThreadTeam<Tile>*   gpuTeam = tileTeams_[1];
+    ThreadTeam<TileAmrex>*   cpuTeam = tileTeams_[0];
+    ThreadTeam<TileAmrex>*   gpuTeam = tileTeams_[1];
 
     cpuTeam->startTask(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startTask(gpuAction, "Concurrent_GPU_Block_Team");
@@ -454,7 +455,7 @@ void OrchestrationRuntime::executeConcurrentCpuGpuTasks(const std::string& bundl
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
+        TileAmrex  work(itor, level);
         // Ownership of tile resources is transferred to last team
         cpuTeam->enqueue(work, false);
         gpuTeam->enqueue(work, true);
@@ -485,14 +486,14 @@ void OrchestrationRuntime::executeCpuTasks(const std::string& bundleName,
                                "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam<Tile>*   cpuTeam = tileTeams_[0];
+    ThreadTeam<TileAmrex>*   cpuTeam = tileTeams_[0];
 
     cpuTeam->startTask(cpuAction, "CPU_Block_Team");
 
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
+        TileAmrex  work(itor, level);
         cpuTeam->enqueue(work, true);
     }
     cpuTeam->closeTask();
@@ -524,7 +525,7 @@ void OrchestrationRuntime::executeGpuTasks(const std::string& bundleName,
     gpuTeam->startTask(gpuAction, "GPU_PacketOfBlocks_Team");
 
     for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        Tile  work(itor, level);
+        TileAmrex  work(itor, level);
         packet.tileList.push_front(std::move(work));
 
         if (packet.tileList.size() >= gpuAction.nTilesPerPacket) {
