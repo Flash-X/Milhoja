@@ -11,12 +11,16 @@ AMREXDIR = $(HOME)/local/gcc_6.5.0/AMReX_2D
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(SRCDIR)/Grid_IntVect.h \
+    $(SRCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -26,13 +30,22 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp

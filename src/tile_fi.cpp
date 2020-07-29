@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 #include "Grid.h"
+#include "Grid_IntVect.h"
 #include "Flash.h"
 #include "constants.h"
 using namespace orchestration;
@@ -15,8 +16,8 @@ extern "C" {
         gid = static_cast<int>(tileDesc->gridIndex());
         level = static_cast<int>(tileDesc->level());
 
-        IntVect loPt = tileDesc->lo();
-        IntVect hiPt   = tileDesc->hi();
+        const IntVect loPt   = tileDesc->loVect();
+        const IntVect hiPt   = tileDesc->hiVect();
         const int* loGCPt = tileDesc->loGCVect();
         const int* hiGCPt = tileDesc->hiGCVect();
         for (unsigned int i=0; i<NDIM; ++i) {

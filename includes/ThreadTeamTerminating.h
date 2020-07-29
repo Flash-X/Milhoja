@@ -13,10 +13,13 @@
 
 namespace orchestration {
 
-template<typename W, class T>
-class ThreadTeamTerminating : public ThreadTeamState<W,T> {
+class DataItem;
+class ThreadTeam;
+class ThreadTeamState;
+
+class ThreadTeamTerminating : public ThreadTeamState {
 public:
-    ThreadTeamTerminating(T* team);
+    ThreadTeamTerminating(ThreadTeam* team);
     ~ThreadTeamTerminating(void)                { };
 
     ThreadTeamMode  mode(void) const override {
@@ -25,11 +28,11 @@ public:
 
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
-    std::string     startTask_NotThreadsafe(
+    std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
-    std::string     closeTask_NotThreadsafe(void) override;
+    std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) override;
+    std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const override {
@@ -37,17 +40,17 @@ protected:
     }
 
 private:
-    // Disallow copying of objects to create new objects
-    ThreadTeamTerminating& operator=(const ThreadTeamTerminating& rhs);
-    ThreadTeamTerminating(const ThreadTeamTerminating& other);
+    // Disallow copying/moving
+    ThreadTeamTerminating(ThreadTeamTerminating& other)                = delete;
+    ThreadTeamTerminating(const ThreadTeamTerminating& other)          = delete;
+    ThreadTeamTerminating(ThreadTeamTerminating&& other)               = delete;
+    ThreadTeamTerminating& operator=(ThreadTeamTerminating& rhs)       = delete;
+    ThreadTeamTerminating& operator=(const ThreadTeamTerminating& rhs) = delete;
+    ThreadTeamTerminating& operator=(ThreadTeamTerminating&& rhs)      = delete;
 
-    T*    team_;
+    ThreadTeam*    team_;
 };
 }
-
-// Include class definition in header since this is a class template
-//   => no need to compile the .cpp file directly as part of build
-#include "../src/ThreadTeamTerminating.cpp"
 
 #endif
 

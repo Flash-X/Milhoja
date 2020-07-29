@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 #include "Grid.h"
+#include "OrchestrationLogger.h"
 #include "Flash.h"
 #include "constants.h"
 
@@ -12,8 +13,10 @@ namespace orchestration {
 /**
  *
  */
+<<<<<<< HEAD
 Tile::Tile(void)
-    : CC_h_{nullptr},
+    : DataItem{},
+      CC_h_{nullptr},
       CC1_p_{nullptr},
       CC2_p_{nullptr},
       loGC_p_{nullptr},
@@ -26,27 +29,18 @@ Tile::Tile(void)
       gridIdx_{-1},
       level_{0},
       interior_{nullptr},
-      GC_{nullptr}    { }
-
-
-Tile::Tile(const Tile& other)
-    : CC_h_{other.CC_h_},
-      CC1_p_{other.CC1_p_},
-      CC2_p_{other.CC2_p_},
-      loGC_p_{other.loGC_p_},
-      hiGC_p_{other.hiGC_p_},
-      CC1_d_{other.CC1_d_},
-      CC2_d_{other.CC2_d_},
-      loGC_d_{other.loGC_d_},
-      hiGC_d_{other.hiGC_d_},
-      CC1_array_d_{other.CC1_array_d_},
-      gridIdx_{other.gridIdx_},
-      level_{other.level_},
-      interior_{new amrex::Box(*(other.interior_))},
-      GC_{new amrex::Box(*(other.GC_))}   { }
+      GC_{nullptr}    {
+#ifdef DEBUG_RUNTIME
+          std::string   msg =   "[Tile] Created Tile object "
+                        + std::to_string(gridIdx_)
+                        + " from MFIter";
+          Logger::instance().log(msg);
+#endif
+      }
 
 Tile::Tile(Tile&& other)
-    : CC_h_{other.CC_h_},
+    : DataItem{},
+      CC_h_{other.CC_h_},
       CC1_p_{other.CC1_p_},
       CC2_p_{other.CC2_p_},
       loGC_p_{other.loGC_p_},
@@ -78,6 +72,12 @@ Tile::Tile(Tile&& other)
     other.level_       = 0;
     other.interior_    = nullptr;
     other.GC_          = nullptr;
+
+#ifdef DEBUG_RUNTIME
+    std::string msg =    "[Tile] Moved Tile object "
+                      +  std::to_string(gridIdx_) +  " by move constructor";
+    Logger::instance().log(msg);
+#endif
 }
 
 Tile& Tile::operator=(Tile&& rhs) {
@@ -113,6 +113,11 @@ Tile& Tile::operator=(Tile&& rhs) {
     rhs.level_       = 0;
     rhs.interior_    = nullptr;
     rhs.GC_          = nullptr;
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Moved Tile object "
+                      + std::to_string(gridIdx_) + " by move assignment";
+    Logger::instance().log(msg);
+#endif
 
     return *this;
 }
@@ -121,6 +126,11 @@ Tile& Tile::operator=(Tile&& rhs) {
  *
  */
 Tile::~Tile(void) {
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Destroying Tile object " + std::to_string(gridIdx_);
+    Logger::instance().log(msg);
+#endif
+
     CC_h_        = nullptr;
     CC1_p_       = nullptr;
     CC2_p_       = nullptr;
@@ -148,6 +158,34 @@ Tile::~Tile(void) {
  */
 RealVect Tile::deltas(void) const {
     return Grid::instance().getDeltas(level_);
+}
+
+/**
+ *
+ */
+std::size_t Tile::nSubItems(void) const {
+    throw std::logic_error("[Tile::nSubItems] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
+std::shared_ptr<DataItem>  Tile::popSubItem(void) {
+    throw std::logic_error("[Tile::popSubItem] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
+DataItem*  Tile::getSubItem(const std::size_t i) {
+    throw std::logic_error("[Tile::getSubItem] Tiles do not have sub items");
+}
+
+/**
+ *
+ */
+void  Tile::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
+    throw std::logic_error("[Tile::addSubItem] Tiles do not have sub items");
 }
 
 }

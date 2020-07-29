@@ -9,7 +9,7 @@ docs/OrchestrationSystem.pdf
 docs/data\ types.pdf
 docs/GridPolymorphism.pdf
 sites/*/test_threadteam_cpp.x
-sites/*/test_runtime_int_cpp.x
+sites/*/test_runtime_null_cpp.x
 sites/*/test_runtime_tile_cpp.x
 sites/*/test_runtime_packet_cpp.x
 sites/*/gather_data_cpp.x

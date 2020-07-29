@@ -5,7 +5,10 @@
 #include <chrono>
 #include <stdexcept>
 
+#include "DataItem.h"
+#include "NullItem.h"
 #include "ThreadTeam.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -26,12 +29,12 @@ void randomActionRoutine_int(const int tId, void* dataItem) {
 /**
  *   Define a test fixture
  */ 
-class ThreadRuntimeInt : public testing::Test {
+class ThreadRuntimeNull : public testing::Test {
 protected:
     RuntimeAction    noop_int;
     RuntimeAction    random_int;
 
-    ThreadRuntimeInt(void) {
+    ThreadRuntimeNull(void) {
         noop_int.name = "noop_int";
         noop_int.nInitialThreads = 0;
         noop_int.teamType = ThreadTeamDataType::OTHER;
@@ -43,7 +46,7 @@ protected:
         random_int.routine = randomActionRoutine_int;
     }
 
-    ~ThreadRuntimeInt(void) { }
+    ~ThreadRuntimeNull(void) { }
 };
 
 /**
@@ -52,33 +55,41 @@ protected:
  * Only one execution cycle is run with the intent that the log file be manually
  * studied to confirm correctness.
  */
-TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
+TEST_F(ThreadRuntimeNull, TestSingle_ManualCheck) {
+    orchestration::Logger::setLogFilename("TestSingle_ManualCheck.log");
+
     std::vector<int>   work = {-5, 4, -1, 0, -6, 25};
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestSingle_ManualCheck.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestSingle_ManualCheck.log");
+    ThreadTeam   cpu_int(3,      1);
+    ThreadTeam   gpu_int(6,      2);
+    ThreadTeam   postGpu_int(10, 3);
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
-    gpu_int.attachWorkReceiver(&postGpu_int);
+    gpu_int.attachDataReceiver(&postGpu_int);
 
     try {
         noop_int.nInitialThreads = 2;
-        cpu_int.startTask(noop_int,     "Cpu");
+        cpu_int.startCycle(noop_int,     "Cpu");
         noop_int.nInitialThreads = 5;
-        gpu_int.startTask(noop_int,     "Gpu");
+        gpu_int.startCycle(noop_int,     "Gpu");
         noop_int.nInitialThreads = 0;
-        postGpu_int.startTask(noop_int, "postGpu");
+        postGpu_int.startCycle(noop_int, "postGpu");
 
+        std::shared_ptr<DataItem>   dataItem_cpu{};
+        std::shared_ptr<DataItem>   dataItem_gpu{};
         for (unsigned int i=0; i<work.size(); ++i) {
-            cpu_int.enqueue(work[i], false);
-            gpu_int.enqueue(work[i], true);
+            // Make all copies before enqueueing any copy
+            dataItem_cpu = std::shared_ptr<DataItem>{ new NullItem{} };
+            dataItem_gpu = dataItem_cpu;
+
+            cpu_int.enqueue( std::move(dataItem_cpu) );
+            gpu_int.enqueue( std::move(dataItem_gpu) );
         }
-        // gpu will call closeTask of postGpu when gpu transitions to Idle
-        gpu_int.closeTask();
-        cpu_int.closeTask();
+        // gpu will call closeQueue of postGpu when gpu transitions to Idle
+        gpu_int.closeQueue();
+        cpu_int.closeQueue();
 
         cpu_int.wait();
         gpu_int.wait();
@@ -86,7 +97,7 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
 
         cpu_int.detachThreadReceiver();
         gpu_int.detachThreadReceiver();
-        gpu_int.detachWorkReceiver();
+        gpu_int.detachDataReceiver();
     } catch (std::invalid_argument  e) {
         printf("\nINVALID ARGUMENT: %s\n\n", e.what());
         EXPECT_TRUE(false);
@@ -110,7 +121,9 @@ TEST_F(ThreadRuntimeInt, TestSingle_ManualCheck) {
  * possible.  As no real work is being done, there is no means to check that the
  * runtime produced the correct result.  No exceptions means the test passed.
  */
-TEST_F(ThreadRuntimeInt, TestMultipleFast) {
+TEST_F(ThreadRuntimeNull, TestMultipleFast) {
+    orchestration::Logger::setLogFilename("TestMultipleFast.log");
+
 #ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
 #else
@@ -124,29 +137,35 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleFast.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleFast.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleFast.log");
+    ThreadTeam   cpu_int(3,      1);
+    ThreadTeam   gpu_int(6,      2);
+    ThreadTeam   postGpu_int(10, 3);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         cpu_int.attachThreadReceiver(&postGpu_int);
         gpu_int.attachThreadReceiver(&postGpu_int);
-        gpu_int.attachWorkReceiver(&postGpu_int);
+        gpu_int.attachDataReceiver(&postGpu_int);
 
         try {
             noop_int.nInitialThreads = 2;
-            cpu_int.startTask(noop_int,     "Cpu");
+            cpu_int.startCycle(noop_int,     "Cpu");
             noop_int.nInitialThreads = 5;
-            gpu_int.startTask(noop_int,     "Gpu");
+            gpu_int.startCycle(noop_int,     "Gpu");
             noop_int.nInitialThreads = 0;
-            postGpu_int.startTask(noop_int, "postGpu");
+            postGpu_int.startCycle(noop_int, "postGpu");
 
+            std::shared_ptr<DataItem>   dataItem_cpu{};
+            std::shared_ptr<DataItem>   dataItem_gpu{};
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu_int.enqueue(work[i], false);
-                gpu_int.enqueue(work[i], true);
+                // Make all copies before enqueueing any copy
+                dataItem_cpu = std::shared_ptr<DataItem>{ new NullItem{} };
+                dataItem_gpu = dataItem_cpu;
+
+                cpu_int.enqueue( std::move(dataItem_cpu) );
+                gpu_int.enqueue( std::move(dataItem_gpu) );
             }
-            gpu_int.closeTask();
-            cpu_int.closeTask();
+            gpu_int.closeQueue();
+            cpu_int.closeQueue();
 
             cpu_int.wait();
             gpu_int.wait();
@@ -167,7 +186,7 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
 
         cpu_int.detachThreadReceiver();
         gpu_int.detachThreadReceiver();
-        gpu_int.detachWorkReceiver();
+        gpu_int.detachDataReceiver();
     }
 }
 
@@ -181,7 +200,9 @@ TEST_F(ThreadRuntimeInt, TestMultipleFast) {
  * means to check that the runtime produced the correct result.  No exceptions
  * means the test passed.
  */
-TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
+TEST_F(ThreadRuntimeNull, TestMultipleRandomWait) {
+    orchestration::Logger::setLogFilename("TestMultipleRandomWait.log");
+
     srand(1000);
 
 #ifdef DEBUG_RUNTIME
@@ -197,29 +218,35 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
     }
 
     // postGpu has enough threads to receive all of cpu and gpu threads
-    ThreadTeam<int>   cpu_int(3,      1, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   gpu_int(6,      2, "TestMultipleRandomWait.log");
-    ThreadTeam<int>   postGpu_int(10, 3, "TestMultipleRandomWait.log");
+    ThreadTeam   cpu_int(3,      1);
+    ThreadTeam   gpu_int(6,      2);
+    ThreadTeam   postGpu_int(10, 3);
 
     cpu_int.attachThreadReceiver(&postGpu_int);
     gpu_int.attachThreadReceiver(&postGpu_int);
-    gpu_int.attachWorkReceiver(&postGpu_int);
+    gpu_int.attachDataReceiver(&postGpu_int);
 
     for (unsigned int i=0; i<N_ITERS; ++i) {
         try {
             random_int.nInitialThreads = 2;
-            cpu_int.startTask(random_int,     "Cpu");
+            cpu_int.startCycle(random_int,     "Cpu");
             random_int.nInitialThreads = 5;
-            gpu_int.startTask(random_int,     "Gpu");
+            gpu_int.startCycle(random_int,     "Gpu");
             random_int.nInitialThreads = 0;
-            postGpu_int.startTask(random_int, "postGpu");
+            postGpu_int.startCycle(random_int, "postGpu");
 
+            std::shared_ptr<DataItem>   dataItem_cpu{};
+            std::shared_ptr<DataItem>   dataItem_gpu{};
             for (unsigned int i=0; i<work.size(); ++i) {
-                cpu_int.enqueue(work[i], false);
-                gpu_int.enqueue(work[i], true);
+                // Make all copies before enqueueing any copy
+                dataItem_cpu = std::shared_ptr<DataItem>{ new NullItem{} };
+                dataItem_gpu = dataItem_cpu;
+
+                cpu_int.enqueue( std::move(dataItem_cpu) );
+                gpu_int.enqueue( std::move(dataItem_gpu) );
             }
-            gpu_int.closeTask();
-            cpu_int.closeTask();
+            gpu_int.closeQueue();
+            cpu_int.closeQueue();
 
             cpu_int.wait();
             gpu_int.wait();
@@ -241,7 +268,7 @@ TEST_F(ThreadRuntimeInt, TestMultipleRandomWait) {
 
     cpu_int.detachThreadReceiver();
     gpu_int.detachThreadReceiver();
-    gpu_int.detachWorkReceiver();
+    gpu_int.detachDataReceiver();
 }
 
 }

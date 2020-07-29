@@ -35,9 +35,7 @@ if   [[ "$#" -eq 0 ]]; then
         make -f $MAKEFILE clean all
 elif [[ "$#" -eq 1 ]]; then
     if [[ "$1" = "--debug" ]]; then
-        echo "No debug-compatible tests in suite"
-        exit 5;
-#        make -f $MAKEFILE clean all DEBUG=T
+        make -f $MAKEFILE clean all DEBUG=T
     else
         echo "Unknown command line argument", $1
         exit 1;

@@ -30,10 +30,11 @@
 constexpr unsigned int   LEVEL = 0;
 
 constexpr unsigned int   N_TRIALS = 5;
-constexpr unsigned int   N_TILE_THREAD_TEAMS = 3;
-constexpr unsigned int   N_PACKET_THREAD_TEAMS = 0;
+constexpr unsigned int   N_THREAD_TEAMS = 3;
 
 void  setUp(void) {
+    using namespace orchestration;
+
     ActionBundle    bundle;
     bundle.name                          = "SetICs";
     bundle.cpuAction.name                = "setInitialConditions_block";
@@ -49,7 +50,7 @@ void  setUp(void) {
     bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
     bundle.postGpuAction.routine         = nullptr;
 
-    OrchestrationRuntime::instance().executeTasks(bundle);
+    orchestration::Runtime::instance().executeTasks(bundle);
 }
 
 void  tearDown(const std::string& filename,
@@ -59,6 +60,8 @@ void  tearDown(const std::string& filename,
                const int nThdTask2, 
                const int nThdTask3,
                const double walltime) {
+    using namespace orchestration;
+
     int   rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -89,7 +92,7 @@ void  tearDown(const std::string& filename,
         bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
         bundle.postGpuAction.routine         = nullptr;
 
-        OrchestrationRuntime::instance().executeTasks(bundle);
+        orchestration::Runtime::instance().executeTasks(bundle);
 
         Analysis::densityErrors(&L_inf_dens, &meanAbsError);
         Analysis::energyErrors(&L_inf_ener, &meanAbsError);
@@ -114,6 +117,8 @@ void  tearDown(const std::string& filename,
 }
 
 int   main(int argc, char* argv[]) {
+    using namespace orchestration;
+
     if (argc != 2) {
         std::cerr << "\nOne and only one command line argument please\n\n";
         return 1;
@@ -126,10 +131,10 @@ int   main(int argc, char* argv[]) {
     }
 
     // Initialize simulation
-    OrchestrationRuntime::setNumberThreadTeams(N_TILE_THREAD_TEAMS,
-                                               N_PACKET_THREAD_TEAMS);
-    OrchestrationRuntime::setMaxThreadsPerTeam(nTotalThreads);
-    OrchestrationRuntime&   runtime = OrchestrationRuntime::instance();
+    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
+    orchestration::Runtime::setMaxThreadsPerTeam(nTotalThreads);
+    orchestration::Runtime::setLogFilename("GatherDataCpp.log");
+    orchestration::Runtime&   runtime = orchestration::Runtime::instance();
 
     Grid&   grid = Grid::instance();
     grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,

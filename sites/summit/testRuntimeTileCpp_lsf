@@ -4,9 +4,9 @@
 #BSUB -W 0:01
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
-#BSUB -J testRuntimeCpp
-#BSUB -o testRuntimeCpp.%J
-#BSUB -e testRuntimeCpp.%J
+#BSUB -J testRuntimeTileCpp
+#BSUB -o testRuntimeTileCpp.%J
+#BSUB -e testRuntimeTileCpp.%J
  
 ######################################################################
 #####-----              FULLY SPECIFY TEST RUN              -----#####
@@ -18,7 +18,7 @@ N_HYPERTHREADS_PER_CORE=1
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
 # This should match the SW stack used to build the test binaries
-# as specified in buildGatherDataCpp.sh
+# as specified in buildTestRuntimeTileCpp.sh
 module purge
 module load gcc/9.1.0
 module load spectrum-mpi/10.3.1.2-20200121
@@ -61,8 +61,9 @@ echo "Number of HW Threads per Core = $N_HYPERTHREADS_PER_CORE"
 echo "Number of Threads per Process = $N_THREADS_PER_PROC"
 echo "---------------------------------------------------------------------"
 
-folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/testRuntimeCpp_$LSB_JOBID
-mkdir -p $folder ; cd $folder
+# No extra output produced presently
+#folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/testRuntimeTileCpp_$LSB_JOBID
+#mkdir -p $folder ; cd $folder
 
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
@@ -70,12 +71,13 @@ jsrun -n $N_RS_PER_NODE \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      $LS_SUBCWD/binaries/test_runtime_cpp.x
+      $LS_SUBCWD/binaries/test_runtime_tile_cpp.x
+# No tests run in debug mode
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       -l CPU-CPU -d cyclic -b rs \
-      $LS_SUBCWD/binaries/test_runtime_cpp_debug.x
+      $LS_SUBCWD/binaries/test_runtime_tile_cpp_debug.x
 

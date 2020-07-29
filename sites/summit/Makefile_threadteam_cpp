@@ -13,7 +13,10 @@ GTESTDIR     = $(HOME)/local/gcc_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
@@ -23,10 +26,19 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(TESTBASEDIR)/NullItem.h \
     $(TESTBASEDIR)/estimateTimerResolution.h \
     $(TESTDIR)/threadTeamTest.h \
     $(TESTDIR)/testThreadRoutines.h
 SRCS       = \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(TESTBASEDIR)/estimateTimerResolution.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testThreadTeam.cpp \

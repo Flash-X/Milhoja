@@ -18,6 +18,7 @@
 #include "scaleEnergy_packet.h"
 #include "computeLaplacianDensity_packet.h"
 #include "computeLaplacianEnergy_packet.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -82,91 +83,89 @@ protected:
 TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
     amrex::MultiFab&   unk = Grid::instance().unk();
 
-    constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<DataPacket>  cpu_packet(N_THREADS, 1, "TestSinglePacketTeam.log");
+    orchestration::Logger::setLogFilename("TestSinglePacketTeam.log");
 
-    DataPacket  packet;
+    constexpr unsigned int  N_THREADS = 4;
+    ThreadTeam  cpu_packet(N_THREADS, 1);
+
+    auto packet = std::shared_ptr<DataItem>{ new DataPacket{} };
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
 
     try {
-        packet.clear();
         computeLaplacianEnergy_packet.nInitialThreads = N_THREADS;
         computeLaplacianEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET;
-        cpu_packet.startTask(computeLaplacianEnergy_packet, "Cpu");
+        cpu_packet.startCycle(computeLaplacianEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet.tileList.size() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->nSubItems() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->nSubItems() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
-        cpu_packet.closeTask();
+        cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         computeLaplacianDensity_packet.nInitialThreads = N_THREADS;
         computeLaplacianDensity_packet.nTilesPerPacket = N_TILES_PER_PACKET - 2;
-        cpu_packet.startTask(computeLaplacianDensity_packet, "Cpu");
+        cpu_packet.startCycle(computeLaplacianDensity_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet.tileList.size() >= computeLaplacianDensity_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->nSubItems() >= computeLaplacianDensity_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->nSubItems() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
-        cpu_packet.closeTask();
+        cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         scaleEnergy_packet.nInitialThreads = N_THREADS;
         scaleEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET - 5;
-        cpu_packet.startTask(scaleEnergy_packet, "Cpu");
+        cpu_packet.startCycle(scaleEnergy_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet.tileList.size() >= scaleEnergy_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->nSubItems() >= scaleEnergy_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->nSubItems() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
+            packet = std::shared_ptr<DataItem>( new DataPacket{} );
         }
-        cpu_packet.closeTask();
+        cpu_packet.closeQueue();
         cpu_packet.wait();
 
-        packet.clear();
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_packet.nInitialThreads = N_THREADS;
         computeErrors_packet.nTilesPerPacket = N_TILES_PER_PACKET - 11;
-        cpu_packet.startTask(computeErrors_packet, "Cpu");
+        cpu_packet.startCycle(computeErrors_packet, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            packet.tileList.push_front(std::move(myTile));
+            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
 
-            if (packet.tileList.size() >= computeErrors_packet.nTilesPerPacket) {
-                cpu_packet.enqueue(packet, true);
-                packet.clear();
+            if (packet->nSubItems() >= computeErrors_packet.nTilesPerPacket) {
+                cpu_packet.enqueue( std::move(packet) );
+                packet = std::shared_ptr<DataItem>( new DataPacket{} );
             }
         }
-        if (packet.tileList.size() != 0) {
-            cpu_packet.enqueue(packet, true);
+        if (packet->nSubItems() != 0) {
+            cpu_packet.enqueue( std::move(packet) );
         }
-        cpu_packet.closeTask();
+        cpu_packet.closeQueue();
         cpu_packet.wait();
+        packet.reset();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";
@@ -205,6 +204,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimePacket, TestRuntimeSingle) {
+    orchestration::Logger::setLogFilename("TestRuntimeSingle.log");
+
     ActionBundle    bundle;
 
     try {
@@ -227,11 +228,11 @@ TEST_F(TestRuntimePacket, TestRuntimeSingle) {
 
         bundle.postGpuAction.name            = "bundle1_postGpuAction";
         bundle.postGpuAction.nInitialThreads = 1;
-        bundle.postGpuAction.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+        bundle.postGpuAction.teamType        = ThreadTeamDataType::BLOCK;
         bundle.postGpuAction.nTilesPerPacket = 0;
-        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_packet;
+        bundle.postGpuAction.routine         = ThreadRoutines::scaleEnergy_block;
 
-        OrchestrationRuntime::instance().executeTasks(bundle);
+        orchestration::Runtime::instance().executeTasks(bundle);
 
         //***** SECOND RUNTIME EXECUTION CYCLE
         bundle.name                          = "Analysis Bundle";
@@ -251,7 +252,7 @@ TEST_F(TestRuntimePacket, TestRuntimeSingle) {
         bundle.postGpuAction.routine         = nullptr;
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        OrchestrationRuntime::instance().executeTasks(bundle);
+        orchestration::Runtime::instance().executeTasks(bundle);
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
                   << e.what() << "\n\n";

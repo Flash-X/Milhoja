@@ -18,7 +18,7 @@
 #include "Grid_IntVect.h"
 #include "Tile.h"
 #include "TileIter.h"
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 
 namespace orchestration {
 
@@ -34,7 +34,7 @@ public:
     amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
 
     // Pure virtual functions that must be implemented by derived class.
-    virtual void  initDomain(TASK_FCN initBlock) = 0;
+    virtual void  initDomain(ACTION_ROUTINE initBlock) = 0;
     virtual RealVect       getProbLo() const = 0;
     virtual RealVect       getProbHi() const = 0;
     virtual unsigned int   getMaxRefinement() const = 0;

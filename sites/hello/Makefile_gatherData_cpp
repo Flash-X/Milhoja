@@ -14,12 +14,16 @@ AMREXDIR     = $(HOME)/local/gcc_6.5.0/AMReX_2D
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -29,7 +33,6 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationRuntime.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
@@ -39,7 +42,17 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
