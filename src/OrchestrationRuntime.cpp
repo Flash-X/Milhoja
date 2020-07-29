@@ -4,12 +4,11 @@
 #include <iostream>
 
 #include "Grid.h"
+#include "TileIter.h"
 #include "OrchestrationLogger.h"
 #include "Flash.h"
 #include "DataItemSplitter.h"
-
 #include "DataPacket.h"
-#include "TileAmrex.h"
 
 namespace orchestration {
 
@@ -258,14 +257,14 @@ void Runtime::executeTasks_Full(const std::string& bundleName,
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Block_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
         // If we create a first shared_ptr and enqueue it with one team, it is
         // possible that this shared_ptr could have the action applied to its
         // data and go out of scope before we create a second shared_ptr.  In
         // this case, the data item's resources would be released prematurely.
         // To avoid this, we create all copies up front and before enqueing any
         // copy.
-        dataItem_cpu = std::shared_ptr<DataItem>{ new TileAmrex{itor, level} };
+        dataItem_cpu = ti.buildCurrentTile();
         dataItem_gpu = dataItem_cpu;
         if ((dataItem_cpu.get()) != (dataItem_gpu.get())) {
             throw std::logic_error("shared_ptr copy didn't work");
@@ -389,8 +388,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_cpu = std::shared_ptr<DataItem>{ new TileAmrex{itor, level} };
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+        dataItem_cpu = ti.buildCurrentTile();
         dataItem_gpu->addSubItem( std::shared_ptr<DataItem>{dataItem_cpu} );
 
         cpuTeam->enqueue( std::move(dataItem_cpu) );
@@ -464,8 +463,8 @@ void Runtime::executeConcurrentCpuGpuTasks(const std::string& bundleName,
 
     std::shared_ptr<DataItem>   dataItem_cpu{};
     std::shared_ptr<DataItem>   dataItem_gpu{};
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_cpu = std::shared_ptr<DataItem>{ new TileAmrex{itor, level} };
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+        dataItem_cpu = ti.buildCurrentTile();
         dataItem_gpu = dataItem_cpu;
 
         cpuTeam->enqueue( std::move(dataItem_cpu) );
@@ -503,8 +502,8 @@ void Runtime::executeCpuTasks(const std::string& bundleName,
 
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        cpuTeam->enqueue( std::shared_ptr<DataItem>{ new TileAmrex{itor, level} } );
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+        cpuTeam->enqueue( ti.buildCurrentTile() );
     }
     cpuTeam->closeQueue();
     cpuTeam->wait();
@@ -536,8 +535,8 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     auto dataItem_gpu = std::shared_ptr<DataItem>{ new DataPacket{} };
 
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
-    for (amrex::MFIter  itor(grid.unk()); itor.isValid(); ++itor) {
-        dataItem_gpu->addSubItem( std::shared_ptr<DataItem>{ new TileAmrex{itor, level} } );
+    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+        dataItem_gpu->addSubItem( ti.buildCurrentTile() );
 
         if (dataItem_gpu->nSubItems() >= gpuAction.nTilesPerPacket) {
             gpuTeam->enqueue( std::move(dataItem_gpu) );

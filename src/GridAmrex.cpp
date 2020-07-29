@@ -37,7 +37,7 @@ void passRPToAmrex() {
     {
         amrex::ParmParse pp("amr");
 
-        pp.add("v",1); //verbosity
+        pp.add("v",0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
         pp.add("max_level",LREFINE_MAX-1); //0-based
         pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB*N_BLOCKS_X,
@@ -105,6 +105,7 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     amrcore_->InitFromScratch(0.0_wp);
 
     // TODO: Thread count should be a runtime variable
+    // TODO: move this to MakeNewLevelFromScratch callback
     RuntimeAction    action;
     action.name = "initBlock";
     action.nInitialThreads = 4;

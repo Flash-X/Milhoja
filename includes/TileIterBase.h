@@ -7,6 +7,7 @@ namespace orchestration {
 
 class TileIterBase {
 public:
+    // TODO: implement tiling!!
     explicit TileIterBase(const unsigned int lev)
              : nodetype_{0},
                lev_{lev},

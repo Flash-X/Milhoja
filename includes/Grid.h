@@ -12,6 +12,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include "Grid_AmrCoreFlash.h"
+#include "TileAmrex.h"
+#include "setInitialConditions_block.h"
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -29,9 +31,6 @@ public:
     static Grid& instance(void);
     static void  instantiate(void);
     virtual void destroyDomain(void) {}
-
-    amrex::MultiFab&   unk(void)       { return (*unk_); }
-    amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void  initDomain(ACTION_ROUTINE initBlock) = 0;
@@ -56,14 +55,19 @@ public:
     virtual void     fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const;
     virtual void     fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
 
-    amrex::MultiFab*   unk_;
-
 protected:
+    // TODO move unk_ to be a member of AmrCoreFlash
+    amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
+    amrex::MultiFab&   unk(void)       { return (*unk_); }
+    amrex::MultiFab*   unk_;
+    friend void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
+    friend TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level);
+    friend void Simulation::setInitialConditions_block(const int tId, void* dataItem);
+
     Grid(void) : unk_(nullptr) {}
     static bool instantiated_;
-    AmrCoreFlash*      amrcore_;
+    AmrCoreFlash*      amrcore_; //TODO: move to member of GridAmrex
 
-// TODO make these private??
     Grid(const Grid&) = delete;
     Grid(Grid&&) = delete;
     Grid& operator=(const Grid&) = delete;

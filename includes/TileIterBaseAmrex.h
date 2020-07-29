@@ -32,7 +32,7 @@ public:
     bool isValid() const override { return mfi_.isValid(); }
     void operator++() override { ++mfi_; currentIdx_++; }
     std::unique_ptr<Tile> buildCurrentTile() override {
-        return std::unique_ptr<TileAmrex>{ new TileAmrex(mfi_,lev_) };
+        return std::unique_ptr<Tile>{ new TileAmrex(mfi_,lev_) };
     }
 
 private:
