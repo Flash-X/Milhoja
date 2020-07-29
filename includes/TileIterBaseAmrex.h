@@ -20,22 +20,19 @@ namespace orchestration {
 class TileIterBaseAmrex : public TileIterBase {
 public:
     TileIterBaseAmrex(amrex::MultiFab* mf_in, const unsigned int lev)
-        : TileIterBase{lev},
-          mfi_{*mf_in}
-    {
-        currentIdx_ = mfi_.tileIndex();
-        endIdx_ = currentIdx_ + mfi_.length();
-    }
+        : lev_{lev},
+          mfi_{*mf_in} {}
 
     ~TileIterBaseAmrex() {}
 
     bool isValid() const override { return mfi_.isValid(); }
-    void operator++() override { ++mfi_; currentIdx_++; }
+    void operator++() override { ++mfi_; }
     std::unique_ptr<Tile> buildCurrentTile() override {
         return std::unique_ptr<Tile>{ new TileAmrex(mfi_,lev_) };
     }
 
 private:
+    unsigned int lev_;
     amrex::MFIter mfi_;
 };
 
