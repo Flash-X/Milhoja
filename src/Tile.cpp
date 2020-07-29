@@ -13,7 +13,7 @@ namespace orchestration {
 /**
  *
  */
-Tile::Tile(void)
+Tile::Tile(const unsigned int level)
     : DataItem{},
       CC_h_{nullptr},
       CC1_p_{nullptr},
@@ -26,7 +26,7 @@ Tile::Tile(void)
       hiGC_d_{nullptr},
       CC1_array_d_{nullptr},
       gridIdx_{-1},
-      level_{0},
+      level_{level},
       interior_{nullptr},
       GC_{nullptr}    {
 #ifdef DEBUG_RUNTIME

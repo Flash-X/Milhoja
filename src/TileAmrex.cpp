@@ -12,12 +12,13 @@ namespace orchestration {
 /**
  *
  */
-TileAmrex::TileAmrex(void) { }
+TileAmrex::TileAmrex(void) : Tile{0} { }
 
 /**
  *
  */
 TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level)
+    : Tile(level)
 {
     gridIdx_ = itor.index();
     interior_ = new amrex::Box(itor.tilebox());

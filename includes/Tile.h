@@ -20,7 +20,7 @@ namespace orchestration {
  */
 class Tile : public DataItem {
 public:
-    Tile(void);
+    Tile(const unsigned int level);
     virtual ~Tile(void);
 
     Tile(Tile&&);
@@ -74,6 +74,7 @@ public:
     void*           CC1_array_d_;
 
 protected:
+    // TODO move protected members to TileAmrex
     int           gridIdx_;
     unsigned int  level_;
     amrex::Box*   interior_;
