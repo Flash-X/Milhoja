@@ -14,7 +14,7 @@ AMREXDIR = $(HOME)/local/gcc_7.1.0/amrex_2d
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/Grid.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \

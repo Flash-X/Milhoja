@@ -5,7 +5,7 @@
 #include "Grid_RealVect.h"
 #include "Grid_Axis.h"
 #include "Flash.h"
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 
 using namespace orchestration;
 
@@ -28,7 +28,7 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int nVars,
-                               TASK_FCN initBlock) {
+                               ACTION_ROUTINE initBlock) {
         Grid&   grid = Grid::instance();
         RealVect probLo{LIST_NDIM(static_cast<Real>(xMin),
                                   static_cast<Real>(yMin),

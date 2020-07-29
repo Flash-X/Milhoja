@@ -10,38 +10,33 @@
 
 #include <string>
 
-#include "Tile.h"
-#include "DataPacket.h"
 #include "ThreadTeam.h"
 #include "ActionBundle.h"
 #include "RuntimeAction.h"
 
 namespace orchestration {
 
-class OrchestrationRuntime {
+class Runtime {
 public:
-    ~OrchestrationRuntime(void);
+    ~Runtime(void);
 
-    static OrchestrationRuntime& instance(void);
+    static Runtime& instance(void);
     static void setLogFilename(const std::string& filename);
-    static void setNumberThreadTeams(const unsigned int nTileTeams,
-                                     const unsigned int nPacketTeams);
+    static void setNumberThreadTeams(const unsigned int nTeams);
     static void setMaxThreadsPerTeam(const unsigned int maxThreads);
 
     void executeTasks(const ActionBundle& bundle);
 
 private:
-    OrchestrationRuntime(void);
+    Runtime(void);
 
-    OrchestrationRuntime(OrchestrationRuntime&) = delete;
-    OrchestrationRuntime(const OrchestrationRuntime&) = delete;
-    OrchestrationRuntime(OrchestrationRuntime&&) = delete;
-    OrchestrationRuntime(const OrchestrationRuntime&&) = delete;
+    Runtime(Runtime&) = delete;
+    Runtime(const Runtime&) = delete;
+    Runtime(Runtime&&) = delete;
 
-    OrchestrationRuntime& operator=(OrchestrationRuntime&) = delete;
-    OrchestrationRuntime& operator=(const OrchestrationRuntime&) = delete;
-    OrchestrationRuntime& operator=(OrchestrationRuntime&&) = delete;
-    OrchestrationRuntime& operator=(const OrchestrationRuntime&&) = delete;
+    Runtime& operator=(Runtime&) = delete;
+    Runtime& operator=(const Runtime&) = delete;
+    Runtime& operator=(Runtime&&) = delete;
 
     void executeCpuTasks(const std::string& bundleName,
                          const RuntimeAction& cpuAction);
@@ -63,18 +58,11 @@ private:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
 
-    static std::string             logFilename_;
-    static unsigned int            nTileTeams_; 
-    static unsigned int            nPacketTeams_; 
-    static unsigned int            maxThreadsPerTeam_;
-    static bool                    instantiated_;
+    static unsigned int      nTeams_; 
+    static unsigned int      maxThreadsPerTeam_;
+    static bool              instantiated_;
 
-    ThreadTeam<Tile>**             tileTeams_;
-    ThreadTeam<DataPacket>**       packetTeams_;
-
-#ifdef DEBUG_RUNTIME
-    std::ofstream     logFile_; 
-#endif
+    ThreadTeam**             teams_;
 };
 
 }

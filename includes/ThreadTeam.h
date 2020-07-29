@@ -2,11 +2,11 @@
  * \file    ThreadTeam.h
  *
  * \brief A class that implements a team of threads for orchestrating the
- * execution on a heterogeneous node of a single task across a given set of
- * units of tiles.
+ * execution on a heterogeneous node of a single action across a given set of
+ * data items.
  *
  * The class implements a team of threads that is specifically designed for use
- * by the Orchestration Runtime, which schedules a single task with the thread
+ * by the Orchestration Runtime, which schedules a single action with the thread
  * team for execution in a single cycle.  All public methods are thread-safe.
  *
  * Please refer to the Orchestration System design documents for more
@@ -25,8 +25,8 @@
  *   - initializes the EFSM in the correct Idle state,
  *   - handles the destruction of the EFSM, and
  *   - defines how all threads in the team shall behave.
- * Note that each thread in the team is a FSM that moves between the Idle,
- * Waiting, and Computing states.
+ * Note that at all times each thread in the team is in one and only of the
+ * possible thread states Idle, Waiting, or Computing.
  *
  * Each method in this class whose behavior is implemented by calling the
  * associated method of the state_ member has a similar structure.
@@ -40,13 +40,7 @@
  * then it is possible that we call the method associate with one mode, but get
  * the mutex after the mode has transitioned.
  *
- * The implementations of the work/thread publisher/subscriber design aspects
- * are one-directional versions of the Observer design pattern (Pp. 293).
- *
- * The template parameter W allows for building ThreadTeam objects that work
- * with different units of work (e.g. tiles, data packets of blocks).
- *
- * \warning Client must be certain that subscriber/publisher chains are not
+ * \warning Calling code must be certain that subscriber/publisher chains are not
  * setup that code result in deadlocks or infinite loops.
  *
  */
@@ -56,28 +50,27 @@
 
 #include <queue>
 #include <string>
-#include <fstream>
+#include <memory>
 
-#include "runtimeTask.h"
+#include "actionRoutine.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamMode.h"
-#include "ThreadTeamBase.h"
-
-#include "ThreadTeamState.h"
-#include "ThreadTeamIdle.h"
-#include "ThreadTeamTerminating.h"
-#include "ThreadTeamRunningOpen.h"
-#include "ThreadTeamRunningClosed.h"
-#include "ThreadTeamRunningNoMoreWork.h"
+#include "RuntimeElement.h"
 
 namespace orchestration {
 
-template<typename W>
-class ThreadTeam : public ThreadTeamBase {
+class DataItem;
+class ThreadTeamState;
+class ThreadTeamIdle;
+class ThreadTeamTerminating;
+class ThreadTeamRunningOpen;
+class ThreadTeamRunningClosed;
+class ThreadTeamRunningNoMoreWork;
+
+class ThreadTeam : public RuntimeElement {
 public:
     ThreadTeam(const unsigned int nMaxThreads,
-               const unsigned int id,
-               const std::string& logFilename);
+               const unsigned int id);
     virtual ~ThreadTeam(void);
 
     // State-independent methods
@@ -91,19 +84,33 @@ public:
     // State-dependent methods whose behavior is implemented by objects
     // derived from ThreadTeamState
     void         increaseThreadCount(const unsigned int nThreads) override;
-    void         startTask(const RuntimeAction& action,
-                           const std::string& teamName,
-                           const bool waitForThreads=false);
-    void         enqueue(W& work, const bool move);
-    void         closeTask(void);
+    void         startCycle(const RuntimeAction& action,
+                            const std::string& teamName,
+                            const bool waitForThreads=false);
+    void         enqueue(std::shared_ptr<DataItem>&& dataItem) override;
+    void         closeQueue(void) override;
     void         wait(void);
 
     // State-dependent methods whose simple dependence is handled by this class
-    void         attachThreadReceiver(ThreadTeamBase* receiver);
-    void         detachThreadReceiver(void);
+    std::string  attachThreadReceiver(RuntimeElement* receiver) override;
+    std::string  detachThreadReceiver(void) override;
 
-    void         attachWorkReceiver(ThreadTeam<W>* receiver);
-    void         detachWorkReceiver(void);
+    // DEV: Originally this class was templated so that each ThreadTeam
+    //      had a definite data type.  In addition, that same template
+    //      was used in this interface so that a given Data Publisher
+    //      Subscriber pair had to have the same data type.  However, this
+    //      forced ThreadTeam's to be too specialized when a Data Subscriber
+    //      could be a data splitter, which had an In data type and an Out data
+    //      type.
+    //      
+    //      By created the DataItem ABC class (i.e. swap templates for
+    //      polymorphism), ThreadTeams no longer have a definite type and
+    //      this interface suffers because it allows for Pub/Sub pairs
+    //      with mismatched data type, which is not allowed.  In other words,
+    //      the compiler does not protect those who assemble RuntimeElements
+    //      into thread team configurations.
+    std::string  attachDataReceiver(RuntimeElement* receiver) override;
+    std::string  detachDataReceiver(void) override;
 
 protected:
     constexpr static unsigned int   THREAD_START_STOP_TIMEOUT_SEC = 1;
@@ -128,50 +135,55 @@ protected:
                                           const std::string& msg) const;
 
 private:
-    // Disallow copying of objects to create new objects
-    ThreadTeam& operator=(const ThreadTeam& rhs);
-    ThreadTeam(const ThreadTeam& other);
+    // Disallow copying/moving
+    ThreadTeam(ThreadTeam& other)                = delete;
+    ThreadTeam(const ThreadTeam& other)          = delete;
+    ThreadTeam(ThreadTeam&& other)               = delete;
+    ThreadTeam& operator=(ThreadTeam& rhs)       = delete;
+    ThreadTeam& operator=(const ThreadTeam& rhs) = delete;
+    ThreadTeam& operator=(ThreadTeam&& rhs)      = delete;
 
     // State Design Pattern - ThreadTeamState derived classes need direct access
     //                        to protected methods and private data members
-    friend class ThreadTeamIdle<W,ThreadTeam>;
-    friend class ThreadTeamTerminating<W,ThreadTeam>;
-    friend class ThreadTeamRunningOpen<W,ThreadTeam>;
-    friend class ThreadTeamRunningClosed<W,ThreadTeam>;
-    friend class ThreadTeamRunningNoMoreWork<W,ThreadTeam>;
+    friend class ThreadTeamIdle;
+    friend class ThreadTeamTerminating;
+    friend class ThreadTeamRunningOpen;
+    friend class ThreadTeamRunningClosed;
+    friend class ThreadTeamRunningNoMoreWork;
 
     //***** Extended Finite State Machine State Definition
     // Qualitative State Mode
     // Encoded in ThreadTeamState instance pointed to by state_
-    ThreadTeamState<W,ThreadTeam>*              state_;
-    ThreadTeamIdle<W,ThreadTeam>*               stateIdle_;
-    ThreadTeamTerminating<W,ThreadTeam>*        stateTerminating_;
-    ThreadTeamRunningOpen<W,ThreadTeam>*        stateRunOpen_;
-    ThreadTeamRunningClosed<W,ThreadTeam>*      stateRunClosed_;
-    ThreadTeamRunningNoMoreWork<W,ThreadTeam>*  stateRunNoMoreWork_;
+    ThreadTeamState*              state_;
+    ThreadTeamIdle*               stateIdle_;
+    ThreadTeamTerminating*        stateTerminating_;
+    ThreadTeamRunningOpen*        stateRunOpen_;
+    ThreadTeamRunningClosed*      stateRunClosed_;
+    ThreadTeamRunningNoMoreWork*  stateRunNoMoreWork_;
 
     // Quantitative Internal State Variables
     unsigned int   N_idle_;      /*!< Number of threads that are
                                   *   actually Idling
                                   *   (i.e. waiting on activateThread_)) */
-    unsigned int   N_wait_;      /*!< No work at last transition.
+    unsigned int   N_wait_;      /*!< No data items at last transition.
                                   *   Waiting for transitionThread_. */
-    unsigned int   N_comp_;      /*!< Found work at last transition and
-                                  *   currently applying task to work.
+    unsigned int   N_comp_;      /*!< Found data item at last transition and
+                                  *   currently applying action to item.
                                   *   It will transition
                                   *   (computingFinished event) when it
                                   *   finishes that work. */
     unsigned int   N_terminate_; /*!< Number of threads that are terminating
                                   *   or that have terminated. */
 
-    std::queue<W>   queue_;   //!< Internal queue of pending work.
+    std::queue<std::shared_ptr<DataItem>>   queue_;  /*!< Internal data item queue to which the
+                                                      * team's actions need to be applied. */
 
     //***** Data members not directly related to state
-    // Client code could set the number of Idle threads by calling startTask()
+    // Calling code could set the number of Idle threads by calling startCycle()
     // and increaseThreadCount().  However, there is a non-zero delay for the
     // threads to transition to active.
     //
-    // If client code calls increaseThreadCount(), we need to throw an error if
+    // If calling code calls increaseThreadCount(), we need to throw an error if
     // the increased count would exceed the number of Idle threads in the team.
     // Therefore, we cannot rely on the number of actual Idle threads to do this
     // error checking.  This tracks the number of Idle threads that will be
@@ -181,7 +193,7 @@ private:
     unsigned int      nMaxThreads_;        //!< Number of threads in team won't exceed this
     unsigned int      id_;                 //!< (Hopefully) unique ID for team
     std::string       hdr_;                //!< Short name of team for logging
-    std::string       taskName_;           //!< Short name of task for logging
+    std::string       actionName_;         //!< Short name of action for logging
 
     pthread_attr_t    attr_;               //!< All threads setup with this attribute
     pthread_mutex_t   teamMutex_;          //!< Use to access members
@@ -194,24 +206,14 @@ private:
     pthread_cond_t    threadTerminated_;   //!< Each thread emits this signal upon termination
     pthread_cond_t    unblockWaitThread_;  //!< Wake single thread blocked by calling wait()
 
-    TASK_FCN          taskFcn_;            /*!< Computational task to be applied to
-                                            *   all units of enqueued work */
-
-    ThreadTeamBase*   threadReceiver_;     //!< Thread team to notify when threads terminate
-    ThreadTeam<W>*    workReceiver_;       //!< Thread team to pass work to when finished
+    ACTION_ROUTINE    actionRoutine_;      /*!< Computational routine to be applied to
+                                            *   all data items enqueued with team*/
 
     // Keep track of when wait() is blocking and when it is released
     bool              isWaitBlocking_;     //!< Only a single thread can be blocked 
-
-    std::string       logFilename_;
-#ifdef DEBUG_RUNTIME
-    std::ofstream     logFile_; 
-#endif
 };
 
 }
-
-#include "../src/ThreadTeam.cpp"
 
 #endif
 

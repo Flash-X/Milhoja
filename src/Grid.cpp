@@ -72,7 +72,7 @@ void    Grid::initDomain(const RealVect& probMin,
                          const RealVect& probMax,
                          const IntVect& nBlocks,
                          const unsigned int nVars,
-                         TASK_FCN initBlock) {
+                         ACTION_ROUTINE initBlock) {
     // TODO: Error check all given parameters
     if (unk_) {
         throw std::logic_error("[Grid::initDomain] Grid unit's initDomain already called");
@@ -113,13 +113,12 @@ void    Grid::initDomain(const RealVect& probMin,
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock;
 
-    ThreadTeam<Tile>  team(4, 1, "no.log");
-    team.startTask(action, "Cpu");
+    ThreadTeam  team(4, 1);
+    team.startCycle(action, "Cpu");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        Tile   tileDesc(itor, level);
-        team.enqueue(tileDesc, true);
+        team.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
     }
-    team.closeTask();
+    team.closeQueue();
     team.wait();
 }
 

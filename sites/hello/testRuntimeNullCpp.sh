@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MAKEFILE=Makefile_runtime_int_cpp
-BINARY=test_runtime_int_cpp.x 
+MAKEFILE=Makefile_runtime_null_cpp
+BINARY=test_runtime_null_cpp.x 
 
 TESTDIR=../../test
 

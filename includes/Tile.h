@@ -6,6 +6,8 @@
 #include <AMReX_MFIter.H>
 #include "Grid_IntVect.h"
 
+#include "DataItem.h"
+
 namespace orchestration {
 
 /**
@@ -16,13 +18,11 @@ namespace orchestration {
  * tile lists (in data packets) and passed through queues.  Therefore, it would
  * be good to maximize use of move semantics where possible.
  */
-class Tile {
+class Tile : public DataItem {
 public:
-    Tile(void);
     Tile(amrex::MFIter& itor, const unsigned int level);
     ~Tile(void);
 
-    Tile(const Tile&);
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
@@ -48,6 +48,11 @@ public:
     const amrex::Box&    interiorAndGC(void) const;
 
     amrex::XDim3         deltas(void) const;
+
+    std::size_t                nSubItems(void) const override;
+    std::shared_ptr<DataItem>  popSubItem(void) override;
+    DataItem*                  getSubItem(const std::size_t i) override;
+    void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
 
     // Pointers to source data in the original data structures in the host
     // memory
@@ -80,6 +85,7 @@ public:
 private:
     // Limit all copies as much as possible
     Tile(Tile&) = delete;
+    Tile(const Tile&) = delete;
     Tile& operator=(Tile&) = delete;
     Tile& operator=(const Tile&) = delete;
 

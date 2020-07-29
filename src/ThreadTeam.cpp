@@ -8,15 +8,21 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "OrchestrationLogger.h"
+#include "ThreadTeamState.h"
+#include "ThreadTeamIdle.h"
+#include "ThreadTeamTerminating.h"
+#include "ThreadTeamRunningOpen.h"
+#include "ThreadTeamRunningClosed.h"
+#include "ThreadTeamRunningNoMoreWork.h"
+
 namespace orchestration {
 
-// TODO:  Determine if this should be implemented with C++ threads instead of
-// pthreads.  If no, then the pthread implementation needs to be cleaned
-// up seriously.  See TODOs below.
+// TODO:  The pthread implementation needs to be cleaned up seriously.  See
+// TODOs below.
 // TODO:  Come up with a good error/exception handling scheme.  The exceptions
 // being thrown by the worker threads cannot be caught by the lead thread, which
-// will lead to hard faults that cannot be traced easily.  It seems that C++
-// threads have some facility for passing exceptions between threads.
+// will lead to hard faults that cannot be traced easily.
 
 /**
  * Instantiate a thread team that, at any point in time, can have no more than
@@ -25,7 +31,7 @@ namespace orchestration {
  * This routine initializes the state of the team in IDLE with
  *  - no threads waiting, computing, or terminating,
  *  - all nMaxThreads threads Idling, and
- *  - no pending work.
+ *  - no data items in the queue.
  *
  * \param  nMaxThreads The maximum permissible number of threads in the team.
  *                     Zero or one thread is considered to be a logical error.
@@ -33,11 +39,10 @@ namespace orchestration {
  * \param  logFilename The file to which logging information is appended if the
  *                     code is built with DEBUG_RUNTIME.
  */
-template<typename W>
-ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
-                          const unsigned int id,
-                          const std::string& logFilename)
-    : state_(nullptr),
+ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
+                       const unsigned int id)
+    : RuntimeElement{},
+      state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
       stateRunOpen_(nullptr),
@@ -52,12 +57,9 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
       nMaxThreads_(nMaxThreads),
       id_(id),
       hdr_("No Header Yet"),
-      taskName_("No Task Yet"),
-      taskFcn_(nullptr),
-      threadReceiver_(nullptr),
-      workReceiver_(nullptr),
-      isWaitBlocking_(false),
-      logFilename_(logFilename)
+      actionName_("No Action Yet"),
+      actionRoutine_(nullptr),
+      isWaitBlocking_(false)
 {
     hdr_ = "Thread Team " + std::to_string(id_);
     
@@ -72,7 +74,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     pthread_mutex_init(&teamMutex_, NULL);
 
     //***** INSTANTIATE EXTENDED FINITE STATE MACHINE STATE OBJECTS
-    stateIdle_ = new ThreadTeamIdle<W,ThreadTeam>(this); 
+    stateIdle_ = new ThreadTeamIdle(this); 
     if (!stateIdle_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -82,7 +84,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateTerminating_ = new ThreadTeamTerminating<W,ThreadTeam>(this); 
+    stateTerminating_ = new ThreadTeamTerminating(this); 
     if (!stateTerminating_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -92,7 +94,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunOpen_ = new ThreadTeamRunningOpen<W,ThreadTeam>(this); 
+    stateRunOpen_ = new ThreadTeamRunningOpen(this); 
     if (!stateRunOpen_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -102,7 +104,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunClosed_ = new ThreadTeamRunningClosed<W,ThreadTeam>(this); 
+    stateRunClosed_ = new ThreadTeamRunningClosed(this); 
     if (!stateRunClosed_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -112,7 +114,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(msg);
     }
 
-    stateRunNoMoreWork_ = new ThreadTeamRunningNoMoreWork<W,ThreadTeam>(this); 
+    stateRunNoMoreWork_ = new ThreadTeamRunningNoMoreWork(this); 
     if (!stateRunNoMoreWork_) {
         std::string msg("ThreadTeam::ThreadTeam] ");
         msg += hdr_;
@@ -125,7 +127,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     pthread_mutex_lock(&teamMutex_);
 
     // TODO: Do we need to set more attributes?
-    // TODO: Are the detached threads being handles appropriately so that
+    // TODO: Are the detached threads being handled appropriately so that
     //       we don't have any resource loss?
     pthread_attr_init(&attr_);
     pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
@@ -139,7 +141,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
 
     //***** SETUP EXTENDED FINITE STATE MACHINE IN INITIAL STATE
     // Setup before creating threads, which need to know the state
-    // - IDLE with all threads in Idle and no pending work
+    // - IDLE with all threads in Idle and no pending dataItems
     N_idle_        = 0;
     N_wait_        = 0;
     N_comp_        = 0;
@@ -147,7 +149,7 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     N_to_activate_ = 0;
     if (!queue_.empty()) {
         std::string  msg = printState_NotThreadsafe("ThreadTeam", 0,
-                           "Work queue is not empty");
+                           "Data item queue is not empty");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(msg);
     }
@@ -210,12 +212,10 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
     }
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[" << hdr_ << "] Team initialized in state " 
-                 << getModeName(state_->mode())
-                 << " with "
-                 << N_idle_ << " threads idling\n";
-        logFile_.close();
+    msg =   "[" + hdr_ + "] Team initialized in state " 
+          + getModeName(state_->mode()) + " with "
+          + std::to_string(N_idle_) + " threads idling";
+    Logger::instance().log(msg);
 #endif
 
     pthread_mutex_unlock(&teamMutex_);
@@ -224,10 +224,9 @@ ThreadTeam<W>::ThreadTeam(const unsigned int nMaxThreads,
 /**
  * Destroy the thread team.  This routine will request that all threads
  * terminate first.  It cannot, however, request this of Computing threads, but
- * will wait for them to finish their work.
+ * will wait for them to finish their dataItem.
  */
-template<typename W>
-ThreadTeam<W>::~ThreadTeam(void) {
+ThreadTeam::~ThreadTeam(void) {
     pthread_mutex_lock(&teamMutex_);
 
     // TODO: dequeue all items explicitly if queue not empty?  Definitely
@@ -246,7 +245,7 @@ ThreadTeam<W>::~ThreadTeam(void) {
             //
             // Tell all waiting and idling threads to terminate.
             // Computing threads should figure this out once they have finished applying
-            // their task to their current unit of work.
+            // their action to their current data item.
             N_terminate_ = 0;
             N_to_activate_ = N_idle_;
             pthread_cond_broadcast(&activateThread_);
@@ -275,11 +274,9 @@ ThreadTeam<W>::~ThreadTeam(void) {
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] " 
-             << nMaxThreads_
-             << " Threads terminated\n";
-    logFile_.close();
+    std::string msg =   "[" + hdr_ + "] " 
+                      + std::to_string(nMaxThreads_) + " Threads terminated";
+    Logger::instance().log(msg);
 #endif
 
     pthread_cond_destroy(&unblockWaitThread_);
@@ -318,9 +315,8 @@ ThreadTeam<W>::~ThreadTeam(void) {
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] Team destroyed\n";
-    logFile_.close();
+    msg = "[" + hdr_ + "] Team destroyed";
+    Logger::instance().log(msg);
 #endif
 }
 
@@ -331,8 +327,7 @@ ThreadTeam<W>::~ThreadTeam(void) {
  * \param   mode - The enum value of the mode.
  * \return  The name
  */
-template<typename W>
-std::string ThreadTeam<W>::getModeName(const ThreadTeamMode mode) const {
+std::string ThreadTeam::getModeName(const ThreadTeamMode mode) const {
     std::string   modeName("");
 
     switch(mode) {
@@ -373,8 +368,7 @@ std::string ThreadTeam<W>::getModeName(const ThreadTeamMode mode) const {
  * \return   An empty string if the mode was set successfully, an error
  *           statement otherwise.
  */
-template<typename W>
-std::string ThreadTeam<W>::setMode_NotThreadsafe(const ThreadTeamMode nextMode) {
+std::string ThreadTeam::setMode_NotThreadsafe(const ThreadTeamMode nextMode) {
     std::string    errMsg("");
 
 #ifdef DEBUG_RUNTIME
@@ -415,12 +409,9 @@ std::string ThreadTeam<W>::setMode_NotThreadsafe(const ThreadTeamMode nextMode) 
     }
 
 #ifdef DEBUG_RUNTIME
-    logFile_.open(logFilename_, std::ios::out | std::ios::app);
-    logFile_ << "[" << hdr_ << "] Transitioned from "
-             << getModeName(currentMode)
-             << " to "
-             << getModeName(state_->mode()) << std::endl;
-    logFile_.close();
+    msg = "[" + hdr_ + "] Transitioned from "
+          + getModeName(currentMode) + " to " + getModeName(state_->mode());
+    Logger::instance().log(msg);
 #endif
 
     return errMsg;
@@ -432,8 +423,7 @@ std::string ThreadTeam<W>::setMode_NotThreadsafe(const ThreadTeamMode nextMode) 
  *
  * \return The number of threads.
  */
-template<typename W>
-unsigned int ThreadTeam<W>::nMaximumThreads(void) const {
+unsigned int ThreadTeam::nMaximumThreads(void) const {
     // This variable is set at instantiation and should not change after that.
     // Therefore this routine does not need to acquire the mutex to access it.
     return nMaxThreads_;
@@ -444,8 +434,7 @@ unsigned int ThreadTeam<W>::nMaximumThreads(void) const {
  *
  * \return The mode as an enum
  */
-template<typename W>
-ThreadTeamMode ThreadTeam<W>::mode(void) {
+ThreadTeamMode ThreadTeam::mode(void) {
     pthread_mutex_lock(&teamMutex_);
 
     if (!state_) {
@@ -466,29 +455,27 @@ ThreadTeamMode ThreadTeam<W>::mode(void) {
  *
  * \return The mode as an enum
  */
-template<typename W>
-void ThreadTeam<W>::stateCounts(unsigned int* N_idle,
-                             unsigned int* N_wait,
-                             unsigned int* N_comp,
-                             unsigned int* N_work) {
+void ThreadTeam::stateCounts(unsigned int* N_idle,
+                                 unsigned int* N_wait,
+                                 unsigned int* N_comp,
+                                 unsigned int* N_dataItem) {
     pthread_mutex_lock(&teamMutex_);
 
     *N_idle = N_idle_;
     *N_wait = N_wait_;
     *N_comp = N_comp_;
-    *N_work = queue_.size();
+    *N_dataItem = queue_.size();
 
     pthread_mutex_unlock(&teamMutex_);
 }
 
 /**
  * Indicate to the thread team that it may activate the given number of Idle
- * threads so that they may help execute the current execution cycle's task.
+ * threads so that they may help execute the current execution cycle's action.
  *
  * \param nThreads - The number of Idle threads to activate.
  */
-template<typename W>
-void ThreadTeam<W>::increaseThreadCount(const unsigned int nThreads) {
+void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -528,56 +515,56 @@ void ThreadTeam<W>::increaseThreadCount(const unsigned int nThreads) {
 }
 
 /**
- * Start an execution cycle that will apply the given task to all tiles
+ * Start an execution cycle that will apply the given action to all data items
  * subsequently given to the team using the enqueue() method.
  * 
  * An execution cycle can begin with zero threads with the understanding that
- * the team will either never receive work or that it will have threads
+ * the team will either never receive data items or that it will have threads
  * activated at a later time by calls to increaseThreadCount or by a thread
  * publisher.
  *
- * \param    fcn - a function pointer to the task to execute.
- * \param    nThreads - the number of Idle threads to immediately activate.
+ * \param    action - an object that encapsulates the action to be applied by
+ *                    activated threads to all data items enqueued with the team.
  * \param    teamName - a name to assign to the team that will be used for
  *                      logging the team during this execution cycle.
- * \param    taskName - a name to assign to the task that will be used for
- *                      logging the team during this execution cycle.
+ * \param    waitForThreads - a testing/timing flag.  If true, then this member
+ *                            function will block until the correct number of
+ *                            threads have been successfully activated.
  */
-template<typename W>
-void ThreadTeam<W>::startTask(const RuntimeAction& action,
-                              const std::string& teamName,
-                              const bool waitForThreads) {
+void ThreadTeam::startCycle(const RuntimeAction& action,
+                            const std::string& teamName,
+                            const bool waitForThreads) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
     std::string errMsg("");
     if (!state_) {
-        errMsg = printState_NotThreadsafe("startTask", 0, "state_ is NULL");
+        errMsg = printState_NotThreadsafe("startCycle", 0, "state_ is NULL");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
     std::string msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
-        errMsg = printState_NotThreadsafe("startTask", 0, msg);
+        errMsg = printState_NotThreadsafe("startCycle", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     } else if (action.nInitialThreads > N_idle_) {
-        // Derived classes that implement startTask should account for nonzero
+        // Derived classes that implement startCycle should account for nonzero
         // N_to_activate_
         std::string  msg  = "nInitialThreads (";
         msg += std::to_string(action.nInitialThreads);
         msg += ") exceeds the number of threads available for activation";
-        errMsg = printState_NotThreadsafe("startTask", 0, msg);
+        errMsg = printState_NotThreadsafe("startCycle", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     } else if (!action.routine) {
-        errMsg = printState_NotThreadsafe("startTask", 0,
-                 "null task funtion pointer given");
+        errMsg = printState_NotThreadsafe("startCycle", 0,
+                 "null action routine funtion pointer given");
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    errMsg = state_->startTask_NotThreadsafe(action, teamName);
+    errMsg = state_->startCycle_NotThreadsafe(action, teamName);
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -596,28 +583,28 @@ void ThreadTeam<W>::startTask(const RuntimeAction& action,
 }
 
 /**
- * Indicate to the thread team that no more units of work will be given to the
- * team during the present execution cycle.
+ * Indicate to the thread team that no more data items will be enqueued with the 
+ * team during the present execution cycle, which will end once the team's
+ * action has been applied to all data items presently in the queue (if any).
  */
-template<typename W>
-void ThreadTeam<W>::closeTask(void) {
+void ThreadTeam::closeQueue(void) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
     std::string    errMsg("");
     if (!state_) {
-        errMsg = printState_NotThreadsafe("closeTask", 0, "state_ is NULL");
+        errMsg = printState_NotThreadsafe("closeQueue", 0, "state_ is NULL");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
     std::string msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
-        errMsg = printState_NotThreadsafe("closeTask", 0, msg);
+        errMsg = printState_NotThreadsafe("closeQueue", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->closeTask_NotThreadsafe();
+    errMsg = state_->closeQueue_NotThreadsafe();
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -627,17 +614,12 @@ void ThreadTeam<W>::closeTask(void) {
 }
 
 /**
- * Give the thread team a unit of work on which it should apply the current
- * execution cycle's task.
+ * Give the thread team a data item on which it should apply the current
+ * execution cycle's action.
  *
- * \todo    Need to figure out how to manage more than one unit of work.
- *          For a CPU-heavy task, it should receive tiles; a GPU-heavy
- *          task, a data packet of blocks.  Templates?
- *
- * \param   work - the unit of work.
+ * \param   dataItem - the data item
  */
-template<typename W>
-void ThreadTeam<W>::enqueue(W& work, const bool move) {
+void ThreadTeam::enqueue(std::shared_ptr<DataItem>&& dataItem) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -654,7 +636,7 @@ void ThreadTeam<W>::enqueue(W& work, const bool move) {
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->enqueue_NotThreadsafe(work, move);
+    errMsg = state_->enqueue_NotThreadsafe(std::move(dataItem));
     if (errMsg != "") {
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
@@ -671,8 +653,7 @@ void ThreadTeam<W>::enqueue(W& work, const bool move) {
  * dependence is simple.  Also, the state variable isWaitBlocking_ was
  * not included in the definition of the EFSM.
  */
-template<typename W>
-void ThreadTeam<W>::wait(void) {
+void ThreadTeam::wait(void) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -702,26 +683,20 @@ void ThreadTeam<W>::wait(void) {
         throw std::runtime_error(errMsg);
     } else if (mode == ThreadTeamMode::IDLE) {
         // Calling wait on a ThreadTeam that is Idle seems like a logic error.
-        // However, it could be that a team finishes its task and transition to
+        // However, it could be that a team finishes its job and transition to
         // Idle before a calling thread got a chance to call wait().  Therefore,
         // this method is a no-op so that it won't block.
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Called no-op wait on " 
-                 << hdr_
-                 << " team (Idle)\n";
-        logFile_.close();
+        std::string msg = "[Client Thread] Called no-op wait on " 
+                          + hdr_ + " team (Idle)";
+        Logger::instance().log(msg);
 #endif
     } else {
         isWaitBlocking_ = true;
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Waiting on "
-                 << hdr_ 
-                 << " team - "
-                 << getModeName(mode) << std::endl;
-        logFile_.close();
+        msg = "[Client Thread] Waiting on " + hdr_ + " team - " + getModeName(mode);
+        Logger::instance().log(msg);
 #endif
 
         pthread_cond_wait(&unblockWaitThread_, &teamMutex_);
@@ -734,12 +709,8 @@ void ThreadTeam<W>::wait(void) {
         }
 
 #ifdef DEBUG_RUNTIME
-        logFile_.open(logFilename_, std::ios::out | std::ios::app);
-        logFile_ << "[Client Thread] Received unblockWaitSignal for "
-                 << hdr_ 
-                 << " team\n";
-
-        logFile_.close();
+        msg = "[Client Thread] Received unblockWaitSignal for " + hdr_ + " team";
+        Logger::instance().log(msg);
 #endif
 
         isWaitBlocking_ = false;
@@ -766,8 +737,7 @@ void ThreadTeam<W>::wait(void) {
  * \param  receiver - the team to which thread transitions to Idle shall by
  *                    published.
  */
-template<typename W>
-void ThreadTeam<W>::attachThreadReceiver(ThreadTeamBase* receiver) {
+std::string ThreadTeam::attachThreadReceiver(RuntimeElement* receiver) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -789,26 +759,16 @@ void ThreadTeam<W>::attachThreadReceiver(ThreadTeamBase* receiver) {
         throw std::logic_error(errMsg);
     }
 
-    if (!receiver) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "Null thread subscriber team given");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (receiver == this) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "Cannot attach team to itself");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (threadReceiver_) {
-        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0,
-                 "A thread subscriber is already attached");
+    errMsg = RuntimeElement::attachThreadReceiver(receiver);
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("attachThreadReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    threadReceiver_ = receiver;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
@@ -820,8 +780,7 @@ void ThreadTeam<W>::attachThreadReceiver(ThreadTeamBase* receiver) {
  * not included in the definition of the EFSM.  Rather for simplicity, the
  * outputs use this information.
  */
-template<typename W>
-void ThreadTeam<W>::detachThreadReceiver(void) {
+std::string ThreadTeam::detachThreadReceiver(void) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
@@ -843,21 +802,21 @@ void ThreadTeam<W>::detachThreadReceiver(void) {
         throw std::logic_error(errMsg);
     }
 
-    if (!threadReceiver_) {
-        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0,
-                 "No thread subscriber attached");
+    errMsg = RuntimeElement::detachThreadReceiver();
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("detachThreadReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    threadReceiver_ = nullptr;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
- * Register given thread team as a work subscriber.  Therefore, this converts
- * the calling object into a work publisher.  A work publisher and work
+ * Register given thread team as a data subscriber.  Therefore, this converts
+ * the calling object into a data publisher.  A data publisher and data
  * subscriber must have the same same data type.
  *
  * This routine is handled outside of the State design pattern as the mode
@@ -865,55 +824,44 @@ void ThreadTeam<W>::detachThreadReceiver(void) {
  * not included in the definition of the EFSM.  Rather for simplicity, the
  * outputs use this information.
  *
- * \param  receiver - the team to which units of work shall be published.
+ * \param  receiver - the team to which data items shall be published.
  */
-template<typename W>
-void ThreadTeam<W>::attachWorkReceiver(ThreadTeam<W>* receiver) {
+std::string ThreadTeam::attachDataReceiver(RuntimeElement* receiver) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
     if (!state_) {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+        errMsg = printState_NotThreadsafe("attachDataReceiver", 0,
                  "state_ is NULL");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
     std::string msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0, msg);
+        errMsg = printState_NotThreadsafe("attachDataReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     } else if (state_->mode() != ThreadTeamMode::IDLE) {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
+        errMsg = printState_NotThreadsafe("attachDataReceiver", 0,
                  "A team can only be attached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    if (!receiver) {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
-                 "Null work subscriber team given");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (receiver == this) {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
-                 "Cannot attach team to itself");
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::logic_error(errMsg);
-    } else if (workReceiver_) {
-        errMsg = printState_NotThreadsafe("attachWorkReceiver", 0,
-                 "A work subscriber is already attached");
+    errMsg = RuntimeElement::attachDataReceiver(receiver);
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("attachDataReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    workReceiver_ = receiver;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
- * Detach the work subscriber so that the calling object is no longer a work
+ * Detach the data subscriber so that the calling object is no longer a data
  * publisher.
  *
  * This routine is handled outside of the State design pattern as the mode
@@ -921,39 +869,38 @@ void ThreadTeam<W>::attachWorkReceiver(ThreadTeam<W>* receiver) {
  * not included in the definition of the EFSM.  Rather for simplicity, the
  * outputs use this information.
  */
-template<typename W>
-void ThreadTeam<W>::detachWorkReceiver(void) {
+std::string ThreadTeam::detachDataReceiver(void) {
     pthread_mutex_lock(&teamMutex_);
 
     std::string    errMsg("");
     if (!state_) {
-        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
+        errMsg = printState_NotThreadsafe("detachDataReceiver", 0,
                  "state_ is NULL");
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     }
     std::string msg = state_->isStateValid_NotThreadSafe();
     if (msg != "") {
-        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0, msg);
+        errMsg = printState_NotThreadsafe("detachDataReceiver", 0, msg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::runtime_error(errMsg);
     } else if (state_->mode() != ThreadTeamMode::IDLE) {
-        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
+        errMsg = printState_NotThreadsafe("detachDataReceiver", 0,
                  "A team can only be detached in the Idle mode");
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
-    
-    if (!workReceiver_) {
-        errMsg = printState_NotThreadsafe("detachWorkReceiver", 0,
-                 "No work subscriber attached");
+
+    errMsg = RuntimeElement::detachDataReceiver();
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("detachDataReceiver", 0, errMsg);
         pthread_mutex_unlock(&teamMutex_);
         throw std::logic_error(errMsg);
     }
 
-    workReceiver_ = nullptr;
-
     pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
@@ -967,11 +914,10 @@ void ThreadTeam<W>::detachWorkReceiver(void) {
  * \param msg    - a error message to insert in the snapshot
  * \return The snapshot as a string.
  */
-template<typename W>
-std::string  ThreadTeam<W>::printState_NotThreadsafe(const std::string& method, 
+std::string  ThreadTeam::printState_NotThreadsafe(const std::string& method, 
                                                   const unsigned int tId,
                                                   const std::string& msg) const {
-    // TODO: Print thread subscriber and work subscriber IDs
+    // TODO: Print thread subscriber and data subscriber IDs
     //       Need to expand error handling to level of whole runtime so
     //       so that the snapshot is the team connectivity
     //       as well as the state of each team.
@@ -987,9 +933,8 @@ std::string  ThreadTeam<W>::printState_NotThreadsafe(const std::string& method,
     state += "\n\tN threads Waiting\t\t\t\t"      + std::to_string(N_wait_);
     state += "\n\tN threads Computing\t\t\t\t"    + std::to_string(N_comp_);
     state += "\n\tN threads Terminating\t\t\t"    + std::to_string(N_terminate_);
-    state += "\n\tN units of work in queue\t\t"   + std::to_string(queue_.size());
+    state += "\n\tN data items in queue\t\t\t\t"  + std::to_string(queue_.size());
     state += "\n\tN threads pending activation\t" + std::to_string(N_to_activate_);
-    state += "\n";
 
     return state;
 }
@@ -1007,8 +952,7 @@ std::string  ThreadTeam<W>::printState_NotThreadsafe(const std::string& method,
  * \param  varg - a void pointer to the thread's ThreadData initialization data
  * \return nullptr
  */
-template<typename W>
-void* ThreadTeam<W>::threadRoutine(void* varg) {
+void* ThreadTeam::threadRoutine(void* varg) {
     pthread_detach(pthread_self());
 
     ThreadData* data = reinterpret_cast<ThreadData*>(varg);
@@ -1040,7 +984,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     // - the thread waits on a signal and therefore relinquishes the mutex.
     //   The transition has finished.
     //   Note that for a computing thread "wait" means block while it applies
-    //   the task to its unit of work.  The termination of the work is the
+    //   the action to its data item.  The termination of the work is the
     //   "signal" that the thread sends to itself to transition.
     // - upon receiving a signal to transition and therefore recovering the
     //   mutex, the thread executes output that is associated with the current
@@ -1066,7 +1010,16 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
     bool             isThreadStarting = true;
     unsigned int     N_Q              = 0;
     unsigned int     N_total          = 0;
+    std::shared_ptr<DataItem>   dataItem{};
     while (true) {
+        if ((dataItem.get() != nullptr) || (dataItem.use_count() != 0)) {
+            std::string  msg = team->printState_NotThreadsafe(
+                    "threadRoutine", tId, "dataItem should be NULL at top of loop body");
+            std::cerr << msg << std::endl;
+            pthread_mutex_unlock(&(team->teamMutex_));
+            throw std::logic_error(msg);
+        }
+
         mode = team->state_->mode();
         // TODO: The amount of time that a thread locks the mutex will grow as
         // the number of data items in the Q grows due to call like this.  A
@@ -1095,13 +1048,12 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << "[" << team->hdr_ << " / Thread " << tId << "] "
-                           << "Terminated - " 
-                           << team->N_terminate_
-                           << " terminated out of "
-                           << team->nMaxThreads_ << std::endl;
-            team->logFile_.close();
+            std::string msg =   "[" + team->hdr_ + " / Thread "
+                              + std::to_string(tId) + "] Terminated - " 
+                              + std::to_string(team->N_terminate_)
+                              + " terminated out of "
+                              + std::to_string(team->nMaxThreads_);
+            Logger::instance().log(msg);
 #endif
 
             // Inform team that thread has terminated & terminate
@@ -1151,10 +1103,8 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Idle");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Idle"));
 #endif
 
             // These two conditionals must appear in this order as the first
@@ -1174,7 +1124,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                 }
                 pthread_cond_broadcast(&(team->transitionThread_));
             }
-            // The task has been completely applied and the execution cycle
+            // The job has been completely applied and the execution cycle
             // is over if this is the last thread to transition to Idle
             // Finalize for the end of the cycle
             if (   (mode == ThreadTeamMode::RUNNING_NO_MORE_WORK) 
@@ -1187,20 +1137,18 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
                     pthread_mutex_unlock(&(team->teamMutex_));
                     throw std::runtime_error(msg);
                 }
-                if (team->workReceiver_) {
-                    team->workReceiver_->closeTask();
+                if (team->dataReceiver_) {
+                    team->dataReceiver_->closeQueue();
                 }
 
 #ifdef DEBUG_RUNTIME
-                team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-                team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                                  "Sent unblockWaitThread signal");
-                team->logFile_.close();
+                Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                      "Sent unblockWaitThread signal"));
 #endif
 
                 // reset team name to generic name
                 team->hdr_ = "Thread Team " + std::to_string(team->id_);
-                team->taskFcn_ = nullptr;
+                team->actionRoutine_ = nullptr;
 
                 // Make sure that this thread is ready to go Idle before
                 // releasing the blocked thread
@@ -1209,10 +1157,8 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 
             pthread_cond_wait(&(team->activateThread_), &(team->teamMutex_));
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Activated");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Activated"));
 #endif
 
             if (team->N_to_activate_ <= 0) {
@@ -1232,7 +1178,7 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             team->N_to_activate_ -= 1;
             team->N_idle_ -= 1;
 
-            // Let startTask/increaseThreadCount know that there are no more
+            // Let startCycle/increaseThreadCount know that there are no more
             // pending activations
             if (team->N_to_activate_ == 0) {
                 pthread_cond_signal(&(team->allActivated_));
@@ -1264,17 +1210,13 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Waiting");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Waiting"));
 #endif
             pthread_cond_wait(&(team->transitionThread_), &(team->teamMutex_));
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Awakened");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Awakened"));
 #endif
 
             if (team->N_wait_ <= 0) {
@@ -1312,30 +1254,31 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
             }
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Transition to Computing");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Transition to Computing"));
 #endif
 
-            // TODO: Make certain that this is a move.  Ditto when we enqueue.
-            W   work = std::move(team->queue_.front());
+            // dataItem is assumed to be null at this point.
+            // Move the data item from the queue to here
+            // The item still in the queue will be nulled and will no longer
+            // be sharing the data item.   This should, therefore, not change
+            // the shared_ptr's counter.
+            dataItem = std::move(team->queue_.front());
+            // This pop should not decrease the internal counter of the shared_ptr
             team->queue_.pop();
             --N_Q;
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Dequeued work");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Dequeued dataItem"));
 #endif
 
             // Since this emits events, only emit event after updating the mode
             // for this transition.
             //
-            // No more pending work for this task (aside from the unit of work
-            // just popped).  Wake up all Waiting threads so that they decide to
-            // go Idle
+            // No more pending tasks for this job (aside from the task
+            // associated with the data item just popped).  Wake up all Waiting
+            // threads so that they decide to go Idle
             // 
             // NOTE: This would be handled above, but check it here so that we
             // can release waiting threads as soon as possible and therefore
@@ -1355,25 +1298,43 @@ void* ThreadTeam<W>::threadRoutine(void* varg) {
 
             // Do work!  No need to keep mutex.
             pthread_mutex_unlock(&(team->teamMutex_));
-            team->taskFcn_(tId, &work);
+
+            // The shared-ness of dataItem stays here, which means that the 
+            // object pointed to cannot be destroyed until dataItem is reset.
+            // Therefore, we can just pass the bare pointer and know
+            // that actionRoutine_ can use it correctly.
+            if ((dataItem.get() == nullptr) || (dataItem.use_count() <= 0)) {
+                std::string  msg = team->printState_NotThreadsafe(
+                        "threadRoutine", tId, "dataItem is unexpectedly NULLed");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::logic_error(msg);
+            }
+            team->actionRoutine_(tId, dataItem.get());
 
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));
 
 #ifdef DEBUG_RUNTIME
-            team->logFile_.open(team->logFilename_, std::ios::out | std::ios::app);
-            team->logFile_ << team->printState_NotThreadsafe("threadRoutine", tId,
-                              "Finished computing");
-            team->logFile_.close();
+            Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
+                                                                  "Finished computing"));
 #endif
 
-            if (team->workReceiver_) {
-                // Since there is presently only one work subscriber per
-                // publisher, we can use move semantics to transfer ownership of
-                // the tile from publisher to subscriber
-                team->workReceiver_->enqueue(work, true);
-                // TODO:  If W is a packet and there is no subscriber, do we
-                // need to explicitly destroy the packet to clean-up resources?
+            if (team->dataReceiver_) {
+                // Move the data item along so that dataItem is null
+                team->dataReceiver_->enqueue(std::move(dataItem));
+            } else {
+                // The data item is done.  Null dataItem so that the current
+                // data item's resources can be released if this was the last
+                // shared pointer to the data item.
+                dataItem.reset();
+            }
+            if ((dataItem.get() != nullptr) || (dataItem.use_count() != 0)) {
+                std::string  msg = team->printState_NotThreadsafe(
+                        "threadRoutine", tId, "dataItem is not NULLed after computation");
+                std::cerr << msg << std::endl;
+                pthread_mutex_unlock(&(team->teamMutex_));
+                throw std::logic_error(msg);
             }
 
             if (team->N_comp_ <= 0) {

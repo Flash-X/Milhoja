@@ -10,12 +10,16 @@
 #define THREAD_TEAM_RUNNING_OPEN_H__
 
 #include "ThreadTeamState.h"
+
 namespace orchestration {
 
-template<typename W, class T>
-class ThreadTeamRunningOpen : public ThreadTeamState<W,T> {
+class DataItem;
+class ThreadTeam;
+class ThreadTeamState;
+
+class ThreadTeamRunningOpen : public ThreadTeamState {
 public:
-    ThreadTeamRunningOpen(T* team);
+    ThreadTeamRunningOpen(ThreadTeam* team);
     ~ThreadTeamRunningOpen(void)                { };
 
     ThreadTeamMode  mode(void) const override {
@@ -24,27 +28,27 @@ public:
 
     std::string     increaseThreadCount_NotThreadsafe(
                             const unsigned int nThreads) override;
-    std::string     startTask_NotThreadsafe(
+    std::string     startCycle_NotThreadsafe(
                             const RuntimeAction& action,
                             const std::string& teamName) override;
-    std::string     enqueue_NotThreadsafe(W& work, const bool move) override;
-    std::string     closeTask_NotThreadsafe(void) override;
+    std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) override;
+    std::string     closeQueue_NotThreadsafe(void) override;
 
 protected:
     std::string  isStateValid_NotThreadSafe(void) const override;
 
 private:
     // Disallow copying of objects to create new objects
-    ThreadTeamRunningOpen& operator=(const ThreadTeamRunningOpen& rhs);
-    ThreadTeamRunningOpen(const ThreadTeamRunningOpen& other);
+    ThreadTeamRunningOpen(ThreadTeamRunningOpen& other)                = delete;
+    ThreadTeamRunningOpen(const ThreadTeamRunningOpen& other)          = delete;
+    ThreadTeamRunningOpen(ThreadTeamRunningOpen&& other)               = delete;
+    ThreadTeamRunningOpen& operator=(ThreadTeamRunningOpen& rhs)       = delete;
+    ThreadTeamRunningOpen& operator=(const ThreadTeamRunningOpen& rhs) = delete;
+    ThreadTeamRunningOpen& operator=(ThreadTeamRunningOpen&& rhs)      = delete;
 
-    T*    team_;
+    ThreadTeam*    team_;
 };
 }
-
-// Include class definition in header since this is a class template
-//   => no need to compile the .cpp file directly as part of build
-#include "../src/ThreadTeamRunningOpen.cpp"
 
 #endif
 

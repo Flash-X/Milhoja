@@ -16,6 +16,7 @@
 #include "Tile.h"
 #include "Grid.h"
 #include "ThreadTeam.h"
+#include "OrchestrationLogger.h"
 #include "OrchestrationRuntime.h"
 
 #include "Flash.h"
@@ -77,50 +78,48 @@ protected:
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestSingleTeam) {
+    orchestration::Logger::setLogFilename("TestSingleTeam.log");
+
     amrex::MultiFab&   unk = Grid::instance().unk();
 
     constexpr unsigned int  N_THREADS = 4;
-    ThreadTeam<Tile>  cpu_block(N_THREADS, 1, "TestSingleTeam.log");
+    ThreadTeam  cpu_block(N_THREADS, 1);
 
     // Fix simulation to a single level and use AMReX 0-based indexing
     unsigned int   level = 0;
 
     try {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeLaplacianEnergy_block, "Cpu");
+        cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeLaplacianDensity_block, "Cpu");
+        cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         scaleEnergy_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(scaleEnergy_block, "Cpu");
+        cpu_block.startCycle(scaleEnergy_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_block.nInitialThreads = N_THREADS;
-        cpu_block.startTask(computeErrors_block, "Cpu");
+        cpu_block.startCycle(computeErrors_block, "Cpu");
         for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile   myTile(itor, level);
-            cpu_block.enqueue(myTile, true);
+            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
         }
-        cpu_block.closeTask();
+        cpu_block.closeQueue();
         cpu_block.wait();
     } catch (std::invalid_argument  e) {
         std::cerr << "\nINVALID ARGUMENT: "
@@ -158,11 +157,12 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
 }
 #endif
 
-#ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimeTile, TestRuntimeSingle) {
+    orchestration::Logger::setLogFilename("TestRuntimeSingle.log");
+
     ActionBundle    bundle;
 
-    OrchestrationRuntime& runtime = OrchestrationRuntime::instance();
+    orchestration::Runtime& runtime = orchestration::Runtime::instance();
 
     try {
         // Give an extra thread to the GPU task so that it can start to get work
@@ -233,7 +233,6 @@ TEST_F(TestRuntimeTile, TestRuntimeSingle) {
     EXPECT_TRUE(0.0 <= meanAbsErr2);
     EXPECT_TRUE(meanAbsErr2 <= 9.0e-6);
 }
-#endif
 
 }
 

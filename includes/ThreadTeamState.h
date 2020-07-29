@@ -5,9 +5,9 @@
  * derived classes that will implement the ThreadTeam state-specific behavior.
  * This design follows the State design pattern.
  *
- * The template variable W defines the unit of work (e.g. a tile, data packet of
+ * The template variable DT defines the data type (e.g. a tile, data packet of
  * tiles); T, refers to the main State class in the State design pattern and
- * should therefore always be ThreadTeam<W>.  Note that T is necessary to break
+ * should therefore always be ThreadTeam<DT>.  Note that T is necessary to break
  * a circular dependence with ThreadTeam.h.
  */
 
@@ -15,12 +15,16 @@
 #define THREAD_TEAM_STATE_H__
 
 #include <string>
+#include <memory>
 
+#include "ThreadTeamMode.h"
 #include "RuntimeAction.h"
 
 namespace orchestration {
 
-template<typename W, class T>
+class DataItem;
+class ThreadTeam;
+
 class ThreadTeamState {
 public:
     ThreadTeamState(void)          {  }
@@ -30,14 +34,14 @@ public:
 
     virtual std::string     increaseThreadCount_NotThreadsafe(
                                     const unsigned int nThreads) = 0;
-    virtual std::string     startTask_NotThreadsafe(
+    virtual std::string     startCycle_NotThreadsafe(
                                     const RuntimeAction& action,
                                     const std::string& teamName) = 0;
-    virtual std::string     enqueue_NotThreadsafe(W& work, const bool move) = 0;
-    virtual std::string     closeTask_NotThreadsafe(void) = 0;
+    virtual std::string     enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) = 0;
+    virtual std::string     closeQueue_NotThreadsafe(void) = 0;
 
 protected:
-    friend T;
+    friend ThreadTeam;
 
     virtual std::string     isStateValid_NotThreadSafe(void) const = 0;
 };

@@ -1,4 +1,8 @@
 #include "ThreadTeamRunningNoMoreWork.h"
+
+#include "DataItem.h"
+#include "ThreadTeam.h"
+
 namespace orchestration {
 
 /**
@@ -9,9 +13,8 @@ namespace orchestration {
  *
  * \param team - The ThreadTeam object that is instantiating this object
  */
-template<typename W, class T>
-ThreadTeamRunningNoMoreWork<W,T>::ThreadTeamRunningNoMoreWork(T* team)
-    : ThreadTeamState<W,T>(),
+ThreadTeamRunningNoMoreWork::ThreadTeamRunningNoMoreWork(ThreadTeam* team)
+    : ThreadTeamState(),
       team_(team)
 {
     if (!team_) {
@@ -30,14 +33,13 @@ ThreadTeamRunningNoMoreWork<W,T>::ThreadTeamRunningNoMoreWork(T* team)
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningNoMoreWork<W,T>::isStateValid_NotThreadSafe(void) const {
+std::string ThreadTeamRunningNoMoreWork::isStateValid_NotThreadSafe(void) const {
     if (team_->N_terminate_ != 0) {
         return "N_terminate not zero";
     } else if (team_->N_idle_ == team_->nMaxThreads_) {
         return "At least one thread should be active";
     } else if (!(team_->queue_.empty())) {
-        return "Pending work queue not empty";
+        return "Data item queue not empty";
     }
 
     return "";
@@ -46,18 +48,17 @@ std::string ThreadTeamRunningNoMoreWork<W,T>::isStateValid_NotThreadSafe(void) c
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * Cannot start a task when one is still running.
+ * Cannot start a cycle when one is still running.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningNoMoreWork<W,T>::startTask_NotThreadsafe(const RuntimeAction& action,
-                                                                      const std::string& teamName) {
-    return team_->printState_NotThreadsafe("startTask", 0,
-                  "Cannot start a task when one is already running");
+std::string ThreadTeamRunningNoMoreWork::startCycle_NotThreadsafe(const RuntimeAction& action,
+                                                                  const std::string& teamName) {
+    return team_->printState_NotThreadsafe("startCycle", 0,
+                  "Cannot start a cycle when one is already running");
 }
 
 /**
@@ -70,8 +71,7 @@ std::string ThreadTeamRunningNoMoreWork<W,T>::startTask_NotThreadsafe(const Runt
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningNoMoreWork<W,T>::increaseThreadCount_NotThreadsafe(
+std::string ThreadTeamRunningNoMoreWork::increaseThreadCount_NotThreadsafe(
                                                     const unsigned int nThreads) {
     if (team_->threadReceiver_) {
         team_->threadReceiver_->increaseThreadCount(nThreads);
@@ -83,32 +83,30 @@ std::string ThreadTeamRunningNoMoreWork<W,T>::increaseThreadCount_NotThreadsafe(
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * The queue is closed.  No work can be added.
+ * The cycle is closed.  No data items can be added.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningNoMoreWork<W,T>::enqueue_NotThreadsafe(W& work, const bool move) {
+std::string ThreadTeamRunningNoMoreWork::enqueue_NotThreadsafe(std::shared_ptr<DataItem>&& dataItem) {
     return team_->printState_NotThreadsafe("enqueue", 0,
-                  "Cannot enqueue work if queue is closed");
+                  "Cannot enqueue data items if cycle is closed");
 }
 
 /**
  * See ThreadTeam.cpp documentation for same method for basic information.
  *
- * The task is already closed.
+ * The data item queue is already closed.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
  *
  * \return an empty string if the state is valid.  Otherwise, an error message
  */
-template<typename W, class T>
-std::string ThreadTeamRunningNoMoreWork<W,T>::closeTask_NotThreadsafe(void) {
-    return team_->printState_NotThreadsafe("closeTask", 0,
-                  "The task is already closed");
+std::string ThreadTeamRunningNoMoreWork::closeQueue_NotThreadsafe(void) {
+    return team_->printState_NotThreadsafe("closeQueue", 0,
+                  "The data item queue is already closed");
 }
 }

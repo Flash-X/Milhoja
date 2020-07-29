@@ -13,11 +13,16 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -27,7 +32,6 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationRuntime.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
@@ -38,7 +42,17 @@ CXX_HDRS   = \
 SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
