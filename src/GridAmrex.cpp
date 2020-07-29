@@ -68,12 +68,20 @@ GridAmrex::GridAmrex(void) {
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
     destroyDomain();
+    amrcore_ = new AmrCoreFlash;
 }
 
 GridAmrex::~GridAmrex(void) {
     // All Grid finalization is carried out here
     destroyDomain();
+
+    if (amrcore_) {
+        delete amrcore_;
+        amrcore_ = nullptr;
+    }
+
     amrex::Finalize();
+    instantiated_ = false;
 }
 
 void  GridAmrex::destroyDomain(void) {
@@ -81,11 +89,6 @@ void  GridAmrex::destroyDomain(void) {
         delete unk_;
         unk_ = nullptr;
     }
-    if (amrcore_) {
-        delete amrcore_;
-        amrcore_ = nullptr;
-    }
-    // TODO why is amrex not finalized here?
 }
 
 /**
@@ -101,7 +104,6 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     }
 
     unsigned int   level = 0;
-    amrcore_ = new AmrCoreFlash;
     amrcore_->InitFromScratch(0.0_wp);
 
     // TODO: Thread count should be a runtime variable
@@ -175,7 +177,7 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
   *
   */
 TileIter GridAmrex::buildTileIter(const unsigned int lev) {
-    std::unique_ptr<TileIterBaseAmrex> tiPtr{new TileIterBaseAmrex(unk_, lev)};
+    std::unique_ptr<TileIterBase> tiPtr{new TileIterBaseAmrex(unk_, lev)};
     return TileIter( std::move(tiPtr) );
 }
 

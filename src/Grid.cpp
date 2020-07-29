@@ -17,6 +17,7 @@ throw std::logic_error("Need to specify Grid implementation with GRID_[NAME] mac
 
 namespace orchestration {
 
+bool Grid::instantiated_ = false;
 
 /**
  * instace gets a reference to the singleton Grid object.
@@ -51,7 +52,7 @@ void   Grid::instantiate(void) {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
-    throw std::logic_error("Grid::getDeltas not implemented");
+    throw std::logic_error("Default Grid::getDeltas not yet implemented");
     return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
@@ -79,7 +80,7 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
   * @return area of face (Real)
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
-    throw std::logic_error("Grid::getCellFaceAreaLo not implemented");
+    throw std::logic_error("Default Grid::getCellFaceAreaLo not yet implemented");
     return 0.0_wp;
 }
 
@@ -90,7 +91,7 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   * @return Volume of cell (Real)
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
-    throw std::logic_error("Grid::getCellVolume not implemented");
+    throw std::logic_error("Default Grid::getCellVolume not yet implemented");
     return 0.0_wp;
 }
 
@@ -113,7 +114,7 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
         throw std::logic_error("Grid::fillCellCoords: Invalid edge.");
     }
 #endif
-    throw std::logic_error("Grid::fillCellCoords not implemented");
+    throw std::logic_error("Default Grid::fillCellCoords not yet implemented");
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
@@ -132,7 +133,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
         throw std::logic_error("Grid::fillCellFaceAreasLo: Invalid axis.");
     }
 #endif
-    throw std::logic_error("Grid::fillCellFaceAreasLo not implemented");
+    throw std::logic_error("Default Grid::fillCellFaceAreasLo not yet implemented");
 }
 
 
@@ -146,11 +147,8 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
-    throw std::logic_error("Grid::fillCellVolumes not implemented");
+    throw std::logic_error("Default Grid::fillCellVolumes not yet implemented");
 }
-
-
-bool Grid::instantiated_ = false;
 
 
 }

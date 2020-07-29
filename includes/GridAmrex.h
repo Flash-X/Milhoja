@@ -45,8 +45,10 @@ private:
     friend Grid& Grid::instance();
     GridAmrex(void);
 
+    GridAmrex(GridAmrex&) = delete;
     GridAmrex(const GridAmrex&) = delete;
     GridAmrex(GridAmrex&&) = delete;
+    GridAmrex& operator=(GridAmrex&) = delete;
     GridAmrex& operator=(const GridAmrex&) = delete;
     GridAmrex& operator=(GridAmrex&&) = delete;
 };

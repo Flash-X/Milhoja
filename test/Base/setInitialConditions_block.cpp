@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "Grid.h"
 #include "Tile.h"
+#include "Grid_Axis.h"
 
 using namespace orchestration;
 
@@ -22,21 +23,20 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     // of these tests
     amrex::Real   x = 0.0;
     amrex::Real   y = 0.0;
-    IntVect loGC = tileDesc->loGC();
-    IntVect hiGC = tileDesc->hiGC();
-    for     (int j = loGC[1]; j <= hiGC[1]; ++j) {
-        y = geometry.CellCenter(j, 1);
-        for (int i = loGC[0]; i <= hiGC[0]; ++i) {
-            x = geometry.CellCenter(i, 0);
-            int loGCz = 0; //TODO correct?
+    std::vector<int> loGC = (tileDesc->loGC()).as3D();
+    std::vector<int> hiGC = (tileDesc->hiGC()).as3D();
+    for     (int j = loGC[Axis::J]; j <= hiGC[Axis::J]; ++j) {
+        y = geometry.CellCenter(j, Axis::J);
+        for (int i = loGC[Axis::I]; i <= hiGC[Axis::I]; ++i) {
+            x = geometry.CellCenter(i, Axis::I);
             // PROBLEM ONE
             //  Approximated exactly by second-order discretized Laplacian
-            f(i, j, loGCz, DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
+            f(i, j, loGC[Axis::K], DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
                                           - 2.0*y*y*y - 1.5*y*y + y
                                           + 5.0;
             // PROBLEM TWO
             //  Approximation is not exact and we know the error term exactly
-            f(i, j, loGCz, ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
+            f(i, j, loGC[Axis::K], ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
                                           -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
                                           + 1.0;
         }

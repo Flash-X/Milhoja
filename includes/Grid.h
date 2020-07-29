@@ -26,13 +26,13 @@ namespace orchestration {
 
 class Grid {
 public:
-    ~Grid(void) { instantiated_ = false; }
+    virtual ~Grid(void) { instantiated_ = false; }
 
     static Grid& instance(void);
     static void  instantiate(void);
-    virtual void destroyDomain(void) {}
 
     // Pure virtual functions that must be implemented by derived class.
+    virtual void destroyDomain(void) = 0;
     virtual void  initDomain(ACTION_ROUTINE initBlock) = 0;
     virtual RealVect       getProbLo() const = 0;
     virtual RealVect       getProbHi() const = 0;
@@ -68,8 +68,10 @@ protected:
     static bool instantiated_;
     AmrCoreFlash*      amrcore_; //TODO: move to member of GridAmrex
 
+    Grid(Grid&) = delete;
     Grid(const Grid&) = delete;
     Grid(Grid&&) = delete;
+    Grid& operator=(Grid&) = delete;
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
 };
