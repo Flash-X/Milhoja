@@ -57,6 +57,8 @@
 #include "ThreadTeamMode.h"
 #include "RuntimeElement.h"
 
+#include <pthread.h>
+
 namespace orchestration {
 
 class DataItem;

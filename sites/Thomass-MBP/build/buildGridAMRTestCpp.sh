@@ -5,15 +5,12 @@
 ######################################################################
 # Define test problem - we need dx=dy
 N_CELLS_IN_X=8
-N_CELLS_IN_Y=16
+N_CELLS_IN_Y=8
 N_CELLS_IN_Z=1
 
-N_BLOCKS_X=256
-N_BLOCKS_Y=128
+N_BLOCKS_X=1
+N_BLOCKS_Y=1
 N_BLOCKS_Z=1
-
-N_DIMS=2
-LREFINE=4
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
@@ -36,9 +33,9 @@ cd ..
 
 # Specified relative to location of Makefile
 TESTDIR=../../test
-MAKEFILE=Makefile_grid_cpp
-BINARY=test_grid_cpp.x 
-DEBUG_BINARY=test_grid_cpp_debug.x
+MAKEFILE=Makefile_gridamr_cpp
+BINARY=test_gridamr_cpp.x 
+DEBUG_BINARY=test_gridamr_cpp_debug.x
 
 # Setup constants.h with current simulation's Grid parameters
 rm $TESTDIR/Grid/constants.h
@@ -46,7 +43,7 @@ cp $TESTDIR/constants_base.h $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Grid/constants.h
-sed -i '' "s/N_DIMENSIONS/$N_DIMS/g" $TESTDIR/Grid/constants.h
+sed -i '' "s/N_DIMENSIONS/2/g" $TESTDIR/Grid/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
 rm $TESTDIR/Grid/Flash.h
@@ -54,7 +51,6 @@ cp $TESTDIR/Flash_base.h $TESTDIR/Grid/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" $TESTDIR/Grid/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Grid/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Grid/Flash.h
-sed -i '' "s/REFINEMENT_LEVELS/$LREFINE/g" $TESTDIR/Grid/Flash.h
 
 # Build debug mode
 #echo ""

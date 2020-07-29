@@ -2,8 +2,8 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_grid_cpp
-MAKEFILE     = Makefile_grid_cpp
+BASE         = test_gridamr_cpp
+MAKEFILE     = Makefile_gridamr_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
@@ -19,7 +19,7 @@ CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/Tile.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/runtimeTask.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeamBase.h \
@@ -43,24 +43,13 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTDIR)/gridAMRTest.cpp \
     $(SRCDIR)/Grid.cpp \
-    $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/Tile.cpp \
-    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/RuntimeElement.cpp \
-    $(SRCDIR)/ThreadTeam.cpp \
-    $(SRCDIR)/ThreadTeamIdle.cpp \
-    $(SRCDIR)/ThreadTeamTerminating.cpp \
-    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
-    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
-    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
