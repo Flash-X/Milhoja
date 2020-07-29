@@ -57,10 +57,12 @@ IntVect del = grid.getDeltas();
 
 Unlike Grid, Tile objects are instantiated very frequently throughout physics code. In addition, memory management is very important for Tile objects, since they need to be passed through the Orchestration Runtime data pipeline. To account for these restraints, when derived class Tile objects are created, they should be immediately encapsulated into derived-class smart pointers (default $\texttt{std::unique\_ptr}$) which can then decay into base-class smart pointers to be returned by a public interface. This means a $\texttt{std::unique\_ptr<Tile>}$ object will contain the original derived class object but can be used in a package-agnostic way.
 
+Note that \texttt{buildCurrentTile()}  intentionally returns a $\texttt{std::unique\_ptr}$ so calling code can interpret it as a $\texttt{std::unique\_ptr}$ or $\texttt{std::shared\_ptr}$ as needed.
+
 \begin{verbatim}
 // Creation
-std::unique_ptr<Tile> TileIterBaseAmrex::currentTile() override {
-    return std::unique_ptr<TileAmrex>( TileAmrex(mfi_,lev_) };
+std::unique_ptr<Tile> TileIterBaseAmrex::buildCurrentTile() override {
+    return std::unique_ptr<Tile>{ new TileAmrex(mfi_,lev_) };
 }
 
 // Usage
@@ -76,8 +78,8 @@ This design pattern was inspired by StackOverflow user Jens in \href{https://sta
 
 \begin{verbatim}
 // Creation
-TileIter GridAmrex::makeTileIter(const unsigned int lev) {
-    std::unique_ptr<TileIterBaseAmrex> tiPtr{ TileIterBaseAmrex(unk_, lev) };
+TileIter GridAmrex::buildTileIter(const unsigned int lev) {
+    std::unique_ptr<TileIterBaseAmrex> tiPtr{ new TileIterBaseAmrex(unk_, lev) };
     return TileIter( std::move(tiPtr) );
 }
 
