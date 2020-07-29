@@ -251,6 +251,7 @@ void    GridAmrex::fillCellCoords(const unsigned int axis, const unsigned int ed
             amrcore_->Geom(0).GetCellLoc(coordvec,range,axis);
             break;
     }
+    // TODO profile these calls, see if we can get a version that doesn't require extra copying.
 
     //copy results to output
     for(int i=0; i<nElements; ++i) {

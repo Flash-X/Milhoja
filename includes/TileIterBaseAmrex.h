@@ -17,6 +17,13 @@
 
 namespace orchestration {
 
+/**
+  * Use in for-loops: 
+  *   `for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti)`
+  *
+  * TODO: implement syntax:
+  *   `for (std::shared_ptr<DataItem> tileDesc : grid.buildTileIter(0) )`
+  */
 class TileIterBaseAmrex : public TileIterBase {
 public:
     TileIterBaseAmrex(amrex::MultiFab* mf_in, const unsigned int lev)
