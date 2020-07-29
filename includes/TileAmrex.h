@@ -19,7 +19,6 @@ public:
     TileAmrex(amrex::MFIter& itor, const unsigned int level);
     ~TileAmrex(void);
 
-    TileAmrex(const TileAmrex&);
     TileAmrex(TileAmrex&&);
     TileAmrex& operator=(TileAmrex&&);
 
@@ -61,6 +60,7 @@ public:
 
 private:
     // Limit all copies as much as possible
+    TileAmrex(const TileAmrex&) = delete;
     TileAmrex(TileAmrex&) = delete;
     TileAmrex& operator=(TileAmrex&) = delete;
     TileAmrex& operator=(const TileAmrex&) = delete;

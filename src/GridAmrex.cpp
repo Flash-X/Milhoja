@@ -93,7 +93,7 @@ void  GridAmrex::destroyDomain(void) {
  *
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
-void GridAmrex::initDomain(TASK_FCN initBlock) {
+void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     if (unk_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain already called");
     } else if (!initBlock) {
@@ -111,13 +111,12 @@ void GridAmrex::initDomain(TASK_FCN initBlock) {
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock;
 
-    ThreadTeam<TileAmrex>  team(4, 1, "no.log");
-    team.startTask(action, "Cpu");
+    ThreadTeam  team(4, 1);
+    team.startCycle(action, "Cpu");
     for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        TileAmrex   tileDesc(itor, level);
-        team.enqueue(tileDesc, true);
+        team.enqueue( std::shared_ptr<DataItem>{ new TileAmrex{itor, level} } );
     }
-    team.closeTask();
+    team.closeQueue();
     team.wait();
 }
 

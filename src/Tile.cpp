@@ -13,7 +13,6 @@ namespace orchestration {
 /**
  *
  */
-<<<<<<< HEAD
 Tile::Tile(void)
     : DataItem{},
       CC_h_{nullptr},

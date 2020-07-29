@@ -24,7 +24,7 @@ public:
     // Pure virtual function overrides.
     RealVect       getProbLo() const override;
     RealVect       getProbHi() const override;
-    void           initDomain(TASK_FCN initBlock) override;
+    void           initDomain(ACTION_ROUTINE initBlock) override;
     unsigned int   getMaxRefinement() const override;
     unsigned int   getMaxLevel() const override;
     void     writeToFile(const std::string& filename) const override;

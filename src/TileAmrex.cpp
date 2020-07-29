@@ -27,11 +27,6 @@ TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level)
     CC_h_ = fab.dataPtr();
 }
 
-TileAmrex::TileAmrex(const TileAmrex& other)
-    : Tile( other )
-{
-}
-
 TileAmrex::TileAmrex(TileAmrex&& other)
     : Tile( std::move(other) )
 {
