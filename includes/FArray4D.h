@@ -30,6 +30,9 @@ namespace orchestration {
 // the wrapper object?
 class FArray4D {
 public:
+    static FArray4D   buildScratchArray4D(const IntVect& begin, const IntVect& end,
+                                          const unsigned int ncomp);
+
     FArray4D(Real* data, 
              const IntVect& begin, const IntVect& end,
              const unsigned int ncomp);
@@ -49,6 +52,7 @@ public:
     }
 
 private:
+    bool         owner_;
     Real*        data_;
     int          i0_;
     int          j0_;

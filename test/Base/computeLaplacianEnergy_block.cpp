@@ -24,10 +24,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem)
     // TODO: We should have scratch preallocated outside this routine.  It would
     // either be setup by the operation or available through a memory manager
     // and its location communicated as a pointer in a given data packet.
-    Real  buffer1D[   (hi[Axis::I] - lo[Axis::I] + 1)
-                    * (hi[Axis::J] - lo[Axis::J] + 1)
-                    *  NUNKVAR];
-    FArray4D  buffer{buffer1D, lo, hi, NUNKVAR};
+    FArray4D  scratch = FArray4D::buildScratchArray4D(lo, hi, 1);
 
     Real   f_i     = 0.0;
     Real   f_x_im1 = 0.0;
@@ -38,7 +35,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem)
     Real   dx_sqr_inv = 1.0 / (deltas[Axis::I] * deltas[Axis::I]);
     Real   dy_sqr_inv = 1.0 / (deltas[Axis::J] * deltas[Axis::J]);
 
-    // Compute Laplacian in buffer
+    // Compute Laplacian in scratch
  //   for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
         for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
             for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
@@ -47,7 +44,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem)
                 f_x_ip1 = f(i+1, j,   ENER_VAR_C);
                 f_y_im1 = f(i,   j-1, ENER_VAR_C);
                 f_y_ip1 = f(i,   j+1, ENER_VAR_C);
-                buffer(i, j, 0) = 
+                scratch(i, j, 0) = 
                       ((f_x_im1 + f_x_ip1) - 2.0*f_i) * dx_sqr_inv
                     + ((f_y_im1 + f_y_ip1) - 2.0*f_i) * dy_sqr_inv;
             }
@@ -62,7 +59,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem)
 //    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
         for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
             for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
-                f(i, j, ENER_VAR_C) = buffer(i, j, 0);
+                f(i, j, ENER_VAR_C) = scratch(i, j, 0);
             }
         }
 //    } 

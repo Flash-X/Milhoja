@@ -4,10 +4,25 @@
 
 namespace orchestration {
 
+//----- static member function definitions
+FArray4D   FArray4D::buildScratchArray4D(const IntVect& lo, const IntVect& hi,
+                                         const unsigned int ncomp) {
+    Real*  scratch = new Real[   (hi[Axis::I] - lo[Axis::I] + 1)
+                               * (hi[Axis::J] - lo[Axis::J] + 1)
+//                               * (hi[Axis::K] - lo[Axis::K] + 1)
+                               *  ncomp];
+    FArray4D   scratchArray = FArray4D{scratch, lo, hi, ncomp};
+    scratchArray.owner_ = true;
+    return scratchArray;
+}
+
+//----- member function definitions
+
 FArray4D::FArray4D(Real* data, 
                    const IntVect& begin, const IntVect& end,
                    const unsigned int ncomp)
-    : data_{data},
+    : owner_{false},
+      data_{data},
       i0_{begin[Axis::I]},
       j0_{begin[Axis::J]},
 //      k0_{begin[Axis::K]},
@@ -40,7 +55,9 @@ FArray4D::FArray4D(Real* data,
 }
 
 FArray4D::~FArray4D(void) {
-    // Objects do *not* deallocate resources
+    if (owner_) {
+        delete [] data_;
+    }
     data_ = nullptr;
 }
 
