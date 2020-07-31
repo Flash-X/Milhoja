@@ -42,11 +42,21 @@ For the sake of flexibility in type-matching, the Orchestration System maintains
 
 The IntVect class represents NDIM-tuples of integers. Most frequently, they represent vectors in the index-space of the domain. Users are responsible of tracking whether they represent cell-based or node-based indices. They have basic math operators defined, such as component-wise addition, scalar multiplication, etc.
 
+\subsection{IntTriple}
+
+The IntTriple class represents MDIM-tuples of integers. They are used to write dimension-agnostic loops and to create FArray4Ds. They do NOT have math operators defined as they aren't intended to be used as general purpose vectors.
+
 
 
 \subsection{RealVect}
 
-The RealVect class represents NDIM-tuples of Reals. They typically represent points of the domain in physical space. They also have basic math operators defined.
+The RealVect class represents NDIM-tuples of Reals. They typically represent points of the domain in physical space. They have basic math operators defined in the same way as IntVect.
+
+\section{Arrays}
+\subsection*{FArray4D}
+
+The FArray4D class functions primarily as a wrapper to Real pointers that provides Fortran-like access to their data with an overload of \texttt{operator()}. Notably, the access pattern is Fortran-style row major.
+
 
 
 \end{document}

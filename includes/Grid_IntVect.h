@@ -7,6 +7,8 @@
 #include <iosfwd>
 #include <stdexcept>
 
+#include "Grid_IntTriple.h"
+
 #ifdef GRID_AMREX
 #include <AMReX_IntVect.H>
 #endif
@@ -53,14 +55,16 @@ class IntVect
     // (Implicit cast disabled by `explicit` keyword).
     explicit operator RealVect () const;
 
-    // Return a std::vector of length 3 regardless of NDIM.
+    // Return an IntTriple with 0 in indices over NDIM.
     // Useful for iterating over regions of coordinate space.
-    std::vector<int> as3D() const {
-        std::vector<int> vecout = {0,0,0};
-        for(int i=0;i<NDIM;++i) {
-            vecout[i] = vect_[i];
-        }
-        return vecout;
+    IntTriple asTriple() const {
+#if (NDIM==1)
+        return IntTriple( vect_[0], 0, 0 );
+#elif (NDIM==2)
+        return IntTriple( vect_[0], vect_[1], 0 );
+#else
+        return IntTriple( vect_[0], vect_[1], vect_[2] );
+#endif
     }
 
     // Get and set values of the internal array with [] operator.

@@ -1,6 +1,7 @@
 #include "setInitialConditions_block.h"
 
 #include "FArray4D.h"
+#include "Grid_IntTriple.h"
 #include "Grid.h"
 #include "Tile.h"
 #include "Grid_Axis.h"
@@ -33,24 +34,26 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     Real    y = 0.0;
     int     i0 = loGC[Axis::I];
     int     j0 = loGC[Axis::J];
-//    for         (int k = loGC[Axis::K]; k <= hiGC[Axis::K]; ++k) {
-        for     (int j = loGC[Axis::J]; j <= hiGC[Axis::J]; ++j) {
+    const IntTriple   loGC3 = loGC.asTriple();
+    const IntTriple   hiGC3 = hiGC.asTriple();
+    for         (int k = loGC3[Axis::K]; k <= hiGC3[Axis::K]; ++k) {
+        for     (int j = loGC3[Axis::J]; j <= hiGC3[Axis::J]; ++j) {
             y = yCoords[j-j0];
-            for (int i = loGC[Axis::I]; i <= hiGC[Axis::I]; ++i) {
+            for (int i = loGC3[Axis::I]; i <= hiGC3[Axis::I]; ++i) {
                 x = xCoords[i-i0]; 
 
                 // PROBLEM ONE
                 //  Approximated exactly by second-order discretized Laplacian
-                f(i, j, DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
+                f(i, j, k, DENS_VAR_C) =   3.0*x*x*x +     x*x + x 
                                       - 2.0*y*y*y - 1.5*y*y + y
                                       + 5.0;
                 // PROBLEM TWO
                 //  Approximation is not exact and we know the error term exactly
-                f(i, j, ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
+                f(i, j, k, ENER_VAR_C) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
                                       -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
                                       + 1.0;
             }
         }
-//    }
+    }
 }
 

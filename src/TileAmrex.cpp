@@ -120,7 +120,7 @@ Real*   TileAmrex::dataPtr(void) {
  */
 FArray4D TileAmrex::data(void) {
     return FArray4D{static_cast<Real*>(unk_[gridIdx_].dataPtr()),
-                    loGC(), hiGC(), NUNKVAR}; 
+                    loGC().asTriple(), hiGC().asTriple(), NUNKVAR}; 
 }
 
 }

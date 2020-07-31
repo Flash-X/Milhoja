@@ -19,7 +19,7 @@
 
 #include "Grid_REAL.h"
 #include "Grid_Axis.h"
-#include "Grid_IntVect.h"
+#include "Grid_IntTriple.h"
 
 namespace orchestration {
 
@@ -30,11 +30,11 @@ namespace orchestration {
 // the wrapper object?
 class FArray4D {
 public:
-    static FArray4D   buildScratchArray4D(const IntVect& begin, const IntVect& end,
+    static FArray4D   buildScratchArray4D(const IntTriple& begin, const IntTriple& end,
                                           const unsigned int ncomp);
 
     FArray4D(Real* data, 
-             const IntVect& begin, const IntVect& end,
+             const IntTriple& begin, const IntTriple& end,
              const unsigned int ncomp);
     ~FArray4D(void);
 
@@ -45,10 +45,10 @@ public:
     FArray4D& operator=(const FArray4D&) = delete;
     FArray4D& operator=(FArray4D&&)      = delete;
 
-//    Real& operator()(int i, int j, int k, int n) const {
-    Real& operator()(int i, int j, int n) const {
-        return data_[(i-i0_) + (j-j0_)*jstride_ + n*nstride_];
-//        return data_[(i-i0_) + (j-j0_)*jstride_ + (k-k0_)*kstride_ + n*nstride_];
+    Real& operator()(int i, int j, int k, int n) const {
+//    Real& operator()(int i, int j, int n) const {
+//        return data_[(i-i0_) + (j-j0_)*jstride_ + n*nstride_];
+        return data_[(i-i0_) + (j-j0_)*jstride_ + (k-k0_)*kstride_ + n*nstride_];
     }
 
 private:
@@ -56,9 +56,9 @@ private:
     Real*        data_;
     int          i0_;
     int          j0_;
-//    int          k0_;
+    int          k0_;
     unsigned int jstride_;
-//    unsigned int kstride_;
+    unsigned int kstride_;
     unsigned int nstride_;
     unsigned int ncomp_;
 };
