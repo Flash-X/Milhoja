@@ -1,5 +1,7 @@
 SHELL=/bin/sh
 
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
 BASE         = test_runtime_tile_cpp
 MAKEFILE     = Makefile_runtime_tile_cpp
 BASEDIR      = ../..

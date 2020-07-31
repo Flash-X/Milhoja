@@ -1,5 +1,7 @@
 SHELL=/bin/sh
 
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
 BASE     = gather_data_F2003
 MAKEFILE = Makefile_gatherData_F2003
 BASEDIR  = ../..
@@ -24,6 +26,7 @@ CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/DataItem.h \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \

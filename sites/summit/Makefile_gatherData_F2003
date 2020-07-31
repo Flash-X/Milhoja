@@ -12,10 +12,16 @@ AMREXDIR = $(HOME)/local/gcc_9.1.0/AMReX_2d
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/FArray4D.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/TileAmrex.h \
+    $(INCDIR)/TileIter.h \
+    $(INCDIR)/TileIterBaseAmrex.h \
     $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/GridAmrex.h \
+    $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
@@ -31,15 +37,20 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/DataItemSplitter.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
+    $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/RuntimeElement.cpp \
@@ -49,6 +60,7 @@ CXX_SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp
