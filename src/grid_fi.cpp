@@ -15,31 +15,14 @@ extern "C" {
      *
      */
     void   grid_init_fi(void) {
-        Grid::instance();
+        Grid::instantiate();
     }
 
     /**
      *
      */
-    void   grid_init_domain_fi(const double xMin, const double xMax,
-                               const double yMin, const double yMax,
-                               const double zMin, const double zMax,
-                               const int nBlocksX,
-                               const int nBlocksY,
-                               const int nBlocksZ,
-                               const int nVars,
-                               ACTION_ROUTINE initBlock) {
-        Grid&   grid = Grid::instance();
-        RealVect probLo{LIST_NDIM(static_cast<Real>(xMin),
-                                  static_cast<Real>(yMin),
-                                  static_cast<Real>(zMin))};
-        RealVect probHi{LIST_NDIM(static_cast<Real>(xMax),
-                                  static_cast<Real>(yMax),
-                                  static_cast<Real>(zMax))};
-        IntVect nBlocks{LIST_NDIM(nBlocksX, nBlocksY, nBlocksZ)};
-
-        grid.initDomain(probLo, probHi, nBlocks,
-                        static_cast<unsigned int>(nVars), initBlock);
+    void   grid_init_domain_fi(ACTION_ROUTINE initBlock) {
+        Grid::instance().initDomain(initBlock);
     }
 
     /**

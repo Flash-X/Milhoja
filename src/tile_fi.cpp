@@ -16,10 +16,10 @@ extern "C" {
         gid = static_cast<int>(tileDesc->gridIndex());
         level = static_cast<int>(tileDesc->level());
 
-        const IntVect loPt   = tileDesc->loVect();
-        const IntVect hiPt   = tileDesc->hiVect();
-        const int* loGCPt = tileDesc->loGCVect();
-        const int* hiGCPt = tileDesc->hiGCVect();
+        const IntVect loPt   = tileDesc->lo();
+        const IntVect hiPt   = tileDesc->hi();
+        const IntVect loGCPt = tileDesc->loGC();
+        const IntVect hiGCPt = tileDesc->hiGC();
         for (unsigned int i=0; i<NDIM; ++i) {
             lo[i]   = loPt[i];
             hi[i]   = hiPt[i];
@@ -28,12 +28,8 @@ extern "C" {
         }
     }
 
-    void tile_get_data_ptr_fi(Tile* tileDesc,
-                              amrex::Real*& cptr) {
-        // TODO : fix this
-        amrex::MultiFab&    unk = Grid::instance().unk();
-        amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
-        cptr = fab.dataPtr();
+    void tile_get_data_ptr_fi(Tile* tileDesc, Real*& cptr) {
+        cptr = tileDesc->dataPtr();
     }
 }
 

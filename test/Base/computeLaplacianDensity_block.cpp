@@ -1,61 +1,70 @@
 #include "computeLaplacianDensity_block.h"
 
-#include "Flash.h"
 #include "Grid.h"
 #include "Tile.h"
+#include "Grid_Axis.h"
+#include "Grid_Edge.h"
 
-using namespace orchestration;
+#include "Flash.h"
 
-void ThreadRoutines::computeLaplacianDensity_block(const int tId, 
-                                                   void* dataItem) {
+void ThreadRoutines::computeLaplacianDensity_block(const int tId, void* dataItem) {
+    using namespace orchestration;
+
     Tile*  tileDesc = static_cast<Tile*>(dataItem);
 
-    amrex::MultiFab&    unk = Grid::instance().unk();
-    amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
-    amrex::Array4<amrex::Real> const&   f = fab.array();
+    Grid&  grid = Grid::instance();
 
+    const IntVect   lo     = tileDesc->lo();
+    const IntVect   hi     = tileDesc->hi();
+    const RealVect  deltas = tileDesc->deltas();
+    FArray4D        f      = tileDesc->data();
+
+    // TODO: This exposes low-level data storage details to the PUD.  Hide!
+    // TODO: This would need to be done in an NDIM-specific way
     // TODO: We should have scratch preallocated outside this routine.  It would
     // either be setup by the operation or available through a memory manager
     // and its location communicated as a pointer in a given data packet.
-    amrex::FArrayBox                    fabBuffer(tileDesc->interior());
-    amrex::Array4<amrex::Real> const&   buffer = fabBuffer.array();
+    Real  buffer1D[   (hi[Axis::I] - lo[Axis::I] + 1)
+                    * (hi[Axis::J] - lo[Axis::J] + 1)
+                    *  NUNKVAR];
+    FArray4D  buffer{buffer1D, lo, hi, NUNKVAR};
 
-    amrex::XDim3  deltas = tileDesc->deltas();
+    Real   f_i     = 0.0;
+    Real   f_x_im1 = 0.0;
+    Real   f_x_ip1 = 0.0;
+    Real   f_y_im1 = 0.0;
+    Real   f_y_ip1 = 0.0;
 
-    amrex::Real   f_i     = 0.0;
-    amrex::Real   f_x_im1 = 0.0;
-    amrex::Real   f_x_ip1 = 0.0;
-    amrex::Real   f_y_im1 = 0.0;
-    amrex::Real   f_y_ip1 = 0.0;
-
-    amrex::Real   dx_sqr_inv = 1.0 / (deltas.x * deltas.x);
-    amrex::Real   dy_sqr_inv = 1.0 / (deltas.y * deltas.y);
+    Real   dx_sqr_inv = 1.0 / (deltas[Axis::I] * deltas[Axis::I]);
+    Real   dy_sqr_inv = 1.0 / (deltas[Axis::J] * deltas[Axis::J]);
 
     // Compute Laplacian in buffer
-    const amrex::Dim3 lo = tileDesc->lo();
-    const amrex::Dim3 hi = tileDesc->hi();
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-              f_i     = f(i,   j,   lo.z, DENS_VAR_C);
-              f_x_im1 = f(i-1, j,   lo.z, DENS_VAR_C);
-              f_x_ip1 = f(i+1, j,   lo.z, DENS_VAR_C);
-              f_y_im1 = f(i,   j-1, lo.z, DENS_VAR_C);
-              f_y_ip1 = f(i,   j+1, lo.z, DENS_VAR_C);
-              buffer(i, j, lo.z, 0) = 
-                    ((f_x_im1 + f_x_ip1) - 2.0*f_i) * dx_sqr_inv
-                  + ((f_y_im1 + f_y_ip1) - 2.0*f_i) * dy_sqr_inv;
-         }
-    }
+//    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
+        for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
+            for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
+                  f_i     = f(i,   j,   DENS_VAR_C);
+                  f_x_im1 = f(i-1, j,   DENS_VAR_C);
+                  f_x_ip1 = f(i+1, j,   DENS_VAR_C);
+                  f_y_im1 = f(i,   j-1, DENS_VAR_C);
+                  f_y_ip1 = f(i,   j+1, DENS_VAR_C);
+                  buffer(i, j, 0) = 
+                        ((f_x_im1 + f_x_ip1) - 2.0*f_i) * dx_sqr_inv
+                      + ((f_y_im1 + f_y_ip1) - 2.0*f_i) * dy_sqr_inv;
+             }
+        }
+//    }
 
     // Overwrite interior of given block with Laplacian result
     // TODO: In the case of a data packet, we could have the input data given as
     // a pointer to CC1 and directly write the result to CC2.  When copying the
     // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
     // would be unnecessary.
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            f(i, j, lo.z, DENS_VAR_C) = buffer(i, j, lo.z, 0);
-         }
-    } 
+//    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
+        for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
+            for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
+                f(i, j, DENS_VAR_C) = buffer(i, j, 0);
+             }
+        } 
+//    }
 }
 

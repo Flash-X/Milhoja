@@ -41,7 +41,7 @@ class IntVect
 
 #ifdef GRID_AMREX
     // Constructor from amrex::IntVect
-    constexpr explicit IntVect (const amrex::IntVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+    explicit IntVect (const amrex::IntVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
 
     // Operator to explicitly cast an IntVect to an AMReX IntVect
     explicit operator amrex::IntVect () const {

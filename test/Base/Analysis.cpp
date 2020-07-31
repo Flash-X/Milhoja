@@ -4,9 +4,13 @@
 #include <fstream>
 #include <algorithm>
 
-#include "Flash.h"
+#include "Grid_Axis.h"
+#include "Grid_Edge.h"
+#include "FArray4D.h"
 #include "Grid.h"
 #include "DataPacket.h"
+
+#include "Flash.h"
 
 using namespace orchestration;
 
@@ -34,52 +38,59 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     Tile* tileDesc = static_cast<Tile*>(dataItem);
 
     Grid&   grid = Grid::instance();
-    amrex::MultiFab&   unk = grid.unk();
-    amrex::Geometry&   geometry = grid.geometry();
 
-    int               gid = tileDesc->gridIndex();
-    const amrex::Dim3 lo  = tileDesc->lo();
-    const amrex::Dim3 hi  = tileDesc->hi();
+    const IntVect   lo = tileDesc->lo();
+    const IntVect   hi = tileDesc->hi();
+    const FArray4D  f  = tileDesc->data();
 
-    amrex::FArrayBox&   fab = unk[gid];
-    amrex::Array4<amrex::Real> const& f = fab.array();
+    Real    xCoords[hi[Axis::I] - lo[Axis::I] + 1];
+    Real    yCoords[hi[Axis::J] - lo[Axis::J] + 1];
+    grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+                        lo, hi, xCoords); 
+    grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+                        lo, hi, yCoords); 
 
-    amrex::Real  x            = 0.0;
-    amrex::Real  y            = 0.0;
-    amrex::Real  absErr       = 0.0;
-    amrex::Real  maxAbsErr1   = 0.0;
-    amrex::Real  sum1         = 0.0;
-    amrex::Real  maxAbsErr2   = 0.0;
-    amrex::Real  sum2         = 0.0;
-    double       fExpected    = 0.0;
+    Real    x            = 0.0;
+    Real    y            = 0.0;
+    int     i0           = lo[Axis::I];
+    int     j0           = lo[Axis::J];
+//    int     k0           = lo[Axis::K];
+    Real    absErr       = 0.0;
+    Real    maxAbsErr1   = 0.0;
+    Real    sum1         = 0.0;
+    Real    maxAbsErr2   = 0.0;
+    Real    sum2         = 0.0;
+    double  fExpected    = 0.0;
     nCells = 0;
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        y = geometry.CellCenter(j, 1);
-        for (int i = lo.x; i <= hi.x; ++i) {
-            x = geometry.CellCenter(i, 0);
+//    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
+        for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
+            y = yCoords[j-j0];
+            for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
+                x = xCoords[i-i0];
 
-            fExpected = (18.0*x - 12.0*y - 1.0);
-            absErr = fabs(fExpected - f(i, j, lo.z, DENS_VAR_C));
-            sum1 += absErr;
-            if (absErr > maxAbsErr1) {
-                 maxAbsErr1 = absErr;
-            }
-   
-            fExpected = energyScaleFactor*x*y*(  48.0*x*x - 18.0*x
-                                               - 12.0*y*y + 12.0*y
-                                               - 2.0); 
-            absErr = fabs(fExpected - f(i, j, lo.z, ENER_VAR_C));
-            sum2 += absErr;
-            if (absErr > maxAbsErr2) {
-                 maxAbsErr2 = absErr;
-            }
+                fExpected = (18.0*x - 12.0*y - 1.0);
+                absErr = fabs(fExpected - f(i, j, DENS_VAR_C));
+                sum1 += absErr;
+                if (absErr > maxAbsErr1) {
+                     maxAbsErr1 = absErr;
+                }
+ 
+                fExpected = energyScaleFactor*x*y*(  48.0*x*x - 18.0*x
+                                                   - 12.0*y*y + 12.0*y
+                                                   - 2.0); 
+                absErr = fabs(fExpected - f(i, j, ENER_VAR_C));
+                sum2 += absErr;
+                if (absErr > maxAbsErr2) {
+                     maxAbsErr2 = absErr;
+                }
     
-            ++nCells;
+                ++nCells;
+            }
         }
-    }
+//    }
 
-    L_inf_dens[gid] = maxAbsErr1;
-    L_inf_ener[gid] = maxAbsErr2;
+    L_inf_dens[tileDesc->gridIndex()] = maxAbsErr1;
+    L_inf_ener[tileDesc->gridIndex()] = maxAbsErr2;
 }
 
 void   Analysis::computeErrors_packet(const int tId, void* dataItem) {
@@ -101,9 +112,10 @@ void Analysis::energyErrors(double* L_inf, double* meanAbsError) {
 }
 
 void Analysis::writeToFile(const std::string& filename) {
-    amrex::Geometry geometry = Grid::instance().geometry();
-    amrex::Real  dx = geometry.CellSize(0);
-    amrex::Real  dy = geometry.CellSize(1);
+    // TODO: Don't hardcode level
+    RealVect  deltas = Grid::instance().getDeltas(0);
+    Real      dx = deltas[Axis::I];
+    Real      dy = deltas[Axis::J];
 
     double Linf_d = *std::max_element(std::begin(L_inf_dens), std::end(L_inf_dens));
     double Linf_e = *std::max_element(std::begin(L_inf_ener), std::end(L_inf_ener));

@@ -2,14 +2,6 @@
 #include <fstream>
 #include <iostream>
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MFIter.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_Array4.H>
-
 #include "Tile.h"
 #include "Grid.h"
 #include "ActionBundle.h"
@@ -66,11 +58,10 @@ void  tearDown(const std::string& filename,
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0) {
-        Grid&   grid = Grid::instance();
-        amrex::MultiFab&  unk = grid.unk();
-        amrex::Geometry   geometry = grid.geometry();
-        amrex::Real       dx = geometry.CellSize(0);
-        amrex::Real       dy = geometry.CellSize(1);
+        // TODO: Don't hardcode level
+        RealVect   deltas = Grid::instance().getDeltas(0);
+        Real       dx = deltas[Axis::I];
+        Real       dy = deltas[Axis::J];
 
         double   L_inf_dens = 0.0;
         double   L_inf_ener = 0.0;
@@ -136,12 +127,9 @@ int   main(int argc, char* argv[]) {
     orchestration::Runtime::setLogFilename("GatherDataCpp.log");
     orchestration::Runtime&   runtime = orchestration::Runtime::instance();
 
+    Grid::instantiate();
     Grid&   grid = Grid::instance();
-    grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                    N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                    NUNKVAR,
-                    Simulation::setInitialConditions_block);
-    amrex::MultiFab&  unk = grid.unk();
+    grid.initDomain(Simulation::setInitialConditions_block);
 
     // Setup logging of results
     std::string  fname("gatherDataCpp_");
@@ -174,19 +162,20 @@ int   main(int argc, char* argv[]) {
         /***** SERIAL TEST - Three iteration loops  *****/
         setUp();
         double tStart = MPI_Wtime(); 
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianDensity_block(0, &tileDesc);
+        std::unique_ptr<DataItem>    dataItem{};
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            dataItem = ti.buildCurrentTile();
+            ThreadRoutines::computeLaplacianDensity_block(0, dataItem.get());
         }
 
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianEnergy_block(0, &tileDesc);
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            dataItem = ti.buildCurrentTile();
+            ThreadRoutines::computeLaplacianEnergy_block(0, dataItem.get());
         }
 
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::scaleEnergy_block(0, &tileDesc);
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            dataItem = ti.buildCurrentTile();
+            ThreadRoutines::scaleEnergy_block(0, dataItem.get());
         }
         double tWalltime = MPI_Wtime() - tStart;
         tearDown(fname, "Serial", 3, -1, -1, -1, tWalltime);
@@ -194,11 +183,11 @@ int   main(int argc, char* argv[]) {
         /***** SERIAL TEST - Single iteration loop  *****/
         setUp();
         tStart = MPI_Wtime(); 
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            Tile     tileDesc(itor, LEVEL);
-            ThreadRoutines::computeLaplacianDensity_block(0, &tileDesc);
-            ThreadRoutines::computeLaplacianEnergy_block(0, &tileDesc);
-            ThreadRoutines::scaleEnergy_block(0, &tileDesc);
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            dataItem = ti.buildCurrentTile();
+            ThreadRoutines::computeLaplacianDensity_block(0, dataItem.get());
+            ThreadRoutines::computeLaplacianEnergy_block(0, dataItem.get());
+            ThreadRoutines::scaleEnergy_block(0, dataItem.get());
         }
         tWalltime = MPI_Wtime() - tStart; 
         tearDown(fname, "Serial", 1, -1, -1, -1, tWalltime);

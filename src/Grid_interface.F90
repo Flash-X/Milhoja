@@ -18,19 +18,7 @@ module Grid_interface
     end interface
 
     interface
-        subroutine Grid_initDomain(xMin, xMax, yMin, yMax, zMin, zMax, &
-                                   nBlocksX, nBlocksY, nBlocksZ, &
-                                   nVars)
-            real,    intent(IN)   :: xMin
-            real,    intent(IN)   :: xMax
-            real,    intent(IN)   :: yMin
-            real,    intent(IN)   :: yMax
-            real,    intent(IN)   :: zMin
-            real,    intent(IN)   :: zMax
-            integer, intent(IN)   :: nBlocksX
-            integer, intent(IN)   :: nBlocksY
-            integer, intent(IN)   :: nBlocksZ
-            integer, intent(IN)   :: nVars
+        subroutine Grid_initDomain()
         end subroutine Grid_initDomain
     end interface
 

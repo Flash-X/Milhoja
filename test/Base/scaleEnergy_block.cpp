@@ -1,31 +1,43 @@
 #include "scaleEnergy_block.h"
 
-#include "Flash.h"
+#include "Grid_Axis.h"
+#include "Grid_Edge.h"
+#include "FArray4D.h"
 #include "Grid.h"
 #include "Tile.h"
-using namespace orchestration;
 
-void ThreadRoutines::scaleEnergy_block(const int tId,
-                                       void* dataItem) {
+#include "Flash.h"
+
+void ThreadRoutines::scaleEnergy_block(const int tId, void* dataItem) {
+    using namespace orchestration;
+
     Tile* tileDesc = static_cast<Tile*>(dataItem);
 
-    Grid&    grid = Grid::instance();
-    amrex::Geometry     geometry = grid.geometry();
-    amrex::MultiFab&    unk = grid.unk();
-    amrex::FArrayBox&   fab = unk[tileDesc->gridIndex()];
+    Grid&  grid = Grid::instance();
 
-    amrex::Array4<amrex::Real> const&   f = fab.array();
+    const IntVect   lo = tileDesc->lo();
+    const IntVect   hi = tileDesc->hi();
+    FArray4D        f  = tileDesc->data();
 
-    amrex::Real         x = 0.0;
-    amrex::Real         y = 0.0;
-    const amrex::Dim3   lo = tileDesc->lo();
-    const amrex::Dim3   hi = tileDesc->hi();
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        y = geometry.CellCenter(j, 1);
-        for (int i = lo.x; i <= hi.x; ++i) {
-            x = geometry.CellCenter(i, 0);
-            f(i, j, lo.z, ENER_VAR_C) *= 5.0 * x * y;
+    Real    xCoords[hi[Axis::I] - lo[Axis::I] + 1];
+    Real    yCoords[hi[Axis::J] - lo[Axis::J] + 1];
+    grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+                        lo, hi, xCoords); 
+    grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+                        lo, hi, yCoords); 
+
+    Real    x = 0.0;
+    Real    y = 0.0;
+    int     i0 = lo[Axis::I];
+    int     j0 = lo[Axis::J];
+//    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
+        for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
+            y = yCoords[j-j0];
+            for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
+                x = xCoords[i-i0];
+                f(i, j, ENER_VAR_C) *= 5.0 * x * y;
+            }
         }
-    }
+//    }
 }
 
