@@ -6,6 +6,7 @@
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
+#include "Grid_IntTriple.h"
 #include "FArray4D.h"
 #include "Grid.h"
 #include "DataPacket.h"
@@ -50,11 +51,13 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
                         lo, hi, yCoords); 
 
+    const IntTriple lo3 = lo.asTriple();
+    const IntTriple hi3 = hi.asTriple();
     Real    x            = 0.0;
     Real    y            = 0.0;
-    int     i0           = lo[Axis::I];
-    int     j0           = lo[Axis::J];
-//    int     k0           = lo[Axis::K];
+    int     i0           = lo3[Axis::I];
+    int     j0           = lo3[Axis::J];
+    int     k0           = lo3[Axis::K];
     Real    absErr       = 0.0;
     Real    maxAbsErr1   = 0.0;
     Real    sum1         = 0.0;
@@ -62,14 +65,14 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     Real    sum2         = 0.0;
     double  fExpected    = 0.0;
     nCells = 0;
-//    for         (int k = lo[Axis::K]; k <= hi[Axis::K]; ++k) {
-        for     (int j = lo[Axis::J]; j <= hi[Axis::J]; ++j) {
+    for         (int k = lo3[Axis::K]; k <= hi3[Axis::K]; ++k) {
+        for     (int j = lo3[Axis::J]; j <= hi3[Axis::J]; ++j) {
             y = yCoords[j-j0];
-            for (int i = lo[Axis::I]; i <= hi[Axis::I]; ++i) {
+            for (int i = lo3[Axis::I]; i <= hi3[Axis::I]; ++i) {
                 x = xCoords[i-i0];
 
                 fExpected = (18.0*x - 12.0*y - 1.0);
-                absErr = fabs(fExpected - f(i, j, DENS_VAR_C));
+                absErr = fabs(fExpected - f(i, j, k, DENS_VAR_C));
                 sum1 += absErr;
                 if (absErr > maxAbsErr1) {
                      maxAbsErr1 = absErr;
@@ -78,7 +81,7 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
                 fExpected = energyScaleFactor*x*y*(  48.0*x*x - 18.0*x
                                                    - 12.0*y*y + 12.0*y
                                                    - 2.0); 
-                absErr = fabs(fExpected - f(i, j, ENER_VAR_C));
+                absErr = fabs(fExpected - f(i, j, k, ENER_VAR_C));
                 sum2 += absErr;
                 if (absErr > maxAbsErr2) {
                      maxAbsErr2 = absErr;
@@ -87,7 +90,7 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
                 ++nCells;
             }
         }
-//    }
+    }
 
     L_inf_dens[tileDesc->gridIndex()] = maxAbsErr1;
     L_inf_ener[tileDesc->gridIndex()] = maxAbsErr2;
