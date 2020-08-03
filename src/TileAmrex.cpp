@@ -12,24 +12,20 @@ namespace orchestration {
 /**
  *
  */
-TileAmrex::TileAmrex(void) : Tile{0} { }
-
-/**
- *
- */
 TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level)
-    : Tile(level)
+    : Tile(level),
+      unk_(Grid::instance().unk())
 {
     gridIdx_ = itor.index();
     interior_ = new amrex::Box(itor.tilebox());
     GC_ = new amrex::Box(itor.fabbox());
-    amrex::MultiFab&  unk = Grid::instance().unk();
-    amrex::FArrayBox& fab = unk[gridIdx_];
+    amrex::FArrayBox& fab = unk_[gridIdx_];
     CC_h_ = fab.dataPtr();
 }
 
 TileAmrex::TileAmrex(TileAmrex&& other)
-    : Tile( std::move(other) )
+    : Tile( std::move(other) ),
+      unk_{other.unk_}
 {
 }
 
@@ -112,4 +108,20 @@ IntVect  TileAmrex::hiGC(void) const {
     return IntVect(GC_->bigEnd());
 }
 
+/**
+ *
+ */
+Real*   TileAmrex::dataPtr(void) {
+    return static_cast<Real*>(unk_[gridIdx_].dataPtr()); 
 }
+
+/**
+ *
+ */
+FArray4D TileAmrex::data(void) {
+    return FArray4D{static_cast<Real*>(unk_[gridIdx_].dataPtr()),
+                    loGC().asTriple(), hiGC().asTriple(), NUNKVAR}; 
+}
+
+}
+

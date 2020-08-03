@@ -8,9 +8,8 @@ N_CELLS_PER_BLOCK=(8 16 32 64 128)
 N_BLOCKS=(2 4 8 16 32 64)
 
 module purge
-module load git
-module load gcc/9.1.0
-module load spectrum-mpi/10.3.1.2-20200121
+module load intel/19.0
+module load mpich/3.3.2-intel
 module list
 
 ######################################################################

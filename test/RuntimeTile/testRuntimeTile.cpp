@@ -5,16 +5,9 @@
 #include <iostream>
 #include <pthread.h>
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MFIter.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_Array4.H>
-
-#include "Tile.h"
 #include "Grid.h"
+#include "Tile.h"
+#include "TileIter.h"
 #include "ThreadTeam.h"
 #include "OrchestrationLogger.h"
 #include "OrchestrationRuntime.h"
@@ -65,10 +58,7 @@ protected:
         computeErrors_block.routine = Analysis::computeErrors_block;
 
         Grid&    grid = Grid::instance();
-        grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                        N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                        NUNKVAR,
-                        Simulation::setInitialConditions_block);
+        grid.initDomain(Simulation::setInitialConditions_block);
    }
 
     ~TestRuntimeTile(void) {
@@ -80,7 +70,7 @@ protected:
 TEST_F(TestRuntimeTile, TestSingleTeam) {
     orchestration::Logger::setLogFilename("TestSingleTeam.log");
 
-    amrex::MultiFab&   unk = Grid::instance().unk();
+    Grid&   grid = Grid::instance();
 
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam  cpu_block(N_THREADS, 1);
@@ -91,24 +81,24 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     try {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            cpu_block.enqueue( ti.buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
 
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            cpu_block.enqueue( ti.buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
 
         scaleEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(scaleEnergy_block, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            cpu_block.enqueue( ti.buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -116,8 +106,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeErrors_block, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            cpu_block.enqueue( std::shared_ptr<DataItem>{ new Tile{itor, level} } );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            cpu_block.enqueue( ti.buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();

@@ -5,6 +5,7 @@
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
+#include "Grid_IntTriple.h"
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
@@ -16,8 +17,8 @@
 // which can be used in 'function'.
 
 #define ITERATE_REGION(lo,hi,i,j,k, function) {\
-std::vector<int> lo_vec3 = lo.as3D(); \
-std::vector<int> hi_vec3 = hi.as3D(); \
+IntTriple lo_vec3 = lo.asTriple(); \
+IntTriple hi_vec3 = hi.asTriple(); \
 for(int i=lo_vec3[0];i<=hi_vec3[0];++i) {\
 for(int j=lo_vec3[1];j<=hi_vec3[1];++j) {\
 for(int k=lo_vec3[2];k<=hi_vec3[2];++k) {\

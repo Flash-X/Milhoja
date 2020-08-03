@@ -38,7 +38,7 @@ class RealVect
 
 #ifdef GRID_AMREX
     // Constructor from amrex::RealVect
-    constexpr explicit RealVect (const amrex::RealVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+    explicit RealVect (const amrex::RealVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
 
     // Operator to explicitly cast an RealVect to an AMReX RealVect
     explicit operator amrex::RealVect () const {

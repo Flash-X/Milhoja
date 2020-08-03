@@ -4,6 +4,8 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_MFIter.H>
+
+#include "FArray4D.h"
 #include "Grid_IntVect.h"
 
 #include "DataItem.h"
@@ -36,6 +38,10 @@ public:
     virtual IntVect      hi(void) const = 0;
     virtual IntVect      loGC(void) const = 0;
     virtual IntVect      hiGC(void) const = 0;
+
+    // TODO: Create readonly versions of these?
+    virtual FArray4D     data(void) = 0;
+    virtual Real*        dataPtr(void) = 0;
 
     // Functions with a default implementation.
     virtual RealVect     deltas(void) const;

@@ -19,6 +19,8 @@ sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
 sites/hello/manual_cpp.x
 sites/hello/*.dat
+sites/gce/*.dat
+sites/gce/*.log
 sites/summit/gatherDataCpp.*
 sites/summit/testRuntimeCpp.*
 sites/summit/testRuntimeCuda.*

@@ -1,0 +1,70 @@
+SHELL=/bin/sh
+
+BASE         = test_runtime_null_cpp
+MAKEFILE     = Makefile_runtime_null_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/RuntimeNull
+GTESTDIR     = /home/joneal/local/intel_19.0/googletest
+
+# Common files
+CXX_HDRS   = \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/RuntimeAction.h \
+    $(TESTBASEDIR)/NullItem.h
+SRCS       = \
+    $(SRCDIR)/OrchestrationLogger.cpp  \
+    $(SRCDIR)/RuntimeElement.cpp  \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(TESTDIR)/testRuntimeNull.cpp
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = mpic++
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
+CXXWARNS  =
+
+LIBS      = -lpthread -lstdc++ -lgtest -lgtest_main
+LDFLAGS   = -L$(GTESTDIR)/lib
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+
+$(COMMAND): $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND)
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTBASEDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+

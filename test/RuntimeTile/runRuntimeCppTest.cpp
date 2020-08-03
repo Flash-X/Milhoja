@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
     // Instantiate Grid unit, which initializes AMReX and MPI
-    orchestration::Grid::instance();
+    orchestration::Grid::instantiate();
 
     orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);

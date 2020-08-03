@@ -2,27 +2,34 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_grid3d_cpp
-MAKEFILE     = Makefile_grid3d_cpp
+BASE         = test_runtime_packet_cpp
+MAKEFILE     = Makefile_runtime_packet_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
-TESTDIR      = $(BASEDIR)/test/Grid
-AMREXDIR     = $(HOME)/Documents/amrex/3d_gnu
-GTESTDIR     = $(HOME)/Documents/googletest/googletest
+TESTDIR      = $(BASEDIR)/test/RuntimePacket
+AMREXDIR     = $(HOME)/local/intel_19.0/AMReX_2D
+GTESTDIR     = $(HOME)/local/intel_19.0/googletest
 
 # Common files
 CXX_HDRS   = \
-    $(TESTDIR)/Flash.h \
-    $(TESTDIR)/constants.h \
-    $(INCDIR)/Grid.h \
+    $(INCDIR)/FArray4D.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/TileAmrex.h \
+    $(INCDIR)/TileIter.h \
+    $(INCDIR)/TileIterBaseAmrex.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid.h \
+    $(INCDIR)/GridAmrex.h \
+    $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/DataPacket.h \
-    $(INCDIR)/runtimeTask.h \
+    $(INCDIR)/actionRoutine.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/OrchestrationRuntime.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
-    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -30,30 +37,29 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/DataItemSplitter.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
     $(TESTBASEDIR)/scaleEnergy_packet.h \
-    $(TESTBASEDIR)/Analysis.h
+    $(TESTBASEDIR)/Analysis.h \
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h
 SRCS       = \
-    $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/gridUnitTest.cpp \
-    $(SRCDIR)/Grid.cpp \
-    $(SRCDIR)/GridAmrex.cpp \
-    $(SRCDIR)/Grid_IntVect.cpp \
-    $(SRCDIR)/Grid_RealVect.cpp \
-    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
-    $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/ThreadTeamIdle.cpp \
@@ -62,25 +68,26 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
     $(TESTBASEDIR)/scaleEnergy_packet.cpp \
-    $(TESTBASEDIR)/Analysis.cpp
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/testRuntimePacket.cpp \
+    $(TESTDIR)/runRuntimeCppTest.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
-CXX       = mpicxx
+CXX       = mpic++
 CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
 CXXWARNS  =
 
-#LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest
-LIBS      = -lpthread -lstdc++ -lamrex -lgtest
-LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
+LIBS      = -lpthread -lstdc++ -lifcore -lamrex -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -99,7 +106,6 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 
 clean:
 	/bin/rm -f $(COMMAND)
-	/bin/rm -f Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o

@@ -2,7 +2,7 @@
 
 # Define test problems
 #N_CELLS_PER_BLOCK=(1 2 4 8 16 32 64 128 256 512)
-N_CELLS_PER_BLOCK=(8)
+N_CELLS_PER_BLOCK=(2)
 N_BLOCKS=(1)
 
 MAKEFILE=Makefile_gatherData_F2003
@@ -33,6 +33,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
                 $TESTDIR/GatherDataF2003/Flash.h
         sed -i '' "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/GatherDataF2003/Flash.h
         sed -i '' "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/GatherDataF2003/Flash.h
+        sed -i '' "s/REFINEMENT_LEVELS/1/g"        $TESTDIR/GatherDataF2003/Flash.h
 
         # Build test binary
         make -f $MAKEFILE clean all

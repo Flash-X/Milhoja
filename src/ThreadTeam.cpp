@@ -41,8 +41,7 @@ namespace orchestration {
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
                        const unsigned int id)
-    : RuntimeElement{},
-      state_(nullptr),
+    : state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
       stateRunOpen_(nullptr),
@@ -1311,6 +1310,12 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 throw std::logic_error(msg);
             }
             team->actionRoutine_(tId, dataItem.get());
+
+            // TODO: Can we move the data publshing/dataItem management code to
+            // before the mutex acquisition?  If possible, this should seriously
+            // limit the likelihood of serialization of the threads in the team
+            // when the team is shipping data back to the host or splitting the
+            // data items up.
 
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));

@@ -30,11 +30,24 @@ CXX_HDRS   = \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 CXX_SRCS       = \
-    $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
+    $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp

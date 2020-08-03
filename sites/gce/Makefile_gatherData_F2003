@@ -8,7 +8,7 @@ BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test/GatherDataF2003
-AMREXDIR = $(HOME)/local/gcc_6.5.0/AMReX_2D
+AMREXDIR = $(HOME)/local/intel_19.0/AMReX_2D
 
 # Common files
 CXX_HDRS   = \
@@ -95,15 +95,15 @@ OBJS       = $(addsuffix .o, $(basename $(CXX_SRCS)))
 MODS       = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND    =  $(BASE).x
 
-CXX        = mpicxx
+CXX        = mpic++
 CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
 CXXWARNS   =
 
-F2003      = mpif90
-F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003      = mpifort
+F2003FLAGS = -g -O0 -fpp -I$(TESTDIR) -I$(AMREXDIR)/include -fpconstant -double-size 64 -real-size 64
 F2003WARNS =
 
-LIBS       = -lpthread -lstdc++ -lamrex
+LIBS       = -lpthread -lstdc++ -lifcore -lamrex
 LDFLAGS    = -L$(AMREXDIR)/lib
  
 ifdef DEBUG
@@ -125,32 +125,33 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 # Also, find commands that are universal
 .F90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
 	@/bin/rm -f $(TESTDIR)/buildInfo.inc
-	@printf "character(*), parameter :: PROJECT_GIT_REPO_NAME = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `git config --get remote.origin.url` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: PROJECT_GIT_REPO_NAME = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `git config --get remote.origin.url` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: PROJECT_GIT_REPO_VER = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `git -C $(SRCDIR) describe --always` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: PROJECT_GIT_REPO_VER = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `git -C $(SRCDIR) describe --always` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: BUILD_DATETIME = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `date +"%Y-%m-%dT%H:%M:%S%z"` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: BUILD_DATETIME = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `date +"%Y-%m-%dT%H:%M:%S%z"` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: HOSTNAME = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `hostname` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: HOSTNAME = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `hostname` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: MACHINE_INFO = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: MACHINE_INFO = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: CXX_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" $(CXX) >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: CXX_COMPILER = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" $(CXX) >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: CXX_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: CXX_COMPILER_VERSION = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: F2003_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" $(F2003) >> $(TESTDIR)/buildInfo.inc
+	@printf "character(*), parameter :: F2003_COMPILER = '" >> $(TESTDIR)/buildInfo.inc
+	@printf "%s'\n" $(F2003) >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: F2003_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(F2003) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+	# TODO: Get full version string with --version and parse out version string
+#	@printf "character(*), parameter :: F2003_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
+#	@printf "%s\'\n" `$(F2003) -dumpversion` >> $(TESTDIR)/buildInfo.inc
 
 	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
 

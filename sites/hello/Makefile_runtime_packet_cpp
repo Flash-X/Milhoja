@@ -1,5 +1,7 @@
 SHELL=/bin/sh
 
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
 BASE         = test_runtime_packet_cpp
 MAKEFILE     = Makefile_runtime_packet_cpp
 BASEDIR      = ../..
@@ -12,9 +14,15 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/FArray4D.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/TileAmrex.h \
+    $(INCDIR)/TileIter.h \
+    $(INCDIR)/TileIterBaseAmrex.h \
     $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/GridAmrex.h \
+    $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
@@ -43,9 +51,13 @@ CXX_HDRS   = \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 SRCS       = \
+    $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/RuntimeElement.cpp \

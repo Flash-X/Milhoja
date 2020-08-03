@@ -1,5 +1,7 @@
 SHELL=/bin/sh
 
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
 BASE         = test_runtime_tile_cpp
 MAKEFILE     = Makefile_runtime_tile_cpp
 BASEDIR      = ../..
@@ -12,10 +14,16 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/FArray4D.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/TileAmrex.h \
+    $(INCDIR)/TileIter.h \
+    $(INCDIR)/TileIterBaseAmrex.h \
     $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
+    $(INCDIR)/GridAmrex.h \
+    $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/OrchestrationRuntime.h \
@@ -30,6 +38,7 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/DataItemSplitter.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
@@ -40,8 +49,12 @@ CXX_HDRS   = \
     $(TESTDIR)/Flash.h \
     $(TESTDIR)/constants.h
 SRCS       = \
+    $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
@@ -53,6 +66,7 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \

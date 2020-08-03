@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define test problems
-N_CELLS_PER_BLOCK=(1 2 4 8 16 32 64 128 256 512)
+N_CELLS_PER_BLOCK=(2 4 8 16 32 64 128 256 512)
 N_BLOCKS=(16)
 
 MAKEFILE=Makefile_gatherData_F2003
@@ -22,6 +22,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
                 $TESTDIR/GatherDataF2003/constants.h
         sed -i '' "s/N_CELLS_IN_Y/$n_cells/g" $TESTDIR/GatherDataF2003/constants.h
         sed -i '' "s/N_CELLS_IN_Z/1/g"        $TESTDIR/GatherDataF2003/constants.h
+        sed -i '' "s/N_DIMENSIONS/2/g"        $TESTDIR/GatherDataF2003/constants.h
 
         # Setup Flash.h with current simulation's Grid parameters
         rm $TESTDIR/GatherDataF2003/Flash.h
@@ -30,6 +31,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
                 $TESTDIR/GatherDataF2003/Flash.h
         sed -i '' "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/GatherDataF2003/Flash.h
         sed -i '' "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/GatherDataF2003/Flash.h
+        sed -i '' "s/REFINEMENT_LEVELS/1/g"        $TESTDIR/GatherDataF2003/Flash.h
 
         # Build test binary
         make -f $MAKEFILE clean all

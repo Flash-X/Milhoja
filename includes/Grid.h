@@ -13,7 +13,6 @@
 #include <AMReX_MultiFab.H>
 #include "Grid_AmrCoreFlash.h"
 #include "TileAmrex.h"
-#include "setInitialConditions_block.h"
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -62,7 +61,6 @@ protected:
     amrex::MultiFab*   unk_;
     friend void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
     friend TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level);
-    friend void Simulation::setInitialConditions_block(const int tId, void* dataItem);
 
     Grid(void) : unk_(nullptr) {}
     static bool instantiated_;

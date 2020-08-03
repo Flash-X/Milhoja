@@ -1,8 +1,5 @@
 #include <iostream>
 
-#include <AMReX_MultiFab.H>
-#include <AMReX_MFIter.H>
-
 #include "Grid.h"
 #include "DataPacket.h"
 #include "ThreadTeam.h"
@@ -67,10 +64,7 @@ protected:
         computeErrors_packet.routine = Analysis::computeErrors_packet;
 
         Grid&    grid = Grid::instance();
-        grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                        N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
-                        NUNKVAR,
-                        Simulation::setInitialConditions_block);
+        grid.initDomain(Simulation::setInitialConditions_block);
    }
 
     ~TestRuntimePacket(void) {
@@ -81,9 +75,9 @@ protected:
 
 #ifndef DEBUG_RUNTIME
 TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
-    amrex::MultiFab&   unk = Grid::instance().unk();
-
     orchestration::Logger::setLogFilename("TestSinglePacketTeam.log");
+
+    Grid&   grid = Grid::instance();
 
     constexpr unsigned int  N_THREADS = 4;
     ThreadTeam  cpu_packet(N_THREADS, 1);
@@ -97,8 +91,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianEnergy_packet.nInitialThreads = N_THREADS;
         computeLaplacianEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET;
         cpu_packet.startCycle(computeLaplacianEnergy_packet, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            packet->addSubItem( ti.buildCurrentTile() );
 
             if (packet->nSubItems() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -115,8 +109,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianDensity_packet.nInitialThreads = N_THREADS;
         computeLaplacianDensity_packet.nTilesPerPacket = N_TILES_PER_PACKET - 2;
         cpu_packet.startCycle(computeLaplacianDensity_packet, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            packet->addSubItem( ti.buildCurrentTile() );
 
             if (packet->nSubItems() >= computeLaplacianDensity_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -133,8 +127,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         scaleEnergy_packet.nInitialThreads = N_THREADS;
         scaleEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET - 5;
         cpu_packet.startCycle(scaleEnergy_packet, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            packet->addSubItem( ti.buildCurrentTile() );
 
             if (packet->nSubItems() >= scaleEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -152,8 +146,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeErrors_packet.nInitialThreads = N_THREADS;
         computeErrors_packet.nTilesPerPacket = N_TILES_PER_PACKET - 11;
         cpu_packet.startCycle(computeErrors_packet, "Cpu");
-        for (amrex::MFIter  itor(unk); itor.isValid(); ++itor) {
-            packet->addSubItem( std::shared_ptr<DataItem>( new Tile{itor, level} ) );
+        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+            packet->addSubItem( ti.buildCurrentTile() );
 
             if (packet->nSubItems() >= computeErrors_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );

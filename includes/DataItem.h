@@ -5,6 +5,8 @@ namespace orchestration {
 
 class DataItem {
 public:
+    virtual ~DataItem(void) {}
+
     virtual std::size_t nSubItems(void) const = 0;
     virtual void        addSubItem(std::shared_ptr<DataItem>&& dataItem) = 0;
 
@@ -13,7 +15,6 @@ public:
 
 protected:
     DataItem(void) {}
-    virtual ~DataItem(void) {}
 
 private:
     DataItem(DataItem&) = delete;
