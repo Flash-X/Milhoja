@@ -35,6 +35,7 @@ module Orchestration_interface
         subroutine Orchestration_executeTasks(cpuTask,     nCpuThreads, &
                                               gpuTask,     nGpuThreads, &
                                               postGpuTask, nPostGpuThreads)
+            import :: Orchestration_runtimeTask
             procedure(Orchestration_runtimeTask), optional :: cpuTask
             integer, intent(IN),                  optional :: nCpuThreads
             procedure(Orchestration_runtimeTask), optional :: gpuTask

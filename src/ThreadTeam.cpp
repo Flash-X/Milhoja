@@ -41,8 +41,7 @@ namespace orchestration {
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
                        const unsigned int id)
-    : RuntimeElement{},
-      state_(nullptr),
+    : state_(nullptr),
       stateIdle_(nullptr),
       stateTerminating_(nullptr),
       stateRunOpen_(nullptr),
