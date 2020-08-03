@@ -5,13 +5,19 @@
  *
  * A wrapper class around a 1D native C++ data array that allows for
  * Fortran-like access on a 4D array.  Note that the access pattern is also
- * Fortran-style row major.
+ * Fortran-style, column-major ordering.
  *
- * As presently implemented, this wrapper is given a pointer to the data, which
- * is  structured with a 1D contiguous layout in memory.  However, the object
- * that is instantiated does not assume ownership of the memory resource in any
- * way.  Implicit in this is that such objects should only exist so long as
- * access to and correctness of the underlying data is guaranteed.
+ * \todo Decide if buildScratchArray4D and the associated owner_ private data
+ * member is a good design.  I dislike it because the original simple, clean
+ * design concept of the FArray4D class was that of a simple wrapper --- it was
+ * simply the lens that allowed you to look at the memory in a different way
+ * from a distance.  Now, it is or is not the owner of the data that you are
+ * looking at depending on how you created it.  This complexity might be
+ * reasonable as it offers a simple mechanism to the PUDs and shields them from
+ * the data managment.  So far, they only get access to an FArray4D object by
+ * calling an infrastructure routine.  These routines manage the underlying
+ * resource in such a way that, so far, the PUDs need not think about resource
+ * management.
  */
 
 #ifndef FARRAY_4D_H__
@@ -23,18 +29,14 @@
 
 namespace orchestration {
 
-// TODO Update to 3D once Grid allows for coding up
-//      3D loops.
-// TODO: Add in a second constructor that does not take a pointer, but rather
-// dynamically allocates the needed array and deallocates during destruction of
-// the wrapper object?
 class FArray4D {
 public:
-    static FArray4D   buildScratchArray4D(const IntTriple& begin, const IntTriple& end,
+    static FArray4D   buildScratchArray4D(const IntTriple& lo,
+                                          const IntTriple& hi,
                                           const unsigned int ncomp);
 
     FArray4D(Real* data, 
-             const IntTriple& begin, const IntTriple& end,
+             const IntTriple& lo, const IntTriple& hi,
              const unsigned int ncomp);
     ~FArray4D(void);
 
@@ -45,10 +47,11 @@ public:
     FArray4D& operator=(const FArray4D&) = delete;
     FArray4D& operator=(FArray4D&&)      = delete;
 
-    Real& operator()(int i, int j, int k, int n) const {
-//    Real& operator()(int i, int j, int n) const {
-//        return data_[(i-i0_) + (j-j0_)*jstride_ + n*nstride_];
-        return data_[(i-i0_) + (j-j0_)*jstride_ + (k-k0_)*kstride_ + n*nstride_];
+    Real& operator()(const int i, const int j, const int k, const int n) const {
+        return data_[  (i-i0_)
+                     + (j-j0_)*jstride_
+                     + (k-k0_)*kstride_
+                     +      n *nstride_];
     }
 
 private:

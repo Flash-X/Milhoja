@@ -17,19 +17,17 @@ FArray4D   FArray4D::buildScratchArray4D(const IntTriple& lo, const IntTriple& h
 }
 
 //----- member function definitions
-
 FArray4D::FArray4D(Real* data, 
-                   const IntTriple& begin, const IntTriple& end,
+                   const IntTriple& lo, const IntTriple& hi,
                    const unsigned int ncomp)
     : owner_{false},
       data_{data},
-      i0_{begin[Axis::I]},
-      j0_{begin[Axis::J]},
-      k0_{begin[Axis::K]},
-      jstride_(end[Axis::I] - i0_ + 1),
-      kstride_(jstride_*(end[Axis::J] - j0_ + 1)),
-      nstride_(kstride_*(end[Axis::K] - k0_ + 1)),
-      //nstride_(jstride_*(end[Axis::J] - j0_ + 1)),
+      i0_{lo[Axis::I]},
+      j0_{lo[Axis::J]},
+      k0_{lo[Axis::K]},
+      jstride_(         (hi[Axis::I] - i0_ + 1)),
+      kstride_(jstride_*(hi[Axis::J] - j0_ + 1)),
+      nstride_(kstride_*(hi[Axis::K] - k0_ + 1)),
       ncomp_{ncomp}
 {
 #ifndef GRID_ERRCHECK_OFF
@@ -38,17 +36,17 @@ FArray4D::FArray4D(Real* data,
         throw std::invalid_argument("[FArray4D::FArray4D] null data pointer given");
     } else if (ncomp_ == 0) {
         throw std::invalid_argument("[FArray4D::FArray4D] empty array specified");
-    } else if (   (begin[Axis::I] > end[Axis::I])
-               || (begin[Axis::J] > end[Axis::J])
-               || (begin[Axis::K] > end[Axis::K]) ) {
-        std::string   msg =   "[FArray4D::FArray4D] begin ("
-                            + std::to_string(begin[Axis::I]) + ", "
-                            + std::to_string(begin[Axis::J]) + ", "
-                            + std::to_string(begin[Axis::K]) + ") ";
-                            + " not compatible with end ("
-                            + std::to_string(begin[Axis::I]) + ", "
-                            + std::to_string(begin[Axis::J]) + ", "
-                            + std::to_string(begin[Axis::K]) + ") ";
+    } else if (   (lo[Axis::I] > hi[Axis::I])
+               || (lo[Axis::J] > hi[Axis::J])
+               || (lo[Axis::K] > hi[Axis::K]) ) {
+        std::string   msg =   "[FArray4D::FArray4D] lo ("
+                            + std::to_string(lo[Axis::I]) + ", "
+                            + std::to_string(lo[Axis::J]) + ", "
+                            + std::to_string(lo[Axis::K]) + ") ";
+                            + " not compatible with hi ("
+                            + std::to_string(hi[Axis::I]) + ", "
+                            + std::to_string(hi[Axis::J]) + ", "
+                            + std::to_string(hi[Axis::K]) + ") ";
         throw std::invalid_argument(msg);
     }
 #endif

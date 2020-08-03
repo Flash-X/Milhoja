@@ -1,8 +1,6 @@
 #!/bin/bash
 
 # Define test problems
-# TOOD: AMReX is presently failing with 1 cell per block
-#N_CELLS_PER_BLOCK=(1 2 4 8 16 32 64 128 256 512)
 N_CELLS_PER_BLOCK=(2 4 8 16 32 64 128 256 512)
 N_BLOCKS=(16)
 

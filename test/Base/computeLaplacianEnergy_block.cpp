@@ -62,7 +62,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const int tId, void* dataItem)
     for         (int k = lo3[Axis::K]; k <= hi3[Axis::K]; ++k) {
         for     (int j = lo3[Axis::J]; j <= hi3[Axis::J]; ++j) {
             for (int i = lo3[Axis::I]; i <= hi3[Axis::I]; ++i) {
-                f(i, j, k, ENER_VAR_C) = scratch(i, j, 0);
+                f(i, j, k, ENER_VAR_C) = scratch(i, j, k, 0);
             }
         }
     } 
