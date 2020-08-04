@@ -14,7 +14,7 @@ public:
     virtual ~TileIterBase(void) {}
 
     virtual bool isValid() const  = 0;
-    virtual void operator++() = 0;
+    virtual void next() = 0;
     virtual std::unique_ptr<Tile> buildCurrentTile() = 0;
 
 private:

@@ -11,7 +11,6 @@
 #include "TileIterBase.h"
 #include "TileAmrex.h"
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MFIter.H>
 
@@ -19,10 +18,8 @@ namespace orchestration {
 
 /**
   * Use in for-loops: 
-  *   `for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti)`
+  *   `for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next())`
   *
-  * TODO: implement syntax:
-  *   `for (std::shared_ptr<DataItem> tileDesc : grid.buildTileIter(0) )`
   */
 class TileIterBaseAmrex : public TileIterBase {
 public:
@@ -34,7 +31,7 @@ public:
     ~TileIterBaseAmrex() {}
 
     bool isValid() const override { return mfi_.isValid(); }
-    void operator++() override { ++mfi_; }
+    void next() override { ++mfi_; }
     std::unique_ptr<Tile> buildCurrentTile() override {
         return std::unique_ptr<Tile>{ new TileAmrex(mfi_,mfRef_,lev_) };
     }

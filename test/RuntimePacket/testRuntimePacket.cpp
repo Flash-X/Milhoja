@@ -91,8 +91,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianEnergy_packet.nInitialThreads = N_THREADS;
         computeLaplacianEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET;
         cpu_packet.startCycle(computeLaplacianEnergy_packet, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            packet->addSubItem( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            packet->addSubItem( ti->buildCurrentTile() );
 
             if (packet->nSubItems() >= computeLaplacianEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -109,8 +109,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeLaplacianDensity_packet.nInitialThreads = N_THREADS;
         computeLaplacianDensity_packet.nTilesPerPacket = N_TILES_PER_PACKET - 2;
         cpu_packet.startCycle(computeLaplacianDensity_packet, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            packet->addSubItem( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            packet->addSubItem( ti->buildCurrentTile() );
 
             if (packet->nSubItems() >= computeLaplacianDensity_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -127,8 +127,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         scaleEnergy_packet.nInitialThreads = N_THREADS;
         scaleEnergy_packet.nTilesPerPacket = N_TILES_PER_PACKET - 5;
         cpu_packet.startCycle(scaleEnergy_packet, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            packet->addSubItem( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            packet->addSubItem( ti->buildCurrentTile() );
 
             if (packet->nSubItems() >= scaleEnergy_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );
@@ -146,8 +146,8 @@ TEST_F(TestRuntimePacket, TestSinglePacketTeam) {
         computeErrors_packet.nInitialThreads = N_THREADS;
         computeErrors_packet.nTilesPerPacket = N_TILES_PER_PACKET - 11;
         cpu_packet.startCycle(computeErrors_packet, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            packet->addSubItem( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            packet->addSubItem( ti->buildCurrentTile() );
 
             if (packet->nSubItems() >= computeErrors_packet.nTilesPerPacket) {
                 cpu_packet.enqueue( std::move(packet) );

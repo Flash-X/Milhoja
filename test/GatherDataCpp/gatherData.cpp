@@ -163,18 +163,18 @@ int   main(int argc, char* argv[]) {
         setUp();
         double tStart = MPI_Wtime(); 
         std::unique_ptr<DataItem>    dataItem{};
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            dataItem = ti.buildCurrentTile();
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            dataItem = ti->buildCurrentTile();
             ThreadRoutines::computeLaplacianDensity_block(0, dataItem.get());
         }
 
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            dataItem = ti.buildCurrentTile();
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            dataItem = ti->buildCurrentTile();
             ThreadRoutines::computeLaplacianEnergy_block(0, dataItem.get());
         }
 
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            dataItem = ti.buildCurrentTile();
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            dataItem = ti->buildCurrentTile();
             ThreadRoutines::scaleEnergy_block(0, dataItem.get());
         }
         double tWalltime = MPI_Wtime() - tStart;
@@ -183,8 +183,8 @@ int   main(int argc, char* argv[]) {
         /***** SERIAL TEST - Single iteration loop  *****/
         setUp();
         tStart = MPI_Wtime(); 
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            dataItem = ti.buildCurrentTile();
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            dataItem = ti->buildCurrentTile();
             ThreadRoutines::computeLaplacianDensity_block(0, dataItem.get());
             ThreadRoutines::computeLaplacianEnergy_block(0, dataItem.get());
             ThreadRoutines::scaleEnergy_block(0, dataItem.get());

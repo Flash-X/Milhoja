@@ -13,7 +13,6 @@
 #include "Grid_Edge.h"
 
 #include "Tile.h"
-#include "TileIter.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
@@ -122,8 +121,8 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
 
     ThreadTeam  team(4, 1);
     team.startCycle(action, "Cpu");
-    for (TileIter ti = buildTileIter(level); ti.isValid(); ++ti) {
-        auto t = ti.buildCurrentTile();
+    for (auto ti = buildTileIter(level); ti->isValid(); ti->next()) {
+        auto t = ti->buildCurrentTile();
         team.enqueue( std::move(t) );
     }
     team.closeQueue();
@@ -204,9 +203,8 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
 /**
   *
   */
-TileIter GridAmrex::buildTileIter(const unsigned int lev) {
-    std::unique_ptr<TileIterBase> tiPtr{new TileIterBaseAmrex(*unk_, lev)};
-    return TileIter( std::move(tiPtr) );
+std::unique_ptr<TileIterBase> GridAmrex::buildTileIter(const unsigned int lev) {
+    return std::unique_ptr<TileIterBase>{new TileIterBaseAmrex(*unk_, lev)};
 }
 
 

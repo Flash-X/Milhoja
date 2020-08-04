@@ -18,7 +18,7 @@
 #include "Grid_RealVect.h"
 #include "Grid_IntVect.h"
 #include "Tile.h"
-#include "TileIter.h"
+#include "TileIterBase.h"
 #include "actionRoutine.h"
 
 namespace orchestration {
@@ -40,7 +40,7 @@ public:
     virtual unsigned int   getMaxRefinement() const = 0;
     virtual unsigned int   getMaxLevel() const = 0;
     virtual void writeToFile(const std::string& filename) const = 0;
-    virtual TileIter buildTileIter(const unsigned int lev) = 0;
+    virtual std::unique_ptr<TileIterBase> buildTileIter(const unsigned int lev) = 0;
 
 
     // Virtual functions with a default implementation that may be

@@ -30,7 +30,7 @@ public:
     unsigned int getMaxRefinement() const override;
     unsigned int getMaxLevel() const override;
     void         writeToFile(const std::string& filename) const override;
-    TileIter     buildTileIter(const unsigned int lev) override;
+    std::unique_ptr<TileIterBase> buildTileIter(const unsigned int lev) override;
 
     // Other virtual function overrides.
     virtual RealVect getDeltas(const unsigned int lev) const override;
