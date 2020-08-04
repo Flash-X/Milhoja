@@ -122,7 +122,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     }
 
     //Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_EQ(grid.getMaxRefinement() , 0);
+    EXPECT_EQ(grid.getMaxRefinement() , LREFINE_MAX-1);
     EXPECT_EQ(grid.getMaxLevel()      , 0);
 }
 

@@ -146,18 +146,16 @@ RealVect    GridAmrex::getProbHi() const {
   * @return Maximum (finest) refinement level of simulation.
   */
 unsigned int GridAmrex::getMaxRefinement() const {
-    //TODO obviously has to change when AMR is implemented
-    return 0;
+    return amrcore_->maxLevel();
 }
 
 /**
-  * getMaxRefinement returns the highest level of blocks actually in existence. 
+  * getMaxLevel returns the highest level of blocks actually in existence.
   *
   * @return The max level of existing blocks (0 is coarsest).
   */
 unsigned int GridAmrex::getMaxLevel() const {
-    //TODO obviously has to change when AMR is implemented
-    return 0;
+    return amrcore_->finestLevel();
 }
 
 /**
