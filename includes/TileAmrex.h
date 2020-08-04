@@ -19,8 +19,12 @@ public:
     TileAmrex(amrex::MFIter& itor, const unsigned int level);
     ~TileAmrex(void);
 
-    TileAmrex(TileAmrex&&);
-    TileAmrex& operator=(TileAmrex&&);
+    TileAmrex(TileAmrex&&) = delete;
+    TileAmrex& operator=(TileAmrex&&) = delete;
+    TileAmrex(const TileAmrex&) = delete;
+    TileAmrex(TileAmrex&) = delete;
+    TileAmrex& operator=(TileAmrex&) = delete;
+    TileAmrex& operator=(const TileAmrex&) = delete;
 
     bool             isNull(void) const override;
 
@@ -36,12 +40,6 @@ public:
 private:
     // TODO Remove this once AMReX is extracted from Grid and Tile base classes
     amrex::MultiFab&   unk_;
-
-    // Limit all copies as much as possible
-    TileAmrex(const TileAmrex&) = delete;
-    TileAmrex(TileAmrex&) = delete;
-    TileAmrex& operator=(TileAmrex&) = delete;
-    TileAmrex& operator=(const TileAmrex&) = delete;
 };
 
 }

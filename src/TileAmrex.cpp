@@ -23,17 +23,17 @@ TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level)
     CC_h_ = fab.dataPtr();
 }
 
-TileAmrex::TileAmrex(TileAmrex&& other)
-    : Tile( std::move(other) ),
-      unk_{other.unk_}
-{
-}
-
-TileAmrex& TileAmrex::operator=(TileAmrex&& rhs)
-{
-    Tile::operator=(std::move(rhs));
-    return *this;
-}
+//TileAmrex::TileAmrex(TileAmrex&& other)
+//    : Tile( std::move(other) ),
+//      unk_{other.unk_}
+//{
+//}
+//
+//TileAmrex& TileAmrex::operator=(TileAmrex&& rhs)
+//{
+//    Tile::operator=(std::move(rhs));
+//    return *this;
+//}
 
 /**
  *
