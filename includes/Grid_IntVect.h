@@ -27,23 +27,27 @@ class IntVect
     explicit IntVect () {}
 
     // Constructor from NDIM ints.
-    constexpr explicit IntVect (LIST_NDIM(const int x, const int y, const int z)) : vect_{LIST_NDIM(x,y,z)} {}
+    constexpr explicit IntVect(LIST_NDIM(const int x, const int y, const int z))
+        : vect_{LIST_NDIM(x,y,z)} {}
 
-    // Copy constructor from int*. Make sure int* points to a data structure of at least size NDIM.
+    // Copy constructor from int*.
+    // Make sure int* points to a data structure of at least size NDIM.
     explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {
-        throw std::logic_error("used int* constructor");
+        throw std::logic_error("IntVect: int* constructor deprecated.");
     }
 
 #if NDIM<3
     // Constructor from 3 ints
-    explicit IntVect (const int x, const int y, const int z) : vect_{LIST_NDIM(x,y,z)} {
+    explicit IntVect (const int x, const int y, const int z)
+        : vect_{LIST_NDIM(x,y,z)} {
         throw std::logic_error("Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
 
 #ifdef GRID_AMREX
     // Constructor from amrex::IntVect
-    explicit IntVect (const amrex::IntVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+    explicit IntVect (const amrex::IntVect& ain)
+        : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
 
     // Operator to explicitly cast an IntVect to an AMReX IntVect
     explicit operator amrex::IntVect () const {
@@ -70,13 +74,17 @@ class IntVect
     // Get and set values of the internal array with [] operator.
     int& operator[] (const int i) {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) throw std::logic_error("Index out-of-bounds in IntVect.");
+        if(i>=NDIM || i<0) {
+            throw std::logic_error("Index out-of-bounds in IntVect.");
+        }
 #endif
         return vect_[i];
     }
     const int& operator[] (const int i) const {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) throw std::logic_error("Index out-of-bounds in IntVect.");
+        if(i>=NDIM || i<0) {
+            throw std::logic_error("Index out-of-bounds in IntVect.");
+        }
 #endif
         return vect_[i];
     }

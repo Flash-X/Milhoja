@@ -34,15 +34,30 @@ public:
     virtual RealVect getDeltas(const unsigned int lev) const override;
 
     //virtual Real     getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const override;
-    virtual Real     getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const override;
-    virtual Real     getCellVolume(const unsigned int lev, const IntVect& coord) const override;
+    virtual Real     getCellFaceAreaLo(const unsigned int axis,
+                                       const unsigned int lev,
+                                       const IntVect& coord) const override;
+    virtual Real     getCellVolume(const unsigned int lev,
+                                   const IntVect& coord) const override;
 
-    virtual void     fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const override;
-    virtual void     fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const override;
-    virtual void     fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const override;
+    virtual void     fillCellCoords(const unsigned int axis,
+                                    const unsigned int edge,
+                                    const unsigned int lev,
+                                    const IntVect& lo,
+                                    const IntVect& hi,
+                                    Real* coordPtr) const override;
+    virtual void     fillCellFaceAreasLo(const unsigned int axis,
+                                         const unsigned int lev,
+                                         const IntVect& lo,
+                                         const IntVect& hi,
+                                         Real* areaPtr) const override;
+    virtual void     fillCellVolumes(const unsigned int lev,
+                                     const IntVect& lo,
+                                     const IntVect& hi,
+                                     Real* volPtr) const override;
 
 private:
-    friend Grid& Grid::instance();
+    friend Grid& Grid::instance(); //needed for polymorphic singleton
     GridAmrex(void);
 
     GridAmrex(GridAmrex&) = delete;

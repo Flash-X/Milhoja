@@ -98,9 +98,11 @@ void  GridAmrex::destroyDomain(void) {
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     if (unk_) {
-        throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain already called");
+        throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
+                               " already called");
     } else if (!initBlock) {
-        throw std::logic_error("[GridAmrex::initDomain] Null initBlock function pointer given");
+        throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
+                               " pointer given");
     }
 
     unsigned int   level = 0;
@@ -143,9 +145,10 @@ RealVect    GridAmrex::getProbHi() const {
 }
 
 /**
-  * getMaxRefinement returns the maximum possible refinement level. (Specified by user).
+  * getMaxRefinement returns the maximum possible refinement level which was
+  * specified by the user.
   *
-  * @return Maximum refinement level of simulation.
+  * @return Maximum (finest) refinement level of simulation.
   */
 unsigned int GridAmrex::getMaxRefinement() const {
     //TODO obviously has to change when AMR is implemented
@@ -170,7 +173,8 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
     names[0] = "Density";
     names[1] = "Energy";
 
-    amrex::WriteSingleLevelPlotfile(filename, *unk_, names, amrcore_->Geom(0), 0.0, 0);
+    amrex::WriteSingleLevelPlotfile(filename, *unk_, names,
+                                    amrcore_->Geom(0), 0.0, 0);
 }
 
 /**
@@ -193,14 +197,16 @@ RealVect    GridAmrex::getDeltas(const unsigned int level) const {
 }
 
 
-/** getCellFaceAreaLo gets lo face area of a cell with given (integer) coordinates
+/** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
   *
   * @param axis Axis of desired face, returns the area of the lo side.
   * @param lev Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return area of face (Real)
   */
-Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
+Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
+                                   const unsigned int lev,
+                                   const IntVect& coord) const {
     return amrcore_->Geom(0).AreaLo( amrex::IntVect(coord) , axis);
 }
 
@@ -210,7 +216,8 @@ Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis, const unsigned int l
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return Volume of cell (Real)
   */
-Real  GridAmrex::getCellVolume(const unsigned int lev, const IntVect& coord) const {
+Real  GridAmrex::getCellVolume(const unsigned int lev,
+                               const IntVect& coord) const {
     return amrcore_->Geom(0).Volume( amrex::IntVect(coord) );
 }
 
@@ -224,7 +231,11 @@ Real  GridAmrex::getCellVolume(const unsigned int lev, const IntVect& coord) con
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   */
-void    GridAmrex::fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const {
+void    GridAmrex::fillCellCoords(const unsigned int axis,
+                                  const unsigned int edge,
+                                  const unsigned int lev,
+                                  const IntVect& lo,
+                                  const IntVect& hi, Real* coordPtr) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("GridAmrex::fillCellCoords: Invalid axis.");
@@ -267,10 +278,15 @@ void    GridAmrex::fillCellCoords(const unsigned int axis, const unsigned int ed
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled with areas.
-  *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled
+  *                with areas. Should be of shape:
+  *                    (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
-void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const {
+void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
+                                       const unsigned int lev,
+                                       const IntVect& lo,
+                                       const IntVect& hi,
+                                       Real* areaPtr) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("GridAmrex::fillCellFaceAreasLo: Invalid axis.");
@@ -288,10 +304,14 @@ void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis, const unsigned i
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
-  *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  * @param vols Real Ptr to some fortran-style data structure. Will be filled
+  *             with volumes. Should be of shape:
+  *                 (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
-void    GridAmrex::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
+void    GridAmrex::fillCellVolumes(const unsigned int lev,
+                                   const IntVect& lo,
+                                   const IntVect& hi,
+                                   Real* volPtr) const {
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox vol_fab{range,1,volPtr};
     amrcore_->Geom(0).CoordSys::SetVolume(vol_fab,range);

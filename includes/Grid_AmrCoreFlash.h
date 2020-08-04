@@ -12,15 +12,26 @@ class AmrCoreFlash
     AmrCoreFlash();
     ~AmrCoreFlash();
 
-    void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) override;
+    void MakeNewLevelFromCoarse (int lev, amrex::Real time,
+                                 const amrex::BoxArray& ba,
+                                 const amrex::DistributionMapping& dm) override;
 
-    void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) override;
+    void RemakeLevel (int lev,
+                      amrex::Real time,
+                      const amrex::BoxArray& ba,
+                      const amrex::DistributionMapping& dm) override;
 
     void ClearLevel (int lev) override;
 
-    void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) override;
+    void MakeNewLevelFromScratch(int lev,
+                                 amrex::Real time,
+                                 const amrex::BoxArray& ba,
+                                 const amrex::DistributionMapping& dm) override;
 
-    void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
+    void ErrorEst (int lev,
+                   amrex::TagBoxArray& tags,
+                   amrex::Real time,
+                   int ngrow) override;
 
     private:
 

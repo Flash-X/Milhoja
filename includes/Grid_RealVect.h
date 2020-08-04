@@ -24,21 +24,25 @@ class RealVect
     explicit RealVect () {}
 
     // Constructor from NDIM Reals.
-    constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z)) : vect_{LIST_NDIM(x,y,z)} {}
+    constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z))
+        : vect_{LIST_NDIM(x,y,z)} {}
 
     // Constructor from Real*.
-    constexpr explicit RealVect (const Real* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
+    constexpr explicit RealVect (const Real* x)
+        : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
 
 #if NDIM<3
     // Constructor from 3 Reals.
-    explicit RealVect (const Real x, const Real y, const Real z) : vect_{LIST_NDIM(x,y,z)} {
+    explicit RealVect (const Real x, const Real y, const Real z)
+        : vect_{LIST_NDIM(x,y,z)} {
         throw std::logic_error("Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
 
 #ifdef GRID_AMREX
     // Constructor from amrex::RealVect
-    explicit RealVect (const amrex::RealVect& ain) : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+    explicit RealVect (const amrex::RealVect& ain)
+        : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
 
     // Operator to explicitly cast an RealVect to an AMReX RealVect
     explicit operator amrex::RealVect () const {
@@ -55,13 +59,17 @@ class RealVect
     // Perform bounds check unless GRID_ERRCHECK_OFF is set.
     Real& operator[] (const int i) {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) throw std::logic_error("Index out-of-bounds in RealVect.");
+        if(i>=NDIM || i<0) {
+            throw std::logic_error("Index out-of-bounds in RealVect.");
+        }
 #endif
         return vect_[i];
     }
     const Real& operator[] (const int i) const {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) throw std::logic_error("Index out-of-bounds in RealVect.");
+        if(i>=NDIM || i<0) {
+            throw std::logic_error("Index out-of-bounds in RealVect.");
+        }
 #endif
         return vect_[i];
     }
@@ -124,8 +132,6 @@ class RealVect
     RealVect(const RealVect&) = delete;
     RealVect& operator=(RealVect&) = delete;
     RealVect& operator=(const RealVect&) = delete;
-
-    //TODO: >> and << operators
 
     Real vect_[MDIM];
 };

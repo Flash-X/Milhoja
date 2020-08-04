@@ -47,12 +47,27 @@ public:
     virtual RealVect getBlkCenterCoords(const Tile& tileDesc) const;
 
     //virtual Real     getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
-    virtual Real     getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const;
-    virtual Real     getCellVolume(const unsigned int lev, const IntVect& coord) const;
+    virtual Real     getCellFaceAreaLo(const unsigned int axis,
+                                       const unsigned int lev,
+                                       const IntVect& coord) const;
+    virtual Real     getCellVolume(const unsigned int lev,
+                                   const IntVect& coord) const;
 
-    virtual void     fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const;
-    virtual void     fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const;
-    virtual void     fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const;
+    virtual void     fillCellCoords(const unsigned int axis,
+                                    const unsigned int edge,
+                                    const unsigned int lev,
+                                    const IntVect& lo,
+                                    const IntVect& hi,
+                                    Real* coordPtr) const;
+    virtual void     fillCellFaceAreasLo(const unsigned int axis,
+                                         const unsigned int lev,
+                                         const IntVect& lo,
+                                         const IntVect& hi,
+                                         Real* areaPtr) const;
+    virtual void     fillCellVolumes(const unsigned int lev,
+                                     const IntVect& lo,
+                                     const IntVect& hi,
+                                     Real* volPtr) const;
 
 protected:
     // TODO move unk_ to be a member of AmrCoreFlash

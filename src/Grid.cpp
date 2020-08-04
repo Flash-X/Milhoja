@@ -11,7 +11,8 @@ namespace orchestration {
     typedef GridAmrex GridVersion;
 }
 #else
-throw std::logic_error("Need to specify Grid implementation with GRID_[NAME] macro.");
+throw std::logic_error("Need to specify Grid implementation with "
+                       "GRID_[NAME] macro.");
 #endif
 
 
@@ -22,20 +23,22 @@ bool Grid::instantiated_ = false;
 /**
  * instace gets a reference to the singleton Grid object.
  *
- * @return A reference to the singleton object, which has been downcast to Grid type.
+ * @return A reference to the singleton object, which has been downcast
+ *         to Grid type.
  */
 Grid&   Grid::instance(void) {
     if(!instantiated_) {
-        throw std::logic_error("Cannot call Grid::instance until after Grid::instantiate has been called.");
+        throw std::logic_error("Cannot call Grid::instance until after "
+                               "Grid::instantiate has been called.");
     }
     static GridVersion gridSingleton;
     return gridSingleton;
 }
 
 /**
- * instantiate allows the user to easily distinguish the first call to instance(), which
- * calls the Grid constructor, from all subsequent calls. It must be called exactly once in
- * the program, before all calls to instance().
+ * instantiate allows the user to easily distinguish the first call to
+ * instance, which calls the Grid constructor, from all subsequent calls.
+ * It must be called exactly once in the program, before all calls to instance.
  */
 void   Grid::instantiate(void) {
     if(instantiated_) {
@@ -53,6 +56,7 @@ void   Grid::instantiate(void) {
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
     throw std::logic_error("Default Grid::getDeltas not yet implemented");
+    //TODO default implementation
     return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
@@ -60,6 +64,8 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   * getBlkCenterCoords gets the physical coordinates of the
   * center of the given tile.
   *
+  * TODO move this to Tile class?
+  * 
   * @param tileDesc A Tile object.
   * @return A real vector with the physical center coordinates of the tile.
   */
@@ -72,7 +78,7 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
     return coords;
 }
 
-/** getCellFaceAreaLo gets lo face area of a cell with given (integer) coordinates
+/** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
   *
   * @param axis Axis of desired face, returns the area of the lo side.
   * @param lev Level (0-based)
@@ -81,6 +87,7 @@ RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellFaceAreaLo not yet implemented");
+    //TODO default implementation
     return 0.0_wp;
 }
 
@@ -92,6 +99,7 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellVolume not yet implemented");
+    //TODO default implementation
     return 0.0_wp;
 }
 
@@ -105,7 +113,9 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   */
-void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* coordPtr) const {
+void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge,
+                             const unsigned int lev, const IntVect& lo,
+                             const IntVect& hi, Real* coordPtr) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("Grid::fillCellCoords: Invalid axis.");
@@ -115,6 +125,7 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
     }
 #endif
     throw std::logic_error("Default Grid::fillCellCoords not yet implemented");
+    //TODO default implementation
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
@@ -127,13 +138,16 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge, c
   * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled with areas.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
-void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* areaPtr) const {
+void    Grid::fillCellFaceAreasLo(const unsigned int axis,
+                                  const unsigned int lev, const IntVect& lo,
+                                  const IntVect& hi, Real* areaPtr) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("Grid::fillCellFaceAreasLo: Invalid axis.");
     }
 #endif
     throw std::logic_error("Default Grid::fillCellFaceAreasLo not yet implemented");
+    //TODO default implementation
 }
 
 
@@ -146,8 +160,10 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis, const unsigned int le
   * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
-void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo, const IntVect& hi, Real* volPtr) const {
+void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo,
+                              const IntVect& hi, Real* volPtr) const {
     throw std::logic_error("Default Grid::fillCellVolumes not yet implemented");
+    //TODO default implementation
 }
 
 

@@ -7,13 +7,19 @@
 namespace orchestration {
 
 IntVect RealVect::round() const {
-    return IntVect(LIST_NDIM(std::round(vect_[0]),std::round(vect_[1]),std::round(vect_[2])));
+    return IntVect(LIST_NDIM(std::round(vect_[0]),
+                             std::round(vect_[1]),
+                             std::round(vect_[2])));
 }
 IntVect RealVect::floor() const {
-    return IntVect(LIST_NDIM(std::floor(vect_[0]),std::floor(vect_[1]),std::floor(vect_[2])));
+    return IntVect(LIST_NDIM(std::floor(vect_[0]),
+                             std::floor(vect_[1]),
+                             std::floor(vect_[2])));
 }
 IntVect RealVect::ceil() const {
-    return IntVect(LIST_NDIM(std::ceil(vect_[0]),std::ceil(vect_[1]),std::ceil(vect_[2])));
+    return IntVect(LIST_NDIM(std::ceil(vect_[0]),
+                             std::ceil(vect_[1]),
+                             std::ceil(vect_[2])));
 }
 
 // Scalar multiply a vector (c * V)

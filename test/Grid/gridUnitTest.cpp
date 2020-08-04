@@ -68,13 +68,20 @@ TEST_F(GridUnitTest,VectorClasses){
     //test operators for RealVect
     float eps = 1.0e-14;
     for (int i=0;i<NDIM;++i) {
-        EXPECT_NEAR( realVec2[i] , RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
-        EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(LIST_NDIM(4.5_wp,13.2_wp,7.8_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1-realVec2)[i] , RealVect(LIST_NDIM(-1.5_wp,-6.8_wp,3.8_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1*realVec2)[i] , RealVect(LIST_NDIM(4.5_wp,32.0_wp,11.6_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1*-3.14_wp)[i] , RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
-        EXPECT_NEAR( (-3.14_wp*realVec1)[i] , RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1/2.0_wp)[i] , RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
+        EXPECT_NEAR(realVec2[i] ,
+                RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
+        EXPECT_NEAR((realVec1+realVec2)[i] ,
+                RealVect(LIST_NDIM(4.5_wp,13.2_wp,7.8_wp))[i] , eps);
+        EXPECT_NEAR((realVec1-realVec2)[i] ,
+                RealVect(LIST_NDIM(-1.5_wp,-6.8_wp,3.8_wp))[i] , eps);
+        EXPECT_NEAR((realVec1*realVec2)[i] ,
+                RealVect(LIST_NDIM(4.5_wp,32.0_wp,11.6_wp))[i] , eps);
+        EXPECT_NEAR((realVec1*-3.14_wp)[i] ,
+                RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
+        EXPECT_NEAR((-3.14_wp*realVec1)[i] ,
+                RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
+        EXPECT_NEAR((realVec1/2.0_wp)[i] ,
+                RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
     }
 }
 
