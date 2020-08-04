@@ -1,14 +1,12 @@
 #ifndef TILE_H__
 #define TILE_H__
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-#include <AMReX_MFIter.H>
+#include "DataItem.h"
 
 #include "FArray4D.h"
 #include "Grid_IntVect.h"
 
-#include "DataItem.h"
+#include <AMReX.H>
 
 namespace orchestration {
 
@@ -22,7 +20,7 @@ namespace orchestration {
  */
 class Tile : public DataItem {
 public:
-    Tile(const unsigned int level);
+    Tile();
     virtual ~Tile(void);
 
     Tile(Tile&&);

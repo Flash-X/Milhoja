@@ -1,12 +1,12 @@
 #include "TileAmrex.h"
 
-#include <AMReX_MultiFab.H>
-#include <AMReX_FArrayBox.H>
-
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 #include "Flash.h"
 #include "constants.h"
+
+#include <AMReX_MultiFab.H>
+#include <AMReX_FArrayBox.H>
 
 namespace orchestration {
 
@@ -14,7 +14,7 @@ namespace orchestration {
  *
  */
 TileAmrex::TileAmrex(amrex::MFIter& itor, amrex::MultiFab& unkRef, const unsigned int level)
-    : Tile{level},
+    : Tile{},
       unkRef_{unkRef},
       level_{level},
       gridIdx_{ itor.index() },

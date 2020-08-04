@@ -1,19 +1,14 @@
 #include "Tile.h"
 
-#include <AMReX_MultiFab.H>
-#include <AMReX_FArrayBox.H>
-
 #include "Grid.h"
 #include "OrchestrationLogger.h"
-#include "Flash.h"
-#include "constants.h"
 
 namespace orchestration {
 
 /**
  *
  */
-Tile::Tile(const unsigned int level)
+Tile::Tile()
     : DataItem{},
       CC_h_{nullptr},
       CC1_p_{nullptr},
