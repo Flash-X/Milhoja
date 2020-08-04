@@ -20,7 +20,7 @@ namespace orchestration {
  */
 class Tile : public DataItem {
 public:
-    Tile();
+    Tile(void);
     virtual ~Tile(void);
 
     Tile(Tile&&);
@@ -46,6 +46,7 @@ public:
 
     // Virtual functions with a default implementation.
     virtual RealVect     deltas(void) const;
+    virtual RealVect     getCenterCoords(void) const;
 
     // Pointers to source data in the original data structures in the host
     // memory

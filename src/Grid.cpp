@@ -60,24 +60,6 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
     return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
-/**
-  * getBlkCenterCoords gets the physical coordinates of the
-  * center of the given tile.
-  *
-  * TODO move this to Tile class?
-  * 
-  * @param tileDesc A Tile object.
-  * @return A real vector with the physical center coordinates of the tile.
-  */
-RealVect    Grid::getBlkCenterCoords(const Tile& tileDesc) const {
-    RealVect dx = getDeltas(tileDesc.level());
-    RealVect x0 = getProbLo();
-    IntVect lo = tileDesc.lo();
-    IntVect hi = tileDesc.hi();
-    RealVect coords = x0 + dx*RealVect(lo+hi+1)*0.5_wp;
-    return coords;
-}
-
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
   *
   * @param axis Axis of desired face, returns the area of the lo side.

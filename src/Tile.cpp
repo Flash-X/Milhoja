@@ -8,7 +8,7 @@ namespace orchestration {
 /**
  *
  */
-Tile::Tile()
+Tile::Tile(void)
     : DataItem{},
       CC_h_{nullptr},
       CC1_p_{nullptr},
@@ -112,6 +112,24 @@ Tile::~Tile(void) {
 RealVect Tile::deltas(void) const {
     return Grid::instance().getDeltas(level());
 }
+
+/**
+  * getCenterCoords gets the physical coordinates of the
+  * center of the tile.
+  *
+  * @return A real vector with the physical center coordinates of the tile.
+  */
+RealVect Tile::getCenterCoords(void) const {
+    Grid& grid = Grid::instance();
+    RealVect dx = deltas();
+    RealVect x0 = grid.getProbLo();
+    IntVect offset = grid.getDomainLo(level());
+    IntVect loPt = lo() - offset;
+    IntVect hiPt = hi() - offset + 1;
+    RealVect coords = x0 + dx*RealVect(loPt+hiPt)*0.5_wp;
+    return coords;
+}
+
 
 /**
  *

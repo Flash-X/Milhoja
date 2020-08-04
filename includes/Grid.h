@@ -50,7 +50,6 @@ public:
     // Virtual functions with a default implementation that may be
     // overwritten by derived class.
     virtual RealVect getDeltas(const unsigned int lev) const;
-    virtual RealVect getBlkCenterCoords(const Tile& tileDesc) const;
 
     //virtual Real     getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const;
     virtual Real     getCellFaceAreaLo(const unsigned int axis,
