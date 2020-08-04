@@ -78,7 +78,6 @@ GridAmrex::GridAmrex(void) {
 GridAmrex::~GridAmrex(void) {
     destroyDomain();
     amrex::Finalize();
-    instantiated_ = false;
 }
 
 /** Destroy amrcore_. initDomain can be called again if desired.
@@ -206,7 +205,7 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
   *
   */
 TileIter GridAmrex::buildTileIter(const unsigned int lev) {
-    std::unique_ptr<TileIterBase> tiPtr{new TileIterBaseAmrex(unk_, lev)};
+    std::unique_ptr<TileIterBase> tiPtr{new TileIterBaseAmrex(*unk_, lev)};
     return TileIter( std::move(tiPtr) );
 }
 

@@ -28,28 +28,26 @@ public:
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
-    virtual bool         isNull(void) const = 0;
-
-    virtual int          gridIndex(void) const  { return gridIdx_; }
-    virtual unsigned int level(void) const      { return level_; }
-
-    // Pure virtual functions.
-    virtual IntVect      lo(void) const = 0;
-    virtual IntVect      hi(void) const = 0;
-    virtual IntVect      loGC(void) const = 0;
-    virtual IntVect      hiGC(void) const = 0;
-
-    // TODO: Create readonly versions of these?
-    virtual FArray4D     data(void) = 0;
-    virtual Real*        dataPtr(void) = 0;
-
-    // Functions with a default implementation.
-    virtual RealVect     deltas(void) const;
-
+    // Overrides to DataItem
     std::size_t                nSubItems(void) const override;
     std::shared_ptr<DataItem>  popSubItem(void) override;
     DataItem*                  getSubItem(const std::size_t i) override;
     void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
+
+    // Pure virtual functions
+    virtual bool         isNull(void) const = 0;
+    virtual int          gridIndex(void) const = 0;
+    virtual unsigned int level(void) const = 0;
+    virtual IntVect      lo(void) const = 0;
+    virtual IntVect      hi(void) const = 0;
+    virtual IntVect      loGC(void) const = 0;
+    virtual IntVect      hiGC(void) const = 0;
+    // TODO: Create readonly versions of these?
+    virtual FArray4D     data(void) = 0;
+    virtual Real*        dataPtr(void) = 0;
+
+    // Virtual functions with a default implementation.
+    virtual RealVect     deltas(void) const;
 
     // Pointers to source data in the original data structures in the host
     // memory
@@ -78,13 +76,6 @@ public:
     // compiled with CUDA since CudaGpuArray uses macros like __device__.  As an
     // ugly hack to just get things working, I use void*.
     void*           CC1_array_d_;
-
-protected:
-    // TODO move protected members to TileAmrex
-    int           gridIdx_;
-    unsigned int  level_;
-    amrex::Box*   interior_;
-    amrex::Box*   GC_;
 
 private:
     // Limit all copies as much as possible

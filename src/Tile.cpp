@@ -24,18 +24,8 @@ Tile::Tile(const unsigned int level)
       CC2_d_{nullptr},
       loGC_d_{nullptr},
       hiGC_d_{nullptr},
-      CC1_array_d_{nullptr},
-      gridIdx_{-1},
-      level_{level},
-      interior_{nullptr},
-      GC_{nullptr}    {
-#ifdef DEBUG_RUNTIME
-          std::string   msg =   "[Tile] Created Tile object "
-                        + std::to_string(gridIdx_)
-                        + " from MFIter";
-          Logger::instance().log(msg);
-#endif
-      }
+      CC1_array_d_{nullptr} {
+}
 
 Tile::Tile(Tile&& other)
     : DataItem{},
@@ -48,15 +38,8 @@ Tile::Tile(Tile&& other)
       CC2_d_{other.CC2_d_},
       loGC_d_{other.loGC_d_},
       hiGC_d_{other.hiGC_d_},
-      CC1_array_d_{other.CC1_array_d_},
-      gridIdx_{other.gridIdx_},
-      level_{other.level_},
-      interior_{other.interior_},
-      GC_{other.GC_}
+      CC1_array_d_{other.CC1_array_d_}
 {
-    // The assumption here is that interior_/GC_ were allocated dynamically
-    // beforehand and by moving the pointers to this object, it is this object's
-    // responsibility deallocate the associated resources.
     other.CC_h_        = nullptr;
     other.CC1_p_       = nullptr;
     other.CC2_p_       = nullptr;
@@ -67,14 +50,9 @@ Tile::Tile(Tile&& other)
     other.loGC_d_      = nullptr;
     other.hiGC_d_      = nullptr;
     other.CC1_array_d_ = nullptr;
-    other.gridIdx_     = -1;
-    other.level_       = 0;
-    other.interior_    = nullptr;
-    other.GC_          = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string msg =    "[Tile] Moved Tile object "
-                      +  std::to_string(gridIdx_) +  " by move constructor";
+    std::string msg =    "[Tile] Moved Tile object by move constructor";
     Logger::instance().log(msg);
 #endif
 }
@@ -90,10 +68,6 @@ Tile& Tile::operator=(Tile&& rhs) {
     loGC_d_      = rhs.loGC_d_;
     hiGC_d_      = rhs.hiGC_d_;
     CC1_array_d_ = rhs.CC1_array_d_;
-    gridIdx_     = rhs.gridIdx_;
-    level_       = rhs.level_;
-    interior_    = rhs.interior_;
-    GC_          = rhs.GC_;
 
     // The assumption here is that interior_/GC_ were allocated dynamically
     // beforehand and by moving the pointers to this object, it is this object's
@@ -108,13 +82,8 @@ Tile& Tile::operator=(Tile&& rhs) {
     rhs.loGC_d_      = nullptr;
     rhs.hiGC_d_      = nullptr;
     rhs.CC1_array_d_ = nullptr;
-    rhs.gridIdx_     = -1;
-    rhs.level_       = 0;
-    rhs.interior_    = nullptr;
-    rhs.GC_          = nullptr;
 #ifdef DEBUG_RUNTIME
-    std::string msg =   "[Tile] Moved Tile object "
-                      + std::to_string(gridIdx_) + " by move assignment";
+    std::string msg =   "[Tile] Moved Tile object by move assignment";
     Logger::instance().log(msg);
 #endif
 
@@ -125,11 +94,6 @@ Tile& Tile::operator=(Tile&& rhs) {
  *
  */
 Tile::~Tile(void) {
-#ifdef DEBUG_RUNTIME
-    std::string msg =   "[Tile] Destroying Tile object " + std::to_string(gridIdx_);
-    Logger::instance().log(msg);
-#endif
-
     CC_h_        = nullptr;
     CC1_p_       = nullptr;
     CC2_p_       = nullptr;
@@ -140,15 +104,10 @@ Tile::~Tile(void) {
     loGC_d_      = nullptr;
     hiGC_d_      = nullptr;
     CC1_array_d_ = nullptr;
-
-    if (interior_) {
-        delete interior_;
-        interior_ = nullptr;
-    }
-    if (GC_) {
-        delete GC_;
-        GC_ = nullptr;
-    }
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Destroying Tile object";
+    Logger::instance().log(msg);
+#endif
 }
 
 
@@ -156,7 +115,7 @@ Tile::~Tile(void) {
  *
  */
 RealVect Tile::deltas(void) const {
-    return Grid::instance().getDeltas(level_);
+    return Grid::instance().getDeltas(level());
 }
 
 /**

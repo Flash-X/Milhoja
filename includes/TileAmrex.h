@@ -16,7 +16,7 @@ namespace orchestration {
   */
 class TileAmrex : public Tile {
 public:
-    TileAmrex(amrex::MFIter& itor, const unsigned int level);
+    TileAmrex(amrex::MFIter& itor, amrex::MultiFab& unkRef, const unsigned int level);
     ~TileAmrex(void);
 
     TileAmrex(TileAmrex&&) = delete;
@@ -26,20 +26,27 @@ public:
     TileAmrex& operator=(TileAmrex&) = delete;
     TileAmrex& operator=(const TileAmrex&) = delete;
 
-    bool             isNull(void) const override;
+    // Overrides to pure virtual functions
+    bool         isNull(void) const override;
+    int          gridIndex(void) const override { return gridIdx_; }
+    unsigned int level(void) const override { return level_; }
 
     IntVect          lo(void) const override;
     IntVect          hi(void) const override;
-
     IntVect          loGC(void) const override;
     IntVect          hiGC(void) const override;
 
     FArray4D         data(void) override;
     Real*            dataPtr(void) override;
 
-private:
-    // TODO Remove this once AMReX is extracted from Grid and Tile base classes
-    amrex::MultiFab&   unk_;
+protected:
+    unsigned int  level_;
+    int           gridIdx_;
+    amrex::Box*   interior_;
+    amrex::Box*   GC_;
+
+    // TODO Remove this once AMReX is extracted from Grid and Tile base classes?
+    amrex::MultiFab&   unkRef_;
 };
 
 }

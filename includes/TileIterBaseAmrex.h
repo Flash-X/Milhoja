@@ -26,21 +26,23 @@ namespace orchestration {
   */
 class TileIterBaseAmrex : public TileIterBase {
 public:
-    TileIterBaseAmrex(amrex::MultiFab* mf_in, const unsigned int lev)
+    TileIterBaseAmrex(amrex::MultiFab& mf_in, const unsigned int lev)
         : lev_{lev},
-          mfi_{*mf_in} {}
+          mfi_{mf_in},
+          mfRef_{mf_in} {}
 
     ~TileIterBaseAmrex() {}
 
     bool isValid() const override { return mfi_.isValid(); }
     void operator++() override { ++mfi_; }
     std::unique_ptr<Tile> buildCurrentTile() override {
-        return std::unique_ptr<Tile>{ new TileAmrex(mfi_,lev_) };
+        return std::unique_ptr<Tile>{ new TileAmrex(mfi_,mfRef_,lev_) };
     }
 
 private:
     unsigned int lev_;
     amrex::MFIter mfi_;
+    amrex::MultiFab& mfRef_;
 };
 
 }

@@ -4,6 +4,7 @@
 #include <AMReX_FArrayBox.H>
 
 #include "Grid.h"
+#include "OrchestrationLogger.h"
 #include "Flash.h"
 #include "constants.h"
 
@@ -12,28 +13,24 @@ namespace orchestration {
 /**
  *
  */
-TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level)
-    : Tile(level),
-      unk_(Grid::instance().unk())
+TileAmrex::TileAmrex(amrex::MFIter& itor, amrex::MultiFab& unkRef, const unsigned int level)
+    : Tile{level},
+      unkRef_{unkRef},
+      level_{level},
+      gridIdx_{ itor.index() },
+      interior_{ new amrex::Box(itor.validbox()) }, //TODO tiling?
+      GC_{ new amrex::Box(itor.fabbox()) }          //TODO tiling?
 {
-    gridIdx_ = itor.index();
-    interior_ = new amrex::Box(itor.tilebox());
-    GC_ = new amrex::Box(itor.fabbox());
-    amrex::FArrayBox& fab = unk_[gridIdx_];
+    amrex::FArrayBox& fab = unkRef_[gridIdx_];
     CC_h_ = fab.dataPtr();
-}
 
-//TileAmrex::TileAmrex(TileAmrex&& other)
-//    : Tile( std::move(other) ),
-//      unk_{other.unk_}
-//{
-//}
-//
-//TileAmrex& TileAmrex::operator=(TileAmrex&& rhs)
-//{
-//    Tile::operator=(std::move(rhs));
-//    return *this;
-//}
+#ifdef DEBUG_RUNTIME
+    std::string   msg =   "[Tile] Created Tile object "
+                  + std::to_string(gridIdx_)
+                  + " from MFIter";
+    Logger::instance().log(msg);
+#endif
+}
 
 /**
  *
@@ -58,6 +55,10 @@ TileAmrex::~TileAmrex(void) {
         delete GC_;
         GC_ = nullptr;
     }
+#ifdef DEBUG_RUNTIME
+    std::string msg =   "[Tile] Destroying Tile object " + std::to_string(gridIdx_);
+    Logger::instance().log(msg);
+#endif
 }
 
 /**
@@ -112,14 +113,16 @@ IntVect  TileAmrex::hiGC(void) const {
  *
  */
 Real*   TileAmrex::dataPtr(void) {
-    return static_cast<Real*>(unk_[gridIdx_].dataPtr()); 
+    // TODO use CC_h_? Then don't have to store unkRef
+    return static_cast<Real*>(unkRef_[gridIdx_].dataPtr());
 }
 
 /**
  *
  */
 FArray4D TileAmrex::data(void) {
-    return FArray4D{static_cast<Real*>(unk_[gridIdx_].dataPtr()),
+    // TODO use CC_h_?
+    return FArray4D{static_cast<Real*>(unkRef_[gridIdx_].dataPtr()),
                     loGC().asTriple(), hiGC().asTriple(), NUNKVAR}; 
 }
 

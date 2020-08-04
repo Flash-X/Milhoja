@@ -77,7 +77,6 @@ protected:
     amrex::MultiFab&   unk(void)       { return (*unk_); }
     amrex::MultiFab*   unk_;
     friend void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
-    friend TileAmrex::TileAmrex(amrex::MFIter& itor, const unsigned int level);
 
     Grid(void) : unk_(nullptr) {}
     static bool instantiated_;
