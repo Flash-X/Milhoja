@@ -28,7 +28,7 @@ class RealVect
         : vect_{LIST_NDIM(x,y,z)} {}
 
     // Constructor from Real*.
-    constexpr explicit RealVect (const Real* x)
+    explicit RealVect (const Real* x)
         : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
 
 #if NDIM<3

@@ -30,14 +30,13 @@ class IntVect
     constexpr explicit IntVect(LIST_NDIM(const int x, const int y, const int z))
         : vect_{LIST_NDIM(x,y,z)} {}
 
-    // Copy constructor from int*.
-    // Make sure int* points to a data structure of at least size NDIM.
+    // Deprecated constructor from int*.
     explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {
         throw std::logic_error("IntVect: int* constructor deprecated.");
     }
 
 #if NDIM<3
-    // Constructor from 3 ints
+    // Deprecated constructor from MDIM ints
     explicit IntVect (const int x, const int y, const int z)
         : vect_{LIST_NDIM(x,y,z)} {
         throw std::logic_error("Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
@@ -55,11 +54,11 @@ class IntVect
     }
 #endif
 
-    // Operator to explicitly cast an IntVect to a RealVect.
+    // Operator to cast an IntVect to a RealVect.
     // (Implicit cast disabled by `explicit` keyword).
     explicit operator RealVect () const;
 
-    // Return an IntTriple with 0 in indices over NDIM.
+    // Return as an IntTriple, with 0 in indices over NDIM.
     // Useful for iterating over regions of coordinate space.
     IntTriple asTriple() const {
 #if (NDIM==1)
