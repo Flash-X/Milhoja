@@ -12,15 +12,8 @@
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
 
-#include "Tile.h"
-#include "RuntimeAction.h"
-#include "ThreadTeamDataType.h"
-#include "ThreadTeam.h"
-
 #include "Flash.h"
 #include "constants.h"
-
-#include "TileAmrex.h"
 
 namespace orchestration {
 
@@ -83,12 +76,8 @@ GridAmrex::~GridAmrex(void) {
   */
 void  GridAmrex::destroyDomain(void) {
     if (amrcore_) {
-        delete amrcore_;
+        delete amrcore_; // deletes unk
         amrcore_ = nullptr;
-    }
-    if (unk_) {
-        delete unk_;
-        unk_ = nullptr;
     }
 }
 
@@ -99,7 +88,7 @@ void  GridAmrex::destroyDomain(void) {
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
-    if (unk_) {
+    if (amrcore_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
                                " already called");
     } else if (!initBlock) {
@@ -107,26 +96,8 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
                                " pointer given");
     }
 
-    unsigned int   level = 0;
-    amrcore_ = new AmrCoreFlash;
+    amrcore_ = new AmrCoreFlash(initBlock);
     amrcore_->InitFromScratch(0.0_wp);
-
-    // TODO: Thread count should be a runtime variable
-    // TODO: move this to MakeNewLevelFromScratch callback
-    RuntimeAction    action;
-    action.name = "initBlock";
-    action.nInitialThreads = 4;
-    action.teamType = ThreadTeamDataType::BLOCK;
-    action.routine = initBlock;
-
-    ThreadTeam  team(4, 1);
-    team.startCycle(action, "Cpu");
-    for (auto ti = buildTileIter(level); ti->isValid(); ti->next()) {
-        auto t = ti->buildCurrentTile();
-        team.enqueue( std::move(t) );
-    }
-    team.closeQueue();
-    team.wait();
 }
 
 
@@ -192,11 +163,11 @@ unsigned int GridAmrex::getMaxLevel() const {
  *
  */
 void    GridAmrex::writeToFile(const std::string& filename) const {
-    amrex::Vector<std::string>    names(unk_->nComp());
+    amrex::Vector<std::string>    names(amrcore_->unk().nComp());
     names[0] = "Density";
     names[1] = "Energy";
 
-    amrex::WriteSingleLevelPlotfile(filename, *unk_, names,
+    amrex::WriteSingleLevelPlotfile(filename, amrcore_->unk(), names,
                                     amrcore_->Geom(0), 0.0, 0);
 }
 
@@ -204,7 +175,7 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
   *
   */
 std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
-    return std::unique_ptr<TileIter>{new TileIterAmrex(*unk_, lev)};
+    return std::unique_ptr<TileIter>{new TileIterAmrex(amrcore_->unk(), lev)};
 }
 
 

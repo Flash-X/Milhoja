@@ -13,7 +13,7 @@ N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
 N_DIMS=2
-LREFINE=1
+LREFINE=3
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####

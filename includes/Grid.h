@@ -9,10 +9,7 @@
 #define GRID_H__
 
 //TODO delete these
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
 #include "Grid_AmrCoreFlash.h"
-#include "TileAmrex.h"
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -72,13 +69,7 @@ public:
                                      Real* volPtr) const;
 
 protected:
-    // TODO move unk_ to be a member of AmrCoreFlash
-    amrex::Geometry&   geometry(void)  { return amrcore_->Geom(0); }
-    amrex::MultiFab&   unk(void)       { return (*unk_); }
-    amrex::MultiFab*   unk_;
-    friend void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
-
-    Grid(void) : unk_(nullptr) {}
+    Grid(void) {}
     static bool instantiated_;
     AmrCoreFlash*      amrcore_; //TODO: move to member of GridAmrex
 
