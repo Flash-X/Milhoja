@@ -60,31 +60,34 @@ void passRPToAmrex() {
 
 }
 
+/** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
+  */
 GridAmrex::GridAmrex(void) {
+    // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
       throw std::logic_error("amrex::Real does not match orchestration::Real");
     }
 
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
-    destroyDomain();
-    amrcore_ = new AmrCoreFlash;
+    destroyDomain(); //Ensure ptrs are null.
 }
 
+/** Detroy domain and then finalize AMReX.
+  */
 GridAmrex::~GridAmrex(void) {
-    // All Grid finalization is carried out here
     destroyDomain();
-
-    if (amrcore_) {
-        delete amrcore_;
-        amrcore_ = nullptr;
-    }
-
     amrex::Finalize();
     instantiated_ = false;
 }
 
+/** Destroy amrcore_. initDomain can be called again if desired.
+  */
 void  GridAmrex::destroyDomain(void) {
+    if (amrcore_) {
+        delete amrcore_;
+        amrcore_ = nullptr;
+    }
     if (unk_) {
         delete unk_;
         unk_ = nullptr;
@@ -92,7 +95,8 @@ void  GridAmrex::destroyDomain(void) {
 }
 
 /**
- * initDomain creates the domain in AMReX.
+ * initDomain creates the domain in AMReX. It creates amrcore_ and then
+ * calls amrex::AmrCore::InitFromScratch.
  *
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
@@ -106,6 +110,7 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     }
 
     unsigned int   level = 0;
+    amrcore_ = new AmrCoreFlash;
     amrcore_->InitFromScratch(0.0_wp);
 
     // TODO: Thread count should be a runtime variable
