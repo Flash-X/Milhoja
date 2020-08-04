@@ -20,6 +20,13 @@ class GridAmrex : public Grid {
 public:
     ~GridAmrex(void);
 
+    GridAmrex(GridAmrex&) = delete;
+    GridAmrex(const GridAmrex&) = delete;
+    GridAmrex(GridAmrex&&) = delete;
+    GridAmrex& operator=(GridAmrex&) = delete;
+    GridAmrex& operator=(const GridAmrex&) = delete;
+    GridAmrex& operator=(GridAmrex&&) = delete;
+
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock) override;
     void         destroyDomain(void) override;
@@ -62,12 +69,7 @@ private:
     friend Grid& Grid::instance(); //needed for polymorphic singleton
     GridAmrex(void);
 
-    GridAmrex(GridAmrex&) = delete;
-    GridAmrex(const GridAmrex&) = delete;
-    GridAmrex(GridAmrex&&) = delete;
-    GridAmrex& operator=(GridAmrex&) = delete;
-    GridAmrex& operator=(const GridAmrex&) = delete;
-    GridAmrex& operator=(GridAmrex&&) = delete;
+    AmrCoreFlash*      amrcore_;
 };
 
 }

@@ -8,8 +8,8 @@
 #ifndef GRID_H__
 #define GRID_H__
 
-//TODO delete these
-#include "Grid_AmrCoreFlash.h"
+#include <memory>
+#include <string>
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -23,6 +23,13 @@ namespace orchestration {
 class Grid {
 public:
     virtual ~Grid(void) { instantiated_ = false; }
+
+    Grid(Grid&) = delete;
+    Grid(const Grid&) = delete;
+    Grid(Grid&&) = delete;
+    Grid& operator=(Grid&) = delete;
+    Grid& operator=(const Grid&) = delete;
+    Grid& operator=(Grid&&) = delete;
 
     static Grid& instance(void);
     static void  instantiate(void);
@@ -71,14 +78,7 @@ public:
 protected:
     Grid(void) {}
     static bool instantiated_;
-    AmrCoreFlash*      amrcore_; //TODO: move to member of GridAmrex
 
-    Grid(Grid&) = delete;
-    Grid(const Grid&) = delete;
-    Grid(Grid&&) = delete;
-    Grid& operator=(Grid&) = delete;
-    Grid& operator=(const Grid&) = delete;
-    Grid& operator=(Grid&&) = delete;
 };
 
 }

@@ -54,7 +54,9 @@ void passRPToAmrex() {
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
   */
-GridAmrex::GridAmrex(void) {
+GridAmrex::GridAmrex(void)
+    : amrcore_{nullptr}
+{
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
       throw std::logic_error("amrex::Real does not match orchestration::Real");
@@ -62,7 +64,6 @@ GridAmrex::GridAmrex(void) {
 
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
-    destroyDomain(); //Ensure ptrs are null.
 }
 
 /** Detroy domain and then finalize AMReX.
