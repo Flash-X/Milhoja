@@ -94,7 +94,7 @@ class IntVect
     }
 
     // Check if two vectors differ in any place.
-    bool operator!= (const IntVect& b) {
+    bool operator!= (const IntVect& b) const {
       return CONCAT_NDIM(vect_[0]!=b[0], || vect_[1]!=b[1], || vect_[2]!=b[2]);
     }
 

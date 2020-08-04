@@ -51,19 +51,19 @@ TEST_F(GridUnitTest,VectorClasses){
     RealVect realVec2 = RealVect(intVec1);
 
     //test operators for IntVect
-    EXPECT_TRUE( realVec1.round() == IntVect(LIST_NDIM(2,3,6)) );
-    EXPECT_TRUE( realVec1.floor() == IntVect(LIST_NDIM(1,3,5)) );
-    EXPECT_TRUE( realVec1.ceil() == IntVect(LIST_NDIM(2,4,6)) );
-    EXPECT_TRUE( intVec1 != intVec2 );
-    EXPECT_TRUE( intVec1+intVec2 == IntVect(LIST_NDIM(4,13,7)) );
-    EXPECT_TRUE( intVec1-intVec2 == IntVect(LIST_NDIM(2,7,-3)) );
-    EXPECT_TRUE( intVec1*intVec2 == IntVect(LIST_NDIM(3,30,10)) );
-    EXPECT_TRUE( intVec1+5 == IntVect(LIST_NDIM(8,15,7)) );
-    EXPECT_TRUE( intVec1-9 == IntVect(LIST_NDIM(-6,1,-7)) );
-    EXPECT_TRUE( intVec1*2 == IntVect(LIST_NDIM(6,20,4)) );
-    EXPECT_TRUE( 2*intVec1 == IntVect(LIST_NDIM(6,20,4)) );
-    EXPECT_TRUE( intVec1/2 == IntVect(LIST_NDIM(1,5,1)) );
-    EXPECT_TRUE( intVec1.product() == CONCAT_NDIM(3,*10,*2) );
+    EXPECT_EQ( realVec1.round()  , IntVect(LIST_NDIM(2,3,6)) );
+    EXPECT_EQ( realVec1.floor()  , IntVect(LIST_NDIM(1,3,5)) );
+    EXPECT_EQ( realVec1.ceil()   , IntVect(LIST_NDIM(2,4,6)) );
+    EXPECT_NE( intVec1           , intVec2 );
+    EXPECT_EQ( intVec1+intVec2   , IntVect(LIST_NDIM(4,13,7)) );
+    EXPECT_EQ( intVec1-intVec2   , IntVect(LIST_NDIM(2,7,-3)) );
+    EXPECT_EQ( intVec1*intVec2   , IntVect(LIST_NDIM(3,30,10)) );
+    EXPECT_EQ( intVec1+5         , IntVect(LIST_NDIM(8,15,7)) );
+    EXPECT_EQ( intVec1-9         , IntVect(LIST_NDIM(-6,1,-7)) );
+    EXPECT_EQ( intVec1*2         , IntVect(LIST_NDIM(6,20,4)) );
+    EXPECT_EQ( 2*intVec1         , IntVect(LIST_NDIM(6,20,4)) );
+    EXPECT_EQ( intVec1/2         , IntVect(LIST_NDIM(1,5,1)) );
+    EXPECT_EQ( intVec1.product() , CONCAT_NDIM(3,*10,*2) );
 
     //test operators for RealVect
     float eps = 1.0e-14;
@@ -122,8 +122,8 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     }
 
     //Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_TRUE(0 == grid.getMaxRefinement());
-    EXPECT_TRUE(0 == grid.getMaxLevel());
+    EXPECT_EQ(grid.getMaxRefinement() , 0);
+    EXPECT_EQ(grid.getMaxLevel()      , 0);
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
