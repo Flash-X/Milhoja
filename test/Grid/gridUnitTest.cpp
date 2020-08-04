@@ -102,12 +102,16 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     //    ASSERT_TRUE(IntVect(grid.unk().boxArray()[i].size()) == nCells);
     //}
 
-    // Testing Grid::getDomain{Lo,Hi}
-    RealVect domainLo = grid.getProbLo();
-    RealVect domainHi = grid.getProbHi();
+    // Testing Grid::getProb{Lo,Hi} and getDomain{Lo,Hi}
+    IntVect  domainLo = grid.getDomainLo(0);
+    IntVect  domainHi = grid.getDomainHi(0);
+    RealVect probLo   = grid.getProbLo();
+    RealVect probHi   = grid.getProbHi();
+    EXPECT_EQ( domainLo, IntVect(LIST_NDIM(0,0,0)) );
+    EXPECT_EQ( domainHi, (nBlocks*nCells - 1) );
     for (int i=0;i<NDIM;++i) {
-        EXPECT_NEAR(domainLo[i] , actual_min[i] , eps);
-        EXPECT_NEAR(domainHi[i] , actual_max[i] , eps);
+        EXPECT_NEAR(probLo[i] , actual_min[i] , eps);
+        EXPECT_NEAR(probHi[i] , actual_max[i] , eps);
     }
 
     // Testing Grid::getDeltas

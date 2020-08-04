@@ -118,11 +118,31 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
 
     ThreadTeam  team(4, 1);
     team.startCycle(action, "Cpu");
-    for (amrex::MFIter  itor(*unk_); itor.isValid(); ++itor) {
-        team.enqueue( std::shared_ptr<DataItem>{ new TileAmrex{itor, level} } );
+    for (TileIter ti = buildTileIter(level); ti.isValid(); ++ti) {
+        auto t = ti.buildCurrentTile();
+        team.enqueue( std::move(t) );
     }
     team.closeQueue();
     team.wait();
+}
+
+
+/**
+  * getDomainLo gets the lower bound of a given level index space.
+  *
+  * @return An int vector: <xlo, ylo, zlo>
+  */
+IntVect    GridAmrex::getDomainLo(const unsigned int lev) const {
+    return IntVect{amrcore_->Geom(lev).Domain().smallEnd()};
+}
+
+/**
+  * getDomainHi gets the upper bound of a given level in index space.
+  *
+  * @return An int vector: <xhi, yhi, zhi>
+  */
+IntVect    GridAmrex::getDomainHi(const unsigned int lev) const {
+    return IntVect{amrcore_->Geom(lev).Domain().bigEnd()};
 }
 
 

@@ -19,16 +19,18 @@ namespace orchestration {
 class GridAmrex : public Grid {
 public:
     ~GridAmrex(void);
-    void destroyDomain(void) override;
 
     // Pure virtual function overrides.
-    RealVect       getProbLo() const override;
-    RealVect       getProbHi() const override;
-    void           initDomain(ACTION_ROUTINE initBlock) override;
-    unsigned int   getMaxRefinement() const override;
-    unsigned int   getMaxLevel() const override;
-    void     writeToFile(const std::string& filename) const override;
-    TileIter buildTileIter(const unsigned int lev) override;
+    void         initDomain(ACTION_ROUTINE initBlock) override;
+    void         destroyDomain(void) override;
+    IntVect      getDomainLo(const unsigned int lev) const override;
+    IntVect      getDomainHi(const unsigned int lev) const override;
+    RealVect     getProbLo() const override;
+    RealVect     getProbHi() const override;
+    unsigned int getMaxRefinement() const override;
+    unsigned int getMaxLevel() const override;
+    void         writeToFile(const std::string& filename) const override;
+    TileIter     buildTileIter(const unsigned int lev) override;
 
     // Other virtual function overrides.
     virtual RealVect getDeltas(const unsigned int lev) const override;
