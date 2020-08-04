@@ -61,7 +61,7 @@ Note that \texttt{buildCurrentTile()}  intentionally returns a $\texttt{std::uni
 
 \begin{verbatim}
 // Creation
-std::unique_ptr<Tile> TileIterBaseAmrex::buildCurrentTile() override {
+std::unique_ptr<Tile> TileIterAmrex::buildCurrentTile() override {
     return std::unique_ptr<Tile>{ new TileAmrex(mfi_,lev_) };
 }
 

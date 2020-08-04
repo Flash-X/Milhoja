@@ -1,14 +1,14 @@
 /**
- * \file    TileIterBaseAmrex.h
+ * \file    TileIterAmrex.h
  *
  * \brief
  *
  */
 
-#ifndef TILEITERBASEAMREX_H__
-#define TILEITERBASEAMREX_H__
+#ifndef TILEITERAMREX_H__
+#define TILEITERAMREX_H__
 
-#include "TileIterBase.h"
+#include "TileIter.h"
 #include "TileAmrex.h"
 
 #include <AMReX_MultiFab.H>
@@ -21,14 +21,16 @@ namespace orchestration {
   *   `for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next())`
   *
   */
-class TileIterBaseAmrex : public TileIterBase {
+class TileIterAmrex : public TileIter {
 public:
-    TileIterBaseAmrex(amrex::MultiFab& mf_in, const unsigned int lev)
+    TileIterAmrex(amrex::MultiFab& mf_in, const unsigned int lev)
         : lev_{lev},
           mfi_{mf_in},
           mfRef_{mf_in} {}
 
-    ~TileIterBaseAmrex() {}
+    ~TileIterAmrex() {}
+
+    //TODO delete copy constructors
 
     bool isValid() const override { return mfi_.isValid(); }
     void next() override { ++mfi_; }

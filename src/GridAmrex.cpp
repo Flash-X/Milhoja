@@ -7,7 +7,7 @@
 #include <AMReX.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
-#include "TileIterBaseAmrex.h"
+#include "TileIterAmrex.h"
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
@@ -203,8 +203,8 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
 /**
   *
   */
-std::unique_ptr<TileIterBase> GridAmrex::buildTileIter(const unsigned int lev) {
-    return std::unique_ptr<TileIterBase>{new TileIterBaseAmrex(*unk_, lev)};
+std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
+    return std::unique_ptr<TileIter>{new TileIterAmrex(*unk_, lev)};
 }
 
 

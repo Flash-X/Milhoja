@@ -18,7 +18,7 @@ CXX_HDRS   = \
     $(INCDIR)/Tile.h \
     $(INCDIR)/TileAmrex.h \
     $(INCDIR)/TileIter.h \
-    $(INCDIR)/TileIterBaseAmrex.h \
+    $(INCDIR)/TileIterAmrex.h \
     $(INCDIR)/Grid_IntVect.h \
     $(INCDIR)/Grid_RealVect.h \
     $(INCDIR)/Grid.h \
