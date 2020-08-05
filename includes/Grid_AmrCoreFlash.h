@@ -53,6 +53,15 @@ public:
         return unk_[lev];
     }
 
+    //! Get number of total global blocks.
+    int globalNumBlocks() {
+        int sum = 0;
+        for(int i=0; i<=finest_level; ++i) {
+            sum += unk_[i].size();
+        }
+        return sum;
+    }
+
 private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
     ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block

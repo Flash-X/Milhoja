@@ -112,12 +112,18 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
         throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
                                " pointer given");
     }
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Initializing domain...");
+#endif
 
     amrcore_ = new AmrCoreFlash(initBlock);
     amrcore_->InitFromScratch(0.0_wp);
+
 #ifdef GRID_LOG
-    Logger::instance().log("[GridAmrex] Initialized domain.");
-    //TODO more details in log msg
+    std::string msg = "[GridAmrex] Initialized domain with " +
+                      std::to_string(amrcore_->globalNumBlocks()) +
+                      " total blocks.";
+    Logger::instance().log(msg);
 #endif
 }
 

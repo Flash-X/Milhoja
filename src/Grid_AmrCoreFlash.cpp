@@ -1,13 +1,12 @@
 #include "Grid_AmrCoreFlash.h"
 
 #include "Grid.h"
-#include "Flash.h"
-
+#include "OrchestrationLogger.h"
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
-#include <iostream>
+#include "Flash.h"
 
 namespace orchestration {
 
@@ -36,7 +35,11 @@ AmrCoreFlash::~AmrCoreFlash() {
   */
 void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
-    std::cout << "Doing MakeNewLevelFromCoarse Callback" << std::endl;
+#ifdef GRID_LOG
+    std::string msg = "[AmrCoreFlash] MakeNewLevelFromCoarse for level " +
+                      std::to_string(lev) + "...";
+    Logger::instance().log(msg);
+#endif
 }
 
 /**
@@ -49,7 +52,11 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
   */
 void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
-    std::cout << "Doing RemakeLevel Callback" << std::endl;
+#ifdef GRID_LOG
+    std::string msg = "[AmrCoreFlash] Remaking level " +
+                      std::to_string(lev) + "...";
+    Logger::instance().log(msg);
+#endif
 }
 
 /**
@@ -58,7 +65,11 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
   * \param lev Level being cleared
   */
 void AmrCoreFlash::ClearLevel (int lev) {
-    std::cout << "Doing ClearLevel Callback" << std::endl;
+#ifdef GRID_LOG
+    std::string msg = "[AmrCoreFlash] Clearing level " +
+                      std::to_string(lev) + "...";
+    Logger::instance().log(msg);
+#endif
 }
 
 /**
@@ -71,7 +82,12 @@ void AmrCoreFlash::ClearLevel (int lev) {
   */
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
-    std::cout << "Doing MakeNewLevelFromScratch Callback" << std::endl;
+#ifdef GRID_LOG
+    std::string msg = "[AmrCoreFlash] Creating level " +
+                      std::to_string(lev) + "...";
+    Logger::instance().log(msg);
+#endif
+
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
@@ -91,6 +107,13 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     }
     team.closeQueue();
     team.wait();
+
+#ifdef GRID_LOG
+    std::string msg2 = "[AmrCoreFlash] Created level " +
+                      std::to_string(lev) + " with " +
+                      std::to_string(ba.size()) + " blocks.";
+    Logger::instance().log(msg2);
+#endif
 }
 
 /**
@@ -103,7 +126,11 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
   */
 void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                              amrex::Real time, int ngrow) {
-    std::cout << "Doing ErrorEst Callback" << std::endl;
+#ifdef GRID_LOG
+    std::string msg = "[AmrCoreFlash] Doing ErrorEst for level " +
+                      std::to_string(lev) + "...";
+    Logger::instance().log(msg);
+#endif
 }
 
 
