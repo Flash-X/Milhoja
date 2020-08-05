@@ -9,7 +9,8 @@
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
-#include "TileAmrex.h"
+#include <AMReX_FArrayBox.H>
+#include "Tile.h"
 
 // Macro for iterating over all coordinates in the
 // region defined by two IntVects lo and hi.
