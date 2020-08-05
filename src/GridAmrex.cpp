@@ -162,11 +162,11 @@ unsigned int GridAmrex::getMaxLevel() const {
  *
  */
 void    GridAmrex::writeToFile(const std::string& filename) const {
-    amrex::Vector<std::string>    names(amrcore_->unk().nComp());
+    amrex::Vector<std::string>    names(amrcore_->unk(0).nComp());
     names[0] = "Density";
     names[1] = "Energy";
 
-    amrex::WriteSingleLevelPlotfile(filename, amrcore_->unk(), names,
+    amrex::WriteSingleLevelPlotfile(filename, amrcore_->unk(0), names,
                                     amrcore_->Geom(0), 0.0, 0);
 }
 
@@ -174,7 +174,7 @@ void    GridAmrex::writeToFile(const std::string& filename) const {
   *
   */
 std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
-    return std::unique_ptr<TileIter>{new TileIterAmrex(amrcore_->unk(), lev)};
+    return std::unique_ptr<TileIter>{new TileIterAmrex(amrcore_->unk(lev), lev)};
 }
 
 

@@ -38,10 +38,18 @@ public:
                    int ngrow) override;
 
     // Allow Grid access to unk
-    amrex::MultiFab&   unk(void)       { return (*unk_); }
+    amrex::MultiFab& unk(const unsigned int lev) {
+#ifndef GRID_ERRCHECK_OFF
+        if(lev>finest_level) {
+            throw std::logic_error("[AmrCoreFlash]: tried to get unk "
+                                   "for lev>finest_level");
+        }
+#endif
+        return unk_[lev];
+    }
 
 private:
-    amrex::MultiFab*   unk_;
+    std::vector<amrex::MultiFab>   unk_;
     ACTION_ROUTINE initBlock_;
 
 };

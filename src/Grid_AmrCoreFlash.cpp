@@ -12,14 +12,13 @@
 namespace orchestration {
 
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
-    : unk_{nullptr},
-      initBlock_{initBlock} {}
+    : initBlock_{initBlock} {
+
+    // Allocate and resize unk_ (vector of Multifabs).
+    unk_.resize(max_level);
+}
 
 AmrCoreFlash::~AmrCoreFlash() {
-    if (unk_) {
-        delete unk_;
-        unk_ = nullptr;
-    }
 }
 
 void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
@@ -38,28 +37,26 @@ void AmrCoreFlash::ClearLevel (int lev) {
 
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
+    std::cout << "Doing MakeNewLevelFromScratch Callback" << std::endl;
     Grid& grid = Grid::instance();
 
-    if(lev==0) {
-        delete unk_;
-        unk_ =  new amrex::MultiFab(ba, dm, NUNKVAR, NGUARD);
+    // Build multifab unk_[lev].
+    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
 
-        // TODO: Thread count should be a runtime variable
-        RuntimeAction    action;
-        action.name = "initBlock";
-        action.nInitialThreads = 4;
-        action.teamType = ThreadTeamDataType::BLOCK;
-        action.routine = initBlock_;
-
-        ThreadTeam  team(4, 1);
-        team.startCycle(action, "Cpu");
-        for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
-            team.enqueue( ti->buildCurrentTile() );
-        }
-        team.closeQueue();
-        team.wait();
+    // Initialize data in unk_[lev].
+    // TODO: Thread count should be a runtime variable
+    RuntimeAction    action;
+    action.name = "initBlock";
+    action.nInitialThreads = 4;
+    action.teamType = ThreadTeamDataType::BLOCK;
+    action.routine = initBlock_;
+    ThreadTeam  team(4, 1);
+    team.startCycle(action, "Cpu");
+    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+        team.enqueue( ti->buildCurrentTile() );
     }
-    std::cout << "Doing MakeNewLevelFromScratch Callback" << std::endl;
+    team.closeQueue();
+    team.wait();
 }
 
 void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
