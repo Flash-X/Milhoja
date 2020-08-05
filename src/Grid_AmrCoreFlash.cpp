@@ -11,6 +11,10 @@
 
 namespace orchestration {
 
+/** \brief Constructor for AmrCoreFlash
+  *
+  * Creates blank multifabs on each level.
+  */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
     : initBlock_{initBlock} {
 
@@ -18,23 +22,53 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
     unk_.resize(max_level);
 }
 
+//! Default constructor
 AmrCoreFlash::~AmrCoreFlash() {
 }
 
+/**
+  * \brief Make New Level from Coarse
+  *
+  * \param lev Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
 void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
     std::cout << "Doing MakeNewLevelFromCoarse Callback" << std::endl;
 }
 
+/**
+  * \brief Remake Level
+  *
+  * \param lev Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
 void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
     std::cout << "Doing RemakeLevel Callback" << std::endl;
 }
 
+/**
+  * \brief Clear level
+  *
+  * \param lev Level being cleared
+  */
 void AmrCoreFlash::ClearLevel (int lev) {
     std::cout << "Doing ClearLevel Callback" << std::endl;
 }
 
+/**
+  * \brief Make new level from scratch
+  *
+  * \param lev Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
     std::cout << "Doing MakeNewLevelFromScratch Callback" << std::endl;
@@ -59,6 +93,14 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     team.wait();
 }
 
+/**
+  * \brief Tag boxes for refinement
+  *
+  * \param lev Level being checked
+  * \param tags Tags for Box array
+  * \param time Simulation time
+  * \param ngrow ngrow
+  */
 void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                              amrex::Real time, int ngrow) {
     std::cout << "Doing ErrorEst Callback" << std::endl;

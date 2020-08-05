@@ -8,6 +8,11 @@
 
 namespace orchestration {
 
+/** \brief Manages AMR functionality through AMReX.
+  *
+  * AmrCoreFlash is built upon amrex::AmrCore, which manages
+  * the mesh and the physical data.
+  */
 class AmrCoreFlash
     : public amrex::AmrCore
 {
@@ -37,7 +42,7 @@ public:
                    amrex::Real time,
                    int ngrow) override;
 
-    // Allow Grid access to unk
+    //! Get reference to multifab with physical data for that level.
     amrex::MultiFab& unk(const unsigned int lev) {
 #ifndef GRID_ERRCHECK_OFF
         if(lev>finest_level) {
@@ -49,8 +54,8 @@ public:
     }
 
 private:
-    std::vector<amrex::MultiFab>   unk_;
-    ACTION_ROUTINE initBlock_;
+    std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
+    ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
 
 };
 
