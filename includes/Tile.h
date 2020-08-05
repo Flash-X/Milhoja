@@ -11,26 +11,28 @@
 namespace orchestration {
 
 /**
- * TODO: The construction of this class should be well done.  In particular, we
- * want to make sure that we limit creating copies as much as possible in terms
- * of data members here and it terms of granting client code to Grid data -
- * prefer references as much as possible.  Also, the tile objects are added to
- * tile lists (in data packets) and passed through queues.  Therefore, it would
- * be good to maximize use of move semantics where possible.
+ * \brief Provides access to pointers to physical data.
+ *
+ * When iterating over the domain, a Tile Iterator returns
+ * Tiles which store indices to the correct location in the
+ * physical data arrays. Tile inherits from DataItem. Tile is
+ * an abstract class, each AMR package must implement its own
+ * version of most of the member functions.
  */
 class Tile : public DataItem {
 public:
     Tile(void);
     virtual ~Tile(void);
 
+    // TODO remove these?
     Tile(Tile&&);
     Tile& operator=(Tile&&);
 
     // Overrides to DataItem
-    std::size_t                nSubItems(void) const override;
+    std::size_t  nSubItems(void) const override;
     std::shared_ptr<DataItem>  popSubItem(void) override;
-    DataItem*                  getSubItem(const std::size_t i) override;
-    void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
+    DataItem*    getSubItem(const std::size_t i) override;
+    void         addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
 
     // Pure virtual functions
     virtual bool         isNull(void) const = 0;

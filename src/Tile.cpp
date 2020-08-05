@@ -6,7 +6,9 @@
 namespace orchestration {
 
 /**
+ * \brief Default constructor for Tile
  *
+ * All pointers start as null.
  */
 Tile::Tile(void)
     : DataItem{},
@@ -22,6 +24,9 @@ Tile::Tile(void)
       CC1_array_d_{nullptr} {
 }
 
+/**
+ * \brief Move constructor for Tile
+ */
 Tile::Tile(Tile&& other)
     : DataItem{},
       CC_h_{other.CC_h_},
@@ -52,6 +57,9 @@ Tile::Tile(Tile&& other)
 #endif
 }
 
+/**
+ * \brief Move assignment operator for Tile
+ */
 Tile& Tile::operator=(Tile&& rhs) {
     CC_h_        = rhs.CC_h_;
     CC1_p_       = rhs.CC1_p_;
@@ -64,9 +72,6 @@ Tile& Tile::operator=(Tile&& rhs) {
     hiGC_d_      = rhs.hiGC_d_;
     CC1_array_d_ = rhs.CC1_array_d_;
 
-    // The assumption here is that interior_/GC_ were allocated dynamically
-    // beforehand and by moving the pointers to this object, it is this object's
-    // responsibility deallocate the associated resources.
     rhs.CC_h_        = nullptr;
     rhs.CC1_p_       = nullptr;
     rhs.CC2_p_       = nullptr;
@@ -86,7 +91,9 @@ Tile& Tile::operator=(Tile&& rhs) {
 }
 
 /**
+ * \brief Detructor for Tile
  *
+ * Resets all pointers to null.
  */
 Tile::~Tile(void) {
     CC_h_        = nullptr;
@@ -107,15 +114,15 @@ Tile::~Tile(void) {
 
 
 /**
- *
+ * \brief Get deltas for appropriate level.
  */
 RealVect Tile::deltas(void) const {
     return Grid::instance().getDeltas(level());
 }
 
 /**
-  * getCenterCoords gets the physical coordinates of the
-  * center of the tile.
+  * \brief Get the physical coordinates of the
+  *        center of the tile.
   *
   * @return A real vector with the physical center coordinates of the tile.
   */
