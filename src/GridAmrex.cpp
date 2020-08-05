@@ -11,6 +11,7 @@
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
+#include "OrchestrationLogger.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -18,6 +19,10 @@
 namespace orchestration {
 
 void passRPToAmrex() {
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Passing runtime parameters"
+                           " to amrex...");
+#endif
     {
         amrex::ParmParse pp("geometry");
         pp.addarr("is_periodic", std::vector<int>{1,1,1} );
@@ -64,6 +69,10 @@ GridAmrex::GridAmrex(void)
 
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
+
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Initialized Grid.");
+#endif
 }
 
 /** Detroy domain and then finalize AMReX.
@@ -71,6 +80,10 @@ GridAmrex::GridAmrex(void)
 GridAmrex::~GridAmrex(void) {
     destroyDomain();
     amrex::Finalize();
+
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Finalized Grid.");
+#endif
 }
 
 /** Destroy amrcore_. initDomain can be called again if desired.
@@ -80,6 +93,9 @@ void  GridAmrex::destroyDomain(void) {
         delete amrcore_; // deletes unk
         amrcore_ = nullptr;
     }
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Destroyed domain.");
+#endif
 }
 
 /**
@@ -99,6 +115,10 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
 
     amrcore_ = new AmrCoreFlash(initBlock);
     amrcore_->InitFromScratch(0.0_wp);
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] Initialized domain.");
+    //TODO more details in log msg
+#endif
 }
 
 

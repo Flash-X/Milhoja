@@ -71,7 +71,7 @@ sed -i '' "s/REFINEMENT_LEVELS/$LREFINE/g" $TESTDIR/Grid/Flash.h
 echo ""
 echo "Building production version"
 echo "----------------------------------------------------------"
-make -f $MAKEFILE clean all
+make -f $MAKEFILE clean all GLOG=T
 if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 4;
