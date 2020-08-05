@@ -5,7 +5,9 @@
 namespace orchestration {
 
 //----- static member function definitions
-FArray4D   FArray4D::buildScratchArray4D(const IntTriple& lo, const IntTriple& hi,
+//! Factory function to build an FArray4D that owns data.
+FArray4D   FArray4D::buildScratchArray4D(const IntTriple& lo,
+                                         const IntTriple& hi,
                                          const unsigned int ncomp) {
     Real*  scratch = new Real[   (hi[Axis::I] - lo[Axis::I] + 1)
                                * (hi[Axis::J] - lo[Axis::J] + 1)
@@ -17,6 +19,12 @@ FArray4D   FArray4D::buildScratchArray4D(const IntTriple& lo, const IntTriple& h
 }
 
 //----- member function definitions
+/** \brief Construct an FArray4D to wrap an input pointer.
+  *
+  * The first three dimensions are defined by lo and hi, and the
+  * fourth dimension is defined by ncomp. User is responsible for ensuring
+  * size of data matches lo, hi, and ncomp.
+  */
 FArray4D::FArray4D(Real* data, 
                    const IntTriple& lo, const IntTriple& hi,
                    const unsigned int ncomp)
@@ -52,6 +60,7 @@ FArray4D::FArray4D(Real* data,
 #endif
 }
 
+//! Destructor that deletes data if it owns it.
 FArray4D::~FArray4D(void) {
     if (owner_) {
         delete [] data_;

@@ -1,23 +1,6 @@
 /**
  * \file   FArray4D.h
  *
- * \brief  A wrapper class that grants Fortran-like access to a 4D array.
- *
- * A wrapper class around a 1D native C++ data array that allows for
- * Fortran-like access on a 4D array.  Note that the access pattern is also
- * Fortran-style, column-major ordering.
- *
- * \todo Decide if buildScratchArray4D and the associated owner_ private data
- * member is a good design.  I dislike it because the original simple, clean
- * design concept of the FArray4D class was that of a simple wrapper --- it was
- * simply the lens that allowed you to look at the memory in a different way
- * from a distance.  Now, it is or is not the owner of the data that you are
- * looking at depending on how you created it.  This complexity might be
- * reasonable as it offers a simple mechanism to the PUDs and shields them from
- * the data managment.  So far, they only get access to an FArray4D object by
- * calling an infrastructure routine.  These routines manage the underlying
- * resource in such a way that, so far, the PUDs need not think about resource
- * management.
  */
 
 #ifndef FARRAY_4D_H__
@@ -29,6 +12,25 @@
 
 namespace orchestration {
 
+/**
+  * \brief  A wrapper class that grants Fortran-like access to a 4D array.
+  *
+  * A wrapper class around a 1D native C++ data array that allows for
+  * Fortran-like access on a 4D array.  Note that the access pattern is also
+  * Fortran-style, column-major ordering.
+  *
+  * \todo Decide if buildScratchArray4D and the associated owner_ private data
+  * member is a good design.  I dislike it because the original simple, clean
+  * design concept of the FArray4D class was that of a simple wrapper --- it was
+  * simply the lens that allowed you to look at the memory in a different way
+  * from a distance.  Now, it is or is not the owner of the data that you are
+  * looking at depending on how you created it.  This complexity might be
+  * reasonable as it offers a simple mechanism to the PUDs and shields them from
+  * the data managment.  So far, they only get access to an FArray4D object by
+  * calling an infrastructure routine.  These routines manage the underlying
+  * resource in such a way that, so far, the PUDs need not think about resource
+  * management.
+  */
 class FArray4D {
 public:
     static FArray4D   buildScratchArray4D(const IntTriple& lo,
@@ -47,6 +49,7 @@ public:
     FArray4D& operator=(const FArray4D&) = delete;
     FArray4D& operator=(FArray4D&&)      = delete;
 
+    //! Get and set data in a Fortran-style way.
     Real& operator()(const int i, const int j, const int k, const int n) const {
         return data_[  (i-i0_)
                      + (j-j0_)*jstride_
@@ -55,15 +58,15 @@ public:
     }
 
 private:
-    bool         owner_;
-    Real*        data_;
-    int          i0_;
-    int          j0_;
-    int          k0_;
-    unsigned int jstride_;
-    unsigned int kstride_;
-    unsigned int nstride_;
-    unsigned int ncomp_;
+    bool         owner_;    //!< Marks if object owns the data.
+    Real*        data_;     //!< Pointer to data.
+    int          i0_;       //!< Lower bound of first index.
+    int          j0_;       //!< Lower bound of second index.
+    int          k0_;       //!< Lower bound of third index.
+    unsigned int jstride_;  //!< Stride for second index.
+    unsigned int kstride_;  //!< Stride for third index.
+    unsigned int nstride_;  //!< Stride for fourth index.
+    unsigned int ncomp_;    //!< Size of fourth dimension.
 };
 
 }
