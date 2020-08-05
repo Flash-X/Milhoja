@@ -171,7 +171,7 @@ class IntVect
 
   private:
 
-    int vect_[NDIM]; //!< Stores data
+    int vect_[NDIM]; //!< Contains data.
 };
 
 //! Add a scalar to each elements ((c,c,c) + V).
