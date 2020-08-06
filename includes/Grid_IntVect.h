@@ -7,8 +7,6 @@
 #include <iosfwd>
 #include <stdexcept>
 
-#include "Grid_IntTriple.h"
-
 #ifdef GRID_AMREX
 #include <AMReX_IntVect.H>
 #endif
@@ -20,7 +18,15 @@ class RealVect;
 /**
   * \brief Container for NDIM tuples of integers.
   *
-  * TODO detailed description.
+  * There are two methods of indexing in to IntVects. For read-write up
+  * to NDIM, use  `operator[]`, which directly obtains reference to the
+  * internal array. This operator has bounds checking (unless error checking
+  * is turned off). Alternatively, if MDIM-like behavior is needed, three
+  * functions `IntVect::I()`, `IntVect::J()`, and `IntVect::K()` are provided.
+  * They return the first, second, or third element of the vector, respectively,
+  * or a default value of 0 if trying to get an element above NDIM. These
+  * functions should especially be used when writing triple-nested loops that
+  * are dimension-agnostic.
   */
 class IntVect
 {
@@ -71,17 +77,26 @@ class IntVect
     IntVect& operator=(IntVect&) = delete;
     IntVect& operator=(const IntVect&) = delete;
 
-    /** \brief Return as an IntTriple (puts 0 in indices over NDIM.)
-      *
-      * Useful for iterating over regions of coordinate space.
-      */
-    IntTriple asTriple() const {
-#if (NDIM==1)
-        return IntTriple( vect_[0], 0, 0 );
-#elif (NDIM==2)
-        return IntTriple( vect_[0], vect_[1], 0 );
+    //! Return first element of vector
+    int I() const {
+        return vect_[0];
+    }
+
+    //! Return second element of vector, or 0 if NDIM<2
+    int J() const {
+#if (NDIM>=2)
+        return vect_[1];
 #else
-        return IntTriple( vect_[0], vect_[1], vect_[2] );
+        return 0;
+#endif
+    }
+
+    //! Return third element of vector, or 0 if NDIM<3
+    int K() const {
+#if (NDIM==3)
+        return vect_[2];
+#else
+        return 0;
 #endif
     }
 

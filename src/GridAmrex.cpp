@@ -67,6 +67,14 @@ GridAmrex::GridAmrex(void)
       throw std::logic_error("amrex::Real does not match orchestration::Real");
     }
 
+    // Check IntVect::{I,J,K} behavior matches amrex::Dim3
+    IntVect iv{LIST_NDIM(17,19,21)};
+    amrex::Dim3 d3 = amrex::IntVect(iv).dim3();
+    if( iv.I()!=d3.x || iv.J()!=d3.y || iv.K()!=d3.z ) {
+      throw std::logic_error("amrex::Dim3 and orchestration::IntVect do not "
+                             "have matching default values.");
+    }
+
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
 

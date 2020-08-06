@@ -18,7 +18,7 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
     : initBlock_{initBlock} {
 
     // Allocate and resize unk_ (vector of Multifabs).
-    unk_.resize(max_level);
+    unk_.resize(max_level+1);
 }
 
 //! Default constructor

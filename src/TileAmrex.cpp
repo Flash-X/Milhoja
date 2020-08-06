@@ -125,7 +125,7 @@ IntVect  TileAmrex::hiGC(void) const {
  * \return Real* pointing to underlying data.
  */
 Real*   TileAmrex::dataPtr(void) {
-    // TODO use CC_h_? Then don't have to store unkRef
+    //TODO cache the ptr? (eager vs lazy)
     return static_cast<Real*>(unkRef_[gridIdx_].dataPtr());
 }
 
@@ -136,9 +136,7 @@ Real*   TileAmrex::dataPtr(void) {
  *         data and provides Fortran-style access.
  */
 FArray4D TileAmrex::data(void) {
-    // TODO use CC_h_?
-    return FArray4D{static_cast<Real*>(unkRef_[gridIdx_].dataPtr()),
-                    loGC().asTriple(), hiGC().asTriple(), NUNKVAR}; 
+    return FArray4D{dataPtr(), loGC(), hiGC(), NUNKVAR};
 }
 
 }

@@ -36,7 +36,7 @@ sed -i '' "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/RuntimePacket/Flash.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
-        make -f $MAKEFILE clean all
+        make -f $MAKEFILE clean all GLOG=T
 elif [[ "$#" -eq 1 ]]; then
     if [[ "$1" = "--debug" ]]; then
         echo "No debug-compatible tests in suite"

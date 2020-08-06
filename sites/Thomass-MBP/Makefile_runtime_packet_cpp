@@ -92,6 +92,9 @@ LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
 endif
+ifdef GLOG
+CXXFLAGS := $(CXXFLAGS) -DGRID_LOG
+endif
 
 all:    $(COMMAND)
 

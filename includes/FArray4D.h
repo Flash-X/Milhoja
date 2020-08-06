@@ -7,8 +7,7 @@
 #define FARRAY_4D_H__
 
 #include "Grid_REAL.h"
-#include "Grid_Axis.h"
-#include "Grid_IntTriple.h"
+#include "Grid_IntVect.h"
 
 namespace orchestration {
 
@@ -33,12 +32,12 @@ namespace orchestration {
   */
 class FArray4D {
 public:
-    static FArray4D   buildScratchArray4D(const IntTriple& lo,
-                                          const IntTriple& hi,
+    static FArray4D   buildScratchArray4D(const IntVect& lo,
+                                          const IntVect& hi,
                                           const unsigned int ncomp);
 
     FArray4D(Real* data, 
-             const IntTriple& lo, const IntTriple& hi,
+             const IntVect& lo, const IntVect& hi,
              const unsigned int ncomp);
     ~FArray4D(void);
 
