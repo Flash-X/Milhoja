@@ -27,7 +27,7 @@ Tile::Tile(void)
 /**
  * \brief Move constructor for Tile
  */
-Tile::Tile(Tile&& other)
+/*Tile::Tile(Tile&& other)
     : DataItem{},
       CC_h_{other.CC_h_},
       CC1_p_{other.CC1_p_},
@@ -55,12 +55,12 @@ Tile::Tile(Tile&& other)
     std::string msg =    "[Tile] Moved Tile object by move constructor";
     Logger::instance().log(msg);
 #endif
-}
+}*/
 
 /**
  * \brief Move assignment operator for Tile
  */
-Tile& Tile::operator=(Tile&& rhs) {
+/*Tile& Tile::operator=(Tile&& rhs) {
     CC_h_        = rhs.CC_h_;
     CC1_p_       = rhs.CC1_p_;
     CC2_p_       = rhs.CC2_p_;
@@ -88,7 +88,7 @@ Tile& Tile::operator=(Tile&& rhs) {
 #endif
 
     return *this;
-}
+}*/
 
 /**
  * \brief Detructor for Tile

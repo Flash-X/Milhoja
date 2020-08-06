@@ -24,9 +24,12 @@ public:
     Tile(void);
     virtual ~Tile(void);
 
-    // TODO remove these?
-    Tile(Tile&&);
-    Tile& operator=(Tile&&);
+    Tile(Tile&&) = delete;
+    Tile& operator=(Tile&&) = delete;
+    Tile(Tile&) = delete;
+    Tile(const Tile&) = delete;
+    Tile& operator=(Tile&) = delete;
+    Tile& operator=(const Tile&) = delete;
 
     // Overrides to DataItem
     std::size_t  nSubItems(void) const override;
@@ -79,11 +82,6 @@ public:
     void*           CC1_array_d_;
 
 private:
-    // Limit all copies as much as possible
-    Tile(Tile&) = delete;
-    Tile(const Tile&) = delete;
-    Tile& operator=(Tile&) = delete;
-    Tile& operator=(const Tile&) = delete;
 };
 
 }
