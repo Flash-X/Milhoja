@@ -16,6 +16,11 @@
 
 namespace orchestration {
 
+/**
+  * \brief Derived Grid class for AMReX
+  *
+  * Grid derived class implemented with AMReX.
+  */
 class GridAmrex : public Grid {
 public:
     ~GridAmrex(void);
@@ -36,8 +41,8 @@ public:
     RealVect     getProbHi() const override;
     unsigned int getMaxRefinement() const override;
     unsigned int getMaxLevel() const override;
-    void         writeToFile(const std::string& filename) const override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
+    void         writePlotfile(const std::string& filename) const override;
 
     // Other virtual function overrides.
     RealVect     getDeltas(const unsigned int lev) const override;

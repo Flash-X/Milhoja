@@ -259,4 +259,10 @@ TEST_F(GridUnitTest,MultiCellGetters){
 
 }
 
+TEST_F(GridUnitTest,DISABLED_PlotfileOutput){
+    Grid& grid = Grid::instance();
+
+    grid.writePlotfile("test_plt_0000");
+}
+
 }

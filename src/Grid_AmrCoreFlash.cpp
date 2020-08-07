@@ -5,6 +5,7 @@
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
+#include <AMReX_PlotFileUtil.H>
 
 #include "Flash.h"
 
@@ -23,6 +24,35 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
 
 //! Default constructor
 AmrCoreFlash::~AmrCoreFlash() {
+}
+
+//! Write all levels of unk_ to plotfile.
+void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
+#ifdef GRID_LOG
+    std::string msg = "[GridAmrex] Writing to plotfile: "+filename+"...";
+    Logger::instance().log(msg);
+#endif
+    amrex::Vector<std::string>    names(unk_[0].nComp());
+    if (names.size()==1) {
+        names[0] = "phi";
+    } else {
+        names[0] = "Density";
+        names[1] = "Energy";
+    }
+    amrex::Vector<const amrex::MultiFab*> mfs;
+    for(int i=0; i<=finest_level; ++i) {
+        mfs.push_back( &unk_[i] );
+    }
+    amrex::Vector<int> lsteps( max_level+1 , 0);
+
+    amrex::WriteMultiLevelPlotfile(filename,
+                                   finest_level+1,
+                                   mfs,
+                                   names,
+                                   Geom(),
+                                   0.0,
+                                   lsteps,
+                                   refRatio());
 }
 
 /**

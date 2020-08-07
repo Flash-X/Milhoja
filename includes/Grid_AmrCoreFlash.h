@@ -64,6 +64,8 @@ public:
         return sum;
     }
 
+    void writeMultiPlotfile(const std::string& filename) const;
+
 private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
 
