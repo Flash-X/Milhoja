@@ -11,7 +11,7 @@ TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/Adv
 AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
-ADVDIR       = $(HOME)/Documents/amrex/Tutorials/Amr/Advection_AmrCore
+ADVBASE       = $(HOME)/Documents/amrex/Tutorials/Amr/Advection_AmrCore
 
 # Common files
 CXX_HDRS   = \
@@ -34,14 +34,7 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
-    $(TESTBASEDIR)/scaleEnergy_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
-    $(TESTBASEDIR)/scaleEnergy_packet.h \
-    $(TESTBASEDIR)/Analysis.h
+    $(TESTDIR)/setInitialAdv.h
 SRCS       = \
     $(TESTDIR)/runAdvTest.cpp \
     $(TESTDIR)/advectionTest.cpp \
@@ -63,24 +56,25 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
-    $(TESTBASEDIR)/scaleEnergy_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
-    $(TESTBASEDIR)/scaleEnergy_packet.cpp \
-    $(TESTBASEDIR)/Analysis.cpp
+    $(TESTDIR)/setInitialAdv.cpp
 
-OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+F2003_SRCS = \
+    $(ADVBASE)/Exec/SingleVortex/Prob.f90
+
+OBJS      = $(addsuffix .o,   $(basename $(SRCS)))
+MODS      = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
 CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -I$(ADVBASE)/Source
 CXXWARNS  =
 
+F2003     = mpif90
+F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003WARNS =
+
 #LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest
-LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LIBS      = -lpthread -lc++ -lstdc++ -lamrex -lgtest
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
 
 ifdef DEBUG
@@ -93,13 +87,20 @@ endif
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp
+.SUFFIXES: .o .cpp .mod .F90 .f90
 
-$(COMMAND): $(OBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(MODS) $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.F90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
+	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
+
+.f90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
+	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
+
 
 clean:
 	/bin/rm -f $(COMMAND)
@@ -107,4 +108,5 @@ clean:
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.mod
 

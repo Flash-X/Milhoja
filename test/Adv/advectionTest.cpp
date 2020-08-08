@@ -5,7 +5,7 @@
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
-#include "setInitialConditions_block.h"
+#include "setInitialAdv.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
@@ -44,7 +44,7 @@ TEST_F(GridUnitTest,InitializeCheck){
     Grid& grid = Grid::instance();
 
 
-    grid.initDomain(Simulation::setInitialConditions_block);
+    grid.initDomain(Simulation::setInitialAdv);
 
     grid.writePlotfile("adv_plt_0000");
 }
