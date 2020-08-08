@@ -12,6 +12,10 @@
 #ifndef ACTION_ROUTINE_H__
 #define ACTION_ROUTINE_H__
 
+// TODO delete
+#include <AMReX_TagBox.H>
+#include <memory>
+
 namespace orchestration {
 
 // The data item must be passed as a pointer for interoperability with Fortran
@@ -20,6 +24,12 @@ namespace orchestration {
 //       without also sending information to know that a subsequent
 //       reinterpret_cast is valid.
 using ACTION_ROUTINE = void (*)(const int tId, void* work);
+
+
+// TODO delete
+class Tile;
+typedef void (*errorFuncType) (int, amrex::TagBoxArray &, double,
+      int, std::shared_ptr<Tile>);
 
 }
 

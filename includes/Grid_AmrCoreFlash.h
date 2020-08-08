@@ -5,6 +5,7 @@
 
 #include "actionRoutine.h"
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace orchestration {
 
@@ -19,7 +20,8 @@ class AmrCoreFlash
     : public amrex::AmrCore
 {
 public:
-    AmrCoreFlash(ACTION_ROUTINE initBlock);
+    AmrCoreFlash(ACTION_ROUTINE initBlock,
+                 errorFuncType errorEst);
     ~AmrCoreFlash();
 
     // Overrides from AmrCore
@@ -64,6 +66,20 @@ public:
         return sum;
     }
 
+    void averageDownAll() {
+        for (int lev = finest_level-1; lev >= 0; --lev)
+        {
+            amrex::average_down(unk_[lev+1],
+                                unk_[lev],
+                                Geom(lev+1),
+                                Geom(lev),
+                                0,
+                                unk_[lev].nComp(),
+                                refRatio(lev));
+        }
+    }
+
+
     void writeMultiPlotfile(const std::string& filename) const;
 
 private:
@@ -72,6 +88,7 @@ private:
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.
     ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
+    errorFuncType errorEst_; //!< Routine for marking blocks for refinement
 
 };
 

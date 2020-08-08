@@ -6,6 +6,7 @@
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
 #include "setInitialConditions_block.h"
+#include "errorEstBlank.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
@@ -32,7 +33,8 @@ namespace {
 class GridUnitTest : public testing::Test {
 protected:
     GridUnitTest(void) {
-            Grid::instance().initDomain(Simulation::setInitialConditions_block);
+            Grid::instance().initDomain(Simulation::setInitialConditions_block,
+                                        Simulation::errorEstBlank);
     }
 
     ~GridUnitTest(void) {

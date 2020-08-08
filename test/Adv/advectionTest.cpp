@@ -6,6 +6,7 @@
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
 #include "setInitialAdv.h"
+#include "errorEstAdv.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
@@ -29,22 +30,23 @@ using namespace orchestration;
 namespace {
 
 //test fixture
-class GridUnitTest : public testing::Test {
+class AdvectionTest : public testing::Test {
 protected:
-    GridUnitTest(void) {
+    AdvectionTest(void) {
     }
 
-    ~GridUnitTest(void) {
+    ~AdvectionTest(void) {
             Grid::instance().destroyDomain();
     }
 };
 
-TEST_F(GridUnitTest,InitializeCheck){
+TEST_F(AdvectionTest,InitializeCheck){
     using namespace orchestration;
     Grid& grid = Grid::instance();
 
 
-    grid.initDomain(Simulation::setInitialAdv);
+    grid.initDomain(Simulation::setInitialAdv,
+                    Simulation::errorEstAdv);
 
     grid.writePlotfile("adv_plt_0000");
 }

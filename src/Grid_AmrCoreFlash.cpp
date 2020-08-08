@@ -15,8 +15,10 @@ namespace orchestration {
   *
   * Creates blank multifabs on each level.
   */
-AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
-    : initBlock_{initBlock} {
+AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+                           errorFuncType errorEst)
+    : initBlock_{initBlock},
+      errorEst_{errorEst} {
 
     // Allocate and resize unk_ (vector of Multifabs).
     unk_.resize(max_level+1);
@@ -160,6 +162,19 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
     std::string msg = "[AmrCoreFlash] Doing ErrorEst for level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
+#endif
+    Grid& grid = Grid::instance();
+
+    //TODO use tiling for this loop?
+    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+        std::shared_ptr<Tile> tileDesc = ti->buildCurrentTile();
+        errorEst_(lev, tags, time, ngrow, tileDesc);
+    }
+
+#ifdef GRID_LOG
+    std::string msg2 = "[AmrCoreFlash] Did ErrorEst for level " +
+                      std::to_string(lev) + ".";
+    Logger::instance().log(msg2);
 #endif
 }
 

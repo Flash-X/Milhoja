@@ -56,10 +56,12 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
-    $(TESTDIR)/setInitialAdv.cpp
+    $(TESTDIR)/setInitialAdv.cpp \
+    $(TESTDIR)/errorEstAdv.cpp
 
 F2003_SRCS = \
-    $(ADVBASE)/Exec/SingleVortex/Prob.f90
+    $(ADVBASE)/Exec/SingleVortex/Prob.f90 \
+    $(ADVBASE)/Source/Src_nd/Tagging_nd.f90
 
 OBJS      = $(addsuffix .o,   $(basename $(SRCS)))
 MODS      = $(addsuffix .mod, $(basename $(F2003_SRCS)))
