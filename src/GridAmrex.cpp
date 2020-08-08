@@ -253,6 +253,9 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
+  *
+  * \todo profile this, see if we can get a version that doesn't require
+  * extra copying.
   */
 void    GridAmrex::fillCellCoords(const unsigned int axis,
                                   const unsigned int edge,
@@ -285,7 +288,6 @@ void    GridAmrex::fillCellCoords(const unsigned int axis,
             amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
             break;
     }
-    // TODO profile these calls, see if we can get a version that doesn't require extra copying.
 
     //copy results to output
     for(int i=0; i<nElements; ++i) {

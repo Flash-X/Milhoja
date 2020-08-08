@@ -63,7 +63,8 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
-    $(TESTBASEDIR)/errorEstBlank.cpp
+    $(TESTBASEDIR)/errorEstBlank.cpp \
+    $(TESTDIR)/errorEstMaximal.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \

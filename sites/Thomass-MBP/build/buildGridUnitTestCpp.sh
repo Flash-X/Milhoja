@@ -5,11 +5,11 @@
 ######################################################################
 # Define test problem - we need dx=dy
 N_CELLS_IN_X=8
-N_CELLS_IN_Y=16
+N_CELLS_IN_Y=8
 N_CELLS_IN_Z=1
 
-N_BLOCKS_X=256
-N_BLOCKS_Y=128
+N_BLOCKS_X=4
+N_BLOCKS_Y=4
 N_BLOCKS_Z=1
 
 N_DIMS=2
@@ -32,6 +32,7 @@ echo "Current state of the local workspace"
 echo "-----------------------------------------------------------"
 git status
 
+rm -r test_plt_0000*
 cd ..
 
 # Specified relative to location of Makefile
