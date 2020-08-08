@@ -14,9 +14,10 @@ class Tile;
   * virtual member functions should be written for each AMR package.
   *
   * Use in for-loops:
-  *   `for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next())`
+  *   `for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next())`
   *
-  * TODO: implement tiling!!
+  * \todo Implement tiling
+  * \todo Consider how to make multi-level iterators
   */
 class TileIter {
 public:

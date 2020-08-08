@@ -53,10 +53,10 @@ void   Grid::instantiate(void) {
   *
   * @param level The level of refinement (0 is coarsest).
   * @return The vector <dx,dy,dz> for a given level.
+  * \todo default implementation
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
     throw std::logic_error("Default Grid::getDeltas not yet implemented");
-    //TODO default implementation
     return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
@@ -66,10 +66,10 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   * @param lev Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return area of face (Real)
+  * \todo default implementation
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellFaceAreaLo not yet implemented");
-    //TODO default implementation
     return 0.0_wp;
 }
 
@@ -78,10 +78,10 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   * @param lev Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return Volume of cell (Real)
+  * \todo default implementation
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellVolume not yet implemented");
-    //TODO default implementation
     return 0.0_wp;
 }
 
@@ -94,6 +94,7 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
+  * \todo default implementation
   */
 void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge,
                              const unsigned int lev, const IntVect& lo,
@@ -107,7 +108,6 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge,
     }
 #endif
     throw std::logic_error("Default Grid::fillCellCoords not yet implemented");
-    //TODO default implementation
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
@@ -119,6 +119,7 @@ void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge,
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled with areas.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  * \todo default implementation
   */
 void    Grid::fillCellFaceAreasLo(const unsigned int axis,
                                   const unsigned int lev, const IntVect& lo,
@@ -129,7 +130,6 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis,
     }
 #endif
     throw std::logic_error("Default Grid::fillCellFaceAreasLo not yet implemented");
-    //TODO default implementation
 }
 
 
@@ -141,11 +141,11 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis,
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
+  * \todo default implementation
   */
 void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo,
                               const IntVect& hi, Real* volPtr) const {
     throw std::logic_error("Default Grid::fillCellVolumes not yet implemented");
-    //TODO default implementation
 }
 
 

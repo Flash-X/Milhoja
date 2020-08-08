@@ -10,8 +10,10 @@ namespace orchestration {
 
 /** \brief Manages AMR functionality through AMReX.
   *
-  * AmrCoreFlash is built upon amrex::AmrCore, which manages
-  * the mesh and the physical data.
+  * AmrCoreFlash is built upon amrex::AmrCore. It uses inherited methods
+  * from amrex::AmrCore to  manage the mesh. AmrCoreFlash also owns the
+  * physical data (stored in unk_, an array of AMReX MultiFabs), and manages
+  * it through several overrides to virtual amrex::AmrCore methods.
   */
 class AmrCoreFlash
     : public amrex::AmrCore
@@ -46,7 +48,7 @@ public:
     amrex::MultiFab& unk(const unsigned int lev) {
 #ifndef GRID_ERRCHECK_OFF
         if(lev>finest_level) {
-            throw std::logic_error("[AmrCoreFlash]: tried to get unk "
+            throw std::logic_error("[AmrCoreFlash::unk]: tried to get unk "
                                    "for lev>finest_level");
         }
 #endif
@@ -64,6 +66,9 @@ public:
 
 private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
+
+    // Pointers to physics routines are cached here so they can be specified
+    // only once. More thought should be given to this design.
     ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
 
 };

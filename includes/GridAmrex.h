@@ -40,35 +40,39 @@ public:
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
 
     // Other virtual function overrides.
-    virtual RealVect getDeltas(const unsigned int lev) const override;
+    RealVect     getDeltas(const unsigned int lev) const override;
 
-    //virtual Real     getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const override;
-    virtual Real     getCellFaceAreaLo(const unsigned int axis,
-                                       const unsigned int lev,
-                                       const IntVect& coord) const override;
-    virtual Real     getCellVolume(const unsigned int lev,
+    //Real        getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const override;
+    Real         getCellFaceAreaLo(const unsigned int axis,
+                                   const unsigned int lev,
                                    const IntVect& coord) const override;
+    Real         getCellVolume(const unsigned int lev,
+                               const IntVect& coord) const override;
 
-    virtual void     fillCellCoords(const unsigned int axis,
-                                    const unsigned int edge,
-                                    const unsigned int lev,
-                                    const IntVect& lo,
-                                    const IntVect& hi,
-                                    Real* coordPtr) const override;
-    virtual void     fillCellFaceAreasLo(const unsigned int axis,
-                                         const unsigned int lev,
-                                         const IntVect& lo,
-                                         const IntVect& hi,
-                                         Real* areaPtr) const override;
-    virtual void     fillCellVolumes(const unsigned int lev,
+    void         fillCellCoords(const unsigned int axis,
+                                const unsigned int edge,
+                                const unsigned int lev,
+                                const IntVect& lo,
+                                const IntVect& hi,
+                                Real* coordPtr) const override;
+    void         fillCellFaceAreasLo(const unsigned int axis,
+                                     const unsigned int lev,
                                      const IntVect& lo,
                                      const IntVect& hi,
-                                     Real* volPtr) const override;
+                                     Real* areaPtr) const override;
+    void         fillCellVolumes(const unsigned int lev,
+                                 const IntVect& lo,
+                                 const IntVect& hi,
+                                 Real* volPtr) const override;
 
 private:
-    friend Grid& Grid::instance(); //needed for polymorphic singleton
     GridAmrex(void);
 
+    // DEV NOTE: needed for polymorphic singleton
+    friend Grid& Grid::instance();
+
+    // DEV NOTE: Used mix-in pattern over inheritance so amrcore can be
+    // created/destroyed multiple times in one run.
     AmrCoreFlash*      amrcore_;
 };
 

@@ -12,9 +12,8 @@
 namespace orchestration {
 
 /**
- * \brief Fully-implented Tile class for use with AMReX.
+ * \brief Fully-implemented Tile class for use with AMReX.
  *
- * Inherits Tile and implements the necessary virtual functions.
  * Contains a reference to the multifab for the appropriate level
  * so pointers into it can be returned.
  */
