@@ -112,7 +112,7 @@ void  GridAmrex::destroyDomain(void) {
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
-                           errorFuncType errorEst) {
+                           ERROR_ROUTINE errorEst) {
     if (amrcore_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
                                " already called");

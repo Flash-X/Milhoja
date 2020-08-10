@@ -12,8 +12,6 @@
 #ifndef ACTION_ROUTINE_H__
 #define ACTION_ROUTINE_H__
 
-// TODO delete
-#include <AMReX_TagBox.H>
 #include <memory>
 
 namespace orchestration {
@@ -26,10 +24,9 @@ namespace orchestration {
 using ACTION_ROUTINE = void (*)(const int tId, void* work);
 
 
-// TODO delete
+// TODO rethink how error calculation/tagging for refinement will work.
 class Tile;
-typedef void (*errorFuncType) (int, amrex::TagBoxArray &, double,
-      int, std::shared_ptr<Tile>);
+using ERROR_ROUTINE = void (*) (std::shared_ptr<Tile> tileDesc, int* tptr);
 
 }
 

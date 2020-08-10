@@ -292,7 +292,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
 TEST_F(GridUnitTest,PlotfileOutput){
     Grid& grid = Grid::instance();
     grid.initDomain(Simulation::setInitialConditions_block,
-                    Simulation::errorEstBlank);
+                    Simulation::errorEstMaximal);
 
     grid.writePlotfile("test_plt_0000");
 }

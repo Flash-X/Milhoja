@@ -12,23 +12,16 @@ using namespace orchestration;
 //void Simulation::errorEstAdv(const int tId, void* dataItem) {
     //Tile*  tileDesc = static_cast<Tile*>(dataItem);
 
-void Simulation::errorEstMaximal(int lev, amrex::TagBoxArray& tags, Real time,
-                             int ngrow, std::shared_ptr<Tile> tileDesc) {
+void Simulation::errorEstMaximal(std::shared_ptr<Tile> tileDesc, int* tptr) {
 
     const int tagval = amrex::TagBox::SET;
     const IntVect lo = tileDesc->lo();
     const IntVect hi = tileDesc->hi();
+    const int tptr_len = (hi-lo+1).product();
 
-    static amrex::Vector<int> itags;
-
-    amrex::Box validbox{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::TagBox& tagfab = tags[tileDesc->gridIndex()];
-    tagfab.get_itags(itags,validbox);
-
-    for(int i=0;i<itags.size();++i) {
-        itags[i] = tagval;
+    for (int i=0; i<tptr_len; ++i) {
+        tptr[i] = tagval;
     }
 
-    tagfab.tags_and_untags(itags,validbox);
 }
 

@@ -16,7 +16,7 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
-                           errorFuncType errorEst)
+                           ERROR_ROUTINE errorEst)
     : initBlock_{initBlock},
       errorEst_{errorEst} {
 
@@ -165,10 +165,21 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
 #endif
     Grid& grid = Grid::instance();
 
+    amrex::Vector<int> itags;
+
     //TODO use tiling for this loop?
     for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
         std::shared_ptr<Tile> tileDesc = ti->buildCurrentTile();
-        errorEst_(lev, tags, time, ngrow, tileDesc);
+        amrex::Box validbox{ amrex::IntVect(tileDesc->lo()),
+                             amrex::IntVect(tileDesc->hi()) };
+        amrex::TagBox& tagfab = tags[tileDesc->gridIndex()];
+        tagfab.get_itags(itags,validbox);
+
+        //errorEst_(lev, tags, time, ngrow, tileDesc);
+        int* tptr = itags.dataPtr();
+        errorEst_(tileDesc, tptr);
+
+        tagfab.tags_and_untags(itags,validbox);
     }
 
 #ifdef GRID_LOG

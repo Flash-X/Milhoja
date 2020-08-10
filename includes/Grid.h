@@ -42,7 +42,7 @@ public:
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
     virtual void initDomain(ACTION_ROUTINE initBlock,
-                            errorFuncType errorEst) = 0;
+                            ERROR_ROUTINE errorEst) = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;
     virtual IntVect        getDomainHi(const unsigned int lev) const = 0;
     virtual RealVect       getProbLo() const = 0;

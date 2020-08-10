@@ -21,7 +21,7 @@ class AmrCoreFlash
 {
 public:
     AmrCoreFlash(ACTION_ROUTINE initBlock,
-                 errorFuncType errorEst);
+                 ERROR_ROUTINE errorEst);
     ~AmrCoreFlash();
 
     // Overrides from AmrCore
@@ -88,7 +88,7 @@ private:
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.
     ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
-    errorFuncType errorEst_; //!< Routine for marking blocks for refinement
+    ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
 
 };
 

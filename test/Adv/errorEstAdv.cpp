@@ -14,9 +14,9 @@ using namespace orchestration;
 //void Simulation::errorEstAdv(const int tId, void* dataItem) {
     //Tile*  tileDesc = static_cast<Tile*>(dataItem);
 
-void Simulation::errorEstAdv(int lev, amrex::TagBoxArray& tags, Real time,
-                             int ngrow, std::shared_ptr<Tile> tileDesc) {
+void Simulation::errorEstAdv(std::shared_ptr<Tile> tileDesc, int* tptr) {
     Grid&   grid = Grid::instance();
+    int lev = tileDesc->level();
 
     static bool first = true;
     static amrex::Vector<amrex::Real> phierr;
@@ -38,13 +38,7 @@ void Simulation::errorEstAdv(int lev, amrex::TagBoxArray& tags, Real time,
     const IntVect   hiGC = tileDesc->hiGC();
     const IntVect lo = tileDesc->lo();
     const IntVect hi = tileDesc->hi();
-
-    static amrex::Vector<int> itags;
-
-    amrex::Box validbox{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::TagBox& tagfab = tags[tileDesc->gridIndex()];
-    tagfab.get_itags(itags,validbox);
-    int* tptr = itags.dataPtr();
+    amrex::Real time = 0.0;
 
     state_error(tptr,
                 AMREX_ARLIM_3D(lo.dataPtr()),
@@ -61,6 +55,5 @@ void Simulation::errorEstAdv(int lev, amrex::TagBoxArray& tags, Real time,
                 &time,
                 &phierr[lev] );
 
-    tagfab.tags_and_untags(itags,validbox);
 }
 

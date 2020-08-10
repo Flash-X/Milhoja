@@ -34,7 +34,7 @@ public:
 
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock,
-                            errorFuncType errorEst) override;
+                            ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;

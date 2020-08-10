@@ -1,16 +1,13 @@
 #ifndef ERROR_EST_MAXIMAL_H__
 #define ERROR_EST_MAXIMAL_H__
 
-#include "Grid.h"
 #include "Tile.h"
-
-#include "Grid_AmrCoreFlash.h"
+#include <memory>
 
 using namespace orchestration;
 
 namespace Simulation {
-    void errorEstMaximal(int lev, amrex::TagBoxArray& tags, Real time,
-                     int ngrow, std::shared_ptr<Tile> tileDesc);
+    void errorEstMaximal(std::shared_ptr<Tile> tileDesc, int* tptr);
 }
 
 #endif
