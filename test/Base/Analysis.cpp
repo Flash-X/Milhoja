@@ -6,7 +6,6 @@
 
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
-#include "Grid_IntTriple.h"
 #include "FArray4D.h"
 #include "Grid.h"
 #include "DataPacket.h"
@@ -44,20 +43,18 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     const IntVect   hi = tileDesc->hi();
     const FArray4D  f  = tileDesc->data();
 
-    Real    xCoords[hi[Axis::I] - lo[Axis::I] + 1];
-    Real    yCoords[hi[Axis::J] - lo[Axis::J] + 1];
+    Real    xCoords[hi.I() - lo.I() + 1];
+    Real    yCoords[hi.J() - lo.J() + 1];
     grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
                         lo, hi, xCoords); 
     grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
                         lo, hi, yCoords); 
 
-    const IntTriple lo3 = lo.asTriple();
-    const IntTriple hi3 = hi.asTriple();
     Real    x            = 0.0;
     Real    y            = 0.0;
-    int     i0           = lo3[Axis::I];
-    int     j0           = lo3[Axis::J];
-    int     k0           = lo3[Axis::K];
+    int     i0           = lo.I();
+    int     j0           = lo.J();
+    int     k0           = lo.K();
     Real    absErr       = 0.0;
     Real    maxAbsErr1   = 0.0;
     Real    sum1         = 0.0;
@@ -65,10 +62,10 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     Real    sum2         = 0.0;
     double  fExpected    = 0.0;
     nCells = 0;
-    for         (int k = lo3[Axis::K]; k <= hi3[Axis::K]; ++k) {
-        for     (int j = lo3[Axis::J]; j <= hi3[Axis::J]; ++j) {
+    for         (int k = lo.K(); k <= hi.K(); ++k) {
+        for     (int j = lo.J(); j <= hi.J(); ++j) {
             y = yCoords[j-j0];
-            for (int i = lo3[Axis::I]; i <= hi3[Axis::I]; ++i) {
+            for (int i = lo.I(); i <= hi.I(); ++i) {
                 x = xCoords[i-i0];
 
                 fExpected = (18.0*x - 12.0*y - 1.0);

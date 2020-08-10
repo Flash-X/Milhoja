@@ -1,6 +1,8 @@
 #ifndef DATA_ITEM_H__
 #define DATA_ITEM_H__
 
+#include <memory>
+
 namespace orchestration {
 
 class DataItem {

@@ -1,55 +1,58 @@
 #ifndef TILE_H__
 #define TILE_H__
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-#include <AMReX_MFIter.H>
+#include "DataItem.h"
 
 #include "FArray4D.h"
 #include "Grid_IntVect.h"
 
-#include "DataItem.h"
+// TODO remove dependency on AMReX
+#include <AMReX.H>
 
 namespace orchestration {
 
 /**
- * TODO: The construction of this class should be well done.  In particular, we
- * want to make sure that we limit creating copies as much as possible in terms
- * of data members here and it terms of granting client code to Grid data -
- * prefer references as much as possible.  Also, the tile objects are added to
- * tile lists (in data packets) and passed through queues.  Therefore, it would
- * be good to maximize use of move semantics where possible.
+ * \brief Provides access to pointers to physical data.
+ *
+ * When iterating over the domain, a Tile Iterator returns
+ * Tiles which store indices to the correct location in the
+ * physical data arrays. Tile inherits from DataItem. Tile is
+ * an abstract class, each AMR package must implement its own
+ * version of most of the member functions.
  */
 class Tile : public DataItem {
 public:
-    Tile(const unsigned int level);
+    Tile(void);
     virtual ~Tile(void);
 
-    Tile(Tile&&);
-    Tile& operator=(Tile&&);
+    Tile(Tile&&) = delete;
+    Tile& operator=(Tile&&) = delete;
+    Tile(Tile&) = delete;
+    Tile(const Tile&) = delete;
+    Tile& operator=(Tile&) = delete;
+    Tile& operator=(const Tile&) = delete;
 
+    // Overrides to DataItem
+    std::size_t  nSubItems(void) const override;
+    std::shared_ptr<DataItem>  popSubItem(void) override;
+    DataItem*    getSubItem(const std::size_t i) override;
+    void         addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
+
+    // Pure virtual functions
     virtual bool         isNull(void) const = 0;
-
-    virtual int          gridIndex(void) const  { return gridIdx_; }
-    virtual unsigned int level(void) const      { return level_; }
-
-    // Pure virtual functions.
+    virtual int          gridIndex(void) const = 0;
+    virtual unsigned int level(void) const = 0;
     virtual IntVect      lo(void) const = 0;
     virtual IntVect      hi(void) const = 0;
     virtual IntVect      loGC(void) const = 0;
     virtual IntVect      hiGC(void) const = 0;
-
     // TODO: Create readonly versions of these?
     virtual FArray4D     data(void) = 0;
     virtual Real*        dataPtr(void) = 0;
 
-    // Functions with a default implementation.
+    // Virtual functions with a default implementation.
     virtual RealVect     deltas(void) const;
-
-    std::size_t                nSubItems(void) const override;
-    std::shared_ptr<DataItem>  popSubItem(void) override;
-    DataItem*                  getSubItem(const std::size_t i) override;
-    void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
+    virtual RealVect     getCenterCoords(void) const;
 
     // Pointers to source data in the original data structures in the host
     // memory
@@ -79,19 +82,7 @@ public:
     // ugly hack to just get things working, I use void*.
     void*           CC1_array_d_;
 
-protected:
-    // TODO move protected members to TileAmrex
-    int           gridIdx_;
-    unsigned int  level_;
-    amrex::Box*   interior_;
-    amrex::Box*   GC_;
-
 private:
-    // Limit all copies as much as possible
-    Tile(Tile&) = delete;
-    Tile(const Tile&) = delete;
-    Tile& operator=(Tile&) = delete;
-    Tile& operator=(const Tile&) = delete;
 };
 
 }

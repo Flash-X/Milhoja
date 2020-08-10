@@ -7,7 +7,6 @@
 
 #include "Grid.h"
 #include "Tile.h"
-#include "TileIter.h"
 #include "ThreadTeam.h"
 #include "OrchestrationLogger.h"
 #include "OrchestrationRuntime.h"
@@ -81,24 +80,24 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
     try {
         computeLaplacianEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianEnergy_block, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            cpu_block.enqueue( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            cpu_block.enqueue( ti->buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
 
         computeLaplacianDensity_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeLaplacianDensity_block, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            cpu_block.enqueue( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            cpu_block.enqueue( ti->buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
 
         scaleEnergy_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(scaleEnergy_block, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            cpu_block.enqueue( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            cpu_block.enqueue( ti->buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();
@@ -106,8 +105,8 @@ TEST_F(TestRuntimeTile, TestSingleTeam) {
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
         computeErrors_block.nInitialThreads = N_THREADS;
         cpu_block.startCycle(computeErrors_block, "Cpu");
-        for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
-            cpu_block.enqueue( ti.buildCurrentTile() );
+        for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+            cpu_block.enqueue( ti->buildCurrentTile() );
         }
         cpu_block.closeQueue();
         cpu_block.wait();

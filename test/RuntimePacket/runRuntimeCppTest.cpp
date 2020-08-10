@@ -11,13 +11,13 @@ static constexpr unsigned int   MAX_THREADS      = 5;
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    // Instantiate Grid unit, which initializes AMReX and MPI
-    orchestration::Grid::instantiate();
-
     orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
     orchestration::Runtime::setLogFilename("DeleteMe.log");
     orchestration::Runtime::instance();
+
+    // Instantiate Grid unit, which initializes AMReX and MPI
+    orchestration::Grid::instantiate();
 
     int  rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);

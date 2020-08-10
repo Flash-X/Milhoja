@@ -42,11 +42,7 @@ For the sake of flexibility in type-matching, the Orchestration System maintains
 
 The IntVect class represents NDIM-tuples of integers. Most frequently, they represent vectors in the index-space of the domain. Users are responsible of tracking whether they represent cell-based or node-based indices. They have basic math operators defined, such as component-wise addition, scalar multiplication, etc.
 
-\subsection{IntTriple}
-
-The IntTriple class represents MDIM-tuples of integers. They are used to write dimension-agnostic loops and to create FArray4Ds. They do NOT have math operators defined as they aren't intended to be used as general purpose vectors.
-
-
+There are two methods of indexing in to IntVects. For read-write needs up to NDIM, use  \texttt{operator[]}, which directly obtains reference to the internal array. This operator has bounds checking (unless error checking is turned off). Alternatively, if MDIM-like behavior is needed, three functions \texttt{IntVect::I()}, \texttt{IntVect::J()}, and \texttt{IntVect::K()} are provided. They return the first, second, or third element of the vector (respectively), or a default value of 0 if trying to get an element above NDIM. These functions should especially be used when writing triple-nested loops that are dimension-agnostic.
 
 \subsection{RealVect}
 

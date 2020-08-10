@@ -13,7 +13,7 @@ N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
 N_DIMS=2
-LREFINE=1
+LREFINE=3
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
@@ -71,7 +71,7 @@ sed -i '' "s/REFINEMENT_LEVELS/$LREFINE/g" $TESTDIR/Grid/Flash.h
 echo ""
 echo "Building production version"
 echo "----------------------------------------------------------"
-make -f $MAKEFILE clean all
+make -f $MAKEFILE clean all GLOG=T
 if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 4;

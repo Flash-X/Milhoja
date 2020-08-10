@@ -1,31 +1,42 @@
 #ifndef TILEITER_H__
 #define TILEITER_H__
 
-#include "TileIterBase.h"
+#include <memory>
 
 namespace orchestration {
 
+class Tile;
+
 /**
-  * Wrapper class for std::unique_ptr<TileIterBase>.
+  * \brief Class for iterating over data in a level.
+  *
+  * TileIter is a pure abstract class. A derived class implementing the
+  * virtual member functions should be written for each AMR package.
+  *
+  * Use in for-loops:
+  *   `for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next())`
+  *
+  * \todo Implement tiling
+  * \todo Consider how to make multi-level iterators
   */
 class TileIter {
 public:
-    explicit TileIter( std::unique_ptr<TileIterBase> tiIn) : tiPtr_{std::move(tiIn)} {}
-    TileIter(TileIter&&) = default;
+    TileIter() {}
+    virtual ~TileIter(void) = default;
 
-    bool isValid() const { return tiPtr_->isValid(); }
-    void operator++() { ++(*tiPtr_); }
-    std::unique_ptr<Tile> buildCurrentTile() { return tiPtr_->buildCurrentTile(); }
-
-private:
-    std::unique_ptr<TileIterBase> tiPtr_;
-
+    TileIter(TileIter&&) = delete;
     TileIter(const TileIter&) = delete;
     TileIter& operator=(TileIter&&) = delete;
-    // Limit all copies as much as possible
     TileIter(TileIter&) = delete;
     TileIter& operator=(TileIter&) = delete;
     TileIter& operator=(const TileIter&) = delete;
+
+    // Pure virtual functions.
+    virtual bool isValid() const  = 0;
+    virtual void next() = 0;
+    virtual std::unique_ptr<Tile> buildCurrentTile() = 0;
+
+private:
 };
 
 }

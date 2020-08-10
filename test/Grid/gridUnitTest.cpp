@@ -5,11 +5,11 @@
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
-#include "Grid_IntTriple.h"
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
-#include "TileAmrex.h"
+#include <AMReX_FArrayBox.H>
+#include "Tile.h"
 
 // Macro for iterating over all coordinates in the
 // region defined by two IntVects lo and hi.
@@ -17,11 +17,9 @@
 // which can be used in 'function'.
 
 #define ITERATE_REGION(lo,hi,i,j,k, function) {\
-IntTriple lo_vec3 = lo.asTriple(); \
-IntTriple hi_vec3 = hi.asTriple(); \
-for(int i=lo_vec3[0];i<=hi_vec3[0];++i) {\
-for(int j=lo_vec3[1];j<=hi_vec3[1];++j) {\
-for(int k=lo_vec3[2];k<=hi_vec3[2];++k) {\
+for(int i=lo.I();i<=hi.I();++i) {\
+for(int j=lo.J();j<=hi.J();++j) {\
+for(int k=lo.K();k<=hi.K();++k) {\
     function \
 }}}}
 
@@ -51,30 +49,37 @@ TEST_F(GridUnitTest,VectorClasses){
     RealVect realVec2 = RealVect(intVec1);
 
     //test operators for IntVect
-    EXPECT_TRUE( realVec1.round() == IntVect(LIST_NDIM(2,3,6)) );
-    EXPECT_TRUE( realVec1.floor() == IntVect(LIST_NDIM(1,3,5)) );
-    EXPECT_TRUE( realVec1.ceil() == IntVect(LIST_NDIM(2,4,6)) );
-    EXPECT_TRUE( intVec1 != intVec2 );
-    EXPECT_TRUE( intVec1+intVec2 == IntVect(LIST_NDIM(4,13,7)) );
-    EXPECT_TRUE( intVec1-intVec2 == IntVect(LIST_NDIM(2,7,-3)) );
-    EXPECT_TRUE( intVec1*intVec2 == IntVect(LIST_NDIM(3,30,10)) );
-    EXPECT_TRUE( intVec1+5 == IntVect(LIST_NDIM(8,15,7)) );
-    EXPECT_TRUE( intVec1-9 == IntVect(LIST_NDIM(-6,1,-7)) );
-    EXPECT_TRUE( intVec1*2 == IntVect(LIST_NDIM(6,20,4)) );
-    EXPECT_TRUE( 2*intVec1 == IntVect(LIST_NDIM(6,20,4)) );
-    EXPECT_TRUE( intVec1/2 == IntVect(LIST_NDIM(1,5,1)) );
-    EXPECT_TRUE( intVec1.product() == CONCAT_NDIM(3,*10,*2) );
+    EXPECT_EQ( realVec1.round()  , IntVect(LIST_NDIM(2,3,6)) );
+    EXPECT_EQ( realVec1.floor()  , IntVect(LIST_NDIM(1,3,5)) );
+    EXPECT_EQ( realVec1.ceil()   , IntVect(LIST_NDIM(2,4,6)) );
+    EXPECT_NE( intVec1           , intVec2 );
+    EXPECT_EQ( intVec1+intVec2   , IntVect(LIST_NDIM(4,13,7)) );
+    EXPECT_EQ( intVec1-intVec2   , IntVect(LIST_NDIM(2,7,-3)) );
+    EXPECT_EQ( intVec1*intVec2   , IntVect(LIST_NDIM(3,30,10)) );
+    EXPECT_EQ( intVec1+5         , IntVect(LIST_NDIM(8,15,7)) );
+    EXPECT_EQ( intVec1-9         , IntVect(LIST_NDIM(-6,1,-7)) );
+    EXPECT_EQ( intVec1*2         , IntVect(LIST_NDIM(6,20,4)) );
+    EXPECT_EQ( 2*intVec1         , IntVect(LIST_NDIM(6,20,4)) );
+    EXPECT_EQ( intVec1/2         , IntVect(LIST_NDIM(1,5,1)) );
+    EXPECT_EQ( intVec1.product() , CONCAT_NDIM(3,*10,*2) );
 
     //test operators for RealVect
     float eps = 1.0e-14;
     for (int i=0;i<NDIM;++i) {
-        EXPECT_NEAR( realVec2[i] , RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
-        EXPECT_NEAR( (realVec1+realVec2)[i] , RealVect(LIST_NDIM(4.5_wp,13.2_wp,7.8_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1-realVec2)[i] , RealVect(LIST_NDIM(-1.5_wp,-6.8_wp,3.8_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1*realVec2)[i] , RealVect(LIST_NDIM(4.5_wp,32.0_wp,11.6_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1*-3.14_wp)[i] , RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
-        EXPECT_NEAR( (-3.14_wp*realVec1)[i] , RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
-        EXPECT_NEAR( (realVec1/2.0_wp)[i] , RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
+        EXPECT_NEAR(realVec2[i] ,
+                RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
+        EXPECT_NEAR((realVec1+realVec2)[i] ,
+                RealVect(LIST_NDIM(4.5_wp,13.2_wp,7.8_wp))[i] , eps);
+        EXPECT_NEAR((realVec1-realVec2)[i] ,
+                RealVect(LIST_NDIM(-1.5_wp,-6.8_wp,3.8_wp))[i] , eps);
+        EXPECT_NEAR((realVec1*realVec2)[i] ,
+                RealVect(LIST_NDIM(4.5_wp,32.0_wp,11.6_wp))[i] , eps);
+        EXPECT_NEAR((realVec1*-3.14_wp)[i] ,
+                RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
+        EXPECT_NEAR((-3.14_wp*realVec1)[i] ,
+                RealVect(LIST_NDIM(-4.71_wp,-10.048_wp,-18.212_wp))[i] , eps);
+        EXPECT_NEAR((realVec1/2.0_wp)[i] ,
+                RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
     }
 }
 
@@ -95,12 +100,16 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     //    ASSERT_TRUE(IntVect(grid.unk().boxArray()[i].size()) == nCells);
     //}
 
-    // Testing Grid::getDomain{Lo,Hi}
-    RealVect domainLo = grid.getProbLo();
-    RealVect domainHi = grid.getProbHi();
+    // Testing Grid::getProb{Lo,Hi} and getDomain{Lo,Hi}
+    IntVect  domainLo = grid.getDomainLo(0);
+    IntVect  domainHi = grid.getDomainHi(0);
+    RealVect probLo   = grid.getProbLo();
+    RealVect probHi   = grid.getProbHi();
+    EXPECT_EQ( domainLo, IntVect(LIST_NDIM(0,0,0)) );
+    EXPECT_EQ( domainHi, (nBlocks*nCells - 1) );
     for (int i=0;i<NDIM;++i) {
-        EXPECT_NEAR(domainLo[i] , actual_min[i] , eps);
-        EXPECT_NEAR(domainHi[i] , actual_max[i] , eps);
+        EXPECT_NEAR(probLo[i] , actual_min[i] , eps);
+        EXPECT_NEAR(probHi[i] , actual_max[i] , eps);
     }
 
     // Testing Grid::getDeltas
@@ -111,8 +120,8 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     }
 
     //Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_TRUE(0 == grid.getMaxRefinement());
-    EXPECT_TRUE(0 == grid.getMaxLevel());
+    EXPECT_EQ(grid.getMaxRefinement() , LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxLevel()      , 0);
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
@@ -133,17 +142,18 @@ TEST_F(GridUnitTest,PerTileGetters){
         actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1], *actual_deltas[p2] );
     }
 
-    // Test Grid::getBlkCenterCoords with tile iterator
+    // Test Tile::getCenterCoords with tile iterator
     count = 0;
-    for (TileIter ti = grid.buildTileIter(0); ti.isValid(); ++ti) {
+    for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
         count++;
         if(count%3 != 0) continue;
 
-        std::unique_ptr<Tile> tileDesc = ti.buildCurrentTile();
-        RealVect sumVec = RealVect(tileDesc->lo()+tileDesc->hi()+1);
+        std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+        RealVect sumVec = RealVect(tileDesc->lo()+tileDesc->hi()
+                                   - 2*grid.getDomainLo(0) + 1);
         RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
 
-        RealVect blkCenterCoords = grid.getBlkCenterCoords(*tileDesc);
+        RealVect blkCenterCoords = tileDesc->getCenterCoords();
         for(int i=1;i<NDIM;++i) {
             ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
         }

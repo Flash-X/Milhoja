@@ -1,7 +1,6 @@
 #include "setInitialConditions_block.h"
 
 #include "FArray4D.h"
-#include "Grid_IntTriple.h"
 #include "Grid.h"
 #include "Tile.h"
 #include "Grid_Axis.h"
@@ -23,8 +22,8 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     const IntVect   hiGC = tileDesc->hiGC();
     FArray4D        f    = tileDesc->data();
 
-    Real    xCoords[hiGC[Axis::I] - loGC[Axis::I] + 1];
-    Real    yCoords[hiGC[Axis::J] - loGC[Axis::J] + 1];
+    Real    xCoords[hiGC.I() - loGC.I() + 1];
+    Real    yCoords[hiGC.J() - loGC.J() + 1];
     grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
                         loGC, hiGC, xCoords); 
     grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
@@ -32,14 +31,12 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
 
     Real    x = 0.0;
     Real    y = 0.0;
-    int     i0 = loGC[Axis::I];
-    int     j0 = loGC[Axis::J];
-    const IntTriple   loGC3 = loGC.asTriple();
-    const IntTriple   hiGC3 = hiGC.asTriple();
-    for         (int k = loGC3[Axis::K]; k <= hiGC3[Axis::K]; ++k) {
-        for     (int j = loGC3[Axis::J]; j <= hiGC3[Axis::J]; ++j) {
+    int     i0 = loGC.I();
+    int     j0 = loGC.J();
+    for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
+        for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
             y = yCoords[j-j0];
-            for (int i = loGC3[Axis::I]; i <= hiGC3[Axis::I]; ++i) {
+            for (int i = loGC.I(); i <= hiGC.I(); ++i) {
                 x = xCoords[i-i0]; 
 
                 // PROBLEM ONE
