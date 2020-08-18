@@ -33,7 +33,8 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTDIR)/setInitialInteriorTest.h
     #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
@@ -45,12 +46,27 @@ SRCS       = \
     $(TESTDIR)/runGridTest.cpp \
     $(TESTDIR)/gridAMRTest.cpp \
     $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
+    $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/DataItemSplitter.cpp \
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTDIR)/setInitialInteriorTest.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp \
+    $(TESTDIR)/errorEstMaximal.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
@@ -72,6 +88,9 @@ LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+ifdef GLOG
+CXXFLAGS := $(CXXFLAGS) -DGRID_LOG
 endif
 
 all:    $(COMMAND)

@@ -9,8 +9,11 @@ N_CELLS_IN_Y=8
 N_CELLS_IN_Z=1
 
 N_BLOCKS_X=1
-N_BLOCKS_Y=1
+N_BLOCKS_Y=2
 N_BLOCKS_Z=1
+
+N_DIMS=2
+LREFINE=4
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
@@ -43,14 +46,14 @@ cp $TESTDIR/constants_base.h $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Grid/constants.h
 sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Grid/constants.h
-sed -i '' "s/N_DIMENSIONS/2/g" $TESTDIR/Grid/constants.h
+sed -i '' "s/N_DIMENSIONS/$N_DIMS/g" $TESTDIR/Grid/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
 rm $TESTDIR/Grid/Flash.h
 cp $TESTDIR/Flash_base.h $TESTDIR/Grid/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" $TESTDIR/Grid/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Grid/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Grid/Flash.h
+sed -i '' "s/REFINEMENT_LEVELS/$LREFINE/g" $TESTDIR/Grid/Flash.h
 
 # Build debug mode
 #echo ""
@@ -67,7 +70,7 @@ sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Grid/Flash.h
 echo ""
 echo "Building production version"
 echo "----------------------------------------------------------"
-make -f $MAKEFILE clean all
+make -f $MAKEFILE clean all GLOG=T
 if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 4;

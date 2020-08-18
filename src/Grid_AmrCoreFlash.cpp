@@ -125,7 +125,11 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     // Build multifab unk_[lev].
     unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
 
-    // Initialize data in unk_[lev].
+    // Initialize data in unk_ to 0.0.
+    unk_[lev].setVal(0.0_wp);
+
+    // Initalize simulation block data in unk_[lev].
+    // Must fill interiors, GC optional.
     // TODO: Thread count should be a runtime variable
     RuntimeAction    action;
     action.name = "initBlock";
@@ -139,6 +143,8 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     }
     team.closeQueue();
     team.wait();
+
+    // DO A GC FILL HERE
 
 #ifdef GRID_LOG
     std::string msg2 = "[AmrCoreFlash] Created level " +

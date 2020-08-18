@@ -129,6 +129,26 @@ class IntVect
       return CONCAT_NDIM(vect_[0]!=b[0], || vect_[1]!=b[1], || vect_[2]!=b[2]);
     }
 
+    //! Check if two vectors are < in all places.
+    bool allLT (const IntVect& b) const {
+      return CONCAT_NDIM(vect_[0]<b[0], && vect_[1]<b[1], && vect_[2]<b[2]);
+    }
+
+    //! Check if two vectors are <= in all places.
+    bool allLE (const IntVect& b) const {
+      return CONCAT_NDIM(vect_[0]<=b[0], && vect_[1]<=b[1], && vect_[2]<=b[2]);
+    }
+
+    //! Check if two vectors are > in all places.
+    bool allGT (const IntVect& b) const {
+      return CONCAT_NDIM(vect_[0]>b[0], && vect_[1]>b[1], && vect_[2]>b[2]);
+    }
+
+    //! Check if two vectors are >= in all places.
+    bool allGE (const IntVect& b) const {
+      return CONCAT_NDIM(vect_[0]>=b[0], && vect_[1]>=b[1], && vect_[2]>=b[2]);
+    }
+
     //TODO: Potential operators
     // ==, != scalar
     // >, <, etc
