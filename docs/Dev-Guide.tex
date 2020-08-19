@@ -18,14 +18,39 @@
 
 \begin{document}
 
-\title{Polymorphism in Grid}
+\title{Orchestration Runtime Dev Guide}
 \author{Tom Klosterman}
 \date{\today}
 \maketitle
 
 \begin{abstract}
-Section of dev guide explaining how polymorphism was achieved in Grid base classes.
-\end{abstract}
+Guide for developers, explaining the class hierarchy, both in terms of usage and design philosophy.\end{abstract}
+
+\section{Orchestration Namespace}
+
+The Grid and Tile classes, as well as related classes and functions, live inside the Orchestration namespace.
+
+\section{Data Types}
+\subsection{Real Type}
+
+For the sake of flexibility in type-matching, the Orchestration System maintains its own floating point type: orchestration::Real. This is a typedef for either double or float, depending on the macro defined at compilation, REAL\_IS\_DOUBLE or REAL\_IS\_FLOAT.
+
+\subsection{Vectors}
+\subsubsection{IntVect}
+
+The IntVect class represents NDIM-tuples of integers. Most frequently, they represent vectors in the index-space of the domain. Users are responsible of tracking whether they represent cell-based or node-based indices. They have basic math operators defined, such as component-wise addition, scalar multiplication, etc.
+
+There are two methods of indexing in to IntVects. For read-write needs up to NDIM, use  \texttt{operator[]}, which directly obtains reference to the internal array. This operator has bounds checking (unless error checking is turned off). Alternatively, if MDIM-like behavior is needed, three functions \texttt{IntVect::I()}, \texttt{IntVect::J()}, and \texttt{IntVect::K()} are provided. They return the first, second, or third element of the vector (respectively), or a default value of 0 if trying to get an element above NDIM. These functions should especially be used when writing triple-nested loops that are dimension-agnostic.
+
+\subsubsection{RealVect}
+
+The RealVect class represents NDIM-tuples of Reals. They typically represent points of the domain in physical space. They have basic math operators defined in the same way as IntVect.
+
+\subsection{Arrays}
+\subsubsection*{FArray4D}
+
+The FArray4D class functions primarily as a wrapper to Real pointers that provides Fortran-like access to their data with an overload of \texttt{operator()}. Notably, the access pattern is Fortran-style column major.
+
 
 
 \section{Polymorphism}
@@ -33,8 +58,8 @@ Section of dev guide explaining how polymorphism was achieved in Grid base class
 Base classes in the Grid unit (e.g. Grid, Tile) need to have package-agnostic public interfaces so they can be used in physics code without regard to the AMR package. However, the implementation of these classes is highly dependent on the package, so polymorphism is needed. All of the Grid base classes use the same class design pattern to achieve polymorphism - an abstract base class with virtual methods that are implemented in concrete derived classes (e.g. GridAmrex, TileAmrex). The abstract base classes control the public interface while the derived classes contain private data members and methods as needed for the implementation. However, the way these classes are instantiated and passed through public interfaces varies. Two patterns are explained below, with examples.
 
 
-\section{Reference-Based Singleton (e.g. Grid)}
-The Grid class was designed to be instantiated exactly once, i.e. the Singleton design pattern. Polymorphism is achieved by storing the derived-class object in the static namespace of the Grid::instance() member function. The exact type of derived class is chosen by a preprocessor macro. After the singleton is instantiated, the user can obtain a reference to it by calling Grid::instance(). Note that the dervied class reference decays to a base class reference in the return statement.
+\subsection{Reference-Based Singleton (e.g. Grid)}
+The Grid class was designed to be instantiated exactly once, i.e. the Singleton design pattern. Polymorphism is achieved by storing the derived-class object in the static namespace of the Grid::instance() member function. The exact type of derived class is chosen by a preprocessor macro. After the singleton is instantiated, the user can obtain a reference to it by calling Grid::instance(). Note that the dervied class reference is downcast to a base class reference in the return statement.
 
 \begin{verbatim}
 // Access
@@ -46,14 +71,14 @@ Grid&   Grid::instance(void) {
 
 // Usage
 
-IntVect del = Grid::instance().getDeltas();
+IntVect dx = Grid::instance().getDeltas();
 //    or
 Grid& grid = Grid::instance();
-IntVect del = grid.getDeltas();
+IntVect dx = grid.getDeltas();
 \end{verbatim}
 
 
-\section{Smart Pointer Encapsulation (e.g. Tile)}
+\subsection{Smart Pointer Encapsulation (e.g. Tile)}
 
 Unlike Grid, Tile objects are instantiated very frequently throughout physics code. In addition, memory management is very important for Tile objects, since they need to be passed through the Orchestration Runtime data pipeline. To account for these restraints, when derived class Tile objects are created, they should be immediately encapsulated into derived-class smart pointers (default $\texttt{std::unique\_ptr}$) which can then decay into base-class smart pointers to be returned by a public interface. This means a $\texttt{std::unique\_ptr<Tile>}$ object will contain the original derived class object but can be used in a package-agnostic way.
 
@@ -78,11 +103,16 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
 }
 
 // Usage
-for (auto ti = grid.makeTileIter(0); ti->isValid(); ti->next() ) {
+for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next() ) {
     std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
     ...
 }
 
 
 \end{verbatim}
+
+
+
+
+
 \end{document}
