@@ -9,6 +9,8 @@ docs/OrchestrationSystem.pdf
 docs/data\ types.pdf
 docs/GridPolymorphism.pdf
 docs/Dev-Guide.pdf
+docs/doxygen/html/*
+docs/doxygen/latex/*
 sites/*/test_threadteam_cpp.x
 sites/*/test_runtime_null_cpp.x
 sites/*/test_runtime_tile_cpp.x
