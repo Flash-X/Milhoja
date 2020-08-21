@@ -68,10 +68,12 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
 void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] MakeNewLevelFromCoarse for level " +
-                      std::to_string(lev) + "...";
+    std::string msg = "[AmrCoreFlash::MakeNewLevelFromCoarse] Making level " +
+                      std::to_string(lev) + "from coarse...";
     Logger::instance().log(msg);
 #endif
+
+    throw std::logic_error("need MakeNewLevelFromCoarse callback");
 }
 
 /**
@@ -85,10 +87,11 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
 void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Remaking level " +
+    std::string msg = "[AmrCoreFlash::RemakeLevel] Remaking level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+    throw std::logic_error("need RemakeLevel callback");
 }
 
 /**
@@ -98,10 +101,11 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
   */
 void AmrCoreFlash::ClearLevel (int lev) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Clearing level " +
+    std::string msg = "[AmrCoreFlash::ClearLevel] Clearing level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+    throw std::logic_error("need ClearLevel callback");
 }
 
 /**
@@ -115,7 +119,7 @@ void AmrCoreFlash::ClearLevel (int lev) {
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Creating level " +
+    std::string msg = "[AmrCoreFlash::MakeNewLevelFromScratch] Creating level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
@@ -147,7 +151,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     // DO A GC FILL HERE
 
 #ifdef GRID_LOG
-    std::string msg2 = "[AmrCoreFlash] Created level " +
+    std::string msg2 = "[AmrCoreFlash::MakeNewLevelFromScratch] Created level " +
                       std::to_string(lev) + " with " +
                       std::to_string(ba.size()) + " blocks.";
     Logger::instance().log(msg2);
@@ -165,7 +169,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                              amrex::Real time, int ngrow) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Doing ErrorEst for level " +
+    std::string msg = "[AmrCoreFlash::ErrorEst] Doing ErrorEst for level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
@@ -189,7 +193,7 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
     }
 
 #ifdef GRID_LOG
-    std::string msg2 = "[AmrCoreFlash] Did ErrorEst for level " +
+    std::string msg2 = "[AmrCoreFlash::ErrorEst] Did ErrorEst for level " +
                       std::to_string(lev) + ".";
     Logger::instance().log(msg2);
 #endif

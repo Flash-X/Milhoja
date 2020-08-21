@@ -12,6 +12,8 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_BoxArray.H>
 #include "Grid_AmrCoreFlash.h"
 
 namespace orchestration {
@@ -70,6 +72,17 @@ public:
                                  const IntVect& lo,
                                  const IntVect& hi,
                                  Real* volPtr) const override;
+
+    // Other public functions
+    amrex::Geometry& getGeom(const unsigned int lev) {
+        return amrcore_->Geom(lev);
+    }
+    amrex::BoxArray& getBoxArray(const unsigned int lev) {
+        return amrcore_->boxArray(lev);
+    }
+    amrex::DistributionMapping& getDMap(const unsigned int lev) {
+        return amrcore_->DistributionMap(lev);
+    }
 
 private:
     GridAmrex(void);

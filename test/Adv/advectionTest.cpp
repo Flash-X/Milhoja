@@ -11,18 +11,7 @@
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
 #include "Tile.h"
-
-// Macro for iterating over all coordinates in the
-// region defined by two IntVects lo and hi.
-// Middle three arguments are the iteration variables,
-// which can be used in 'function'.
-
-#define ITERATE_REGION(lo,hi,i,j,k, function) {\
-for(int i=lo.I();i<=hi.I();++i) {\
-for(int j=lo.J();j<=hi.J();++j) {\
-for(int k=lo.K();k<=hi.K();++k) {\
-    function \
-}}}}
+#include "Driver.h"
 
 
 using namespace orchestration;
@@ -41,14 +30,26 @@ protected:
 };
 
 TEST_F(AdvectionTest,InitializeCheck){
-    using namespace orchestration;
     Grid& grid = Grid::instance();
 
 
     grid.initDomain(Simulation::setInitialAdv,
                     Simulation::errorEstAdv);
 
+    //grid.writePlotfile("adv_plt_0000");
+}
+
+TEST_F(AdvectionTest,Evolution){
+    Grid& grid = Grid::instance();
+
+    grid.initDomain(Simulation::setInitialAdv,
+                    Simulation::errorEstAdv);
+
     grid.writePlotfile("adv_plt_0000");
+
+    Driver::EvolveAdvection();
+
+    grid.writePlotfile("adv_plt_0001");
 }
 
 }

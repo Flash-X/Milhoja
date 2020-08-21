@@ -34,7 +34,8 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTDIR)/setInitialAdv.h
+    $(TESTDIR)/setInitialAdv.h \
+    $(TESTDIR)/Driver.h
 SRCS       = \
     $(TESTDIR)/runAdvTest.cpp \
     $(TESTDIR)/advectionTest.cpp \
@@ -45,6 +46,7 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(TESTDIR)/Driver.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
