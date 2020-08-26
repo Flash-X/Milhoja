@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "OrchestrationLogger.h"
+
 namespace orchestration {
 
 // Default value chosen in conjunction with the error checking in the
@@ -20,7 +22,7 @@ bool           CudaStreamManager::wasInstantiated_ = false;
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
     static CudaStreamManager   stream_manager;
-    std::cout << "[CudaStreamManager] Access given to manager\n";
+    Logger::instance().log("[CudaStreamManager] Access given to manager");
     return stream_manager;
 }
 
@@ -42,8 +44,8 @@ void CudaStreamManager::setMaxNumberStreams(const std::size_t nMaxStreams) {
     }
 
     nMaxStreams_ = nMaxStreams;
-    std::cout << "[CudaStreamManager] Number of streams set to "
-              << nMaxStreams_ << std::endl;
+    Logger::instance().log( "[CudaStreamManager] Number of streams set to "
+                           + std::to_string(nMaxStreams_));
 }
 
 /**
@@ -64,8 +66,8 @@ CudaStreamManager::CudaStreamManager(void)
 
     pthread_cond_init(&streamReleased_, NULL);
     pthread_mutex_init(&idxMutex_, NULL);
-    std::cout << "[CudaStreamManager] streamReleased condition variable initalized\n";
-    std::cout << "[CudaStreamManager] Free stream mutex initialized\n";
+    Logger::instance().log("[CudaStreamManager] streamReleased condition variable initalized");
+    Logger::instance().log("[CudaStreamManager] Free stream mutex initialized");
 
     pthread_mutex_lock(&idxMutex_);
 
@@ -84,9 +86,10 @@ CudaStreamManager::CudaStreamManager(void)
          // Make stream indices 1-based so that 0 can work as NULL_STREAM
          freeStreams_.push_back( CudaStream(i+1, &(streams_[i])) );
     }
-    std::cout << "[CudaStreamManager] Created " << streams_.size()
-              << " CUDA streams\n";
-    std::cout << "[CudaStreamManager] Created and ready for use\n";
+    Logger::instance().log(  "[CudaStreamManager] Created " 
+                           + std::to_string(streams_.size())
+                           + " CUDA streams");
+    Logger::instance().log("[CudaStreamManager] Created and ready for use");
 
     wasInstantiated_ = true;
 
@@ -123,19 +126,20 @@ CudaStreamManager::~CudaStreamManager(void) {
             std::cerr << errMsg;
          }
     }
-    std::cout << "[CudaStreamManager] Destroyed " << streams_.size()
-              << " CUDA streams\n";
+    Logger::instance().log(  "[CudaStreamManager] Destroyed "
+                           + std::to_string(streams_.size())
+                           + " CUDA streams");
 
     pthread_mutex_unlock(&idxMutex_);
 
     pthread_cond_destroy(&streamReleased_);
     pthread_mutex_destroy(&idxMutex_);
 
-    std::cout << "[CudaStreamManager] Stream released condition variable destroyed\n";
-    std::cout << "[CudaStreamManager] Free stream mutex destroyed\n";
+    Logger::instance().log("[CudaStreamManager] Stream released condition variable destroyed");
+    Logger::instance().log("[CudaStreamManager] Free stream mutex destroyed");
 
     wasInstantiated_ = false;
-    std::cout << "[CudaStreamManager] Destroyed\n";
+    Logger::instance().log("[CudaStreamManager] Destroyed");
 }
 
 /**
@@ -162,7 +166,7 @@ std::size_t CudaStreamManager::numberFreeStreams(void) {
  * stream object is returned.
  */
 CudaStream    CudaStreamManager::requestStream(const bool block) {
-    std::cout << "[CudaStreamManager] Stream requested\n";
+    Logger::instance().log("[CudaStreamManager] Stream requested");
 
     // Get exclusive access to the free stream queue so that we can safely get
     // the ID of a free stream from it.  It is also important for the case when
@@ -183,12 +187,12 @@ CudaStream    CudaStreamManager::requestStream(const bool block) {
             // streams is zero, there can be no deadlock so long as this object
             // is managing at least one stream.
             do {
-                std::cout << "[CudaStreamManager] No streams available.  Blocking as requested.\n";
+                Logger::instance().log("[CudaStreamManager] No streams available.  Blocking as requested.");
                 pthread_cond_wait(&streamReleased_, &idxMutex_);
-                std::cout << "[CudaStreamManager] Stream has been released\n";
+                Logger::instance().log("[CudaStreamManager] Stream has been released");
             } while(freeStreams_.size() <= 0);
         } else {
-            std::cout << "[CudaStreamManager] No streams available.  Returning null stream as requested.\n";
+            Logger::instance().log("[CudaStreamManager] No streams available. Returning null stream as requested.");
             pthread_mutex_unlock(&idxMutex_);
 
             return CudaStream{};
@@ -206,7 +210,9 @@ CudaStream    CudaStreamManager::requestStream(const bool block) {
                                     "Given stream ID and pointer not properly matched");
     }
 
-    std::cout << "[CudaStreamManager] Stream " << stream.id << " distributed\n";
+    Logger::instance().log(  "[CudaStreamManager] Stream " 
+                           + std::to_string(stream.id)
+                           + " distributed");
     return stream;
 }
 
@@ -246,7 +252,9 @@ void   CudaStreamManager::releaseStream(CudaStream& stream) {
         }
     }
 
-    std::cout << "[CudaStreamManager] Stream " << stream.id << " released\n";
+    Logger::instance().log(  "[CudaStreamManager] Stream " 
+                           + std::to_string(stream.id) 
+                            + " released");
 
     // We must put the stream back in the queue before emitting the signal
     freeStreams_.push_back( std::move(stream) );

@@ -22,6 +22,8 @@ __global__ void kernel(const std::size_t N, double* f, const unsigned int nCycle
 namespace {
 
 TEST(TestCudaStreamManager, TestManager) {
+    using namespace orchestration;
+
     CudaStreamManager&   sm = CudaStreamManager::instance();
     ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
 
@@ -167,6 +169,8 @@ TEST(TestCudaStreamManager, TestManager) {
  *  expected.
  */
 TEST(TestCudaStreamManager, TestStreams) {
+    using namespace orchestration;
+
     // We will send one packet of equal size per stream and break each packet up
     // into smaller equal-sized chunks for computation with GPU.
     constexpr  std::size_t  N_DATA_PER_PACKET = 1024;
