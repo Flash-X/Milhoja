@@ -62,7 +62,8 @@ SRCS       = \
 CU_SRCS       = \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/testCudaStreamManager.cu
+    $(TESTDIR)/testCudaStreamManager.cu \
+    $(TESTDIR)/testCudaKernel.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
