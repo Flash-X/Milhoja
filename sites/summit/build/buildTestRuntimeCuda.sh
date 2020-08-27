@@ -14,7 +14,7 @@ N_BLOCKS_Z=1
 
 module purge
 module load git
-module load gcc/6.4.0
+module load pgi/20.1
 module load spectrum-mpi/10.3.1.2-20200121
 module load cuda/9.2.148
 module list

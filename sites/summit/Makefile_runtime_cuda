@@ -8,8 +8,7 @@ BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTDIR      = $(BASEDIR)/test/RuntimeCuda
-AMREXDIR     = $(HOME)/local/gcc_6.4.0/AMReX_2d
-GTESTDIR     = $(HOME)/local/gcc_6.4.0/googletest
+AMREXDIR     = $(HOME)/local/pgi_20.1/AMReX_2d
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Common files
@@ -57,28 +56,28 @@ SRCS       = \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/CudaStream.cpp \
-    $(TESTDIR)/runCudaTests.cpp
+    $(SRCDIR)/CudaStream.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/testCudaStreamManager.cu \
     $(TESTDIR)/testCudaKernel.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
+OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CUFLAGS   = -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -D__PGI
 CUWARNS   =
 
-LIBS      = -lstdc++ -lgfortran -lamrex -lgtest -lcudart
-LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib64 -L$(CUDADIR)/lib64
+LIBS      = -lstdc++ -lpgf90 -lpgf90rtl -lpgf90_rpm1 -lpgf902 -lamrex -lcudart
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(OLCF_PGI_ROOT)/linuxpower/20.1/lib
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -90,7 +89,7 @@ all:    $(COMMAND)
 .SUFFIXES: .o .cpp .cu
 
 $(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS)
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS) $(OACC_FLAGS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
