@@ -137,14 +137,18 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
 #endif
 }
 
-/** Fill guard cells on a level.
+/** Fill guard cells on all levels.
   */
-void  GridAmrex::fillGC(const unsigned int lev) {
+void  GridAmrex::fillGuardCells() {
+    for(int lev=0; lev<=getMaxLevel(); ++lev) {
 #ifdef GRID_LOG
-    Logger::instance().log("[GridAmrex] GCFill on level " +
+        Logger::instance().log("[GridAmrex] GCFill on level " +
                            std::to_string(lev) );
 #endif
-    amrcore_->fillPatch(amrcore_->unk(lev),lev);
+
+        amrex::MultiFab& unk = amrcore_->unk(lev);
+        amrcore_->fillPatch(unk, lev);
+    }
 }
 
 

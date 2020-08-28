@@ -5,10 +5,9 @@
 #include "RuntimeAction.h"
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
-#include <AMReX_PlotFileUtil.H>
 
+#include <AMReX_PlotFileUtil.H>
 #include <AMReX_Interpolater.H>
-#include <AmrCoreAdv_F.H>
 #include <AMReX_FillPatchUtil.H>
 
 #include "Flash.h"
@@ -222,9 +221,9 @@ void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
         smf.push_back(&unk_[0]);
         stime.push_back(0.0_wp);
 
-        amrex::BndryFuncArray bfunc(phifill);
-        amrex::PhysBCFunct<amrex::BndryFuncArray>
-            physbc(geom[lev], bcs_, bfunc);
+        amrex::CpuBndryFuncFab bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            physbc(geom[lev],bcs_,bndry_func);
 
         amrex::FillPatchSingleLevel(mf, 0.0_wp, smf, stime,
                                     0, 0, mf.nComp(),
@@ -238,11 +237,11 @@ void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
         fmf.push_back(&unk_[lev]);
         ftime.push_back(0.0_wp);
 
-        amrex::BndryFuncArray bfunc(phifill);
-        amrex::PhysBCFunct<amrex::BndryFuncArray>
-            cphysbc(geom[lev-1], bcs_, bfunc);
-        amrex::PhysBCFunct<amrex::BndryFuncArray>
-            fphysbc(geom[lev  ], bcs_, bfunc);
+        amrex::CpuBndryFuncFab bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            cphysbc(geom[lev-1],bcs_,bndry_func);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            fphysbc(geom[lev],bcs_,bndry_func);
 
         // CellConservativeLinear interpolator from AMReX_Interpolator.H
         amrex::Interpolater* mapper = &amrex::cell_cons_interp;

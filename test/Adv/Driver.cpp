@@ -16,7 +16,7 @@ Real dt[3], t_new[3];
 int step[3];
 int regrid_int = 2;
 Real stop_time = 2.0_wp;
-int max_steps = 125;
+int max_steps = 10000;
 
 
 void doTimestep(const int lev, Real time) {
@@ -173,9 +173,7 @@ void EvolveAdvection() {
         }
 
         // All level GC fill
-        for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
-            grid.fillGC(lev);
-        }
+        grid.fillGuardCells();
 
         // advance all levels
         for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
