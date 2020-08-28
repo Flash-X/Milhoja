@@ -57,10 +57,11 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/CudaStream.cpp \
-    $(TESTDIR)/testCudaKernel.cpp
+    $(TESTDIR)/gpuKernel.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaStreamManager.cu \
-    $(SRCDIR)/CudaRuntime.cu
+    $(SRCDIR)/CudaRuntime.cu \
+    $(TESTDIR)/testCudaKernel.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
@@ -69,14 +70,14 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
 CXXWARNS  =
 
 CU        = nvcc
 CUFLAGS   = -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -D__PGI
 CUWARNS   =
 
-LIBS      = -lstdc++ -lpgf90 -lpgf90rtl -lpgf90_rpm1 -lpgf902 -lamrex -lcudart
+LIBS      = -lstdc++ -pgf90libs -lamrex -lcudart
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(OLCF_PGI_ROOT)/linuxpower/20.1/lib
 
 ifdef DEBUG
