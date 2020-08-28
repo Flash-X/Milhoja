@@ -56,11 +56,11 @@ SRCS       = \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/CudaStream.cpp
+    $(SRCDIR)/CudaStream.cpp \
+    $(TESTDIR)/testCudaKernel.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaStreamManager.cu \
-    $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/testCudaKernel.cu
+    $(SRCDIR)/CudaRuntime.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))

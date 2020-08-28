@@ -54,7 +54,7 @@ int   main(int argc, char* argv[]) {
         const IntVect   hiGC = tileDesc->hiGC();
         FArray4D        f    = tileDesc->data();
 
-        #pragma data copy(f) copyin(loGC, hiGC)
+        #pragma acc data copy(f) copyin(loGC, hiGC)
         {
         #pragma acc parallel loop collapse(3)
         for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
