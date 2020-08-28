@@ -33,7 +33,8 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTDIR)/setInitialInterior.h
     #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/scaleEnergy_block.h \
@@ -63,6 +64,7 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTDIR)/setInitialInteriorTest.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTDIR)/errorEstMaximal.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
