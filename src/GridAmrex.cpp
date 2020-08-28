@@ -144,7 +144,7 @@ void  GridAmrex::fillGC(const unsigned int lev) {
     Logger::instance().log("[GridAmrex] GCFill on level " +
                            std::to_string(lev) );
 #endif
-    amrcore_->fillGCOneLevel(lev);
+    amrcore_->fillPatch(amrcore_->unk(lev),lev);
 }
 
 

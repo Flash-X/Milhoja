@@ -12,11 +12,11 @@
 
 using namespace orchestration;
 
-Real dt[3], t_old[3], t_new[3];
+Real dt[3], t_new[3];
 int step[3];
 int regrid_int = 2;
 Real stop_time = 2.0_wp;
-int max_steps = 10;
+int max_steps = 10000;
 
 
 void doTimestep(const int lev, Real time, int iteration) {
@@ -28,13 +28,11 @@ void doTimestep(const int lev, Real time, int iteration) {
     // do advance
     {
         // update time
-        t_old[lev] = t_new[lev];
-        t_new[lev] = t_old[lev] + dt[lev];
+        Real t_old = t_new[lev];
+        t_new[lev] = t_new[lev] + dt[lev];
 
         // get some pointers
-        const Real old_time = t_old[lev];
-        const Real new_time = t_new[lev];
-        const Real ctr_time = 0.5*(old_time+new_time);
+        const Real ctr_time = 0.5*(t_old+t_new[lev]);
         const RealVect dxVect = grid.getDeltas(lev);
         const Real* dx = dxVect.dataPtr();
         const RealVect probLoVect = grid.getProbLo();
@@ -168,7 +166,6 @@ void EvolveAdvection() {
     // initialize driver variables
     Real time = 0.0_wp;
     for(int i=0;i<=grid.getMaxRefinement();++i) {
-        t_old[i] = 0.0_wp;
         t_new[i] = 0.0_wp;
         dt[i] = 1e100;
         step[i] = 0;
@@ -182,7 +179,7 @@ void EvolveAdvection() {
 
         // all level regrid
         if(nstep>0 && (nstep%regrid_int==0) ) {
-            //grid.regrid();
+            grid.regrid();
         }
 
         // All level GC fill
@@ -196,17 +193,20 @@ void EvolveAdvection() {
 
         doTimestep(0, time, 1);
 
+        dynamic_cast<GridAmrex&>(grid).averageDownAll();
+
         time = time + dt[0];
 
         Logger::instance().log("[Driver] Done with Step "
                                + std::to_string(nstep+1)
                                + ", with dt = " + std::to_string(dt[0]) + ".");
 
-        std::string pltName = amrex::Concatenate("adv_plt_", nstep+1, 4);
-        grid.writePlotfile(pltName);
-
         if (time >= 2.0 - 1.e-6*dt[0]) break;
     }
+
+    std::string pltName = amrex::Concatenate("adv_plt_", step[0], 4);
+    grid.writePlotfile(pltName);
+
 }
 
 } //Driver

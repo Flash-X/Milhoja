@@ -36,6 +36,7 @@ public:
                             ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
     void         fillGC(const unsigned int lev) override;
+    void         regrid() override { amrcore_->regrid(0,0.0_wp); }
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo() const override;

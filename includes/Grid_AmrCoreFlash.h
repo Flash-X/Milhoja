@@ -80,7 +80,7 @@ public:
         }
     }
 
-    void fillGCOneLevel(const unsigned int lev);
+    void fillPatch(amrex::MultiFab& mf, const unsigned int lev);
 
 
     void writeMultiPlotfile(const std::string& filename) const;

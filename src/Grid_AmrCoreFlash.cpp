@@ -102,7 +102,11 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
-    throw std::logic_error("need RemakeLevel callback");
+
+    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, NGUARD};
+    fillPatch(unkTmp, lev);
+
+    std::swap(unkTmp, unk_[lev] );
 }
 
 /**
@@ -116,7 +120,7 @@ void AmrCoreFlash::ClearLevel (int lev) {
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
-    throw std::logic_error("need ClearLevel callback");
+    unk_[lev].clear();
 }
 
 /**
@@ -210,7 +214,7 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
 #endif
 }
 
-void AmrCoreFlash::fillGCOneLevel(const unsigned int lev) {
+void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
     if (lev==0) {
         amrex::Vector<amrex::MultiFab*> smf;
         amrex::Vector<amrex::Real> stime;
@@ -222,8 +226,8 @@ void AmrCoreFlash::fillGCOneLevel(const unsigned int lev) {
         amrex::PhysBCFunct<amrex::BndryFuncArray>
             physbc(geom[lev], bcs_, bfunc);
 
-        amrex::FillPatchSingleLevel(unk_[lev], 0.0_wp, smf, stime,
-                                    0, 0, unk_[lev].nComp(),
+        amrex::FillPatchSingleLevel(mf, 0.0_wp, smf, stime,
+                                    0, 0, mf.nComp(),
                                     geom[lev], physbc, 0);
     }
     else {
@@ -243,9 +247,9 @@ void AmrCoreFlash::fillGCOneLevel(const unsigned int lev) {
         // CellConservativeLinear interpolator from AMReX_Interpolator.H
         amrex::Interpolater* mapper = &amrex::cell_cons_interp;
 
-        amrex::FillPatchTwoLevels(unk_[lev], 0.0_wp,
+        amrex::FillPatchTwoLevels(mf, 0.0_wp,
                                   cmf, ctime, fmf, ftime,
-                                  0, 0, unk_[lev].nComp(),
+                                  0, 0, mf.nComp(),
                                   geom[lev-1], geom[lev],
                                   cphysbc, 0, fphysbc, 0,
                                   refRatio(lev-1), mapper, bcs_, 0);
