@@ -16,10 +16,10 @@ Real dt[3], t_new[3];
 int step[3];
 int regrid_int = 2;
 Real stop_time = 2.0_wp;
-int max_steps = 10000;
+int max_steps = 125;
 
 
-void doTimestep(const int lev, Real time, int iteration) {
+void doTimestep(const int lev, Real time) {
     Grid& grid = Grid::instance();
     Logger::instance().log("[Driver] Level " + std::to_string(lev)
                            + ", step " + std::to_string(step[lev]+1)
@@ -30,9 +30,9 @@ void doTimestep(const int lev, Real time, int iteration) {
         // update time
         Real t_old = t_new[lev];
         t_new[lev] = t_new[lev] + dt[lev];
+        const Real ctr_time = 0.5*(t_new[lev]+t_old) ;
 
         // get some pointers
-        const Real ctr_time = 0.5*(t_old+t_new[lev]);
         const RealVect dxVect = grid.getDeltas(lev);
         const Real* dx = dxVect.dataPtr();
         const RealVect probLoVect = grid.getProbLo();
@@ -47,8 +47,6 @@ void doTimestep(const int lev, Real time, int iteration) {
                                  amrex::IntVect(tileDesc->hi())}; //tilebox
 
             // statein (t=t_0), stateout (t=t_0)
-            //const amrex::FArrayBox& statein = Sborder[tileDesc->gridIndex()];
-            //const Real* stateinPtr = statein.dataPtr();
             Real* stateinPtr  = tileDesc->dataPtr();
             Real* stateoutPtr = tileDesc->dataPtr();
             const IntVect   loGC = tileDesc->loGC();
@@ -80,20 +78,9 @@ void doTimestep(const int lev, Real time, int iteration) {
                              BL_TO_FORTRAN_3D(flux[1]),
                              BL_TO_FORTRAN_3D(flux[2])),
                    dx, &dt[lev] );
-            auto stateout = tileDesc->data();
+        } // TileIter
 
-        }
-    }
-
-    ++step[lev];
-
-    if(lev< grid.getMaxLevel()) {
-        // recursive call to do next-finer level
-        // no subcycling
-        doTimestep(lev+1,time,1);
-
-        // average down to??
-    }
+    }// advance
 }
 
 void ComputeDt(const Real time) {
@@ -173,11 +160,14 @@ void EvolveAdvection() {
 
     for(int nstep=0; nstep<max_steps; ++nstep) {
 
+        Logger::instance().log("[Driver] Starting Step "
+                               + std::to_string(nstep+1)
+                               + "...");
 
-        // update dt array
+        // Update dt array
         ComputeDt(time);
 
-        // all level regrid
+        // Regrid
         if(nstep>0 && (nstep%regrid_int==0) ) {
             grid.regrid();
         }
@@ -187,11 +177,11 @@ void EvolveAdvection() {
             grid.fillGC(lev);
         }
 
-        Logger::instance().log("[Driver] Starting Step "
-                               + std::to_string(nstep+1)
-                               + "...");
-
-        doTimestep(0, time, 1);
+        // advance all levels
+        for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+            doTimestep(lev, time);
+            ++step[lev];
+        }
 
         dynamic_cast<GridAmrex&>(grid).averageDownAll();
 
