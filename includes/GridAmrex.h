@@ -10,10 +10,7 @@
 
 #include "Grid.h"
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_BoxArray.H>
 #include "Grid_AmrCoreFlash.h"
 
 namespace orchestration {
@@ -38,6 +35,7 @@ public:
     void         initDomain(ACTION_ROUTINE initBlock,
                             ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
+    void         fillGC(const unsigned int lev) override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo() const override;
@@ -74,15 +72,7 @@ public:
                                  Real* volPtr) const override;
 
     // Other public functions
-    amrex::Geometry& getGeom(const unsigned int lev) {
-        return amrcore_->Geom(lev);
-    }
-    amrex::BoxArray& getBoxArray(const unsigned int lev) {
-        return amrcore_->boxArray(lev);
-    }
-    amrex::DistributionMapping& getDMap(const unsigned int lev) {
-        return amrcore_->DistributionMap(lev);
-    }
+    void averageDownAll() { amrcore_->averageDownAll(); }
 
 private:
     GridAmrex(void);

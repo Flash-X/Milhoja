@@ -5,69 +5,25 @@
 #include "OrchestrationLogger.h"
 
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_FillPatchUtil.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
+
+#include <AmrCoreAdv_F.H>
 
 using namespace orchestration;
 
 Real dt[3], t_old[3], t_new[3];
 int step[3];
-int nsubsteps[3] = {2,2,2};
 int regrid_int = 2;
-std::vector<int> last_regrid_step(max_level,0);
+Real stop_time = 2.0_wp;
+int max_steps = 10;
 
-amrex::MultiFab getSBorder(Real time, int lev, int nComp, int nGrow) {
-    GridAmrex& grid = dynamic_cast<GridAmrex&>( Grid::instance() );
-    amrex::MultiFab Sborder(grid.getBoxArray(lev),
-                            grid.getDMap(lev),
-                            nComp, nGrow);
-    // fill patch
-    // FillPatch(lev, time, Sborder, 0, Sborder.nComp());
-    if (lev==0) {
-        amrex::Vector<MultiFab*> smf;
-        amrex::Vector<amrex::Real> stime;
-        //GetData(0,time,smf,stime);
-        //BndryFuncArray bfunc(phifill);
-        //PhysBCFunct<BndryFuncArray> physbc(grid.getGeom(lev), bcs, bfunc);
-        amrex::FillPatchSingleLevel(mf, time, smf,
-                                    stime, 0, icomp, nComp,
-                                    grid.getGeom(lev), physbc, 0);
-    }
-    else {
-        //Vector<MultiFab*> cmf, fmf;
-        //Vector<Real> ctime, ftime;
-        //GetData(lev-1, time, cmf, ctime);
-        //GetData(lev  , time, fmf, ftime);
 
-        //BndryFuncArray bfunc(phifill);
-        //PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
-        //PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
-
-        //Interpolater* mapper = &cell_cons_interp;
-
-        //amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-        //                          0, icomp, ncomp, geom[lev-1], geom[lev],
-        //                          cphysbc, 0, fphysbc, 0,
-        //                          refRatio(lev-1), mapper, bcs, 0);
-    }
-    return Sborder;
-}
-
-void doTimestep(unsigned int lev, Real time, int iteration) {
+void doTimestep(const int lev, Real time, int iteration) {
     Grid& grid = Grid::instance();
-    int max_level = grid.getMaxRefinement();
-    static std::vector<int> last_regrid_step(max_level, 0);
-
-    // possible regrid
-    if(lev < max_level && step[lev] > last_regrid_step[lev] ) {
-        //do regrid
-        throw std::logic_error("Implement regridding");
-    }
-
     Logger::instance().log("[Driver] Level " + std::to_string(lev)
                            + ", step " + std::to_string(step[lev]+1)
-                           + "; Advancing with dt = " + std::to_string(dt[lev]));
+                           + "; Advancing with dt = "+std::to_string(dt[lev]));
 
     // do advance
     {
@@ -79,32 +35,30 @@ void doTimestep(unsigned int lev, Real time, int iteration) {
         const Real old_time = t_old[lev];
         const Real new_time = t_new[lev];
         const Real ctr_time = 0.5*(old_time+new_time);
-        const RealVect dxVect = grid.getDeltas();
+        const RealVect dxVect = grid.getDeltas(lev);
         const Real* dx = dxVect.dataPtr();
         const RealVect probLoVect = grid.getProbLo();
         const Real* prob_lo = probLoVect.dataPtr();
 
-        // make Sborder (backup/sratch)
-        const int nComp = NUNKVAR;
-        const int nGrow = 3;
-        amrex::MultiFab Sborder = getSborder(time, lev, nComp, nGrow);
-
-        FArrayBox flux[NDIM], uface[NDIM];
-        for(auto ti=grid.buildTileIter(lev); ti.isValid(); ti->next()) {
+        amrex::FArrayBox flux[NDIM], uface[NDIM];
+        // no tiling for now
+        for(auto ti=grid.buildTileIter(lev); ti->isValid(); ti->next()) {
             auto tileDesc = ti->buildCurrentTile();
 
             const amrex::Box& bx{amrex::IntVect(tileDesc->lo()),
                                  amrex::IntVect(tileDesc->hi())}; //tilebox
 
             // statein (t=t_0), stateout (t=t_0)
-            const amrex::FArrayBox& statein = Sborder[tileDesc->gridIndex()];
+            //const amrex::FArrayBox& statein = Sborder[tileDesc->gridIndex()];
+            //const Real* stateinPtr = statein.dataPtr();
+            Real* stateinPtr  = tileDesc->dataPtr();
             Real* stateoutPtr = tileDesc->dataPtr();
             const IntVect   loGC = tileDesc->loGC();
             const IntVect   hiGC = tileDesc->hiGC();
 
             for(int i=0; i<NDIM; ++i) {
                 const amrex::Box& bxtmp = amrex::surroundingNodes(bx,i);
-                flux[i].resize(bxtmp, nComp);
+                flux[i].resize(bxtmp, NUNKVAR);
                 uface[i].resize(amrex::grow(bxtmp,1),1);
             }
 
@@ -115,19 +69,21 @@ void doTimestep(unsigned int lev, Real time, int iteration) {
                               dx, prob_lo);
 
             advect(&time, bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_3D(statein),
+                   stateinPtr,
+                   loGC.dataPtr(),
+                   hiGC.dataPtr(),
                    stateoutPtr,
                    loGC.dataPtr(),
                    hiGC.dataPtr(),
-                   AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                                BL_TO_FORTRAN(uface[1]),
-                                BL_TO_FORTRAN(uface[2])),
-                   AMREX_D_DECL(BL_TO_FORTRAN(flux[0]),
-                                BL_TO_FORTRAN(flux[1]),
-                                BL_TO_FORTRAN(flux[2])),
+                   LIST_NDIM(BL_TO_FORTRAN_3D(uface[0]),
+                             BL_TO_FORTRAN_3D(uface[1]),
+                             BL_TO_FORTRAN_3D(uface[2])),
+                   LIST_NDIM(BL_TO_FORTRAN_3D(flux[0]),
+                             BL_TO_FORTRAN_3D(flux[1]),
+                             BL_TO_FORTRAN_3D(flux[2])),
                    dx, &dt[lev] );
+            auto stateout = tileDesc->data();
 
-            // now statein (t=t_0), stateout (t=t_0+dt)
         }
     }
 
@@ -135,49 +91,122 @@ void doTimestep(unsigned int lev, Real time, int iteration) {
 
     if(lev< grid.getMaxLevel()) {
         // recursive call to do next-finer level
-        for(int i=0;i<nsubsteps[lev+1];++i) {
-            doTimestep(lev+1,time+i*dt[lev+1], i+1);
-        }
+        // no subcycling
+        doTimestep(lev+1,time,1);
 
         // average down to??
     }
 }
 
-void ComputeDt() {
-    dt[0] = 0.01097491125;
-    //dt[0] = 0.01093983378;
-    //dt[1] = 0.005469916891;
-    //dt[2] = 0.002734958446;
+void ComputeDt(const Real time) {
+    Grid& grid = Grid::instance();
+    std::vector<Real> dt_tmp(grid.getMaxLevel()+1);
+
+    //estimate time step for each level
+    for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+        Real dt_est = std::numeric_limits<Real>::max();
+
+        const RealVect dxVect = grid.getDeltas(lev);
+        const Real* dx = dxVect.dataPtr();
+        const RealVect probLoVect = grid.getProbLo();
+        const Real* prob_lo = probLoVect.dataPtr();
+
+        amrex::FArrayBox uface[NDIM];
+        for(auto ti=grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+            auto tileDesc = ti->buildCurrentTile();
+            const amrex::Box& bx{amrex::IntVect(tileDesc->lo()),
+                                 amrex::IntVect(tileDesc->hi())}; //tilebox
+
+            for(int i=0; i<NDIM; ++i) {
+                const amrex::Box& bxtmp = amrex::surroundingNodes(bx,i);
+                uface[i].resize(amrex::grow(bxtmp,i,1),1);
+            }
+            get_face_velocity(&lev, &time,
+                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+                                           BL_TO_FORTRAN(uface[1]),
+                                           BL_TO_FORTRAN(uface[2])),
+                              dx, prob_lo);
+            for(int i=0; i<NDIM; ++i) {
+                Real umax = uface[i].norm<amrex::RunOn::Host>(0);
+                if(umax> 1.e-100) {
+                    dt_est = std::min(dt_est, dx[i]/umax);
+                }
+            }
+
+        }
+        dt_est = dt_est*0.7_wp; // cfl = 0.7
+        dt_tmp[lev] = dt_est;
+
+    }
+    amrex::ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
+
+    // get minimum time step, and enforce max change ratio of 1.1
+    Real dt_0 = dt_tmp[0];
+    const Real change_max = 1.1;
+    for (int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+        dt_tmp[lev] = std::min(dt_tmp[lev], change_max*dt[lev]);
+        dt_0 = std::min(dt_0, dt_tmp[lev]);
+    }
+
+    // limit time step by stop time
+    const Real eps = 1.e-3*dt_0;
+    if (t_new[0]+dt_0 > stop_time-eps) {
+        dt_0 = stop_time - t_new[0];
+    }
+
+    // set dt for all levels
+    for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+        dt[lev] = dt_0;
+    }
 }
 
 namespace Driver {
 
 void EvolveAdvection() {
+    Grid& grid = Grid::instance();
+
+    // initialize driver variables
     Real time = 0.0_wp;
-    for(int i=0;i<NDIM;++i) {
+    for(int i=0;i<=grid.getMaxRefinement();++i) {
         t_old[i] = 0.0_wp;
         t_new[i] = 0.0_wp;
+        dt[i] = 1e100;
+        step[i] = 0;
     }
 
-    // TODO loop over steps
-    for(int i=0;i<NDIM;++i) step[i] = 0;
-
-    Logger::instance().log("Starting coarse Step " + std::to_string(step[0])
-                           + "...");
+    for(int nstep=0; nstep<max_steps; ++nstep) {
 
 
-    ComputeDt();
+        // update dt array
+        ComputeDt(time);
 
-    unsigned int lev = 0;
-    int iteration = 1;
-    doTimestep(lev, time, iteration);
+        // all level regrid
+        if(nstep>0 && (nstep%regrid_int==0) ) {
+            //grid.regrid();
+        }
 
-    time = time + dt[0];
+        // All level GC fill
+        for(int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+            grid.fillGC(lev);
+        }
 
-    Logger::instance().log("Done with coarse Step " + std::to_string(step[0])
-                           + ", with dt = " + std::to_string(dt[0]) + ".");
+        Logger::instance().log("[Driver] Starting Step "
+                               + std::to_string(nstep+1)
+                               + "...");
 
-    //if (time >= 2.0 - 1.e-6*dt[0]) break;
+        doTimestep(0, time, 1);
+
+        time = time + dt[0];
+
+        Logger::instance().log("[Driver] Done with Step "
+                               + std::to_string(nstep+1)
+                               + ", with dt = " + std::to_string(dt[0]) + ".");
+
+        std::string pltName = amrex::Concatenate("adv_plt_", nstep+1, 4);
+        grid.writePlotfile(pltName);
+
+        if (time >= 2.0 - 1.e-6*dt[0]) break;
+    }
 }
 
 } //Driver

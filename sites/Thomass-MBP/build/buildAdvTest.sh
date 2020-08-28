@@ -13,7 +13,7 @@ N_BLOCKS_Y=4
 N_BLOCKS_Z=4
 
 N_DIMS=2
-LREFINE=3
+LREFINE=1
 
 
 cd ..
@@ -40,7 +40,7 @@ sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Adv/Flash.h
 sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Adv/Flash.h
 sed -i '' "s/REFINEMENT_LEVELS/$LREFINE/g" $TESTDIR/Adv/Flash.h
 sed -i '' "s/NUNKVAR    2/NUNKVAR 1/g" $TESTDIR/Adv/Flash.h
-#sed -i '' "s/NGUARD 1/NGUARD 0/g" $TESTDIR/Adv/Flash.h
+sed -i '' "s/NGUARD 1/NGUARD 3/g" $TESTDIR/Adv/Flash.h
 
 # Build debug mode
 #echo ""

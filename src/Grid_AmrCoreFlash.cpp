@@ -7,6 +7,10 @@
 #include "ThreadTeam.h"
 #include <AMReX_PlotFileUtil.H>
 
+#include <AMReX_Interpolater.H>
+#include <AmrCoreAdv_F.H>
+#include <AMReX_FillPatchUtil.H>
+
 #include "Flash.h"
 
 namespace orchestration {
@@ -22,6 +26,13 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
 
     // Allocate and resize unk_ (vector of Multifabs).
     unk_.resize(max_level+1);
+
+    // Set periodic Boundary conditions
+    bcs_.resize(1);
+    for(int i=0; i<NDIM; ++i) {
+        bcs_[0].setLo(i, amrex::BCType::int_dir);
+        bcs_[0].setHi(i, amrex::BCType::int_dir);
+    }
 }
 
 //! Default constructor
@@ -129,7 +140,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     // Build multifab unk_[lev].
     unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
 
-    // Initialize data in unk_ to 0.0.
+    // Initialize data in unk_[lev] to 0.0.
     unk_[lev].setVal(0.0_wp);
 
     // Initalize simulation block data in unk_[lev].
@@ -148,7 +159,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     team.closeQueue();
     team.wait();
 
-    // DO A GC FILL HERE
+    // DO A GC FILL HERE?
 
 #ifdef GRID_LOG
     std::string msg2 = "[AmrCoreFlash::MakeNewLevelFromScratch] Created level " +
@@ -197,6 +208,49 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                       std::to_string(lev) + ".";
     Logger::instance().log(msg2);
 #endif
+}
+
+void AmrCoreFlash::fillGCOneLevel(const unsigned int lev) {
+    if (lev==0) {
+        amrex::Vector<amrex::MultiFab*> smf;
+        amrex::Vector<amrex::Real> stime;
+        //GetData(0,time,smf,stime);
+        smf.push_back(&unk_[0]);
+        stime.push_back(0.0_wp);
+
+        amrex::BndryFuncArray bfunc(phifill);
+        amrex::PhysBCFunct<amrex::BndryFuncArray>
+            physbc(geom[lev], bcs_, bfunc);
+
+        amrex::FillPatchSingleLevel(unk_[lev], 0.0_wp, smf, stime,
+                                    0, 0, unk_[lev].nComp(),
+                                    geom[lev], physbc, 0);
+    }
+    else {
+        amrex::Vector<amrex::MultiFab*> cmf, fmf;
+        amrex::Vector<amrex::Real> ctime, ftime;
+        cmf.push_back(&unk_[lev-1]);
+        ctime.push_back(0.0_wp);
+        fmf.push_back(&unk_[lev]);
+        ftime.push_back(0.0_wp);
+
+        amrex::BndryFuncArray bfunc(phifill);
+        amrex::PhysBCFunct<amrex::BndryFuncArray>
+            cphysbc(geom[lev-1], bcs_, bfunc);
+        amrex::PhysBCFunct<amrex::BndryFuncArray>
+            fphysbc(geom[lev  ], bcs_, bfunc);
+
+        // CellConservativeLinear interpolator from AMReX_Interpolator.H
+        amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+        amrex::FillPatchTwoLevels(unk_[lev], 0.0_wp,
+                                  cmf, ctime, fmf, ftime,
+                                  0, 0, unk_[lev].nComp(),
+                                  geom[lev-1], geom[lev],
+                                  cphysbc, 0, fphysbc, 0,
+                                  refRatio(lev-1), mapper, bcs_, 0);
+    }
+
 }
 
 

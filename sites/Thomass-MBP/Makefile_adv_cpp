@@ -35,7 +35,8 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
     $(TESTDIR)/setInitialAdv.h \
-    $(TESTDIR)/Driver.h
+    $(TESTDIR)/Driver.h \
+    $(ADVBASE)/Source/AmrCoreAdv_F.H
 SRCS       = \
     $(TESTDIR)/runAdvTest.cpp \
     $(TESTDIR)/advectionTest.cpp \
@@ -63,6 +64,11 @@ SRCS       = \
 
 F2003_SRCS = \
     $(ADVBASE)/Exec/SingleVortex/Prob.f90 \
+    $(ADVBASE)/Exec/SingleVortex/face_velocity_2d.f90 \
+    $(ADVBASE)/Source/Src_2d/slope_2d.f90 \
+    $(ADVBASE)/Source/bc_fill_nd.F90 \
+    $(ADVBASE)/Source/Src_2d/compute_flux_2d.f90 \
+    $(ADVBASE)/Source/Src_2d/Adv_2d.f90 \
     $(ADVBASE)/Source/Src_nd/Tagging_nd.f90
 
 OBJS      = $(addsuffix .o,   $(basename $(SRCS)))
@@ -74,7 +80,7 @@ CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMRE
 CXXWARNS  =
 
 F2003     = mpif90
-F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003FLAGS = -g -O0 -cpp -std=f2008 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
 F2003WARNS =
 
 #LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest

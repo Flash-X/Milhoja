@@ -6,6 +6,7 @@
 #include "actionRoutine.h"
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_PhysBCFunct.H>
 
 namespace orchestration {
 
@@ -71,19 +72,23 @@ public:
         {
             amrex::average_down(unk_[lev+1],
                                 unk_[lev],
-                                Geom(lev+1),
-                                Geom(lev),
+                                geom[lev+1],
+                                geom[lev],
                                 0,
                                 unk_[lev].nComp(),
                                 refRatio(lev));
         }
     }
 
+    void fillGCOneLevel(const unsigned int lev);
+
 
     void writeMultiPlotfile(const std::string& filename) const;
 
 private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
+
+    amrex::Vector<amrex::BCRec> bcs_; //!< Boundary conditions
 
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.

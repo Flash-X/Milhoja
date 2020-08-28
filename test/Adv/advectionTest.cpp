@@ -49,7 +49,6 @@ TEST_F(AdvectionTest,Evolution){
 
     Driver::EvolveAdvection();
 
-    grid.writePlotfile("adv_plt_0001");
 }
 
 }

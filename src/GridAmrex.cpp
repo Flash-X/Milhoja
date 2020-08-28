@@ -137,6 +137,16 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
 #endif
 }
 
+/** Fill guard cells on a level.
+  */
+void  GridAmrex::fillGC(const unsigned int lev) {
+#ifdef GRID_LOG
+    Logger::instance().log("[GridAmrex] GCFill on level " +
+                           std::to_string(lev) );
+#endif
+    amrcore_->fillGCOneLevel(lev);
+}
+
 
 /**
   * getDomainLo gets the lower bound of a given level index space.
