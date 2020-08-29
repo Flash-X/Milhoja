@@ -18,6 +18,11 @@ namespace orchestration {
   * Fortran-like access on a 4D array.  Note that the access pattern is also
   * Fortran-style, column-major ordering.
   *
+  * IMPORTANT: This class should be designed and maintained so that copies of
+  * objects of this type can be put into device memory and used such that
+  * actions placed on or done by the original objects don't affect the use of
+  * the object in the device.
+  *
   * \todo Decide if buildScratchArray4D and the associated owner_ private data
   * member is a good design.  I dislike it because the original simple, clean
   * design concept of the FArray4D class was that of a simple wrapper --- it was
@@ -57,6 +62,10 @@ public:
     }
 
 private:
+    // So that objects of this class can be copied directly into device memory
+    // easily, the data members in this class must be mananged and maintained
+    // so that we need not transfer any data other than the data pointed to by
+    // data_ to device memory.
     bool         owner_;    //!< Marks if object owns the data.
     Real*        data_;     //!< Pointer to data.
     int          i0_;       //!< Lower bound of first index.

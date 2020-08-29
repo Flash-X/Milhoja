@@ -53,6 +53,7 @@ int   main(int argc, char* argv[]) {
                                       * (NZB + 2 * NGUARD * K3D)
                                       * NUNKVAR;
     constexpr std::size_t   N_BYTES =   2 * MDIM * sizeof(int) 
+                                      +        1 * sizeof(FArray4D)
                                       +  N_CELLS * sizeof(Real);
 
     void*         packet_p = nullptr;
@@ -122,6 +123,17 @@ int   main(int argc, char* argv[]) {
         data_p = reinterpret_cast<Real*>(ptr_p);
         data_d = reinterpret_cast<Real*>(ptr_d);
         std::memcpy((void*)ptr_p, (void*)data_h, N_CELLS*sizeof(Real));
+        ptr_p += N_CELLS*sizeof(Real);
+        ptr_d += N_CELLS*sizeof(Real);
+
+        // Create an FArray4D object in host memory but that already points
+        // to where its data will be in device memory (i.e. the device object
+        // will already be attached to its data in device memory).
+        // The object in host memory should never be used then.
+        // IMPORTANT: When this local object is destroyed, we don't want it to
+        // affect the use of the copies (e.g. release memory).
+        FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
+        std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
 
         cErr = cudaMemcpy(packet_d, packet_p, N_BYTES, cudaMemcpyHostToDevice);
         if (cErr != cudaSuccess) {
@@ -186,8 +198,7 @@ int   main(int argc, char* argv[]) {
         for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
             for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
                 for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-//                    fExpected = i + 2.1;
-                    fExpected = 2.1;
+                    fExpected = i + 2.1;
                     absErr = fabs(f(i, j, k, DENS_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad DENS at ("
@@ -195,8 +206,7 @@ int   main(int argc, char* argv[]) {
                                   << f(i, j, k, DENS_VAR_C) << " instead of "
                                   << fExpected << "\n";
                     }
-//                    fExpected = 2.0*j + 2.1;
-                    fExpected = 3.1;
+                    fExpected = 2.0*j + 2.1;
                     absErr = fabs(f(i, j, k, ENER_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad ENER at ("
