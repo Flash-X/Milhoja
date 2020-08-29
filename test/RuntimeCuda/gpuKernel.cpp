@@ -37,8 +37,8 @@ void   gpuKernel::kernel(void* packet_d) {
             for     (int j=loGC_d[JAXIS_C]; j<=hiGC_d[JAXIS_C]; ++j) {
                 #pragma acc loop
                 for (int i=loGC_d[IAXIS_C]; i<=hiGC_d[IAXIS_C]; ++i) {
-                    (*f_d)(i, j, k, DENS_VAR_C) += 2.1 * j;
-                    (*f_d)(i, j, k, ENER_VAR_C) -= i;
+                    f_d->at(i, j, k, DENS_VAR_C) += 2.1 * j;
+                    f_d->at(i, j, k, ENER_VAR_C) -= i;
                 }
             }
         }

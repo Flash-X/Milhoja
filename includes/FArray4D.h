@@ -34,6 +34,8 @@ namespace orchestration {
   * calling an infrastructure routine.  These routines manage the underlying
   * resource in such a way that, so far, the PUDs need not think about resource
   * management.
+  *
+  * \todo Add lbound/ubound and size functions that take FArray4D as argument?
   */
 class FArray4D {
 public:
@@ -53,8 +55,35 @@ public:
     FArray4D& operator=(const FArray4D&) = delete;
     FArray4D& operator=(FArray4D&&)      = delete;
 
-    //! Get and set data in a Fortran-style way.
+    /**
+     * Get and set data in a Fortran-style way.
+     *
+     * \todo Should the offline toolchain figure out which routines need to be 
+     * decorated this way and write the appropriate directive based on the
+     * offloading program model of choice?  Should developers mark this with our
+     * own directive so that the toolchain has less work to do?  Since this is 
+     * low-level infrastructure, should we just put in the directives protected 
+     * by preprocessor so that the compiler just choices the correct line?
+     */
+    #pragma acc routine seq
     Real& operator()(const int i, const int j, const int k, const int n) const {
+        return data_[  (i-i0_)
+                     + (j-j0_)*jstride_
+                     + (k-k0_)*kstride_
+                     +      n *nstride_];
+    }
+
+    /**
+     * \todo Is this really necessary?  This is more for people writing kernels
+     * so that they have a more pointer-friendly aesthetic? 
+     * Couln't the kernel just be written as if the FArray4D object is a direct
+     * variable and have the offline toolchain convert it into the simplest,
+     * potentially ugly pointer form.
+     *
+     * f->at(i,j,k,n) better than (*f)(i,j,k,n)?
+     */
+    #pragma acc routine seq
+    Real& at(const int i, const int j, const int k, const int n) const {
         return data_[  (i-i0_)
                      + (j-j0_)*jstride_
                      + (k-k0_)*kstride_
