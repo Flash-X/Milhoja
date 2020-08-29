@@ -52,8 +52,8 @@ int   main(int argc, char* argv[]) {
                                       * (NYB + 2 * NGUARD * K2D)
                                       * (NZB + 2 * NGUARD * K3D)
                                       * NUNKVAR;
-    constexpr std::size_t   N_BYTES =         1 * sizeof(std::size_t) 
-                                      + N_CELLS * sizeof(Real);
+    constexpr std::size_t   N_BYTES =   2 * MDIM * sizeof(int) 
+                                      +  N_CELLS * sizeof(Real);
 
     void*         packet_p = nullptr;
     cudaError_t   cErr = cudaMallocHost(&packet_p, N_BYTES);
@@ -85,22 +85,43 @@ int   main(int argc, char* argv[]) {
     for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
         std::unique_ptr<Tile>   tileDesc = ti->buildCurrentTile();
 
-        data_h = tileDesc->dataPtr();
+        const IntVect   loGC = tileDesc->loGC();
+        const IntVect   hiGC = tileDesc->hiGC();
+        data_h               = tileDesc->dataPtr();
 
         // Marshall data for single tile data packet
         ptr_p = static_cast<char*>(packet_p);
         ptr_d = static_cast<char*>(packet_d);
 
-        std::size_t   nCells = N_CELLS;
-        std::memcpy((void*)ptr_p, (void*)&nCells, sizeof(std::size_t));
-        ptr_p += sizeof(std::size_t);
-        ptr_d += sizeof(std::size_t);
+        int   tmp = loGC.I();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
+        tmp = loGC.J();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
+        tmp = loGC.K();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
+
+        tmp = hiGC.I();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
+        tmp = hiGC.J();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
+        tmp = hiGC.K();
+        std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
+        ptr_p += sizeof(int);
+        ptr_d += sizeof(int);
 
         data_p = reinterpret_cast<Real*>(ptr_p);
         data_d = reinterpret_cast<Real*>(ptr_d);
         std::memcpy((void*)ptr_p, (void*)data_h, N_CELLS*sizeof(Real));
-        ptr_p += N_CELLS*sizeof(Real);
-        ptr_d += N_CELLS*sizeof(Real);
 
         cErr = cudaMemcpy(packet_d, packet_p, N_BYTES, cudaMemcpyHostToDevice);
         if (cErr != cudaSuccess) {
