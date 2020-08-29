@@ -363,7 +363,7 @@ TEST_F(GridUnitTest,MultipleLevels){
             data(i,j,k,0) = 1.25_wp;
         }}}
     }
-    grid.averageDownAll();
+    grid.restrictAllLevels();
 
     grid.fillGuardCells();
     grid.regrid();

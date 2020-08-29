@@ -35,6 +35,7 @@ TEST_F(AdvectionTest,InitializeCheck){
 
     grid.initDomain(Simulation::setInitialAdv,
                     Simulation::errorEstAdv);
+    grid.restrictAllLevels();
 
     //grid.writePlotfile("adv_plt_0000");
 }
@@ -44,6 +45,7 @@ TEST_F(AdvectionTest,Evolution){
 
     grid.initDomain(Simulation::setInitialAdv,
                     Simulation::errorEstAdv);
+    grid.restrictAllLevels();
 
     grid.writePlotfile("adv_plt_0000");
 

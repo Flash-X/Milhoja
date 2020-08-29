@@ -43,7 +43,7 @@ public:
     virtual void destroyDomain(void) = 0;
     virtual void initDomain(ACTION_ROUTINE initBlock,
                             ERROR_ROUTINE errorEst) = 0;
-    virtual void averageDownAll() = 0;
+    virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
     virtual void regrid() = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;

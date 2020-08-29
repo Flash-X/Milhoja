@@ -127,14 +127,16 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
     amrcore_ = new AmrCoreFlash(initBlock,errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
-    amrcore_->averageDownAll();
-
 #ifdef GRID_LOG
     std::string msg = "[GridAmrex] Initialized domain with " +
                       std::to_string(amrcore_->globalNumBlocks()) +
                       " total blocks.";
     Logger::instance().log(msg);
 #endif
+}
+
+void GridAmrex::restrictAllLevels() {
+    amrcore_->averageDownAll();
 }
 
 /** Fill guard cells on all levels.

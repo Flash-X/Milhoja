@@ -181,7 +181,7 @@ void EvolveAdvection() {
             ++step[lev];
         }
 
-        grid.averageDownAll();
+        grid.restrictAllLevels();
 
         time = time + dt[0];
 
