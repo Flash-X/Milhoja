@@ -181,7 +181,7 @@ void EvolveAdvection() {
             ++step[lev];
         }
 
-        dynamic_cast<GridAmrex&>(grid).averageDownAll();
+        grid.averageDownAll();
 
         time = time + dt[0];
 

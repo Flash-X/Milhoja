@@ -66,6 +66,7 @@ SRCS       = \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTDIR)/setInitialInteriorTest.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
+    $(TESTDIR)/errorEstMultiple.cpp \
     $(TESTDIR)/errorEstMaximal.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \

@@ -35,6 +35,7 @@ public:
     void         initDomain(ACTION_ROUTINE initBlock,
                             ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
+    void         averageDownAll() override { amrcore_->averageDownAll(); }
     void         fillGuardCells() override;
     void         regrid() override { amrcore_->regrid(0,0.0_wp); }
     IntVect      getDomainLo(const unsigned int lev) const override;
@@ -73,7 +74,6 @@ public:
                                  Real* volPtr) const override;
 
     // Other public functions
-    void averageDownAll() { amrcore_->averageDownAll(); }
 
 private:
     GridAmrex(void);

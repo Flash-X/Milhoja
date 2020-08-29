@@ -79,11 +79,16 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
     std::string msg = "[AmrCoreFlash::MakeNewLevelFromCoarse] Making level " +
-                      std::to_string(lev) + "from coarse...";
+                      std::to_string(lev) + " from coarse...";
     Logger::instance().log(msg);
 #endif
 
-    throw std::logic_error("need MakeNewLevelFromCoarse callback");
+    Grid& grid = Grid::instance();
+
+    // Build multifab unk_[lev].
+    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+
+    fillFromCoarse(unk_[lev], lev);
 }
 
 /**
@@ -217,7 +222,6 @@ void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
     if (lev==0) {
         amrex::Vector<amrex::MultiFab*> smf;
         amrex::Vector<amrex::Real> stime;
-        //GetData(0,time,smf,stime);
         smf.push_back(&unk_[0]);
         stime.push_back(0.0_wp);
 
@@ -254,6 +258,24 @@ void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
                                   refRatio(lev-1), mapper, bcs_, 0);
     }
 
+}
+
+void AmrCoreFlash::fillFromCoarse(amrex::MultiFab& mf, const unsigned int lev) {
+
+    amrex::CpuBndryFuncFab bndry_func(nullptr);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        cphysbc(geom[lev-1],bcs_,bndry_func);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        fphysbc(geom[lev  ],bcs_,bndry_func);
+
+    // CellConservativeLinear interpolator from AMReX_Interpolator.H
+    amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+    amrex::InterpFromCoarseLevel(mf, 0.0_wp, unk_[lev-1],
+                                 0, 0, mf.nComp(),
+                                 geom[lev-1], geom[lev],
+                                 cphysbc, 0, fphysbc, 0,
+                                 refRatio(lev-1), mapper, bcs_, 0);
 }
 
 

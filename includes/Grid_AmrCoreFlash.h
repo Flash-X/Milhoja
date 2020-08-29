@@ -81,6 +81,7 @@ public:
     }
 
     void fillPatch(amrex::MultiFab& mf, const unsigned int lev);
+    void fillFromCoarse(amrex::MultiFab& mf, const unsigned int lev);
 
 
     void writeMultiPlotfile(const std::string& filename) const;
