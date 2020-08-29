@@ -186,7 +186,8 @@ int   main(int argc, char* argv[]) {
         for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
             for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
                 for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                    fExpected = i + 2.1;
+//                    fExpected = i + 2.1;
+                    fExpected = 2.1;
                     absErr = fabs(f(i, j, k, DENS_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad DENS at ("
@@ -194,7 +195,8 @@ int   main(int argc, char* argv[]) {
                                   << f(i, j, k, DENS_VAR_C) << " instead of "
                                   << fExpected << "\n";
                     }
-                    fExpected = 2.0*j + 2.1;
+//                    fExpected = 2.0*j + 2.1;
+                    fExpected = 3.1;
                     absErr = fabs(f(i, j, k, ENER_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad ENER at ("
