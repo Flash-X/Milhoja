@@ -41,8 +41,9 @@ void   gpuKernel::kernel(void* packet_d) {
         }
 
         #pragma acc parallel loop default(none)
-        for (int i=0; i<NUNKVAR*nstride; ++i) {
-            data_d[i] += 2.1;
+        for (int i=0; i<nstride; ++i) {
+            data_d[i]         += 2.1;
+            data_d[i+nstride] += 2.1;
         }
     }
 }
