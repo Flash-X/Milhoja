@@ -1,6 +1,6 @@
 SHELL=/bin/sh
 
-# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+# TODO: Redo this with more care.  Switch to CMAKE?
 
 BASE         = test_runtime_cuda
 MAKEFILE     = Makefile_runtime_cuda
@@ -8,8 +8,9 @@ BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTDIR      = $(BASEDIR)/test/RuntimeCuda
-AMREXDIR     = $(HOME)/local/pgi_20.1/AMReX_2d
+AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
 CUDADIR      = $(OLCF_CUDA_ROOT)
+PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files
 CXX_HDRS   = \
@@ -74,11 +75,11 @@ CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -D__PGI
 CUWARNS   =
 
 LIBS      = -lstdc++ -pgf90libs -lamrex -lcudart
-LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(OLCF_PGI_ROOT)/linuxpower/20.1/lib
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME

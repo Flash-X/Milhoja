@@ -27,9 +27,9 @@ N_WAIT_CYCLES=100000
 # This should match the SW stack used to build the test binaries
 # as specified in buildTestRuntimeCuda.sh
 module purge
-module load pgi/20.1
+module load pgi/19.9
 module load spectrum-mpi/10.3.1.2-20200121
-module load cuda/9.2.148
+module load cuda/10.1.243
 module list
 
 # Resource Set = One MPI process/socket + one core per MPI process + 1 GPU per
