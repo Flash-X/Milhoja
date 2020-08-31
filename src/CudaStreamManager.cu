@@ -11,8 +11,8 @@ namespace orchestration {
 // Default value chosen in conjunction with the error checking in the
 // constructor such that client code will get an error if they do not explicitly
 // set the numer of streams before accessing the manager.
-std::size_t    CudaStreamManager::nMaxStreams_     = 0;
-bool           CudaStreamManager::wasInstantiated_ = false;
+int    CudaStreamManager::nMaxStreams_     = -1;
+bool   CudaStreamManager::wasInstantiated_ = false;
 
 /**
  * Before calling this routine, client code must first set the number of streams
@@ -32,11 +32,11 @@ CudaStreamManager&   CudaStreamManager::instance(void) {
  *
  * \return 
  */
-void CudaStreamManager::setMaxNumberStreams(const std::size_t nMaxStreams) {
+void CudaStreamManager::setMaxNumberStreams(const int nMaxStreams) {
     if (wasInstantiated_) {
         throw std::logic_error("[CudaStreamManager::setMaxNumberStreams] "
                                "Cannot be set once the manager has been accessed");
-    } else if (nMaxStreams == 0) {
+    } else if (nMaxStreams <= 0) {
         // We need at least one stream to avoid deadlocking in requestStream
         // when there are no free streams.
         throw std::invalid_argument("[CudaStreamManager::setMaxNumberStreams] "
@@ -60,8 +60,11 @@ CudaStreamManager::CudaStreamManager(void)
     if (nMaxStreams_ <= 0) {
         throw std::invalid_argument("[CudaStreamManager::CudaStreamManager] "
                                     "Set max number of streams before accessing manager");
+    } else if (streams_.size() > INT_MAX) {
+        std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
+        errMsg += "Too many streams created\n";
+        throw std::overflow_error(errMsg);
     }
-    assert(streams_.size()     == nMaxStreams_);
     assert(freeStreams_.size() == 0);
 
     pthread_cond_init(&streamReleased_, NULL);
@@ -72,7 +75,7 @@ CudaStreamManager::CudaStreamManager(void)
     pthread_mutex_lock(&idxMutex_);
 
     cudaError_t   cErr = cudaErrorInvalidValue;
-    for (std::size_t i=0; i<streams_.size(); ++i) {
+    for (int i=0; i<streams_.size(); ++i) {
          cErr = cudaStreamCreate(&(streams_[i]));
          if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
@@ -84,7 +87,8 @@ CudaStreamManager::CudaStreamManager(void)
          }
 
          // Make stream indices 1-based so that 0 can work as NULL_STREAM
-         freeStreams_.push_back( CudaStream(i+1, &(streams_[i])) );
+         int   streamId = i + 1;
+         freeStreams_.push_back( CudaStream(streamId, &(streams_[i])) );
     }
     Logger::instance().log(  "[CudaStreamManager] Created " 
                            + std::to_string(streams_.size())
@@ -147,12 +151,18 @@ CudaStreamManager::~CudaStreamManager(void) {
  *
  * \return 
  */
-std::size_t CudaStreamManager::numberFreeStreams(void) {
+int  CudaStreamManager::numberFreeStreams(void) {
     pthread_mutex_lock(&idxMutex_);
     std::size_t nStreams = freeStreams_.size();
     pthread_mutex_unlock(&idxMutex_);
 
-    return nStreams;
+    if (nStreams > INT_MAX) {
+        std::string  errMsg = "[CudaStreamManager::numberFreeStreams] ";
+        errMsg += "Too many streams created\n";
+        throw std::overflow_error(errMsg);
+    }
+
+    return static_cast<int>(nStreams);
 }
 
 /**
@@ -264,3 +274,4 @@ void   CudaStreamManager::releaseStream(CudaStream& stream) {
 }
 
 }
+

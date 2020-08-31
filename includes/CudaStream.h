@@ -6,16 +6,16 @@
 namespace orchestration {
 
 struct CudaStream {
-    static constexpr unsigned int NULL_STREAM_ID = 0;
+    static constexpr int NULL_STREAM_ID = 0;
 
-    unsigned int   id;
+    int            id;
     cudaStream_t*  object;
     // TODO: I presently use a pointer because I know that this is compatible
     // with the use of only move semantics in CudaStreamManager.  Study if there
     // is a way to make this a reference and still use move.
 
     CudaStream(void) : id{NULL_STREAM_ID}, object{nullptr}       { };
-    CudaStream(const unsigned int id_in, cudaStream_t* object_in)
+    CudaStream(const int id_in, cudaStream_t* object_in)
         : id{id_in},
           object{object_in}                                      { };
     ~CudaStream(void)                                            { };
