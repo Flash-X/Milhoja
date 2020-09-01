@@ -10,10 +10,12 @@ class Timers {
     static void        start(std::string name);
     static void        stop(std::string name);
     static std::string getSummary();
+    static void        setMaxDepth(const int num);
 
     private:
     static std::shared_ptr<Timer> current_;
     static const std::shared_ptr<Timer> base_;
+    static int maxDepth_;
 };
 
 }

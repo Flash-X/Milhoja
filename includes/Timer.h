@@ -34,7 +34,7 @@ public:
         : parent_{parent},
           name_{name},
           count_{0},
-          depth_{parent->depth()},
+          depth_{parent->depth()+1},
           running_{false},
           elapsedTime_{std::chrono::seconds::zero()},
           startTime_{}
@@ -141,7 +141,7 @@ private:
 
     std::string name_;
     int count_;
-    int depth_;
+    int depth_; //!< depth on tree, base=0, all named timers >=1
     bool running_;
     std::chrono::seconds elapsedTime_;
     std::chrono::steady_clock::time_point startTime_;
