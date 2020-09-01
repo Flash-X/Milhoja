@@ -1,0 +1,61 @@
+SHELL=/bin/sh
+
+# TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
+
+BASE         = test_timers_cpp
+MAKEFILE     = Makefile_timers_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/Timers
+AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
+GTESTDIR     = $(HOME)/Documents/googletest/googletest
+
+# Common files
+CXX_HDRS   = \
+    $(TESTDIR)/Flash.h \
+    $(TESTDIR)/constants.h \
+    $(INCDIR)/Timer.h \
+    $(INCDIR)/Timers.h
+SRCS       = \
+    $(TESTDIR)/runTimersTest.cpp \
+    $(TESTDIR)/timersTest.cpp \
+    $(SRCDIR)/Timers.cpp
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+COMMAND   =  $(BASE).x
+
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXWARNS  =
+
+#LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest
+LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+ifdef GLOG
+CXXFLAGS := $(CXXFLAGS) -DGRID_LOG
+endif
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+
+$(COMMAND): $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+
+.cpp.o: $(CXX_HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND)
+	/bin/rm -f Test*.log
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTBASEDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+
