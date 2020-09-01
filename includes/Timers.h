@@ -7,9 +7,11 @@ namespace orchestration {
 
 class Timers {
     public:
-    static void start(std::string name);
-    static void stop(std::string name);
+    static void        start(std::string name);
+    static void        stop(std::string name);
+    static std::string getSummary();
 
+    private:
     static std::shared_ptr<Timer> current_;
     static const std::shared_ptr<Timer> base_;
 };

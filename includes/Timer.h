@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <chrono>
 #include <stdexcept>
@@ -25,7 +26,7 @@ public:
           elapsedTime_{std::chrono::seconds::zero()},
           startTime_{}
     {
-        std::cout << "Constructor for base Timer." << std::endl;
+        //std::cout << "Constructor for base Timer." << std::endl;
     }
 
     // for making children
@@ -38,11 +39,11 @@ public:
           elapsedTime_{std::chrono::seconds::zero()},
           startTime_{}
     {
-        std::cout << "Constructor for Timer: " << name_ << std::endl;
+        //std::cout << "Constructor for Timer: " << name_ << std::endl;
     }
 
     ~Timer(void){
-        std::cout << "Destructor for Timer: " << name_ << std::endl;
+        //std::cout << "Destructor for Timer: " << name_ << std::endl;
     }
 
     Timer(Timer&&) = delete;
@@ -107,6 +108,23 @@ public:
         }
     }
 
+    void makeSummary(std::stringstream& ss, const int indent) const {
+        int new_indent = indent;
+        if(parent_.lock()) {
+            for(int n=0; n<indent; ++n) {
+                ss << " ";
+            }
+            ss << name_;
+            ss << std::endl;
+            new_indent += 2;
+        }
+        for(int i=0; i<children_.size(); ++i) {
+            children_[i]->makeSummary(ss, new_indent);
+        }
+    }
+
+
+private:
     int childNum(std::string name) const {
         int num = -1;
         for(int i=0; i<children_.size(); ++i) {
@@ -118,8 +136,6 @@ public:
         return num;
     }
 
-
-private:
     std::weak_ptr<Timer> parent_;
     std::vector<std::shared_ptr<Timer>> children_;
 

@@ -75,6 +75,8 @@ TEST_F(TimersTest,Sample){
         Timers::start("sourceTerms");
         Timers::stop("sourceTerms");
     Timers::stop("evolution");
+
+    std::cout << Timers::getSummary();
 }
 
 }
