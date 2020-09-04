@@ -53,6 +53,9 @@ int   main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     CudaStreamManager::setMaxNumberStreams(N_BLOCKS);
+    CudaStream    streamFull;
+    cudaStream_t  stream;
+    int           streamId;
 
     // Initialize Grid unit/AMReX
     Grid::instantiate();
@@ -83,21 +86,15 @@ int   main(int argc, char* argv[]) {
     }
 
     // Run the kernel in the CPU at first
-    std::size_t             n        = 0;
-    Real*                   data_h   = nullptr;
-    Real*                   data_p   = nullptr;
-    Real*                   data_d   = nullptr;
-    void*                   packet_p = nullptr;
-    void*                   packet_d = nullptr;
-    char*                   ptr_p    = static_cast<char*>(buffer_p);
-    char*                   ptr_d    = static_cast<char*>(buffer_d);
-    std::vector<Real*>      hostPtrs{N_BLOCKS};
-    std::vector<Real*>      pinnedPtrs{N_BLOCKS};
-    std::vector<CudaStream> streamList{N_BLOCKS};
-    cudaStream_t            stream;
-    int                     streamId;
+    Real*                data_h   = nullptr;
+    Real*                data_p   = nullptr;
+    Real*                data_d   = nullptr;
+    void*                packet_p = nullptr;
+    void*                packet_d = nullptr;
+    char*                ptr_p    = static_cast<char*>(buffer_p);
+    char*                ptr_d    = static_cast<char*>(buffer_d);
     assert(sizeof(char) == 1);
-    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next(), ++n) {
+    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
         std::unique_ptr<Tile>   tileDesc = ti->buildCurrentTile();
 
         const IntVect   loGC = tileDesc->loGC();
@@ -152,14 +149,9 @@ int   main(int argc, char* argv[]) {
         ptr_p += sizeof(FArray4D);
         ptr_d += sizeof(FArray4D);
 
-        // Cache pointers to data in same order for later copyback
-        hostPtrs[n]   = data_h;
-        pinnedPtrs[n] = data_p;
-
-        // Do data transfers and execute kernel
-        streamList[n] = CudaStreamManager::instance().requestStream(false);
-        stream = *(streamList[n].object);
-        streamId = streamList[n].id;
+        streamFull = CudaStreamManager::instance().requestStream(false);
+        stream = *(streamFull.object);
+        streamId = streamFull.id;
 
         cErr = cudaMemcpyAsync(packet_d, packet_p, N_BYTES_PER_PACKET,
                                cudaMemcpyHostToDevice, stream);
@@ -182,15 +174,10 @@ int   main(int argc, char* argv[]) {
             errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
             throw std::runtime_error(errMsg);
         }
+        cudaStreamSynchronize(stream);
+        CudaStreamManager::instance().releaseStream(streamFull);
 
-        cErr = cudaStreamSynchronize( *(streamList[n].object) );
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-            errMsg += "Unable to synchronize to stream\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
+        std::memcpy((void*)data_h, (void*)data_p, N_CELLS*sizeof(Real));
 
         data_h = nullptr;
         data_p = nullptr;
@@ -200,14 +187,6 @@ int   main(int argc, char* argv[]) {
     }
     ptr_p = nullptr;
     ptr_d = nullptr;
-
-    // Transfer data back to standard location in Grid host data structures
-    // TODO: Could this be handled with the other asynchronous tasks using 
-    // events or callbacks?
-    for (n=0; n<hostPtrs.size(); ++n) {
-        std::memcpy((void*)hostPtrs[n], (void*)pinnedPtrs[n], N_CELLS*sizeof(Real));
-        CudaStreamManager::instance().releaseStream(streamList[n]);
-    }
 
     // Release buffers
     cErr = cudaFree(buffer_d);

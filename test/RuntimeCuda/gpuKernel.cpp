@@ -36,25 +36,27 @@ void   gpuKernel::kernel(void* packet_d, const int streamId) {
     #pragma acc data create(i0, j0, k0, in, jn, kn, jstride, kstride, nstride) \
                      deviceptr(loGC_d, hiGC_d, data_d)
     {
-        #pragma acc kernels async(streamId)
+        #pragma acc parallel async(streamId)
         {
-        i0 = loGC_d[IAXIS_C];
-        j0 = loGC_d[JAXIS_C];
-        k0 = loGC_d[KAXIS_C];
-        in = hiGC_d[IAXIS_C];
-        jn = hiGC_d[JAXIS_C];
-        kn = hiGC_d[KAXIS_C];
-        jstride =           (in - i0 + 1);
-        kstride = jstride * (jn - j0 + 1);
-        nstride = kstride * (kn - k0 + 1);
-        }
+            i0 = loGC_d[IAXIS_C];
+            j0 = loGC_d[JAXIS_C];
+            k0 = loGC_d[KAXIS_C];
+            in = hiGC_d[IAXIS_C];
+            jn = hiGC_d[JAXIS_C];
+            kn = hiGC_d[KAXIS_C];
+            jstride =           (in - i0 + 1);
+            kstride = jstride * (jn - j0 + 1);
+            nstride = kstride * (kn - k0 + 1);
 
-        #pragma acc parallel loop default(none) async(streamId)
-        for         (int k=k0; k<=kn; ++k) {
-            for     (int j=j0; j<=jn; ++j) {
-                for (int i=i0; i<=in; ++i) {
-                    data_d[(i-i0) + (j-j0)*jstride + (k-k0)*kstride          ] = 2.1;
-                    data_d[(i-i0) + (j-j0)*jstride + (k-k0)*kstride + nstride] = 3.1;
+            #pragma acc loop default(none)
+            for         (int k=k0; k<=kn; ++k) {
+                #pragma acc loop default(none)
+                for     (int j=j0; j<=jn; ++j) {
+                    #pragma acc loop default(none)
+                    for (int i=i0; i<=in; ++i) {
+                        data_d[(i-i0) + (j-j0)*jstride + (k-k0)*kstride          ] = 2.1;
+                        data_d[(i-i0) + (j-j0)*jstride + (k-k0)*kstride + nstride] = 3.1;
+                    }
                 }
             }
         }
