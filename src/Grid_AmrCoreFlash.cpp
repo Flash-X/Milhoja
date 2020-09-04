@@ -6,6 +6,10 @@
 #include "ThreadTeamDataType.h"
 #include "ThreadTeam.h"
 
+#include <AMReX_PlotFileUtil.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
+
 #include "Flash.h"
 
 namespace orchestration {
@@ -14,15 +18,53 @@ namespace orchestration {
   *
   * Creates blank multifabs on each level.
   */
-AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock)
-    : initBlock_{initBlock} {
+AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+                           ERROR_ROUTINE errorEst)
+    : initBlock_{initBlock},
+      errorEst_{errorEst} {
 
     // Allocate and resize unk_ (vector of Multifabs).
     unk_.resize(max_level+1);
+
+    // Set periodic Boundary conditions
+    bcs_.resize(1);
+    for(int i=0; i<NDIM; ++i) {
+        bcs_[0].setLo(i, amrex::BCType::int_dir);
+        bcs_[0].setHi(i, amrex::BCType::int_dir);
+    }
 }
 
 //! Default constructor
 AmrCoreFlash::~AmrCoreFlash() {
+}
+
+//! Write all levels of unk_ to plotfile.
+void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
+#ifdef GRID_LOG
+    std::string msg = "[GridAmrex] Writing to plotfile: "+filename+"...";
+    Logger::instance().log(msg);
+#endif
+    amrex::Vector<std::string>    names(unk_[0].nComp());
+    if (names.size()==1) {
+        names[0] = "phi";
+    } else {
+        names[0] = "Density";
+        names[1] = "Energy";
+    }
+    amrex::Vector<const amrex::MultiFab*> mfs;
+    for(int i=0; i<=finest_level; ++i) {
+        mfs.push_back( &unk_[i] );
+    }
+    amrex::Vector<int> lsteps( max_level+1 , 0);
+
+    amrex::WriteMultiLevelPlotfile(filename,
+                                   finest_level+1,
+                                   mfs,
+                                   names,
+                                   Geom(),
+                                   0.0,
+                                   lsteps,
+                                   refRatio());
 }
 
 /**
@@ -36,10 +78,17 @@ AmrCoreFlash::~AmrCoreFlash() {
 void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] MakeNewLevelFromCoarse for level " +
-                      std::to_string(lev) + "...";
+    std::string msg = "[AmrCoreFlash::MakeNewLevelFromCoarse] Making level " +
+                      std::to_string(lev) + " from coarse...";
     Logger::instance().log(msg);
 #endif
+
+    Grid& grid = Grid::instance();
+
+    // Build multifab unk_[lev].
+    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+
+    fillFromCoarse(unk_[lev], lev);
 }
 
 /**
@@ -53,10 +102,15 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
 void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Remaking level " +
+    std::string msg = "[AmrCoreFlash::RemakeLevel] Remaking level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+
+    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, NGUARD};
+    fillPatch(unkTmp, lev);
+
+    std::swap(unkTmp, unk_[lev] );
 }
 
 /**
@@ -66,10 +120,11 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
   */
 void AmrCoreFlash::ClearLevel (int lev) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Clearing level " +
+    std::string msg = "[AmrCoreFlash::ClearLevel] Clearing level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+    unk_[lev].clear();
 }
 
 /**
@@ -83,7 +138,7 @@ void AmrCoreFlash::ClearLevel (int lev) {
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Creating level " +
+    std::string msg = "[AmrCoreFlash::MakeNewLevelFromScratch] Creating level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
@@ -93,7 +148,11 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     // Build multifab unk_[lev].
     unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
 
-    // Initialize data in unk_[lev].
+    // Initialize data in unk_[lev] to 0.0.
+    unk_[lev].setVal(0.0_wp);
+
+    // Initalize simulation block data in unk_[lev].
+    // Must fill interiors, GC optional.
     // TODO: Thread count should be a runtime variable
     RuntimeAction    action;
     action.name = "initBlock";
@@ -108,8 +167,10 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     team.closeQueue();
     team.wait();
 
+    // DO A GC FILL HERE?
+
 #ifdef GRID_LOG
-    std::string msg2 = "[AmrCoreFlash] Created level " +
+    std::string msg2 = "[AmrCoreFlash::MakeNewLevelFromScratch] Created level " +
                       std::to_string(lev) + " with " +
                       std::to_string(ba.size()) + " blocks.";
     Logger::instance().log(msg2);
@@ -127,10 +188,94 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                              amrex::Real time, int ngrow) {
 #ifdef GRID_LOG
-    std::string msg = "[AmrCoreFlash] Doing ErrorEst for level " +
+    std::string msg = "[AmrCoreFlash::ErrorEst] Doing ErrorEst for level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+    Grid& grid = Grid::instance();
+
+    amrex::Vector<int> itags;
+
+    //TODO use tiling for this loop?
+    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+        std::shared_ptr<Tile> tileDesc = ti->buildCurrentTile();
+        amrex::Box validbox{ amrex::IntVect(tileDesc->lo()),
+                             amrex::IntVect(tileDesc->hi()) };
+        amrex::TagBox& tagfab = tags[tileDesc->gridIndex()];
+        tagfab.get_itags(itags,validbox);
+
+        //errorEst_(lev, tags, time, ngrow, tileDesc);
+        int* tptr = itags.dataPtr();
+        errorEst_(tileDesc, tptr);
+
+        tagfab.tags_and_untags(itags,validbox);
+    }
+
+#ifdef GRID_LOG
+    std::string msg2 = "[AmrCoreFlash::ErrorEst] Did ErrorEst for level " +
+                      std::to_string(lev) + ".";
+    Logger::instance().log(msg2);
+#endif
+}
+
+void AmrCoreFlash::fillPatch(amrex::MultiFab& mf, const unsigned int lev) {
+    if (lev==0) {
+        amrex::Vector<amrex::MultiFab*> smf;
+        amrex::Vector<amrex::Real> stime;
+        smf.push_back(&unk_[0]);
+        stime.push_back(0.0_wp);
+
+        amrex::CpuBndryFuncFab bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            physbc(geom[lev],bcs_,bndry_func);
+
+        amrex::FillPatchSingleLevel(mf, 0.0_wp, smf, stime,
+                                    0, 0, mf.nComp(),
+                                    geom[lev], physbc, 0);
+    }
+    else {
+        amrex::Vector<amrex::MultiFab*> cmf, fmf;
+        amrex::Vector<amrex::Real> ctime, ftime;
+        cmf.push_back(&unk_[lev-1]);
+        ctime.push_back(0.0_wp);
+        fmf.push_back(&unk_[lev]);
+        ftime.push_back(0.0_wp);
+
+        amrex::CpuBndryFuncFab bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            cphysbc(geom[lev-1],bcs_,bndry_func);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            fphysbc(geom[lev],bcs_,bndry_func);
+
+        // CellConservativeLinear interpolator from AMReX_Interpolator.H
+        amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+        amrex::FillPatchTwoLevels(mf, 0.0_wp,
+                                  cmf, ctime, fmf, ftime,
+                                  0, 0, mf.nComp(),
+                                  geom[lev-1], geom[lev],
+                                  cphysbc, 0, fphysbc, 0,
+                                  refRatio(lev-1), mapper, bcs_, 0);
+    }
+
+}
+
+void AmrCoreFlash::fillFromCoarse(amrex::MultiFab& mf, const unsigned int lev) {
+
+    amrex::CpuBndryFuncFab bndry_func(nullptr);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        cphysbc(geom[lev-1],bcs_,bndry_func);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        fphysbc(geom[lev  ],bcs_,bndry_func);
+
+    // CellConservativeLinear interpolator from AMReX_Interpolator.H
+    amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+    amrex::InterpFromCoarseLevel(mf, 0.0_wp, unk_[lev-1],
+                                 0, 0, mf.nComp(),
+                                 geom[lev-1], geom[lev],
+                                 cphysbc, 0, fphysbc, 0,
+                                 refRatio(lev-1), mapper, bcs_, 0);
 }
 
 

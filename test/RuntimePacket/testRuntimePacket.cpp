@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "Analysis.h"
 #include "setInitialConditions_block.h"
+#include "errorEstBlank.h"
 #include "scaleEnergy_block.h"
 #include "computeLaplacianDensity_block.h"
 #include "computeLaplacianEnergy_block.h"
@@ -64,7 +65,8 @@ protected:
         computeErrors_packet.routine = Analysis::computeErrors_packet;
 
         Grid&    grid = Grid::instance();
-        grid.initDomain(Simulation::setInitialConditions_block);
+        grid.initDomain(Simulation::setInitialConditions_block,
+                        Simulation::errorEstBlank);
    }
 
     ~TestRuntimePacket(void) {

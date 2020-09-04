@@ -6,22 +6,14 @@
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
 #include "setInitialConditions_block.h"
+#include "setInitialInteriorTest.h"
+#include "errorEstBlank.h"
+#include "errorEstMaximal.h"
+#include "errorEstMultiple.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
 #include "Tile.h"
-
-// Macro for iterating over all coordinates in the
-// region defined by two IntVects lo and hi.
-// Middle three arguments are the iteration variables,
-// which can be used in 'function'.
-
-#define ITERATE_REGION(lo,hi,i,j,k, function) {\
-for(int i=lo.I();i<=hi.I();++i) {\
-for(int j=lo.J();j<=hi.J();++j) {\
-for(int k=lo.K();k<=hi.K();++k) {\
-    function \
-}}}}
 
 
 using namespace orchestration;
@@ -32,7 +24,6 @@ namespace {
 class GridUnitTest : public testing::Test {
 protected:
     GridUnitTest(void) {
-            Grid::instance().initDomain(Simulation::setInitialConditions_block);
     }
 
     ~GridUnitTest(void) {
@@ -41,7 +32,9 @@ protected:
 };
 
 TEST_F(GridUnitTest,VectorClasses){
-    using namespace orchestration;
+    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+                                Simulation::errorEstBlank);
+
     //test creation and conversion
     IntVect intVec1{LIST_NDIM(3,10,2)};
     RealVect realVec1{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
@@ -84,6 +77,8 @@ TEST_F(GridUnitTest,VectorClasses){
 }
 
 TEST_F(GridUnitTest,ProbConfigGetters){
+    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+                                Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
 
@@ -93,38 +88,43 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
+    IntVect  actual_dhi = nBlocks*nCells;
 
-    //EXPECT_TRUE( nBlocks.product() == grid.unk().boxArray().size() );
-    //EXPECT_TRUE((nBlocks*nCells).product() == grid.unk().boxArray().numPts());
-    //for (unsigned int i=0; i<nBlocks.product(); ++i) {
-    //    ASSERT_TRUE(IntVect(grid.unk().boxArray()[i].size()) == nCells);
-    //}
+    // Testing Grid::getMaxRefinement and getMaxLevel
+    EXPECT_EQ(grid.getMaxRefinement() , LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxLevel()      , LREFINE_MAX-1);
 
-    // Testing Grid::getProb{Lo,Hi} and getDomain{Lo,Hi}
-    IntVect  domainLo = grid.getDomainLo(0);
-    IntVect  domainHi = grid.getDomainHi(0);
+    // Testing Grid::getProb{Lo,Hi}
     RealVect probLo   = grid.getProbLo();
     RealVect probHi   = grid.getProbHi();
-    EXPECT_EQ( domainLo, IntVect(LIST_NDIM(0,0,0)) );
-    EXPECT_EQ( domainHi, (nBlocks*nCells - 1) );
     for (int i=0;i<NDIM;++i) {
         EXPECT_NEAR(probLo[i] , actual_min[i] , eps);
         EXPECT_NEAR(probHi[i] , actual_max[i] , eps);
     }
 
-    // Testing Grid::getDeltas
-    //TODO: loop over all levels when AMR is implemented
-    RealVect deltas = grid.getDeltas(0);
-    for(int i=1;i<NDIM;++i) {
-        EXPECT_NEAR(actual_deltas[i] , deltas[i], eps);
+    // Testing Grid::getDomain{Lo,Hi} and getDeltas
+    for (int lev=0; lev<=grid.getMaxLevel(); ++lev) {
+        if(lev>0) {
+            actual_dhi = actual_dhi * 2;
+            actual_deltas = actual_deltas * 0.5_wp;
+        }
+
+        IntVect  domainLo = grid.getDomainLo(lev);
+        IntVect  domainHi = grid.getDomainHi(lev);
+        EXPECT_EQ( domainLo, IntVect(LIST_NDIM(0,0,0)) );
+        EXPECT_EQ( domainHi, actual_dhi - 1 );
+
+        RealVect deltas = grid.getDeltas(lev);
+        for(int i=1;i<NDIM;++i) {
+            EXPECT_NEAR(actual_deltas[i] , deltas[i], eps);
+        }
     }
 
-    //Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_EQ(grid.getMaxRefinement() , LREFINE_MAX-1);
-    EXPECT_EQ(grid.getMaxLevel()      , 0);
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
+    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+                                Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
 
@@ -144,18 +144,24 @@ TEST_F(GridUnitTest,PerTileGetters){
 
     // Test Tile::getCenterCoords with tile iterator
     count = 0;
-    for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
-        count++;
-        if(count%3 != 0) continue;
+    for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
+        if(lev>0) {
+            actual_deltas = actual_deltas * 0.5_wp;
+        }
 
-        std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
-        RealVect sumVec = RealVect(tileDesc->lo()+tileDesc->hi()
-                                   - 2*grid.getDomainLo(0) + 1);
-        RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
+        for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+            count++;
+            if(count%3 != 0) continue;
 
-        RealVect blkCenterCoords = tileDesc->getCenterCoords();
-        for(int i=1;i<NDIM;++i) {
-            ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
+            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+            RealVect sumVec = RealVect(tileDesc->lo()+tileDesc->hi()
+                                       - 2*grid.getDomainLo(lev) + 1);
+            RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
+
+            RealVect blkCenterCoords = tileDesc->getCenterCoords();
+            for(int i=1;i<NDIM;++i) {
+                ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
+            }
         }
     }
 
@@ -175,6 +181,8 @@ TEST_F(GridUnitTest,PerTileGetters){
 }
 
 TEST_F(GridUnitTest,MultiCellGetters){
+    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+                                Simulation::errorEstMaximal);
     float eps = 1.0e-14;
 
     Grid& grid = Grid::instance();
@@ -188,75 +196,197 @@ TEST_F(GridUnitTest,MultiCellGetters){
     for (int i=0;i<NDIM;++i) {
         int p1 = int(i==0);
         int p2 = 2 - int(i==2);
-        actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1], *actual_deltas[p2] );
+        actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1],
+                                    *actual_deltas[p2] );
     }
 
-    // Test Grid::fillCellVolumes over whole domain.
-    IntVect dlo = IntVect( LIST_NDIM(0,0,0) );
-    IntVect dhi = nBlocks*nCells-1;
-    amrex::Box domainBox{ amrex::IntVect(dlo), amrex::IntVect(dhi) };
-
-    amrex::FArrayBox  vol_domain{domainBox,1};
-    Real* vol_domain_ptr = vol_domain.dataPtr();
-    grid.fillCellVolumes(0,dlo,dhi,vol_domain_ptr);
-    ITERATE_REGION(dlo,dhi,i,j,k,
-        EXPECT_NEAR( vol_domain({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
-    )
-
-    // Test Grid::fillCellVolumes over an arbitrary range
-    IntVect vlo = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.1,.3,.6)) ).floor();
-    IntVect vhi = dlo + ( RealVect(dhi-dlo)*RealVect(LIST_NDIM(.2,.35,.675)) ).floor();
-    //IntVect vlo{LIST_NDIM(1,2,1)};
-    //IntVect vhi{LIST_NDIM(1,3,1)};
-    amrex::Box vol_bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
-
-    amrex::FArrayBox vol_fab{vol_bx,1};
-    Real* vol_ptr = vol_fab.dataPtr();
-    grid.fillCellVolumes(0,vlo,vhi,vol_ptr);
-    ITERATE_REGION(vlo,vhi,i,j,k,
-        EXPECT_NEAR( vol_fab({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
-    )
-
-    // Test Grid::fillCellAreasLo over an arbitrary range
-    amrex::FArrayBox  area_fab{vol_bx,1};
-    Real* area_ptr = area_fab.dataPtr();
-    for(int n=0;n<NDIM;++n) {
-        grid.fillCellFaceAreasLo(n,0,vlo,vhi,area_ptr);
-        ITERATE_REGION(vlo,vhi,i,j,k,
-            EXPECT_NEAR( area_fab({LIST_NDIM(i,j,k)},0), actual_fa[n], eps);
-        )
-    }
-
-    // Test Grid::fillCellCoords over an arbitrary range
-    int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
-    int nElements;
-    Real actual_coord;
-    for (int j=0; j<3; ++j) {
-        //loop over edge cases
-        Real offset;
-        switch (edge[j]) {
-            case Edge::Left:
-                offset = 0.0_wp;
-                break;
-            case Edge::Right:
-                offset = 1.0_wp;
-                break;
-            case Edge::Center:
-                offset = 0.5_wp;
-                break;
+    for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
+        if(lev>0) {
+            actual_deltas = actual_deltas * 0.5_wp;
+            actual_vol    = actual_deltas.product();
+            actual_fa     = actual_fa * CONCAT_NDIM(1.0_wp,*0.5_wp,*0.5_wp);
         }
+
+        // Test Grid::fillCellVolumes over whole domain.
+        IntVect dlo = grid.getDomainLo(lev);
+        IntVect dhi = grid.getDomainHi(lev);
+        //FArrayBox vol_domain = FArrayBox::buildScratchArray4D(dlo,dhi,1);
+        amrex::Box domainBox{ amrex::IntVect(dlo), amrex::IntVect(dhi) };
+        {
+        amrex::FArrayBox  vol_domain{domainBox,1};
+        Real* vol_domain_ptr = vol_domain.dataPtr();
+        grid.fillCellVolumes(lev,dlo,dhi,vol_domain_ptr);
+        for (int i=dlo.I(); i<=dhi.I(); ++i) {
+        for (int j=dlo.J(); j<=dhi.J(); ++j) {
+        for (int k=dlo.K(); k<=dhi.K(); ++k) {
+            ASSERT_NEAR( vol_domain({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+        }}}
+        }
+
+        // Test Grid::fillCellVolumes over an arbitrary range
+        RealVect loPtRel{LIST_NDIM(.1,.3,.6)}, hiPtRel{LIST_NDIM(.2,.35,.675)};
+        IntVect vlo = dlo + ( RealVect(dhi-dlo)*loPtRel ).floor();
+        IntVect vhi = dlo + ( RealVect(dhi-dlo)*hiPtRel ).floor();
+        //IntVect vlo{LIST_NDIM(1,2,1)};
+        //IntVect vhi{LIST_NDIM(1,3,1)};
+        amrex::Box vol_bx{ amrex::IntVect(vlo), amrex::IntVect(vhi) };
+        {
+        amrex::FArrayBox vol_fab{vol_bx,1};
+        Real* vol_ptr = vol_fab.dataPtr();
+        grid.fillCellVolumes(lev,vlo,vhi,vol_ptr);
+        for (int i=vlo.I(); i<=vhi.I(); ++i) {
+        for (int j=vlo.J(); j<=vhi.J(); ++j) {
+        for (int k=vlo.K(); k<=vhi.K(); ++k) {
+            ASSERT_NEAR( vol_fab({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+        }}}
+        }
+
+        // Test Grid::fillCellAreasLo over an arbitrary range
+        {
+        amrex::FArrayBox  area_fab{vol_bx,1};
+        Real* area_ptr = area_fab.dataPtr();
         for(int n=0;n<NDIM;++n) {
-            //loop over axis cases
-            nElements = vhi[n] - vlo[n] + 1;
-            Real coord_ptr[nElements];
-            grid.fillCellCoords(n,edge[j],0,vlo,vhi,coord_ptr);
-            for(int i=0; i<nElements; ++i) {
-                actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset) * actual_deltas[n];
-                EXPECT_NEAR( coord_ptr[i], actual_coord, eps);
+            grid.fillCellFaceAreasLo(n,lev,vlo,vhi,area_ptr);
+            for (int i=vlo.I(); i<=vhi.I(); ++i) {
+            for (int j=vlo.J(); j<=vhi.J(); ++j) {
+            for (int k=vlo.K(); k<=vhi.K(); ++k) {
+                ASSERT_NEAR( area_fab({LIST_NDIM(i,j,k)},0), actual_fa[n], eps);
+            }}}
+        }
+        }
+
+        // Test Grid::fillCellCoords over an arbitrary range
+        {
+        int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
+        int nElements;
+        Real actual_coord;
+        for (int j=0; j<3; ++j) {
+            //loop over edge cases
+            Real offset;
+            switch (edge[j]) {
+                case Edge::Left:
+                    offset = 0.0_wp;
+                    break;
+                case Edge::Right:
+                    offset = 1.0_wp;
+                    break;
+                case Edge::Center:
+                    offset = 0.5_wp;
+                    break;
+            }
+            for(int n=0;n<NDIM;++n) {
+                //loop over axis cases
+                nElements = vhi[n] - vlo[n] + 1;
+                Real coord_ptr[nElements];
+                grid.fillCellCoords(n,edge[j],lev,vlo,vhi,coord_ptr);
+                for(int i=0; i<nElements; ++i) {
+                    actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset)
+                                   * actual_deltas[n];
+                    ASSERT_NEAR( coord_ptr[i], actual_coord, eps);
+                }
             }
         }
+        }
     }
 
+}
+
+TEST_F(GridUnitTest,GCFill){
+    Grid& grid = Grid::instance();
+    float eps = 1.0e-14;
+
+    grid.initDomain(Simulation::setInitialInteriorTest,
+                    Simulation::errorEstMaximal);
+
+    grid.fillGuardCells();
+    // Test Guard cell fill
+    Real expected_val = 0.0_wp;
+    for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
+    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+        std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+
+        RealVect cellCenter = tileDesc->getCenterCoords();
+
+        IntVect lo = tileDesc->lo();
+        IntVect hi = tileDesc->hi();
+        IntVect loGC = tileDesc->loGC();
+        IntVect hiGC = tileDesc->hiGC();
+        FArray4D data = tileDesc->data();
+        for (        int k = loGC.K(); k <= hiGC.K(); ++k) {
+            for (    int j = loGC.J(); j <= hiGC.J(); ++j) {
+                for (int i = loGC.I(); i <= hiGC.I(); ++i) {
+                    IntVect pos{LIST_NDIM(i,j,k)};
+                    if (pos.allGE(lo) && pos.allLE(hi) ) {
+                        continue;
+                    }
+
+                    expected_val  = 1.0_wp;
+
+                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR_C), eps);
+                }
+            }
+        }
+
+    } //iterator loop
+    } //level loop
+}
+
+TEST_F(GridUnitTest,MultipleLevels){
+    Grid& grid = Grid::instance();
+    float eps = 1.0e-10;
+    grid.initDomain(Simulation::setInitialInteriorTest,
+                    Simulation::errorEstMultiple);
+
+    for(auto ti=grid.buildTileIter(0); ti->isValid(); ti->next()) {
+        auto tileDesc = ti->buildCurrentTile();
+        auto data = tileDesc->data();
+        auto lo = tileDesc->lo();
+        auto hi = tileDesc->hi();
+        for (int k = lo.K(); k <= hi.K(); ++k) {
+        for (int j = lo.J(); j <= hi.J(); ++j) {
+        for (int i = lo.I(); i <= hi.I(); ++i) {
+            data(i,j,k,0) = 1.15_wp;
+        }}}
+    }
+
+    grid.fillGuardCells();
+    grid.regrid();
+
+    for(auto ti=grid.buildTileIter(1); ti->isValid(); ti->next()) {
+        auto tileDesc = ti->buildCurrentTile();
+        auto data = tileDesc->data();
+        auto lo = tileDesc->lo();
+        auto hi = tileDesc->hi();
+        for (int k = lo.K(); k <= hi.K(); ++k) {
+        for (int j = lo.J(); j <= hi.J(); ++j) {
+        for (int i = lo.I(); i <= hi.I(); ++i) {
+            data(i,j,k,0) = 1.25_wp;
+        }}}
+    }
+    grid.restrictAllLevels();
+
+    grid.fillGuardCells();
+    grid.regrid();
+
+    for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
+        auto tileDesc = ti->buildCurrentTile();
+        auto data = tileDesc->data();
+        auto lo = tileDesc->lo();
+        auto hi = tileDesc->hi();
+        for (int k = lo.K(); k <= hi.K(); ++k) {
+        for (int j = lo.J(); j <= hi.J(); ++j) {
+        for (int i = lo.I(); i <= hi.I(); ++i) {
+            ASSERT_NEAR(data(i,j,k,0) , 1.25_wp, eps);
+        }}}
+    }
+}
+
+TEST_F(GridUnitTest,PlotfileOutput){
+    Grid& grid = Grid::instance();
+    grid.initDomain(Simulation::setInitialConditions_block,
+                    Simulation::errorEstMaximal);
+
+    grid.writePlotfile("test_plt_0000");
 }
 
 }

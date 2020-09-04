@@ -10,12 +10,16 @@
 
 #include "Grid.h"
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include "Grid_AmrCoreFlash.h"
 
 namespace orchestration {
 
+/**
+  * \brief Derived Grid class for AMReX
+  *
+  * Grid derived class implemented with AMReX.
+  */
 class GridAmrex : public Grid {
 public:
     ~GridAmrex(void);
@@ -28,16 +32,20 @@ public:
     GridAmrex& operator=(GridAmrex&&) = delete;
 
     // Pure virtual function overrides.
-    void         initDomain(ACTION_ROUTINE initBlock) override;
+    void         initDomain(ACTION_ROUTINE initBlock,
+                            ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
+    void         restrictAllLevels() override;
+    void         fillGuardCells() override;
+    void         regrid() override { amrcore_->regrid(0,0.0_wp); }
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo() const override;
     RealVect     getProbHi() const override;
     unsigned int getMaxRefinement() const override;
     unsigned int getMaxLevel() const override;
-    void         writeToFile(const std::string& filename) const override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
+    void         writePlotfile(const std::string& filename) const override;
 
     // Other virtual function overrides.
     RealVect     getDeltas(const unsigned int lev) const override;
@@ -64,6 +72,8 @@ public:
                                  const IntVect& lo,
                                  const IntVect& hi,
                                  Real* volPtr) const override;
+
+    // Other public functions
 
 private:
     GridAmrex(void);
