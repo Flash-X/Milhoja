@@ -9,7 +9,7 @@ namespace gpuKernel {
 //        double                  coefficient;
 //    };
 
-    void kernel(void* packet_d);
+    void kernel(void* packet_d, const int streamId);
 }
 
 #endif

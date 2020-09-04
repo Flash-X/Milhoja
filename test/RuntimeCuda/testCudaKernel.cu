@@ -2,6 +2,7 @@
 #include "Grid.h"
 #include "FArray4D.h"
 #include "CudaRuntime.h"
+#include "CudaStreamManager.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -33,6 +34,7 @@ void setInitialConditions_block(const int tId, void* dataItem) {
 int   main(int argc, char* argv[]) {
     using namespace orchestration;
 
+
     CudaRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
     CudaRuntime::setMaxThreadsPerTeam(MAX_THREADS);
     CudaRuntime::setLogFilename("DeleteMe.log");
@@ -41,6 +43,11 @@ int   main(int argc, char* argv[]) {
     CudaRuntime::instance().printGpuInformation();
     std::cout << "----------------------------------------------------------\n";
     std::cout << std::endl;
+
+    CudaStreamManager::setMaxNumberStreams(10);
+    CudaStream    streamFull = CudaStreamManager::instance().requestStream(false);
+    cudaStream_t  stream = *(streamFull.object);
+    int           streamId = streamFull.id;
 
     // Initialize Grid unit/AMReX
     Grid::instantiate();
@@ -135,7 +142,8 @@ int   main(int argc, char* argv[]) {
         FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
 
-        cErr = cudaMemcpy(packet_d, packet_p, N_BYTES, cudaMemcpyHostToDevice);
+        cErr = cudaMemcpyAsync(packet_d, packet_p, N_BYTES,
+                               cudaMemcpyHostToDevice, stream);
         if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
             errMsg += "Unable to execute H-to-D transfer\n";
@@ -144,9 +152,10 @@ int   main(int argc, char* argv[]) {
             throw std::runtime_error(errMsg);
         }
 
-        gpuKernel::kernel(packet_d);
+        gpuKernel::kernel(packet_d, streamId);
 
-        cErr = cudaMemcpy(packet_p, packet_d, N_BYTES, cudaMemcpyDeviceToHost);
+        cErr = cudaMemcpyAsync(packet_p, packet_d, N_BYTES,
+                               cudaMemcpyDeviceToHost, stream);
         if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
             errMsg += "Unable to execute D-to-H transfer\n";
@@ -154,6 +163,7 @@ int   main(int argc, char* argv[]) {
             errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
             throw std::runtime_error(errMsg);
         }
+        cudaStreamSynchronize(stream);
 
         std::memcpy((void*)data_h, (void*)data_p, N_CELLS*sizeof(Real));
 
@@ -163,6 +173,8 @@ int   main(int argc, char* argv[]) {
         ptr_p  = nullptr;
         ptr_d  = nullptr;
     }
+
+    CudaStreamManager::instance().releaseStream(streamFull);
 
     // Release buffers
     cErr = cudaFree(packet_d);
@@ -198,7 +210,7 @@ int   main(int argc, char* argv[]) {
         for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
             for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
                 for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                    fExpected = i + 2.1*j;
+                    fExpected = 2.1;
                     absErr = fabs(f(i, j, k, DENS_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad DENS at ("
@@ -206,7 +218,7 @@ int   main(int argc, char* argv[]) {
                                   << f(i, j, k, DENS_VAR_C) << " instead of "
                                   << fExpected << "\n";
                     }
-                    fExpected = -i + 2.0*j;
+                    fExpected = 3.1;
                     absErr = fabs(f(i, j, k, ENER_VAR_C) - fExpected);
                     if (absErr > 1.0e-12) {
                         std::cout << "Bad ENER at ("

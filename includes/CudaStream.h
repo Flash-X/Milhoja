@@ -1,7 +1,7 @@
 #ifndef CUDA_STREAM_H__
 #define CUDA_STREAM_H__
 
-#include <driver_types.h>
+#include <cuda_runtime.h>
 
 namespace orchestration {
 

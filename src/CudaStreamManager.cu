@@ -3,6 +3,9 @@
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
+
+#include <openacc.h>
 
 #include "OrchestrationLogger.h"
 
@@ -88,6 +91,27 @@ CudaStreamManager::CudaStreamManager(void)
 
          // Make stream indices 1-based so that 0 can work as NULL_STREAM
          int   streamId = i + 1;
+         // For some unknown reason, I need to call get before calling set.
+         // If I don't do this, then the queue-stream linking doesn't happen
+         // on the first block.
+         void*   queue = acc_get_cuda_stream(streamId);
+
+         std::stringstream   streamStr;
+         streamStr << "OpenACC Stream (before) " << queue << "\n"; 
+
+         acc_set_cuda_stream(streamId, streams_[i]);
+         queue = acc_get_cuda_stream(streamId);
+         if (queue != streams_[i]) {
+            std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
+            errMsg += "OpenACC async queue not linked to CUDA Stream\n";
+            pthread_mutex_unlock(&idxMutex_);
+            throw std::runtime_error(errMsg);
+         }
+
+         streamStr << "Original CUDA Stream    " << streams_[i] << "\n";
+         streamStr << "OpenACC Stream (after)  " << queue << "\n\n"; 
+         std::cout << streamStr.str();
+
          freeStreams_.push_back( CudaStream(streamId, &(streams_[i])) );
     }
     Logger::instance().log(  "[CudaStreamManager] Created " 
