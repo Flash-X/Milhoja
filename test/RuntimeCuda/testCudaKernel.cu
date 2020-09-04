@@ -86,6 +86,7 @@ int   main(int argc, char* argv[]) {
     }
 
     // Run the kernel in the CPU at first
+    std::size_t          n        = 0;
     Real*                data_h   = nullptr;
     Real*                data_p   = nullptr;
     Real*                data_d   = nullptr;
@@ -93,8 +94,10 @@ int   main(int argc, char* argv[]) {
     void*                packet_d = nullptr;
     char*                ptr_p    = static_cast<char*>(buffer_p);
     char*                ptr_d    = static_cast<char*>(buffer_d);
+    std::vector<Real*>   hostPtrs{N_BLOCKS};
+    std::vector<Real*>   pinnedPtrs{N_BLOCKS};
     assert(sizeof(char) == 1);
-    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
+    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next(), ++n) {
         std::unique_ptr<Tile>   tileDesc = ti->buildCurrentTile();
 
         const IntVect   loGC = tileDesc->loGC();
@@ -149,6 +152,11 @@ int   main(int argc, char* argv[]) {
         ptr_p += sizeof(FArray4D);
         ptr_d += sizeof(FArray4D);
 
+        // Cache pointers to data in same order for later copyback
+        hostPtrs[n]   = data_h;
+        pinnedPtrs[n] = data_p;
+
+        // Do data transfers and execute kernel
         streamFull = CudaStreamManager::instance().requestStream(false);
         stream = *(streamFull.object);
         streamId = streamFull.id;
@@ -177,8 +185,6 @@ int   main(int argc, char* argv[]) {
         cudaStreamSynchronize(stream);
         CudaStreamManager::instance().releaseStream(streamFull);
 
-        std::memcpy((void*)data_h, (void*)data_p, N_CELLS*sizeof(Real));
-
         data_h = nullptr;
         data_p = nullptr;
         data_d = nullptr;
@@ -187,6 +193,13 @@ int   main(int argc, char* argv[]) {
     }
     ptr_p = nullptr;
     ptr_d = nullptr;
+
+    // Transfer data back to standard location in Grid host data structures
+    // TODO: Could this be handled with the other asynchronous tasks using 
+    // events or callbacks?
+    for (n=0; n<hostPtrs.size(); ++n) {
+        std::memcpy((void*)hostPtrs[n], (void*)pinnedPtrs[n], N_CELLS*sizeof(Real));
+    }
 
     // Release buffers
     cErr = cudaFree(buffer_d);
