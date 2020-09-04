@@ -45,9 +45,9 @@ int   main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     CudaStreamManager::setMaxNumberStreams(10);
-    CudaStream    streamFull = CudaStreamManager::instance().requestStream(false);
-    cudaStream_t  stream = *(streamFull.object);
-    int           streamId = streamFull.id;
+    CudaStream    streamFull;
+    cudaStream_t  stream;
+    int           streamId;
 
     // Initialize Grid unit/AMReX
     Grid::instantiate();
@@ -142,6 +142,10 @@ int   main(int argc, char* argv[]) {
         FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
 
+        streamFull = CudaStreamManager::instance().requestStream(false);
+        stream = *(streamFull.object);
+        streamId = streamFull.id;
+
         cErr = cudaMemcpyAsync(packet_d, packet_p, N_BYTES,
                                cudaMemcpyHostToDevice, stream);
         if (cErr != cudaSuccess) {
@@ -165,6 +169,8 @@ int   main(int argc, char* argv[]) {
         }
         cudaStreamSynchronize(stream);
 
+        CudaStreamManager::instance().releaseStream(streamFull);
+
         std::memcpy((void*)data_h, (void*)data_p, N_CELLS*sizeof(Real));
 
         data_h = nullptr;
@@ -173,8 +179,6 @@ int   main(int argc, char* argv[]) {
         ptr_p  = nullptr;
         ptr_d  = nullptr;
     }
-
-    CudaStreamManager::instance().releaseStream(streamFull);
 
     // Release buffers
     cErr = cudaFree(packet_d);
