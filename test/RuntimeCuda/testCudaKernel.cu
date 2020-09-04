@@ -34,6 +34,14 @@ void setInitialConditions_block(const int tId, void* dataItem) {
 int   main(int argc, char* argv[]) {
     using namespace orchestration;
 
+    constexpr std::size_t   N_CELLS =   (NXB + 2 * NGUARD * K1D)
+                                      * (NYB + 2 * NGUARD * K2D)
+                                      * (NZB + 2 * NGUARD * K3D)
+                                      * NUNKVAR;
+    constexpr std::size_t   N_BYTES_PER_PACKET =   2 * MDIM * sizeof(int) 
+                                                 +        1 * sizeof(FArray4D)
+                                                 +  N_CELLS * sizeof(Real);
+    constexpr std::size_t   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z;
 
     CudaRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
     CudaRuntime::setMaxThreadsPerTeam(MAX_THREADS);
@@ -44,7 +52,7 @@ int   main(int argc, char* argv[]) {
     std::cout << "----------------------------------------------------------\n";
     std::cout << std::endl;
 
-    CudaStreamManager::setMaxNumberStreams(10);
+    CudaStreamManager::setMaxNumberStreams(N_BLOCKS);
     CudaStream    streamFull;
     cudaStream_t  stream;
     int           streamId;
@@ -54,17 +62,11 @@ int   main(int argc, char* argv[]) {
     Grid&    grid = Grid::instance();
     grid.initDomain(setInitialConditions_block);
 
-    // Determine size of and allocate memory for data packet
-    constexpr std::size_t   N_CELLS =   (NXB + 2 * NGUARD * K1D)
-                                      * (NYB + 2 * NGUARD * K2D)
-                                      * (NZB + 2 * NGUARD * K3D)
-                                      * NUNKVAR;
-    constexpr std::size_t   N_BYTES =   2 * MDIM * sizeof(int) 
-                                      +        1 * sizeof(FArray4D)
-                                      +  N_CELLS * sizeof(Real);
+    // TODO: Errors should try to release acquired resources if possible.
 
-    void*         packet_p = nullptr;
-    cudaError_t   cErr = cudaMallocHost(&packet_p, N_BYTES);
+    // Created pinned and device memory pools
+    void*         buffer_p = nullptr;
+    cudaError_t   cErr = cudaMallocHost(&buffer_p, N_BYTES_PER_PACKET * N_BLOCKS);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::prepareForTransfer] ";
         errMsg += "Unable to allocate pinned memory\n";
@@ -73,8 +75,8 @@ int   main(int argc, char* argv[]) {
         throw std::runtime_error(errMsg);
     }
 
-    void*         packet_d = nullptr;
-    cErr = cudaMalloc(&packet_d, N_BYTES);
+    void*         buffer_d = nullptr;
+    cErr = cudaMalloc(&buffer_d, N_BYTES_PER_PACKET * N_BLOCKS);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::prepareForTransfer] ";
         errMsg += "Unable to allocate device memory\n";
@@ -84,11 +86,13 @@ int   main(int argc, char* argv[]) {
     }
 
     // Run the kernel in the CPU at first
-    Real*   data_h = nullptr;
-    Real*   data_p = nullptr;
-    Real*   data_d = nullptr;
-    char*   ptr_p  = nullptr;
-    char*   ptr_d  = nullptr;
+    Real*                data_h   = nullptr;
+    Real*                data_p   = nullptr;
+    Real*                data_d   = nullptr;
+    void*                packet_p = nullptr;
+    void*                packet_d = nullptr;
+    char*                ptr_p    = static_cast<char*>(buffer_p);
+    char*                ptr_d    = static_cast<char*>(buffer_d);
     assert(sizeof(char) == 1);
     for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
         std::unique_ptr<Tile>   tileDesc = ti->buildCurrentTile();
@@ -97,10 +101,11 @@ int   main(int argc, char* argv[]) {
         const IntVect   hiGC = tileDesc->hiGC();
         data_h               = tileDesc->dataPtr();
 
-        // Marshall data for single tile data packet
-        ptr_p = static_cast<char*>(packet_p);
-        ptr_d = static_cast<char*>(packet_d);
+        // Keep pointer to start of this packet
+        packet_p = ptr_p;
+        packet_d = ptr_d;
 
+        // Pack data for single tile data packet
         int   tmp = loGC.I();
         std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
         ptr_p += sizeof(int);
@@ -141,12 +146,14 @@ int   main(int argc, char* argv[]) {
         // affect the use of the copies (e.g. release memory).
         FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
+        ptr_p += sizeof(FArray4D);
+        ptr_d += sizeof(FArray4D);
 
         streamFull = CudaStreamManager::instance().requestStream(false);
         stream = *(streamFull.object);
         streamId = streamFull.id;
 
-        cErr = cudaMemcpyAsync(packet_d, packet_p, N_BYTES,
+        cErr = cudaMemcpyAsync(packet_d, packet_p, N_BYTES_PER_PACKET,
                                cudaMemcpyHostToDevice, stream);
         if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
@@ -158,7 +165,7 @@ int   main(int argc, char* argv[]) {
 
         gpuKernel::kernel(packet_d, streamId);
 
-        cErr = cudaMemcpyAsync(packet_p, packet_d, N_BYTES,
+        cErr = cudaMemcpyAsync(packet_p, packet_d, N_BYTES_PER_PACKET,
                                cudaMemcpyDeviceToHost, stream);
         if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
@@ -168,7 +175,6 @@ int   main(int argc, char* argv[]) {
             throw std::runtime_error(errMsg);
         }
         cudaStreamSynchronize(stream);
-
         CudaStreamManager::instance().releaseStream(streamFull);
 
         std::memcpy((void*)data_h, (void*)data_p, N_CELLS*sizeof(Real));
@@ -176,12 +182,14 @@ int   main(int argc, char* argv[]) {
         data_h = nullptr;
         data_p = nullptr;
         data_d = nullptr;
-        ptr_p  = nullptr;
-        ptr_d  = nullptr;
+        packet_p = nullptr;
+        packet_d = nullptr;
     }
+    ptr_p = nullptr;
+    ptr_d = nullptr;
 
     // Release buffers
-    cErr = cudaFree(packet_d);
+    cErr = cudaFree(buffer_d);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::prepareForTransfer] ";
         errMsg += "Unable to free device memory\n";
@@ -189,9 +197,9 @@ int   main(int argc, char* argv[]) {
         errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
         throw std::runtime_error(errMsg);
     }
-    packet_d = nullptr;
+    buffer_d = nullptr;
 
-    cErr = cudaFreeHost(packet_p);
+    cErr = cudaFreeHost(buffer_p);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::prepareForTransfer] ";
         errMsg += "Unable to free pinned memory\n";
@@ -199,7 +207,7 @@ int   main(int argc, char* argv[]) {
         errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
         throw std::runtime_error(errMsg);
     }
-    packet_p = nullptr;
+    buffer_p = nullptr;
 
     // Check that kernel ran correctly    
     for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
