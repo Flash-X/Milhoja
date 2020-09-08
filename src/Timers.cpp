@@ -1,5 +1,9 @@
 #include "Timers.h"
 
+#ifndef TIMERS_THREADED_TREE
+#include <stack>
+#endif
+
 namespace orchestration {
 
 // initialize static members
@@ -27,7 +31,30 @@ void Timers::stop(std::string name) {
 
 std::string Timers::getSummary() {
     std::stringstream ss;
-    base_->makeSummary(ss, 0);
+#ifdef TIMERS_THREADED_TREE
+    std::shared_ptr<Timer> currentTimer = base_;
+    while( currentTimer->getNext() )  {
+        currentTimer = currentTimer->getNext();
+        ss << currentTimer->getSummary();
+    }
+#else
+    std::stack<std::shared_ptr<Timer>> timerStack;
+    timerStack.push(base_);
+    while( !timerStack.empty() ) {
+        auto currentTimer = timerStack.top();
+        timerStack.pop();
+
+        auto childList = currentTimer->children();
+        for(int i=childList.size()-1; i>=0; --i) {
+            timerStack.push(childList[i]);
+        }
+
+        if(currentTimer!=base_) {
+            ss << currentTimer->getSummary();
+        }
+
+    }
+#endif
     return ss.str();
 }
 
