@@ -33,6 +33,13 @@ public:
     Tile& operator=(const Tile&) = delete;
 
     // Overrides to DataItem
+    void                       unpack(void) override;
+    void*                      hostPointer(void) override;
+    void*                      gpuPointer(void) override;
+    std::size_t                sizeInBytes(void) override;
+    std::shared_ptr<DataItem>  getTile(void) override;
+    CudaStream&                stream(void) override;
+
     std::size_t  nSubItems(void) const override;
     std::shared_ptr<DataItem>  popSubItem(void) override;
     DataItem*    getSubItem(const std::size_t i) override;

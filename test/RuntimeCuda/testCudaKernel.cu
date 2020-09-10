@@ -4,6 +4,7 @@
 #include "CudaRuntime.h"
 #include "CudaStreamManager.h"
 #include "CudaDataPacket.h"
+#include "CudaMoverUnpacker.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -53,21 +54,26 @@ int   main(int argc, char* argv[]) {
     Grid&    grid = Grid::instance();
     grid.initDomain(setInitialConditions_block);
 
+    CudaMoverUnpacker                 unpacker{};
+    std::shared_ptr<CudaDataPacket>   dataItem_gpu{};
+    assert(dataItem_gpu == nullptr);
+    assert(dataItem_gpu.use_count() == 0);
+
     // TODO: Errors should try to release acquired resources if possible.
-    std::size_t   packetSizeBytes = 0;
     cudaStream_t  stream;
     int           streamId = 0;
     cudaError_t   cErr = cudaSuccess;
     for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
-        CudaDataPacket    packet{ti->buildCurrentTile()};
+        dataItem_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
 
-        packet.pack();
-        packetSizeBytes = packet.sizeInBytes();
-        CudaStream&  streamFull = packet.stream();
+        dataItem_gpu->pack();
+
+        CudaStream&  streamFull = dataItem_gpu->stream();
         stream = *(streamFull.object);
         streamId = streamFull.id;
 
-        cErr = cudaMemcpyAsync(packet.gpuPointer(), packet.hostPointer(), packetSizeBytes,
+        cErr = cudaMemcpyAsync(dataItem_gpu->gpuPointer(), dataItem_gpu->hostPointer(),
+                               dataItem_gpu->sizeInBytes(),
                                cudaMemcpyHostToDevice, stream);
         if (cErr != cudaSuccess) {
             std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
@@ -77,20 +83,11 @@ int   main(int argc, char* argv[]) {
             throw std::runtime_error(errMsg);
         }
 
-        gpuKernel::kernel(packet.gpuPointer(), streamId);
+        gpuKernel::kernel(dataItem_gpu->gpuPointer(), streamId);
 
-        cErr = cudaMemcpyAsync(packet.hostPointer(), packet.gpuPointer(), packetSizeBytes,
-                               cudaMemcpyDeviceToHost, stream);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-            errMsg += "Unable to execute D-to-H transfer\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
-        cudaStreamSynchronize(stream);
-
-        packet.unpack();
+        unpacker.enqueue( std::move(dataItem_gpu) );
+        assert(dataItem_gpu == nullptr);
+        assert(dataItem_gpu.use_count() == 0);
     }
 
     // Check that kernel ran correctly    

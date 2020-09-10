@@ -38,6 +38,7 @@ CXX_HDRS   = \
     $(TESTDIR)/cudaTestConstants.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
+    $(INCDIR)/CudaMoverUnpacker.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
     $(INCDIR)/CudaRuntime.h
@@ -62,6 +63,7 @@ SRCS       = \
     $(TESTDIR)/gpuKernel.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
+    $(SRCDIR)/CudaMoverUnpacker.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
     $(TESTDIR)/testCudaKernel.cu

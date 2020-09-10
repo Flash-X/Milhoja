@@ -59,8 +59,9 @@ public:
     std::shared_ptr<DataItem>  popSubItem(void) override;
     DataItem*                  getSubItem(const std::size_t i) override;
 
-    void         pack(void);
-    void         unpack(void);
+    void                       pack(void);
+    void                       unpack(void);
+    std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
 
     std::size_t  sizeInBytes(void)   { return N_BYTES_PER_PACKET; };
     CudaStream&  stream(void)        { return stream_; };
