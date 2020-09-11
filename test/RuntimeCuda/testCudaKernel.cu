@@ -4,6 +4,7 @@
 #include "RuntimeAction.h"
 #include "CudaRuntime.h"
 #include "CudaStreamManager.h"
+#include "CudaMemoryManager.h"
 #include "CudaDataPacket.h"
 #include "CudaMoverUnpacker.h"
 
@@ -14,6 +15,7 @@
 constexpr unsigned int   LEVEL = 0;
 constexpr unsigned int   N_THREAD_TEAMS = 1;
 constexpr unsigned int   MAX_THREADS = 6;
+constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
 
 void setInitialConditions_block(const int tId, void* dataItem) {
     using namespace orchestration;
@@ -49,6 +51,7 @@ int   main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     CudaStreamManager::setMaxNumberStreams(N_BLOCKS);
+    CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
 
     // Initialize Grid unit/AMReX
     Grid::instantiate();

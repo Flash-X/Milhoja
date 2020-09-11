@@ -41,6 +41,7 @@ CU_HDRS   = \
     $(INCDIR)/CudaMoverUnpacker.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/CudaMemoryManager.h \
     $(INCDIR)/CudaRuntime.h
 SRCS       = \
     $(SRCDIR)/RuntimeElement.cpp \
@@ -65,6 +66,7 @@ CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaMoverUnpacker.cu \
     $(SRCDIR)/CudaStreamManager.cu \
+    $(SRCDIR)/CudaMemoryManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
     $(TESTDIR)/testCudaKernel.cu
 

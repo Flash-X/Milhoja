@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "CudaStreamManager.h"
+#include "CudaMemoryManager.h"
 
 namespace orchestration {
 
@@ -29,29 +30,9 @@ CudaDataPacket::~CudaDataPacket(void) {
         assert(stream_.id == CudaStream::NULL_STREAM_ID);
     }
 
-    if (packet_p_ != nullptr) {
-        cudaError_t   cErr = cudaFreeHost(packet_p_);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaDataPacket::~CudaDataPacket] ";
-            errMsg += "Unable to deallocate pinned memory\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
-    }
-    packet_p_ = nullptr;
-
-    if (packet_d_ != nullptr) {
-        cudaError_t   cErr = cudaFree(packet_d_);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaDataPacket::~CudaDataPacket] ";
-            errMsg += "Unable to deallocate device memory\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
-    }
-    packet_d_ = nullptr;
+    CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
+    assert(packet_p_ == nullptr);
+    assert(packet_d_ == nullptr);
 
     data_p_  = nullptr;
 }
@@ -111,23 +92,9 @@ void  CudaDataPacket::pack(void) {
     assert(stream_.id != CudaStream::NULL_STREAM_ID);
 
     // Allocate memory in pinned and device memory on demand for now
-    cudaError_t    cErr = cudaMallocHost(&packet_p_, N_BYTES_PER_PACKET);
-    if ((cErr != cudaSuccess) || (packet_p_ == nullptr)) {
-        std::string  errMsg = "[CudaDataPacket::pack] ";
-        errMsg += "Unable to allocate pinned memory\n";
-        errMsg += "Cuda error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-        throw std::runtime_error(errMsg);
-    }
-
-    cErr = cudaMalloc(&packet_d_, N_BYTES_PER_PACKET);
-    if ((cErr != cudaSuccess) || (packet_d_ == nullptr)) {
-        std::string  errMsg = "[CudaDataPacket::pack] ";
-        errMsg += "Unable to allocate device memory\n";
-        errMsg += "Cuda error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-        throw std::runtime_error(errMsg);
-    }
+    CudaMemoryManager::instance().requestMemory(N_BYTES_PER_PACKET,
+                                                &packet_p_,
+                                                &packet_d_);
 
     const IntVect    loGC = tileDesc_->loGC();
     const IntVect    hiGC = tileDesc_->hiGC();
@@ -214,26 +181,7 @@ void  CudaDataPacket::unpack(void) {
     }
     std::memcpy((void*)data_h, (void*)data_p_, BLOCK_SIZE_BYTES);
 
-    // Release buffers
-    cudaError_t   cErr = cudaFree(packet_d_);
-    if (cErr != cudaSuccess) {
-        std::string  errMsg = "[CudaDataPacket::unpack] ";
-        errMsg += "Unable to free device memory\n";
-        errMsg += "Cuda error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-        throw std::runtime_error(errMsg);
-    }
-    packet_d_ = nullptr;
-
-    cErr = cudaFreeHost(packet_p_);
-    if (cErr != cudaSuccess) {
-        std::string  errMsg = "[CudaDataPacket::unpack] ";
-        errMsg += "Unable to free pinned memory\n";
-        errMsg += "Cuda error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-        throw std::runtime_error(errMsg);
-    }
-    packet_p_ = nullptr;
+    CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
 
     data_p_  = nullptr;
 
