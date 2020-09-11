@@ -24,7 +24,6 @@ bool   CudaStreamManager::wasInstantiated_ = false;
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
     static CudaStreamManager   stream_manager;
-    Logger::instance().log("[CudaStreamManager] Access given to manager");
     return stream_manager;
 }
 
@@ -71,8 +70,6 @@ CudaStreamManager::CudaStreamManager(void)
 
     pthread_cond_init(&streamReleased_, NULL);
     pthread_mutex_init(&idxMutex_, NULL);
-    Logger::instance().log("[CudaStreamManager] streamReleased condition variable initalized");
-    Logger::instance().log("[CudaStreamManager] Free stream mutex initialized");
 
     pthread_mutex_lock(&idxMutex_);
 
@@ -154,9 +151,6 @@ CudaStreamManager::~CudaStreamManager(void) {
     pthread_cond_destroy(&streamReleased_);
     pthread_mutex_destroy(&idxMutex_);
 
-    Logger::instance().log("[CudaStreamManager] Stream released condition variable destroyed");
-    Logger::instance().log("[CudaStreamManager] Free stream mutex destroyed");
-
     wasInstantiated_ = false;
     Logger::instance().log("[CudaStreamManager] Destroyed");
 }
@@ -191,8 +185,6 @@ int  CudaStreamManager::numberFreeStreams(void) {
  * stream object is returned.
  */
 CudaStream    CudaStreamManager::requestStream(const bool block) {
-    Logger::instance().log("[CudaStreamManager] Stream requested");
-
     // Get exclusive access to the free stream queue so that we can safely get
     // the ID of a free stream from it.  It is also important for the case when
     // we need to wait for a streamReleased signal.  In particular, we need to
@@ -235,9 +227,6 @@ CudaStream    CudaStreamManager::requestStream(const bool block) {
                                     "Given stream ID and pointer not properly matched");
     }
 
-    Logger::instance().log(  "[CudaStreamManager] Stream " 
-                           + std::to_string(stream.id)
-                           + " distributed");
     return stream;
 }
 
@@ -276,10 +265,6 @@ void   CudaStreamManager::releaseStream(CudaStream& stream) {
                                         "Given stream is already free");
         }
     }
-
-    Logger::instance().log(  "[CudaStreamManager] Stream " 
-                           + std::to_string(stream.id) 
-                            + " released");
 
     // We must put the stream back in the queue before emitting the signal
     freeStreams_.push_back( std::move(stream) );
