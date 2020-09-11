@@ -1,6 +1,7 @@
 #include "Tile.h"
 #include "Grid.h"
 #include "FArray4D.h"
+#include "RuntimeAction.h"
 #include "CudaRuntime.h"
 #include "CudaStreamManager.h"
 #include "CudaDataPacket.h"
@@ -12,7 +13,7 @@
 
 constexpr unsigned int   LEVEL = 0;
 constexpr unsigned int   N_THREAD_TEAMS = 1;
-constexpr unsigned int   MAX_THREADS = 5;
+constexpr unsigned int   MAX_THREADS = 6;
 
 void setInitialConditions_block(const int tId, void* dataItem) {
     using namespace orchestration;
@@ -54,41 +55,14 @@ int   main(int argc, char* argv[]) {
     Grid&    grid = Grid::instance();
     grid.initDomain(setInitialConditions_block);
 
-    CudaMoverUnpacker                 unpacker{};
-    std::shared_ptr<CudaDataPacket>   dataItem_gpu{};
-    assert(dataItem_gpu == nullptr);
-    assert(dataItem_gpu.use_count() == 0);
+    RuntimeAction    action_packet;
+    action_packet.name = "testComputation";
+    action_packet.nInitialThreads = 6;
+    action_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    action_packet.nTilesPerPacket = 1;
+    action_packet.routine = gpuKernel::kernel;
 
-    // TODO: Errors should try to release acquired resources if possible.
-    cudaStream_t  stream;
-    int           streamId = 0;
-    cudaError_t   cErr = cudaSuccess;
-    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
-        dataItem_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
-
-        dataItem_gpu->pack();
-
-        CudaStream&  streamFull = dataItem_gpu->stream();
-        stream = *(streamFull.object);
-        streamId = streamFull.id;
-
-        cErr = cudaMemcpyAsync(dataItem_gpu->gpuPointer(), dataItem_gpu->hostPointer(),
-                               dataItem_gpu->sizeInBytes(),
-                               cudaMemcpyHostToDevice, stream);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-            errMsg += "Unable to execute H-to-D transfer\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
-
-        gpuKernel::kernel(dataItem_gpu->gpuPointer(), streamId);
-
-        unpacker.enqueue( std::move(dataItem_gpu) );
-        assert(dataItem_gpu == nullptr);
-        assert(dataItem_gpu.use_count() == 0);
-    }
+    CudaRuntime::instance().executeGpuTasks("TestAction", action_packet);
 
     // Check that kernel ran correctly    
     for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {

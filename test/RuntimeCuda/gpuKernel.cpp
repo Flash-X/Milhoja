@@ -1,27 +1,29 @@
 #include "gpuKernel.h"
 
 #include <cstdlib>
-#include <iostream>
-#include <sstream>
 
 #include "Grid_REAL.h"
 #include "FArray4D.h"
+#include "CudaDataPacket.h"
 
 #include "constants.h"
 
 using namespace orchestration;
 
-void   gpuKernel::kernel(void* packet_d, const int streamId) {
-    constexpr std::size_t   N_CELLS =   (NXB + 2 * NGUARD * K1D)
-                                      * (NYB + 2 * NGUARD * K2D)
-                                      * (NZB + 2 * NGUARD * K3D)
-                                      * NUNKVAR;
-    constexpr std::size_t   N_BYTES_PER_BLOCK = N_CELLS * sizeof(Real);
+void   gpuKernel::kernel(const int tId, void* dataItem) {
+    constexpr std::size_t    N_CELLS =   (NXB + 2 * NGUARD * K1D)
+                                       * (NYB + 2 * NGUARD * K2D)
+                                       * (NZB + 2 * NGUARD * K3D)
+                                       * NUNKVAR;
+    constexpr std::size_t    N_BYTES_PER_BLOCK = N_CELLS * sizeof(Real);
+
+    CudaDataPacket*  packet = reinterpret_cast<CudaDataPacket*>(dataItem);
+    int              streamId = packet->stream().id;
 
     // Use the host to determine pointer offsets into data packet in device
     // memory.  This should work so long as these pointers aren't used 
     // before the data is actually in the device memory.
-    char*  p = static_cast<char*>(packet_d);
+    char*  p = static_cast<char*>(packet->gpuPointer());
     const int*  loGC_d = reinterpret_cast<int*>(p);
     p += MDIM * sizeof(int);
     const int*  hiGC_d = reinterpret_cast<int*>(p);
@@ -54,6 +56,7 @@ void   gpuKernel::kernel(void* packet_d, const int streamId) {
                 }
             }
         }
+        #pragma acc wait(streamId)
     }
 }
 

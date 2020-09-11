@@ -3,11 +3,14 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <iomanip>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 #include "CudaStreamManager.h"
+#include "CudaDataPacket.h"
+#include "CudaMoverUnpacker.h"
 
 #include "Flash.h"
 
@@ -176,100 +179,90 @@ unsigned int CudaRuntime::numberFreeStreams(void) const {
     return CudaStreamManager::instance().numberFreeStreams();
 }
 
-//void CudaRuntime::executeGpuTasks(const std::string& bundleName,
-//                                  const RuntimeAction& gpuAction) {
-//    if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
-//        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
-//                               "Given GPU action should run on a thread team "
-//                               "that works with data packets of blocks");
-//    } else if (gpuAction.nTilesPerPacket <= 0) {
-//        throw std::invalid_argument("[CudaRuntime::executeGpuTasks] "
-//                                    "Need at least one tile per packet");
-//    } else if (nTeams_ < 1) {
-//        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
-//                               "Need at least one ThreadTeam in runtime");
-//    }
-//
-//    ThreadTeam*   gpuTeam = teams_[0];
-//
-//    CudaTransferSubsciber     gpuToHost(SRC_GPU, DEST_HOST);
-//    gpuTeam->attachWorkReceiver(&gpuToHost);
-//
-//    // TODO: Good idea to call this as early as possible so that all threads
-//    //       go to wait while this this is setting everything up?  Hides
-//    //       TT wind-up cost.
-//    gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
-//
-//    // We allocate the CUD memory here and pass the pointers around
-//    // with the data packet so that a work subscriber will
-//    // eventually deallocate the memory.
-//    auto packet = std::shared_ptr<DataItem>{ new DataPacket{} };
-//    if (!packet->isNull()) {
-//        throw std::runtime_error("[CudaRuntime::executeGpuTasks] "
-//                                 "Data packet not null on instantiation");
-//    }
-//
-//    cudaError_t    cErr = cudaErrorInvalidValue;
-//    unsigned int   level = 0;
-//    Grid&   grid = Grid::instance();
-//    for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
-//        packet->addSubItem( ti->buildCurrentTile() );
-//
-//        if (packet->nSubItems() >= gpuAction.nTilesPerPacket) {
-//            // TODO: Put the move into DataPacket?  It seems somewhat nice, but
-//            // beyond the scope of a simple DataPacket object.  If we do this,
-//            // then this class might be unrelated to Cuda!  We might need a
-//            // factory to generate things like CudaTransferSuscriber.
-//            packet.prepareForTransfer();
-//            cErr = cudaMemcpyAsync(packet->devicePtr,
-//                                   packet->pinnedPtr, 
-//                                   packet->size*sizeof(double), 
-//                                   cudaMemcpyHostToDevice, 
-//                                   packet->stream);
-//            if (cErr != cudaSuccess) {
-//                std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-//                errMsg += "Unable to initiate asynchronous transfer of data packet\n";
-//                errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-//                errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-//                throw std::runtime_error(errMsg);
-//            }
-//
-//            gpuTeam->enqueue( std::move(packet) );
-//            if (!packet->isNull()) {
-//                throw std::runtime_error("[CudaRuntime::executeGpuTasks] "
-//                                         "Data packet not null after move");
-//            }
-//            packet = std::shared_ptr<DataItem>( new DataPacket{} );
-//        }
-//    }
-//
-//    if (packet->nSubItems() != 0) {
-//        packet->prepareForTransfer();
-//        cErr = cudaMemcpyAsync(packet->devicePtr,
-//                               packet->pinnedPtr, 
-//                               packet->size*sizeof(double), 
-//                               cudaMemcpyHostToDevice, 
-//                               packet->stream);
-//        if (cErr != cudaSuccess) {
-//            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-//            errMsg += "Unable to initiate asynchronous transfer of last data packet\n";
-//            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-//            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-//            throw std::runtime_error(errMsg);
-//        }
-//
-//        gpuTeam->enqueue( std::move(packet) );
-//    }
-//
-//    if (!packet->isNull()) {
-//        throw std::runtime_error("[CudaRuntime::executeGpuTasks] "
-//                                 "Data packet not null after move");
-//    }
-//    gpuTeam->closeQueue();
-//    gpuTeam->wait();
-//
-//    gpuTeam->detachWorkReceiver();
-//}
+void CudaRuntime::executeGpuTasks(const std::string& bundleName,
+                                  const RuntimeAction& gpuAction) {
+    if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
+                               "Given GPU action should run on a thread team "
+                               "that works with data packets of blocks");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[CudaRuntime::executeGpuTasks] "
+                                    "Need at least one tile per packet");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    ThreadTeam*   gpuTeam = teams_[0];
+
+    CudaMoverUnpacker         gpuToHost{};
+    gpuTeam->attachDataReceiver(&gpuToHost);
+
+    // TODO: Good idea to call this as early as possible so that all threads
+    //       go to wait while this this is setting everything up?  Hides
+    //       TT wind-up cost.
+    gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
+
+    // We allocate the CUD memory here and pass the pointers around
+    // with the data packet so that a work subscriber will
+    // eventually deallocate the memory.
+    auto packet_gpu = std::shared_ptr<CudaDataPacket>{};
+    assert(packet_gpu == nullptr);
+    assert(packet_gpu.use_count() == 0);
+
+    cudaStream_t   stream;
+    cudaError_t    cErr = cudaErrorInvalidValue;
+    unsigned int   level = 0;
+    Grid&   grid = Grid::instance();
+
+    std::cout << std::scientific << std::setprecision(5);
+
+    double   elapsedTime = 0.0;
+    double   startTime = MPI_Wtime();
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        elapsedTime = MPI_Wtime() - startTime;
+        std::cout << "AMReX Block Access - " << elapsedTime << " s\n";
+
+        startTime = MPI_Wtime();
+        packet_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
+        elapsedTime = MPI_Wtime() - startTime;
+        std::cout << "Create packet - " << elapsedTime << " s\n";
+
+        startTime = MPI_Wtime();
+        packet_gpu->pack();
+        elapsedTime = MPI_Wtime() - startTime;
+        std::cout << "Pack packet - " << elapsedTime << " s\n";
+
+        startTime = MPI_Wtime();
+        stream = *(packet_gpu->stream().object);
+        cErr = cudaMemcpyAsync(packet_gpu->gpuPointer(), packet_gpu->hostPointer(),
+                               packet_gpu->sizeInBytes(),
+                               cudaMemcpyHostToDevice, stream);
+        if (cErr != cudaSuccess) {
+            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
+            errMsg += "Unable to execute H-to-D transfer\n";
+            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+            throw std::runtime_error(errMsg);
+        }
+        elapsedTime = MPI_Wtime() - startTime;
+        std::cout << "Initiate H-to_D - " << elapsedTime << " s\n";
+
+        startTime = MPI_Wtime();
+        gpuTeam->enqueue( std::move(packet_gpu) );
+        assert(packet_gpu == nullptr);
+        assert(packet_gpu.use_count() == 0);
+        elapsedTime = MPI_Wtime() - startTime;
+        std::cout << "Enqueue packet - " << elapsedTime << " s\n";
+
+        startTime = MPI_Wtime();
+    }
+
+    gpuTeam->closeQueue();
+    gpuTeam->wait();
+
+    gpuTeam->detachDataReceiver();
+}
 
 void CudaRuntime::printGpuInformation(void) const {
     std::cout << "Lead MPI Processor GPU Information\n";

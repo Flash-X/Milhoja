@@ -3,7 +3,7 @@
 #BSUB -P AST136
 #BSUB -W 0:01
 #BSUB -nnodes 1
-#BSUB -alloc_flags smt1
+#BSUB -alloc_flags smt4
 #BSUB -J testRuntimeCuda
 #BSUB -o testRuntimeCuda.%J
 #BSUB -e testRuntimeCuda.%J
@@ -12,7 +12,7 @@
 #####-----              FULLY SPECIFY TEST RUN              -----#####
 ######################################################################
 # IMPORTANT: Match this to X in smtX BSUB statment above
-N_HYPERTHREADS_PER_CORE=1
+N_HYPERTHREADS_PER_CORE=4
 
 # TestStreams needs to instruct each thread to busy wait for a given number of
 # cycles so that the duration of the kernel executions is long enough that the
@@ -37,7 +37,7 @@ module list
 # idle.
 N_PROC_PER_RS=1
 N_GPU_PER_PROC=1
-N_CORES_PER_PROC=1
+N_CORES_PER_PROC=7
 N_RS_PER_SOCKET=1
 N_RS_PER_NODE=1
 

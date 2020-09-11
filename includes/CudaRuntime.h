@@ -20,6 +20,13 @@ class CudaRuntime {
 public:
     ~CudaRuntime(void);
 
+    CudaRuntime(CudaRuntime&)                  = delete;
+    CudaRuntime(const CudaRuntime&)            = delete;
+    CudaRuntime(CudaRuntime&&)                 = delete;
+    CudaRuntime& operator=(CudaRuntime&)       = delete;
+    CudaRuntime& operator=(const CudaRuntime&) = delete;
+    CudaRuntime& operator=(CudaRuntime&&)      = delete;
+
     static CudaRuntime&  instance(void);
     static void          setLogFilename(const std::string& filename);
     static void          setNumberThreadTeams(const unsigned int nTeams);
@@ -27,23 +34,15 @@ public:
 
     unsigned int numberFreeStreams(void) const;
 
+    void executeGpuTasks(const std::string& bundleName,
+                         const RuntimeAction& gpuAction);
+
 //    void executeTasks(const ActionBundle& bundle);
 
     void printGpuInformation(void) const;
 
 private:
     CudaRuntime(void);
-
-    CudaRuntime(CudaRuntime&) = delete;
-    CudaRuntime(const CudaRuntime&) = delete;
-    CudaRuntime(CudaRuntime&&) = delete;
-
-    CudaRuntime& operator=(CudaRuntime&) = delete;
-    CudaRuntime& operator=(const CudaRuntime&) = delete;
-    CudaRuntime& operator=(CudaRuntime&&) = delete;
-
-//    void executeGpuTasks(const std::string& bundleName,
-//                         const RuntimeAction& gpuAction);
 
     static unsigned int    nTeams_; 
     static unsigned int    maxThreadsPerTeam_;
