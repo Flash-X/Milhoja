@@ -9,6 +9,7 @@
 
 #include "setInitialConditions_block.h"
 #include "computeLaplacianDensity_packet.h"
+#include "computeLaplacianEnergy_packet.h"
 #include "Analysis.h"
 
 int   main(int argc, char* argv[]) {
@@ -49,7 +50,14 @@ int   main(int argc, char* argv[]) {
     computeLaplacianDensity_packet.nTilesPerPacket = 1;
     computeLaplacianDensity_packet.routine = ThreadRoutines::computeLaplacianDensity_packet;
 
+    RuntimeAction    computeLaplacianEnergy_packet;
+    computeLaplacianEnergy_packet.nInitialThreads = 6;
+    computeLaplacianEnergy_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy_packet.nTilesPerPacket = 1;
+    computeLaplacianEnergy_packet.routine = ThreadRoutines::computeLaplacianEnergy_packet;
+
     CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
+    CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy_packet);
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;

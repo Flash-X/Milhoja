@@ -71,9 +71,9 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
                      maxAbsErr1 = absErr;
                 }
 
-                fExpected =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
-                            -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
-                            + 1.0;
+                fExpected =   48.0*x*x - 18.0*x
+                            - 12.0*y*y + 12.0*y
+                            - 2.0; 
                 absErr = fabs(fExpected - f(i, j, k, ENER_VAR_C));
                 sum2 += absErr;
                 if (absErr > maxAbsErr2) {
