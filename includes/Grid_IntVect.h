@@ -3,6 +3,7 @@
 
 #include "constants.h"
 #include "Grid_Macros.h"
+#include "Grid_Axis.h"
 #include <vector>
 #include <iosfwd>
 #include <stdexcept>
@@ -20,7 +21,7 @@ class RealVect;
   *
   * There are two methods of indexing in to IntVects. For read-write up
   * to NDIM, use  `operator[]`, which directly obtains reference to the
-  * internal array. This operator has bounds checking (unless error checking
+  * internal data members. This operator has bounds checking (unless error checking
   * is turned off). Alternatively, if MDIM-like behavior is needed, three
   * functions `IntVect::I()`, `IntVect::J()`, and `IntVect::K()` are provided.
   * They return the first, second, or third element of the vector, respectively,
@@ -41,17 +42,18 @@ class IntVect
 
     //! Constructor from NDIM ints.
     constexpr explicit IntVect(LIST_NDIM(const int x, const int y, const int z))
-        : vect_{LIST_NDIM(x,y,z)} {}
+        : LIST_NDIM( i_{x}, j_{y}, k_{z} ) {}
 
     //! Deprecated constructor from int*.
-    explicit IntVect (const int* x) : vect_{LIST_NDIM(x[0],x[1],x[2])} {
+    explicit IntVect (const int* x)
+        : LIST_NDIM( i_{x[0]},j_{x[1]},k_{x[2]}) {
         throw std::logic_error("IntVect: int* constructor deprecated.");
     }
 
 #if NDIM<3
     //! Deprecated constructor from MDIM ints
     explicit IntVect (const int x, const int y, const int z)
-        : vect_{LIST_NDIM(x,y,z)} {
+        : LIST_NDIM(i_{x},j_{y},k_{z}) {
         throw std::logic_error("Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
@@ -59,11 +61,11 @@ class IntVect
 #ifdef GRID_AMREX
     //! Constructor from amrex::IntVect
     explicit IntVect (const amrex::IntVect& ain)
-        : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+        : LIST_NDIM( i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}
 
     //! Operator to explicitly cast an IntVect to an AMReX IntVect
     explicit operator amrex::IntVect () const {
-        return amrex::IntVect(LIST_NDIM(vect_[0],vect_[1],vect_[2]));
+        return amrex::IntVect(LIST_NDIM(i_,j_,k_));
     }
 #endif
 
@@ -79,13 +81,13 @@ class IntVect
 
     //! Return first element of vector
     int I() const {
-        return vect_[0];
+        return i_;
     }
 
     //! Return second element of vector, or 0 if NDIM<2
     int J() const {
 #if (NDIM>=2)
-        return vect_[1];
+        return j_;
 #else
         return 0;
 #endif
@@ -94,39 +96,69 @@ class IntVect
     //! Return third element of vector, or 0 if NDIM<3
     int K() const {
 #if (NDIM==3)
-        return vect_[2];
+        return k_;
 #else
         return 0;
 #endif
     }
 
     //! Get and set values of the internal array.
-    int& operator[] (const int i) {
+    int& operator[] (const unsigned int i) {
 #ifndef GRID_ERRCHECK_OFF
         if(i>=NDIM || i<0) {
             throw std::logic_error("Index out-of-bounds in IntVect.");
         }
 #endif
-        return vect_[i];
+        switch(i) {
+            case Axis::I:
+                return i_;
+                break;
+#if NDIM>=2
+            case Axis::J:
+                return j_;
+                break;
+#endif
+#if NDIM==3
+            case Axis::K:
+                return k_;
+                break;
+#endif
+        }
+        return i_;
     }
     //! Get values of the internal array as const.
-    const int& operator[] (const int i) const {
+    const int& operator[] (const unsigned int i) const {
 #ifndef GRID_ERRCHECK_OFF
         if(i>=NDIM || i<0) {
             throw std::logic_error("Index out-of-bounds in IntVect.");
         }
 #endif
-        return vect_[i];
+        switch(i) {
+            case Axis::I:
+                return i_;
+                break;
+#if NDIM>=2
+            case Axis::J:
+                return j_;
+                break;
+#endif
+#if NDIM==3
+            case Axis::K:
+                return k_;
+                break;
+#endif
+        }
+        return i_;
     }
 
     //! Check if two vectors are equal element-by-element.
     bool operator== (const IntVect& b) const {
-      return CONCAT_NDIM(vect_[0]==b[0], && vect_[1]==b[1], && vect_[2]==b[2]);
+      return CONCAT_NDIM(i_==b.I(), && j_==b.J(), && k_==b.K());
     }
 
     //! Check if two vectors differ in any place.
     bool operator!= (const IntVect& b) const {
-      return CONCAT_NDIM(vect_[0]!=b[0], || vect_[1]!=b[1], || vect_[2]!=b[2]);
+      return CONCAT_NDIM(i_!=b.I(), || j_!=b.J(), || k_!=b.K());
     }
 
     //TODO: Potential operators
@@ -139,54 +171,54 @@ class IntVect
 
     //! Add vectors component-wise.
     IntVect operator+ (const IntVect& b) const {
-      return IntVect(LIST_NDIM(vect_[0]+b[0], vect_[1]+b[1], vect_[2]+b[2]));
+      return IntVect(LIST_NDIM(i_+b.I(), j_+b.J(), k_+b.K()));
     }
 
     //! Subtract vectors component-wise.
     IntVect operator- (const IntVect& b) const {
-      return IntVect(LIST_NDIM(vect_[0]-b[0], vect_[1]-b[1], vect_[2]-b[2]));
+      return IntVect(LIST_NDIM(i_-b.I(), j_-b.J(), k_-b.K()));
     }
 
     //! Multiply two vectors component-wise.
     IntVect operator* (const IntVect& b) const {
-      return IntVect(LIST_NDIM(vect_[0]*b[0], vect_[1]*b[1], vect_[2]*b[2]));
+      return IntVect(LIST_NDIM(i_*b.I(), j_*b.J(), k_*b.K()));
     }
 
     //! Add a scaler to each element.
     IntVect operator+ (const int c) const {
-      return IntVect(LIST_NDIM(vect_[0]+c, vect_[1]+c, vect_[2]+c));
+      return IntVect(LIST_NDIM(i_+c, j_+c, k_+c));
     }
 
     //! Subtract a scaler from each element.
     IntVect operator- (const int c) const {
-      return IntVect(LIST_NDIM(vect_[0]-c, vect_[1]-c, vect_[2]-c));
+      return IntVect(LIST_NDIM(i_-c, j_-c, k_-c));
     }
 
     //! Multiply a vector by a scalar (V * c).
     IntVect operator* (const int c) const {
-      return IntVect(LIST_NDIM(vect_[0]*c, vect_[1]*c, vect_[2]*c));
+      return IntVect(LIST_NDIM(i_*c, j_*c, k_*c));
     }
 
     //! Divide a vector by a scalar.
     IntVect operator/ (const int c) const {
-      return IntVect(LIST_NDIM(vect_[0]/c, vect_[1]/c, vect_[2]/c));
+      return IntVect(LIST_NDIM(i_/c, j_/c, k_/c));
     }
 
     //! Return prduct of components.
     int product() const {
-      return CONCAT_NDIM(vect_[0], * vect_[1], * vect_[2]);
+      return CONCAT_NDIM(i_, * j_, * k_);
     }
 
-    //! Return pointer to underlying array
-    const int* dataPtr() const {
-      return vect_;
-    }
+    //! \todo change how IntVect can return as a true vector
+    //const int* dataPtr() const {
+    //  return vect_;
+    //}
 
     friend std::ostream& operator<< (std::ostream& os, const IntVect& vout);
 
   private:
 
-    int vect_[NDIM]; //!< Contains data.
+    int LIST_NDIM(i_,j_,k_); //!< Contains data.
 };
 
 //! Add a scalar to each elements ((c,c,c) + V).
