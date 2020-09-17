@@ -64,9 +64,7 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
             for (int i = lo.I(); i <= hi.I(); ++i) {
                 x = xCoords(i);
 
-                fExpected =   3.0*x*x*x +     x*x + x 
-                            - 2.0*y*y*y - 1.5*y*y + y
-                            + 5.0;
+                fExpected = (18.0*x - 12.0*y - 1.0);
                 absErr = fabs(fExpected - f(i, j, k, DENS_VAR_C));
                 sum1 += absErr;
                 if (absErr > maxAbsErr1) {

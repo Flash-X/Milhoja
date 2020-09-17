@@ -8,6 +8,7 @@
 #include "constants.h"
 
 #include "setInitialConditions_block.h"
+#include "computeLaplacianDensity_packet.h"
 #include "Analysis.h"
 
 int   main(int argc, char* argv[]) {
@@ -40,6 +41,15 @@ int   main(int argc, char* argv[]) {
     Grid::instantiate();
     Grid&    grid = Grid::instance();
     grid.initDomain(Simulation::setInitialConditions_block);
+
+    //***** FIRST RUNTIME EXECUTION CYCLE
+    RuntimeAction    computeLaplacianDensity_packet;
+    computeLaplacianDensity_packet.nInitialThreads = 6;
+    computeLaplacianDensity_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianDensity_packet.nTilesPerPacket = 1;
+    computeLaplacianDensity_packet.routine = ThreadRoutines::computeLaplacianDensity_packet;
+
+    CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;
