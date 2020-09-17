@@ -33,16 +33,16 @@ class RealVect
 
     //! Constructor from NDIM Reals.
     constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z))
-        : vect_{LIST_NDIM(x,y,z)} {}
+        : LIST_NDIM(i_{x},j_{y},k_{z})} {}
 
     //! Constructor from Real*.
     explicit RealVect (const Real* x)
-        : vect_{LIST_NDIM(x[0],x[1],x[2])} {}
+        : LIST_NDIM(i_{x[0]},j_{x[1]},k_{x[2]})} {}
 
 #if NDIM<3
     //! Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z)
-        : vect_{LIST_NDIM(x,y,z)} {
+        : LIST_NDIM(i_{x},j_{y},k_{z})} {
         throw std::logic_error("Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
@@ -50,11 +50,11 @@ class RealVect
 #ifdef GRID_AMREX
     //! Constructor from amrex::RealVect
     explicit RealVect (const amrex::RealVect& ain)
-        : vect_{LIST_NDIM(ain[0],ain[1],ain[2])} {}
+        : LIST_NDIM(i_{ain[0]},j_{ain[1]},k_{ain[2]})} {}
 
     //! Operator to explicitly cast an RealVect to an AMReX RealVect
     explicit operator amrex::RealVect () const {
-        return amrex::RealVect(LIST_NDIM(vect_[0],vect_[1],vect_[2]));
+        return amrex::RealVect(LIST_NDIM(i_,j_,k_));
     }
 #endif
 
@@ -71,6 +71,29 @@ class RealVect
     IntVect floor() const;
     IntVect ceil() const;
 
+    //! Return first element of vector
+    Real I() const {
+        return i_;
+    }
+
+    //! Return second element of vector, or 0 if NDIM<2
+    Real J() const {
+#if (NDIM>=2)
+        return j_;
+#else
+        return 0.0_wp;
+#endif
+    }
+
+    //! Return third element of vector, or 0 if NDIM<3
+    Real K() const {
+#if (NDIM==3)
+        return k_;
+#else
+        return 0.0_wp;
+#endif
+    }
+
     /** \brief Get and set values of the internal array.
       * Perform bounds check unless GRID_ERRCHECK_OFF is set.
       */
@@ -80,7 +103,19 @@ class RealVect
             throw std::logic_error("Index out-of-bounds in RealVect.");
         }
 #endif
-        return vect_[i];
+        switch(i) {
+            case Axis::I:
+                return i_;
+#if NDIM>=2
+            case Axis::J:
+                return j_;
+#endif
+#if NDIM==3
+            case Axis::K:
+                return k_;
+#endif
+        }
+        return i_;
     }
     //! Get values of the internal array as consts.
     const Real& operator[] (const int i) const {
@@ -89,7 +124,19 @@ class RealVect
             throw std::logic_error("Index out-of-bounds in RealVect.");
         }
 #endif
-        return vect_[i];
+        switch(i) {
+            case Axis::I:
+                return i_;
+#if NDIM>=2
+            case Axis::J:
+                return j_;
+#endif
+#if NDIM==3
+            case Axis::K:
+                return k_;
+#endif
+        }
+        return i_; 
     }
 
     //TODO: Potential operators
@@ -102,27 +149,27 @@ class RealVect
 
     //! Add vectors component-wise.
     RealVect operator+ (const RealVect& b) const {
-      return RealVect(LIST_NDIM(vect_[0]+b[0], vect_[1]+b[1], vect_[2]+b[2]));
+      return RealVect(LIST_NDIM(i_+b.I(), j_+b.J(), k_+b.K()));
     }
 
     //! Subtract vectors component-wise.
     RealVect operator- (const RealVect& b) const {
-      return RealVect(LIST_NDIM(vect_[0]-b[0], vect_[1]-b[1], vect_[2]-b[2]));
+      return RealVect(LIST_NDIM(i_-b.I(), j_-b.J(), k_-b.K()));
     }
 
     //! Multiply two vectors component-wise.
     RealVect operator* (const RealVect& b) const {
-      return RealVect(LIST_NDIM(vect_[0]*b[0], vect_[1]*b[1], vect_[2]*b[2]));
+      return RealVect(LIST_NDIM(i_*b.I(), j_*b.J(), k_*b.K()));
     }
 
     //! Multiply a vector by a scalar (V * c).
     RealVect operator* (const Real c) const {
-      return RealVect(LIST_NDIM(vect_[0]*c, vect_[1]*c, vect_[2]*c));
+      return RealVect(LIST_NDIM(i_*c, j_*c, k_*c));
     }
 
     //! Divide two vectors component-wise.
     RealVect operator/ (const RealVect& b) const {
-      return RealVect(LIST_NDIM(vect_[0]/b[0], vect_[1]/b[1], vect_[2]/b[2]));
+      return RealVect(LIST_NDIM(i_/b.I(), j_/b.J(), k_/b.K()));
     }
 
     //! Divide a vector by a scalar.
@@ -132,19 +179,19 @@ class RealVect
 
     //! Return product of elements.
     Real product() const {
-      return CONCAT_NDIM(vect_[0], * vect_[1], * vect_[2]);
+      return CONCAT_NDIM(i_, * j_, * k_);
     }
 
     //! Return pointer to underlying array
-    const Real* dataPtr() const {
-      return vect_;
-    }
+    //const Real* dataPtr() const {
+    //  return vect_;
+    //}
 
     friend std::ostream& operator<< (std::ostream& os, const RealVect& vout);
 
   private:
 
-    Real vect_[MDIM];   //!< Contains data.
+    Real LIST_NDIM(i_,j_,k_);   //!< Contains data.
 };
 
 //! Scalar multiply a vector (c * V).

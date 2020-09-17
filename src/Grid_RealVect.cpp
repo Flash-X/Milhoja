@@ -8,26 +8,26 @@ namespace orchestration {
 
 //! Convert to IntVect via rounding each element
 IntVect RealVect::round() const {
-    return IntVect(LIST_NDIM(std::round(vect_[0]),
-                             std::round(vect_[1]),
-                             std::round(vect_[2])));
+    return IntVect(LIST_NDIM(std::round(i_),
+                             std::round(j_),
+                             std::round(k_)));
 }
 //! Convert to IntVect via floor
 IntVect RealVect::floor() const {
-    return IntVect(LIST_NDIM(std::floor(vect_[0]),
-                             std::floor(vect_[1]),
-                             std::floor(vect_[2])));
+    return IntVect(LIST_NDIM(std::floor(i_),
+                             std::floor(j_),
+                             std::floor(k_)));
 }
 //! Convert to IntVect via ceil
 IntVect RealVect::ceil() const {
-    return IntVect(LIST_NDIM(std::ceil(vect_[0]),
-                             std::ceil(vect_[1]),
-                             std::ceil(vect_[2])));
+    return IntVect(LIST_NDIM(std::ceil(i_),
+                             std::ceil(j_),
+                             std::ceil(k_)));
 }
 
 //! Scalar multiply a vector (c * V)
 RealVect operator* (const Real c, const RealVect& a) {
-   return RealVect(LIST_NDIM(a[0]*c, a[1]*c, a[2]*c));
+   return RealVect(LIST_NDIM(a.I()*c, a.J()*c, a.K()*c));
 }
 
 //! Nice printing of vectors.
