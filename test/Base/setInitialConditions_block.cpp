@@ -22,12 +22,10 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     const IntVect   hiGC = tileDesc->hiGC();
     FArray4D        f    = tileDesc->data();
 
-    Real    xCoords[hiGC.I() - loGC.I() + 1];
-    Real    yCoords[hiGC.J() - loGC.J() + 1];
-    grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
-                        loGC, hiGC, xCoords); 
-    grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
-                        loGC, hiGC, yCoords); 
+    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+                        loGC, hiGC); 
+    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+                        loGC, hiGC); 
 
     Real    x = 0.0;
     Real    y = 0.0;
@@ -35,9 +33,9 @@ void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
     int     j0 = loGC.J();
     for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
         for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
-            y = yCoords[j-j0];
+            y = yCoords(j);
             for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                x = xCoords[i-i0]; 
+                x = xCoords(i); 
 
                 // PROBLEM ONE
                 //  Approximated exactly by second-order discretized Laplacian

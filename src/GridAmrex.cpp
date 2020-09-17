@@ -257,11 +257,11 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   */
-void    GridAmrex::fillCellCoords(const unsigned int axis,
-                                  const unsigned int edge,
-                                  const unsigned int lev,
-                                  const IntVect& lo,
-                                  const IntVect& hi, Real* coordPtr) const {
+FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
+                                     const unsigned int edge,
+                                     const unsigned int lev,
+                                     const IntVect& lo,
+                                     const IntVect& hi) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("GridAmrex::fillCellCoords: Invalid axis.");
@@ -291,9 +291,11 @@ void    GridAmrex::fillCellCoords(const unsigned int axis,
     // TODO profile these calls, see if we can get a version that doesn't require extra copying.
 
     //copy results to output
+    FArray1D coords = FArray1D::buildScratchArray1D(lo[axis], hi[axis]);
     for(int i=0; i<nElements; ++i) {
-        coordPtr[i] = coordvec[i+offset];
+        coords(i+lo[axis]) = coordvec[i+offset];
     }
+    return coords;
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the

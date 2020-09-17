@@ -19,12 +19,10 @@ void ThreadRoutines::scaleEnergy_block(const int tId, void* dataItem) {
     const IntVect   hi = tileDesc->hi();
     FArray4D        f  = tileDesc->data();
 
-    Real    xCoords[hi.I() - lo.I() + 1];
-    Real    yCoords[hi.J() - lo.J() + 1];
-    grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
-                        lo, hi, xCoords); 
-    grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
-                        lo, hi, yCoords); 
+    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+                        lo, hi); 
+    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+                        lo, hi); 
 
     Real    x = 0.0;
     Real    y = 0.0;
@@ -32,9 +30,9 @@ void ThreadRoutines::scaleEnergy_block(const int tId, void* dataItem) {
     int     j0 = lo.J();
     for         (int k = lo.K(); k <= hi.K(); ++k) {
         for     (int j = lo.J(); j <= hi.J(); ++j) {
-            y = yCoords[j-j0];
+            y = yCoords(j);
             for (int i = lo.I(); i <= hi.I(); ++i) {
-                x = xCoords[i-i0];
+                x = xCoords(i);
                 f(i, j, k, ENER_VAR_C) *= 5.0 * x * y;
             }
         }

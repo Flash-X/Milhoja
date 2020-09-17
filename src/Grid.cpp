@@ -96,9 +96,9 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
   * \todo default implementation
   */
-void    Grid::fillCellCoords(const unsigned int axis, const unsigned int edge,
-                             const unsigned int lev, const IntVect& lo,
-                             const IntVect& hi, Real* coordPtr) const {
+FArray1D    Grid::getCellCoords(const unsigned int axis, const unsigned int edge,
+                                const unsigned int lev, const IntVect& lo,
+                                const IntVect& hi) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
         throw std::logic_error("Grid::fillCellCoords: Invalid axis.");

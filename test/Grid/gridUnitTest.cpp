@@ -247,12 +247,11 @@ TEST_F(GridUnitTest,MultiCellGetters){
         }
         for(int n=0;n<NDIM;++n) {
             //loop over axis cases
-            nElements = vhi[n] - vlo[n] + 1;
-            Real coord_ptr[nElements];
-            grid.fillCellCoords(n,edge[j],0,vlo,vhi,coord_ptr);
-            for(int i=0; i<nElements; ++i) {
-                actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset) * actual_deltas[n];
-                EXPECT_NEAR( coord_ptr[i], actual_coord, eps);
+            FArray1D coords = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
+            for(int i=vlo[n]; i<=vhi[n]; ++i) {
+                actual_coord = actual_min[n] + (Real(i)+offset)
+                               * actual_deltas[n];
+                ASSERT_NEAR( coords(i), actual_coord, eps);
             }
         }
     }

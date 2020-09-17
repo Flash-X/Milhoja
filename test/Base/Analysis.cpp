@@ -43,12 +43,10 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     const IntVect   hi = tileDesc->hi();
     const FArray4D  f  = tileDesc->data();
 
-    Real    xCoords[hi.I() - lo.I() + 1];
-    Real    yCoords[hi.J() - lo.J() + 1];
-    grid.fillCellCoords(Axis::I, Edge::Center, tileDesc->level(),
-                        lo, hi, xCoords); 
-    grid.fillCellCoords(Axis::J, Edge::Center, tileDesc->level(),
-                        lo, hi, yCoords); 
+    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+                        lo, hi); 
+    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+                        lo, hi); 
 
     Real    x            = 0.0;
     Real    y            = 0.0;
@@ -64,9 +62,9 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
     nCells = 0;
     for         (int k = lo.K(); k <= hi.K(); ++k) {
         for     (int j = lo.J(); j <= hi.J(); ++j) {
-            y = yCoords[j-j0];
+            y = yCoords(j);
             for (int i = lo.I(); i <= hi.I(); ++i) {
-                x = xCoords[i-i0];
+                x = xCoords(i);
 
                 fExpected = (18.0*x - 12.0*y - 1.0);
                 absErr = fabs(fExpected - f(i, j, k, DENS_VAR_C));

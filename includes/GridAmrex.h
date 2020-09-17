@@ -49,12 +49,11 @@ public:
     Real         getCellVolume(const unsigned int lev,
                                const IntVect& coord) const override;
 
-    void         fillCellCoords(const unsigned int axis,
-                                const unsigned int edge,
-                                const unsigned int lev,
-                                const IntVect& lo,
-                                const IntVect& hi,
-                                Real* coordPtr) const override;
+    FArray1D     getCellCoords(const unsigned int axis,
+                               const unsigned int edge,
+                               const unsigned int lev,
+                               const IntVect& lo,
+                               const IntVect& hi) const override;
     void         fillCellFaceAreasLo(const unsigned int axis,
                                      const unsigned int lev,
                                      const IntVect& lo,
