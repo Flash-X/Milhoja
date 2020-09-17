@@ -74,7 +74,7 @@ protected:
                                               * (NZB + 2 * NGUARD * K3D)
                                               * NUNKVAR;
     static constexpr std::size_t    BLOCK_SIZE_BYTES = N_CELLS * sizeof(Real);
-    static constexpr std::size_t    POINT_SIZE_BYTES =    MDIM * sizeof(int);
+    static constexpr std::size_t    POINT_SIZE_BYTES =           sizeof(IntVect);
     static constexpr std::size_t    ARRAY_SIZE_BYTES =           sizeof(FArray4D);
     // Fix to one block per data packet as first step
     static constexpr std::size_t    N_BLOCKS = 1;

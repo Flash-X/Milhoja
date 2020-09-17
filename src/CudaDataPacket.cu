@@ -111,31 +111,13 @@ void  CudaDataPacket::pack(void) {
     char*   ptr_d = static_cast<char*>(packet_d_);
 
     // Pack data for single tile data packet
-    int   tmp = loGC.I();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
-    tmp = loGC.J();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
-    tmp = loGC.K();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
+    std::memcpy((void*)ptr_p, (void*)&loGC, sizeof(IntVect));
+    ptr_p += sizeof(IntVect);
+    ptr_d += sizeof(IntVect);
 
-    tmp = hiGC.I();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
-    tmp = hiGC.J();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
-    tmp = hiGC.K();
-    std::memcpy((void*)ptr_p, (void*)&tmp, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
+    std::memcpy((void*)ptr_p, (void*)&hiGC, sizeof(IntVect));
+    ptr_p += sizeof(IntVect);
+    ptr_d += sizeof(IntVect);
 
     data_p_ = reinterpret_cast<Real*>(ptr_p);
     data_d  = reinterpret_cast<Real*>(ptr_d);

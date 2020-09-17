@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 
+#include "Grid_IntVect.h"
 #include "Grid_REAL.h"
 #include "FArray4D.h"
 #include "CudaDataPacket.h"
@@ -24,10 +25,10 @@ void   gpuKernel::kernel(const int tId, void* dataItem) {
     // memory.  This should work so long as these pointers aren't used 
     // before the data is actually in the device memory.
     char*  p = static_cast<char*>(packet->gpuPointer());
-    const int*  loGC_d = reinterpret_cast<int*>(p);
-    p += MDIM * sizeof(int);
-    const int*  hiGC_d = reinterpret_cast<int*>(p);
-    p += MDIM * sizeof(int);
+    const IntVect*  loGC_d = reinterpret_cast<IntVect*>(p);
+    p += sizeof(IntVect);
+    const IntVect*  hiGC_d = reinterpret_cast<IntVect*>(p);
+    p += sizeof(IntVect);
     // No need to get pointer to data in device since we use the following
     // object to access the data and it is already configured with this
     // pointer.
@@ -46,11 +47,11 @@ void   gpuKernel::kernel(const int tId, void* dataItem) {
     #pragma acc data deviceptr(loGC_d, hiGC_d, f_d)
     {
         #pragma acc parallel loop default(none) async(streamId)
-        for         (int k=loGC_d[KAXIS_C]; k<=hiGC_d[KAXIS_C]; ++k) {
+        for         (int k=loGC_d->K(); k<=hiGC_d->K(); ++k) {
             #pragma acc loop
-            for     (int j=loGC_d[JAXIS_C]; j<=hiGC_d[JAXIS_C]; ++j) {
+            for     (int j=loGC_d->J(); j<=hiGC_d->J(); ++j) {
                 #pragma acc loop
-                for (int i=loGC_d[IAXIS_C]; i<=hiGC_d[IAXIS_C]; ++i) {
+                for (int i=loGC_d->I(); i<=hiGC_d->I(); ++i) {
                     f_d->at(i, j, k, DENS_VAR_C) += 2.1 * j;
                     f_d->at(i, j, k, ENER_VAR_C) -= i;
                 }
