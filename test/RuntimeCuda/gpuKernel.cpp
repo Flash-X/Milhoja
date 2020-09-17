@@ -25,6 +25,12 @@ void   gpuKernel::kernel(const int tId, void* dataItem) {
     // memory.  This should work so long as these pointers aren't used 
     // before the data is actually in the device memory.
     char*  p = static_cast<char*>(packet->gpuPointer());
+//    const Real*  deltas_d = reinterpret_cast<Real*>(p);
+    p += MDIM * sizeof(Real);
+//    const IntVect*  lo_d = reinterpret_cast<IntVect*>(p);
+    p += sizeof(IntVect);
+//    const IntVect*  hi_d = reinterpret_cast<IntVect*>(p);
+    p += sizeof(IntVect);
     const IntVect*  loGC_d = reinterpret_cast<IntVect*>(p);
     p += sizeof(IntVect);
     const IntVect*  hiGC_d = reinterpret_cast<IntVect*>(p);
@@ -32,8 +38,10 @@ void   gpuKernel::kernel(const int tId, void* dataItem) {
     // No need to get pointer to data in device since we use the following
     // object to access the data and it is already configured with this
     // pointer.
-    p += N_BYTES_PER_BLOCK;
+    p += 2 * N_BYTES_PER_BLOCK;
     FArray4D*   f_d = reinterpret_cast<FArray4D*>(p);
+    p += sizeof(FArray4D);
+    FArray4D*   scratch_d = reinterpret_cast<FArray4D*>(p);
 
     // This kernel is queued up in the given stream and ostensibly behind the
     // asynchronous transfer of the given data packet from host-to-device.

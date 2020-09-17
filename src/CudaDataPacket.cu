@@ -3,6 +3,7 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "Grid_RealVect.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 
@@ -87,7 +88,8 @@ void  CudaDataPacket::pack(void) {
     }
 
     // For the present purpose of development, fail if no streams available
-    stream_ = CudaStreamManager::instance().requestStream(false);
+    stream_ = CudaStreamManager::instance().requestStream(true);
+    // TODO: Turn these in to actual checks
     assert(stream_.object != nullptr);
     assert(stream_.id != CudaStream::NULL_STREAM_ID);
 
@@ -96,10 +98,16 @@ void  CudaDataPacket::pack(void) {
                                                 &packet_p_,
                                                 &packet_d_);
 
-    const IntVect    loGC = tileDesc_->loGC();
-    const IntVect    hiGC = tileDesc_->hiGC();
+    const int        level  = tileDesc_->level();
+    const RealVect   deltas = tileDesc_->deltas();
+    const IntVect    lo     = tileDesc_->lo();
+    const IntVect    hi     = tileDesc_->hi();
+    const IntVect    loGC   = tileDesc_->loGC();
+    const IntVect    hiGC   = tileDesc_->hiGC();
     Real*            data_h = tileDesc_->dataPtr();
     Real*            data_d = nullptr;
+    Real*            data_scratch_h = nullptr;
+    Real*            data_scratch_d = nullptr;
     if (data_h == nullptr) {
         throw std::logic_error("[CudaDataPacket::pack] "
                                "Invalid pointer to data in host memory");
@@ -110,7 +118,21 @@ void  CudaDataPacket::pack(void) {
     char*   ptr_p = static_cast<char*>(packet_p_);
     char*   ptr_d = static_cast<char*>(packet_d_);
 
+    // TODO: This call to dataPtr seems too low-level.  How do I know that 
+    //       it has correct data above NDIM?
+    std::memcpy((void*)ptr_p, (void*)deltas.dataPtr(), MDIM*sizeof(Real));
+    ptr_p += MDIM * sizeof(Real);
+    ptr_d += MDIM * sizeof(Real);
+
     // Pack data for single tile data packet
+    std::memcpy((void*)ptr_p, (void*)&lo, sizeof(IntVect));
+    ptr_p += sizeof(IntVect);
+    ptr_d += sizeof(IntVect);
+
+    std::memcpy((void*)ptr_p, (void*)&hi, sizeof(IntVect));
+    ptr_p += sizeof(IntVect);
+    ptr_d += sizeof(IntVect);
+
     std::memcpy((void*)ptr_p, (void*)&loGC, sizeof(IntVect));
     ptr_p += sizeof(IntVect);
     ptr_d += sizeof(IntVect);
@@ -125,6 +147,11 @@ void  CudaDataPacket::pack(void) {
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
 
+    data_scratch_h  = reinterpret_cast<Real*>(ptr_p);
+    data_scratch_d  = reinterpret_cast<Real*>(ptr_d);
+    ptr_p += BLOCK_SIZE_BYTES;
+    ptr_d += BLOCK_SIZE_BYTES;
+
     // Create an FArray4D object in host memory but that already points
     // to where its data will be in device memory (i.e. the device object
     // will already be attached to its data in device memory).
@@ -133,6 +160,11 @@ void  CudaDataPacket::pack(void) {
     // affect the use of the copies (e.g. release memory).
     FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
     std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
+    ptr_p += sizeof(FArray4D);
+    ptr_d += sizeof(FArray4D);
+
+    FArray4D   scratch_d{data_scratch_d, loGC, hiGC, NUNKVAR};
+    std::memcpy((void*)ptr_p, (void*)&scratch_d, sizeof(FArray4D));
 }
 
 /**

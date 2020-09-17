@@ -7,6 +7,7 @@ MAKEFILE     = Makefile_runtime_cuda
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/RuntimeCuda
 AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
 CUDADIR      = $(OLCF_CUDA_ROOT)
@@ -35,8 +36,8 @@ CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
-    $(INCDIR)/OrchestrationLogger.h \
-    $(TESTDIR)/cudaTestConstants.h
+    $(INCDIR)/RuntimeAction.h \
+    $(INCDIR)/OrchestrationLogger.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
     $(INCDIR)/CudaMoverUnpacker.h \
@@ -79,14 +80,14 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -D__PGI
 CUWARNS   =
 
-LIBS      = -lstdc++ -pgf90libs -lamrex -lcudart
+LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
 
 ifdef DEBUG
@@ -110,5 +111,6 @@ $(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE)
 clean:
 	/bin/rm -f $(COMMAND)
 	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
 
