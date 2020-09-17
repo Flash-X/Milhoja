@@ -1,45 +1,27 @@
-#include "Tile.h"
 #include "Grid.h"
-#include "FArray4D.h"
 #include "RuntimeAction.h"
 #include "CudaRuntime.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
-#include "CudaDataPacket.h"
-#include "CudaMoverUnpacker.h"
 
 #include "Flash.h"
 #include "constants.h"
-#include "gpuKernel.h"
 
-constexpr unsigned int   LEVEL = 0;
-constexpr unsigned int   N_THREAD_TEAMS = 1;
-constexpr unsigned int   MAX_THREADS = 6;
-constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
-
-void setInitialConditions_block(const int tId, void* dataItem) {
-    using namespace orchestration;
-
-    Tile*  tileDesc = static_cast<Tile*>(dataItem);
-
-    const IntVect   loGC = tileDesc->loGC();
-    const IntVect   hiGC = tileDesc->hiGC();
-    FArray4D        f    = tileDesc->data();
-
-    for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
-        for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
-            for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                f(i, j, k, DENS_VAR_C) = i;
-                f(i, j, k, ENER_VAR_C) = 2.0 * j;
-            }
-        }
-    }
-}
+#include "setInitialConditions_block.h"
+#include "Analysis.h"
 
 int   main(int argc, char* argv[]) {
-    using namespace orchestration;
+    // It appears that OpenACC on Summit with PGI has max 32 asynchronous
+    // queues.  If you assign more CUDA streams to queues with OpenACC, then
+    // these streams just roll over and the last 32 CUDA streams will be the
+    // only streams mapped to queues.
+    constexpr int            N_STREAMS = 32; 
+    constexpr unsigned int   N_THREAD_TEAMS = 1;
+    constexpr unsigned int   MAX_THREADS = 6;
+    constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
+    constexpr std::size_t    N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z;
 
-    constexpr std::size_t   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z;
+    using namespace orchestration;
 
     CudaRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
     CudaRuntime::setMaxThreadsPerTeam(MAX_THREADS);
@@ -50,58 +32,45 @@ int   main(int argc, char* argv[]) {
     std::cout << "----------------------------------------------------------\n";
     std::cout << std::endl;
 
-    CudaStreamManager::setMaxNumberStreams(N_BLOCKS);
+    CudaStreamManager::setMaxNumberStreams(N_STREAMS);
     CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
 
+    //***** SET INITIAL CONDITIONS
     // Initialize Grid unit/AMReX
     Grid::instantiate();
     Grid&    grid = Grid::instance();
-    grid.initDomain(setInitialConditions_block);
+    grid.initDomain(Simulation::setInitialConditions_block);
 
-    RuntimeAction    action_packet;
-    action_packet.name = "testComputation";
-    action_packet.nInitialThreads = 6;
-    action_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    action_packet.nTilesPerPacket = 1;
-    action_packet.routine = gpuKernel::kernel;
+    //***** ANALYSIS RUNTIME EXECUTION CYCLE
+    RuntimeAction    computeError_block;
+    computeError_block.nInitialThreads     = 6;
+    computeError_block.teamType            = ThreadTeamDataType::BLOCK;
+    computeError_block.nTilesPerPacket     = 0;
+    computeError_block.routine             = Analysis::computeErrors_block;
 
-    CudaRuntime::instance().executeGpuTasks("TestAction", action_packet);
+    Analysis::initialize(N_BLOCKS);
+    CudaRuntime::instance().executeCpuTasks("Analysis", computeError_block);
 
-    // Check that kernel ran correctly    
-    for (auto ti = grid.buildTileIter(LEVEL); ti->isValid(); ti->next()) {
-        std::unique_ptr<Tile>   tileDesc = ti->buildCurrentTile();
+    double L_inf1      = 0.0;
+    double meanAbsErr1 = 0.0;
+    double L_inf2      = 0.0;
+    double meanAbsErr2 = 0.0;
+    Analysis::densityErrors(&L_inf1, &meanAbsErr1);
+    Analysis::energyErrors(&L_inf2, &meanAbsErr2);
+    std::cout << "L_inf1 = " << L_inf1 << "\n";
+    std::cout << "L_inf2 = " << L_inf2 << std::endl;
 
-        const IntVect   loGC = tileDesc->loGC();
-        const IntVect   hiGC = tileDesc->hiGC();
-        const FArray4D  f    = tileDesc->data();
+//    EXPECT_TRUE(0.0 <= L_inf1);
+//    EXPECT_TRUE(L_inf1 <= 1.0e-15);
+//    EXPECT_TRUE(0.0 <= meanAbsErr1);
+//    EXPECT_TRUE(meanAbsErr1 <= 1.0e-15);
 
-        double absErr = 0.0;
-        double fExpected = 0.0;
-        for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
-            for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
-                for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                    fExpected = i + 2.1*j; 
-                    absErr = fabs(f(i, j, k, DENS_VAR_C) - fExpected);
-                    if (absErr > 1.0e-12) {
-                        std::cout << "Bad DENS at ("
-                                  << i << "," << j << "," << k << ") - "
-                                  << f(i, j, k, DENS_VAR_C) << " instead of "
-                                  << fExpected << "\n";
-                    }
-                    fExpected = -i + 2.0*j;
-                    absErr = fabs(f(i, j, k, ENER_VAR_C) - fExpected);
-                    if (absErr > 1.0e-12) {
-                        std::cout << "Bad ENER at ("
-                                  << i << "," << j << "," << k << ") - "
-                                  << f(i, j, k, ENER_VAR_C) << " instead of "
-                                  << fExpected << "\n";
-                    }
-                }
-            }
-        }
-    }
+//    EXPECT_TRUE(0.0 <= L_inf2);
+//    EXPECT_TRUE(L_inf2 <= 9.0e-6);
+//    EXPECT_TRUE(0.0 <= meanAbsErr2);
+//    EXPECT_TRUE(meanAbsErr2 <= 9.0e-6);
 
     // Clean-up
-    Grid::instance().destroyDomain();
+    grid.destroyDomain();
 }
 

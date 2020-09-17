@@ -179,6 +179,43 @@ unsigned int CudaRuntime::numberFreeStreams(void) const {
     return CudaStreamManager::instance().numberFreeStreams();
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
+void CudaRuntime::executeCpuTasks(const std::string& actionName,
+                                  const RuntimeAction& cpuAction) {
+    if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[CudaRuntime::executeCpuTasks] "
+                               "Given CPU action should run on block-based "
+                               "thread team, which is not in configuration");
+    } else if (cpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[CudaRuntime::executeCpuTasks] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[CudaRuntime::executeCpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    ThreadTeam*   cpuTeam = teams_[0];
+
+    cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
+
+    unsigned int   level = 0;
+    Grid&   grid = Grid::instance();
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        cpuTeam->enqueue( ti->buildCurrentTile() );
+    }
+    cpuTeam->closeQueue();
+    cpuTeam->wait();
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
 void CudaRuntime::executeGpuTasks(const std::string& bundleName,
                                   const RuntimeAction& gpuAction) {
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {

@@ -37,7 +37,9 @@ CXX_HDRS   = \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/OrchestrationLogger.h
+    $(INCDIR)/OrchestrationLogger.h \
+    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
     $(INCDIR)/CudaMoverUnpacker.h \
@@ -64,7 +66,8 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/CudaStream.cpp \
-    $(TESTDIR)/gpuKernel.cpp
+    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaMoverUnpacker.cu \

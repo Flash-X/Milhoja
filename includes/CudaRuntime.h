@@ -34,7 +34,9 @@ public:
 
     unsigned int numberFreeStreams(void) const;
 
-    void executeGpuTasks(const std::string& bundleName,
+    void executeCpuTasks(const std::string& actionName,
+                         const RuntimeAction& cpuAction);
+    void executeGpuTasks(const std::string& actionName,
                          const RuntimeAction& gpuAction);
 
 //    void executeTasks(const ActionBundle& bundle);

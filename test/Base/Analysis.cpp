@@ -39,20 +39,18 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
 
     Grid&   grid = Grid::instance();
 
-    const IntVect   lo = tileDesc->lo();
-    const IntVect   hi = tileDesc->hi();
-    const FArray4D  f  = tileDesc->data();
+    const unsigned int  level = tileDesc->level();
+    const IntVect       lo    = tileDesc->lo();
+    const IntVect       hi    = tileDesc->hi();
+    const FArray4D      f     = tileDesc->data();
 
-    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, tileDesc->level(),
-                        lo, hi); 
-    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
-                        lo, hi); 
+    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, level,
+                                          lo, hi); 
+    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, level,
+                                          lo, hi); 
 
     Real    x            = 0.0;
     Real    y            = 0.0;
-    int     i0           = lo.I();
-    int     j0           = lo.J();
-    int     k0           = lo.K();
     Real    absErr       = 0.0;
     Real    maxAbsErr1   = 0.0;
     Real    sum1         = 0.0;
@@ -66,16 +64,18 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
             for (int i = lo.I(); i <= hi.I(); ++i) {
                 x = xCoords(i);
 
-                fExpected = (18.0*x - 12.0*y - 1.0);
+                fExpected =   3.0*x*x*x +     x*x + x 
+                            - 2.0*y*y*y - 1.5*y*y + y
+                            + 5.0;
                 absErr = fabs(fExpected - f(i, j, k, DENS_VAR_C));
                 sum1 += absErr;
                 if (absErr > maxAbsErr1) {
                      maxAbsErr1 = absErr;
                 }
- 
-                fExpected = energyScaleFactor*x*y*(  48.0*x*x - 18.0*x
-                                                   - 12.0*y*y + 12.0*y
-                                                   - 2.0); 
+
+                fExpected =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
+                            -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
+                            + 1.0;
                 absErr = fabs(fExpected - f(i, j, k, ENER_VAR_C));
                 sum2 += absErr;
                 if (absErr > maxAbsErr2) {
