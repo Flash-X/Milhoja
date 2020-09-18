@@ -47,39 +47,27 @@ int   main(int argc, char* argv[]) {
     grid.initDomain(Simulation::setInitialConditions_block);
 
     //***** FIRST RUNTIME EXECUTION CYCLE
-    RuntimeAction    computeLaplacianDensity_packet;
-    computeLaplacianDensity_packet.nInitialThreads = 6;
-    computeLaplacianDensity_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianDensity_packet.nTilesPerPacket = 1;
-    computeLaplacianDensity_packet.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
+    RuntimeAction    computeLaplacianDensity;
+    computeLaplacianDensity.nInitialThreads = 6;
+    computeLaplacianDensity.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianDensity.nTilesPerPacket = 1;
+    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
-    RuntimeAction    computeLaplacianEnergy_packet;
-    computeLaplacianEnergy_packet.nInitialThreads = 6;
-    computeLaplacianEnergy_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy_packet.nTilesPerPacket = 1;
-    computeLaplacianEnergy_packet.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+    RuntimeAction    computeLaplacianEnergy;
+    computeLaplacianEnergy.nInitialThreads = 6;
+    computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-    CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
-    CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy_packet);
+    RuntimeAction    scaleEnergy;
+    scaleEnergy.nInitialThreads = 6;
+    scaleEnergy.teamType = ThreadTeamDataType::BLOCK;
+    scaleEnergy.nTilesPerPacket = 0;
+    scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
 
-    // TODO: Where to get this value from?  It should be a runtime parameter.
-    constexpr Real   ENERGY_SCALE_FACTOR = 5.0;
-    std::unique_ptr<Tile>    tileDesc{};
-    for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
-        tileDesc = ti->buildCurrentTile();
-
-        const int        level   = tileDesc->level();
-        const IntVect    lo      = tileDesc->lo();
-        const IntVect    hi      = tileDesc->hi();
-        FArray4D         f       = tileDesc->data();
-        const FArray1D   xCoords = grid.getCellCoords(Axis::I, Edge::Center,
-                                                      level, lo, hi); 
-        const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
-                                                      level, lo, hi); 
-       
-        StaticPhysicsRoutines::scaleEnergy(lo, hi, xCoords, yCoords, f,
-                                           ENERGY_SCALE_FACTOR);
-    }
+    CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity);
+    CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy);
+    CudaRuntime::instance().executeCpuTasks("Scale",   scaleEnergy);
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;

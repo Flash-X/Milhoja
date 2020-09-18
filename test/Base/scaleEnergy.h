@@ -36,5 +36,9 @@ namespace StaticPhysicsRoutines {
                                  const int streamId_h);
 }
 
+namespace ActionRoutines {
+    void scaleEnergy_tile_cpu(const int tId, void* dataItem);
+}
+
 #endif
 

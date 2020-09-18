@@ -75,6 +75,7 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy.cpp \
+    $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
