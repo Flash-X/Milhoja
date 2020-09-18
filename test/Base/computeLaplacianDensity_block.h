@@ -2,6 +2,7 @@
 #define COMPUTE_LAPLACIAN_DENSITY_BLOCK_H__
 
 #include "Grid_IntVect.h"
+#include "Grid_RealVect.h"
 #include "FArray4D.h"
 
 #include "constants.h"
@@ -11,7 +12,7 @@ namespace ThreadRoutines {
                                        const orchestration::IntVect* hi_d,
                                        orchestration::FArray4D* f_d,
                                        orchestration::FArray4D* scratch_d,
-                                       const orchestration::Real deltas_d[MDIM],
+                                       const orchestration::RealVect* deltas_d,
                                        const int streamId);
 }
 

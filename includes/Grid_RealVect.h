@@ -3,6 +3,7 @@
 
 #include "constants.h"
 #include "Grid_Macros.h"
+#include "Grid_Axis.h"
 #include "Grid_REAL.h"
 #include <iosfwd>
 #include <stdexcept>
@@ -33,16 +34,16 @@ class RealVect
 
     //! Constructor from NDIM Reals.
     constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z))
-        : LIST_NDIM(i_{x},j_{y},k_{z})} {}
+        : LIST_NDIM(i_{x}, j_{y}, k_{z}) {}
 
     //! Constructor from Real*.
     explicit RealVect (const Real* x)
-        : LIST_NDIM(i_{x[0]},j_{x[1]},k_{x[2]})} {}
+        : LIST_NDIM(i_{x[0]}, j_{x[1]}, k_{x[2]}) {}
 
 #if NDIM<3
     //! Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z)
-        : LIST_NDIM(i_{x},j_{y},k_{z})} {
+        : LIST_NDIM(i_{x}, j_{y}, k_{z}) {
         throw std::logic_error("Using deprecated RealVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
@@ -50,7 +51,7 @@ class RealVect
 #ifdef GRID_AMREX
     //! Constructor from amrex::RealVect
     explicit RealVect (const amrex::RealVect& ain)
-        : LIST_NDIM(i_{ain[0]},j_{ain[1]},k_{ain[2]})} {}
+        : LIST_NDIM(i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}
 
     //! Operator to explicitly cast an RealVect to an AMReX RealVect
     explicit operator amrex::RealVect () const {

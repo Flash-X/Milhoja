@@ -120,9 +120,9 @@ void  CudaDataPacket::pack(void) {
 
     // TODO: This call to dataPtr seems too low-level.  How do I know that 
     //       it has correct data above NDIM?
-    std::memcpy((void*)ptr_p, (void*)deltas.dataPtr(), MDIM*sizeof(Real));
-    ptr_p += MDIM * sizeof(Real);
-    ptr_d += MDIM * sizeof(Real);
+    std::memcpy((void*)ptr_p, (void*)&deltas, sizeof(RealVect));
+    ptr_p += sizeof(RealVect);
+    ptr_d += sizeof(RealVect);
 
     // Pack data for single tile data packet
     std::memcpy((void*)ptr_p, (void*)&lo, sizeof(IntVect));

@@ -21,8 +21,8 @@ void ThreadRoutines::computeLaplacianEnergy_packet(const int tId, void* dataItem
     // memory.  This should work so long as these pointers aren't used 
     // before the data is actually in the device memory.
     char*  p = static_cast<char*>(packet->gpuPointer());
-    const Real*      deltas_d = reinterpret_cast<Real*>(p);
-    p += MDIM * sizeof(Real);
+    const RealVect*  deltas_d = reinterpret_cast<RealVect*>(p);
+    p += sizeof(RealVect);
     const IntVect*   lo_d = reinterpret_cast<IntVect*>(p);
     p += sizeof(IntVect);
     const IntVect*   hi_d = reinterpret_cast<IntVect*>(p);

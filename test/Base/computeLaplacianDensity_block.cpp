@@ -6,7 +6,7 @@ void ThreadRoutines::computeLaplacianDensity_block(const orchestration::IntVect*
                                                    const orchestration::IntVect* hi_d,
                                                    orchestration::FArray4D* f_d,
                                                    orchestration::FArray4D* scratch_d,
-                                                   const orchestration::Real deltas_d[MDIM],
+                                                   const orchestration::RealVect* deltas_d,
                                                    const int streamId) {
     using namespace orchestration;
 
@@ -18,8 +18,8 @@ void ThreadRoutines::computeLaplacianDensity_block(const orchestration::IntVect*
     {
         #pragma acc kernels default(none) async(streamId)
         {
-            dx_sqr_inv = 1.0 / (deltas_d[IAXIS_C] * deltas_d[IAXIS_C]);
-            dy_sqr_inv = 1.0 / (deltas_d[JAXIS_C] * deltas_d[JAXIS_C]);
+            dx_sqr_inv = 1.0 / (deltas_d->I() * deltas_d->I());
+            dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
         }
 
         // Compute Laplacian in scratch

@@ -3,8 +3,9 @@
 
 #include <memory>
 
-#include "Grid_IntVect.h"
 #include "Grid_REAL.h"
+#include "Grid_IntVect.h"
+#include "Grid_RealVect.h"
 #include "DataItem.h"
 #include "Tile.h"
 #include "FArray4D.h"
@@ -74,7 +75,7 @@ protected:
                                               * (NYB + 2 * NGUARD * K2D)
                                               * (NZB + 2 * NGUARD * K3D)
                                               * NUNKVAR;
-    static constexpr std::size_t    DELTA_SIZE_BYTES    =    MDIM * sizeof(Real);
+    static constexpr std::size_t    DELTA_SIZE_BYTES    =           sizeof(RealVect);
     static constexpr std::size_t    BLOCK_SIZE_BYTES    = N_CELLS * sizeof(Real);
     static constexpr std::size_t    POINT_SIZE_BYTES    =           sizeof(IntVect);
     static constexpr std::size_t    ARRAY_SIZE_BYTES    =           sizeof(FArray4D);
