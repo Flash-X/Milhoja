@@ -31,11 +31,9 @@ namespace orchestration {
   */
 class FArray1D {
 public:
-    static FArray1D   buildScratchArray1D(const int lo,
-                                          const int hi);
+    static FArray1D   buildScratchArray1D(const int lo, const int hi);
 
-    FArray1D(Real* data, 
-             const int lo, const int hi);
+    FArray1D(Real* data, const int lo);
     ~FArray1D(void);
 
     FArray1D(FArray1D&)                  = delete;
@@ -48,12 +46,12 @@ public:
     //! Get and set data in a Fortran-style way.
     #pragma acc routine seq
     Real& operator()(const int i) const {
-        return data_[  (i-i0_) ];
+        return data_[i-i0_];
     }
 
     #pragma acc routine seq
     Real& at(const int i) const {
-        return data_[  (i-i0_) ];
+        return data_[i-i0_];
     }
 
     Real* dataPtr(void) {

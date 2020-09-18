@@ -7,10 +7,9 @@ namespace orchestration {
 
 //----- static member function definitions
 //! Factory function to build an FArray1D that owns data.
-FArray1D   FArray1D::buildScratchArray1D(const int lo,
-                                         const int hi) {
-    Real*  scratch = new Real[ (hi - lo + 1) ];
-    FArray1D   scratchArray = FArray1D{scratch, lo, hi};
+FArray1D   FArray1D::buildScratchArray1D(const int lo, const int hi) {
+    Real*  scratch = new Real[hi - lo + 1];
+    FArray1D   scratchArray = FArray1D{scratch, lo};
     scratchArray.owner_ = true;
     return scratchArray;
 }
@@ -19,8 +18,7 @@ FArray1D   FArray1D::buildScratchArray1D(const int lo,
 /** \brief Construct an FArray1D to wrap an input pointer.
   *
   */
-FArray1D::FArray1D(Real* data, 
-                   const int lo, const int hi)
+FArray1D::FArray1D(Real* data, const int lo)
     : owner_{false},
       data_{data},
       i0_{lo}
@@ -29,12 +27,6 @@ FArray1D::FArray1D(Real* data,
     // TODO Add tests for these?
     if (!data_) {
         throw std::invalid_argument("[FArray1D::FArray1D] null data pointer given");
-    } else if (lo >= hi ) {
-        std::string   msg =   "[FArray1D::FArray1D] lo ("
-                            + std::to_string(lo) + ")"
-                            + " not compatible with hi ("
-                            + std::to_string(hi) + ") ";
-        throw std::invalid_argument(msg);
     }
 #endif
 }

@@ -191,12 +191,12 @@ void  CudaDataPacket::pack(void) {
     ptr_p += COORDS_Y_SIZE_BYTES;
     ptr_d += COORDS_Y_SIZE_BYTES;
 
-    FArray1D   xCoordArray_d{xCoords_d, lo.I(), hi.I()};
+    FArray1D   xCoordArray_d{xCoords_d, lo.I()};
     std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, sizeof(FArray1D));
     ptr_p += sizeof(FArray1D);
     ptr_d += sizeof(FArray1D);
 
-    FArray1D   yCoordArray_d{yCoords_d, lo.J(), hi.J()};
+    FArray1D   yCoordArray_d{yCoords_d, lo.J()};
     std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, sizeof(FArray1D));
 }
 
