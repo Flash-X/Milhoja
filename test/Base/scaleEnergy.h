@@ -5,22 +5,35 @@
 #include "FArray1D.h"
 #include "FArray4D.h"
 
-namespace ThreadRoutines {
-    // OFFLINE TOOLCHAIN:  Should streamId be excluded from the base declaration
-    //                     and definition with the understanding that the
-    //                     toolchain would add it when it translates such
-    //                     routines to the final version using the desired 
-    //                     directive (e.g. OpenACC or OpenMP)?
-    // OFFLINE TOOLCHAIN:  Could these be defined with references with
-    //                     conversion to pointers as needed by the offline
-    //                     toolchain when generating the final version using
-    //                     the desired directive (e.g. OpenACC or OpenMP)?
+namespace StaticPhysicsRoutines {
+    // This is the declaration/interface as designed by a PUD.  It should not
+    // have unnecessary variables (e.g. stream) and should be written under the
+    // assumption that the code will be executed by the host with all given
+    // arguments resident in host memory.
     void scaleEnergy(const orchestration::IntVect& lo,
                      const orchestration::IntVect& hi,
                      const orchestration::FArray1D& xCoords,
                      const orchestration::FArray1D& yCoords,
                      orchestration::FArray4D& f,
                      const orchestration::Real scaleFactor);
+
+    // This is the version that would be adapted from the above by the 
+    // OFFLINE TOOLCHAIN based on the target platfarm and high-level
+    // offloading program model that has been specified for the build.
+    // In this case, we imagine that offloading, where specified, should
+    // be effected by OpenACC and that the simulation will run on Summit.
+    // Since offloading, we pass in all arguments as pointers to data in
+    // device memory.  The exceptions to this are
+    //  - streamId_h as this information is needed on the host for offloading
+    //  - scaleFactor as this variable has not yet been included in
+    //    the host-to-device data packet (pending).
+    void scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,
+                                 const orchestration::IntVect* hi_d,
+                                 const orchestration::FArray1D* xCoords_d,
+                                 const orchestration::FArray1D* yCoords_d,
+                                 orchestration::FArray4D* f_d,
+                                 const orchestration::Real scaleFactor,
+                                 const int streamId_h);
 }
 
 #endif

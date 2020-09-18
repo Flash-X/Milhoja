@@ -2,12 +2,12 @@
 
 #include "Flash.h"
 
-void ThreadRoutines::scaleEnergy(const orchestration::IntVect& lo,
-                                 const orchestration::IntVect& hi,
-                                 const orchestration::FArray1D& xCoords,
-                                 const orchestration::FArray1D& yCoords,
-                                 orchestration::FArray4D& f,
-                                 const orchestration::Real scaleFactor) {
+void StaticPhysicsRoutines::scaleEnergy(const orchestration::IntVect& lo,
+                                        const orchestration::IntVect& hi,
+                                        const orchestration::FArray1D& xCoords,
+                                        const orchestration::FArray1D& yCoords,
+                                        orchestration::FArray4D& f,
+                                        const orchestration::Real scaleFactor) {
     // OFFLINE TOOLCHAIN: Add in directives for mapping to kernel
     orchestration::Real    x = 0.0;
     orchestration::Real    y = 0.0;

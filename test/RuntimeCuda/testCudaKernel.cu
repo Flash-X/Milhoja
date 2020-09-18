@@ -10,8 +10,8 @@
 #include "constants.h"
 
 #include "setInitialConditions_block.h"
-#include "computeLaplacianDensity_packet.h"
-#include "computeLaplacianEnergy_packet.h"
+#include "computeLaplacianDensity.h"
+#include "computeLaplacianEnergy.h"
 #include "scaleEnergy.h"
 #include "Analysis.h"
 
@@ -51,13 +51,13 @@ int   main(int argc, char* argv[]) {
     computeLaplacianDensity_packet.nInitialThreads = 6;
     computeLaplacianDensity_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
     computeLaplacianDensity_packet.nTilesPerPacket = 1;
-    computeLaplacianDensity_packet.routine = ThreadRoutines::computeLaplacianDensity_packet;
+    computeLaplacianDensity_packet.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
     RuntimeAction    computeLaplacianEnergy_packet;
     computeLaplacianEnergy_packet.nInitialThreads = 6;
     computeLaplacianEnergy_packet.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
     computeLaplacianEnergy_packet.nTilesPerPacket = 1;
-    computeLaplacianEnergy_packet.routine = ThreadRoutines::computeLaplacianEnergy_packet;
+    computeLaplacianEnergy_packet.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
     CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy_packet);
@@ -77,8 +77,8 @@ int   main(int argc, char* argv[]) {
         const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
                                                       level, lo, hi); 
        
-        ThreadRoutines::scaleEnergy(lo, hi, xCoords, yCoords, f,
-                                    ENERGY_SCALE_FACTOR);
+        StaticPhysicsRoutines::scaleEnergy(lo, hi, xCoords, yCoords, f,
+                                           ENERGY_SCALE_FACTOR);
     }
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE

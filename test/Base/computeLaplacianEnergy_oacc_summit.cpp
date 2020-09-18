@@ -1,13 +1,13 @@
-#include "computeLaplacianEnergy_block.h"
+#include "computeLaplacianEnergy.h"
 
 #include "Flash.h"
 
-void ThreadRoutines::computeLaplacianEnergy_block(const orchestration::IntVect* lo_d,
-                                                  const orchestration::IntVect* hi_d,
-                                                  orchestration::FArray4D* f_d,
-                                                  orchestration::FArray4D* scratch_d,
-                                                  const orchestration::RealVect* deltas_d,
-                                                  const int streamId) {
+void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestration::IntVect* lo_d,
+                                                               const orchestration::IntVect* hi_d,
+                                                               orchestration::FArray4D* f_d,
+                                                               orchestration::FArray4D* scratch_d,
+                                                               const orchestration::RealVect* deltas_d,
+                                                               const int streamId_h) {
     using namespace orchestration;
 
     Real   dx_sqr_inv = 0.0;
@@ -16,14 +16,14 @@ void ThreadRoutines::computeLaplacianEnergy_block(const orchestration::IntVect* 
     #pragma acc data create(dx_sqr_inv, dy_sqr_inv) \
                      deviceptr(deltas_d, lo_d, hi_d, f_d, scratch_d)
     {
-        #pragma acc kernels default(none) async(streamId)
+        #pragma acc kernels default(none) async(streamId_h)
         {
             dx_sqr_inv = 1.0 / (deltas_d->I() * deltas_d->I());
             dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
         }
 
         // Compute Laplacian in scratch
-        #pragma acc parallel loop default(none) async(streamId)
+        #pragma acc parallel loop default(none) async(streamId_h)
         for         (int k=lo_d->K(); k<=hi_d->K(); ++k) {
             #pragma acc loop
             for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
@@ -45,7 +45,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const orchestration::IntVect* 
         // a pointer to CC1 and directly write the result to CC2.  When copying the
         // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
         // would be unnecessary.
-        #pragma acc parallel loop default(none) async(streamId)
+        #pragma acc parallel loop default(none) async(streamId_h)
         for         (int k=lo_d->K(); k<=hi_d->K(); ++k) {
             #pragma acc loop
             for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
@@ -55,7 +55,7 @@ void ThreadRoutines::computeLaplacianEnergy_block(const orchestration::IntVect* 
                  }
             } 
         }
-        #pragma acc wait(streamId)
+        #pragma acc wait(streamId_h)
     }
 }
 

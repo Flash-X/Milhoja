@@ -39,10 +39,8 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
+    $(TESTBASEDIR)/computeLaplacianDensity.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/scaleEnergy.h \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
@@ -72,10 +70,10 @@ SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/CudaStream.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy.cpp \
     $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \

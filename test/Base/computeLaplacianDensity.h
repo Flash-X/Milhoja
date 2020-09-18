@@ -1,0 +1,28 @@
+#ifndef COMPUTE_LAPLACIAN_DENSITY_H__
+#define COMPUTE_LAPLACIAN_DENSITY_H__
+
+#include "Grid_IntVect.h"
+#include "Grid_RealVect.h"
+#include "FArray4D.h"
+
+namespace StaticPhysicsRoutines{
+    void computeLaplacianDensity(const orchestration::IntVect& lo,
+                                 const orchestration::IntVect& hi,
+                                 orchestration::FArray4D& f,
+                                 orchestration::FArray4D& scratch,
+                                 const orchestration::RealVect& deltas);
+
+    void computeLaplacianDensity_oacc_summit(const orchestration::IntVect* lo_d,
+                                             const orchestration::IntVect* hi_d,
+                                             orchestration::FArray4D* f_d,
+                                             orchestration::FArray4D* scratch_d,
+                                             const orchestration::RealVect* deltas_d,
+                                             const int streamId_h);
+}
+
+namespace ActionRoutines {
+    void computeLaplacianDensity_packet_oacc_summit(const int tId, void* dataItem);
+}
+
+#endif
+

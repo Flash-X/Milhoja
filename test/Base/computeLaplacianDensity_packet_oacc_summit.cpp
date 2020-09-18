@@ -1,11 +1,10 @@
-#include "computeLaplacianDensity_packet.h"
+#include "computeLaplacianDensity.h"
 
 #include "DataItem.h"
 
 #include "constants.h"
-#include "computeLaplacianDensity_block.h"
 
-void ThreadRoutines::computeLaplacianDensity_packet(const int tId, void* dataItem) {
+void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId, void* dataItem) {
     using namespace orchestration;
 
     constexpr std::size_t    N_CELLS =   (NXB + 2 * NGUARD * K1D)
@@ -15,7 +14,7 @@ void ThreadRoutines::computeLaplacianDensity_packet(const int tId, void* dataIte
     constexpr std::size_t    N_BYTES_PER_BLOCK = N_CELLS * sizeof(Real);
 
     DataItem*  packet = reinterpret_cast<DataItem*>(dataItem);
-    const int  streamId = packet->stream().id;
+    const int  streamId_h = packet->stream().id;
 
     // Use the host to determine pointer offsets into data packet in device
     // memory.  This should work so long as these pointers aren't used 
@@ -39,6 +38,8 @@ void ThreadRoutines::computeLaplacianDensity_packet(const int tId, void* dataIte
     p += sizeof(FArray4D);
     FArray4D*   scratch_d = reinterpret_cast<FArray4D*>(p);
 
-    computeLaplacianDensity_block(lo_d, hi_d, f_d, scratch_d, deltas_d, streamId);
+    StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(lo_d, hi_d,
+                                                               f_d, scratch_d, deltas_d,
+                                                               streamId_h);
 }
 
