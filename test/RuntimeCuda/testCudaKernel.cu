@@ -12,7 +12,7 @@
 #include "setInitialConditions_block.h"
 #include "computeLaplacianDensity_packet.h"
 #include "computeLaplacianEnergy_packet.h"
-#include "scaleEnergy_block.h"
+#include "scaleEnergy.h"
 #include "Analysis.h"
 
 int   main(int argc, char* argv[]) {
@@ -62,6 +62,8 @@ int   main(int argc, char* argv[]) {
     CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
     CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy_packet);
 
+    // TODO: Where to get this value from?  It should be a runtime parameter.
+    constexpr Real   ENERGY_SCALE_FACTOR = 5.0;
     std::unique_ptr<Tile>    tileDesc{};
     for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
         tileDesc = ti->buildCurrentTile();
@@ -75,7 +77,8 @@ int   main(int argc, char* argv[]) {
         const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
                                                       level, lo, hi); 
        
-        ThreadRoutines::scaleEnergy_block(lo, hi, xCoords, yCoords, f);
+        ThreadRoutines::scaleEnergy(lo, hi, xCoords, yCoords, f,
+                                    ENERGY_SCALE_FACTOR);
     }
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
