@@ -1,3 +1,5 @@
+#include "Grid_Axis.h"
+#include "Grid_Edge.h"
 #include "Grid.h"
 #include "RuntimeAction.h"
 #include "CudaRuntime.h"
@@ -10,6 +12,7 @@
 #include "setInitialConditions_block.h"
 #include "computeLaplacianDensity_packet.h"
 #include "computeLaplacianEnergy_packet.h"
+#include "scaleEnergy_block.h"
 #include "Analysis.h"
 
 int   main(int argc, char* argv[]) {
@@ -58,6 +61,22 @@ int   main(int argc, char* argv[]) {
 
     CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity_packet);
     CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy_packet);
+
+    std::unique_ptr<Tile>    tileDesc{};
+    for (auto ti = grid.buildTileIter(0); ti->isValid(); ti->next()) {
+        tileDesc = ti->buildCurrentTile();
+
+        const int        level   = tileDesc->level();
+        const IntVect    lo      = tileDesc->lo();
+        const IntVect    hi      = tileDesc->hi();
+        FArray4D         f       = tileDesc->data();
+        const FArray1D   xCoords = grid.getCellCoords(Axis::I, Edge::Center,
+                                                      level, lo, hi); 
+        const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
+                                                      level, lo, hi); 
+       
+        ThreadRoutines::scaleEnergy_block(lo, hi, xCoords, yCoords, f);
+    }
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;

@@ -6,9 +6,10 @@
 #include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
-#include "DataItem.h"
-#include "Tile.h"
+#include "FArray1D.h"
 #include "FArray4D.h"
+#include "Tile.h"
+#include "DataItem.h"
 #include "CudaStream.h"
 
 #include "constants.h"
@@ -78,13 +79,19 @@ protected:
     static constexpr std::size_t    DELTA_SIZE_BYTES    =           sizeof(RealVect);
     static constexpr std::size_t    BLOCK_SIZE_BYTES    = N_CELLS * sizeof(Real);
     static constexpr std::size_t    POINT_SIZE_BYTES    =           sizeof(IntVect);
-    static constexpr std::size_t    ARRAY_SIZE_BYTES    =           sizeof(FArray4D);
+    static constexpr std::size_t    ARRAY1_SIZE_BYTES   =           sizeof(FArray1D);
+    static constexpr std::size_t    ARRAY4_SIZE_BYTES   =           sizeof(FArray4D);
+    static constexpr std::size_t    COORDS_X_SIZE_BYTES =     NXB * sizeof(Real);
+    static constexpr std::size_t    COORDS_Y_SIZE_BYTES =     NYB * sizeof(Real);
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
     static constexpr std::size_t    N_BYTES_PER_PACKET =          1 * DELTA_SIZE_BYTES
                                                          +        4 * POINT_SIZE_BYTES
                                                          + N_BLOCKS * BLOCK_SIZE_BYTES
-                                                         +        2 * ARRAY_SIZE_BYTES;
+                                                         +        2 * ARRAY4_SIZE_BYTES
+                                                         +        1 * COORDS_X_SIZE_BYTES
+                                                         +        1 * COORDS_Y_SIZE_BYTES
+                                                         +        2 * ARRAY1_SIZE_BYTES;
 
 private:
     std::shared_ptr<Tile>   tileDesc_;

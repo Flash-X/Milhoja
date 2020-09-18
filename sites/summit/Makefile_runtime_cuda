@@ -43,6 +43,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
+    $(TESTBASEDIR)/scaleEnergy_block.h \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
@@ -75,6 +76,7 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
+    $(TESTBASEDIR)/scaleEnergy_block.cpp \
     $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \

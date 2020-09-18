@@ -46,8 +46,22 @@ public:
     FArray1D& operator=(FArray1D&&)      = delete;
 
     //! Get and set data in a Fortran-style way.
+    #pragma acc routine seq
     Real& operator()(const int i) const {
         return data_[  (i-i0_) ];
+    }
+
+    #pragma acc routine seq
+    Real& at(const int i) const {
+        return data_[  (i-i0_) ];
+    }
+
+    Real* dataPtr(void) {
+        return data_;
+    }
+
+    const Real* dataPtr(void) const {
+        return data_;
     }
 
 private:

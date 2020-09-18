@@ -4,6 +4,9 @@
 #include <stdexcept>
 
 #include "Grid_RealVect.h"
+#include "Grid_Axis.h"
+#include "Grid_Edge.h"
+#include "Grid.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 
@@ -87,6 +90,8 @@ void  CudaDataPacket::pack(void) {
                                "Block buffere already allocated in pinned memory");
     }
 
+    Grid&   grid = Grid::instance();
+
     // For the present purpose of development, fail if no streams available
     stream_ = CudaStreamManager::instance().requestStream(true);
     // TODO: Turn these in to actual checks
@@ -104,10 +109,18 @@ void  CudaDataPacket::pack(void) {
     const IntVect    hi     = tileDesc_->hi();
     const IntVect    loGC   = tileDesc_->loGC();
     const IntVect    hiGC   = tileDesc_->hiGC();
+    const FArray1D   xCoords = grid.getCellCoords(Axis::I, Edge::Center,
+                                                  level, lo, hi); 
+    const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
+                                                  level, lo, hi); 
     Real*            data_h = tileDesc_->dataPtr();
     Real*            data_d = nullptr;
     Real*            data_scratch_h = nullptr;
     Real*            data_scratch_d = nullptr;
+    const Real*      xCoords_h = xCoords.dataPtr();
+    const Real*      yCoords_h = yCoords.dataPtr();
+    Real*            xCoords_d = nullptr;
+    Real*            yCoords_d = nullptr;
     if (data_h == nullptr) {
         throw std::logic_error("[CudaDataPacket::pack] "
                                "Invalid pointer to data in host memory");
@@ -165,6 +178,26 @@ void  CudaDataPacket::pack(void) {
 
     FArray4D   scratch_d{data_scratch_d, loGC, hiGC, NUNKVAR};
     std::memcpy((void*)ptr_p, (void*)&scratch_d, sizeof(FArray4D));
+    ptr_p += sizeof(FArray4D);
+    ptr_d += sizeof(FArray4D);
+
+    xCoords_d  = reinterpret_cast<Real*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)xCoords_h, COORDS_X_SIZE_BYTES);
+    ptr_p += COORDS_X_SIZE_BYTES;
+    ptr_d += COORDS_X_SIZE_BYTES;
+
+    yCoords_d  = reinterpret_cast<Real*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)yCoords_h, COORDS_Y_SIZE_BYTES);
+    ptr_p += COORDS_Y_SIZE_BYTES;
+    ptr_d += COORDS_Y_SIZE_BYTES;
+
+    FArray1D   xCoordArray_d{xCoords_d, lo.I(), hi.I()};
+    std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, sizeof(FArray1D));
+    ptr_p += sizeof(FArray1D);
+    ptr_d += sizeof(FArray1D);
+
+    FArray1D   yCoordArray_d{yCoords_d, lo.J(), hi.J()};
+    std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, sizeof(FArray1D));
 }
 
 /**
