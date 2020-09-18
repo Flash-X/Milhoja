@@ -21,6 +21,7 @@ namespace StaticPhysicsRoutines {
 }
 
 namespace ActionRoutines {
+    void computeLaplacianEnergy_tile_cpu(const int tId, void* dataItem);
     void computeLaplacianEnergy_packet_oacc_summit(const int tId, void* dataItem);
 }
 

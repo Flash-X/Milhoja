@@ -21,6 +21,7 @@ namespace StaticPhysicsRoutines{
 }
 
 namespace ActionRoutines {
+    void computeLaplacianDensity_tile_cpu(const int tId, void* dataItem);
     void computeLaplacianDensity_packet_oacc_summit(const int tId, void* dataItem);
 }
 
