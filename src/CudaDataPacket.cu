@@ -21,6 +21,7 @@ CudaDataPacket::CudaDataPacket(std::shared_ptr<Tile>&& tileDesc)
       data_p_{nullptr},
       packet_p_{nullptr},
       packet_d_{nullptr},
+      contents_d_{},
       stream_{}
 { }
 
@@ -39,6 +40,17 @@ CudaDataPacket::~CudaDataPacket(void) {
     assert(packet_d_ == nullptr);
 
     data_p_  = nullptr;
+
+    contents_d_.level   = 0;
+    contents_d_.deltas  = nullptr;
+    contents_d_.lo      = nullptr;
+    contents_d_.hi      = nullptr;
+    contents_d_.loGC    = nullptr;
+    contents_d_.hiGC    = nullptr;
+    contents_d_.xCoords = nullptr;
+    contents_d_.yCoords = nullptr;
+    contents_d_.data    = nullptr;
+    contents_d_.scratch = nullptr;
 }
 
 /**
@@ -88,6 +100,17 @@ void  CudaDataPacket::pack(void) {
     } else if (data_p_) {
         throw std::logic_error("[CudaDataPacket::pack] "
                                "Block buffere already allocated in pinned memory");
+    } else if (   (contents_d_.deltas  != nullptr)
+               || (contents_d_.lo      != nullptr)
+               || (contents_d_.hi      != nullptr)
+               || (contents_d_.loGC    != nullptr)
+               || (contents_d_.hiGC    != nullptr)
+               || (contents_d_.xCoords != nullptr)
+               || (contents_d_.yCoords != nullptr)
+               || (contents_d_.data    != nullptr)
+               || (contents_d_.scratch != nullptr)) {
+        throw std::logic_error("[CudaDataPacket::pack] "
+                               "Contents object not nulled");
     }
 
     Grid&   grid = Grid::instance();
@@ -103,24 +126,23 @@ void  CudaDataPacket::pack(void) {
                                                 &packet_p_,
                                                 &packet_d_);
 
-    const int        level  = tileDesc_->level();
-    const RealVect   deltas = tileDesc_->deltas();
-    const IntVect    lo     = tileDesc_->lo();
-    const IntVect    hi     = tileDesc_->hi();
-    const IntVect    loGC   = tileDesc_->loGC();
-    const IntVect    hiGC   = tileDesc_->hiGC();
-    const FArray1D   xCoords = grid.getCellCoords(Axis::I, Edge::Center,
-                                                  level, lo, hi); 
-    const FArray1D   yCoords = grid.getCellCoords(Axis::J, Edge::Center,
-                                                  level, lo, hi); 
-    Real*            data_h = tileDesc_->dataPtr();
-    Real*            data_d = nullptr;
-    Real*            data_scratch_h = nullptr;
-    Real*            data_scratch_d = nullptr;
-    const Real*      xCoords_h = xCoords.dataPtr();
-    const Real*      yCoords_h = yCoords.dataPtr();
-    Real*            xCoords_d = nullptr;
-    Real*            yCoords_d = nullptr;
+    const unsigned int  level  = tileDesc_->level();
+    const RealVect      deltas = tileDesc_->deltas();
+    const IntVect       lo     = tileDesc_->lo();
+    const IntVect       hi     = tileDesc_->hi();
+    const IntVect       loGC   = tileDesc_->loGC();
+    const IntVect       hiGC   = tileDesc_->hiGC();
+    const FArray1D      xCoords = grid.getCellCoords(Axis::I, Edge::Center,
+                                                     level, lo, hi); 
+    const FArray1D      yCoords = grid.getCellCoords(Axis::J, Edge::Center,
+                                                     level, lo, hi); 
+    Real*               data_h = tileDesc_->dataPtr();
+    Real*               data_d = nullptr;
+    Real*               data_scratch_d = nullptr;
+    const Real*         xCoords_h = xCoords.dataPtr();
+    const Real*         yCoords_h = yCoords.dataPtr();
+    Real*               xCoords_d = nullptr;
+    Real*               yCoords_d = nullptr;
     if (data_h == nullptr) {
         throw std::logic_error("[CudaDataPacket::pack] "
                                "Invalid pointer to data in host memory");
@@ -131,28 +153,34 @@ void  CudaDataPacket::pack(void) {
     char*   ptr_p = static_cast<char*>(packet_p_);
     char*   ptr_d = static_cast<char*>(packet_d_);
 
-    // TODO: This call to dataPtr seems too low-level.  How do I know that 
-    //       it has correct data above NDIM?
-    std::memcpy((void*)ptr_p, (void*)&deltas, sizeof(RealVect));
-    ptr_p += sizeof(RealVect);
-    ptr_d += sizeof(RealVect);
+    // TODO: I think that we should put in padding so that all objects 
+    //       are byte aligned in the device's memory.
+    contents_d_.level = level;
+    contents_d_.deltas = reinterpret_cast<RealVect*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
+    ptr_p += DELTA_SIZE_BYTES;
+    ptr_d += DELTA_SIZE_BYTES;
 
     // Pack data for single tile data packet
-    std::memcpy((void*)ptr_p, (void*)&lo, sizeof(IntVect));
-    ptr_p += sizeof(IntVect);
-    ptr_d += sizeof(IntVect);
+    contents_d_.lo = reinterpret_cast<IntVect*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)&lo, POINT_SIZE_BYTES);
+    ptr_p += POINT_SIZE_BYTES;
+    ptr_d += POINT_SIZE_BYTES;
 
-    std::memcpy((void*)ptr_p, (void*)&hi, sizeof(IntVect));
-    ptr_p += sizeof(IntVect);
-    ptr_d += sizeof(IntVect);
+    contents_d_.hi = reinterpret_cast<IntVect*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)&hi, POINT_SIZE_BYTES);
+    ptr_p += POINT_SIZE_BYTES;
+    ptr_d += POINT_SIZE_BYTES;
 
-    std::memcpy((void*)ptr_p, (void*)&loGC, sizeof(IntVect));
-    ptr_p += sizeof(IntVect);
-    ptr_d += sizeof(IntVect);
+    contents_d_.loGC = reinterpret_cast<IntVect*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)&loGC, POINT_SIZE_BYTES);
+    ptr_p += POINT_SIZE_BYTES;
+    ptr_d += POINT_SIZE_BYTES;
 
-    std::memcpy((void*)ptr_p, (void*)&hiGC, sizeof(IntVect));
-    ptr_p += sizeof(IntVect);
-    ptr_d += sizeof(IntVect);
+    contents_d_.hiGC = reinterpret_cast<IntVect*>(ptr_d);
+    std::memcpy((void*)ptr_p, (void*)&hiGC, POINT_SIZE_BYTES);
+    ptr_p += POINT_SIZE_BYTES;
+    ptr_d += POINT_SIZE_BYTES;
 
     data_p_ = reinterpret_cast<Real*>(ptr_p);
     data_d  = reinterpret_cast<Real*>(ptr_d);
@@ -160,26 +188,9 @@ void  CudaDataPacket::pack(void) {
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
 
-    data_scratch_h  = reinterpret_cast<Real*>(ptr_p);
-    data_scratch_d  = reinterpret_cast<Real*>(ptr_d);
+    data_scratch_d = reinterpret_cast<Real*>(ptr_d);
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
-
-    // Create an FArray4D object in host memory but that already points
-    // to where its data will be in device memory (i.e. the device object
-    // will already be attached to its data in device memory).
-    // The object in host memory should never be used then.
-    // IMPORTANT: When this local object is destroyed, we don't want it to
-    // affect the use of the copies (e.g. release memory).
-    FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
-    std::memcpy((void*)ptr_p, (void*)&f_d, sizeof(FArray4D));
-    ptr_p += sizeof(FArray4D);
-    ptr_d += sizeof(FArray4D);
-
-    FArray4D   scratch_d{data_scratch_d, loGC, hiGC, NUNKVAR};
-    std::memcpy((void*)ptr_p, (void*)&scratch_d, sizeof(FArray4D));
-    ptr_p += sizeof(FArray4D);
-    ptr_d += sizeof(FArray4D);
 
     xCoords_d  = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)xCoords_h, COORDS_X_SIZE_BYTES);
@@ -191,13 +202,37 @@ void  CudaDataPacket::pack(void) {
     ptr_p += COORDS_Y_SIZE_BYTES;
     ptr_d += COORDS_Y_SIZE_BYTES;
 
+    contents_d_.xCoords = reinterpret_cast<FArray1D*>(ptr_d);
     FArray1D   xCoordArray_d{xCoords_d, lo.I()};
-    std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, sizeof(FArray1D));
-    ptr_p += sizeof(FArray1D);
-    ptr_d += sizeof(FArray1D);
+    std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, ARRAY1_SIZE_BYTES);
+    ptr_p += ARRAY1_SIZE_BYTES;
+    ptr_d += ARRAY1_SIZE_BYTES;
 
+    contents_d_.yCoords = reinterpret_cast<FArray1D*>(ptr_d);
     FArray1D   yCoordArray_d{yCoords_d, lo.J()};
-    std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, sizeof(FArray1D));
+    std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, ARRAY1_SIZE_BYTES);
+    ptr_p += ARRAY1_SIZE_BYTES;
+    ptr_d += ARRAY1_SIZE_BYTES;
+ 
+    // Create an FArray4D object in host memory but that already points
+    // to where its data will be in device memory (i.e. the device object
+    // will already be attached to its data in device memory).
+    // The object in host memory should never be used then.
+    // IMPORTANT: When this local object is destroyed, we don't want it to
+    // affect the use of the copies (e.g. release memory).
+    contents_d_.data = reinterpret_cast<FArray4D*>(ptr_d);
+    FArray4D   f_d{data_d, loGC, hiGC, NUNKVAR};
+    std::memcpy((void*)ptr_p, (void*)&f_d, ARRAY4_SIZE_BYTES);
+    ptr_p += ARRAY4_SIZE_BYTES;
+    ptr_d += ARRAY4_SIZE_BYTES;
+
+    contents_d_.scratch = reinterpret_cast<FArray4D*>(ptr_d);
+    FArray4D   scratch_d{data_scratch_d, loGC, hiGC, NUNKVAR};
+    std::memcpy((void*)ptr_p, (void*)&scratch_d, ARRAY4_SIZE_BYTES);
+    ptr_p += ARRAY4_SIZE_BYTES;
+    ptr_d += ARRAY4_SIZE_BYTES;
+    // Use pointers to determine size of packet and compare against
+    // N_BYTES_PER_PACKET
 }
 
 /**
@@ -229,8 +264,21 @@ void  CudaDataPacket::unpack(void) {
     std::memcpy((void*)data_h, (void*)data_p_, BLOCK_SIZE_BYTES);
 
     CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
+    assert(packet_p_ == nullptr);
+    assert(packet_d_ == nullptr);
 
     data_p_  = nullptr;
+
+    contents_d_.level   = 0;
+    contents_d_.deltas  = nullptr;
+    contents_d_.lo      = nullptr;
+    contents_d_.hi      = nullptr;
+    contents_d_.loGC    = nullptr;
+    contents_d_.hiGC    = nullptr;
+    contents_d_.xCoords = nullptr;
+    contents_d_.yCoords = nullptr;
+    contents_d_.data    = nullptr;
+    contents_d_.scratch = nullptr;
 
     CudaStreamManager::instance().releaseStream(stream_);
     assert(stream_.object == nullptr);

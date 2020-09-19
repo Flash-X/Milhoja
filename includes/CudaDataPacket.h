@@ -47,6 +47,19 @@ namespace orchestration {
 // one thread can access a packet at any point in time.
 class CudaDataPacket : public DataItem {
 public:
+    struct Contents {
+        unsigned int  level   = 0;
+        RealVect*     deltas  = nullptr;
+        IntVect*      lo      = nullptr;
+        IntVect*      hi      = nullptr;
+        IntVect*      loGC    = nullptr;
+        IntVect*      hiGC    = nullptr;
+        FArray1D*     xCoords = nullptr;
+        FArray1D*     yCoords = nullptr;
+        FArray4D*     data    = nullptr;
+        FArray4D*     scratch = nullptr;
+    };
+
     CudaDataPacket(std::shared_ptr<Tile>&& tileDesc);
     ~CudaDataPacket(void);
 
@@ -66,10 +79,11 @@ public:
     void                       unpack(void);
     std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
 
-    std::size_t  sizeInBytes(void)   { return N_BYTES_PER_PACKET; };
-    CudaStream&  stream(void)        { return stream_; };
-    void*        hostPointer(void)   { return packet_p_; };
-    void*        gpuPointer(void)    { return packet_d_; };
+    std::size_t     sizeInBytes(void)        { return N_BYTES_PER_PACKET; };
+    CudaStream&     stream(void)             { return stream_; };
+    void*           hostPointer(void)        { return packet_p_; };
+    void*           gpuPointer(void)         { return packet_d_; };
+    const Contents  gpuContents(void) const  { return contents_d_; };
 
 protected:
     static constexpr std::size_t    N_CELLS =   (NXB + 2 * NGUARD * K1D)
@@ -98,6 +112,7 @@ private:
     Real*                   data_p_;
     void*                   packet_p_;
     void*                   packet_d_;
+    Contents                contents_d_;
     CudaStream              stream_;
 };
 

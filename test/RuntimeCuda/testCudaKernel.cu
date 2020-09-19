@@ -49,15 +49,15 @@ int   main(int argc, char* argv[]) {
     //***** FIRST RUNTIME EXECUTION CYCLE
     RuntimeAction    computeLaplacianDensity;
     computeLaplacianDensity.nInitialThreads = 6;
-    computeLaplacianDensity.teamType = ThreadTeamDataType::BLOCK;
-    computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacianDensity.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianDensity.nTilesPerPacket = 1;
+    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
     RuntimeAction    computeLaplacianEnergy;
     computeLaplacianEnergy.nInitialThreads = 6;
-    computeLaplacianEnergy.teamType = ThreadTeamDataType::BLOCK;
-    computeLaplacianEnergy.nTilesPerPacket = 0;
-    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+    computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     RuntimeAction    scaleEnergy;
     scaleEnergy.nInitialThreads = 6;
@@ -65,13 +65,13 @@ int   main(int argc, char* argv[]) {
     scaleEnergy.nTilesPerPacket = 0;
     scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
 
-    CudaRuntime::instance().executeCpuTasks("Density", computeLaplacianDensity);
-    CudaRuntime::instance().executeCpuTasks("Energy",  computeLaplacianEnergy);
+    CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity);
+    CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy);
     CudaRuntime::instance().executeCpuTasks("Scale",   scaleEnergy);
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;
-    computeError_block.nInitialThreads     = 6;
+    computeError_block.nInitialThreads     = 1;
     computeError_block.teamType            = ThreadTeamDataType::BLOCK;
     computeError_block.nTilesPerPacket     = 0;
     computeError_block.routine             = Analysis::computeErrors_block;

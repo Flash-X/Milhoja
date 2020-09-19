@@ -72,10 +72,16 @@ SRCS       = \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy.cpp \
     $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/scaleEnergy_oacc_summit.cpp \
+    $(TESTBASEDIR)/scaleEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \

@@ -38,6 +38,7 @@ namespace StaticPhysicsRoutines {
 
 namespace ActionRoutines {
     void scaleEnergy_tile_cpu(const int tId, void* dataItem);
+    void scaleEnergy_packet_oacc_summit(const int tId, void* dataItem);
 }
 
 #endif
