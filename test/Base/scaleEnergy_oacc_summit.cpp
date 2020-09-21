@@ -9,7 +9,7 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
                                                     const int streamId_h) {
     #pragma acc data deviceptr(lo_d, hi_d, xCoords_d, yCoords_d, f_d)
     {
-        #pragma acc kernels default(none) async(streamId_h)
+        #pragma acc parallel default(none) async(streamId_h)
         {
             int                    i_s = lo_d->I();
             int                    j_s = lo_d->J();
@@ -19,9 +19,12 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
             int                    k_e = hi_d->K();
             orchestration::Real    x = 0.0;
             orchestration::Real    y = 0.0;
+            #pragma acc loop
             for         (int k=k_s; k<=k_e; ++k) {
+                #pragma acc loop
                 for     (int j=j_s; j<=j_e; ++j) {
                     y = yCoords_d[j - j_s];
+                    #pragma acc loop
                     for (int i=i_s; i<=i_e; ++i) {
                         x = xCoords_d[i - i_s];
                         f_d->at(i, j, k, ENER_VAR_C) *= scaleFactor*x*y;
