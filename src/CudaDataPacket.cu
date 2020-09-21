@@ -190,13 +190,11 @@ void  CudaDataPacket::pack(void) {
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
 
-    contents_h_.xCoordsData = reinterpret_cast<Real*>(ptr_p);
     contents_d_.xCoordsData = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)xCoords_h, COORDS_X_SIZE_BYTES);
     ptr_p += COORDS_X_SIZE_BYTES;
     ptr_d += COORDS_X_SIZE_BYTES;
 
-    contents_h_.yCoordsData = reinterpret_cast<Real*>(ptr_p);
     contents_d_.yCoordsData = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)yCoords_h, COORDS_Y_SIZE_BYTES);
     ptr_p += COORDS_Y_SIZE_BYTES;
