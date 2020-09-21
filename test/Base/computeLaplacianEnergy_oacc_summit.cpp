@@ -14,6 +14,10 @@ void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestrati
     {
         #pragma acc parallel default(none) async(streamId_h)
         {
+            int     i_s = lo_d->I();
+            int     j_s = lo_d->J();
+            int     i_e = hi_d->I();
+            int     j_e = hi_d->J();
             Real    dx_sqr_inv = 1.0 / (deltas_d->I() * deltas_d->I());
             Real    dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
 
@@ -22,9 +26,9 @@ void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestrati
             // the k loop and eliminate it to see if this helps performance on
             // the GPU.
             #pragma acc loop
-            for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
+            for     (int j=j_s; j<=j_e; ++j) {
                 #pragma acc loop
-                for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
+                for (int i=i_s; i<=i_e; ++i) {
                       scratch_d->at(i, j, 0, 0) = 
                                (     (  f_d->at(i-1, j,   0, ENER_VAR_C)
                                       + f_d->at(i+1, j,   0, ENER_VAR_C))
@@ -42,9 +46,9 @@ void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestrati
             // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
             // would be unnecessary.
             #pragma acc loop
-            for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
+            for     (int j=j_s; j<=j_e; ++j) {
                 #pragma acc loop
-                for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
+                for (int i=i_s; i<=i_e; ++i) {
                     f_d->at(i, j, 0, ENER_VAR_C) = scratch_d->at(i, j, 0, 0);
                  }
             } 
