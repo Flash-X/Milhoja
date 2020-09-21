@@ -56,6 +56,8 @@ public:
         IntVect*      hiGC    = nullptr;
         FArray1D*     xCoords = nullptr;
         FArray1D*     yCoords = nullptr;
+        Real*         xCoordsData = nullptr;
+        Real*         yCoordsData = nullptr;
         FArray4D*     data    = nullptr;
         FArray4D*     scratch = nullptr;
     };
@@ -84,6 +86,7 @@ public:
     void*           hostPointer(void)        { return packet_p_; };
     void*           gpuPointer(void)         { return packet_d_; };
     const Contents  gpuContents(void) const  { return contents_d_; };
+    const Contents  cpuContents(void) const  { return contents_h_; };
 
 protected:
     static constexpr std::size_t    N_CELLS =   (NXB + 2 * NGUARD * K1D)
@@ -112,6 +115,7 @@ private:
     Real*                   data_p_;
     void*                   packet_p_;
     void*                   packet_d_;
+    Contents                contents_h_;
     Contents                contents_d_;
     CudaStream              stream_;
 };

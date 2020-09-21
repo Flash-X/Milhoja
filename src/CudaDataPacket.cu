@@ -141,8 +141,6 @@ void  CudaDataPacket::pack(void) {
     Real*               data_scratch_d = nullptr;
     const Real*         xCoords_h = xCoords.dataPtr();
     const Real*         yCoords_h = yCoords.dataPtr();
-    Real*               xCoords_d = nullptr;
-    Real*               yCoords_d = nullptr;
     if (data_h == nullptr) {
         throw std::logic_error("[CudaDataPacket::pack] "
                                "Invalid pointer to data in host memory");
@@ -192,24 +190,26 @@ void  CudaDataPacket::pack(void) {
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
 
-    xCoords_d  = reinterpret_cast<Real*>(ptr_d);
+    contents_h_.xCoordsData = reinterpret_cast<Real*>(ptr_p);
+    contents_d_.xCoordsData = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)xCoords_h, COORDS_X_SIZE_BYTES);
     ptr_p += COORDS_X_SIZE_BYTES;
     ptr_d += COORDS_X_SIZE_BYTES;
 
-    yCoords_d  = reinterpret_cast<Real*>(ptr_d);
+    contents_h_.yCoordsData = reinterpret_cast<Real*>(ptr_p);
+    contents_d_.yCoordsData = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)yCoords_h, COORDS_Y_SIZE_BYTES);
     ptr_p += COORDS_Y_SIZE_BYTES;
     ptr_d += COORDS_Y_SIZE_BYTES;
 
     contents_d_.xCoords = reinterpret_cast<FArray1D*>(ptr_d);
-    FArray1D   xCoordArray_d{xCoords_d, lo.I()};
+    FArray1D   xCoordArray_d{contents_d_.xCoordsData, lo.I()};
     std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, ARRAY1_SIZE_BYTES);
     ptr_p += ARRAY1_SIZE_BYTES;
     ptr_d += ARRAY1_SIZE_BYTES;
 
     contents_d_.yCoords = reinterpret_cast<FArray1D*>(ptr_d);
-    FArray1D   yCoordArray_d{yCoords_d, lo.J()};
+    FArray1D   yCoordArray_d{contents_d_.yCoordsData, lo.J()};
     std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, ARRAY1_SIZE_BYTES);
     ptr_p += ARRAY1_SIZE_BYTES;
     ptr_d += ARRAY1_SIZE_BYTES;
