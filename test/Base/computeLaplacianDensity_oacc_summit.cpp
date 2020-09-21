@@ -18,21 +18,21 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
             Real    dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
 
             // Compute Laplacian in scratch
+            // THe OFFLINE TOOLCHAIN should realize that there is no need for
+            // the k loop and eliminate it to see if this helps performance on
+            // the GPU.
             #pragma acc loop
-            for         (int k=lo_d->K(); k<=hi_d->K(); ++k) {
+            for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
                 #pragma acc loop
-                for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
-                    #pragma acc loop
-                    for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
-                          scratch_d->at(i, j, k, 0) = 
-                                   (     (  f_d->at(i-1, j,   k, DENS_VAR_C)
-                                          + f_d->at(i+1, j,   k, DENS_VAR_C))
-                                    - 2.0 * f_d->at(i,   j,   k, DENS_VAR_C) ) * dx_sqr_inv
-                                 + (     (  f_d->at(i  , j-1, k, DENS_VAR_C)
-                                          + f_d->at(i  , j+1, k, DENS_VAR_C))
-                                    - 2.0 * f_d->at(i,   j,   k, DENS_VAR_C) ) * dy_sqr_inv;
-                     }
-                }
+                for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
+                      scratch_d->at(i, j, 0, 0) = 
+                               (     (  f_d->at(i-1, j,   0, DENS_VAR_C)
+                                      + f_d->at(i+1, j,   0, DENS_VAR_C))
+                                - 2.0 * f_d->at(i,   j,   0, DENS_VAR_C) ) * dx_sqr_inv
+                             + (     (  f_d->at(i  , j-1, 0, DENS_VAR_C)
+                                      + f_d->at(i  , j+1, 0, DENS_VAR_C))
+                                - 2.0 * f_d->at(i,   j,   0, DENS_VAR_C) ) * dy_sqr_inv;
+                 }
             }
 
             // Overwrite interior of given block with Laplacian result
@@ -41,15 +41,12 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
             // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
             // would be unnecessary.
             #pragma acc loop
-            for         (int k=lo_d->K(); k<=hi_d->K(); ++k) {
+            for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
                 #pragma acc loop
-                for     (int j=lo_d->J(); j<=hi_d->J(); ++j) {
-                    #pragma acc loop
-                    for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
-                        f_d->at(i, j, k, DENS_VAR_C) = scratch_d->at(i, j, k, 0);
-                     }
-                } 
-            }
+                for (int i=lo_d->I(); i<=hi_d->I(); ++i) {
+                    f_d->at(i, j, 0, DENS_VAR_C) = scratch_d->at(i, j, 0, 0);
+                 }
+            } 
         }
         #pragma acc wait(streamId_h)
     }

@@ -13,22 +13,20 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
         {
             int                    i_s = lo_d->I();
             int                    j_s = lo_d->J();
-            int                    k_s = lo_d->K();
             int                    i_e = hi_d->I();
             int                    j_e = hi_d->J();
-            int                    k_e = hi_d->K();
             orchestration::Real    x = 0.0;
             orchestration::Real    y = 0.0;
+            // THe OFFLINE TOOLCHAIN should realize that there is no need for
+            // the k loop and eliminate it to see if this helps performance on
+            // the GPU.
             #pragma acc loop
-            for         (int k=k_s; k<=k_e; ++k) {
+            for     (int j=j_s; j<=j_e; ++j) {
+                y = yCoords_d[j - j_s];
                 #pragma acc loop
-                for     (int j=j_s; j<=j_e; ++j) {
-                    y = yCoords_d[j - j_s];
-                    #pragma acc loop
-                    for (int i=i_s; i<=i_e; ++i) {
-                        x = xCoords_d[i - i_s];
-                        f_d->at(i, j, k, ENER_VAR_C) *= scaleFactor*x*y;
-                    }
+                for (int i=i_s; i<=i_e; ++i) {
+                    x = xCoords_d[i - i_s];
+                    f_d->at(i, j, 0, ENER_VAR_C) *= scaleFactor*x*y;
                 }
             }
         }
