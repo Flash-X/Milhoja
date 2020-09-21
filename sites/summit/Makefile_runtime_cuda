@@ -10,6 +10,7 @@ SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/RuntimeCuda
 AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
+GTESTDIR     = $(HOME)/local/pgi_19.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
@@ -89,7 +90,8 @@ CU_SRCS       = \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/testCudaKernel.cu
+    $(TESTDIR)/testCudaKernel.cu \
+    $(TESTDIR)/runCudaTests.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
@@ -98,15 +100,15 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS)
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -I$(GTESTDIR)/include
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -D__PGI
 CUWARNS   =
 
-LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart
-LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
+LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart -lgtest
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib -L$(GTESTDIR)/lib64
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME

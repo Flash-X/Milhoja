@@ -4,12 +4,12 @@
 #####-----               FULLY SPECIFY TEST RUN             -----#####
 ######################################################################
 # Define test problem - we need dx=dy
-N_CELLS_IN_X=64
-N_CELLS_IN_Y=64
+N_CELLS_IN_X=8
+N_CELLS_IN_Y=16
 N_CELLS_IN_Z=1
 
-N_BLOCKS_X=64
-N_BLOCKS_Y=64
+N_BLOCKS_X=256
+N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
 module purge
