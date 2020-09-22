@@ -28,7 +28,7 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
             #pragma acc loop collapse(2)
             for     (int j=j_s; j<=j_e; ++j) {
                 for (int i=i_s; i<=i_e; ++i) {
-                      Uout_d->at(i, j, 0, 0) = 
+                      Uout_d->at(i, j, 0, DENS_VAR_C) = 
                                (     (  Uin_d->at(i-1, j,   0, DENS_VAR_C)
                                       + Uin_d->at(i+1, j,   0, DENS_VAR_C))
                                 - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR_C) ) * dx_sqr_inv
