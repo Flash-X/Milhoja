@@ -116,6 +116,9 @@ protected:
                                                          +        1 * COORDS_Y_SIZE_BYTES
                                                          +        2 * ARRAY1_SIZE_BYTES;
 
+    void         nullify(void);
+    std::string  isNull(void) const;
+
 private:
     std::shared_ptr<Tile>   tileDesc_;
     Real*                   CC1_data_p_;

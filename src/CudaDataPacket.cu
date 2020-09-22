@@ -29,12 +29,24 @@ CudaDataPacket::CudaDataPacket(std::shared_ptr<Tile>&& tileDesc)
       packet_d_{nullptr},
       contents_d_{},
       stream_{}
-{ }
+{
+    std::string   errMsg = isNull();
+    if (errMsg != "") {
+        throw std::logic_error("[CudaDataPacket::CudaDataPacket] " + errMsg);
+    }
+}
 
 /**
  *
  */
 CudaDataPacket::~CudaDataPacket(void) {
+    nullify();
+}
+
+/**
+ *
+ */
+void  CudaDataPacket::nullify(void) {
     if (stream_.object != nullptr) {
         CudaStreamManager::instance().releaseStream(stream_);
         assert(stream_.object == nullptr);
@@ -49,6 +61,9 @@ CudaDataPacket::~CudaDataPacket(void) {
     CC2_data_p_  = nullptr;
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
+    startVariable_ = UNK_VARS_BEGIN_C - 1;
+    endVariable_   = UNK_VARS_BEGIN_C - 1;
+
     contents_d_.level   = 0;
     contents_d_.deltas  = nullptr;
     contents_d_.lo      = nullptr;
@@ -61,6 +76,37 @@ CudaDataPacket::~CudaDataPacket(void) {
     contents_d_.yCoordsData = nullptr;
     contents_d_.CC1     = nullptr;
     contents_d_.CC2     = nullptr;
+}
+
+/**
+ *
+ */
+std::string  CudaDataPacket::isNull(void) const {
+    if ((stream_.object != nullptr) || (stream_.id != CudaStream::NULL_STREAM_ID)) {
+        return "CUDA stream already acquired";
+    } else if (packet_p_ != nullptr) {
+        return "Pinned memory buffer has already been allocated";
+    } else if (packet_d_ != nullptr) {
+        return "Device memory buffer has already been allocated";
+    } else if ((CC1_data_p_ != nullptr) || (CC2_data_p_ != nullptr)) {
+        return "Block buffers already allocated in pinned memory";
+    } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
+        return "Data location already assigned";
+    } else if (   (contents_d_.deltas  != nullptr)
+               || (contents_d_.lo      != nullptr)
+               || (contents_d_.hi      != nullptr)
+               || (contents_d_.loGC    != nullptr)
+               || (contents_d_.hiGC    != nullptr)
+               || (contents_d_.xCoords != nullptr)
+               || (contents_d_.yCoords != nullptr)
+               || (contents_d_.xCoordsData != nullptr)
+               || (contents_d_.yCoordsData != nullptr)
+               || (contents_d_.CC1     != nullptr)
+               || (contents_d_.CC2     != nullptr)) {
+        return "Contents object not nulled";
+    }
+
+    return "";
 }
 
 /**
@@ -129,38 +175,12 @@ void   CudaDataPacket::setVariableMask(const int sVar,
  *
  */
 void  CudaDataPacket::pack(void) {
-    if (tileDesc_ == nullptr) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Null tile descriptor given");
-    } else if ((stream_.object != nullptr) || (stream_.id != CudaStream::NULL_STREAM_ID)) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "CUDA stream already acquired");
-    } else if (packet_p_ != nullptr) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Pinned memory buffer has already been allocated");
-    } else if (packet_d_ != nullptr) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Device memory buffer has already been allocated");
-    } else if ((CC1_data_p_ != nullptr) || (CC2_data_p_ != nullptr)) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Block buffers already allocated in pinned memory");
-    } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Data location already assigned");
-    } else if (   (contents_d_.deltas  != nullptr)
-               || (contents_d_.lo      != nullptr)
-               || (contents_d_.hi      != nullptr)
-               || (contents_d_.loGC    != nullptr)
-               || (contents_d_.hiGC    != nullptr)
-               || (contents_d_.xCoords != nullptr)
-               || (contents_d_.yCoords != nullptr)
-               || (contents_d_.xCoordsData != nullptr)
-               || (contents_d_.yCoordsData != nullptr)
-               || (contents_d_.CC1     != nullptr)
-               || (contents_d_.CC2     != nullptr)) {
-        throw std::logic_error("[CudaDataPacket::pack] "
-                               "Contents object not nulled");
-    }
+    std::string   errMsg = isNull();
+    if (errMsg != "") {
+        throw std::logic_error("[CudaDataPacket::pack] " + errMsg);
+    } else if (tileDesc_ == nullptr) {
+        throw std::logic_error("[CudaDataPacket::pack] Null tile descriptor given");
+    } 
 
     Grid&   grid = Grid::instance();
 
@@ -305,6 +325,11 @@ void  CudaDataPacket::unpack(void) {
                                "No pointer to data in pinned memory");
     }
 
+    // Release stream as soon as possible
+    CudaStreamManager::instance().releaseStream(stream_);
+    assert(stream_.object == nullptr);
+    assert(stream_.id == CudaStream::NULL_STREAM_ID);
+
     Real*   data_h = tileDesc_->dataPtr();
     if (data_h == nullptr) {
         throw std::logic_error("[CudaDataPacket::unpack] "
@@ -337,33 +362,8 @@ void  CudaDataPacket::unpack(void) {
                           * sizeof(Real);
     std::memcpy((void*)start_h, (void*)start_p, nBytes);
 
-    CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
-    assert(packet_p_ == nullptr);
-    assert(packet_d_ == nullptr);
-
-    CC1_data_p_  = nullptr;
-    CC2_data_p_  = nullptr;
-    location_ = PacketDataLocation::NOT_ASSIGNED;
-
-    startVariable_ = UNK_VARS_BEGIN_C - 1;
-    endVariable_   = UNK_VARS_BEGIN_C - 1;
-
-    contents_d_.level   = 0;
-    contents_d_.deltas  = nullptr;
-    contents_d_.lo      = nullptr;
-    contents_d_.hi      = nullptr;
-    contents_d_.loGC    = nullptr;
-    contents_d_.hiGC    = nullptr;
-    contents_d_.xCoords = nullptr;
-    contents_d_.yCoords = nullptr;
-    contents_d_.xCoordsData = nullptr;
-    contents_d_.yCoordsData = nullptr;
-    contents_d_.CC1     = nullptr;
-    contents_d_.CC2     = nullptr;
-
-    CudaStreamManager::instance().releaseStream(stream_);
-    assert(stream_.object == nullptr);
-    assert(stream_.id == CudaStream::NULL_STREAM_ID);
+    // The packet is consumed upon unpacking
+    nullify();
 }
 
 }
