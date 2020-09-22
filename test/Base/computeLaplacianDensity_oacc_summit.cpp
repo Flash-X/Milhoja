@@ -37,18 +37,6 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
                                 - 2.0 * f_d->at(i,   j,   0, DENS_VAR_C) ) * dy_sqr_inv;
                  }
             }
-
-            // Overwrite interior of given block with Laplacian result
-            // TODO: In the case of a data packet, we could have the input data given as
-            // a pointer to CC1 and directly write the result to CC2.  When copying the
-            // data back to UNK, we copy from CC2 and ignore CC1.  Therefore, this copy
-            // would be unnecessary.
-            #pragma acc loop collapse(2)
-            for     (int j=j_s; j<=j_e; ++j) {
-                for (int i=i_s; i<=i_e; ++i) {
-                    f_d->at(i, j, 0, DENS_VAR_C) = scratch_d->at(i, j, 0, 0);
-                 }
-            } 
         }
         #pragma acc wait(streamId_h)
     }

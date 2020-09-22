@@ -11,6 +11,7 @@
 #include "Tile.h"
 #include "DataItem.h"
 #include "CudaStream.h"
+#include "PacketDataLocation.h"
 
 #include "constants.h"
 #include "Flash.h"
@@ -58,8 +59,8 @@ public:
         FArray1D*     yCoords = nullptr;
         Real*         xCoordsData = nullptr;
         Real*         yCoordsData = nullptr;
-        FArray4D*     data    = nullptr;
-        FArray4D*     scratch = nullptr;
+        FArray4D*     CC1     = nullptr;
+        FArray4D*     CC2     = nullptr;
     };
 
     CudaDataPacket(std::shared_ptr<Tile>&& tileDesc);
@@ -87,11 +88,17 @@ public:
     void*           gpuPointer(void)         { return packet_d_; };
     const Contents  gpuContents(void) const  { return contents_d_; };
 
+    PacketDataLocation    getDataLocation(void) const;
+    void                  setDataLocation(const PacketDataLocation location);
+    void                  setVariableMask(const int sVar, 
+                                          const int eVar);
+
 protected:
-    static constexpr std::size_t    N_CELLS =   (NXB + 2 * NGUARD * K1D)
-                                              * (NYB + 2 * NGUARD * K2D)
-                                              * (NZB + 2 * NGUARD * K3D)
-                                              * NUNKVAR;
+    static constexpr std::size_t    N_CELLS_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
+                                                           * (NYB + 2 * NGUARD * K2D)
+                                                           * (NZB + 2 * NGUARD * K3D);
+    static constexpr std::size_t    N_CELLS = N_CELLS_PER_VARIABLE * NUNKVAR;
+
     static constexpr std::size_t    DELTA_SIZE_BYTES    =           sizeof(RealVect);
     static constexpr std::size_t    BLOCK_SIZE_BYTES    = N_CELLS * sizeof(Real);
     static constexpr std::size_t    POINT_SIZE_BYTES    =           sizeof(IntVect);
@@ -111,7 +118,11 @@ protected:
 
 private:
     std::shared_ptr<Tile>   tileDesc_;
-    Real*                   data_p_;
+    Real*                   CC1_data_p_;
+    Real*                   CC2_data_p_;
+    PacketDataLocation      location_;
+    int                     startVariable_;
+    int                     endVariable_;
     void*                   packet_p_;
     void*                   packet_d_;
     Contents                contents_d_;
