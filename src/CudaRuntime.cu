@@ -278,6 +278,128 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     gpuTeam->detachDataReceiver();
 }
 
+/**
+ * 
+ *
+ * \return 
+ */
+void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
+                                          const RuntimeAction& cpuAction,
+                                          const RuntimeAction& gpuAction,
+                                          const RuntimeAction& postGpuAction) {
+    if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+                               "Given CPU action should run on tile-based "
+                               "thread team, which is not in configuration");
+    } else if (cpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+                               "Given GPU action should run on packet-based "
+                               "thread team, which is not in configuration");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+                                    "Need at least one tile per GPU packet");
+    } else if (postGpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+                               "Given post-GPU action should run on tile-based "
+                               "thread team, which is not in configuration");
+    } else if (postGpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+                                    "Post-GPU should have zero tiles/packet as "
+                                    "client code cannot control this");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+                               "Need at least three ThreadTeams in runtime");
+    }
+
+    ThreadTeam*        cpuTeam     = teams_[0];
+    ThreadTeam*        gpuTeam     = teams_[1];
+    ThreadTeam*        postGpuTeam = teams_[2];
+    CudaMoverUnpacker  gpuToHost{};
+
+    unsigned int nTotalThreads =       cpuAction.nInitialThreads
+                                 +     gpuAction.nInitialThreads
+                                 + postGpuAction.nInitialThreads;
+    if (nTotalThreads > postGpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+                                "Post-GPU could receive too many thread "
+                                "activation calls from CPU and GPU teams");
+    }
+
+    //***** Construct thread and work pipelines
+    cpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachDataReceiver(&gpuToHost);
+    gpuToHost.attachDataReceiver(postGpuTeam);
+
+    std::shared_ptr<Tile>   tile_cpu{};
+    std::shared_ptr<Tile>   tile_gpu{};
+    auto                    packet_gpu = std::shared_ptr<CudaDataPacket>{};
+
+    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
+    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
+
+    // Data is enqueued for both the concurrent CPU and concurrent GPU
+    // thread teams.  When a data item is finished on the GPU, the data item
+    // is enqueued automatically with the post-GPU team.
+    cudaStream_t   stream;
+    cudaError_t    cErr = cudaErrorInvalidValue;
+    unsigned int   level = 0;
+    Grid&          grid = Grid::instance();
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        assert(tile_cpu == nullptr);
+        assert(tile_cpu.use_count() == 0);
+        assert(tile_gpu == nullptr);
+        assert(tile_gpu.use_count() == 0);
+        assert(packet_gpu == nullptr);
+        assert(packet_gpu.use_count() == 0);
+
+        tile_cpu = ti->buildCurrentTile();
+        tile_gpu = tile_cpu;
+        assert(tile_cpu.get() == tile_gpu.get());
+        assert(tile_cpu.use_count() == 2);
+
+        packet_gpu = std::make_shared<CudaDataPacket>( std::move(tile_gpu) );
+        assert(tile_gpu == nullptr);
+        packet_gpu->pack();
+
+        stream = *(packet_gpu->stream().object);
+        cErr = cudaMemcpyAsync(packet_gpu->gpuPointer(), packet_gpu->hostPointer(),
+                               packet_gpu->sizeInBytes(),
+                               cudaMemcpyHostToDevice, stream);
+        if (cErr != cudaSuccess) {
+            std::string  errMsg = "[CudaRuntime::executeTasks_FullPacket] ";
+            errMsg += "Unable to execute H-to-D transfer\n";
+            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+            throw std::runtime_error(errMsg);
+        }
+
+        cpuTeam->enqueue( std::move(tile_cpu) );
+        gpuTeam->enqueue( std::move(packet_gpu) );
+    }
+    gpuTeam->closeQueue();
+    cpuTeam->closeQueue();
+
+    // TODO: We could give subscribers a pointer to the publisher so that during
+    // the subscriber's wait() it can determine if it should terminate yet.  The
+    // goal of this would be to allow client code to call the wait() methods in
+    // any order.  I doubt that the design/code complexity is worth this minor
+    // gain.
+
+    cpuTeam->wait();
+    gpuTeam->wait();
+    postGpuTeam->wait();
+
+    cpuTeam->detachThreadReceiver();
+    gpuTeam->detachThreadReceiver();
+    gpuTeam->detachDataReceiver();
+    gpuToHost.detachDataReceiver();
+}
+
 void CudaRuntime::printGpuInformation(void) const {
     std::cout << "Lead MPI Processor GPU Information\n";
     std::cout << "  Name                    "

@@ -35,26 +35,27 @@ protected:
 TEST_F(TestRuntimeCuda, TestKernelsInSerial) {
     //***** FIRST RUNTIME EXECUTION CYCLE
     RuntimeAction    computeLaplacianDensity;
-    computeLaplacianDensity.nInitialThreads = 6;
-    computeLaplacianDensity.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianDensity.nTilesPerPacket = 1;
-    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
+    computeLaplacianDensity.nInitialThreads = 2;
+    computeLaplacianDensity.teamType = ThreadTeamDataType::BLOCK;
+    computeLaplacianDensity.nTilesPerPacket = 0;
+    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_tile_cpu;
 
     RuntimeAction    computeLaplacianEnergy;
-    computeLaplacianEnergy.nInitialThreads = 6;
+    computeLaplacianEnergy.nInitialThreads = 5;
     computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
     computeLaplacianEnergy.nTilesPerPacket = 1;
     computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     RuntimeAction    scaleEnergy;
-    scaleEnergy.nInitialThreads = 6;
-    scaleEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    scaleEnergy.nTilesPerPacket = 1;
-    scaleEnergy.routine = ActionRoutines::scaleEnergy_packet_oacc_summit;
+    scaleEnergy.nInitialThreads = 0;
+    scaleEnergy.teamType = ThreadTeamDataType::BLOCK;
+    scaleEnergy.nTilesPerPacket = 0;
+    scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
 
-    CudaRuntime::instance().executeGpuTasks("Density", computeLaplacianDensity);
-    CudaRuntime::instance().executeGpuTasks("Energy",  computeLaplacianEnergy);
-    CudaRuntime::instance().executeGpuTasks("Scale",   scaleEnergy);
+    CudaRuntime::instance().executeTasks_FullPacket("FullPacket",
+                                                    computeLaplacianDensity,
+                                                    computeLaplacianEnergy,
+                                                    scaleEnergy);
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;

@@ -38,6 +38,10 @@ public:
                          const RuntimeAction& cpuAction);
     void executeGpuTasks(const std::string& actionName,
                          const RuntimeAction& gpuAction);
+    void executeTasks_FullPacket(const std::string& bundleName,
+                                 const RuntimeAction& cpuAction,
+                                 const RuntimeAction& gpuAction,
+                                 const RuntimeAction& postGpuAction);
 
 //    void executeTasks(const ActionBundle& bundle);
 
