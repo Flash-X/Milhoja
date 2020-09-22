@@ -32,7 +32,7 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId, void* dataIte
     //       data packet.
     constexpr Real    ENERGY_SCALE_FACTOR = 5.0;
     StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
-                                                   gpuPtrs_d.xCoordsData, gpuPtrs_d.yCoordsData,
+                                                   gpuPtrs_d.xCoords, gpuPtrs_d.yCoords,
                                                    U_d, ENERGY_SCALE_FACTOR,
                                                    streamId_h);
 }

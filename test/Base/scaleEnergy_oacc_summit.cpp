@@ -2,8 +2,8 @@
 
 void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,
                                                     const orchestration::IntVect* hi_d,
-                                                    const orchestration::Real* xCoords_d,
-                                                    const orchestration::Real* yCoords_d,
+                                                    const orchestration::FArray1D* xCoords_d,
+                                                    const orchestration::FArray1D* yCoords_d,
                                                     orchestration::FArray4D* U_d,
                                                     const orchestration::Real scaleFactor,
                                                     const int streamId_h) {
@@ -23,8 +23,8 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
             #pragma acc loop collapse(2)
             for     (int j=j_s; j<=j_e; ++j) {
                 for (int i=i_s; i<=i_e; ++i) {
-                    x = xCoords_d[i - i_s];
-                    y = yCoords_d[j - j_s];
+                    x = xCoords_d->at(i);
+                    y = yCoords_d->at(j);
                     U_d->at(i, j, 0, ENER_VAR_C) *= scaleFactor*x*y;
                 }
             }

@@ -57,8 +57,6 @@ public:
         IntVect*      hiGC    = nullptr;
         FArray1D*     xCoords = nullptr;
         FArray1D*     yCoords = nullptr;
-        Real*         xCoordsData = nullptr;
-        Real*         yCoordsData = nullptr;
         FArray4D*     CC1     = nullptr;
         FArray4D*     CC2     = nullptr;
     };

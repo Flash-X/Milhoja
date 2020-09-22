@@ -72,8 +72,6 @@ void  CudaDataPacket::nullify(void) {
     contents_d_.hiGC    = nullptr;
     contents_d_.xCoords = nullptr;
     contents_d_.yCoords = nullptr;
-    contents_d_.xCoordsData = nullptr;
-    contents_d_.yCoordsData = nullptr;
     contents_d_.CC1     = nullptr;
     contents_d_.CC2     = nullptr;
 }
@@ -99,8 +97,6 @@ std::string  CudaDataPacket::isNull(void) const {
                || (contents_d_.hiGC    != nullptr)
                || (contents_d_.xCoords != nullptr)
                || (contents_d_.yCoords != nullptr)
-               || (contents_d_.xCoordsData != nullptr)
-               || (contents_d_.yCoordsData != nullptr)
                || (contents_d_.CC1     != nullptr)
                || (contents_d_.CC2     != nullptr)) {
         return "Contents object not nulled";
@@ -207,6 +203,8 @@ void  CudaDataPacket::pack(void) {
                                                      level, lo, hi); 
     const Real*         xCoords_h = xCoords.dataPtr();
     const Real*         yCoords_h = yCoords.dataPtr();
+    Real*               xCoords_data_d = nullptr;
+    Real*               yCoords_data_d = nullptr;
     Real*               data_h = tileDesc_->dataPtr();
     Real*               CC1_data_d = nullptr;
     Real*               CC2_data_d = nullptr;
@@ -261,24 +259,24 @@ void  CudaDataPacket::pack(void) {
     ptr_p += BLOCK_SIZE_BYTES;
     ptr_d += BLOCK_SIZE_BYTES;
 
-    contents_d_.xCoordsData = reinterpret_cast<Real*>(ptr_d);
+    xCoords_data_d = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)xCoords_h, COORDS_X_SIZE_BYTES);
     ptr_p += COORDS_X_SIZE_BYTES;
     ptr_d += COORDS_X_SIZE_BYTES;
 
-    contents_d_.yCoordsData = reinterpret_cast<Real*>(ptr_d);
+    yCoords_data_d = reinterpret_cast<Real*>(ptr_d);
     std::memcpy((void*)ptr_p, (void*)yCoords_h, COORDS_Y_SIZE_BYTES);
     ptr_p += COORDS_Y_SIZE_BYTES;
     ptr_d += COORDS_Y_SIZE_BYTES;
 
     contents_d_.xCoords = reinterpret_cast<FArray1D*>(ptr_d);
-    FArray1D   xCoordArray_d{contents_d_.xCoordsData, lo.I()};
+    FArray1D   xCoordArray_d{xCoords_data_d, lo.I()};
     std::memcpy((void*)ptr_p, (void*)&xCoordArray_d, ARRAY1_SIZE_BYTES);
     ptr_p += ARRAY1_SIZE_BYTES;
     ptr_d += ARRAY1_SIZE_BYTES;
 
     contents_d_.yCoords = reinterpret_cast<FArray1D*>(ptr_d);
-    FArray1D   yCoordArray_d{contents_d_.yCoordsData, lo.J()};
+    FArray1D   yCoordArray_d{yCoords_data_d, lo.J()};
     std::memcpy((void*)ptr_p, (void*)&yCoordArray_d, ARRAY1_SIZE_BYTES);
     ptr_p += ARRAY1_SIZE_BYTES;
     ptr_d += ARRAY1_SIZE_BYTES;

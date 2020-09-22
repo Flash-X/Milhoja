@@ -29,8 +29,8 @@ namespace StaticPhysicsRoutines {
     //    the host-to-device data packet (pending).
     void scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,
                                  const orchestration::IntVect* hi_d,
-                                 const orchestration::Real* xCoords_d,
-                                 const orchestration::Real* yCoords_d,
+                                 const orchestration::FArray1D* xCoords_d,
+                                 const orchestration::FArray1D* yCoords_d,
                                  orchestration::FArray4D* U_d,
                                  const orchestration::Real scaleFactor,
                                  const int streamId_h);
