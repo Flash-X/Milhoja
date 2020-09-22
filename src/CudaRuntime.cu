@@ -251,26 +251,10 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     cudaError_t    cErr = cudaErrorInvalidValue;
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-
-    std::cout << std::scientific << std::setprecision(5);
-
-    double   elapsedTime = 0.0;
-    double   startTime = MPI_Wtime();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        elapsedTime = MPI_Wtime() - startTime;
-        std::cout << "AMReX Block Access - " << elapsedTime << " s\n";
-
-        startTime = MPI_Wtime();
         packet_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
-        elapsedTime = MPI_Wtime() - startTime;
-        std::cout << "Create packet - " << elapsedTime << " s\n";
-
-        startTime = MPI_Wtime();
         packet_gpu->pack();
-        elapsedTime = MPI_Wtime() - startTime;
-        std::cout << "Pack packet - " << elapsedTime << " s\n";
 
-        startTime = MPI_Wtime();
         stream = *(packet_gpu->stream().object);
         cErr = cudaMemcpyAsync(packet_gpu->gpuPointer(), packet_gpu->hostPointer(),
                                packet_gpu->sizeInBytes(),
@@ -282,17 +266,10 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
             errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
             throw std::runtime_error(errMsg);
         }
-        elapsedTime = MPI_Wtime() - startTime;
-        std::cout << "Initiate H-to_D - " << elapsedTime << " s\n";
 
-        startTime = MPI_Wtime();
         gpuTeam->enqueue( std::move(packet_gpu) );
         assert(packet_gpu == nullptr);
         assert(packet_gpu.use_count() == 0);
-        elapsedTime = MPI_Wtime() - startTime;
-        std::cout << "Enqueue packet - " << elapsedTime << " s\n";
-
-        startTime = MPI_Wtime();
     }
 
     gpuTeam->closeQueue();
