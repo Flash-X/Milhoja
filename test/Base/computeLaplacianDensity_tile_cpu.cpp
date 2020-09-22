@@ -13,10 +13,10 @@ void ActionRoutines::computeLaplacianDensity_tile_cpu(const int tId, void* dataI
     const IntVect   lo      = tileDesc->lo();
     const IntVect   hi      = tileDesc->hi();
     const RealVect  deltas  = tileDesc->deltas();
-    FArray4D        f       = tileDesc->data();
+    FArray4D        U       = tileDesc->data();
 
     FArray4D        scratch = FArray4D::buildScratchArray4D(lo, hi, 1);
 
-    StaticPhysicsRoutines::computeLaplacianDensity(lo, hi, f, scratch, deltas);
+    StaticPhysicsRoutines::computeLaplacianDensity(lo, hi, U, scratch, deltas);
 }
 

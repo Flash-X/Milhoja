@@ -8,14 +8,14 @@
 namespace StaticPhysicsRoutines{
     void computeLaplacianDensity(const orchestration::IntVect& lo,
                                  const orchestration::IntVect& hi,
-                                 orchestration::FArray4D& f,
+                                 orchestration::FArray4D& U,
                                  orchestration::FArray4D& scratch,
                                  const orchestration::RealVect& deltas);
 
     void computeLaplacianDensity_oacc_summit(const orchestration::IntVect* lo_d,
                                              const orchestration::IntVect* hi_d,
-                                             orchestration::FArray4D* f_d,
-                                             orchestration::FArray4D* scratch_d,
+                                             orchestration::FArray4D* Uin_d,
+                                             orchestration::FArray4D* Uout_d,
                                              const orchestration::RealVect* deltas_d,
                                              const int streamId_h);
 }
