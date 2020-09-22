@@ -14,7 +14,7 @@ namespace StaticPhysicsRoutines {
                      const orchestration::IntVect& hi,
                      const orchestration::FArray1D& xCoords,
                      const orchestration::FArray1D& yCoords,
-                     orchestration::FArray4D& f,
+                     orchestration::FArray4D& U,
                      const orchestration::Real scaleFactor);
 
     // This is the version that would be adapted from the above by the 
@@ -31,7 +31,7 @@ namespace StaticPhysicsRoutines {
                                  const orchestration::IntVect* hi_d,
                                  const orchestration::Real* xCoords_d,
                                  const orchestration::Real* yCoords_d,
-                                 orchestration::FArray4D* f_d,
+                                 orchestration::FArray4D* U_d,
                                  const orchestration::Real scaleFactor,
                                  const int streamId_h);
 }

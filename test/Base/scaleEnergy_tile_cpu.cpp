@@ -16,7 +16,7 @@ void ActionRoutines::scaleEnergy_tile_cpu(const int tId, void* dataItem) {
     const unsigned int  level = tileDesc->level();
     const IntVect       lo    = tileDesc->lo();
     const IntVect       hi    = tileDesc->hi();
-    FArray4D            f     = tileDesc->data();
+    FArray4D            U     = tileDesc->data();
 
     Grid&  grid = Grid::instance();
     const FArray1D   xCoords = grid.getCellCoords(Axis::I, Edge::Center,
@@ -27,7 +27,7 @@ void ActionRoutines::scaleEnergy_tile_cpu(const int tId, void* dataItem) {
     // TODO: For the CPU case, should this come from the anologue of a dat
     // module?
     constexpr Real   ENERGY_SCALE_FACTOR = 5.0;
-    StaticPhysicsRoutines::scaleEnergy(lo, hi, xCoords, yCoords, f, 
+    StaticPhysicsRoutines::scaleEnergy(lo, hi, xCoords, yCoords, U, 
                                        ENERGY_SCALE_FACTOR);
 }
 

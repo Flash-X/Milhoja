@@ -328,11 +328,14 @@ void  CudaDataPacket::unpack(void) {
     // adjust Flash.h appropriately.
     assert(UNK_VARS_BEGIN_C == 0);
     assert(UNK_VARS_END_C == (NUNKVAR - 1));
-    Real*        start_p = data_p + N_CELLS_PER_VARIABLE * startVariable_;
+    std::size_t  offset =   N_CELLS_PER_VARIABLE
+                          * static_cast<std::size_t>(startVariable_);
+    Real*        start_h = data_h + offset;
+    Real*        start_p = data_p + offset;
     std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
                           * N_CELLS_PER_VARIABLE
                           * sizeof(Real);
-    std::memcpy((void*)data_h, (void*)start_p, nBytes);
+    std::memcpy((void*)start_h, (void*)start_p, nBytes);
 
     CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
     assert(packet_p_ == nullptr);

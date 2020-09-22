@@ -14,26 +14,26 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId, void* dataIte
     const int                       streamId_h = packet_h->stream().id;
 
     // Computation done in-place 
-    FArray4D*   data_d    = nullptr;
+    FArray4D*   U_d = nullptr;
     switch (packet_h->getDataLocation()) {
         case PacketDataLocation::CC1:
-            data_d = gpuPtrs_d.CC1;
+            U_d = gpuPtrs_d.CC1;
             break;
         case PacketDataLocation::CC2:
-            data_d = gpuPtrs_d.CC2;
+            U_d = gpuPtrs_d.CC2;
             break;
         default:
             throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
                                    "Data not in CC1 or CC2");
     }
-    packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);
+    packet_h->setVariableMask(ENER_VAR_C, ENER_VAR_C);
 
     // TODO: This data should be included in the copyin section of the
     //       data packet.
     constexpr Real    ENERGY_SCALE_FACTOR = 5.0;
     StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
                                                    gpuPtrs_d.xCoordsData, gpuPtrs_d.yCoordsData,
-                                                   data_d, ENERGY_SCALE_FACTOR,
+                                                   U_d, ENERGY_SCALE_FACTOR,
                                                    streamId_h);
 }
 

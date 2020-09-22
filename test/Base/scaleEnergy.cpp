@@ -6,7 +6,7 @@ void StaticPhysicsRoutines::scaleEnergy(const orchestration::IntVect& lo,
                                         const orchestration::IntVect& hi,
                                         const orchestration::FArray1D& xCoords,
                                         const orchestration::FArray1D& yCoords,
-                                        orchestration::FArray4D& f,
+                                        orchestration::FArray4D& U,
                                         const orchestration::Real scaleFactor) {
     // OFFLINE TOOLCHAIN: Add in directives for mapping to kernel
     orchestration::Real    x = 0.0;
@@ -16,7 +16,7 @@ void StaticPhysicsRoutines::scaleEnergy(const orchestration::IntVect& lo,
             y = yCoords(j);
             for (int i=lo.I(); i<=hi.I(); ++i) {
                 x = xCoords(i);
-                f(i, j, k, ENER_VAR_C) *= scaleFactor * x * y;
+                U(i, j, k, ENER_VAR_C) *= scaleFactor * x * y;
             }
         }
     }
