@@ -57,6 +57,8 @@ CudaMemoryManager::CudaMemoryManager(void)
       gpuBuffer_{nullptr},
       offset_{0}
 {
+    Logger::instance().log("[CudaMemoryManager] Initializing...");
+
     cudaDeviceProp  prop;
     cudaGetDeviceProperties(&prop, 0);
     std::size_t   gpuTotalGlobalMemBytes = prop.totalGlobalMem;
@@ -116,6 +118,8 @@ CudaMemoryManager::CudaMemoryManager(void)
  * \return 
  */
 CudaMemoryManager::~CudaMemoryManager(void) {
+    Logger::instance().log("[CudaMemoryManager] Finalizing...");
+
     pthread_mutex_lock(&mutex_);
 
     if (pinnedBuffer_ != nullptr) {

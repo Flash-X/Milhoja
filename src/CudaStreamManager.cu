@@ -58,6 +58,7 @@ CudaStreamManager::CudaStreamManager(void)
     : streams_{nMaxStreams_},
       freeStreams_{}
 {
+    Logger::instance().log("[CudaStreamManager] Initializing...");
     if (nMaxStreams_ <= 0) {
         throw std::invalid_argument("[CudaStreamManager::CudaStreamManager] "
                                     "Set max number of streams before accessing manager");
@@ -118,6 +119,8 @@ CudaStreamManager::CudaStreamManager(void)
  * \return 
  */
 CudaStreamManager::~CudaStreamManager(void) {
+    Logger::instance().log("[CudaStreamManager] Finalizing...");
+
     pthread_mutex_lock(&idxMutex_);
 
     // TODO: When designing an appropriate error handling system, should we
@@ -206,7 +209,9 @@ CudaStream    CudaStreamManager::requestStream(const bool block) {
             do {
                 Logger::instance().log("[CudaStreamManager] No streams available.  Blocking as requested.");
                 pthread_cond_wait(&streamReleased_, &idxMutex_);
-                Logger::instance().log("[CudaStreamManager] Stream has been released");
+                // TODO: Add this back in but only when desired verbosity is
+                // high.
+//                Logger::instance().log("[CudaStreamManager] Stream has been released");
             } while(freeStreams_.size() <= 0);
         } else {
             Logger::instance().log("[CudaStreamManager] No streams available. Returning null stream as requested.");

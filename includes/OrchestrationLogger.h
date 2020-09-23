@@ -9,12 +9,20 @@
 #define ORCHESTRATION_LOGGER_H__
 
 #include <string>
+#include <chrono>
 
 namespace orchestration {
 
 class Logger {
 public:
-    ~Logger(void)  { log("[Logger] Destroyed"); }
+    ~Logger(void);
+
+    Logger(Logger&)                  = delete;
+    Logger(const Logger&)            = delete;
+    Logger(Logger&&)                 = delete;
+    Logger& operator=(Logger&)       = delete;
+    Logger& operator=(const Logger&) = delete;
+    Logger& operator=(Logger&&)      = delete;
 
     static Logger& instance(void);
     static void   setLogFilename(const std::string& filename);
@@ -22,17 +30,11 @@ public:
     void   log(const std::string& msg) const;
 
 private:
-    Logger(void)   { log("[Logger] Initialized"); }
-
-    Logger(Logger&) = delete;
-    Logger(const Logger&) = delete;
-    Logger(Logger&&) = delete;
-
-    Logger& operator=(Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
-    Logger& operator=(Logger&&) = delete;
+    Logger(void);
 
     static std::string    logFilename_;
+
+    std::chrono::steady_clock::time_point   startTime_;
 };
 
 }

@@ -78,9 +78,7 @@ GridAmrex::GridAmrex(void)
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
 
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Initialized Grid.");
-#endif
 }
 
 /** Detroy domain and then finalize AMReX.
@@ -89,9 +87,7 @@ GridAmrex::~GridAmrex(void) {
     destroyDomain();
     amrex::Finalize();
 
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Finalized Grid.");
-#endif
 }
 
 /** Destroy amrcore_. initDomain can be called again if desired.
@@ -101,9 +97,8 @@ void  GridAmrex::destroyDomain(void) {
         delete amrcore_; // deletes unk
         amrcore_ = nullptr;
     }
-#ifdef GRID_LOG
+
     Logger::instance().log("[GridAmrex] Destroyed domain.");
-#endif
 }
 
 /**
@@ -120,19 +115,15 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
         throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
                                " pointer given");
     }
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Initializing domain...");
-#endif
 
     amrcore_ = new AmrCoreFlash(initBlock);
     amrcore_->InitFromScratch(0.0_wp);
 
-#ifdef GRID_LOG
     std::string msg = "[GridAmrex] Initialized domain with " +
                       std::to_string(amrcore_->globalNumBlocks()) +
                       " total blocks.";
     Logger::instance().log(msg);
-#endif
 }
 
 

@@ -96,7 +96,7 @@ CudaRuntime::CudaRuntime(void)
       gpuNumMultiprocessors_{-1},
       gpuMaxConcurrentKernels_{-1}
 {
-    Logger::instance().log("[CudaRuntime] Initializing");
+    Logger::instance().log("[CudaRuntime] Initializing...");
 
     if (nTeams_ <= 0) {
         throw std::invalid_argument("[CudaRuntime::CudaRuntime] "
@@ -152,7 +152,7 @@ CudaRuntime::CudaRuntime(void)
 
     instantiated_ = true;
 
-    Logger::instance().log("[CudaRuntime] Initialized");
+    Logger::instance().log("[CudaRuntime] Created and ready for use");
 }
 
 /**
@@ -161,7 +161,7 @@ CudaRuntime::CudaRuntime(void)
  * \return 
  */
 CudaRuntime::~CudaRuntime(void) {
-    Logger::instance().log("[CudaRuntime] Finalizing");
+    Logger::instance().log("[CudaRuntime] Finalizing...");
 
     instantiated_ = false;
 
@@ -200,6 +200,8 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
 
     ThreadTeam*   cpuTeam = teams_[0];
 
+    Logger::instance().log("[CudaRuntime] Start single CPU action");
+
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
 
     unsigned int   level = 0;
@@ -209,6 +211,8 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
     }
     cpuTeam->closeQueue();
     cpuTeam->wait();
+
+    Logger::instance().log("[CudaRuntime] End single CPU action");
 }
 
 /**
@@ -231,6 +235,8 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     }
 
     ThreadTeam*   gpuTeam = teams_[0];
+
+    Logger::instance().log("[CudaRuntime] Start single GPU action");
 
     CudaMoverUnpacker         gpuToHost{};
     gpuTeam->attachDataReceiver(&gpuToHost);
@@ -276,6 +282,8 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     gpuTeam->wait();
 
     gpuTeam->detachDataReceiver();
+
+    Logger::instance().log("[CudaRuntime] End single GPU action");
 }
 
 /**
@@ -338,6 +346,8 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     std::shared_ptr<Tile>   tile_gpu{};
     auto                    packet_gpu = std::shared_ptr<CudaDataPacket>{};
 
+    Logger::instance().log("[CudaRuntime] Start CPU/GPU action");
+
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
@@ -393,6 +403,8 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     cpuTeam->wait();
     gpuTeam->wait();
     postGpuTeam->wait();
+
+    Logger::instance().log("[CudaRuntime] End CPU/GPU action");
 
     cpuTeam->detachThreadReceiver();
     gpuTeam->detachThreadReceiver();

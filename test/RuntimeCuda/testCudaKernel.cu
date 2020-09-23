@@ -35,18 +35,21 @@ protected:
 TEST_F(TestRuntimeCuda, TestKernelsInSerial) {
     //***** FIRST RUNTIME EXECUTION CYCLE
     RuntimeAction    computeLaplacianDensity;
+    computeLaplacianDensity.name = "LaplacianDensity";
     computeLaplacianDensity.nInitialThreads = 2;
     computeLaplacianDensity.teamType = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity.nTilesPerPacket = 0;
     computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_tile_cpu;
 
     RuntimeAction    computeLaplacianEnergy;
+    computeLaplacianEnergy.name = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 5;
     computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
     computeLaplacianEnergy.nTilesPerPacket = 1;
     computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     RuntimeAction    scaleEnergy;
+    scaleEnergy.name = "scaleEnergy";
     scaleEnergy.nInitialThreads = 0;
     scaleEnergy.teamType = ThreadTeamDataType::BLOCK;
     scaleEnergy.nTilesPerPacket = 0;
@@ -59,6 +62,7 @@ TEST_F(TestRuntimeCuda, TestKernelsInSerial) {
 
     //***** ANALYSIS RUNTIME EXECUTION CYCLE
     RuntimeAction    computeError_block;
+    computeError_block.name                = "ComputeErrors";
     computeError_block.nInitialThreads     = 6;
     computeError_block.teamType            = ThreadTeamDataType::BLOCK;
     computeError_block.nTilesPerPacket     = 0;

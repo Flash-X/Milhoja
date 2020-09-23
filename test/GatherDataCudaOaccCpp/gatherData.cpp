@@ -113,7 +113,10 @@ int   main(int argc, char* argv[]) {
     std::cout << std::endl;
 
     orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
+    orchestration::CudaStreamManager::instance();
+
     orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
+    orchestration::CudaMemoryManager::instance();
 
     Grid::instantiate();
     Grid&   grid = Grid::instance();

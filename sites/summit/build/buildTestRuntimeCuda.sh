@@ -64,15 +64,15 @@ sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/RuntimeCuda/Flash.h
 sed -i "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/RuntimeCuda/Flash.h
 
 # Build debug mode
-echo ""
-echo "Building debug version"
-echo "----------------------------------------------------------"
-make -f $MAKEFILE clean all DEBUG=T
-if [[ $? -ne 0 ]]; then
-    echo "Unable to compile $BINARY"
-    exit 3;
-fi
-mv $BINARY ./binaries/$DEBUG_BINARY
+#echo ""
+#echo "Building debug version"
+#echo "----------------------------------------------------------"
+#make -f $MAKEFILE clean all DEBUG=T
+#if [[ $? -ne 0 ]]; then
+#    echo "Unable to compile $BINARY"
+#    exit 3;
+#fi
+#mv $BINARY ./binaries/$DEBUG_BINARY
 
 # Build non-debug mode
 echo ""
