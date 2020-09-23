@@ -208,4 +208,11 @@ void  Tile::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
     throw std::logic_error("[Tile::addSubItem] Tiles do not have sub items");
 }
 
+/**
+ *
+ */
+void  Tile::transferFromDeviceToHost(void) {
+    throw std::logic_error("[Tile::transferFromDeviceToHost] Tiles cannot be transferred");
+}
+
 }

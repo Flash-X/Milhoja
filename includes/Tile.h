@@ -45,6 +45,8 @@ public:
     DataItem*    getSubItem(const std::size_t i) override;
     void         addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
 
+    void         transferFromDeviceToHost(void) override;
+
     // Pure virtual functions
     virtual bool         isNull(void) const = 0;
     virtual int          gridIndex(void) const = 0;

@@ -39,6 +39,7 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/PacketDataLocation.h \
     $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/MoverUnpacker.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
@@ -46,7 +47,6 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
-    $(INCDIR)/CudaMoverUnpacker.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
     $(INCDIR)/CudaMemoryManager.h \
@@ -70,6 +70,7 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/CudaStream.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
@@ -83,14 +84,13 @@ SRCS       = \
     $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/scaleEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/Analysis.cpp
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/gatherData.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
-    $(SRCDIR)/CudaMoverUnpacker.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu \
-    $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/gatherData.cpp
+    $(SRCDIR)/CudaRuntime.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))

@@ -305,6 +305,49 @@ void  CudaDataPacket::pack(void) {
 /**
  *
  */
+void  CudaDataPacket::initiateHostToDeviceTransfer(void) {
+    pack();
+
+    cudaError_t cErr = cudaMemcpyAsync(packet_d_, packet_p_,
+                                       N_BYTES_PER_PACKET,
+                                       cudaMemcpyHostToDevice,
+                                       *(stream_.object));
+    if (cErr != cudaSuccess) {
+        std::string  errMsg = "[CudaDataPacket::initiateHostToDeviceTransfer] ";
+        errMsg += "Unable to execute H-to-D transfer\n";
+        errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+        throw std::runtime_error(errMsg);
+    }
+}
+
+/**
+ *
+ */
+void  CudaDataPacket::transferFromDeviceToHost(void) {
+    // Bring data back to host.  Use asynchronous transfer so that we can keep
+    // the transfer off the default stream and therefore only wait on this
+    // transfer.
+    cudaStream_t  stream = *(stream_.object);
+    cudaError_t   cErr = cudaMemcpyAsync(packet_p_, packet_d_,
+                                         N_BYTES_PER_PACKET,
+                                         cudaMemcpyDeviceToHost,
+                                         stream);
+    if (cErr != cudaSuccess) {
+        std::string  errMsg = "[CudaDataPacket::transferFromDeviceToHost] ";
+        errMsg += "Unable to execute D-to-H transfer\n";
+        errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+        throw std::runtime_error(errMsg);
+    }
+    cudaStreamSynchronize(stream);
+
+    unpack();
+}
+
+/**
+ *
+ */
 void  CudaDataPacket::unpack(void) {
     if (tileDesc_ == nullptr) {
         throw std::logic_error("[CudaDataPacket::unpack] "

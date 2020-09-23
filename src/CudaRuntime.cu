@@ -10,7 +10,7 @@
 #include "OrchestrationLogger.h"
 #include "CudaStreamManager.h"
 #include "CudaDataPacket.h"
-#include "CudaMoverUnpacker.h"
+#include "MoverUnpacker.h"
 
 #include "Flash.h"
 
@@ -238,7 +238,7 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[CudaRuntime] Start single GPU action");
 
-    CudaMoverUnpacker         gpuToHost{};
+    MoverUnpacker     gpuToHost{};
     gpuTeam->attachDataReceiver(&gpuToHost);
 
     // TODO: Good idea to call this as early as possible so that all threads
@@ -253,25 +253,11 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     assert(packet_gpu == nullptr);
     assert(packet_gpu.use_count() == 0);
 
-    cudaStream_t   stream;
-    cudaError_t    cErr = cudaErrorInvalidValue;
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         packet_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
-        packet_gpu->pack();
-
-        stream = *(packet_gpu->stream().object);
-        cErr = cudaMemcpyAsync(packet_gpu->gpuPointer(), packet_gpu->hostPointer(),
-                               packet_gpu->sizeInBytes(),
-                               cudaMemcpyHostToDevice, stream);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaRuntime::executeGpuTasks] ";
-            errMsg += "Unable to execute H-to-D transfer\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
+        packet_gpu->initiateHostToDeviceTransfer();
 
         gpuTeam->enqueue( std::move(packet_gpu) );
         assert(packet_gpu == nullptr);
@@ -325,7 +311,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     ThreadTeam*        cpuTeam     = teams_[0];
     ThreadTeam*        gpuTeam     = teams_[1];
     ThreadTeam*        postGpuTeam = teams_[2];
-    CudaMoverUnpacker  gpuToHost{};
+    MoverUnpacker      gpuToHost{};
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -352,44 +338,29 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
 
-    // Data is enqueued for both the concurrent CPU and concurrent GPU
-    // thread teams.  When a data item is finished on the GPU, the data item
-    // is enqueued automatically with the post-GPU team.
-    cudaStream_t   stream;
-    cudaError_t    cErr = cudaErrorInvalidValue;
     unsigned int   level = 0;
     Grid&          grid = Grid::instance();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        assert(tile_cpu == nullptr);
-        assert(tile_cpu.use_count() == 0);
-        assert(tile_gpu == nullptr);
-        assert(tile_gpu.use_count() == 0);
-        assert(packet_gpu == nullptr);
-        assert(packet_gpu.use_count() == 0);
-
+        // Acquire all resources before transferring ownership via enqueue
+        // of any single resource.
         tile_cpu = ti->buildCurrentTile();
         tile_gpu = tile_cpu;
         assert(tile_cpu.get() == tile_gpu.get());
         assert(tile_cpu.use_count() == 2);
-
         packet_gpu = std::make_shared<CudaDataPacket>( std::move(tile_gpu) );
         assert(tile_gpu == nullptr);
-        packet_gpu->pack();
-
-        stream = *(packet_gpu->stream().object);
-        cErr = cudaMemcpyAsync(packet_gpu->gpuPointer(), packet_gpu->hostPointer(),
-                               packet_gpu->sizeInBytes(),
-                               cudaMemcpyHostToDevice, stream);
-        if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaRuntime::executeTasks_FullPacket] ";
-            errMsg += "Unable to execute H-to-D transfer\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            throw std::runtime_error(errMsg);
-        }
+        assert(tile_gpu.use_count() == 0);
+        assert(packet_gpu.getTile().get() == tile_cpu.get());
+        assert(tile_cpu.use_count() == 2);
 
         cpuTeam->enqueue( std::move(tile_cpu) );
+        assert(tile_cpu == nullptr);
+        assert(tile_cpu.use_count() == 0);
+
+        packet_gpu->initiateHostToDeviceTransfer();
         gpuTeam->enqueue( std::move(packet_gpu) );
+        assert(packet_gpu == nullptr);
+        assert(packet_gpu.use_count() == 0);
     }
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();

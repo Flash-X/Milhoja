@@ -71,14 +71,14 @@ public:
     CudaDataPacket& operator=(const CudaDataPacket&) = delete;
     CudaDataPacket& operator=(CudaDataPacket&& rhs)  = delete;
 
+    std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
     std::size_t                nSubItems(void) const override;
     void                       addSubItem(std::shared_ptr<DataItem>&& dataItem) override;
     std::shared_ptr<DataItem>  popSubItem(void) override;
     DataItem*                  getSubItem(const std::size_t i) override;
 
-    void                       pack(void);
-    void                       unpack(void);
-    std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
+    void                       initiateHostToDeviceTransfer(void);
+    void                       transferFromDeviceToHost(void);
 
     std::size_t     sizeInBytes(void)        { return N_BYTES_PER_PACKET; };
     CudaStream&     stream(void)             { return stream_; };
@@ -116,6 +116,9 @@ protected:
 
     void         nullify(void);
     std::string  isNull(void) const;
+
+    void         pack(void);
+    void         unpack(void);
 
 private:
     std::shared_ptr<Tile>   tileDesc_;

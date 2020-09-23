@@ -24,6 +24,8 @@ public:
     virtual std::shared_ptr<DataItem>  popSubItem(void) = 0;
     virtual DataItem*                  getSubItem(const std::size_t i) = 0;
 
+    virtual void        transferFromDeviceToHost(void) = 0;
+
 protected:
     DataItem(void) {}
 

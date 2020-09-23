@@ -40,6 +40,7 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/PacketDataLocation.h \
     $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/MoverUnpacker.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
@@ -47,7 +48,6 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
-    $(INCDIR)/CudaMoverUnpacker.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
     $(INCDIR)/CudaMemoryManager.h \
@@ -70,6 +70,7 @@ SRCS       = \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
     $(SRCDIR)/CudaStream.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
@@ -87,7 +88,6 @@ SRCS       = \
     $(TESTBASEDIR)/Analysis.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
-    $(SRCDIR)/CudaMoverUnpacker.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu \
     $(SRCDIR)/CudaRuntime.cu \
