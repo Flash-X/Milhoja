@@ -29,6 +29,8 @@ struct PacketContents {
 
 class DataPacket : public DataItem {
 public:
+    static std::unique_ptr<DataPacket>   createPacket(std::shared_ptr<Tile>&& tileDesc);
+
     virtual ~DataPacket(void)  { };
 
     DataPacket(DataPacket&)                  = delete;

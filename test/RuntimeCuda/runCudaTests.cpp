@@ -1,7 +1,7 @@
 #include "Grid.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
-#include "CudaRuntime.h"
+#include "Runtime.h"
 
 #include <gtest/gtest.h>
 
@@ -19,15 +19,15 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    orchestration::CudaRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
-    orchestration::CudaRuntime::setMaxThreadsPerTeam(MAX_THREADS);
-    orchestration::CudaRuntime::setLogFilename("DeleteMe.log");
+    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
+    orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
+    orchestration::Runtime::setLogFilename("DeleteMe.log");
 
     orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
 
     orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
 
-    orchestration::CudaRuntime::instance();
+    orchestration::Runtime::instance();
 
     // Initialize Grid unit/AMReX
     orchestration::Grid::instantiate();

@@ -17,6 +17,7 @@ PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/DataItem.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
@@ -38,8 +39,10 @@ CXX_HDRS   = \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/RuntimeAction.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/MoverUnpacker.h \
+    $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
@@ -50,8 +53,7 @@ CU_HDRS   = \
     $(INCDIR)/CudaDataPacket.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
-    $(INCDIR)/CudaMemoryManager.h \
-    $(INCDIR)/CudaRuntime.h
+    $(INCDIR)/CudaMemoryManager.h
 SRCS       = \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
@@ -66,12 +68,14 @@ SRCS       = \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/DataPacket.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/MoverUnpacker.cpp \
     $(SRCDIR)/CudaStream.cpp \
+    $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/setInitialConditions_block.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
@@ -92,8 +96,7 @@ CU_SRCS       = \
     $(SRCDIR)/CudaGpuEnvironment.cu \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \
-    $(SRCDIR)/CudaMemoryManager.cu \
-    $(SRCDIR)/CudaRuntime.cu
+    $(SRCDIR)/CudaMemoryManager.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))

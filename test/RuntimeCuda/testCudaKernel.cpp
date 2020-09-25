@@ -1,6 +1,6 @@
 #include "Grid.h"
 #include "RuntimeAction.h"
-#include "CudaRuntime.h"
+#include "Runtime.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -36,7 +36,7 @@ protected:
         computeError_block.routine             = Analysis::computeErrors_block;
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        CudaRuntime::instance().executeCpuTasks("Analysis", computeError_block);
+        Runtime::instance().executeCpuTasks("Analysis", computeError_block);
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;
@@ -81,9 +81,9 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     scaleEnergy.nTilesPerPacket = 0;
     scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
 
-    CudaRuntime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
-    CudaRuntime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
-    CudaRuntime::instance().executeCpuTasks("scEner",  scaleEnergy);
+    Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
+    Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
+    Runtime::instance().executeCpuTasks("scEner",  scaleEnergy);
 
     checkSolution();
 }
@@ -111,9 +111,9 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     scaleEnergy.nTilesPerPacket = 1;
     scaleEnergy.routine = ActionRoutines::scaleEnergy_packet_oacc_summit;
 
-    CudaRuntime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
-    CudaRuntime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy);
-    CudaRuntime::instance().executeGpuTasks("scEner",  scaleEnergy);
+    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
+    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy);
+    Runtime::instance().executeGpuTasks("scEner",  scaleEnergy);
 
     checkSolution();
 }
@@ -142,10 +142,10 @@ TEST_F(TestRuntime, TestFullConfig) {
     scaleEnergy.nTilesPerPacket = 0;
     scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
 
-    CudaRuntime::instance().executeTasks_FullPacket("FullPacket",
-                                                    computeLaplacianDensity,
-                                                    computeLaplacianEnergy,
-                                                    scaleEnergy);
+    Runtime::instance().executeTasks_FullPacket("FullPacket",
+                                                computeLaplacianDensity,
+                                                computeLaplacianEnergy,
+                                                scaleEnergy);
 
     checkSolution();
 }

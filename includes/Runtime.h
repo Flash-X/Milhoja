@@ -1,5 +1,5 @@
 /**
- * \file    CudaRuntime.h
+ * \file    Runtime.h
  *
  * \brief 
  *
@@ -20,21 +20,21 @@
 
 namespace orchestration {
 
-class CudaRuntime {
+class Runtime {
 public:
-    ~CudaRuntime(void);
+    ~Runtime(void);
 
-    CudaRuntime(CudaRuntime&)                  = delete;
-    CudaRuntime(const CudaRuntime&)            = delete;
-    CudaRuntime(CudaRuntime&&)                 = delete;
-    CudaRuntime& operator=(CudaRuntime&)       = delete;
-    CudaRuntime& operator=(const CudaRuntime&) = delete;
-    CudaRuntime& operator=(CudaRuntime&&)      = delete;
+    Runtime(Runtime&)                  = delete;
+    Runtime(const Runtime&)            = delete;
+    Runtime(Runtime&&)                 = delete;
+    Runtime& operator=(Runtime&)       = delete;
+    Runtime& operator=(const Runtime&) = delete;
+    Runtime& operator=(Runtime&&)      = delete;
 
     static void          setLogFilename(const std::string& filename);
     static void          setNumberThreadTeams(const unsigned int nTeams);
     static void          setMaxThreadsPerTeam(const unsigned int maxThreads);
-    static CudaRuntime&  instance(void);
+    static Runtime&      instance(void);
 
 //    void executeTasks(const ActionBundle& bundle);
 
@@ -50,7 +50,7 @@ public:
 #endif
 
 private:
-    CudaRuntime(void);
+    Runtime(void);
 
     static unsigned int    nTeams_; 
     static unsigned int    maxThreadsPerTeam_;

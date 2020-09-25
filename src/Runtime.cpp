@@ -1,34 +1,34 @@
-#include "CudaRuntime.h"
+#include "Runtime.h"
 
 #include <stdexcept>
 #include <iostream>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
+#include "DataPacket.h"
 #include "OrchestrationLogger.h"
 
 #ifdef USE_CUDA_BACKEND
 #include "CudaGpuEnvironment.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
-#include "CudaDataPacket.h"
 #endif
 
 #include "Flash.h"
 
 namespace orchestration {
 
-unsigned int    CudaRuntime::nTeams_            = 0;
-unsigned int    CudaRuntime::maxThreadsPerTeam_ = 0;
-bool            CudaRuntime::instantiated_      = false;
+unsigned int    Runtime::nTeams_            = 0;
+unsigned int    Runtime::maxThreadsPerTeam_ = 0;
+bool            Runtime::instantiated_      = false;
 
 /**
  * 
  *
  * \return 
  */
-CudaRuntime& CudaRuntime::instance(void) {
-    static CudaRuntime     orSingleton;
+Runtime& Runtime::instance(void) {
+    static Runtime     orSingleton;
     return orSingleton;
 }
 
@@ -37,7 +37,7 @@ CudaRuntime& CudaRuntime::instance(void) {
  *
  * \return 
  */
-void CudaRuntime::setLogFilename(const std::string& filename) {
+void Runtime::setLogFilename(const std::string& filename) {
     orchestration::Logger::setLogFilename(filename);
 }
 
@@ -46,12 +46,12 @@ void CudaRuntime::setLogFilename(const std::string& filename) {
  *
  * \return 
  */
-void CudaRuntime::setNumberThreadTeams(const unsigned int nTeams) {
+void Runtime::setNumberThreadTeams(const unsigned int nTeams) {
     if (instantiated_) {
-        throw std::logic_error("[CudaRuntime::setNumberThreadTeams] "
+        throw std::logic_error("[Runtime::setNumberThreadTeams] "
                                "Set only when runtime does not exist");
     } else if (nTeams == 0) {
-        throw std::invalid_argument("[CudaRuntime::setNumberThreadTeams] "
+        throw std::invalid_argument("[Runtime::setNumberThreadTeams] "
                                     "Need at least one ThreadTeam");
     }
 
@@ -63,12 +63,12 @@ void CudaRuntime::setNumberThreadTeams(const unsigned int nTeams) {
  *
  * \return 
  */
-void CudaRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
+void Runtime::setMaxThreadsPerTeam(const unsigned int nThreads) {
     if (instantiated_) {
-        throw std::logic_error("[CudaRuntime::setMaxThreadsPerTeam] "
+        throw std::logic_error("[Runtime::setMaxThreadsPerTeam] "
                                "Set only when runtime does not exist");
     } else if (nThreads == 0) {
-        throw std::invalid_argument("[CudaRuntime::setMaxThreadsPerTeam] "
+        throw std::invalid_argument("[Runtime::setMaxThreadsPerTeam] "
                                     "Need at least one thread per team");
     }
 
@@ -80,13 +80,13 @@ void CudaRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
  *
  * \return 
  */
-CudaRuntime::CudaRuntime(void)
+Runtime::Runtime(void)
     : teams_{nullptr}
 {
-    Logger::instance().log("[CudaRuntime] Initializing...");
+    Logger::instance().log("[Runtime] Initializing...");
 
     if (nTeams_ <= 0) {
-        throw std::invalid_argument("[CudaRuntime::CudaRuntime] "
+        throw std::invalid_argument("[Runtime::Runtime] "
                                     "Need to create at least one team");
     }
 
@@ -109,7 +109,7 @@ CudaRuntime::CudaRuntime(void)
 
     instantiated_ = true;
 
-    Logger::instance().log("[CudaRuntime] Created and ready for use");
+    Logger::instance().log("[Runtime] Created and ready for use");
 }
 
 /**
@@ -117,8 +117,8 @@ CudaRuntime::CudaRuntime(void)
  *
  * \return 
  */
-CudaRuntime::~CudaRuntime(void) {
-    Logger::instance().log("[CudaRuntime] Finalizing...");
+Runtime::~Runtime(void) {
+    Logger::instance().log("[Runtime] Finalizing...");
 
     instantiated_ = false;
 
@@ -129,7 +129,7 @@ CudaRuntime::~CudaRuntime(void) {
     delete [] teams_;
     teams_ = nullptr;
 
-    Logger::instance().log("[CudaRuntime] Finalized");
+    Logger::instance().log("[Runtime] Finalized");
 }
 
 /**
@@ -137,19 +137,19 @@ CudaRuntime::~CudaRuntime(void) {
  *
  * \return 
  */
-void CudaRuntime::executeCpuTasks(const std::string& actionName,
-                                  const RuntimeAction& cpuAction) {
+void Runtime::executeCpuTasks(const std::string& actionName,
+                              const RuntimeAction& cpuAction) {
     Logger::instance().log("[Runtime] Start single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
-        throw std::logic_error("[CudaRuntime::executeCpuTasks] "
+        throw std::logic_error("[Runtime::executeCpuTasks] "
                                "Given CPU action should run on block-based "
                                "thread team, which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
-        throw std::invalid_argument("[CudaRuntime::executeCpuTasks] "
+        throw std::invalid_argument("[Runtime::executeCpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (nTeams_ < 1) {
-        throw std::logic_error("[CudaRuntime::executeCpuTasks] "
+        throw std::logic_error("[Runtime::executeCpuTasks] "
                                "Need at least one ThreadTeam in runtime");
     }
 
@@ -174,7 +174,7 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
 
     // No need to break apart the thread team configuration
 
-    Logger::instance().log("[CudaRuntime] End single CPU action");
+    Logger::instance().log("[Runtime] End single CPU action");
 }
 
 /**
@@ -183,19 +183,19 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
  * \return 
  */
 #if defined(USE_CUDA_BACKEND)
-void CudaRuntime::executeGpuTasks(const std::string& bundleName,
-                                  const RuntimeAction& gpuAction) {
+void Runtime::executeGpuTasks(const std::string& bundleName,
+                              const RuntimeAction& gpuAction) {
     Logger::instance().log("[Runtime] Start single GPU action");
 
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
-        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
+        throw std::logic_error("[Runtime::executeGpuTasks] "
                                "Given GPU action should run on a thread team "
                                "that works with data packets of blocks");
     } else if (gpuAction.nTilesPerPacket <= 0) {
-        throw std::invalid_argument("[CudaRuntime::executeGpuTasks] "
+        throw std::invalid_argument("[Runtime::executeGpuTasks] "
                                     "Need at least one tile per packet");
     } else if (nTeams_ < 1) {
-        throw std::logic_error("[CudaRuntime::executeGpuTasks] "
+        throw std::logic_error("[Runtime::executeGpuTasks] "
                                "Need at least one ThreadTeam in runtime");
     }
 
@@ -213,13 +213,13 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
 
     //***** ACTION PARALLEL DISTRIBUTOR
 
-    unsigned int   level = 0;
-    Grid&          grid = Grid::instance();
-    auto           packet_gpu = std::shared_ptr<DataPacket>{};
+    unsigned int                  level = 0;
+    Grid&                         grid = Grid::instance();
+    std::shared_ptr<DataPacket>   packet_gpu = std::shared_ptr<DataPacket>{};
     assert(packet_gpu == nullptr);
     assert(packet_gpu.use_count() == 0);
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        packet_gpu = std::shared_ptr<DataPacket>{ new CudaDataPacket{ ti->buildCurrentTile() } };
+        packet_gpu = DataPacket::createPacket( ti->buildCurrentTile() );
         packet_gpu->initiateHostToDeviceTransfer();
 
         gpuTeam->enqueue( std::move(packet_gpu) );
@@ -235,7 +235,7 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[CudaRuntime] End single GPU action");
+    Logger::instance().log("[Runtime] End single GPU action");
 }
 #endif
 
@@ -245,36 +245,36 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
  * \return 
  */
 #if defined(USE_CUDA_BACKEND)
-void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
-                                          const RuntimeAction& cpuAction,
-                                          const RuntimeAction& gpuAction,
-                                          const RuntimeAction& postGpuAction) {
+void Runtime::executeTasks_FullPacket(const std::string& bundleName,
+                                      const RuntimeAction& cpuAction,
+                                      const RuntimeAction& gpuAction,
+                                      const RuntimeAction& postGpuAction) {
     Logger::instance().log("[Runtime] Start CPU/GPU/Post-GPU action bundle");
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
-        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                "Given CPU action should run on tile-based "
                                "thread team, which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
-        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
-        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                "Given GPU action should run on packet-based "
                                "thread team, which is not in configuration");
     } else if (gpuAction.nTilesPerPacket <= 0) {
-        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Need at least one tile per GPU packet");
     } else if (postGpuAction.teamType != ThreadTeamDataType::BLOCK) {
-        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                "Given post-GPU action should run on tile-based "
                                "thread team, which is not in configuration");
     } else if (postGpuAction.nTilesPerPacket != 0) {
-        throw std::invalid_argument("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Post-GPU should have zero tiles/packet as "
                                     "client code cannot control this");
     } else if (nTeams_ < 3) {
-        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                "Need at least three ThreadTeams in runtime");
     }
 
@@ -302,7 +302,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
                                  +     gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads;
     if (nTotalThreads > postGpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                 "Post-GPU could receive too many thread "
                                 "activation calls from CPU and GPU teams");
     }
@@ -332,7 +332,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
             throw std::runtime_error("tile_cpu and tile_gpu not matched");
         }
 
-        packet_gpu = std::shared_ptr<DataPacket>{ new CudaDataPacket{std::move(tile_gpu)} };
+        packet_gpu = DataPacket::createPacket( std::move(tile_gpu) );
         if (   (tile_gpu != nullptr)
             || (tile_gpu.use_count() != 0)) {
             throw std::runtime_error("tile_gpu not nulled");
@@ -370,7 +370,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->detachDataReceiver();
     gpuToHost_.detachDataReceiver();
 
-    Logger::instance().log("[CudaRuntime] End CPU/GPU action");
+    Logger::instance().log("[Runtime] End CPU/GPU action");
 }
 #endif
 
