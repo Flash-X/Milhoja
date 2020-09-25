@@ -11,7 +11,7 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId, void* dataIte
     // TODO: This should work for any packet.
     CudaDataPacket*                 packet_h   = reinterpret_cast<CudaDataPacket*>(dataItem_h);
     const CudaDataPacket::Contents  gpuPtrs_d  = packet_h->gpuContents();
-    const int                       streamId_h = packet_h->stream().id;
+    const int                       queue_h = packet_h->stream().id;
 
     // Computation done in-place 
     FArray4D*   U_d = nullptr;
@@ -34,6 +34,6 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId, void* dataIte
     StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
                                                    gpuPtrs_d.xCoords, gpuPtrs_d.yCoords,
                                                    U_d, ENERGY_SCALE_FACTOR,
-                                                   streamId_h);
+                                                   queue_h);
 }
 

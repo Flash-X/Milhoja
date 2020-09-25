@@ -17,7 +17,7 @@ namespace StaticPhysicsRoutines {
                                             orchestration::FArray4D* Uin_d,
                                             orchestration::FArray4D* Uout_d,
                                             const orchestration::RealVect* deltas_d,
-                                            const int streamId_h);
+                                            const int queue_h);
 }
 
 namespace ActionRoutines {

@@ -11,7 +11,7 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId, v
     // TODO: This should work for any packet.
     CudaDataPacket*                 packet_h   = reinterpret_cast<CudaDataPacket*>(dataItem_h);
     const CudaDataPacket::Contents  gpuPtrs_d  = packet_h->gpuContents();
-    const int                       streamId_h = packet_h->stream().id;
+    const int                       queue_h = packet_h->stream().id;
 
     // Data will be written to Uout
     FArray4D*   Uin_d  = nullptr;
@@ -36,6 +36,6 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId, v
     StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
                                                                Uin_d, Uout_d,
                                                                gpuPtrs_d.deltas,
-                                                               streamId_h);
+                                                               queue_h);
 }
 

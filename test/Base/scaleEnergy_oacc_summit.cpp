@@ -6,10 +6,10 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
                                                     const orchestration::FArray1D* yCoords_d,
                                                     orchestration::FArray4D* U_d,
                                                     const orchestration::Real scaleFactor,
-                                                    const int streamId_h) {
+                                                    const int queue_h) {
     #pragma acc data deviceptr(lo_d, hi_d, xCoords_d, yCoords_d, U_d)
     {
-        #pragma acc parallel default(none) async(streamId_h)
+        #pragma acc parallel default(none) async(queue_h)
         {
             int                    i_s = lo_d->I();
             int                    j_s = lo_d->J();
@@ -29,7 +29,7 @@ void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect
                 }
             }
         }
-        #pragma acc wait(streamId_h)
+        #pragma acc wait(queue_h)
     }
 }
 

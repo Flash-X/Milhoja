@@ -24,7 +24,7 @@ namespace StaticPhysicsRoutines {
     // be effected by OpenACC and that the simulation will run on Summit.
     // Since offloading, we pass in all arguments as pointers to data in
     // device memory.  The exceptions to this are
-    //  - streamId_h as this information is needed on the host for offloading
+    //  - queue_h as this information is needed on the host for offloading
     //  - scaleFactor as this variable has not yet been included in
     //    the host-to-device data packet (pending).
     void scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,
@@ -33,7 +33,7 @@ namespace StaticPhysicsRoutines {
                                  const orchestration::FArray1D* yCoords_d,
                                  orchestration::FArray4D* U_d,
                                  const orchestration::Real scaleFactor,
-                                 const int streamId_h);
+                                 const int queue_h);
 }
 
 namespace ActionRoutines {

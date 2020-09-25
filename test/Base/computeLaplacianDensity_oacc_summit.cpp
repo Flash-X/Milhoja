@@ -7,12 +7,12 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
                                                                 orchestration::FArray4D* Uin_d,
                                                                 orchestration::FArray4D* Uout_d,
                                                                 const orchestration::RealVect* deltas_d,
-                                                                const int streamId_h) {
+                                                                const int queue_h) {
     using namespace orchestration;
 
     #pragma acc data deviceptr(deltas_d, lo_d, hi_d, Uin_d, Uout_d)
     {
-        #pragma acc parallel default(none) async(streamId_h)
+        #pragma acc parallel default(none) async(queue_h)
         {
             int     i_s = lo_d->I();
             int     j_s = lo_d->J();
@@ -40,7 +40,7 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
             // The OFFLINE TOOLCHAIN should figure out that Uin/Uout can be used
             // here to remove the copyback.
         }
-        #pragma acc wait(streamId_h)
+        #pragma acc wait(queue_h)
     }
 }
 
