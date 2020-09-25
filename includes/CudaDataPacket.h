@@ -71,18 +71,6 @@ public:
     const PacketContents   gpuContents(void) const override { return contents_d_; };
 
 protected:
-    static constexpr std::size_t    N_CELLS_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
-                                                           * (NYB + 2 * NGUARD * K2D)
-                                                           * (NZB + 2 * NGUARD * K3D);
-    static constexpr std::size_t    N_CELLS = N_CELLS_PER_VARIABLE * NUNKVAR;
-
-    static constexpr std::size_t    DELTA_SIZE_BYTES    =           sizeof(RealVect);
-    static constexpr std::size_t    BLOCK_SIZE_BYTES    = N_CELLS * sizeof(Real);
-    static constexpr std::size_t    POINT_SIZE_BYTES    =           sizeof(IntVect);
-    static constexpr std::size_t    ARRAY1_SIZE_BYTES   =           sizeof(FArray1D);
-    static constexpr std::size_t    ARRAY4_SIZE_BYTES   =           sizeof(FArray4D);
-    static constexpr std::size_t    COORDS_X_SIZE_BYTES =     NXB * sizeof(Real);
-    static constexpr std::size_t    COORDS_Y_SIZE_BYTES =     NYB * sizeof(Real);
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
     static constexpr std::size_t    N_BYTES_PER_PACKET =          1 * DELTA_SIZE_BYTES

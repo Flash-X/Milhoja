@@ -54,6 +54,20 @@ public:
 
 protected:
     DataPacket(void)   { };
+
+    static constexpr std::size_t    N_ELEMENTS_PER_BLOCK_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
+                                                                        * (NYB + 2 * NGUARD * K2D)
+                                                                        * (NZB + 2 * NGUARD * K3D);
+    static constexpr std::size_t    N_ELEMENTS_PER_BLOCK = N_ELEMENTS_PER_BLOCK_PER_VARIABLE * NUNKVAR;
+
+    static constexpr std::size_t    DELTA_SIZE_BYTES    =           sizeof(RealVect);
+    static constexpr std::size_t    BLOCK_SIZE_BYTES    = N_ELEMENTS_PER_BLOCK 
+                                                                  * sizeof(Real);
+    static constexpr std::size_t    POINT_SIZE_BYTES    =           sizeof(IntVect);
+    static constexpr std::size_t    ARRAY1_SIZE_BYTES   =           sizeof(FArray1D);
+    static constexpr std::size_t    ARRAY4_SIZE_BYTES   =           sizeof(FArray4D);
+    static constexpr std::size_t    COORDS_X_SIZE_BYTES =     NXB * sizeof(Real);
+    static constexpr std::size_t    COORDS_Y_SIZE_BYTES =     NYB * sizeof(Real);
 };
 
 }
