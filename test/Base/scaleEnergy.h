@@ -1,6 +1,7 @@
 #ifndef SCALE_ENERGY_H__
 #define SCALE_ENERGY_H__
 
+#include "DataItem.h"
 #include "Grid_IntVect.h"
 #include "FArray1D.h"
 #include "FArray4D.h"
@@ -37,8 +38,10 @@ namespace StaticPhysicsRoutines {
 }
 
 namespace ActionRoutines {
-    void scaleEnergy_tile_cpu(const int tId, void* dataItem);
-    void scaleEnergy_packet_oacc_summit(const int tId, void* dataItem);
+    void scaleEnergy_tile_cpu(const int tId,
+                              orchestration::DataItem* dataItem);
+    void scaleEnergy_packet_oacc_summit(const int tId,
+                                        orchestration::DataItem* dataItem);
 }
 
 #endif

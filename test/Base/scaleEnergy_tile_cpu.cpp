@@ -8,7 +8,8 @@
 #include "Tile.h"
 #include "Grid.h"
 
-void ActionRoutines::scaleEnergy_tile_cpu(const int tId, void* dataItem) {
+void ActionRoutines::scaleEnergy_tile_cpu(const int tId,
+                                          orchestration::DataItem* dataItem) {
     using namespace orchestration;
 
     Tile*  tileDesc = reinterpret_cast<Tile*>(dataItem);

@@ -9,10 +9,11 @@
 #include "Flash.h"
 #include "constants.h"
 
-void Simulation::setInitialConditions_block(const int tId, void* dataItem) {
+void Simulation::setInitialConditions_block(const int tId,
+                                            orchestration::DataItem* dataItem) {
     using namespace orchestration;
 
-    Tile*  tileDesc = static_cast<Tile*>(dataItem);
+    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
 
     Grid&   grid = Grid::instance();
 

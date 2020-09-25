@@ -12,14 +12,13 @@
 #ifndef ACTION_ROUTINE_H__
 #define ACTION_ROUTINE_H__
 
+#include "DataItem.h"
+
 namespace orchestration {
 
 // The data item must be passed as a pointer for interoperability with Fortran
 // interface
-// TODO: When the dust settles, determine if it is acceptable to send the void*
-//       without also sending information to know that a subsequent
-//       reinterpret_cast is valid.
-using ACTION_ROUTINE = void (*)(const int tId, void* work);
+using ACTION_ROUTINE = void (*)(const int tId, DataItem* work);
 
 }
 

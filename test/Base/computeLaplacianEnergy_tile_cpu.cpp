@@ -5,7 +5,8 @@
 #include "FArray4D.h"
 #include "Tile.h"
 
-void ActionRoutines::computeLaplacianEnergy_tile_cpu(const int tId, void* dataItem) {
+void ActionRoutines::computeLaplacianEnergy_tile_cpu(const int tId,
+                                                     orchestration::DataItem* dataItem) {
     using namespace orchestration;
 
     Tile*  tileDesc = static_cast<Tile*>(dataItem);

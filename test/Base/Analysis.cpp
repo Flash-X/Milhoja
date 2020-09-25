@@ -33,8 +33,8 @@ void Analysis::initialize(const unsigned int nBlocks) {
     energyScaleFactor = 5.0;
 }
     
-void   Analysis::computeErrors_block(const int tId, void* dataItem) {
-    Tile* tileDesc = static_cast<Tile*>(dataItem);
+void   Analysis::computeErrors_block(const int tId, DataItem* dataItem) {
+    Tile* tileDesc = dynamic_cast<Tile*>(dataItem);
 
     Grid&   grid = Grid::instance();
 

@@ -74,4 +74,11 @@ void  Tile::transferFromDeviceToHost(void) {
     throw std::logic_error("[Tile::transferFromDeviceToHost] Tiles cannot be transferred");
 }
 
+/**
+ *
+ */
+void  Tile::initiateHostToDeviceTransfer(void) {
+    throw std::logic_error("[Tile::initiateHostToDeviceTransfer] Tiles cannot be transferred");
+}
+
 }

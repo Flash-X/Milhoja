@@ -1,6 +1,7 @@
 #ifndef COMPUTE_LAPLACIAN_ENERGY_H__
 #define COMPUTE_LAPLACIAN_ENERGY_H__
 
+#include "DataItem.h"
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "FArray4D.h"
@@ -21,8 +22,10 @@ namespace StaticPhysicsRoutines {
 }
 
 namespace ActionRoutines {
-    void computeLaplacianEnergy_tile_cpu(const int tId, void* dataItem);
-    void computeLaplacianEnergy_packet_oacc_summit(const int tId, void* dataItem);
+    void computeLaplacianEnergy_tile_cpu(const int tId,
+                                         orchestration::DataItem* dataItem);
+    void computeLaplacianEnergy_packet_oacc_summit(const int tId,
+                                                   orchestration::DataItem* dataItem);
 }
 
 #endif

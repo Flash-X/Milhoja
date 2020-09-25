@@ -14,6 +14,7 @@ public:
     virtual std::shared_ptr<DataItem>  getTile(void) = 0;
     virtual CudaStream&                stream(void) = 0;
 
+    virtual void        initiateHostToDeviceTransfer(void) = 0;
     virtual void        transferFromDeviceToHost(void) = 0;
 
 protected:

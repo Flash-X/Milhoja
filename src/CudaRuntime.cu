@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <cstdio>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
@@ -317,11 +318,11 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
 
     //***** ACTION PARALLEL DISTRIBUTOR
-    unsigned int            level = 0;
-    Grid&                   grid = Grid::instance();
-    std::shared_ptr<Tile>   tile_cpu{};
-    std::shared_ptr<Tile>   tile_gpu{};
-    auto                    packet_gpu = std::shared_ptr<CudaDataPacket>{};
+    unsigned int                      level = 0;
+    Grid&                             grid = Grid::instance();
+    std::shared_ptr<Tile>             tile_cpu{};
+    std::shared_ptr<Tile>             tile_gpu{};
+    std::shared_ptr<CudaDataPacket>   packet_gpu = std::shared_ptr<CudaDataPacket>{};
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         // If we create a first shared_ptr and enqueue it with one team, it is
         // possible that this shared_ptr could have the action applied to its
@@ -331,25 +332,47 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
         // copy.
         tile_cpu = ti->buildCurrentTile();
         tile_gpu = tile_cpu;
-        assert(tile_cpu.get() == tile_gpu.get());
-        assert(tile_cpu.use_count() == 2);
+        if (   (tile_cpu.get() != tile_gpu.get())
+            || (tile_cpu.use_count() != 2)) {
+            throw std::runtime_error("tile_cpu and tile_gpu not matched");
+        }
 
-        packet_gpu = std::make_shared<CudaDataPacket>( std::move(tile_gpu) );
-        assert(tile_gpu == nullptr);
-        assert(tile_gpu.use_count() == 0);
-        assert(packet_gpu.getTile().get() == tile_cpu.get());
-        assert(tile_cpu.use_count() == 2);
+        CudaDataPacket*   blurg = new CudaDataPacket{std::move(tile_gpu)};
+//        printf("tile_cpu          0x%x\n", tile_cpu.get());
+//        printf("cast(tile_cpu)    0x%x\n", static_cast<DataItem*>(tile_cpu.get()));
+//        printf("cast(tile_cpu)    0x%x\n", static_cast<void*>(tile_cpu.get()));
+//        printf("tile_gpu          0x%x\n", tile_gpu.get());
+//        printf("cast(tile_gpu)    0x%x\n", static_cast<DataItem*>(tile_gpu.get()));
+//        printf("cast(tile_gpu)    0x%x\n", static_cast<void*>(tile_gpu.get()));
+//        printf("blurg             0x%x\n", blurg);
+//        printf("cast(blurg)       0x%x\n", static_cast<DataItem*>(blurg));
+//        printf("cast(blurg)       0x%x\n", static_cast<void*>(blurg));
+        packet_gpu = std::shared_ptr<CudaDataPacket>{blurg};
+//        printf("packet_gpu        0x%x\n", packet_gpu->getTile().get());
+//        printf("cast(packet_gpu)  0x%x\n", static_cast<void*>(packet_gpu->getTile().get()));
+//        std::cout << "Use count = " << tile_cpu.use_count() << "\n";
+        if (   (tile_gpu != nullptr)
+            || (tile_gpu.use_count() != 0)) {
+            throw std::runtime_error("tile_gpu not nulled");
+//        } else if (   (packet_gpu->getTile().get() != tile_cpu.get())
+//                   || (tile_cpu.use_count() != 2)) {
+//            throw std::runtime_error("tile_cpu and packet_gpu not matched");
+        }
 
         // CPU action parallel pipeline
         cpuTeam->enqueue( std::move(tile_cpu) );
-        assert(tile_cpu == nullptr);
-        assert(tile_cpu.use_count() == 0);
+        if (   (tile_cpu != nullptr)
+            || (tile_cpu.use_count() != 0)) {
+            throw std::runtime_error("tile_cpu not nulled");
+        }
 
         // GPU/Post-GPU action parallel pipeline
         packet_gpu->initiateHostToDeviceTransfer();
         gpuTeam->enqueue( std::move(packet_gpu) );
-        assert(packet_gpu == nullptr);
-        assert(packet_gpu.use_count() == 0);
+        if (   (packet_gpu != nullptr)
+            || (packet_gpu.use_count() != 0)) {
+            throw std::runtime_error("packet_gpu not nulled");
+        }
     }
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();

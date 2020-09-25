@@ -1,6 +1,7 @@
 #ifndef COMPUTE_LAPLACIAN_DENSITY_H__
 #define COMPUTE_LAPLACIAN_DENSITY_H__
 
+#include "DataItem.h"
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "FArray4D.h"
@@ -21,8 +22,10 @@ namespace StaticPhysicsRoutines{
 }
 
 namespace ActionRoutines {
-    void computeLaplacianDensity_tile_cpu(const int tId, void* dataItem);
-    void computeLaplacianDensity_packet_oacc_summit(const int tId, void* dataItem);
+    void computeLaplacianDensity_tile_cpu(const int tId,
+                                          orchestration::DataItem* dataItem);
+    void computeLaplacianDensity_packet_oacc_summit(const int tId,
+                                                    orchestration::DataItem* dataItem);
 }
 
 #endif

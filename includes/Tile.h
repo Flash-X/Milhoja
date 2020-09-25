@@ -33,7 +33,8 @@ public:
     std::shared_ptr<DataItem>  getTile(void) override;
     CudaStream&                stream(void) override;
 
-    void         transferFromDeviceToHost(void) override;
+    void        initiateHostToDeviceTransfer(void) override;
+    void        transferFromDeviceToHost(void) override;
 
     // Pure virtual functions
     virtual bool         isNull(void) const = 0;
