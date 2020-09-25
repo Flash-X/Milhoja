@@ -17,7 +17,9 @@ void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
 
     // Transfer the ownership of the data item in the packet to the next team
     if (dataReceiver_) {
-        dataReceiver_->enqueue(dataItem->getTile());
+        dataReceiver_->enqueue( std::move(packet->getTile()) );
+        assert(packet->getTile() != nullptr);
+        assert(packet->getTile().use_count() != 0);
     }
 
     // This function must take over control of the packet from the calling code.

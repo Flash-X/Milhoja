@@ -73,8 +73,8 @@ public:
 
     std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
 
-    void                       initiateHostToDeviceTransfer(void);
-    void                       transferFromDeviceToHost(void);
+    void            initiateHostToDeviceTransfer(void);
+    void            transferFromDeviceToHost(void);
 
     CudaStream&     stream(void)             { return stream_; };
     const Contents  gpuContents(void) const  { return contents_d_; };

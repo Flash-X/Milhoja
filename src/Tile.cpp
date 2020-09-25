@@ -51,34 +51,4 @@ RealVect Tile::getCenterCoords(void) const {
     return coords;
 }
 
-
-
-/**
- *
- */
-std::shared_ptr<DataItem> Tile::getTile(void) {
-    throw std::logic_error("[Tile::getTile] Not needed");
-}
-
-/**
- *
- */
-CudaStream&   Tile::stream(void) {
-    throw std::logic_error("[Tile::stream] Not needed");
-}
-
-/**
- *
- */
-void  Tile::transferFromDeviceToHost(void) {
-    throw std::logic_error("[Tile::transferFromDeviceToHost] Tiles cannot be transferred");
-}
-
-/**
- *
- */
-void  Tile::initiateHostToDeviceTransfer(void) {
-    throw std::logic_error("[Tile::initiateHostToDeviceTransfer] Tiles cannot be transferred");
-}
-
 }

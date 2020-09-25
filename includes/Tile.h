@@ -29,13 +29,6 @@ public:
     Tile& operator=(Tile&) = delete;
     Tile& operator=(const Tile&) = delete;
 
-    // Overrides to DataItem
-    std::shared_ptr<DataItem>  getTile(void) override;
-    CudaStream&                stream(void) override;
-
-    void        initiateHostToDeviceTransfer(void) override;
-    void        transferFromDeviceToHost(void) override;
-
     // Pure virtual functions
     virtual bool         isNull(void) const = 0;
     virtual int          gridIndex(void) const = 0;
