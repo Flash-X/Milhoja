@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "OrchestrationLogger.h"
+#include "CudaGpuEnvironment.h"
 
 namespace orchestration {
 
@@ -43,7 +44,7 @@ void CudaMemoryManager::setBufferSize(const std::size_t bytes) {
 
     nBytes_ = bytes;
     Logger::instance().log( "[CudaMemoryManager] Buffer size set to "
-                           + std::to_string(nBytes_ * 1.0e-9)
+                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                            + " Gb");
 }
 
@@ -59,18 +60,16 @@ CudaMemoryManager::CudaMemoryManager(void)
 {
     Logger::instance().log("[CudaMemoryManager] Initializing...");
 
-    cudaDeviceProp  prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::size_t   gpuTotalGlobalMemBytes = prop.totalGlobalMem;
+    std::size_t   gpuMemBytes = CudaGpuEnvironment::instance().bytesInDeviceMemory();
     Logger::instance().log(  "[CudaMemoryManager] GPU memory has " 
-                           + std::to_string(gpuTotalGlobalMemBytes * 1.0e-9)
+                           + std::to_string(gpuMemBytes / std::pow(1024.0, 3.0))
                            + " Gb");
     // TODO: How to get RAM size in portable way?
 
     if (nBytes_ == 0) {
         throw std::invalid_argument("[CudaMemoryManager::CudaMemoryManager] "
                                     "Set buffer size before accessing manager");
-    } else if (nBytes_ >= gpuTotalGlobalMemBytes) {
+    } else if (nBytes_ >= gpuMemBytes) {
         throw std::invalid_argument("[CudaMemoryManager::CudaMemoryManager] "
                                     "Cannot use all GPU memory as buffer");
     }
@@ -90,7 +89,7 @@ CudaMemoryManager::CudaMemoryManager(void)
         throw std::runtime_error(errMsg);
     }
     Logger::instance().log(  "[CudaMemoryManager] Allocated " 
-                           + std::to_string(nBytes_ * 1.0e-9)
+                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                            + " Gb of pinned memory");
 
     cErr = cudaMalloc(&gpuBuffer_, nBytes_);
@@ -103,7 +102,7 @@ CudaMemoryManager::CudaMemoryManager(void)
         throw std::runtime_error(errMsg);
     }
     Logger::instance().log(  "[CudaMemoryManager] Allocated " 
-                           + std::to_string(nBytes_ * 1.0e-9)
+                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                            + " Gb of GPU memory");
 
     wasInstantiated_ = true;
@@ -134,7 +133,7 @@ CudaMemoryManager::~CudaMemoryManager(void) {
         }
         pinnedBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
-                               + std::to_string(nBytes_ * 1.0e-9)
+                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                                + " Gb of pinned memory");
     }
 
@@ -150,7 +149,7 @@ CudaMemoryManager::~CudaMemoryManager(void) {
         }
         gpuBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
-                               + std::to_string(nBytes_ * 1.0e-9)
+                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                                + " Gb of GPU memory");
     }
  

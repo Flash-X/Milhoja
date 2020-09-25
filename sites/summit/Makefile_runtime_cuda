@@ -47,6 +47,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/scaleEnergy.h \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
+    $(INCDIR)/CudaGpuEnvironment.h \
     $(INCDIR)/CudaDataPacket.h \
     $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
@@ -89,6 +90,7 @@ SRCS       = \
     $(TESTDIR)/testCudaKernel.cpp \
     $(TESTDIR)/runCudaTests.cpp
 CU_SRCS       = \
+    $(SRCDIR)/CudaGpuEnvironment.cu \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu \
@@ -105,7 +107,7 @@ CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASED
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -D__PGI
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart -lgtest

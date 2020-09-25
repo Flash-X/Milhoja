@@ -8,9 +8,14 @@
 #include "ThreadTeam.h"
 #include "Grid.h"
 #include "OrchestrationLogger.h"
-#include "CudaStreamManager.h"
-#include "CudaDataPacket.h"
 #include "MoverUnpacker.h"
+
+#ifdef USE_CUDA_BACKEND
+#include "CudaGpuEnvironment.h"
+#include "CudaStreamManager.h"
+#include "CudaMemoryManager.h"
+#include "CudaDataPacket.h"
+#endif
 
 #include "Flash.h"
 
@@ -79,22 +84,7 @@ void CudaRuntime::setMaxThreadsPerTeam(const unsigned int nThreads) {
  * \return 
  */
 CudaRuntime::CudaRuntime(void)
-    : teams_{nullptr},
-      gpuDeviceName_{""},
-      gpuCompMajor_{-1},
-      gpuCompMinor_{-1},
-      gpuMaxGridSize_{-1, -1, -1},
-      gpuMaxThreadDim_{-1, -1, -1},
-      gpuMaxThreadsPerBlock_{-1},
-      gpuWarpSize_{-1},
-      gpuClockRateHz_{-1.0},
-      gpuMemClockRateHz_{-1.0},
-      gpuMemBusWidthBytes_{-1},
-      gpuTotalGlobalMemBytes_{0},
-      gpuL2CacheSizeBytes_{-1},
-      gpuSupportsL1Caching_{false},
-      gpuNumMultiprocessors_{-1},
-      gpuMaxConcurrentKernels_{-1}
+    : teams_{nullptr}
 {
     Logger::instance().log("[CudaRuntime] Initializing...");
 
@@ -108,47 +98,17 @@ CudaRuntime::CudaRuntime(void)
         teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
     }
 
-    int numDevices = 0;
-    cudaGetDeviceCount(&numDevices);
-    if (numDevices != 1) {
-        throw std::runtime_error("[CudaRuntime::CudaRuntime] "
-                                 "We insist upon 1 GPU per MPI task");
-    }
+#ifdef USE_CUDA_BACKEND
+    CudaGpuEnvironment&    gpuEnv = CudaGpuEnvironment::instance();
+    std::string   msg =   "[Runtime] " 
+                        + std::to_string(gpuEnv.nGpuDevices()) 
+                        + " GPU device(s) per process found\n"
+                        + gpuEnv.information();
+    Logger::instance().log(msg);
 
-    cudaDeviceProp  prop;
-    cudaGetDeviceProperties(&prop, 0);
-
-    if (prop.concurrentKernels != 1) {
-        throw std::runtime_error("[CudaRuntime::CudaRuntime] "
-                                 "GPU kernel concurrency is required");
-    }
-
-    gpuDeviceName_          = std::string(prop.name);
-    gpuCompMajor_           = prop.major;
-    gpuCompMinor_           = prop.minor;
-    gpuMaxThreadsPerBlock_  = prop.maxThreadsPerBlock;
-    gpuWarpSize_            = prop.warpSize;
-    gpuClockRateHz_         = prop.clockRate * 1000;
-    gpuMemClockRateHz_      = prop.memoryClockRate * 1000;
-    gpuMemBusWidthBytes_    = round(prop.memoryBusWidth * 0.125);
-    gpuTotalGlobalMemBytes_ = prop.totalGlobalMem;
-    gpuL2CacheSizeBytes_    = prop.l2CacheSize;
-    gpuSupportsL1Caching_   = (prop.localL1CacheSupported == 1);
-    gpuNumMultiprocessors_  = prop.multiProcessorCount;
-    for (unsigned int i=0; i<3; ++i) {
-        gpuMaxGridSize_[i]  = prop.maxGridSize[i];
-        gpuMaxThreadDim_[i] = prop.maxThreadsDim[i];
-    }
-
-    if (gpuCompMajor_ != 7) {
-        throw std::runtime_error("[CudaRuntime::CudaRuntime] "
-                                 "We assume GPU compute capability 7.X");
-    }
-
-    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability
-    gpuMaxConcurrentKernels_ = 128;
-
-    CudaStreamManager::setMaxNumberStreams(gpuMaxConcurrentKernels_);
+    CudaStreamManager::instance();
+    CudaMemoryManager::instance();
+#endif
 
     instantiated_ = true;
 
@@ -381,42 +341,6 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
     gpuToHost.detachDataReceiver();
-}
-
-void CudaRuntime::printGpuInformation(void) const {
-    std::cout << "Lead MPI Processor GPU Information\n";
-    std::cout << "  Name                    "
-              <<  gpuDeviceName_ << "\n";
-    std::cout << "  Clock Rate              "
-              << (gpuClockRateHz_ * 1.0e-9) << " GHz\n";
-    std::cout << "  Memory Clock Rate       "
-              << (gpuMemClockRateHz_ * 1.0e-9) << " GHz\n";
-    std::cout << "  Memory Bus Width        "
-              <<  gpuMemBusWidthBytes_ << " bytes\n";
-    std::cout << "  Total Global Memory     "
-              << (gpuTotalGlobalMemBytes_ / std::pow(1024.0, 3.0)) << " GB\n";
-    std::cout << "  L2 Cache Size           "
-              << (gpuL2CacheSizeBytes_ / std::pow(1024.0, 2.0)) << " MB\n";
-    std::cout << "  Supports local L1 Cache "
-              <<  (gpuSupportsL1Caching_ ? 'T' : 'F') << "\n";
-    std::cout << "  Compute Capability      "
-              <<  gpuCompMajor_ << "." << gpuCompMinor_ << "\n";
-    std::cout << "  Max Grid Size           "
-              <<  gpuMaxGridSize_[0] << " x "
-              <<  gpuMaxGridSize_[1] << " x "
-              <<  gpuMaxGridSize_[2] << "\n";
-    std::cout << "  Max Thread Dims         "
-              <<  gpuMaxThreadDim_[0] << " x "
-              <<  gpuMaxThreadDim_[1] << " x "
-              <<  gpuMaxThreadDim_[2] << "\n";
-    std::cout << "  Max Threads/Block       "
-              <<  gpuMaxThreadsPerBlock_ << "\n";
-    std::cout << "  Warp Size               "
-              <<  gpuWarpSize_ << "\n";
-    std::cout << "  Num Multiprocessors     "
-              <<  gpuNumMultiprocessors_ << "\n";
-    std::cout << "  Max Concurrent Kernels  "
-              <<  gpuMaxConcurrentKernels_ << "\n";
 }
 
 }

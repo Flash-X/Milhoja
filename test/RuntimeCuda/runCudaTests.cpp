@@ -22,17 +22,12 @@ int main(int argc, char* argv[]) {
     orchestration::CudaRuntime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::CudaRuntime::setMaxThreadsPerTeam(MAX_THREADS);
     orchestration::CudaRuntime::setLogFilename("DeleteMe.log");
-    std::cout << "\n";
-    std::cout << "----------------------------------------------------------\n";
-    orchestration::CudaRuntime::instance().printGpuInformation();
-    std::cout << "----------------------------------------------------------\n";
-    std::cout << std::endl;
 
     orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
-    orchestration::CudaStreamManager::instance();
 
     orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
-    orchestration::CudaMemoryManager::instance();
+
+    orchestration::CudaRuntime::instance();
 
     // Initialize Grid unit/AMReX
     orchestration::Grid::instantiate();

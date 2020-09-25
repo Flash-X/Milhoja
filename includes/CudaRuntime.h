@@ -27,12 +27,14 @@ public:
     CudaRuntime& operator=(const CudaRuntime&) = delete;
     CudaRuntime& operator=(CudaRuntime&&)      = delete;
 
-    static CudaRuntime&  instance(void);
     static void          setLogFilename(const std::string& filename);
     static void          setNumberThreadTeams(const unsigned int nTeams);
     static void          setMaxThreadsPerTeam(const unsigned int maxThreads);
+    static CudaRuntime&  instance(void);
 
     unsigned int numberFreeStreams(void) const;
+
+//    void executeTasks(const ActionBundle& bundle);
 
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);
@@ -43,10 +45,6 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
 
-//    void executeTasks(const ActionBundle& bundle);
-
-    void printGpuInformation(void) const;
-
 private:
     CudaRuntime(void);
 
@@ -55,22 +53,6 @@ private:
     static bool            instantiated_;
 
     ThreadTeam**  teams_;
-
-    std::string   gpuDeviceName_;
-    int           gpuCompMajor_;
-    int           gpuCompMinor_;
-    int           gpuMaxGridSize_[3];
-    int           gpuMaxThreadDim_[3];
-    int           gpuMaxThreadsPerBlock_;
-    int           gpuWarpSize_;
-    double        gpuClockRateHz_;
-    double        gpuMemClockRateHz_;
-    int           gpuMemBusWidthBytes_;
-    size_t        gpuTotalGlobalMemBytes_;
-    int           gpuL2CacheSizeBytes_;
-    bool          gpuSupportsL1Caching_;
-    int           gpuNumMultiprocessors_;
-    int           gpuMaxConcurrentKernels_;
 };
 
 }
