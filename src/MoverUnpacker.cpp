@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "CudaDataPacket.h"
+#include "DataPacket.h"
 
 namespace orchestration {
 
@@ -12,7 +12,7 @@ void MoverUnpacker::increaseThreadCount(const unsigned int nThreads) {
 }
 
 void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
-    CudaDataPacket*    packet = dynamic_cast<CudaDataPacket*>(dataItem.get());
+    DataPacket*    packet = dynamic_cast<DataPacket*>(dataItem.get());
     packet->transferFromDeviceToHost();
 
     // Transfer the ownership of the data item in the packet to the next team

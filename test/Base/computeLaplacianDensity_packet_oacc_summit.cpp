@@ -5,16 +5,15 @@
 #include "computeLaplacianDensity.h"
 
 #include "DataItem.h"
-#include "CudaDataPacket.h"
+#include "DataPacket.h"
 
 #include "Flash.h"
 
 void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
-    
-    // TODO: This should work for any packet.
-    CudaDataPacket*       packet_h  = dynamic_cast<CudaDataPacket*>(dataItem_h);
+
+    DataPacket*           packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
     const PacketContents  gpuPtrs_d = packet_h->gpuContents();
     const int             queue_h   = packet_h->stream().id;
 

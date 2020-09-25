@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 #include <iostream>
-#include <cstdio>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
@@ -216,11 +215,11 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
 
     unsigned int   level = 0;
     Grid&          grid = Grid::instance();
-    auto           packet_gpu = std::shared_ptr<CudaDataPacket>{};
+    auto           packet_gpu = std::shared_ptr<DataPacket>{};
     assert(packet_gpu == nullptr);
     assert(packet_gpu.use_count() == 0);
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        packet_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
+        packet_gpu = std::shared_ptr<DataPacket>{ new CudaDataPacket{ ti->buildCurrentTile() } };
         packet_gpu->initiateHostToDeviceTransfer();
 
         gpuTeam->enqueue( std::move(packet_gpu) );
@@ -318,7 +317,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     Grid&                             grid = Grid::instance();
     std::shared_ptr<Tile>             tile_cpu{};
     std::shared_ptr<Tile>             tile_gpu{};
-    std::shared_ptr<CudaDataPacket>   packet_gpu = std::shared_ptr<CudaDataPacket>{};
+    std::shared_ptr<DataPacket>       packet_gpu = std::shared_ptr<DataPacket>{};
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         // If we create a first shared_ptr and enqueue it with one team, it is
         // possible that this shared_ptr could have the action applied to its
@@ -333,20 +332,7 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
             throw std::runtime_error("tile_cpu and tile_gpu not matched");
         }
 
-        CudaDataPacket*   blurg = new CudaDataPacket{std::move(tile_gpu)};
-//        printf("tile_cpu          0x%x\n", tile_cpu.get());
-//        printf("cast(tile_cpu)    0x%x\n", static_cast<DataItem*>(tile_cpu.get()));
-//        printf("cast(tile_cpu)    0x%x\n", static_cast<void*>(tile_cpu.get()));
-//        printf("tile_gpu          0x%x\n", tile_gpu.get());
-//        printf("cast(tile_gpu)    0x%x\n", static_cast<DataItem*>(tile_gpu.get()));
-//        printf("cast(tile_gpu)    0x%x\n", static_cast<void*>(tile_gpu.get()));
-//        printf("blurg             0x%x\n", blurg);
-//        printf("cast(blurg)       0x%x\n", static_cast<DataItem*>(blurg));
-//        printf("cast(blurg)       0x%x\n", static_cast<void*>(blurg));
-        packet_gpu = std::shared_ptr<CudaDataPacket>{blurg};
-//        printf("packet_gpu        0x%x\n", packet_gpu->getTile().get());
-//        printf("cast(packet_gpu)  0x%x\n", static_cast<void*>(packet_gpu->getTile().get()));
-//        std::cout << "Use count = " << tile_cpu.use_count() << "\n";
+        packet_gpu = std::shared_ptr<DataPacket>{ new CudaDataPacket{std::move(tile_gpu)} };
         if (   (tile_gpu != nullptr)
             || (tile_gpu.use_count() != 0)) {
             throw std::runtime_error("tile_gpu not nulled");
