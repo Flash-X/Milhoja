@@ -85,14 +85,14 @@ SRCS       = \
     $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/scaleEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/Analysis.cpp
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/testCudaKernel.cpp \
+    $(TESTDIR)/runCudaTests.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu \
-    $(SRCDIR)/CudaRuntime.cu \
-    $(TESTDIR)/testCudaKernel.cu \
-    $(TESTDIR)/runCudaTests.cpp
+    $(SRCDIR)/CudaRuntime.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
@@ -101,7 +101,7 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND
 CXXWARNS  =
 
 CU        = nvcc
