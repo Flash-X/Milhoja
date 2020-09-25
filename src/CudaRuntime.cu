@@ -1,14 +1,11 @@
 #include "CudaRuntime.h"
 
-#include <cmath>
 #include <stdexcept>
 #include <iostream>
-#include <iomanip>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
 #include "OrchestrationLogger.h"
-#include "MoverUnpacker.h"
 
 #ifdef USE_CUDA_BACKEND
 #include "CudaGpuEnvironment.h"
@@ -146,6 +143,8 @@ unsigned int CudaRuntime::numberFreeStreams(void) const {
  */
 void CudaRuntime::executeCpuTasks(const std::string& actionName,
                                   const RuntimeAction& cpuAction) {
+    Logger::instance().log("[Runtime] Start single CPU action");
+
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[CudaRuntime::executeCpuTasks] "
                                "Given CPU action should run on block-based "
@@ -158,19 +157,26 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
                                "Need at least one ThreadTeam in runtime");
     }
 
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU action parallel pipeline
+    // 1) CPU action applied to blocks by CPU team
     ThreadTeam*   cpuTeam = teams_[0];
 
-    Logger::instance().log("[CudaRuntime] Start single CPU action");
-
+    //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
 
+    //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         cpuTeam->enqueue( ti->buildCurrentTile() );
     }
     cpuTeam->closeQueue();
+
+    // host thread blocks until cycle ends
     cpuTeam->wait();
+
+    // No need to break apart the thread team configuration
 
     Logger::instance().log("[CudaRuntime] End single CPU action");
 }
@@ -180,8 +186,11 @@ void CudaRuntime::executeCpuTasks(const std::string& actionName,
  *
  * \return 
  */
+#if defined(USE_CUDA_BACKEND)
 void CudaRuntime::executeGpuTasks(const std::string& bundleName,
                                   const RuntimeAction& gpuAction) {
+    Logger::instance().log("[Runtime] Start single GPU action");
+
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[CudaRuntime::executeGpuTasks] "
                                "Given GPU action should run on a thread team "
@@ -194,27 +203,25 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
                                "Need at least one ThreadTeam in runtime");
     }
 
-    ThreadTeam*   gpuTeam = teams_[0];
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*       gpuTeam   = teams_[0];
+    gpuTeam->attachDataReceiver(&gpuToHost_);
 
-    Logger::instance().log("[CudaRuntime] Start single GPU action");
-
-    MoverUnpacker     gpuToHost{};
-    gpuTeam->attachDataReceiver(&gpuToHost);
-
-    // TODO: Good idea to call this as early as possible so that all threads
-    //       go to wait while this this is setting everything up?  Hides
-    //       TT wind-up cost.
+    //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
 
-    // We allocate the CUD memory here and pass the pointers around
-    // with the data packet so that a work subscriber will
-    // eventually deallocate the memory.
-    auto packet_gpu = std::shared_ptr<CudaDataPacket>{};
-    assert(packet_gpu == nullptr);
-    assert(packet_gpu.use_count() == 0);
+    //***** ACTION PARALLEL DISTRIBUTOR
 
     unsigned int   level = 0;
-    Grid&   grid = Grid::instance();
+    Grid&          grid = Grid::instance();
+    auto           packet_gpu = std::shared_ptr<CudaDataPacket>{};
+    assert(packet_gpu == nullptr);
+    assert(packet_gpu.use_count() == 0);
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         packet_gpu = std::make_shared<CudaDataPacket>( ti->buildCurrentTile() );
         packet_gpu->initiateHostToDeviceTransfer();
@@ -225,22 +232,29 @@ void CudaRuntime::executeGpuTasks(const std::string& bundleName,
     }
 
     gpuTeam->closeQueue();
+
+    // host thread blocks until cycle ends
     gpuTeam->wait();
 
+    //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
     Logger::instance().log("[CudaRuntime] End single GPU action");
 }
+#endif
 
 /**
  * 
  *
  * \return 
  */
+#if defined(USE_CUDA_BACKEND)
 void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
                                           const RuntimeAction& cpuAction,
                                           const RuntimeAction& gpuAction,
                                           const RuntimeAction& postGpuAction) {
+    Logger::instance().log("[Runtime] Start CPU/GPU/Post-GPU action bundle");
+
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[CudaRuntime::executeTasks_FullPacket] "
                                "Given CPU action should run on tile-based "
@@ -268,10 +282,25 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
                                "Need at least three ThreadTeams in runtime");
     }
 
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU action parallel pipeline
+    // 1) CPU action applied to blocks by CPU team
+    //
+    // GPU/Post-GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU,
+    //    copies results to Grid data structures, and
+    //    pushes blocks to Post-GPU team
+    // 4) Post-GPU action applied by host via Post-GPU team
     ThreadTeam*        cpuTeam     = teams_[0];
     ThreadTeam*        gpuTeam     = teams_[1];
     ThreadTeam*        postGpuTeam = teams_[2];
-    MoverUnpacker      gpuToHost{};
+
+    cpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachThreadReceiver(postGpuTeam);
+    gpuTeam->attachDataReceiver(&gpuToHost_);
+    gpuToHost_.attachDataReceiver(postGpuTeam);
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -282,41 +311,41 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
                                 "activation calls from CPU and GPU teams");
     }
 
-    //***** Construct thread and work pipelines
-    cpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachDataReceiver(&gpuToHost);
-    gpuToHost.attachDataReceiver(postGpuTeam);
+    //***** START EXECUTION CYCLE
+    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
+    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
 
+    //***** ACTION PARALLEL DISTRIBUTOR
+    unsigned int            level = 0;
+    Grid&                   grid = Grid::instance();
     std::shared_ptr<Tile>   tile_cpu{};
     std::shared_ptr<Tile>   tile_gpu{};
     auto                    packet_gpu = std::shared_ptr<CudaDataPacket>{};
-
-    Logger::instance().log("[CudaRuntime] Start CPU/GPU action");
-
-    cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
-    gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
-    postGpuTeam->startCycle(postGpuAction, "Post_GPU_Packet_Team");
-
-    unsigned int   level = 0;
-    Grid&          grid = Grid::instance();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        // Acquire all resources before transferring ownership via enqueue
-        // of any single resource.
+        // If we create a first shared_ptr and enqueue it with one team, it is
+        // possible that this shared_ptr could have the action applied to its
+        // data and go out of scope before we create a second shared_ptr.  In
+        // this case, the data item's resources would be released prematurely.
+        // To avoid this, we create all copies up front and before enqueing any
+        // copy.
         tile_cpu = ti->buildCurrentTile();
         tile_gpu = tile_cpu;
         assert(tile_cpu.get() == tile_gpu.get());
         assert(tile_cpu.use_count() == 2);
+
         packet_gpu = std::make_shared<CudaDataPacket>( std::move(tile_gpu) );
         assert(tile_gpu == nullptr);
         assert(tile_gpu.use_count() == 0);
         assert(packet_gpu.getTile().get() == tile_cpu.get());
         assert(tile_cpu.use_count() == 2);
 
+        // CPU action parallel pipeline
         cpuTeam->enqueue( std::move(tile_cpu) );
         assert(tile_cpu == nullptr);
         assert(tile_cpu.use_count() == 0);
 
+        // GPU/Post-GPU action parallel pipeline
         packet_gpu->initiateHostToDeviceTransfer();
         gpuTeam->enqueue( std::move(packet_gpu) );
         assert(packet_gpu == nullptr);
@@ -325,23 +354,20 @@ void CudaRuntime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
 
-    // TODO: We could give subscribers a pointer to the publisher so that during
-    // the subscriber's wait() it can determine if it should terminate yet.  The
-    // goal of this would be to allow client code to call the wait() methods in
-    // any order.  I doubt that the design/code complexity is worth this minor
-    // gain.
-
+    // host thread blocks until cycle ends
     cpuTeam->wait();
     gpuTeam->wait();
     postGpuTeam->wait();
 
-    Logger::instance().log("[CudaRuntime] End CPU/GPU action");
-
+    //***** BREAK APART THREAD TEAM CONFIGURATION
     cpuTeam->detachThreadReceiver();
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
-    gpuToHost.detachDataReceiver();
+    gpuToHost_.detachDataReceiver();
+
+    Logger::instance().log("[CudaRuntime] End CPU/GPU action");
 }
+#endif
 
 }
 

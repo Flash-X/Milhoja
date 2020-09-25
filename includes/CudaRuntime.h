@@ -14,6 +14,10 @@
 #include "ActionBundle.h"
 #include "RuntimeAction.h"
 
+#if defined(USE_CUDA_BACKEND)
+#include "MoverUnpacker.h"
+#endif
+
 namespace orchestration {
 
 class CudaRuntime {
@@ -38,12 +42,14 @@ public:
 
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);
+#if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
                          const RuntimeAction& gpuAction);
     void executeTasks_FullPacket(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
+#endif
 
 private:
     CudaRuntime(void);
@@ -52,7 +58,11 @@ private:
     static unsigned int    maxThreadsPerTeam_;
     static bool            instantiated_;
 
-    ThreadTeam**  teams_;
+    ThreadTeam**     teams_;
+
+#if defined(USE_CUDA_BACKEND)
+    MoverUnpacker    gpuToHost_;
+#endif
 };
 
 }
