@@ -1,3 +1,9 @@
+// WIP: Somehow NDEBUG is getting set and deactivating the asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <cassert>
+
 #include "CudaDataPacket.h"
 
 #include <cstring>

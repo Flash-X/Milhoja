@@ -1,3 +1,9 @@
+// WIP: Somehow NDEBUG is getting set and deactivating the asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <cassert>
+
 #include "Runtime.h"
 
 #include <stdexcept>
@@ -327,34 +333,25 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         // copy.
         tile_cpu = ti->buildCurrentTile();
         tile_gpu = tile_cpu;
-        if (   (tile_cpu.get() != tile_gpu.get())
-            || (tile_cpu.use_count() != 2)) {
-            throw std::runtime_error("tile_cpu and tile_gpu not matched");
-        }
+        assert(tile_cpu.get() == tile_gpu.get());
+        assert(tile_cpu.use_count() == 2);
 
         packet_gpu = DataPacket::createPacket( std::move(tile_gpu) );
-        if (   (tile_gpu != nullptr)
-            || (tile_gpu.use_count() != 0)) {
-            throw std::runtime_error("tile_gpu not nulled");
-//        } else if (   (packet_gpu->getTile().get() != tile_cpu.get())
-//                   || (tile_cpu.use_count() != 2)) {
-//            throw std::runtime_error("tile_cpu and packet_gpu not matched");
-        }
+        assert(tile_gpu == nullptr);
+        assert(tile_gpu.use_count() == 0);
+        assert(packet_gpu->getTile().get() == tile_cpu.get());
+        assert(tile_cpu.use_count() == 101);
 
         // CPU action parallel pipeline
         cpuTeam->enqueue( std::move(tile_cpu) );
-        if (   (tile_cpu != nullptr)
-            || (tile_cpu.use_count() != 0)) {
-            throw std::runtime_error("tile_cpu not nulled");
-        }
+        assert(tile_cpu == nullptr);
+        assert(tile_cpu.use_count() == 0);
 
         // GPU/Post-GPU action parallel pipeline
         packet_gpu->initiateHostToDeviceTransfer();
         gpuTeam->enqueue( std::move(packet_gpu) );
-        if (   (packet_gpu != nullptr)
-            || (packet_gpu.use_count() != 0)) {
-            throw std::runtime_error("packet_gpu not nulled");
-        }
+        assert(packet_gpu == nullptr);
+        assert(packet_gpu.use_count() == 0);
     }
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();

@@ -1,6 +1,10 @@
-#include "MoverUnpacker.h"
-
+// WIP: Somehow NDEBUG is getting set and deactivating the asserts
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
+
+#include "MoverUnpacker.h"
 
 #include "DataPacket.h"
 

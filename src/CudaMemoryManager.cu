@@ -1,6 +1,5 @@
 #include "CudaMemoryManager.h"
 
-#include <cassert>
 #include <stdexcept>
 #include <iostream>
 

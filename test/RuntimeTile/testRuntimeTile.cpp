@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cassert>
 #include <array>
 #include <vector>
 #include <iostream>
