@@ -57,7 +57,6 @@ void   Grid::instantiate(void) {
   */
 RealVect    Grid::getDeltas(const unsigned int level) const {
     throw std::logic_error("Default Grid::getDeltas not yet implemented");
-    return RealVect{LIST_NDIM(0.0_wp,0.0_wp,0.0_wp)};
 }
 
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
@@ -70,7 +69,6 @@ RealVect    Grid::getDeltas(const unsigned int level) const {
   */
 Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellFaceAreaLo not yet implemented");
-    return 0.0_wp;
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
@@ -82,7 +80,6 @@ Real  Grid::getCellFaceAreaLo(const unsigned int axis, const unsigned int lev, c
   */
 Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
     throw std::logic_error("Default Grid::getCellVolume not yet implemented");
-    return 0.0_wp;
 }
 
 /** fillCellCoords fills a Real array (passed by pointer) with the
