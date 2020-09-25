@@ -60,7 +60,7 @@ public:
     // Overrides of DataPacket member functions
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
-    CudaStream&            stream(void) override            { return stream_; };
+    int                    asynchronousQueue(void) override { return stream_.id; }
 
     PacketDataLocation     getDataLocation(void) const override;
     void                   setDataLocation(const PacketDataLocation location) override;

@@ -8,8 +8,6 @@
 #include "Tile.h"
 #include "DataItem.h"
 
-#include "CudaStream.h"
-
 namespace orchestration {
 
 enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
@@ -42,7 +40,7 @@ public:
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;
-    virtual CudaStream&            stream(void) = 0;
+    virtual int                    asynchronousQueue(void) = 0;
 
     virtual PacketDataLocation    getDataLocation(void) const = 0;
     virtual void                  setDataLocation(const PacketDataLocation location) = 0;

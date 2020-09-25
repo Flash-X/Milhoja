@@ -15,7 +15,7 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
 
     DataPacket*           packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
     const PacketContents  gpuPtrs_d = packet_h->gpuContents();
-    const int             queue_h   = packet_h->stream().id;
+    const int             queue_h   = packet_h->asynchronousQueue();
 
     // Computation done in-place 
     FArray4D*   U_d = nullptr;
