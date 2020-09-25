@@ -40,7 +40,9 @@ public:
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;
+#ifdef USE_OPENACC
     virtual int                    asynchronousQueue(void) = 0;
+#endif
 
     virtual PacketDataLocation    getDataLocation(void) const = 0;
     virtual void                  setDataLocation(const PacketDataLocation location) = 0;

@@ -60,7 +60,9 @@ public:
     // Overrides of DataPacket member functions
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
+#ifdef USE_OPENACC
     int                    asynchronousQueue(void) override { return stream_.id; }
+#endif
 
     PacketDataLocation     getDataLocation(void) const override;
     void                   setDataLocation(const PacketDataLocation location) override;
