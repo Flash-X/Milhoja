@@ -29,7 +29,6 @@ TileAmrex::TileAmrex(amrex::MFIter& itor, amrex::MultiFab& unkRef, const unsigne
       GC_{ new amrex::Box(itor.fabbox()) }          //TODO tiling?
 {
     amrex::FArrayBox& fab = unkRef_[gridIdx_];
-    CC_h_ = fab.dataPtr();
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[TileAmrex] Created Tile object "
@@ -67,17 +66,7 @@ bool   TileAmrex::isNull(void) const {
     return (   (gridIdx_ < 0) //TODO this is never true?
             && (level_ == 0) 
             && (interior_    == nullptr)
-            && (GC_          == nullptr)
-            && (CC_h_        == nullptr)
-            && (CC1_p_       == nullptr)
-            && (CC2_p_       == nullptr)
-            && (loGC_p_      == nullptr)
-            && (hiGC_p_      == nullptr)
-            && (CC1_d_       == nullptr)
-            && (CC2_d_       == nullptr)
-            && (loGC_d_      == nullptr)
-            && (hiGC_d_      == nullptr)
-            && (CC1_array_d_ == nullptr));
+            && (GC_          == nullptr));
 }
 
 /**
