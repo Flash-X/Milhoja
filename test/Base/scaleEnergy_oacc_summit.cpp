@@ -1,3 +1,7 @@
+#ifndef USE_OPENACC
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+
 #include "scaleEnergy.h"
 
 void StaticPhysicsRoutines::scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,

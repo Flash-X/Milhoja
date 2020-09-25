@@ -103,7 +103,7 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -DUSE_OPENACC
 CXXWARNS  =
 
 CU        = nvcc
