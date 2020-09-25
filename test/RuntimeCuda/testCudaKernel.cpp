@@ -5,7 +5,7 @@
 #include "Flash.h"
 #include "constants.h"
 
-#include "setInitialConditions_block.h"
+#include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 #include "scaleEnergy.h"
@@ -20,7 +20,7 @@ namespace {
 class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
-        Grid::instance().initDomain(Simulation::setInitialConditions_block);
+        Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu);
     }
 
     ~TestRuntime(void) {
@@ -28,15 +28,15 @@ protected:
     }
 
     void checkSolution(void) {
-        RuntimeAction    computeError_block;
-        computeError_block.name                = "ComputeErrors";
-        computeError_block.nInitialThreads     = 6;
-        computeError_block.teamType            = ThreadTeamDataType::BLOCK;
-        computeError_block.nTilesPerPacket     = 0;
-        computeError_block.routine             = Analysis::computeErrors_block;
+        RuntimeAction    computeError;
+        computeError.name            = "ComputeErrors";
+        computeError.nInitialThreads = 6;
+        computeError.teamType        = ThreadTeamDataType::BLOCK;
+        computeError.nTilesPerPacket = 0;
+        computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
 
         Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
-        Runtime::instance().executeCpuTasks("Analysis", computeError_block);
+        Runtime::instance().executeCpuTasks("Analysis", computeError);
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;
@@ -61,25 +61,26 @@ protected:
 
 TEST_F(TestRuntime, TestCpuOnlyConfig) {
     RuntimeAction    computeLaplacianDensity;
-    computeLaplacianDensity.name = "LaplacianDensity";
-    computeLaplacianDensity.nInitialThreads = 6;
-    computeLaplacianDensity.teamType = ThreadTeamDataType::BLOCK;
-    computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_tile_cpu;
-
     RuntimeAction    computeLaplacianEnergy;
-    computeLaplacianEnergy.name = "LaplacianEnergy";
-    computeLaplacianEnergy.nInitialThreads = 6;
-    computeLaplacianEnergy.teamType = ThreadTeamDataType::BLOCK;
-    computeLaplacianEnergy.nTilesPerPacket = 0;
-    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_tile_cpu;
-
     RuntimeAction    scaleEnergy;
-    scaleEnergy.name = "scaleEnergy";
+
+    computeLaplacianDensity.name            = "LaplacianDensity";
+    computeLaplacianDensity.nInitialThreads = 6;
+    computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacianDensity.nTilesPerPacket = 0;
+    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+
+    computeLaplacianEnergy.name            = "LaplacianEnergy";
+    computeLaplacianEnergy.nInitialThreads = 6;
+    computeLaplacianEnergy.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacianEnergy.nTilesPerPacket = 0;
+    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+
+    scaleEnergy.name            = "scaleEnergy";
     scaleEnergy.nInitialThreads = 6;
-    scaleEnergy.teamType = ThreadTeamDataType::BLOCK;
+    scaleEnergy.teamType        = ThreadTeamDataType::BLOCK;
     scaleEnergy.nTilesPerPacket = 0;
-    scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
+    scaleEnergy.routine         = ActionRoutines::scaleEnergy_tile_cpu;
 
     Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
     Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
@@ -91,25 +92,26 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestGpuOnlyConfig) {
     RuntimeAction    computeLaplacianDensity;
-    computeLaplacianDensity.name = "LaplacianDensity";
-    computeLaplacianDensity.nInitialThreads = 6;
-    computeLaplacianDensity.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianDensity.nTilesPerPacket = 1;
-    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
-
     RuntimeAction    computeLaplacianEnergy;
-    computeLaplacianEnergy.name = "LaplacianEnergy";
-    computeLaplacianEnergy.nInitialThreads = 6;
-    computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 1;
-    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
-
     RuntimeAction    scaleEnergy;
-    scaleEnergy.name = "scaleEnergy";
+
+    computeLaplacianDensity.name            = "LaplacianDensity";
+    computeLaplacianDensity.nInitialThreads = 6;
+    computeLaplacianDensity.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianDensity.nTilesPerPacket = 1;
+    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
+
+    computeLaplacianEnergy.name            = "LaplacianEnergy";
+    computeLaplacianEnergy.nInitialThreads = 6;
+    computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+
+    scaleEnergy.name            = "scaleEnergy";
     scaleEnergy.nInitialThreads = 6;
-    scaleEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
+    scaleEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
     scaleEnergy.nTilesPerPacket = 1;
-    scaleEnergy.routine = ActionRoutines::scaleEnergy_packet_oacc_summit;
+    scaleEnergy.routine         = ActionRoutines::scaleEnergy_packet_oacc_summit;
 
     Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
     Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy);
@@ -122,25 +124,26 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestFullConfig) {
     RuntimeAction    computeLaplacianDensity;
-    computeLaplacianDensity.name = "LaplacianDensity";
-    computeLaplacianDensity.nInitialThreads = 2;
-    computeLaplacianDensity.teamType = ThreadTeamDataType::BLOCK;
-    computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine = ActionRoutines::computeLaplacianDensity_tile_cpu;
-
     RuntimeAction    computeLaplacianEnergy;
-    computeLaplacianEnergy.name = "LaplacianEnergy";
-    computeLaplacianEnergy.nInitialThreads = 5;
-    computeLaplacianEnergy.teamType = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 1;
-    computeLaplacianEnergy.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
-
     RuntimeAction    scaleEnergy;
-    scaleEnergy.name = "scaleEnergy";
+
+    computeLaplacianDensity.name            = "LaplacianDensity";
+    computeLaplacianDensity.nInitialThreads = 2;
+    computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacianDensity.nTilesPerPacket = 0;
+    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+
+    computeLaplacianEnergy.name            = "LaplacianEnergy";
+    computeLaplacianEnergy.nInitialThreads = 5;
+    computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+
+    scaleEnergy.name            = "scaleEnergy";
     scaleEnergy.nInitialThreads = 0;
-    scaleEnergy.teamType = ThreadTeamDataType::BLOCK;
+    scaleEnergy.teamType        = ThreadTeamDataType::BLOCK;
     scaleEnergy.nTilesPerPacket = 0;
-    scaleEnergy.routine = ActionRoutines::scaleEnergy_tile_cpu;
+    scaleEnergy.routine         = ActionRoutines::scaleEnergy_tile_cpu;
 
     Runtime::instance().executeTasks_FullPacket("FullPacket",
                                                 computeLaplacianDensity,

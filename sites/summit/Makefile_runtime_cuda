@@ -43,7 +43,7 @@ CXX_HDRS   = \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/MoverUnpacker.h \
     $(INCDIR)/Runtime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h \
+    $(TESTBASEDIR)/setInitialConditions.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/scaleEnergy.h \
@@ -76,7 +76,8 @@ SRCS       = \
     $(SRCDIR)/MoverUnpacker.cpp \
     $(SRCDIR)/CudaStream.cpp \
     $(SRCDIR)/Runtime.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_oacc_summit.cpp \
