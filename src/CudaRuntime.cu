@@ -133,10 +133,6 @@ CudaRuntime::~CudaRuntime(void) {
     Logger::instance().log("[CudaRuntime] Finalized");
 }
 
-unsigned int CudaRuntime::numberFreeStreams(void) const {
-    return CudaStreamManager::instance().numberFreeStreams();
-}
-
 /**
  * 
  *

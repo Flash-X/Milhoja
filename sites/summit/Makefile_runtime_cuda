@@ -38,7 +38,6 @@ CXX_HDRS   = \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
     $(INCDIR)/RuntimeAction.h \
-    $(INCDIR)/PacketDataLocation.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/MoverUnpacker.h \
     $(TESTBASEDIR)/setInitialConditions_block.h \

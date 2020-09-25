@@ -36,8 +36,6 @@ public:
     static void          setMaxThreadsPerTeam(const unsigned int maxThreads);
     static CudaRuntime&  instance(void);
 
-    unsigned int numberFreeStreams(void) const;
-
 //    void executeTasks(const ActionBundle& bundle);
 
     void executeCpuTasks(const std::string& actionName,

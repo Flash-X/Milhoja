@@ -9,9 +9,8 @@
 #include "FArray1D.h"
 #include "FArray4D.h"
 #include "Tile.h"
-#include "DataItem.h"
+#include "DataPacket.h"
 #include "CudaStream.h"
-#include "PacketDataLocation.h"
 
 #include "constants.h"
 #include "Flash.h"
@@ -46,21 +45,8 @@ namespace orchestration {
 // packet after it starts enqueueing and before its last move, which seems
 // obvious.  Each entity with a data item queue must be written so that at most
 // one thread can access a packet at any point in time.
-class CudaDataPacket : public DataItem {
+class CudaDataPacket : public DataPacket {
 public:
-    struct Contents {
-        unsigned int  level   = 0;
-        RealVect*     deltas  = nullptr;
-        IntVect*      lo      = nullptr;
-        IntVect*      hi      = nullptr;
-        IntVect*      loGC    = nullptr;
-        IntVect*      hiGC    = nullptr;
-        FArray1D*     xCoords = nullptr;
-        FArray1D*     yCoords = nullptr;
-        FArray4D*     CC1     = nullptr;
-        FArray4D*     CC2     = nullptr;
-    };
-
     CudaDataPacket(std::shared_ptr<Tile>&& tileDesc);
     ~CudaDataPacket(void);
 
@@ -71,18 +57,18 @@ public:
     CudaDataPacket& operator=(const CudaDataPacket&) = delete;
     CudaDataPacket& operator=(CudaDataPacket&& rhs)  = delete;
 
-    std::shared_ptr<DataItem>  getTile(void) { return tileDesc_; };
+    // Overrides of DataPacket member functions
+    void                   initiateHostToDeviceTransfer(void) override;
+    void                   transferFromDeviceToHost(void) override;
+    CudaStream&            stream(void) override            { return stream_; };
 
-    void            initiateHostToDeviceTransfer(void);
-    void            transferFromDeviceToHost(void);
+    PacketDataLocation     getDataLocation(void) const override;
+    void                   setDataLocation(const PacketDataLocation location) override;
+    void                   setVariableMask(const int startVariable, 
+                                           const int endVariable) override;
 
-    CudaStream&     stream(void)             { return stream_; };
-    const Contents  gpuContents(void) const  { return contents_d_; };
-
-    PacketDataLocation    getDataLocation(void) const;
-    void                  setDataLocation(const PacketDataLocation location);
-    void                  setVariableMask(const int sVar, 
-                                          const int eVar);
+    std::shared_ptr<Tile>  getTile(void) override           { return tileDesc_; };
+    const PacketContents   gpuContents(void) const override { return contents_d_; };
 
 protected:
     static constexpr std::size_t    N_CELLS_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
@@ -122,7 +108,7 @@ private:
     int                     endVariable_;
     void*                   packet_p_;
     void*                   packet_d_;
-    Contents                contents_d_;
+    PacketContents          contents_d_;
     CudaStream              stream_;
 };
 

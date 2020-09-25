@@ -5,7 +5,6 @@
 #include "scaleEnergy.h"
 
 #include "DataItem.h"
-#include "PacketDataLocation.h"
 #include "CudaDataPacket.h"
 
 #include "Flash.h"
@@ -15,9 +14,9 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
     using namespace orchestration;
 
     // TODO: This should work for any packet.
-    CudaDataPacket*                 packet_h   = dynamic_cast<CudaDataPacket*>(dataItem_h);
-    const CudaDataPacket::Contents  gpuPtrs_d  = packet_h->gpuContents();
-    const int                       queue_h = packet_h->stream().id;
+    CudaDataPacket*       packet_h  = dynamic_cast<CudaDataPacket*>(dataItem_h);
+    const PacketContents  gpuPtrs_d = packet_h->gpuContents();
+    const int             queue_h   = packet_h->stream().id;
 
     // Computation done in-place 
     FArray4D*   U_d = nullptr;

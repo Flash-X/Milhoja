@@ -18,7 +18,7 @@ namespace orchestration {
  *
  */
 CudaDataPacket::CudaDataPacket(std::shared_ptr<Tile>&& tileDesc)
-    : DataItem{},
+    : DataPacket{},
       tileDesc_{ std::move(tileDesc) },
       CC1_data_p_{nullptr},
       CC2_data_p_{nullptr},
@@ -122,21 +122,21 @@ void   CudaDataPacket::setDataLocation(const PacketDataLocation location) {
 /**
  *
  */
-void   CudaDataPacket::setVariableMask(const int sVar,
-                                       const int eVar) {
-    if        (sVar < UNK_VARS_BEGIN_C) {
+void   CudaDataPacket::setVariableMask(const int startVariable,
+                                       const int endVariable) {
+    if        (startVariable < UNK_VARS_BEGIN_C) {
         throw std::logic_error("[CudaDataPacket::setVariableMask] "
                                "Starting variable is invalid");
-    } else if (eVar > UNK_VARS_END_C) {
+    } else if (endVariable > UNK_VARS_END_C) {
         throw std::logic_error("[CudaDataPacket::setVariableMask] "
                                "Ending variable is invalid");
-    } else if (sVar > eVar) {
+    } else if (startVariable > endVariable) {
         throw std::logic_error("[CudaDataPacket::setVariableMask] "
                                "Starting variable > ending variable");
     }
 
-    startVariable_ = sVar;
-    endVariable_ = eVar;
+    startVariable_ = startVariable;
+    endVariable_ = endVariable;
 }
 
 /**
