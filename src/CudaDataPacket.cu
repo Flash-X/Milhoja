@@ -108,34 +108,6 @@ std::string  CudaDataPacket::isNull(void) const {
 /**
  *
  */
-std::size_t  CudaDataPacket::nSubItems(void) const {
-    throw std::logic_error("[CudaDataPacket::nSubItems] Subitems not yet implemented");
-}
-
-/**
- *
- */
-void   CudaDataPacket::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
-    throw std::logic_error("[CudaDataPacket::addSubItem] Subitems not yet implemented");
-}
-
-/**
- *
- */
-std::shared_ptr<DataItem>  CudaDataPacket::popSubItem(void) {
-    throw std::logic_error("[CudaDataPacket::popSubItem] Subitems not yet implemented");
-}
-
-/**
- *
- */
-DataItem*  CudaDataPacket::getSubItem(const std::size_t i) {
-    throw std::logic_error("[CudaDataPacket::getSubItem] Subitems not yet implemented");
-}
-
-/**
- *
- */
 PacketDataLocation    CudaDataPacket::getDataLocation(void) const {
     return location_;
 }

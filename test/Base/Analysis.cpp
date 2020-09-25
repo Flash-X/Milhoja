@@ -8,7 +8,6 @@
 #include "Grid_Edge.h"
 #include "FArray4D.h"
 #include "Grid.h"
-#include "DataPacket.h"
 
 #include "Flash.h"
 
@@ -87,14 +86,6 @@ void   Analysis::computeErrors_block(const int tId, void* dataItem) {
 
     L_inf_dens[tileDesc->gridIndex()] = maxAbsErr1;
     L_inf_ener[tileDesc->gridIndex()] = maxAbsErr2;
-}
-
-void   Analysis::computeErrors_packet(const int tId, void* dataItem) {
-    DataPacket*  packet = static_cast<DataPacket*>(dataItem);
-
-    for (unsigned int i=0; i<packet->nSubItems(); ++i) {
-        computeErrors_block(tId, packet->getSubItem(i));
-    }
 }
 
 void Analysis::densityErrors(double* L_inf, double* meanAbsError) {

@@ -52,33 +52,6 @@ RealVect Tile::getCenterCoords(void) const {
 }
 
 
-/**
- *
- */
-void Tile::unpack(void) {
-    throw std::logic_error("[Tile::unpack] Tiles are not packed");
-}
-
-/**
- *
- */
-void* Tile::hostPointer(void) {
-    throw std::logic_error("[Tile::hostPointer] No need for host pointer");
-}
-
-/**
- *
- */
-void* Tile::gpuPointer(void) {
-    throw std::logic_error("[Tile::gpuPointer] No need for gpu pointer");
-}
-
-/**
- *
- */
-std::size_t  Tile::sizeInBytes(void) {
-    throw std::logic_error("[Tile::sizeInBytes] Don't need tile size");
-}
 
 /**
  *
@@ -92,34 +65,6 @@ std::shared_ptr<DataItem> Tile::getTile(void) {
  */
 CudaStream&   Tile::stream(void) {
     throw std::logic_error("[Tile::stream] Not needed");
-}
-
-/**
- *
- */
-std::size_t Tile::nSubItems(void) const {
-    throw std::logic_error("[Tile::nSubItems] Tiles do not have sub items");
-}
-
-/**
- *
- */
-std::shared_ptr<DataItem>  Tile::popSubItem(void) {
-    throw std::logic_error("[Tile::popSubItem] Tiles do not have sub items");
-}
-
-/**
- *
- */
-DataItem*  Tile::getSubItem(const std::size_t i) {
-    throw std::logic_error("[Tile::getSubItem] Tiles do not have sub items");
-}
-
-/**
- *
- */
-void  Tile::addSubItem(std::shared_ptr<DataItem>&& dataItem) {
-    throw std::logic_error("[Tile::addSubItem] Tiles do not have sub items");
 }
 
 /**

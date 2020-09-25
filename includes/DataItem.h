@@ -11,18 +11,8 @@ class DataItem {
 public:
     virtual ~DataItem(void) {}
 
-    virtual void                       unpack(void) = 0;
-    virtual void*                      hostPointer(void) = 0;
-    virtual void*                      gpuPointer(void) = 0;
-    virtual std::size_t                sizeInBytes(void) = 0;
     virtual std::shared_ptr<DataItem>  getTile(void) = 0;
     virtual CudaStream&                stream(void) = 0;
-
-    virtual std::size_t nSubItems(void) const = 0;
-    virtual void        addSubItem(std::shared_ptr<DataItem>&& dataItem) = 0;
-
-    virtual std::shared_ptr<DataItem>  popSubItem(void) = 0;
-    virtual DataItem*                  getSubItem(const std::size_t i) = 0;
 
     virtual void        transferFromDeviceToHost(void) = 0;
 
