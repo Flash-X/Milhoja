@@ -17,7 +17,6 @@ PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 # Common files
 CXX_HDRS   = \
     $(INCDIR)/RuntimeElement.h \
-    $(INCDIR)/DataItem.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
@@ -38,7 +37,9 @@ CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
+    $(INCDIR)/actionRoutine.h \
     $(INCDIR)/RuntimeAction.h \
+    $(INCDIR)/DataItem.h \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/MoverUnpacker.h \
@@ -110,7 +111,7 @@ CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASED
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -D__PGI -UNDEBUG
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -DUSE_OPENACC -UNDEBUG -D__PGI
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart -lgtest

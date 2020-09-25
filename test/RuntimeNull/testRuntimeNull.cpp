@@ -17,11 +17,11 @@ using namespace orchestration;
 namespace {
 
 // No-op action routine that assume that give dataItem is an int
-void noopActionRoutine_int(const int tId, void* dataItem) { }
+void noopActionRoutine_int(const int tId, DataItem* dataItem) { }
 
 // Action routine that assume that give dataItem is an int
 // and that sleepsfor a random amount of time
-void randomActionRoutine_int(const int tId, void* dataItem) {
+void randomActionRoutine_int(const int tId, DataItem* dataItem) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
