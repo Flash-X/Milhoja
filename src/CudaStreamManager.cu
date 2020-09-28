@@ -9,7 +9,9 @@
 #include <iostream>
 #include <stdexcept>
 
+#ifdef USE_OPENACC
 #include <openacc.h>
+#endif
 
 #include "OrchestrationLogger.h"
 
@@ -93,6 +95,8 @@ CudaStreamManager::CudaStreamManager(void)
 
          // Make stream indices 1-based so that 0 can work as NULL_STREAM
          int   streamId = i + 1;
+
+#ifdef USE_OPENACC
          // For some unknown reason, I need to call get before calling set.
          // If I don't do this, then the queue-stream linking doesn't happen
          // on the first block.
@@ -105,6 +109,7 @@ CudaStreamManager::CudaStreamManager(void)
             pthread_mutex_unlock(&idxMutex_);
             throw std::runtime_error(errMsg);
          }
+#endif
 
          freeStreams_.push_back( CudaStream(streamId, &(streams_[i])) );
     }

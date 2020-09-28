@@ -1,5 +1,6 @@
 #include "cudaTestConstants.h"
 #include "CudaStreamManager.h"
+#include "OrchestrationLogger.h"
 
 #include "gtest/gtest.h"
 
@@ -24,12 +25,15 @@ namespace {
 TEST(TestCudaStreamManager, TestManager) {
     using namespace orchestration;
 
+    Logger::instance().log("[googletest] Start TestManager test");
+
+    int  maxNumStreams = CudaStreamManager::getMaxNumberStreams();
     CudaStreamManager&   sm = CudaStreamManager::instance();
-    ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
 
     // Confirm that streams are null streams by default
-    CudaStream   streams[cudaTestConstants::N_STREAMS];
-    for (std::size_t i=0; i<cudaTestConstants::N_STREAMS; ++i) {
+    CudaStream   streams[maxNumStreams];
+    for (std::size_t i=0; i<maxNumStreams; ++i) {
         ASSERT_EQ(CudaStream::NULL_STREAM_ID, streams[i].id);
         ASSERT_EQ(nullptr,                    streams[i].object);
     }
@@ -102,7 +106,7 @@ TEST(TestCudaStreamManager, TestManager) {
 
     sm.releaseStream(streams[2]); 
     sm.releaseStream(streams[1]); 
-    ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
     EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[0].id);
     EXPECT_EQ(nullptr,                    streams[0].object);
     EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[1].id);
@@ -143,7 +147,7 @@ TEST(TestCudaStreamManager, TestManager) {
 
     // The stream ID must be valid
     try {
-        badStream.id     = cudaTestConstants::N_STREAMS + 1;
+        badStream.id     = maxNumStreams + 1;
         badStream.object = goodStream.object;
         sm.releaseStream(badStream);
         EXPECT_TRUE(false);
@@ -154,13 +158,15 @@ TEST(TestCudaStreamManager, TestManager) {
     // Return the final stream and try pushing a "valid" stream (i.e. ID and
     // object not null) when the manager has all its streams accounted for.
     sm.releaseStream(goodStream);
-    ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
     try {
         sm.releaseStream(goodStream2);
         EXPECT_TRUE(false);
     } catch (const std::invalid_argument&) {
         EXPECT_TRUE(true);
     }
+
+    Logger::instance().log("[googletest] End TestManager test");
 }
 
 /**
@@ -171,35 +177,38 @@ TEST(TestCudaStreamManager, TestManager) {
 TEST(TestCudaStreamManager, TestStreams) {
     using namespace orchestration;
 
+    Logger::instance().log("[googletest] Start TestStreams test");
+
     // We will send one packet of equal size per stream and break each packet up
     // into smaller equal-sized chunks for computation with GPU.
     constexpr  std::size_t  N_DATA_PER_PACKET = 1024;
-    constexpr  std::size_t  N_PACKETS = cudaTestConstants::N_STREAMS;
-    constexpr  std::size_t  N_DATA = N_PACKETS * N_DATA_PER_PACKET;
+
+    int  maxNumStreams = CudaStreamManager::getMaxNumberStreams();
+    int  nPackets = maxNumStreams;
+    int  nData = nPackets * N_DATA_PER_PACKET;
 
     CudaStreamManager&   sm = CudaStreamManager::instance();
-    ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
 
-    CudaStream   streams[cudaTestConstants::N_STREAMS];
-    for (unsigned int i=0; i<cudaTestConstants::N_STREAMS; ++i) {
+    CudaStream   streams[maxNumStreams];
+    for (unsigned int i=0; i<maxNumStreams; ++i) {
         streams[i] = sm.requestStream(true); 
     }
     ASSERT_EQ(0, sm.numberFreeStreams());
 
     double*        data_p = nullptr;
     double*        data_d = nullptr;
-    unsigned int   nBytes = N_DATA * sizeof(double);
-    cudaError_t    cErr = cudaErrorInvalidValue;
-    cErr = cudaMallocHost(&data_p, nBytes);
+    unsigned int   nBytes = nData * sizeof(double);
+    cudaError_t    cErr = cudaMallocHost(&data_p, nBytes);
     ASSERT_EQ(cudaSuccess, cErr);
     cErr = cudaMalloc(&data_d, nBytes);
     ASSERT_EQ(cudaSuccess, cErr);
 
-    for (std::size_t i=0; i<N_DATA; ++i) {
+    for (std::size_t i=0; i<nData; ++i) {
         data_p[i] = 1.1;
     }
 
-    for (unsigned int i=0; i<cudaTestConstants::N_STREAMS; ++i) {
+    for (unsigned int i=0; i<maxNumStreams; ++i) {
         cudaStream_t  myStream = *(streams[i].object);
         unsigned int  offset = i * N_DATA_PER_PACKET;
         cErr = cudaMemcpyAsync(data_d + offset,
@@ -221,7 +230,7 @@ TEST(TestCudaStreamManager, TestStreams) {
     cErr = cudaDeviceSynchronize();
     ASSERT_EQ(cudaSuccess, cErr);
 
-    for (std::size_t i=0; i<N_DATA; ++i) {
+    for (std::size_t i=0; i<nData; ++i) {
         EXPECT_NEAR(2.42, data_p[i], 1.0e-15);
     }
 
@@ -230,10 +239,12 @@ TEST(TestCudaStreamManager, TestStreams) {
     data_d = nullptr;
     data_p = nullptr;
 
-    for (unsigned int i=0; i<cudaTestConstants::N_STREAMS; ++i ) {
+    for (unsigned int i=0; i<maxNumStreams; ++i ) {
         sm.releaseStream(streams[i]); 
     }
-    ASSERT_EQ(cudaTestConstants::N_STREAMS, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+
+    Logger::instance().log("[googletest] End TestStreams test");
 }
 
 // TODO: Put in a test that exercises the manager using many different threads

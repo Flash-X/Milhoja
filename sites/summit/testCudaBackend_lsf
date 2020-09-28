@@ -1,24 +1,31 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:02
+#BSUB -W 0:01
 #BSUB -nnodes 1
-#BSUB -alloc_flags smt4
-#BSUB -J testRuntimeCuda
-#BSUB -o testRuntimeCuda.%J
-#BSUB -e testRuntimeCuda.%J
+#BSUB -alloc_flags smt1
+#BSUB -J testCudaBackend
+#BSUB -o testCudaBackend.%J
+#BSUB -e testCudaBackend.%J
  
 ######################################################################
 #####-----              FULLY SPECIFY TEST RUN              -----#####
 ######################################################################
 # IMPORTANT: Match this to X in smtX BSUB statment above
-N_HYPERTHREADS_PER_CORE=4
+N_HYPERTHREADS_PER_CORE=1
+
+# TestStreams needs to instruct each thread to busy wait for a given number of
+# cycles so that the duration of the kernel executions is long enough that the
+# correct overlaying of computation and communication (enabled by streams) can
+# be seen in the nvprof output files.  This value yields kernel execution times
+# on Summit of approximately 80 uS, which is sufficient.
+N_WAIT_CYCLES=100000
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
 # This should match the SW stack used to build the test binaries
-# as specified in buildTestRuntimeCuda.sh
+# as specified in buildTestCudaBackend.sh
 module purge
 module load pgi/19.9
 module load spectrum-mpi/10.3.1.2-20200121
@@ -30,7 +37,7 @@ module list
 # idle.
 N_PROC_PER_RS=1
 N_GPU_PER_PROC=1
-N_CORES_PER_PROC=7
+N_CORES_PER_PROC=1
 N_RS_PER_SOCKET=1
 N_RS_PER_NODE=1
 
@@ -63,7 +70,7 @@ echo "Number of HW Threads per Core = $N_HYPERTHREADS_PER_CORE"
 echo "Number of Threads per Process = $N_THREADS_PER_PROC"
 echo "---------------------------------------------------------------------"
 
-folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/testRuntimeCuda_$LSB_JOBID
+folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/testCudaBackend_$LSB_JOBID
 mkdir -p $folder ; cd $folder
 
 jsrun -n $N_RS_PER_NODE \
@@ -71,5 +78,14 @@ jsrun -n $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
-      nvprof -o TestRuntimeCuda.%h.%p $LS_SUBCWD/binaries/test_runtime_cuda.x $N_WAIT_CYCLES
+      --smpiargs="-disable_gpu_hooks" \
+      nvprof -o TestCudaBackend.%h.%p $LS_SUBCWD/binaries/test_cuda_backend.x $N_WAIT_CYCLES
+
+jsrun -n $N_RS_PER_NODE \
+      -r $N_RS_PER_NODE \
+      -a $N_PROC_PER_RS \
+      -c $N_CORES_PER_RS \
+      -g $N_GPU_PER_RS \
+      --smpiargs="-disable_gpu_hooks" \
+      nvprof -o TestCudaBackend_debug.%h.%p $LS_SUBCWD/binaries/test_cuda_backend_debug.x $N_WAIT_CYCLES
 

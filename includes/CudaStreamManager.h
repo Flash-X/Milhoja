@@ -16,7 +16,7 @@
 #include <vector>
 #include <pthread.h>
 
-#include <driver_types.h>
+#include <cuda_runtime.h>
 
 #include "CudaStream.h"
 
@@ -27,6 +27,7 @@ public:
     ~CudaStreamManager();
 
     static void                 setMaxNumberStreams(const int nMaxStreams);
+    static int                  getMaxNumberStreams(void)   { return nMaxStreams_; };
     static CudaStreamManager&   instance(void);
 
     int             numberFreeStreams(void);
