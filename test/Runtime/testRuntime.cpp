@@ -1,6 +1,7 @@
 #include "Grid.h"
 #include "RuntimeAction.h"
 #include "Runtime.h"
+#include "OrchestrationLogger.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -60,6 +61,8 @@ protected:
 };
 
 TEST_F(TestRuntime, TestCpuOnlyConfig) {
+    Logger::instance().log("[googletest] Start TestCpuOnlyConfig");
+
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
     RuntimeAction    scaleEnergy;
@@ -87,10 +90,14 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     Runtime::instance().executeCpuTasks("scEner",  scaleEnergy);
 
     checkSolution();
+
+    Logger::instance().log("[googletest] End TestCpuOnlyConfig");
 }
 
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestGpuOnlyConfig) {
+    Logger::instance().log("[googletest] Start TestGpuOnlyConfig");
+
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
     RuntimeAction    scaleEnergy;
@@ -118,11 +125,15 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     Runtime::instance().executeGpuTasks("scEner",  scaleEnergy);
 
     checkSolution();
+
+    Logger::instance().log("[googletest] End TestGpuOnlyConfig");
 }
 #endif
 
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestFullConfig) {
+    Logger::instance().log("[googletest] Start TestFullConfig");
+
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
     RuntimeAction    scaleEnergy;
@@ -151,6 +162,8 @@ TEST_F(TestRuntime, TestFullConfig) {
                                                 scaleEnergy);
 
     checkSolution();
+
+    Logger::instance().log("[googletest] End TestFullConfig");
 }
 #endif
 
