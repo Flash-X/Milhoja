@@ -27,7 +27,7 @@ struct PacketContents {
 
 class DataPacket : public DataItem {
 public:
-    static std::unique_ptr<DataPacket>   createPacket(std::shared_ptr<Tile>&& tileDesc);
+    static std::unique_ptr<DataPacket>   createPacket(void);
 
     virtual ~DataPacket(void)  { };
 
@@ -37,6 +37,11 @@ public:
     DataPacket& operator=(DataPacket&)       = delete;
     DataPacket& operator=(const DataPacket&) = delete;
     DataPacket& operator=(DataPacket&&)      = delete;
+
+    virtual std::size_t            nTiles(void) const = 0;
+    virtual void                   addTile(std::shared_ptr<Tile>&& tileDesc) = 0;
+    virtual std::shared_ptr<Tile>  getTile(void) = 0;
+    virtual const PacketContents   gpuContents(void) const = 0;
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;
@@ -48,10 +53,6 @@ public:
     virtual void                  setDataLocation(const PacketDataLocation location) = 0;
     virtual void                  setVariableMask(const int startVariable, 
                                                   const int endVariable) = 0;
-
-    virtual std::shared_ptr<Tile>  getTile(void) = 0;
-    virtual const PacketContents   gpuContents(void) const = 0;
-
 protected:
     DataPacket(void)   { };
 

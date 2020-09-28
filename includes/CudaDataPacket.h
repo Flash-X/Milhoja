@@ -47,7 +47,7 @@ namespace orchestration {
 // one thread can access a packet at any point in time.
 class CudaDataPacket : public DataPacket {
 public:
-    CudaDataPacket(std::shared_ptr<Tile>&& tileDesc);
+    CudaDataPacket(void);
     ~CudaDataPacket(void);
 
     CudaDataPacket(CudaDataPacket&)                  = delete;
@@ -58,6 +58,11 @@ public:
     CudaDataPacket& operator=(CudaDataPacket&& rhs)  = delete;
 
     // Overrides of DataPacket member functions
+    std::size_t            nTiles(void) const override;
+    void                   addTile(std::shared_ptr<Tile>&& tileDesc) override;
+    std::shared_ptr<Tile>  getTile(void) override           { return tileDesc_; };
+    const PacketContents   gpuContents(void) const override { return contents_d_; };
+
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
 #ifdef USE_OPENACC
@@ -68,10 +73,6 @@ public:
     void                   setDataLocation(const PacketDataLocation location) override;
     void                   setVariableMask(const int startVariable, 
                                            const int endVariable) override;
-
-    std::shared_ptr<Tile>  getTile(void) override           { return tileDesc_; };
-    const PacketContents   gpuContents(void) const override { return contents_d_; };
-
 protected:
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 

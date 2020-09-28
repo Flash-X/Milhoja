@@ -23,9 +23,9 @@ namespace orchestration {
 /**
  *
  */
-CudaDataPacket::CudaDataPacket(std::shared_ptr<Tile>&& tileDesc)
+CudaDataPacket::CudaDataPacket(void)
     : DataPacket{},
-      tileDesc_{ std::move(tileDesc) },
+      tileDesc_{},
       CC1_data_p_{nullptr},
       CC2_data_p_{nullptr},
       location_{PacketDataLocation::NOT_ASSIGNED},
@@ -36,6 +36,9 @@ CudaDataPacket::CudaDataPacket(std::shared_ptr<Tile>&& tileDesc)
       contents_d_{},
       stream_{}
 {
+    assert(tileDesc_ == nullptr);
+    assert(tileDesc_.useCount() == 0);
+
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[CudaDataPacket::CudaDataPacket] " + errMsg);
@@ -109,6 +112,25 @@ std::string  CudaDataPacket::isNull(void) const {
     }
 
     return "";
+}
+
+/**
+ *
+ */
+std::size_t   CudaDataPacket::nTiles(void) const {
+    return (tileDesc_ == nullptr ? 0 : 1);
+
+}
+
+/**
+ *
+ */
+void   CudaDataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
+    if (tileDesc_ != nullptr) {
+        throw std::logic_error("[CudaDataPacket:addTile] A tile has already been given");
+    }
+
+    tileDesc_ = std::move(tileDesc);
 }
 
 /**

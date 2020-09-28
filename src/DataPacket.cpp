@@ -9,9 +9,9 @@ namespace orchestration {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket::createPacket(std::shared_ptr<Tile>&& tileDesc) {
+std::unique_ptr<DataPacket>   DataPacket::createPacket(void) {
 #ifdef USE_CUDA_BACKEND
-    return std::unique_ptr<DataPacket>{ new CudaDataPacket{std::move(tileDesc)} };
+    return std::unique_ptr<DataPacket>{ new CudaDataPacket{} };
 #else
 #error "Selected runtime backend does not support data packets"
 #endif

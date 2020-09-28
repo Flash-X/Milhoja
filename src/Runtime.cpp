@@ -225,7 +225,8 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     assert(packet_gpu == nullptr);
     assert(packet_gpu.use_count() == 0);
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        packet_gpu = DataPacket::createPacket( ti->buildCurrentTile() );
+        packet_gpu = DataPacket::createPacket();
+        packet_gpu->addTile( ti->buildCurrentTile() );
         packet_gpu->initiateHostToDeviceTransfer();
 
         gpuTeam->enqueue( std::move(packet_gpu) );
@@ -336,7 +337,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         assert(tile_cpu.get() == tile_gpu.get());
         assert(tile_cpu.use_count() == 2);
 
-        packet_gpu = DataPacket::createPacket( std::move(tile_gpu) );
+        packet_gpu = DataPacket::createPacket();
+        packet_gpu->addTile( std::move(tile_gpu) );
         assert(tile_gpu == nullptr);
         assert(tile_gpu.use_count() == 0);
         assert(packet_gpu->getTile().get() == tile_cpu.get());
