@@ -15,9 +15,10 @@ GTESTDIR     = $(HOME)/local/intel_19.0/googletest
 CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
-    $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/DataItem.h \
     $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \

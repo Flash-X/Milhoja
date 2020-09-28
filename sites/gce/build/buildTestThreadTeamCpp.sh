@@ -39,6 +39,7 @@ cd ..
 TESTDIR=../../test
 MAKEFILE=Makefile_threadteam_cpp
 BINARY=test_threadteam_cpp.x 
+DEBUG_BINARY=test_threadteam_cpp_debug.x
 
 # Setup constants.h with current simulation's Grid parameters
 rm $TESTDIR/constants.h
@@ -55,6 +56,17 @@ sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash.h
 sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Flash.h
 sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Flash.h
+
+# Build debug mode
+echo ""
+echo "Building debug version"
+echo "----------------------------------------------------------"
+make -f $MAKEFILE clean all DEBUG=T
+if [[ $? -ne 0 ]]; then
+    echo "Unable to compile $BINARY"
+    exit 3;
+fi
+mv $BINARY ./binaries/$DEBUG_BINARY
 
 # Build non-debug mode
 echo ""
@@ -75,4 +87,6 @@ echo ""
 ls -lah ./binaries/$BINARY
 ldd ./binaries/$BINARY
 echo ""
+ls -lah ./binaries/$DEBUG_BINARY
+ldd ./binaries/$DEBUG_BINARY
 
