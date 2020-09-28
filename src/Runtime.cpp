@@ -221,18 +221,32 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     unsigned int                  level = 0;
     Grid&                         grid = Grid::instance();
-    std::shared_ptr<DataPacket>   packet_gpu = std::shared_ptr<DataPacket>{};
+    std::shared_ptr<DataPacket>   packet_gpu = DataPacket::createPacket();
     assert(packet_gpu == nullptr);
     assert(packet_gpu.use_count() == 0);
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        packet_gpu = DataPacket::createPacket();
         packet_gpu->addTile( ti->buildCurrentTile() );
+        if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+            packet_gpu->initiateHostToDeviceTransfer();
+
+            gpuTeam->enqueue( std::move(packet_gpu) );
+            assert(packet_gpu == nullptr);
+            assert(packet_gpu.use_count() == 0);
+
+            packet_gpu = DataPacket::createPacket();
+        }
+
+    }
+
+    if (packet_gpu->nTiles() > 0) {
         packet_gpu->initiateHostToDeviceTransfer();
 
         gpuTeam->enqueue( std::move(packet_gpu) );
-        assert(packet_gpu == nullptr);
-        assert(packet_gpu.use_count() == 0);
+    } else {
+        packet_gpu.reset();
     }
+    assert(packet_gpu == nullptr);
+    assert(packet_gpu.use_count() == 0);
 
     gpuTeam->closeQueue();
 
@@ -324,7 +338,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     Grid&                             grid = Grid::instance();
     std::shared_ptr<Tile>             tile_cpu{};
     std::shared_ptr<Tile>             tile_gpu{};
-    std::shared_ptr<DataPacket>       packet_gpu = std::shared_ptr<DataPacket>{};
+    std::shared_ptr<DataPacket>       packet_gpu = DataPacket::createPacket();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         // If we create a first shared_ptr and enqueue it with one team, it is
         // possible that this shared_ptr could have the action applied to its
@@ -337,7 +351,6 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         assert(tile_cpu.get() == tile_gpu.get());
         assert(tile_cpu.use_count() == 2);
 
-        packet_gpu = DataPacket::createPacket();
         packet_gpu->addTile( std::move(tile_gpu) );
         assert(tile_gpu == nullptr);
         assert(tile_gpu.use_count() == 0);
@@ -350,11 +363,27 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         assert(tile_cpu.use_count() == 0);
 
         // GPU/Post-GPU action parallel pipeline
-        packet_gpu->initiateHostToDeviceTransfer();
-        gpuTeam->enqueue( std::move(packet_gpu) );
-        assert(packet_gpu == nullptr);
-        assert(packet_gpu.use_count() == 0);
+        if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+            packet_gpu->initiateHostToDeviceTransfer();
+
+            gpuTeam->enqueue( std::move(packet_gpu) );
+            assert(packet_gpu == nullptr);
+            assert(packet_gpu.use_count() == 0);
+
+            packet_gpu = DataPacket::createPacket();
+        }
     }
+
+    if (packet_gpu->nTiles() > 0) {
+        packet_gpu->initiateHostToDeviceTransfer();
+
+        gpuTeam->enqueue( std::move(packet_gpu) );
+    } else {
+        packet_gpu.reset();
+    }
+    assert(packet_gpu == nullptr);
+    assert(packet_gpu.use_count() == 0);
+
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
 
