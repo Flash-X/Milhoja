@@ -21,15 +21,17 @@ int main(int argc, char* argv[]) {
 
     orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
-    orchestration::Runtime::setLogFilename("DeleteMe.log");
+    orchestration::Runtime::setLogFilename("RuntimeTest.log");
 
     orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
 
     orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
 
+    // Call this explicitly early on since this will, in turn, initialize the
+    // stream and memory resource managers, which can acquire resources.
     orchestration::Runtime::instance();
 
-    // Initialize Grid unit/AMReX
+    // Initialize Grid unit/AMReX/MPI
     orchestration::Grid::instantiate();
 
     int  rank = -1;

@@ -46,22 +46,22 @@ BINARY=test_runtime_cuda.x
 DEBUG_BINARY=test_runtime_cuda_debug.x
 
 # Setup constants.h with current simulation's Grid parameters
-rm $TESTDIR/RuntimeCuda/constants.h
+rm $TESTDIR/Runtime/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
         $TESTDIR/constants_base.h > \
-        $TESTDIR/RuntimeCuda/constants.h
-sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/RuntimeCuda/constants.h
-sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/RuntimeCuda/constants.h
-sed -i "s/N_DIMENSIONS/2/g"             $TESTDIR/RuntimeCuda/constants.h
+        $TESTDIR/Runtime/constants.h
+sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Runtime/constants.h
+sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Runtime/constants.h
+sed -i "s/N_DIMENSIONS/2/g"             $TESTDIR/Runtime/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm $TESTDIR/RuntimeCuda/Flash.h
+rm $TESTDIR/Runtime/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash_base.h > \
-        $TESTDIR/RuntimeCuda/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/RuntimeCuda/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/RuntimeCuda/Flash.h
-sed -i "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/RuntimeCuda/Flash.h
+        $TESTDIR/Runtime/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Runtime/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash.h
+sed -i "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/Runtime/Flash.h
 
 # Build debug mode
 #echo ""
@@ -85,8 +85,8 @@ if [[ $? -ne 0 ]]; then
 fi
 mv $BINARY ./binaries
 
-rm $TESTDIR/RuntimeCuda/Flash.h
-rm $TESTDIR/RuntimeCuda/constants.h
+rm $TESTDIR/Runtime/Flash.h
+rm $TESTDIR/Runtime/constants.h
 
 echo ""
 ls -lah ./binaries/$BINARY
