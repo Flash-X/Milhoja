@@ -13,31 +13,36 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*           packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
-    const PacketContents  gpuPtrs_d = packet_h->gpuContents();
-    const int             queue_h   = packet_h->asynchronousQueue();
+    DataPacket*   packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
+    const int     queue_h   = packet_h->asynchronousQueue();
 
-    // Computation done in-place 
-    FArray4D*   U_d = nullptr;
-    switch (packet_h->getDataLocation()) {
-        case PacketDataLocation::CC1:
-            U_d = gpuPtrs_d.CC1;
-            break;
-        case PacketDataLocation::CC2:
-            U_d = gpuPtrs_d.CC2;
-            break;
-        default:
-            throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
-                                   "Data not in CC1 or CC2");
-    }
     packet_h->setVariableMask(ENER_VAR_C, ENER_VAR_C);
 
     // TODO: This data should be included in the copyin section of the
     //       data packet.
     constexpr Real    ENERGY_SCALE_FACTOR = 5.0;
-    StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
-                                                   gpuPtrs_d.xCoords, gpuPtrs_d.yCoords,
-                                                   U_d, ENERGY_SCALE_FACTOR,
-                                                   queue_h);
+
+    // Computation done in-place 
+    FArray4D*   U_d = nullptr;
+    for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
+        const PacketContents  gpuPtrs_d = packet_h->gpuContents(n);
+
+        switch (packet_h->getDataLocation()) {
+            case PacketDataLocation::CC1:
+                U_d = gpuPtrs_d.CC1;
+                break;
+            case PacketDataLocation::CC2:
+                U_d = gpuPtrs_d.CC2;
+                break;
+            default:
+                throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
+                                       "Data not in CC1 or CC2");
+        }
+
+        StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
+                                                       gpuPtrs_d.xCoords, gpuPtrs_d.yCoords,
+                                                       U_d, ENERGY_SCALE_FACTOR,
+                                                       queue_h);
+    }
 }
 

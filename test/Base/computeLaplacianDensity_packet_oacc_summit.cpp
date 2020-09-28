@@ -13,33 +13,37 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*           packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
-    const PacketContents  gpuPtrs_d = packet_h->gpuContents();
-    const int             queue_h   = packet_h->asynchronousQueue();
+    DataPacket*   packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
+    const int     queue_h   = packet_h->asynchronousQueue();
+
+    packet_h->setVariableMask(DENS_VAR_C, DENS_VAR_C);
 
     // Data will be written to Uout
     FArray4D*   Uin_d  = nullptr;
     FArray4D*   Uout_d = nullptr;
-    switch (packet_h->getDataLocation()) {
-        case PacketDataLocation::CC1:
-            Uin_d  = gpuPtrs_d.CC1;
-            Uout_d = gpuPtrs_d.CC2;
-            packet_h->setDataLocation(PacketDataLocation::CC2);
-            break;
-        case PacketDataLocation::CC2:
-            Uin_d  = gpuPtrs_d.CC2;
-            Uout_d = gpuPtrs_d.CC1;
-            packet_h->setDataLocation(PacketDataLocation::CC1);
-            break;
-        default:
-            throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "
-                                   "Data not in CC1 or CC2");
-    }
-    packet_h->setVariableMask(DENS_VAR_C, DENS_VAR_C);
+    for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
+        const PacketContents  gpuPtrs_d = packet_h->gpuContents(n);
 
-    StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
-                                                               Uin_d, Uout_d,
-                                                               gpuPtrs_d.deltas,
-                                                               queue_h);
+        switch (packet_h->getDataLocation()) {
+            case PacketDataLocation::CC1:
+                Uin_d  = gpuPtrs_d.CC1;
+                Uout_d = gpuPtrs_d.CC2;
+                packet_h->setDataLocation(PacketDataLocation::CC2);
+                break;
+            case PacketDataLocation::CC2:
+                Uin_d  = gpuPtrs_d.CC2;
+                Uout_d = gpuPtrs_d.CC1;
+                packet_h->setDataLocation(PacketDataLocation::CC1);
+                break;
+            default:
+                throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "
+                                       "Data not in CC1 or CC2");
+        }
+
+        StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
+                                                                   Uin_d, Uout_d,
+                                                                   gpuPtrs_d.deltas,
+                                                                   queue_h);
+    }
 }
 

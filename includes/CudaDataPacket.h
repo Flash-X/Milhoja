@@ -60,8 +60,8 @@ public:
     // Overrides of DataPacket member functions
     std::size_t            nTiles(void) const override;
     void                   addTile(std::shared_ptr<Tile>&& tileDesc) override;
-    std::shared_ptr<Tile>  getTile(void) override           { return tileDesc_; };
-    const PacketContents   gpuContents(void) const override { return contents_d_; };
+    std::shared_ptr<Tile>  popTile(void) override;
+    const PacketContents   gpuContents(const std::size_t n) const override;
 
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;

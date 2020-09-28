@@ -40,8 +40,8 @@ public:
 
     virtual std::size_t            nTiles(void) const = 0;
     virtual void                   addTile(std::shared_ptr<Tile>&& tileDesc) = 0;
-    virtual std::shared_ptr<Tile>  getTile(void) = 0;
-    virtual const PacketContents   gpuContents(void) const = 0;
+    virtual std::shared_ptr<Tile>  popTile(void) = 0;
+    virtual const PacketContents   gpuContents(const std::size_t n) const = 0;
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;

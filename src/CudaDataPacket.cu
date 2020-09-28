@@ -136,6 +136,34 @@ void   CudaDataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
 /**
  *
  */
+std::shared_ptr<Tile>  CudaDataPacket::popTile(void) {
+    if (tileDesc_ == nullptr) {
+        throw std::invalid_argument("[CudaDataPacket::popTile] No tile to pop");
+    }
+
+    std::shared_ptr<Tile>   tileDesc = std::move(tileDesc_);
+    assert(tileDesc_ == nullptr);
+    assert(tileDesc_.use_count() == 0);
+
+    return tileDesc;
+}
+
+/**
+ *
+ */
+const PacketContents   CudaDataPacket::gpuContents(const std::size_t n) const {
+    if (tileDesc_ == nullptr) {
+        throw std::logic_error("[CudaDataPacket::popTile] No tile to access");
+    } else if (n > 1) {
+        throw std::invalid_argument("[CudaDataPacket::popTile] Index too large");
+    }
+
+    return contents_d_;
+}
+
+/**
+ *
+ */
 PacketDataLocation    CudaDataPacket::getDataLocation(void) const {
     return location_;
 }
