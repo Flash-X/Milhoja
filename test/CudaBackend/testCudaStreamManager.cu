@@ -4,19 +4,11 @@
 
 #include "gtest/gtest.h"
 
-__global__ void kernel(const std::size_t N, double* f, const unsigned int nCycles) {
+__global__ void kernel(const std::size_t N, double* f, const unsigned int sleepTime_ns) {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     if (i < N) {
         f[i] *= 2.2;
-
-        // Put thread in busy wait loop so that we can correctly
-        // detect overlaying of computation and communication and
-        // therefore verify that streams are being used correctly.
-        clock_t clock_offset = 0;
-        clock_t start_clock = clock64();
-        while (clock_offset < nCycles) {
-            clock_offset = clock64() - start_clock;
-        }
+        __nanosleep(sleepTime_ns);
     }
 }
 
@@ -219,7 +211,7 @@ TEST(TestCudaStreamManager, TestStreams) {
         ASSERT_EQ(cudaSuccess, cErr);
         kernel<<<N_DATA_PER_PACKET,128,0,myStream>>>(N_DATA_PER_PACKET,
                                                      data_d + offset,
-                                                     cudaTestConstants::N_WAIT_CYCLES);
+                                                     cudaTestConstants::SLEEP_TIME_NS);
         cErr = cudaMemcpyAsync(data_p + offset,
                                data_d + offset,
                                N_DATA_PER_PACKET * sizeof(double),

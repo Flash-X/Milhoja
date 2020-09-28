@@ -4,7 +4,7 @@
 #include <cstddef>
 
 namespace cudaTestConstants {
-    extern unsigned int      N_WAIT_CYCLES;
+    extern unsigned int      SLEEP_TIME_NS;
 };
 
 #endif

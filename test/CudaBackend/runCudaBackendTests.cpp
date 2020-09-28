@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 namespace cudaTestConstants {
-    unsigned int N_WAIT_CYCLES = 0;
+    unsigned int SLEEP_TIME_NS = 0;
 };
 
 int main(int argc, char* argv[]) {
@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "\nOne and only one non-googletest argument please!\n\n";
         return 1;
     }
-    cudaTestConstants::N_WAIT_CYCLES = std::stoi(std::string(argv[1]));
+    cudaTestConstants::SLEEP_TIME_NS = std::stoi(std::string(argv[1]));
 
     // Instantiate up front so that the acquisition of stream resources is not
     // included in the timing of the first test.

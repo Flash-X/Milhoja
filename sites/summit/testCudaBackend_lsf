@@ -14,12 +14,11 @@
 # IMPORTANT: Match this to X in smtX BSUB statment above
 N_HYPERTHREADS_PER_CORE=1
 
-# TestStreams needs to instruct each thread to busy wait for a given number of
-# cycles so that the duration of the kernel executions is long enough that the
+# The StreamManager needs to instruct each thread to sleep for a given amount
+# of time so that the duration of the kernel executions is long enough that the
 # correct overlaying of computation and communication (enabled by streams) can
-# be seen in the nvprof output files.  This value yields kernel execution times
-# on Summit of approximately 80 uS, which is sufficient.
-N_WAIT_CYCLES=100000
+# be seen in the nvprof output files.  This time is sufficient for Summit.
+SLEEP_TIME_NS=80000
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
@@ -79,7 +78,7 @@ jsrun -n $N_RS_PER_NODE \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       --smpiargs="-disable_gpu_hooks" \
-      nvprof -o TestCudaBackend.%h.%p $LS_SUBCWD/binaries/test_cuda_backend.x $N_WAIT_CYCLES
+      nvprof -o TestCudaBackend.%h.%p $LS_SUBCWD/binaries/test_cuda_backend.x $SLEEP_TIME_NS
 
 jsrun -n $N_RS_PER_NODE \
       -r $N_RS_PER_NODE \
@@ -87,5 +86,5 @@ jsrun -n $N_RS_PER_NODE \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
       --smpiargs="-disable_gpu_hooks" \
-      nvprof -o TestCudaBackend_debug.%h.%p $LS_SUBCWD/binaries/test_cuda_backend_debug.x $N_WAIT_CYCLES
+      nvprof -o TestCudaBackend_debug.%h.%p $LS_SUBCWD/binaries/test_cuda_backend_debug.x $SLEEP_TIME_NS
 
