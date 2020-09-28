@@ -39,26 +39,26 @@ cd ..
 
 # Specified relative to location of Makefile
 TESTDIR=../../test
-MAKEFILE=Makefile_runtime_tile_cpp
-BINARY=test_runtime_tile_cpp.x 
+MAKEFILE=Makefile_runtime_cpu_cpp
+BINARY=test_runtime_cpu_cpp.x 
 
 # Setup constants.h with current simulation's Grid parameters
-rm $TESTDIR/RuntimeTile/constants.h
+rm $TESTDIR/Runtime/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
         $TESTDIR/constants_base.h > \
-        $TESTDIR/RuntimeTile/constants.h
-sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/RuntimeTile/constants.h
-sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/RuntimeTile/constants.h
-sed -i "s/N_DIMENSIONS/2/g"             $TESTDIR/RuntimeTile/constants.h
+        $TESTDIR/Runtime/constants.h
+sed -i "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/Runtime/constants.h
+sed -i "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Runtime/constants.h
+sed -i "s/N_DIMENSIONS/2/g"             $TESTDIR/Runtime/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm $TESTDIR/RuntimeTile/Flash.h
+rm $TESTDIR/Runtime/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash_base.h > \
-        $TESTDIR/RuntimeTile/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/RuntimeTile/Flash.h
-sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/RuntimeTile/Flash.h
-sed -i "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/RuntimeTile/Flash.h
+        $TESTDIR/Runtime/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Runtime/Flash.h
+sed -i "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash.h
+sed -i "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/Runtime/Flash.h
 
 # Build non-debug mode
 echo ""
@@ -71,8 +71,8 @@ if [[ $? -ne 0 ]]; then
 fi
 mv $BINARY ./binaries
 
-rm $TESTDIR/RuntimeTile/Flash.h
-rm $TESTDIR/RuntimeTile/constants.h
+rm $TESTDIR/Runtime/Flash.h
+rm $TESTDIR/Runtime/constants.h
 
 echo ""
 ls -lah ./binaries/$BINARY

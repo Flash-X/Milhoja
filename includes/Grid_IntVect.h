@@ -80,13 +80,17 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     //! Return first element of vector
+#ifdef USE_OPENACC
     #pragma acc routine seq
+#endif
     int I() const {
         return i_;
     }
 
     //! Return second element of vector, or 0 if NDIM<2
+#ifdef USE_OPENACC
     #pragma acc routine seq
+#endif
     int J() const {
 #if (NDIM>=2)
         return j_;
@@ -96,7 +100,9 @@ class IntVect
     }
 
     //! Return third element of vector, or 0 if NDIM<3
+#ifdef USE_OPENACC
     #pragma acc routine seq
+#endif
     int K() const {
 #if (NDIM==3)
         return k_;

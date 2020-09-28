@@ -1,7 +1,10 @@
 #include "Grid.h"
+#include "Runtime.h"
+
+#ifdef USE_CUDA_BACKEND
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
-#include "Runtime.h"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -23,9 +26,10 @@ int main(int argc, char* argv[]) {
     orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
     orchestration::Runtime::setLogFilename("RuntimeTest.log");
 
+#ifdef USE_CUDA_BACKEND
     orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
-
     orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
+#endif
 
     // Call this explicitly early on since this will, in turn, initialize the
     // stream and memory resource managers, which can acquire resources.
