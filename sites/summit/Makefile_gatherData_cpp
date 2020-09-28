@@ -13,6 +13,7 @@ AMREXDIR     = $(HOME)/local/gcc_9.1.0/AMReX_2d
 
 # Common files
 CXX_HDRS   = \
+    $(INCDIR)/FArray1D.h \
     $(INCDIR)/FArray4D.h \
     $(INCDIR)/Tile.h \
     $(INCDIR)/TileAmrex.h \
@@ -26,8 +27,6 @@ CXX_HDRS   = \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
-    $(INCDIR)/OrchestrationRuntime.h \
-    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/ThreadTeamDataType.h \
     $(INCDIR)/ThreadTeam.h \
@@ -37,17 +36,19 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningOpen.h \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
-    $(INCDIR)/DataItemSplitter.h \
-    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/DataPacket.h \
+    $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
-    $(TESTBASEDIR)/scaleEnergy_block.h \
-    $(TESTBASEDIR)/Analysis.h \
-    $(TESTDIR)/Flash.h \
-    $(TESTDIR)/constants.h
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/Runtime.h \
+    $(TESTBASEDIR)/setInitialConditions.h \
+    $(TESTBASEDIR)/computeLaplacianDensity.h \
+    $(TESTBASEDIR)/computeLaplacianEnergy.h \
+    $(TESTBASEDIR)/scaleEnergy.h \
+    $(TESTBASEDIR)/Analysis.h
 SRCS       = \
+    $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
@@ -57,19 +58,22 @@ SRCS       = \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/ThreadTeamIdle.cpp \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/DataItemSplitter.cpp \
-    $(SRCDIR)/OrchestrationRuntime.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
-    $(TESTBASEDIR)/scaleEnergy_block.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/Runtime.cpp \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/scaleEnergy.cpp \
+    $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/gatherData.cpp 
 
