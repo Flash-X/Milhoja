@@ -248,61 +248,61 @@ void  CudaDataPacket::pack(void) {
         // TODO: I think that we should put in padding so that all objects 
         //       are byte aligned in the device's memory.
         tilePtrs.level = level;
-        tilePtrs.deltas_d = reinterpret_cast<RealVect*>(ptr_d);
+        tilePtrs.deltas_d = static_cast<RealVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
         ptr_p += DELTA_SIZE_BYTES;
         ptr_d += DELTA_SIZE_BYTES;
 
         // Pack data for single tile data packet
-        tilePtrs.lo_d = reinterpret_cast<IntVect*>(ptr_d);
+        tilePtrs.lo_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&lo, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.hi_d = reinterpret_cast<IntVect*>(ptr_d);
+        tilePtrs.hi_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&hi, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.loGC_d = reinterpret_cast<IntVect*>(ptr_d);
+        tilePtrs.loGC_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&loGC, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.hiGC_d = reinterpret_cast<IntVect*>(ptr_d);
+        tilePtrs.hiGC_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&hiGC, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
         location_ = PacketDataLocation::CC1;
-        tilePtrs.CC1_data_p = reinterpret_cast<Real*>(ptr_p);
-        CC1_data_d  = reinterpret_cast<Real*>(ptr_d);
+        tilePtrs.CC1_data_p = static_cast<Real*>((void*)ptr_p);
+        CC1_data_d  = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)data_h, BLOCK_SIZE_BYTES);
         ptr_p += BLOCK_SIZE_BYTES;
         ptr_d += BLOCK_SIZE_BYTES;
 
-        tilePtrs.CC2_data_p = reinterpret_cast<Real*>(ptr_p);
-        CC2_data_d  = reinterpret_cast<Real*>(ptr_d);
+        tilePtrs.CC2_data_p = static_cast<Real*>((void*)ptr_p);
+        CC2_data_d  = static_cast<Real*>((void*)ptr_d);
         ptr_p += BLOCK_SIZE_BYTES;
         ptr_d += BLOCK_SIZE_BYTES;
 
-        xCoordsGC_data_d = reinterpret_cast<Real*>(ptr_d);
+        xCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)xCoordsGC_h, COORDS_X_SIZE_BYTES);
         ptr_p += COORDS_X_SIZE_BYTES;
         ptr_d += COORDS_X_SIZE_BYTES;
 
-        yCoordsGC_data_d = reinterpret_cast<Real*>(ptr_d);
+        yCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)yCoordsGC_h, COORDS_Y_SIZE_BYTES);
         ptr_p += COORDS_Y_SIZE_BYTES;
         ptr_d += COORDS_Y_SIZE_BYTES;
 
-        tilePtrs.xCoords_d = reinterpret_cast<FArray1D*>(ptr_d);
+        tilePtrs.xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   xCoordGCArray_d{xCoordsGC_data_d, loGC.I()};
         std::memcpy((void*)ptr_p, (void*)&xCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
         ptr_d += ARRAY1_SIZE_BYTES;
 
-        tilePtrs.yCoords_d = reinterpret_cast<FArray1D*>(ptr_d);
+        tilePtrs.yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   yCoordGCArray_d{yCoordsGC_data_d, loGC.J()};
         std::memcpy((void*)ptr_p, (void*)&yCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
@@ -314,13 +314,13 @@ void  CudaDataPacket::pack(void) {
         // The object in host memory should never be used then.
         // IMPORTANT: When this local object is destroyed, we don't want it to
         // affect the use of the copies (e.g. release memory).
-        tilePtrs.CC1_d = reinterpret_cast<FArray4D*>(ptr_d);
+        tilePtrs.CC1_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC1_d{CC1_data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC1_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        tilePtrs.CC2_d = reinterpret_cast<FArray4D*>(ptr_d);
+        tilePtrs.CC2_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC2_d{CC2_data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
