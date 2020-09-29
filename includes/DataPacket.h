@@ -13,16 +13,19 @@ namespace orchestration {
 enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
 
 struct PacketContents {
-    unsigned int  level    = 0;
-    RealVect*     deltas   = nullptr;
-    IntVect*      lo       = nullptr;
-    IntVect*      hi       = nullptr;
-    IntVect*      loGC     = nullptr;
-    IntVect*      hiGC     = nullptr;
-    FArray1D*     xCoords  = nullptr;  //!< From loGC to hiGC
-    FArray1D*     yCoords  = nullptr;  //!< From loGC to hiGC
-    FArray4D*     CC1      = nullptr;
-    FArray4D*     CC2      = nullptr;
+    unsigned int            level      = 0;
+    std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
+    Real*                   CC1_data_p = nullptr;
+    Real*                   CC2_data_p = nullptr;
+    RealVect*               deltas_d   = nullptr;
+    IntVect*                lo_d       = nullptr;
+    IntVect*                hi_d       = nullptr;
+    IntVect*                loGC_d     = nullptr;
+    IntVect*                hiGC_d     = nullptr;
+    FArray1D*               xCoords_d  = nullptr;  //!< From loGC to hiGC
+    FArray1D*               yCoords_d  = nullptr;  //!< From loGC to hiGC
+    FArray4D*               CC1_d      = nullptr;
+    FArray4D*               CC2_d      = nullptr;
 };
 
 class DataPacket : public DataItem {
@@ -41,7 +44,7 @@ public:
     virtual std::size_t            nTiles(void) const = 0;
     virtual void                   addTile(std::shared_ptr<Tile>&& tileDesc) = 0;
     virtual std::shared_ptr<Tile>  popTile(void) = 0;
-    virtual const PacketContents   gpuContents(const std::size_t n) const = 0;
+    virtual const PacketContents&  tilePointers(const std::size_t n) const = 0;
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;

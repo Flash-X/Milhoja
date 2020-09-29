@@ -22,17 +22,17 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
     FArray4D*   Uin_d  = nullptr;
     FArray4D*   Uout_d = nullptr;
     for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
-        const PacketContents  gpuPtrs_d = packet_h->gpuContents(n);
+        const PacketContents&  ptrs = packet_h->tilePointers(n);
 
         switch (packet_h->getDataLocation()) {
             case PacketDataLocation::CC1:
-                Uin_d  = gpuPtrs_d.CC1;
-                Uout_d = gpuPtrs_d.CC2;
+                Uin_d  = ptrs.CC1_d;
+                Uout_d = ptrs.CC2_d;
                 packet_h->setDataLocation(PacketDataLocation::CC2);
                 break;
             case PacketDataLocation::CC2:
-                Uin_d  = gpuPtrs_d.CC2;
-                Uout_d = gpuPtrs_d.CC1;
+                Uin_d  = ptrs.CC2_d;
+                Uout_d = ptrs.CC1_d;
                 packet_h->setDataLocation(PacketDataLocation::CC1);
                 break;
             default:
@@ -40,9 +40,9 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                        "Data not in CC1 or CC2");
         }
 
-        StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
+        StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(ptrs.lo_d, ptrs.hi_d,
                                                                    Uin_d, Uout_d,
-                                                                   gpuPtrs_d.deltas,
+                                                                   ptrs.deltas_d,
                                                                    queue_h);
     }
 }

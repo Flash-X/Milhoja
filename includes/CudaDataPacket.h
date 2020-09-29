@@ -1,6 +1,7 @@
 #ifndef CUDA_DATA_PACKET_H__
 #define CUDA_DATA_PACKET_H__
 
+#include <deque>
 #include <memory>
 
 #include "Grid_REAL.h"
@@ -61,7 +62,7 @@ public:
     std::size_t            nTiles(void) const override;
     void                   addTile(std::shared_ptr<Tile>&& tileDesc) override;
     std::shared_ptr<Tile>  popTile(void) override;
-    const PacketContents   gpuContents(const std::size_t n) const override;
+    const PacketContents&  tilePointers(const std::size_t n) const override;
 
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
@@ -76,13 +77,6 @@ public:
 protected:
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
-    static constexpr std::size_t    N_BYTES_PER_PACKET =          1 * DELTA_SIZE_BYTES
-                                                         +        4 * POINT_SIZE_BYTES
-                                                         + N_BLOCKS * BLOCK_SIZE_BYTES
-                                                         +        2 * ARRAY4_SIZE_BYTES
-                                                         +        1 * COORDS_X_SIZE_BYTES
-                                                         +        1 * COORDS_Y_SIZE_BYTES
-                                                         +        2 * ARRAY1_SIZE_BYTES;
 
     void         nullify(void);
     std::string  isNull(void) const;
@@ -91,16 +85,14 @@ protected:
     void         unpack(void);
 
 private:
-    std::shared_ptr<Tile>   tileDesc_;
-    Real*                   CC1_data_p_;
-    Real*                   CC2_data_p_;
-    PacketDataLocation      location_;
-    int                     startVariable_;
-    int                     endVariable_;
-    void*                   packet_p_;
-    void*                   packet_d_;
-    PacketContents          contents_d_;
-    CudaStream              stream_;
+    PacketDataLocation                     location_;
+    int                                    startVariable_;
+    int                                    endVariable_;
+    void*                                  packet_p_;
+    void*                                  packet_d_;
+    std::deque<PacketContents>             contents_;
+    CudaStream                             stream_;
+    std::size_t                            nBytesPerPacket_;
 };
 
 }

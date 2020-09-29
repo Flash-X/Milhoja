@@ -222,16 +222,18 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     unsigned int                  level = 0;
     Grid&                         grid = Grid::instance();
     std::shared_ptr<DataPacket>   packet_gpu = DataPacket::createPacket();
-    assert(packet_gpu == nullptr);
-    assert(packet_gpu.use_count() == 0);
+    if ((packet_gpu == nullptr) || (packet_gpu.use_count() != 1)) {
+        throw std::logic_error("[Runtime::executeGpuTasks] Bad packet at creation");
+    }
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         packet_gpu->addTile( ti->buildCurrentTile() );
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
             packet_gpu->initiateHostToDeviceTransfer();
 
             gpuTeam->enqueue( std::move(packet_gpu) );
-            assert(packet_gpu == nullptr);
-            assert(packet_gpu.use_count() == 0);
+            if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
+                throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (in loop)");
+            }
 
             packet_gpu = DataPacket::createPacket();
         }
@@ -240,13 +242,13 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     if (packet_gpu->nTiles() > 0) {
         packet_gpu->initiateHostToDeviceTransfer();
-
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();
     }
-    assert(packet_gpu == nullptr);
-    assert(packet_gpu.use_count() == 0);
+    if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
+        throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (after)");
+    }
 
     gpuTeam->closeQueue();
 
@@ -348,27 +350,31 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         // copy.
         tile_cpu = ti->buildCurrentTile();
         tile_gpu = tile_cpu;
-        assert(tile_cpu.get() == tile_gpu.get());
-        assert(tile_cpu.use_count() == 2);
+        if ((tile_cpu.get() != tile_gpu.get()) || (tile_cpu.use_count() != 2)) {
+            throw std::logic_error("[Runtime::executeTasks_FullPacket] Ownership not shared");
+        }
 
         packet_gpu->addTile( std::move(tile_gpu) );
-        assert(tile_gpu == nullptr);
-        assert(tile_gpu.use_count() == 0);
-        assert(packet_gpu->getTile().get() == tile_cpu.get());
-        assert(tile_cpu.use_count() == 101);
+        if ((tile_gpu != nullptr) || (tile_gpu.use_count() != 0)) {
+            throw std::logic_error("[Runtime::executeTasks_FullPacket] tile_gpu ownership not transferred");
+        } else if (tile_cpu.use_count() != 2) {
+            throw std::logic_error("[Runtime::executeTasks_FullPacket] Ownership not shared after transfer");
+        }
 
         // CPU action parallel pipeline
         cpuTeam->enqueue( std::move(tile_cpu) );
-        assert(tile_cpu == nullptr);
-        assert(tile_cpu.use_count() == 0);
+        if ((tile_cpu != nullptr) || (tile_cpu.use_count() != 0)) {
+            throw std::logic_error("[Runtime::executeTasks_FullPacket] tile_cpu ownership not transferred");
+        }
 
         // GPU/Post-GPU action parallel pipeline
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
             packet_gpu->initiateHostToDeviceTransfer();
 
             gpuTeam->enqueue( std::move(packet_gpu) );
-            assert(packet_gpu == nullptr);
-            assert(packet_gpu.use_count() == 0);
+            if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
+                throw std::logic_error("[Runtime::executeTasks_FullPacket] packet_gpu ownership not transferred");
+            }
 
             packet_gpu = DataPacket::createPacket();
         }
@@ -376,13 +382,14 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
     if (packet_gpu->nTiles() > 0) {
         packet_gpu->initiateHostToDeviceTransfer();
-
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();
     }
-    assert(packet_gpu == nullptr);
-    assert(packet_gpu.use_count() == 0);
+
+    if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
+        throw std::logic_error("[Runtime::executeTasks_FullPacket] packet_gpu ownership not transferred (after)");
+    }
 
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();

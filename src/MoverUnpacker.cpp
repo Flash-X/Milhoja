@@ -24,15 +24,15 @@ void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
         while (packet->nTiles() > 0) {
             dataReceiver_->enqueue( std::move(packet->popTile()) );
         }
-        assert(packet->nTiles() == 0);
     }
 
     // This function must take over control of the packet from the calling code.
     // In this case, the data packet is now no longer needed.
     // TODO: Is this necessary and correct?
     dataItem.reset();
-    assert(dataItem == nullptr);
-    assert(dataItem.use_count() == 0);
+    if ((dataItem != nullptr) || (dataItem.use_count() != 0)) {
+        throw std::logic_error("[MoverUnpacker::enqueue] Packet not released");
+    }
 }
 
 void MoverUnpacker::closeQueue(void) {

@@ -25,22 +25,22 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
     // Computation done in-place 
     FArray4D*   U_d = nullptr;
     for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
-        const PacketContents  gpuPtrs_d = packet_h->gpuContents(n);
+        const PacketContents  ptrs = packet_h->tilePointers(n);
 
         switch (packet_h->getDataLocation()) {
             case PacketDataLocation::CC1:
-                U_d = gpuPtrs_d.CC1;
+                U_d = ptrs.CC1_d;
                 break;
             case PacketDataLocation::CC2:
-                U_d = gpuPtrs_d.CC2;
+                U_d = ptrs.CC2_d;
                 break;
             default:
                 throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
                                        "Data not in CC1 or CC2");
         }
 
-        StaticPhysicsRoutines::scaleEnergy_oacc_summit(gpuPtrs_d.lo, gpuPtrs_d.hi,
-                                                       gpuPtrs_d.xCoords, gpuPtrs_d.yCoords,
+        StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs.lo_d, ptrs.hi_d,
+                                                       ptrs.xCoords_d, ptrs.yCoords_d,
                                                        U_d, ENERGY_SCALE_FACTOR,
                                                        queue_h);
     }
