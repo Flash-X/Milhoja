@@ -36,7 +36,7 @@ public:
     static void          setMaxThreadsPerTeam(const unsigned int maxThreads);
     static Runtime&      instance(void);
 
-//    void executeTasks(const ActionBundle& bundle);
+    void executeTasks(const ActionBundle& bundle);
 
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);

@@ -143,6 +143,55 @@ Runtime::~Runtime(void) {
  *
  * \return 
  */
+void Runtime::executeTasks(const ActionBundle& bundle) {
+    std::string msg = "[Runtime] Start execution of " + bundle.name;
+    Logger::instance().log(msg);
+
+    bool  hasCpuAction     = (bundle.cpuAction.routine     != nullptr);
+    bool  hasGpuAction     = (bundle.gpuAction.routine     != nullptr);
+    bool  hasPostGpuAction = (bundle.postGpuAction.routine != nullptr);
+
+    // TODO: The pipeline construction would be done dynamically.
+    // Realistically, we would have multiple different implementations and 
+    // this routine would select the setup based on the parameter values.
+    // The assignment of team type of team ID would be hardcoded in each.
+    //
+    // TASK_COMPOSER: Should the task composer identify the pipelines that it
+    // will need and then write this routine for each?  If not, the
+    // combinatorics could grow out of control fairly quickly.
+    if (hasCpuAction && !hasGpuAction && !hasPostGpuAction) {
+        executeCpuTasks(bundle.name,
+                        bundle.cpuAction);
+#if defined(USE_CUDA_BACKEND)
+    } else if (!hasCpuAction && hasGpuAction && !hasPostGpuAction) {
+        executeGpuTasks(bundle.name,
+                        bundle.gpuAction);
+    } else if (   hasCpuAction && hasGpuAction && hasPostGpuAction
+               && (bundle.cpuAction.teamType     == ThreadTeamDataType::BLOCK)
+               && (bundle.gpuAction.teamType     == ThreadTeamDataType::SET_OF_BLOCKS)
+               && (bundle.postGpuAction.teamType == ThreadTeamDataType::BLOCK)) {
+        executeTasks_FullPacket(bundle.name,
+                                bundle.cpuAction,
+                                bundle.gpuAction,
+                                bundle.postGpuAction);
+#endif
+    } else {
+        std::string   errMsg =   "[Runtime::executeTasks] ";
+        errMsg += "No compatible thread team layout - ";
+        errMsg += bundle.name;
+        errMsg += "\n";
+        throw std::logic_error(errMsg);
+    }
+
+    msg  = "[Runtime] Finished execution of " + bundle.name;
+    Logger::instance().log(msg);
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
 void Runtime::executeCpuTasks(const std::string& actionName,
                               const RuntimeAction& cpuAction) {
     Logger::instance().log("[Runtime] Start single CPU action");

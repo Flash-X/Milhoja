@@ -7,7 +7,8 @@
 #include "actionRoutine.h"
 #include "ActionBundle.h"
 #include "ThreadTeamDataType.h"
-#include "OrchestrationRuntime.h"
+#include "Runtime.h"
+
 using namespace orchestration;
 
 extern "C" {

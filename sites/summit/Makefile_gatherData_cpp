@@ -24,7 +24,6 @@ CXX_HDRS   = \
     $(INCDIR)/Grid.h \
     $(INCDIR)/GridAmrex.h \
     $(INCDIR)/Grid_AmrCoreFlash.h \
-    $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/ThreadTeamModes.h \

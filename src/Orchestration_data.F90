@@ -7,7 +7,7 @@ module Orchestration_data
 
     character(18), parameter :: or_logFilename        = "TestRuntimeF90.log"
     integer,       parameter :: or_nThreadTeams       = 3
-    integer,       parameter :: or_nThreadsPerTeam    = 5
+    integer,       parameter :: or_nThreadsPerTeam    = 10
 
     ! Keep track of the initialization status of the OrchestrationRuntime
     ! singleton so that we only instantiate this class once per simulation
