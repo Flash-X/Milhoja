@@ -13,10 +13,22 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*   packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
-    const int     queue_h   = packet_h->asynchronousQueue();
+    DataPacket*                packet_h = dynamic_cast<DataPacket*>(dataItem_h);
+    const int                  queue_h  = packet_h->asynchronousQueue();
+    const PacketDataLocation   location = packet_h->getDataLocation();
 
     packet_h->setVariableMask(DENS_VAR_C, DENS_VAR_C);
+    switch (location) {
+        case PacketDataLocation::CC1:
+            packet_h->setDataLocation(PacketDataLocation::CC2);
+            break;
+        case PacketDataLocation::CC2:
+            packet_h->setDataLocation(PacketDataLocation::CC1);
+            break;
+        default:
+            throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "
+                                   "Data not in CC1 or CC2");
+    }
 
     // Data will be written to Uout
     FArray4D*   Uin_d  = nullptr;
@@ -24,16 +36,14 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
     for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
         const PacketContents&  ptrs = packet_h->tilePointers(n);
 
-        switch (packet_h->getDataLocation()) {
+        switch (location) {
             case PacketDataLocation::CC1:
                 Uin_d  = ptrs.CC1_d;
                 Uout_d = ptrs.CC2_d;
-                packet_h->setDataLocation(PacketDataLocation::CC2);
                 break;
             case PacketDataLocation::CC2:
                 Uin_d  = ptrs.CC2_d;
                 Uout_d = ptrs.CC1_d;
-                packet_h->setDataLocation(PacketDataLocation::CC1);
                 break;
             default:
                 throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "

@@ -13,8 +13,9 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*   packet_h  = dynamic_cast<DataPacket*>(dataItem_h);
-    const int     queue_h   = packet_h->asynchronousQueue();
+    DataPacket*                packet_h = dynamic_cast<DataPacket*>(dataItem_h);
+    const int                  queue_h  = packet_h->asynchronousQueue();
+    const PacketDataLocation   location = packet_h->getDataLocation();
 
     packet_h->setVariableMask(ENER_VAR_C, ENER_VAR_C);
 
@@ -25,9 +26,9 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
     // Computation done in-place 
     FArray4D*   U_d = nullptr;
     for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
-        const PacketContents  ptrs = packet_h->tilePointers(n);
+        const PacketContents&  ptrs = packet_h->tilePointers(n);
 
-        switch (packet_h->getDataLocation()) {
+        switch (location) {
             case PacketDataLocation::CC1:
                 U_d = ptrs.CC1_d;
                 break;

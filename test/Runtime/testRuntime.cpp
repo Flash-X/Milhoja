@@ -105,19 +105,19 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     computeLaplacianDensity.name            = "LaplacianDensity";
     computeLaplacianDensity.nInitialThreads = 6;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianDensity.nTilesPerPacket = 1;
+    computeLaplacianDensity.nTilesPerPacket = 10;
     computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 6;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.nTilesPerPacket = 10;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     scaleEnergy.name            = "scaleEnergy";
     scaleEnergy.nInitialThreads = 6;
     scaleEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    scaleEnergy.nTilesPerPacket = 1;
+    scaleEnergy.nTilesPerPacket = 10;
     scaleEnergy.routine         = ActionRoutines::scaleEnergy_packet_oacc_summit;
 
     Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
@@ -147,7 +147,7 @@ TEST_F(TestRuntime, TestFullConfig) {
     computeLaplacianEnergy.name            = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 5;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 1;
+    computeLaplacianEnergy.nTilesPerPacket = 10;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     scaleEnergy.name            = "scaleEnergy";

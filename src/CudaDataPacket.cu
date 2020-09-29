@@ -203,9 +203,9 @@ void  CudaDataPacket::pack(void) {
 
     // For the present purpose of development, fail if no streams available
     stream_ = CudaStreamManager::instance().requestStream(true);
-    // TODO: Turn these in to actual checks
-    assert(stream_.object != nullptr);
-    assert(stream_.id != CudaStream::NULL_STREAM_ID);
+    if ((stream_.object == nullptr) || (stream_.id == CudaStream::NULL_STREAM_ID)) {
+        throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire stream");
+    }
 
     // Allocate memory in pinned and device memory on demand for now
     CudaMemoryManager::instance().requestMemory(nBytesPerPacket_,
@@ -361,7 +361,7 @@ void  CudaDataPacket::unpack(void) {
     assert(stream_.id == CudaStream::NULL_STREAM_ID);
 
     for (std::size_t n=0; n<contents_.size(); ++n) {
-        PacketContents&   tilePtrs = contents_[n];
+        const PacketContents&   tilePtrs = contents_[n];
 
         Real*   data_h = tilePtrs.tileDesc_h->dataPtr();
         Real*   data_p = nullptr;
