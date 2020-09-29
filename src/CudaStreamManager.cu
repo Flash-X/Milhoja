@@ -81,44 +81,22 @@ CudaStreamManager::CudaStreamManager(void)
 
     pthread_mutex_lock(&idxMutex_);
 
-    cudaError_t   cErr = cudaErrorInvalidValue;
-    for (int i=0; i<streams_.size(); ++i) {
-         cErr = cudaStreamCreate(&(streams_[i]));
-         if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
-            errMsg += "Unable to create CUDA stream\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            pthread_mutex_unlock(&idxMutex_);
-            throw std::runtime_error(errMsg);
-         }
-
-         // Make stream indices 1-based so that 0 can work as NULL_STREAM
-         int   streamId = i + 1;
-
 #ifdef USE_OPENACC
-         // For some unknown reason, I need to call get before calling set.
-         // If I don't do this, then the queue-stream linking doesn't happen
-         // on the first block.
-         void*   queue = acc_get_cuda_stream(streamId);
-         acc_set_cuda_stream(streamId, streams_[i]);
-         queue = acc_get_cuda_stream(streamId);
-         if (queue != streams_[i]) {
-            std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
-            errMsg += "OpenACC async queue not linked to CUDA Stream\n";
-            pthread_mutex_unlock(&idxMutex_);
-            throw std::runtime_error(errMsg);
-         }
-#endif
+    for (int i=0; i<streams_.size(); ++i) {
+         int   streamId = i + 1;
+         streams_[i] = static_cast<cudaStream_t>(acc_get_cuda_stream(streamId));
 
          freeStreams_.push_back( CudaStream(streamId, &(streams_[i])) );
     }
-    Logger::instance().log(  "[CudaStreamManager] Created " 
+    Logger::instance().log(  "[CudaStreamManager] Acquired " 
                            + std::to_string(streams_.size())
-                           + " CUDA streams");
-    Logger::instance().log("[CudaStreamManager] Created and ready for use");
+                           + " CUDA streams from OpenACC asynchronous queues");
+#else
+#error "No offloading model specified"
+#endif
 
     wasInstantiated_ = true;
+    Logger::instance().log("[CudaStreamManager] Created and ready for use");
 
     pthread_mutex_unlock(&idxMutex_);
 }
@@ -144,20 +122,11 @@ CudaStreamManager::~CudaStreamManager(void) {
                   << " streams have not been released" << std::endl;
     }
 
-    cudaError_t   cErr = cudaErrorInvalidValue;
-    for (std::size_t i=0; i<streams_.size(); ++i) {
-         cErr = cudaStreamDestroy(streams_[i]);
-         if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaStreamManager::~CudaStreamManager] ";
-            errMsg += "Unable to destroy CUDA stream\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            std::cerr << errMsg;
-         }
-    }
-    Logger::instance().log(  "[CudaStreamManager] Destroyed "
+#ifdef USE_OPENACC
+    Logger::instance().log(  "[CudaStreamManager] No longer using "
                            + std::to_string(streams_.size())
-                           + " CUDA streams");
+                           + " CUDA streams/OpenACC asynchronous queues");
+#endif
 
     pthread_mutex_unlock(&idxMutex_);
 
