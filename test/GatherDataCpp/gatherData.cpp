@@ -32,7 +32,7 @@ constexpr unsigned int   N_TRIALS = 5;
 constexpr unsigned int   N_THREAD_TEAMS = 3;
 constexpr unsigned int   MAX_THREADS = 7;
 constexpr int            N_STREAMS = 32; 
-constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
+constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 8589934592; 
 
 void  setUp(void) {
     using namespace orchestration;
