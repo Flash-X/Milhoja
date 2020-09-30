@@ -9,7 +9,9 @@ INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/GatherDataCpp
-AMREXDIR     = $(HOME)/local/gcc_9.1.0/AMReX_2d
+AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
+CUDADIR      = $(OLCF_CUDA_ROOT)
+PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files
 CXX_HDRS   = \
@@ -46,24 +48,33 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/scaleEnergy.h \
     $(TESTBASEDIR)/Analysis.h
+CU_HDRS   = \
+    $(INCDIR)/CudaGpuEnvironment.h \
+    $(INCDIR)/CudaDataPacket.h \
+    $(INCDIR)/CudaStream.h \
+    $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/CudaMemoryManager.h
 SRCS       = \
-    $(SRCDIR)/FArray1D.cpp \
-    $(SRCDIR)/FArray4D.cpp \
-    $(SRCDIR)/Tile.cpp \
-    $(SRCDIR)/TileAmrex.cpp \
-    $(SRCDIR)/Grid_IntVect.cpp \
-    $(SRCDIR)/Grid_RealVect.cpp \
-    $(SRCDIR)/Grid.cpp \
-    $(SRCDIR)/GridAmrex.cpp \
-    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
-    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/ThreadTeamIdle.cpp \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/FArray1D.cpp \
+    $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/DataPacket.cpp \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
+    $(SRCDIR)/CudaStream.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
@@ -71,28 +82,42 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/scaleEnergy.cpp \
     $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/gatherData.cpp 
+CU_SRCS       = \
+    $(SRCDIR)/CudaGpuEnvironment.cu \
+    $(SRCDIR)/CudaDataPacket.cu \
+    $(SRCDIR)/CudaStreamManager.cu \
+    $(SRCDIR)/CudaMemoryManager.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
-CXX       = mpic++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
+OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
+CXX       = mpicxx
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DUSE_OPENACC
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lgfortran -lamrex
-LDFLAGS   = -L$(AMREXDIR)/lib
+CU        = nvcc
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -DUSE_OPENACC -D__PGI
+CUWARNS   =
+
+LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
 
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp
+.SUFFIXES: .o .cpp .cu
 
-$(COMMAND): $(OBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS) $(OACC_FLAGS)
 
 # Move buildInfo.h out so that we just write it once
 # Also, find commands that are universal
@@ -110,16 +135,19 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 	@printf "constexpr char HOSTNAME[] = \"" >> $(TESTDIR)/buildInfo.h
 	@printf "%s\";\n" `hostname` >> $(TESTDIR)/buildInfo.h
 
-	@printf "constexpr char MACHINE_INFO[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.h
+#	@printf "constexpr char MACHINE_INFO[] = \"" >> $(TESTDIR)/buildInfo.h
+#	@printf "%s\";\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.h
 
 	@printf "constexpr char CXX_COMPILER[] = \"" >> $(TESTDIR)/buildInfo.h
 	@printf "%s\";\n" $(CXX) >> $(TESTDIR)/buildInfo.h
 
-	@printf "constexpr char CXX_COMPILER_VERSION[] = \"" >> $(TESTDIR)/buildInfo.h
-	@printf "%s\";\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.h
+#	@printf "constexpr char CXX_COMPILER_VERSION[] = \"" >> $(TESTDIR)/buildInfo.h
+#	@printf "%s\";\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.h
 
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.cu.o: $(CU_HDRS) $(MAKEFILE)
+	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
 
 clean:
 	/bin/rm -f $(COMMAND)

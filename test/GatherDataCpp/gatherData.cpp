@@ -16,6 +16,11 @@
 #include "scaleEnergy.h"
 #include "Analysis.h"
 
+#ifdef USE_CUDA_BACKEND
+#include "CudaStreamManager.h"
+#include "CudaMemoryManager.h"
+#endif
+
 // Have make specify build-time constants for file headers
 #include "buildInfo.h"
 
@@ -23,7 +28,11 @@
 constexpr unsigned int   LEVEL = 0;
 
 constexpr unsigned int   N_TRIALS = 5;
+
 constexpr unsigned int   N_THREAD_TEAMS = 3;
+constexpr unsigned int   MAX_THREADS = 7;
+constexpr int            N_STREAMS = 32; 
+constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
 
 void  setUp(void) {
     using namespace orchestration;
@@ -94,21 +103,16 @@ void  tearDown(const std::string& filename,
 int   main(int argc, char* argv[]) {
     using namespace orchestration;
 
-    if (argc != 2) {
-        std::cerr << "\nOne and only one command line argument please\n\n";
-        return 1;
-    }
-
-    int  nTotalThreads = std::stoi(std::string(argv[1]));
-    if (nTotalThreads <= 1) {
-        std::cerr << "\nNeed to use at least two threads\n\n";
-        return 2;
-    }
-
     // Initialize simulation
     orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
-    orchestration::Runtime::setMaxThreadsPerTeam(nTotalThreads);
+    orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
     orchestration::Runtime::setLogFilename("GatherDataCpp.log");
+
+#ifdef USE_CUDA_BACKEND
+    orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
+    orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
+#endif
+
     orchestration::Runtime&   runtime = orchestration::Runtime::instance();
 
     Grid::instantiate();
@@ -131,10 +135,10 @@ int   main(int argc, char* argv[]) {
     fptr << "# Git Commit," << PROJECT_GIT_REPO_VER << std::endl;
     fptr << "# AMReX version," << amrex::Version() << std::endl;
     fptr << "# C++ compiler," << CXX_COMPILER << std::endl;
-    fptr << "# C++ compiler version," << CXX_COMPILER_VERSION << std::endl;
+//    fptr << "# C++ compiler version," << CXX_COMPILER_VERSION << std::endl;
 	fptr << "# Build date," << BUILD_DATETIME << std::endl;
 	fptr << "# Hostname, " << HOSTNAME << std::endl;
-    fptr << "# Host information," << MACHINE_INFO << std::endl;
+//    fptr << "# Host information," << MACHINE_INFO << std::endl;
     fptr << "# MPI_Wtick," << MPI_Wtick() << ",sec" << std::endl;
     fptr << "pmode,n_loops,n_thd_task1,n_thd_task2,n_thd_task3,"
          << "NXB,NYB,NZB,N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z,"
@@ -232,34 +236,29 @@ int   main(int argc, char* argv[]) {
 
         /***** RUNTIME TEST - Try different thread combinations *****/
 #if defined(USE_CUDA_BACKEND)
-        std::string    threadInfo;
-        for (unsigned int n=2; n<nTotalThreads; ++n) {
-            int  nConcurrentThreads = n / 2;
-            int  nPostThreads       = n % 2;
-            threadInfo  = "N Concurrent Threads=" + std::to_string(nConcurrentThreads) + " / ";
-            threadInfo += "N Post Threads=" + std::to_string(nPostThreads);
+        Logger::instance().log("[Simulation] Start CPU/GPU/Post-GPU Runtime Test");
+        setUp();
 
-            Logger::instance().log("[Simulation] Start Runtime Test / " + threadInfo);
-            setUp();
+        computeLaplacianDensity.nInitialThreads = 2;
 
-            computeLaplacianDensity.nInitialThreads = nConcurrentThreads;
-            computeLaplacianEnergy.nInitialThreads  = nConcurrentThreads;
-            scaleEnergy.nInitialThreads             = nPostThreads;
+        computeLaplacianEnergy.nInitialThreads  = 5;
+        computeLaplacianEnergy.teamType         = ThreadTeamDataType::SET_OF_BLOCKS;
+        computeLaplacianEnergy.nTilesPerPacket  = 4;
+        computeLaplacianEnergy.routine          = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-            tStart = MPI_Wtime(); 
-            runtime.executeTasks_FullPacket("FullPacket",
-                                            computeLaplacianDensity,
-                                            computeLaplacianEnergy,
-                                            scaleEnergy);
-            tWalltime = MPI_Wtime() - tStart; 
+        scaleEnergy.nInitialThreads             = 0;
 
-            tearDown(fname, "Runtime", 1,
-                     nConcurrentThreads, nConcurrentThreads, nPostThreads,
-                     tWalltime);
-            Logger::instance().log("[Simulation] End Runtime Test / " + threadInfo);
-        }
+        tStart = MPI_Wtime(); 
+        runtime.executeTasks_FullPacket("FullPacket",
+                                        computeLaplacianDensity,
+                                        computeLaplacianEnergy,
+                                        scaleEnergy);
+        tWalltime = MPI_Wtime() - tStart; 
+
+        tearDown(fname, "Runtime", 1, 2, 5, 0, tWalltime);
+        Logger::instance().log("[Simulation] End CPU/GPU/Post-GPU Runtime Test");
 #endif
-    
+
         Logger::instance().log("[Simulation] End trial " + std::to_string(j+1));
     }
 

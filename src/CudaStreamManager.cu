@@ -30,6 +30,11 @@ bool   CudaStreamManager::wasInstantiated_ = false;
  * \return 
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
+    if (nMaxStreams_ <= 0) {
+        throw std::invalid_argument("[CudaStreamManager::instance] "
+                                    "Set max number of streams before accessing manager");
+    }
+
     static CudaStreamManager   stream_manager;
     return stream_manager;
 }
@@ -66,14 +71,6 @@ CudaStreamManager::CudaStreamManager(void)
       freeStreams_{}
 {
     Logger::instance().log("[CudaStreamManager] Initializing...");
-    if (nMaxStreams_ <= 0) {
-        throw std::invalid_argument("[CudaStreamManager::CudaStreamManager] "
-                                    "Set max number of streams before accessing manager");
-    } else if (streams_.size() > INT_MAX) {
-        std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
-        errMsg += "Too many streams created\n";
-        throw std::overflow_error(errMsg);
-    }
     assert(freeStreams_.size() == 0);
 
     pthread_cond_init(&streamReleased_, NULL);
