@@ -89,7 +89,24 @@ CudaStreamManager::CudaStreamManager(void)
                            + std::to_string(streams_.size())
                            + " CUDA streams from OpenACC asynchronous queues");
 #else
-#error "No offloading model specified"
+    cudaError_t   cErr = cudaErrorInvalidValue;
+    for (std::size_t i=0; i<streams_.size(); ++i) {
+         cErr = cudaStreamCreate(&(streams_[i]));
+         if (cErr != cudaSuccess) {
+            std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
+            errMsg += "Unable to create CUDA stream\n";
+            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+            pthread_mutex_unlock(&idxMutex_);
+            throw std::runtime_error(errMsg);
+         }
+
+         // Make stream indices 1-based so that 0 can work as NULL_STREAM
+         freeStreams_.push_back( CudaStream(i+1, &(streams_[i])) );
+    }
+    Logger::instance().log(  "[CudaStreamManager] Created "
+                           + std::to_string(streams_.size())
+                           + " CUDA streams");
 #endif
 
     wasInstantiated_ = true;
@@ -123,6 +140,21 @@ CudaStreamManager::~CudaStreamManager(void) {
     Logger::instance().log(  "[CudaStreamManager] No longer using "
                            + std::to_string(streams_.size())
                            + " CUDA streams/OpenACC asynchronous queues");
+#else
+    cudaError_t   cErr = cudaErrorInvalidValue;
+    for (std::size_t i=0; i<streams_.size(); ++i) {
+         cErr = cudaStreamDestroy(streams_[i]);
+         if (cErr != cudaSuccess) {
+            std::string  errMsg = "[CudaStreamManager::~CudaStreamManager] ";
+            errMsg += "Unable to destroy CUDA stream\n";
+            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+            std::cerr << errMsg;
+         }
+    }
+    Logger::instance().log(  "[CudaStreamManager] Destroyed "
+                           + std::to_string(streams_.size())
+                           + " CUDA streams");
 #endif
 
     pthread_mutex_unlock(&idxMutex_);
