@@ -19,6 +19,7 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h \
     $(INCDIR)/Grid.h \
     $(INCDIR)/Tile.h \
+    $(INCDIR)/errorEstFlash.h \
     $(INCDIR)/DataPacket.h \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/ThreadTeamModes.h \
@@ -47,6 +48,7 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/errorEstFlash.cpp \
     $(TESTDIR)/Driver.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \

@@ -7,6 +7,7 @@
 #include "Grid_Axis.h"
 #include "setInitialAdv.h"
 #include "errorEstAdv.h"
+#include "errorEstFlash.h"
 #include "gtest/gtest.h"
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
@@ -34,7 +35,7 @@ TEST_F(AdvectionTest,InitializeCheck){
 
 
     grid.initDomain(Simulation::setInitialAdv,
-                    Simulation::errorEstAdv);
+                    Simulation::errorEstFlash);
     grid.restrictAllLevels();
 
     //grid.writePlotfile("adv_plt_0000");
@@ -44,7 +45,7 @@ TEST_F(AdvectionTest,Evolution){
     Grid& grid = Grid::instance();
 
     grid.initDomain(Simulation::setInitialAdv,
-                    Simulation::errorEstAdv);
+                    Simulation::errorEstFlash);
     grid.restrictAllLevels();
 
     grid.writePlotfile("adv_plt_0000");

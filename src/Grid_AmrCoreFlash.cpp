@@ -230,7 +230,7 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
         std::vector<Real> refineCutoff, refineFilter;
         refineVars.push_back(0);
         refineFilter.push_back(1.0_wp);
-        refineCutoff.push_back(5.0_wp);
+        refineCutoff.push_back(0.0015_wp);
         // Loop over variables
         for (int n=0; n<numRefineVars; ++n) {
             int iref = refineVars[n];
