@@ -13,6 +13,8 @@
 #define ACTION_ROUTINE_H__
 
 #include <memory>
+#include "Grid_REAL.h"
+#include "Tile.h"
 
 namespace orchestration {
 
@@ -24,9 +26,8 @@ namespace orchestration {
 using ACTION_ROUTINE = void (*)(const int tId, void* work);
 
 
-// TODO rethink how error calculation/tagging for refinement will work.
-class Tile;
-using ERROR_ROUTINE = void (*) (std::shared_ptr<Tile> tileDesc, int* tptr);
+// Error routines calculate a single real value for the error of a Tile.
+using ERROR_ROUTINE = Real (*) (std::shared_ptr<Tile> tileDesc, const int iref, const Real ref_filter);
 
 }
 

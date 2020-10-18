@@ -111,6 +111,12 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
+#ifdef GRID_LOG
+    std::string msg2 = "[AmrCoreFlash::RemakeLevel] Remade level " +
+                      std::to_string(lev) + " with " +
+                      std::to_string(ba.size()) + " blocks.";
+    Logger::instance().log(msg2);
+#endif
 }
 
 /**
@@ -192,24 +198,73 @@ void AmrCoreFlash::ErrorEst (int lev, amrex::TagBoxArray& tags,
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
-    Grid& grid = Grid::instance();
+    static const int clearval = amrex::TagBox::CLEAR;
+    static const int tagval = amrex::TagBox::SET;
 
-    amrex::Vector<int> itags;
+    Grid& grid = Grid::instance();
 
     //TODO use tiling for this loop?
     for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
         std::shared_ptr<Tile> tileDesc = ti->buildCurrentTile();
-        amrex::Box validbox{ amrex::IntVect(tileDesc->lo()),
-                             amrex::IntVect(tileDesc->hi()) };
+        const IntVect lo = tileDesc->lo();
+        const IntVect hi = tileDesc->hi();
+
         amrex::TagBox& tagfab = tags[tileDesc->gridIndex()];
-        tagfab.get_itags(itags,validbox);
+        auto tagdata = tagfab.array();
+        IntVect tag_lo{ tagfab.smallEnd() };
+        IntVect tag_hi{ tagfab.bigEnd() };
+#ifndef GRID_ERRCHECK_OFF
+        if( !(tag_lo.allLE(lo) && tag_hi.allGE(hi)) ) {
+            throw std::logic_error ("Tagbox is smaller than tile box.");
+        }
+#endif
+        for(     int k=lo.K(); k<=hi.K(); ++k) {
+          for(   int j=lo.J(); j<=hi.J(); ++j) {
+            for( int i=lo.I(); i<=hi.I(); ++i) {
+              tagdata(i,j,k,0) = clearval;
+        }}}
 
-        //errorEst_(lev, tags, time, ngrow, tileDesc);
-        int* tptr = itags.dataPtr();
-        errorEst_(tileDesc, tptr);
+        // TODO make these RPs
+        int numRefineVars = 1;
+        std::vector<int> refineVars;
+        std::vector<Real> refineCutoff, refineFilter;
+        refineVars.push_back(0);
+        refineFilter.push_back(1.0_wp);
+        refineCutoff.push_back(5.0_wp);
+        // Loop over variables
+        for (int n=0; n<numRefineVars; ++n) {
+            int iref = refineVars[n];
+            if(iref<0) continue;
 
-        tagfab.tags_and_untags(itags,validbox);
-    }
+            Real error = errorEst_(tileDesc, iref, refineFilter[n]);
+
+            if (error > refineCutoff[n]) {
+#ifndef ADVECTION_TUTORIAL
+                IntVect mid = (0.5_wp * RealVect(tag_lo + tag_hi)).round();
+                tagdata(mid.I(),mid.J(),mid.K(), 0) = tagval;
+#else
+                static bool first = true;
+                static amrex::Vector<amrex::Real> phierr;
+                if(first) {
+                    first = false;
+                    //get phierr from parm parse or runtime parameters?
+                    phierr.push_back(1.01);
+                    phierr.push_back(1.1);
+                    phierr.push_back(1.5);
+                }
+                auto f = tileDesc->data();
+                for(     int k=lo.K(); k<=hi.K(); ++k) {
+                  for(   int j=lo.J(); j<=hi.J(); ++j) {
+                    for( int i=lo.I(); i<=hi.I(); ++i) {
+                        if(f(i,j,k,0)>phierr[lev] ) {
+                            tagdata(i,j,k,0) = tagval;
+                        }
+                }}}
+#endif
+            }
+        }
+
+    } //tile iterator
 
 #ifdef GRID_LOG
     std::string msg2 = "[AmrCoreFlash::ErrorEst] Did ErrorEst for level " +

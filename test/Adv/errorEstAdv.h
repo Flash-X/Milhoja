@@ -7,7 +7,7 @@
 using namespace orchestration;
 
 namespace Simulation {
-    void errorEstAdv(std::shared_ptr<Tile> tileDesc, int* tptr);
+    Real errorEstAdv(std::shared_ptr<Tile> tileDesc, const int iref, const Real ref_filter);
 }
 
 #endif

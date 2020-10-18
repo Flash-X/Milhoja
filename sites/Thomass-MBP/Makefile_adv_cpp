@@ -76,7 +76,7 @@ MODS      = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -I$(ADVBASE)/Source
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -I$(ADVBASE)/Source -DADVECTION_TUTORIAL
 CXXWARNS  =
 
 F2003     = mpif90
