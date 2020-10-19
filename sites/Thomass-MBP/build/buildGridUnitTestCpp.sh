@@ -15,22 +15,6 @@ N_BLOCKS_Z=1
 N_DIMS=2
 LREFINE=3
 
-######################################################################
-#####-----             DO NOT ALTER LINES BELOW             -----#####
-######################################################################
-date
-echo
-echo "Current Branches in Repository"
-echo "-----------------------------------------------------------"
-git branch -vva
-echo
-echo "Last Git repository log entries"
-echo "-----------------------------------------------------------"
-git log --oneline -10
-echo
-echo "Current state of the local workspace"
-echo "-----------------------------------------------------------"
-git status
 
 rm -r test_plt_0000*
 cd ..

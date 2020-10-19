@@ -1,13 +1,10 @@
 #include "errorEstBlank.h"
 
-#include "Tile.h"
-
 using namespace orchestration;
 
-//void Simulation::errorEstBlank(const int tId, void* dataItem) {
-    //Tile*  tileDesc = static_cast<Tile*>(dataItem);
+Real Simulation::errorEstBlank(std::shared_ptr<Tile> tileDesc, const int iref, const Real ref_filter) {
 
-void Simulation::errorEstBlank(std::shared_ptr<Tile> tileDesc, int* tptr) {
+    return 0.0_wp;
 
 }
 

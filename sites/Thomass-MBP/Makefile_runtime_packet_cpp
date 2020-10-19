@@ -55,6 +55,7 @@ SRCS       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \

@@ -9,6 +9,8 @@
 #define ENER_VAR   2
 #define NUNKVAR    2
 
+#define REFINE_CUTOFF 5.0
+
 #define X_MIN      0.0
 #define X_MAX      1.0
 #define Y_MIN      0.0
