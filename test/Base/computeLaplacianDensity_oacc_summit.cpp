@@ -1,4 +1,4 @@
-#ifndef USE_OPENACC
+#ifndef ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 

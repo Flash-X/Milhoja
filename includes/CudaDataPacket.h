@@ -66,8 +66,11 @@ public:
 
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) override { return stream_.id; }
+#endif
+#ifdef ENABLE_CUDA_OFFLOAD
+    cudaStream_t           stream(void) { return *(stream_.object); };
 #endif
 
     PacketDataLocation     getDataLocation(void) const override;

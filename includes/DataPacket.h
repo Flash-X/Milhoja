@@ -1,6 +1,10 @@
 #ifndef DATA_PACKET_H__
 #define DATA_PACKET_H__
 
+#ifdef ENABLE_CUDA_OFFLOAD
+#include <cuda_runtime.h>
+#endif
+
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "FArray1D.h"
@@ -48,8 +52,11 @@ public:
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
     virtual void                   transferFromDeviceToHost(void) = 0;
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     virtual int                    asynchronousQueue(void) = 0;
+#endif
+#ifdef ENABLE_CUDA_OFFLOAD
+    virtual cudaStream_t           stream(void) = 0;
 #endif
 
     virtual PacketDataLocation    getDataLocation(void) const = 0;

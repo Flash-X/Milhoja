@@ -101,11 +101,11 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DUSE_OPENACC
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -DUSE_OPENACC -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -D__PGI
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex -lcudart

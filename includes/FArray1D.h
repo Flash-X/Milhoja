@@ -44,14 +44,14 @@ public:
     FArray1D& operator=(FArray1D&&)      = delete;
 
     //! Get and set data in a Fortran-style way.
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     Real& operator()(const int i) const {
         return data_[i-i0_];
     }
 
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     Real& at(const int i) const {
