@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
 #include <openacc.h>
 #endif
 
@@ -78,7 +78,7 @@ CudaStreamManager::CudaStreamManager(void)
 
     pthread_mutex_lock(&idxMutex_);
 
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     for (int i=0; i<streams_.size(); ++i) {
          int   streamId = i + 1;
          streams_[i] = static_cast<cudaStream_t>(acc_get_cuda_stream(streamId));
@@ -136,7 +136,7 @@ CudaStreamManager::~CudaStreamManager(void) {
                   << " streams have not been released" << std::endl;
     }
 
-#ifdef USE_OPENACC
+#ifdef ENABLE_OPENACC_OFFLOAD
     Logger::instance().log(  "[CudaStreamManager] No longer using "
                            + std::to_string(streams_.size())
                            + " CUDA streams/OpenACC asynchronous queues");
