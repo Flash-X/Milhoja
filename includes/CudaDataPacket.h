@@ -60,9 +60,10 @@ public:
 
     // Overrides of DataPacket member functions
     std::size_t            nTiles(void) const override;
+    const std::size_t*     nTilesGpu(void) const override { return nTiles_d_; };
     void                   addTile(std::shared_ptr<Tile>&& tileDesc) override;
     std::shared_ptr<Tile>  popTile(void) override;
-    const PacketContents&  tilePointers(const std::size_t n) const override;
+    const PacketContents*  tilePointers(void) const override { return contents_d_; };
 
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
@@ -93,7 +94,10 @@ private:
     int                                    endVariable_;
     void*                                  packet_p_;
     void*                                  packet_d_;
-    std::deque<PacketContents>             contents_;
+    std::deque<std::shared_ptr<Tile>>      tiles_;
+    std::size_t*                           nTiles_d_;
+    PacketContents*                        contents_p_;
+    PacketContents*                        contents_d_;
     CudaStream                             stream_;
     std::size_t                            nBytesPerPacket_;
 };

@@ -17,7 +17,14 @@ namespace StaticPhysicsRoutines {
                      const orchestration::FArray1D& yCoords,
                      orchestration::FArray4D& U,
                      const orchestration::Real scaleFactor);
+}
 
+namespace ActionRoutines {
+    void scaleEnergy_tile_cpu(const int tId, orchestration::DataItem* dataItem);
+}
+
+#ifdef ENABLE_OPENACC_OFFLOAD
+namespace StaticPhysicsRoutines {
     // This is the version that would be adapted from the above by the 
     // OFFLINE TOOLCHAIN based on the target platfarm and high-level
     // offloading program model that has been specified for the build.
@@ -28,21 +35,20 @@ namespace StaticPhysicsRoutines {
     //  - queue_h as this information is needed on the host for offloading
     //  - scaleFactor as this variable has not yet been included in
     //    the host-to-device data packet (pending).
+    #pragma acc routine vector
     void scaleEnergy_oacc_summit(const orchestration::IntVect* lo_d,
                                  const orchestration::IntVect* hi_d,
                                  const orchestration::FArray1D* xCoords_d,
                                  const orchestration::FArray1D* yCoords_d,
                                  orchestration::FArray4D* U_d,
-                                 const orchestration::Real scaleFactor,
-                                 const int queue_h);
+                                 const orchestration::Real scaleFactor);
 }
 
 namespace ActionRoutines {
-    void scaleEnergy_tile_cpu(const int tId,
-                              orchestration::DataItem* dataItem);
     void scaleEnergy_packet_oacc_summit(const int tId,
                                         orchestration::DataItem* dataItem);
 }
+#endif
 
 #endif
 

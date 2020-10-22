@@ -13,9 +13,11 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*                packet_h = dynamic_cast<DataPacket*>(dataItem_h);
-    const int                  queue_h  = packet_h->asynchronousQueue();
-    const PacketDataLocation   location = packet_h->getDataLocation();
+    DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
+    const int                  queue_h    = packet_h->asynchronousQueue();
+    const PacketDataLocation   location   = packet_h->getDataLocation();
+    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
+    const PacketContents*      contents_d = packet_h->tilePointers();
 
     packet_h->setVariableMask(ENER_VAR_C, ENER_VAR_C);
 
@@ -24,26 +26,45 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
     constexpr Real    ENERGY_SCALE_FACTOR = 5.0;
 
     // Computation done in-place 
-    FArray4D*   U_d = nullptr;
-    for (std::size_t n=0; n<packet_h->nTiles(); ++n) {
-        const PacketContents&  ptrs = packet_h->tilePointers(n);
-
-        switch (location) {
-            case PacketDataLocation::CC1:
-                U_d = ptrs.CC1_d;
-                break;
-            case PacketDataLocation::CC2:
-                U_d = ptrs.CC2_d;
-                break;
-            default:
-                throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
-                                       "Data not in CC1 or CC2");
+    if        (location == PacketDataLocation::CC1) {
+        #pragma acc data deviceptr(nTiles_d, contents_d)
+        {
+            #pragma acc parallel default(none) async(queue_h)
+            {
+                FArray4D*   U_d = nullptr;
+                const PacketContents*   ptrs = nullptr;
+                #pragma acc loop gang
+                for (std::size_t n=0; n<*nTiles_d; ++n) {
+                    ptrs = contents_d + n;
+                    U_d = ptrs->CC1_d;
+                    StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                                   ptrs->xCoords_d, ptrs->yCoords_d,
+                                                                   U_d, ENERGY_SCALE_FACTOR);
+                }
+            }
+            #pragma acc wait(queue_h)
         }
-
-        StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs.lo_d, ptrs.hi_d,
-                                                       ptrs.xCoords_d, ptrs.yCoords_d,
-                                                       U_d, ENERGY_SCALE_FACTOR,
-                                                       queue_h);
+    } else if (location == PacketDataLocation::CC2) {
+        #pragma acc data deviceptr(nTiles_d, contents_d)
+        {
+            #pragma acc parallel default(none) async(queue_h)
+            {
+                FArray4D*   U_d = nullptr;
+                const PacketContents*   ptrs = nullptr;
+                #pragma acc loop gang
+                for (std::size_t n=0; n<*nTiles_d; ++n) {
+                    ptrs = contents_d + n;
+                    U_d = ptrs->CC2_d;
+                    StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                                   ptrs->xCoords_d, ptrs->yCoords_d,
+                                                                   U_d, ENERGY_SCALE_FACTOR);
+                }
+            }
+            #pragma acc wait(queue_h)
+        }
+    } else {
+        throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
+                               "Data not in CC1 or CC2");
     }
 }
 

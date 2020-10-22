@@ -30,7 +30,10 @@ CudaDataPacket::CudaDataPacket(void)
       endVariable_{UNK_VARS_BEGIN_C - 1},
       packet_p_{nullptr},
       packet_d_{nullptr},
-      contents_{},
+      tiles_{},
+      nTiles_d_{nullptr},
+      contents_p_{nullptr},
+      contents_d_{nullptr},
       stream_{},
       nBytesPerPacket_{0}
 {
@@ -39,8 +42,8 @@ CudaDataPacket::CudaDataPacket(void)
         throw std::logic_error("[CudaDataPacket::CudaDataPacket] " + errMsg);
     }
 
-    if (contents_.size() != 0) {
-        throw std::runtime_error("[CudaDataPacket::CudaDataPacket] contents_ not empty");
+    if (tiles_.size() != 0) {
+        throw std::runtime_error("[CudaDataPacket::CudaDataPacket] tiles_ not empty");
     }
 }
 
@@ -71,6 +74,10 @@ void  CudaDataPacket::nullify(void) {
     endVariable_   = UNK_VARS_BEGIN_C - 1;
 
     nBytesPerPacket_ = 0;
+
+    nTiles_d_   = nullptr;
+    contents_p_ = nullptr;
+    contents_d_ = nullptr;
 }
 
 /**
@@ -87,6 +94,12 @@ std::string  CudaDataPacket::isNull(void) const {
         return "Data location already assigned";
     } else if (nBytesPerPacket_ > 0) {
         return "Non-zero packet size";
+    } else if (nTiles_d_ != nullptr) {
+        return "N tiles exist in GPU";
+    } else if (contents_p_ != nullptr) {
+        return "Pinned contents exist";
+    } else if (contents_d_ != nullptr) {
+        return "GPU contents exist";
     }
 
     return "";
@@ -96,16 +109,14 @@ std::string  CudaDataPacket::isNull(void) const {
  *
  */
 std::size_t   CudaDataPacket::nTiles(void) const {
-    return contents_.size();
-
+    return tiles_.size();
 }
 
 /**
  *
  */
 void   CudaDataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
-    contents_.push_front( PacketContents() );
-    contents_.front().tileDesc_h = std::move(tileDesc);
+    tiles_.push_front( std::move(tileDesc) );
     if ((tileDesc != nullptr) || (tileDesc.use_count() != 0)) {
         throw std::runtime_error("[CudaDataPacket::addTile] Ownership of tileDesc not transferred");
     }
@@ -115,33 +126,22 @@ void   CudaDataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
  *
  */
 std::shared_ptr<Tile>  CudaDataPacket::popTile(void) {
-    if (contents_.size() == 0) {
+    if (tiles_.size() == 0) {
         throw std::invalid_argument("[CudaDataPacket::popTile] No tiles to pop");
     }
 
-    std::shared_ptr<Tile>   tileDesc{ std::move(contents_.front().tileDesc_h) };
-    if (   (contents_.front().tileDesc_h != nullptr)
-        || (contents_.front().tileDesc_h.use_count() != 0)) {
+    std::shared_ptr<Tile>   tileDesc{ std::move(tiles_.front()) };
+    if (   (tiles_.front() != nullptr)
+        || (tiles_.front().use_count() != 0)) {
         throw std::runtime_error("[CudaDataPacket::popTile] Ownership of tileDesc not transferred");
     } 
     
-    contents_.pop_front();
+    tiles_.pop_front();
     if ((tileDesc == nullptr) || (tileDesc.use_count() == 0)) {
         throw std::runtime_error("[CudaDataPacket::popTile] Bad tileDesc");
     }
 
     return tileDesc;
-}
-
-/**
- *
- */
-const PacketContents&   CudaDataPacket::tilePointers(const std::size_t n) const {
-#ifdef DEBUG_RUNTIME
-    return contents_.at(n);
-#else
-    return contents_[n];
-#endif
 }
 
 /**
@@ -185,15 +185,17 @@ void  CudaDataPacket::pack(void) {
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[CudaDataPacket::pack] " + errMsg);
-    } else if (contents_.size() == 0) {
+    } else if (tiles_.size() == 0) {
         throw std::logic_error("[CudaDataPacket::pack] No tiles added");
     }
 
     Grid&   grid = Grid::instance();
 
     // TODO: Deltas should just be placed into the packet once.
-    std::size_t    nTiles = contents_.size();
-    nBytesPerPacket_ =   nTiles * (         1 * DELTA_SIZE_BYTES
+    std::size_t    nTiles = tiles_.size();
+    nBytesPerPacket_ =            sizeof(std::size_t) 
+                       + nTiles * sizeof(PacketContents)
+                       + nTiles * (         1 * DELTA_SIZE_BYTES
                                    +        4 * POINT_SIZE_BYTES
                                    + N_BLOCKS * BLOCK_SIZE_BYTES
                                    +        2 * ARRAY4_SIZE_BYTES
@@ -217,18 +219,30 @@ void  CudaDataPacket::pack(void) {
     static_assert(sizeof(char) == 1, "Invalid char size");
     char*   ptr_p = static_cast<char*>(packet_p_);
     char*   ptr_d = static_cast<char*>(packet_d_);
-    for (std::size_t n=0; n<contents_.size(); ++n) {
-        PacketContents&   tilePtrs = contents_[n];
-        if ((tilePtrs.tileDesc_h == nullptr) || (tilePtrs.tileDesc_h.use_count() == 0)) {
+
+    nTiles_d_ = static_cast<std::size_t*>((void*)ptr_d); 
+    std::memcpy((void*)ptr_p, (void*)&nTiles, sizeof(std::size_t));
+    ptr_p += sizeof(std::size_t);
+    ptr_d += sizeof(std::size_t);
+
+    contents_p_ = static_cast<PacketContents*>((void*)ptr_p);
+    contents_d_ = static_cast<PacketContents*>((void*)ptr_d);
+    ptr_p += nTiles * sizeof(PacketContents);
+    ptr_d += nTiles * sizeof(PacketContents);
+
+    PacketContents*   tilePtrs_p = contents_p_;
+    for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
+        Tile*   tileDesc_h = tiles_[n].get();
+        if (tileDesc_h == nullptr) {
             throw std::runtime_error("[CudaDataPacket::pack] Bad tileDesc");
         }
  
-        const unsigned int  level  = tilePtrs.tileDesc_h->level();
-        const RealVect      deltas = tilePtrs.tileDesc_h->deltas();
-        const IntVect       lo     = tilePtrs.tileDesc_h->lo();
-        const IntVect       hi     = tilePtrs.tileDesc_h->hi();
-        const IntVect       loGC   = tilePtrs.tileDesc_h->loGC();
-        const IntVect       hiGC   = tilePtrs.tileDesc_h->hiGC();
+        const unsigned int  level  = tileDesc_h->level();
+        const RealVect      deltas = tileDesc_h->deltas();
+        const IntVect       lo     = tileDesc_h->lo();
+        const IntVect       hi     = tileDesc_h->hi();
+        const IntVect       loGC   = tileDesc_h->loGC();
+        const IntVect       hiGC   = tileDesc_h->hiGC();
         const FArray1D      xCoordsGC = grid.getCellCoords(Axis::I, Edge::Center,
                                                            level, loGC, hiGC); 
         const FArray1D      yCoordsGC = grid.getCellCoords(Axis::J, Edge::Center,
@@ -237,7 +251,7 @@ void  CudaDataPacket::pack(void) {
         const Real*         yCoordsGC_h = yCoordsGC.dataPtr();
         Real*               xCoordsGC_data_d = nullptr;
         Real*               yCoordsGC_data_d = nullptr;
-        Real*               data_h = tilePtrs.tileDesc_h->dataPtr();
+        Real*               data_h = tileDesc_h->dataPtr();
         Real*               CC1_data_d = nullptr;
         Real*               CC2_data_d = nullptr;
         if (data_h == nullptr) {
@@ -247,41 +261,41 @@ void  CudaDataPacket::pack(void) {
 
         // TODO: I think that we should put in padding so that all objects 
         //       are byte aligned in the device's memory.
-        tilePtrs.level = level;
-        tilePtrs.deltas_d = static_cast<RealVect*>((void*)ptr_d);
+        tilePtrs_p->level = level;
+        tilePtrs_p->deltas_d = static_cast<RealVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
         ptr_p += DELTA_SIZE_BYTES;
         ptr_d += DELTA_SIZE_BYTES;
 
         // Pack data for single tile data packet
-        tilePtrs.lo_d = static_cast<IntVect*>((void*)ptr_d);
+        tilePtrs_p->lo_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&lo, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.hi_d = static_cast<IntVect*>((void*)ptr_d);
+        tilePtrs_p->hi_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&hi, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.loGC_d = static_cast<IntVect*>((void*)ptr_d);
+        tilePtrs_p->loGC_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&loGC, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs.hiGC_d = static_cast<IntVect*>((void*)ptr_d);
+        tilePtrs_p->hiGC_d = static_cast<IntVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&hiGC, POINT_SIZE_BYTES);
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
         location_ = PacketDataLocation::CC1;
-        tilePtrs.CC1_data_p = static_cast<Real*>((void*)ptr_p);
+        tilePtrs_p->CC1_data_p = static_cast<Real*>((void*)ptr_p);
         CC1_data_d  = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)data_h, BLOCK_SIZE_BYTES);
         ptr_p += BLOCK_SIZE_BYTES;
         ptr_d += BLOCK_SIZE_BYTES;
 
-        tilePtrs.CC2_data_p = static_cast<Real*>((void*)ptr_p);
+        tilePtrs_p->CC2_data_p = static_cast<Real*>((void*)ptr_p);
         CC2_data_d  = static_cast<Real*>((void*)ptr_d);
         ptr_p += BLOCK_SIZE_BYTES;
         ptr_d += BLOCK_SIZE_BYTES;
@@ -296,13 +310,13 @@ void  CudaDataPacket::pack(void) {
         ptr_p += COORDS_Y_SIZE_BYTES;
         ptr_d += COORDS_Y_SIZE_BYTES;
 
-        tilePtrs.xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
+        tilePtrs_p->xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   xCoordGCArray_d{xCoordsGC_data_d, loGC.I()};
         std::memcpy((void*)ptr_p, (void*)&xCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
         ptr_d += ARRAY1_SIZE_BYTES;
 
-        tilePtrs.yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
+        tilePtrs_p->yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   yCoordGCArray_d{yCoordsGC_data_d, loGC.J()};
         std::memcpy((void*)ptr_p, (void*)&yCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
@@ -314,13 +328,13 @@ void  CudaDataPacket::pack(void) {
         // The object in host memory should never be used then.
         // IMPORTANT: When this local object is destroyed, we don't want it to
         // affect the use of the copies (e.g. release memory).
-        tilePtrs.CC1_d = static_cast<FArray4D*>((void*)ptr_d);
+        tilePtrs_p->CC1_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC1_d{CC1_data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC1_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        tilePtrs.CC2_d = static_cast<FArray4D*>((void*)ptr_d);
+        tilePtrs_p->CC2_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC2_d{CC2_data_d, loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
@@ -335,7 +349,7 @@ void  CudaDataPacket::pack(void) {
  *
  */
 void  CudaDataPacket::unpack(void) {
-    if (contents_.size() <= 0) {
+    if (tiles_.size() <= 0) {
         throw std::logic_error("[CudaDataPacket::unpack] "
                                "Empty data packet");
     } else if (packet_p_ == nullptr) {
@@ -347,6 +361,9 @@ void  CudaDataPacket::unpack(void) {
     } else if ((stream_.object == nullptr) || (stream_.id == CudaStream::NULL_STREAM_ID)) {
         throw std::logic_error("[CudaDataPacket::unpack] "
                                "CUDA stream not acquired");
+    } else if (contents_p_ == nullptr) {
+        throw std::logic_error("[CudaDataPacket::unpack] "
+                               "No pinned packet contents");
     } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
                || (startVariable_ > UNK_VARS_END_C )
                || (endVariable_   < UNK_VARS_BEGIN_C )
@@ -360,17 +377,18 @@ void  CudaDataPacket::unpack(void) {
     assert(stream_.object == nullptr);
     assert(stream_.id == CudaStream::NULL_STREAM_ID);
 
-    for (std::size_t n=0; n<contents_.size(); ++n) {
-        const PacketContents&   tilePtrs = contents_[n];
+    PacketContents*   tilePtrs_p = contents_p_;
+    for (std::size_t n=0; n<tiles_.size(); ++n, ++tilePtrs_p) {
+        Tile*   tileDesc_h = tiles_[n].get();
 
-        Real*   data_h = tilePtrs.tileDesc_h->dataPtr();
-        Real*   data_p = nullptr;
+        Real*         data_h = tileDesc_h->dataPtr();
+        const Real*   data_p = nullptr;
         switch (location_) {
             case PacketDataLocation::CC1:
-                data_p = tilePtrs.CC1_data_p;
+                data_p = tilePtrs_p->CC1_data_p;
                 break;
             case PacketDataLocation::CC2:
-                data_p = tilePtrs.CC2_data_p;
+                data_p = tilePtrs_p->CC2_data_p;
                 break;
             default:
                 throw std::logic_error("[CudaDataPacket::unpack] Data not in CC1 or CC2");
@@ -391,8 +409,8 @@ void  CudaDataPacket::unpack(void) {
         assert(UNK_VARS_END_C == (NUNKVAR - 1));
         std::size_t  offset =   N_ELEMENTS_PER_BLOCK_PER_VARIABLE
                               * static_cast<std::size_t>(startVariable_);
-        Real*        start_h = data_h + offset;
-        Real*        start_p = data_p + offset;
+        Real*              start_h = data_h + offset;
+        const Real*        start_p = data_p + offset;
         std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
                               * N_ELEMENTS_PER_BLOCK_PER_VARIABLE
                               * sizeof(Real);
