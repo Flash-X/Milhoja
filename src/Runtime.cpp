@@ -224,7 +224,9 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     }
     cpuTeam->closeQueue();
 
-    // host thread blocks until cycle ends
+    // host thread blocks until cycle ends, so activate another thread 
+    // in team first
+    cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
 
     // No need to break apart the thread team configuration
@@ -301,7 +303,9 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     gpuTeam->closeQueue();
 
-    // host thread blocks until cycle ends
+    // host thread blocks until cycle ends, so activate another thread 
+    // in team first
+    gpuTeam->increaseThreadCount(1);
     gpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
@@ -443,7 +447,9 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->closeQueue();
     cpuTeam->closeQueue();
 
-    // host thread blocks until cycle ends
+    // host thread blocks until cycle ends, so activate another thread 
+    // in the host team first
+    cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
     gpuTeam->wait();
     postGpuTeam->wait();

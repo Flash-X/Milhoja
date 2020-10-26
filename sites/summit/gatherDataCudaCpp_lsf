@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:15
+#BSUB -W 0:30
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
-#BSUB -J gatherDataCudaOaccCpp
-#BSUB -o gatherDataCudaOaccCpp.%J
-#BSUB -e gatherDataCudaOaccCpp.%J
+#BSUB -J gatherDataCudaCpp
+#BSUB -o gatherDataCudaCpp.%J
+#BSUB -e gatherDataCudaCpp.%J
  
 ######################################################################
 #####-----              FULLY SPECIFY TEST RUN              -----#####
@@ -18,7 +18,7 @@ N_HYPERTHREADS_PER_CORE=1
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
 # This should match the SW stack used to build the test binaries
-# as specified in buildGatherDataCpp.sh
+# as specified in buildGatherDataCudaCpp.sh
 module purge
 module load pgi/19.9
 module load spectrum-mpi/10.3.1.2-20200121
@@ -62,11 +62,11 @@ echo "Number of HW Threads per Core = $N_HYPERTHREADS_PER_CORE"
 echo "Number of Threads per Process = $N_THREADS_PER_PROC"
 echo "---------------------------------------------------------------------"
 
-folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/gatherDataCudaOaccCpp_$LSB_JOBID
+folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/gatherDataCudaCpp_$LSB_JOBID
 mkdir -p $folder ; cd $folder
 
 date
-for binary in $LS_SUBCWD/binaries/gather_data_cuda_oacc_cpp_*_*.x; do
+for binary in $LS_SUBCWD/binaries/gather_data_cuda_cpp_*_*.x; do
     time jsrun -n $N_RS_PER_NODE \
                -r $N_RS_PER_NODE \
                -a $N_PROC_PER_RS \
