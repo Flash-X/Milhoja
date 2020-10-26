@@ -58,9 +58,9 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
                      maxAbsErr1 = absErr;
                 }
 
-                UExpected = energyScaleFactor*x*y* (  48.0*x*x - 18.0*x
-                                                    - 12.0*y*y + 12.0*y
-                                                    - 2.0);
+                UExpected = (  48.0*x*x - 18.0*x
+                             - 12.0*y*y + 12.0*y
+                             - 2.0);
                 absErr = fabs(UExpected - U(i, j, k, ENER_VAR_C));
                 sum2 += absErr;
                 if (absErr > maxAbsErr2) {

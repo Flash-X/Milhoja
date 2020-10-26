@@ -65,7 +65,6 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
 
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
-    RuntimeAction    scaleEnergy;
 
     computeLaplacianDensity.name            = "LaplacianDensity";
     computeLaplacianDensity.nInitialThreads = 6;
@@ -79,17 +78,13 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianEnergy.nTilesPerPacket = 0;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
 
-    scaleEnergy.name            = "scaleEnergy";
-    scaleEnergy.nInitialThreads = 6;
-    scaleEnergy.teamType        = ThreadTeamDataType::BLOCK;
-    scaleEnergy.nTilesPerPacket = 0;
-    scaleEnergy.routine         = ActionRoutines::scaleEnergy_tile_cpu;
-
+    double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
     Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
-    Runtime::instance().executeCpuTasks("scEner",  scaleEnergy);
+    double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
 
     Logger::instance().log("[googletest] End TestCpuOnlyConfig");
 }
@@ -100,70 +95,104 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
 
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
-    RuntimeAction    scaleEnergy;
 
     computeLaplacianDensity.name            = "LaplacianDensity";
-    computeLaplacianDensity.nInitialThreads = 6;
+    computeLaplacianDensity.nInitialThreads = 3;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianDensity.nTilesPerPacket = 10;
+    computeLaplacianDensity.nTilesPerPacket = 20;
     computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
-    computeLaplacianEnergy.nInitialThreads = 6;
+    computeLaplacianEnergy.nInitialThreads = 3;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 10;
+    computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-    scaleEnergy.name            = "scaleEnergy";
-    scaleEnergy.nInitialThreads = 6;
-    scaleEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    scaleEnergy.nTilesPerPacket = 10;
-    scaleEnergy.routine         = ActionRoutines::scaleEnergy_packet_oacc_summit;
-
+    double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
     Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy);
-    Runtime::instance().executeGpuTasks("scEner",  scaleEnergy);
+    double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
 
     Logger::instance().log("[googletest] End TestGpuOnlyConfig");
 }
 #endif
 
 #if defined(USE_CUDA_BACKEND)
-TEST_F(TestRuntime, TestFullConfig) {
-    Logger::instance().log("[googletest] Start TestFullConfig");
+TEST_F(TestRuntime, TestCpuGpuConfig) {
+    Logger::instance().log("[googletest] Start TestCpuGpu");
 
     RuntimeAction    computeLaplacianDensity;
     RuntimeAction    computeLaplacianEnergy;
-    RuntimeAction    scaleEnergy;
 
     computeLaplacianDensity.name            = "LaplacianDensity";
-    computeLaplacianDensity.nInitialThreads = 2;
+    computeLaplacianDensity.nInitialThreads = 3;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity.nTilesPerPacket = 0;
     computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
-    computeLaplacianEnergy.nInitialThreads = 5;
+    computeLaplacianEnergy.nInitialThreads = 3;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacianEnergy.nTilesPerPacket = 10;
+    computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-    scaleEnergy.name            = "scaleEnergy";
-    scaleEnergy.nInitialThreads = 0;
-    scaleEnergy.teamType        = ThreadTeamDataType::BLOCK;
-    scaleEnergy.nTilesPerPacket = 0;
-    scaleEnergy.routine         = ActionRoutines::scaleEnergy_tile_cpu;
-
-    Runtime::instance().executeTasks_FullPacket("FullPacket",
-                                                computeLaplacianDensity,
-                                                computeLaplacianEnergy,
-                                                scaleEnergy);
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeCpuGpuTasks("ConcurrentCpuGpu",
+                                           computeLaplacianDensity,
+                                           computeLaplacianEnergy);
+    double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
 
-    Logger::instance().log("[googletest] End TestFullConfig");
+    Logger::instance().log("[googletest] End TestCpuGpu");
+}
+#endif
+
+#if defined(USE_CUDA_BACKEND)
+TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
+    Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu");
+
+    RuntimeAction    computeLaplacian_cpu;
+    RuntimeAction    computeLaplacian_gpu;
+
+    computeLaplacian_cpu.name            = "LaplacianDensity_cpu";
+    computeLaplacian_cpu.nInitialThreads = 4;
+    computeLaplacian_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacian_cpu.nTilesPerPacket = 0;
+    computeLaplacian_cpu.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+
+    computeLaplacian_gpu.name            = "LaplacianDensity_gpu";
+    computeLaplacian_gpu.nInitialThreads = 2;
+    computeLaplacian_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacian_gpu.nTilesPerPacket = 20;
+    computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
+                                                computeLaplacian_cpu,
+                                                computeLaplacian_gpu,
+                                                30);
+
+    computeLaplacian_cpu.name    = "LaplacianEnergy_cpu";
+    computeLaplacian_cpu.routine = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+
+    computeLaplacian_gpu.name    = "LaplacianEnergy_gpu";
+    computeLaplacian_gpu.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+
+    Runtime::instance().executeCpuGpuSplitTasks("DataParallelEnergy",
+                                                computeLaplacian_cpu,
+                                                computeLaplacian_gpu,
+                                                30);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Data Parallel Cpu/Gpu");
 }
 #endif
 

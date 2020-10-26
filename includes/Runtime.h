@@ -43,6 +43,13 @@ public:
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
                          const RuntimeAction& gpuAction);
+    void executeCpuGpuTasks(const std::string& bundleName,
+                            const RuntimeAction& cpuAction,
+                            const RuntimeAction& gpuAction);
+    void executeCpuGpuSplitTasks(const std::string& bundleName,
+                                 const RuntimeAction& cpuAction,
+                                 const RuntimeAction& gpuAction,
+                                 const unsigned int nTilesPerCpuTurn);
     void executeTasks_FullPacket(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,

@@ -71,7 +71,14 @@ jsrun -n $N_RS_PER_NODE \
       -a $N_PROC_PER_RS \
       -c $N_CORES_PER_RS \
       -g $N_GPU_PER_RS \
-      nvprof -o TestRuntimeCuda.%h.%p $LS_SUBCWD/binaries/test_runtime_cuda.x
+      $LS_SUBCWD/binaries/test_runtime_cuda.x
+
+#jsrun -n $N_RS_PER_NODE \
+#      -r $N_RS_PER_NODE \
+#      -a $N_PROC_PER_RS \
+#      -c $N_CORES_PER_RS \
+#      -g $N_GPU_PER_RS \
+#      nvprof -o TestRuntimeCuda.%h.%p $LS_SUBCWD/binaries/test_runtime_cuda.x
 
 #jsrun -n $N_RS_PER_NODE \
 #      -r $N_RS_PER_NODE \
