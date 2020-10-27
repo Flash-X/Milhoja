@@ -263,7 +263,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     // 3) Mover/Unpacker transfers packet back to CPU and
     //    copies results to Grid data structures
     ThreadTeam*       gpuTeam   = teams_[0];
-    gpuTeam->attachDataReceiver(&gpuToHost_);
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
 
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
@@ -359,7 +359,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
     // Assume for no apparent reason that the GPU will finish first
     gpuTeam->attachThreadReceiver(cpuTeam);
-    gpuTeam->attachDataReceiver(&gpuToHost_);
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
@@ -500,7 +500,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 
     // Assume for no apparent reason that the GPU will finish first
     gpuTeam->attachThreadReceiver(cpuTeam);
-    gpuTeam->attachDataReceiver(&gpuToHost_);
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
@@ -598,6 +598,171 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
  * \return 
  */
 #if defined(USE_CUDA_BACKEND)
+void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
+                                      const RuntimeAction& actionA_cpu,
+                                      const RuntimeAction& actionA_gpu,
+                                      const RuntimeAction& actionB_gpu,
+                                      const unsigned int nTilesPerCpuTurn) {
+    Logger::instance().log("[Runtime] Start CPU/GPU shared & GPU configuration");
+    std::string   msg = "[Runtime] "
+                        + std::to_string(nTilesPerCpuTurn)
+                        + " tiles sent to action A CPU team for every packet of "
+                        + std::to_string(actionA_gpu.nTilesPerPacket)
+                        + " tiles sent to action A GPU team";
+    Logger::instance().log(msg);
+
+    if        (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
+                               "Given CPU action should run on tile-based "
+                               "thread team, which is not in configuration");
+    } else if (actionA_cpu.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuWowzaTasks] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (actionA_gpu.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
+                               "Given action A GPU routine should run on packets");
+    } else if (actionA_gpu.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuWowzaTasks] "
+                                    "Need at least one tile per packet for action A");
+    } else if (actionB_gpu.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
+                               "Given action B GPU routine should run on packets");
+    } else if (actionB_gpu.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuWowzaTasks] "
+                                    "Need at least one tile per packet for action B");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
+                               "Need at least three ThreadTeams in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU/GPU action A pipeline
+    // 1) Action Parallel Distributor will send one fraction of data items
+    //    to CPU for computation of Action A
+    // 2) For the remaining data items,
+    //    a) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    //    b) GPU action A applied to blocks in packet by Action A GPU team
+    //    c) Mover/Unpacker transfers packet back to CPU and
+    //       copies results to Grid data structures
+    //
+    // GPU action B pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    // 2) GPU action B applied to blocks in packet by Action B GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*        teamA_cpu = teams_[0];
+    ThreadTeam*        teamA_gpu = teams_[1];
+    ThreadTeam*        teamB_gpu = teams_[2];
+
+    // Assume for no apparent reason that the GPU will finish first
+    teamA_gpu->attachThreadReceiver(teamA_cpu);
+    teamB_gpu->attachThreadReceiver(teamA_cpu);
+    teamA_gpu->attachDataReceiver(&gpuToHost1_);
+    teamB_gpu->attachDataReceiver(&gpuToHost2_);
+
+    unsigned int nTotalThreads =       actionA_cpu.nInitialThreads
+                                 +     actionA_gpu.nInitialThreads
+                                 +     actionB_gpu.nInitialThreads;
+    if (nTotalThreads > teamA_cpu->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
+                                "CPU could receive too many thread "
+                                "activation calls from Action A GPU team");
+    }
+
+    //***** START EXECUTION CYCLE
+    teamA_cpu->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
+    teamA_gpu->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
+    teamB_gpu->startCycle(actionB_gpu, "ActionParallel_GPU_Packet_Team");
+
+    //***** ACTION PARALLEL DISTRIBUTOR
+    // Let CPU start work so that we overlap the first host-to-device transfer
+    // with CPU computation
+    bool        isCpuTurn = true;
+    int         nInCpuTurn = 0;
+
+    unsigned int                      level = 0;
+    Grid&                             grid = Grid::instance();
+    std::shared_ptr<Tile>             tileA{};
+    std::shared_ptr<Tile>             tileB{};
+    std::shared_ptr<DataPacket>       packetA_gpu = DataPacket::createPacket();
+    std::shared_ptr<DataPacket>       packetB_gpu = DataPacket::createPacket();
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        tileA = ti->buildCurrentTile();
+        tileB = tileA;
+        packetB_gpu->addTile( std::move(tileB) );
+
+        // GPU action parallel pipeline
+        if (packetB_gpu->nTiles() >= actionB_gpu.nTilesPerPacket) {
+            packetB_gpu->initiateHostToDeviceTransfer();
+
+            teamB_gpu->enqueue( std::move(packetB_gpu) );
+            packetB_gpu = DataPacket::createPacket();
+        }
+
+        // CPU/GPU data parallel pipeline
+        if (isCpuTurn) {
+            teamA_cpu->enqueue( std::move(tileA) );
+
+            ++nInCpuTurn;
+            if (nInCpuTurn >= nTilesPerCpuTurn) {
+                isCpuTurn = false;
+                nInCpuTurn = 0;
+            }
+        } else {
+            packetA_gpu->addTile( std::move(tileA) );
+
+            if (packetA_gpu->nTiles() >= actionA_gpu.nTilesPerPacket) {
+                packetA_gpu->initiateHostToDeviceTransfer();
+
+                teamA_gpu->enqueue( std::move(packetA_gpu) );
+
+                packetA_gpu = DataPacket::createPacket();
+                isCpuTurn = true;
+            }
+        }
+    }
+
+    if (packetA_gpu->nTiles() > 0) {
+        packetA_gpu->initiateHostToDeviceTransfer();
+        teamA_gpu->enqueue( std::move(packetA_gpu) );
+    } else {
+        packetA_gpu.reset();
+    }
+
+    if (packetB_gpu->nTiles() > 0) {
+        packetB_gpu->initiateHostToDeviceTransfer();
+        teamB_gpu->enqueue( std::move(packetB_gpu) );
+    } else {
+        packetB_gpu.reset();
+    }
+
+    teamA_cpu->closeQueue();
+    teamA_gpu->closeQueue();
+    teamB_gpu->closeQueue();
+
+    // host thread blocks until cycle ends, so activate another thread 
+    // in the device team first
+//    teamA_cpu->increaseThreadCount(1);
+    teamA_cpu->wait();
+    teamA_gpu->wait();
+    teamB_gpu->wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    teamA_gpu->detachThreadReceiver();
+    teamB_gpu->detachThreadReceiver();
+    teamA_gpu->detachDataReceiver();
+    teamB_gpu->detachDataReceiver();
+
+    Logger::instance().log("[Runtime] End CPU/GPU shared & GPU configuration");
+}
+#endif
+
+/**
+ * 
+ *
+ * \return 
+ */
+#if defined(USE_CUDA_BACKEND)
 void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
@@ -648,8 +813,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
     cpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachThreadReceiver(postGpuTeam);
-    gpuTeam->attachDataReceiver(&gpuToHost_);
-    gpuToHost_.attachDataReceiver(postGpuTeam);
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
+    gpuToHost1_.attachDataReceiver(postGpuTeam);
 
     unsigned int nTotalThreads =       cpuAction.nInitialThreads
                                  +     gpuAction.nInitialThreads
@@ -736,7 +901,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     cpuTeam->detachThreadReceiver();
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
-    gpuToHost_.detachDataReceiver();
+    gpuToHost1_.detachDataReceiver();
 
     Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
 }

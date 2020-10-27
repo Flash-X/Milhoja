@@ -14,7 +14,7 @@
 // only streams mapped to queues.
 constexpr int            N_STREAMS = 32; 
 constexpr unsigned int   N_THREAD_TEAMS = 3;
-constexpr unsigned int   MAX_THREADS = 7;
+constexpr unsigned int   MAX_THREADS = 10;
 constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
 
 // We need to create our own main for the testsuite since we can only call

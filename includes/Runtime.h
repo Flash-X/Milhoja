@@ -50,6 +50,11 @@ public:
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const unsigned int nTilesPerCpuTurn);
+    void executeCpuGpuWowzaTasks(const std::string& bundleName,
+                                 const RuntimeAction& actionA_cpu,
+                                 const RuntimeAction& actionA_gpu,
+                                 const RuntimeAction& actionB_gpu,
+                                 const unsigned int nTilesPerCpuTurn);
     void executeTasks_FullPacket(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
@@ -66,7 +71,8 @@ private:
     ThreadTeam**     teams_;
 
 #if defined(USE_CUDA_BACKEND)
-    MoverUnpacker    gpuToHost_;
+    MoverUnpacker    gpuToHost1_;
+    MoverUnpacker    gpuToHost2_;
 #endif
 };
 

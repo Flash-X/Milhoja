@@ -196,5 +196,46 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
 }
 #endif
 
+#if defined(USE_CUDA_BACKEND)
+TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
+    Logger::instance().log("[googletest] Start Cpu/Gpu Wowza Config");
+
+    RuntimeAction    computeLaplacianDensity_cpu;
+    RuntimeAction    computeLaplacianDensity_gpu;
+    RuntimeAction    computeLaplacianEnergy_gpu;
+
+    computeLaplacianDensity_cpu.name            = "LaplacianDensity_cpu";
+    computeLaplacianDensity_cpu.nInitialThreads = 2;
+    computeLaplacianDensity_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacianDensity_cpu.nTilesPerPacket = 0;
+    computeLaplacianDensity_cpu.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+
+    computeLaplacianDensity_gpu.name            = "LaplacianDensity_gpu";
+    computeLaplacianDensity_gpu.nInitialThreads = 3;
+    computeLaplacianDensity_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianDensity_gpu.nTilesPerPacket = 20;
+    computeLaplacianDensity_gpu.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
+
+    computeLaplacianEnergy_gpu.name            = "LaplacianEnergy_gpu";
+    computeLaplacianEnergy_gpu.nInitialThreads = 3;
+    computeLaplacianEnergy_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy_gpu.nTilesPerPacket = 20;
+    computeLaplacianEnergy_gpu.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeCpuGpuWowzaTasks("CPU/GPU Wowza",
+                                                computeLaplacianDensity_cpu,
+                                                computeLaplacianDensity_gpu,
+                                                computeLaplacianEnergy_gpu,
+                                                20);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Cpu/Gpu Wowza Config");
+}
+#endif
+
 }
 
