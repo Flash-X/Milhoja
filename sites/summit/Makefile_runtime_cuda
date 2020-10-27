@@ -47,7 +47,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/setInitialConditions.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
-    $(TESTBASEDIR)/scaleEnergy.h \
+    $(TESTBASEDIR)/computeLaplacianFused.h \
     $(TESTBASEDIR)/Analysis.h
 CU_HDRS   = \
     $(INCDIR)/CudaGpuEnvironment.h \
@@ -87,10 +87,12 @@ SRCS       = \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/scaleEnergy.cpp \
-    $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
-    $(TESTBASEDIR)/scaleEnergy_oacc_summit.cpp \
-    $(TESTBASEDIR)/scaleEnergy_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(TESTDIR)/runRuntimeTests.cpp
