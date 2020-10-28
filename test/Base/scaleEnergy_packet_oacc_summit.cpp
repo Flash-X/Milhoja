@@ -25,46 +25,33 @@ void ActionRoutines::scaleEnergy_packet_oacc_summit(const int tId,
     //       data packet.
     constexpr Real    ENERGY_SCALE_FACTOR = 5.0;
 
-    // Computation done in-place 
-    if        (location == PacketDataLocation::CC1) {
-        #pragma acc data deviceptr(nTiles_d, contents_d)
-        {
-            #pragma acc parallel default(none) async(queue_h)
-            {
-                FArray4D*   U_d = nullptr;
-                const PacketContents*   ptrs = nullptr;
-                #pragma acc loop gang
-                for (std::size_t n=0; n<*nTiles_d; ++n) {
-                    ptrs = contents_d + n;
-                    U_d = ptrs->CC1_d;
-                    StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                                   ptrs->xCoords_d, ptrs->yCoords_d,
-                                                                   U_d, ENERGY_SCALE_FACTOR);
-                }
+    #pragma acc data deviceptr(nTiles_d, contents_d)
+    {
+        // Computation done in-place 
+        if        (location == PacketDataLocation::CC1) {
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*   ptrs = contents_d + n;
+                FArray4D*               U_d = ptrs->CC1_d;
+                StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                               ptrs->xCoords_d, ptrs->yCoords_d,
+                                                               U_d, ENERGY_SCALE_FACTOR);
             }
-            #pragma acc wait(queue_h)
-        }
-    } else if (location == PacketDataLocation::CC2) {
-        #pragma acc data deviceptr(nTiles_d, contents_d)
-        {
-            #pragma acc parallel default(none) async(queue_h)
-            {
-                FArray4D*   U_d = nullptr;
-                const PacketContents*   ptrs = nullptr;
-                #pragma acc loop gang
-                for (std::size_t n=0; n<*nTiles_d; ++n) {
-                    ptrs = contents_d + n;
-                    U_d = ptrs->CC2_d;
-                    StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                                   ptrs->xCoords_d, ptrs->yCoords_d,
-                                                                   U_d, ENERGY_SCALE_FACTOR);
-                }
+        } else if (location == PacketDataLocation::CC2) {
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*   ptrs = contents_d + n;
+                FArray4D*               U_d = ptrs->CC2_d;
+                StaticPhysicsRoutines::scaleEnergy_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                               ptrs->xCoords_d, ptrs->yCoords_d,
+                                                               U_d, ENERGY_SCALE_FACTOR);
             }
-            #pragma acc wait(queue_h)
+        } else {
+            throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
+                                   "Data not in CC1 or CC2");
         }
-    } else {
-        throw std::logic_error("[scaleEnergy_packet_oacc_summit] "
-                               "Data not in CC1 or CC2");
     }
+
+    #pragma acc wait(queue_h)
 }
 

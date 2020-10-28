@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 
 #include "Tile.h"
 #include "Grid.h"
@@ -27,6 +28,7 @@
 // No AMR.  Set level to 0-based AMReX coarse level
 constexpr unsigned int   LEVEL = 0;
 
+
 constexpr unsigned int   N_TRIALS = 20;
 
 constexpr unsigned int   N_THREAD_TEAMS = 2;
@@ -37,10 +39,13 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 12884901888;
 // Assuming Summit with 7 cores/MPI process (i.e. one GPU/process)
 // and no hardware threading
 constexpr unsigned int   N_THREADS_PER_PROC = 7;
-constexpr unsigned int   N_PACKET_SIZES = 6;
-constexpr unsigned int   BLKS_PER_PACKET[] = {5, 10, 15, 20, 25, 30};
-constexpr unsigned int   N_CPU_TILES = 8;
-constexpr unsigned int   TILES_PER_CPU_TURN[] = {5, 10, 15, 20, 25, 30, 35, 40};
+
+// Allow for the largest packet to contain all blocks
+constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z;
+constexpr unsigned int   PACKET_STEP_SIZE = 10;
+
+constexpr unsigned int   TURN_STEP_SIZE = 5;
+constexpr unsigned int   MAX_TURN_SIZE  = 60;
 
 void  setUp(void) {
     using namespace orchestration;
@@ -259,10 +264,12 @@ int   main(int argc, char* argv[]) {
         computeLaplacianEnergy.nTilesPerPacket = 20;
         computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-        for (unsigned int n=0; n<N_PACKET_SIZES; ++n) {
-            unsigned int   nBlks = BLKS_PER_PACKET[n];
+        unsigned int   nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
             computeLaplacianDensity.nTilesPerPacket = nBlks;
             computeLaplacianEnergy.nTilesPerPacket  = nBlks;
+
             for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-1; ++nThreads) {
                 computeLaplacianDensity.nInitialThreads = nThreads;
                 computeLaplacianEnergy.nInitialThreads  = nThreads;
@@ -294,9 +301,11 @@ int   main(int argc, char* argv[]) {
         computeLaplacianEnergy.nTilesPerPacket = 20;
         computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-        for (unsigned int n=0; n<N_PACKET_SIZES; ++n) {
-            unsigned int   nBlks = BLKS_PER_PACKET[n];
-            computeLaplacianEnergy.nTilesPerPacket  = nBlks;
+        nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
+            computeLaplacianEnergy.nTilesPerPacket = nBlks;
+
             for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-2; ++nThreads) {
                 unsigned int nThdHost = N_THREADS_PER_PROC - nThreads - 1;
                 unsigned int nThdGpu  = nThreads;
@@ -328,9 +337,11 @@ int   main(int argc, char* argv[]) {
         computeLaplacianFused_gpu.nTilesPerPacket = 20;
         computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
-        for (unsigned int n=0; n<N_PACKET_SIZES; ++n) {
-            unsigned int   nBlks = BLKS_PER_PACKET[n];
+        nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
             computeLaplacianFused_gpu.nTilesPerPacket = nBlks;
+
             for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-1; ++nThreads) {
                 computeLaplacianFused_gpu.nInitialThreads = nThreads;
 
@@ -360,17 +371,37 @@ int   main(int argc, char* argv[]) {
         computeLaplacianFused_gpu.nTilesPerPacket = 20;
         computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
-        for (unsigned int n=0; n<N_PACKET_SIZES; ++n) {
-            unsigned int   nBlks = BLKS_PER_PACKET[n];
+        // Don't allow the CPU to perform all work
+        unsigned int maxTurnSize = 0;
+        if (N_BLOCKS < 2*TURN_STEP_SIZE) {
+            // If the number of blocks is too small compared to the desired
+            // step size, then shrink step and prefer to give more work to CPU
+            // Note that maxTurnSize < TURN_STEP_SIZE
+            maxTurnSize = ceil(N_BLOCKS / 2.0);
+        } else {
+            maxTurnSize = std::min(N_BLOCKS - TURN_STEP_SIZE, MAX_TURN_SIZE);
+        }
+
+        // TODO: I think that this is gathering too much data.  For instance, if
+        // the number of blocks is low and the number of blocks to be done in the
+        // first CPU turn is just less than this, then the only data packet will
+        // have just a few blocks.  There is no sense in repeating the data
+        // gathering for ever larger blocks that will never be completely
+        // filled.
+        nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
             computeLaplacianFused_gpu.nTilesPerPacket = nBlks;
+
             for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-2; ++nThreads) {
                 unsigned int nThdHost = N_THREADS_PER_PROC - nThreads - 1;
                 unsigned int nThdGpu  = nThreads;
-
                 computeLaplacianFused_cpu.nInitialThreads = nThdHost;
                 computeLaplacianFused_gpu.nInitialThreads = nThdGpu;
-                for (unsigned int k=0; k<N_CPU_TILES; ++k) {
-                    unsigned int    tilesPerTurn = TILES_PER_CPU_TURN[k];
+
+                unsigned int    tilesPerTurn = 0;
+                while (tilesPerTurn < maxTurnSize) {
+                    tilesPerTurn = std::min(maxTurnSize, tilesPerTurn + TURN_STEP_SIZE);
 
                     setUp();
 
