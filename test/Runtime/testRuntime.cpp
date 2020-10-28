@@ -347,7 +347,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
+    Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 15);

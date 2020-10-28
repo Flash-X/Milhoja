@@ -168,6 +168,22 @@ CudaMemoryManager::~CudaMemoryManager(void) {
  *
  * \return 
  */
+void   CudaMemoryManager::reset(void) {
+    // There is no mechanism for now for releasing memory on a per request
+    // basis.  This just resets the entire object so that it appears that 
+    // no memory has been given out yet.
+    pthread_mutex_lock(&mutex_);
+    offset_ = 0;
+    pthread_mutex_unlock(&mutex_);
+
+    Logger::instance().log("[CudaMemoryManager] Reset memory resources");
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
 void  CudaMemoryManager::requestMemory(const std::size_t bytes, void** hostPtr, void** gpuPtr) {
     if (bytes == 0) {
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";

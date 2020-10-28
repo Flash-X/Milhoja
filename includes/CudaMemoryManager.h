@@ -32,6 +32,9 @@ public:
                          void** hostPtr, void** gpuPtr);
     void   releaseMemory(void** hostPtr, void** gpuPtr);
 
+    // FIXME: This is temprorary since this manager is so rudimentary
+    void   reset(void);
+
 private:
     CudaMemoryManager(void);
 

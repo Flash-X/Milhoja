@@ -4,7 +4,7 @@
 #####-----               FULLY SPECIFY TEST RUN             -----#####
 ######################################################################
 # Define test problems
-N_CELLS_PER_BLOCK=(8 16 32 64 128)
+N_CELLS_PER_BLOCK=(8 16)
 N_BLOCKS=(2 4 8 16 32 64)
 
 module purge

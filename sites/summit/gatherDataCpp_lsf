@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:30
+#BSUB -W 0:45
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
 #BSUB -J gatherDataCpp
@@ -67,6 +67,7 @@ mkdir -p $folder ; cd $folder
 
 date
 for binary in $LS_SUBCWD/binaries/gather_data_cpp_*_*.x; do
+    echo $binary
     time jsrun -n $N_RS_PER_NODE \
                -r $N_RS_PER_NODE \
                -a $N_PROC_PER_RS \
