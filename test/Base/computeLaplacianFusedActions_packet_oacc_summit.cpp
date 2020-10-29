@@ -7,6 +7,8 @@
 #include "DataItem.h"
 #include "DataPacket.h"
 
+#include "CudaStreamManager.h"
+
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
@@ -22,6 +24,11 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
     const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
 
+    // FIXME: This is a temporary and unacceptable hack.  Action routines should
+    // not know that the runtime is using a Cuda backend.
+    CudaStream   stream = CudaStreamManager::instance().requestStream(true);
+    const int    queue2_h = stream.id;
+
     packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
 
     #pragma acc data deviceptr(nTiles_d, contents_d)
@@ -30,10 +37,10 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
         if        (location == PacketDataLocation::CC1) {
             packet_h->setDataLocation(PacketDataLocation::CC2);
 
-            // TODO: This would be a better approach if these two kernels
-            // could be launched independently rather than on the same
-            // queue/stream
-            #pragma acc parallel loop gang default(none) async(queue_h)
+            // Wait for data to arrive and then
+            // launch these two independent kernels for concurrent execution
+            #pragma acc wait(queue_h)
+            #pragma acc parallel loop gang default(none) async(queue2_h)
             for (std::size_t n=0; n<*nTiles_d; ++n) {
                 const PacketContents*  ptrs = contents_d + n;
                 const FArray4D*        Uin_d  = ptrs->CC1_d;
@@ -55,7 +62,8 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
         } else if (location == PacketDataLocation::CC2) {
             packet_h->setDataLocation(PacketDataLocation::CC1);
 
-            #pragma acc parallel loop gang default(none) async(queue_h)
+            #pragma acc wait(queue_h)
+            #pragma acc parallel loop gang default(none) async(queue2_h)
             for (std::size_t n=0; n<*nTiles_d; ++n) {
                 const PacketContents*  ptrs = contents_d + n;
                 const FArray4D*        Uin_d  = ptrs->CC2_d;
@@ -80,6 +88,8 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
         }
     }
 
-    #pragma acc wait(queue_h)
+    #pragma acc wait(queue_h,queue2_h)
+
+    CudaStreamManager::instance().releaseStream(stream);
 }
 

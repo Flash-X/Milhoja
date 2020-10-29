@@ -29,7 +29,7 @@
 constexpr unsigned int   LEVEL = 0;
 
 
-constexpr unsigned int   N_TRIALS = 20;
+constexpr unsigned int   N_TRIALS = 50;
 
 constexpr unsigned int   N_THREAD_TEAMS = 2;
 constexpr unsigned int   MAX_THREADS = 7;
@@ -417,6 +417,96 @@ int   main(int argc, char* argv[]) {
             }
         }
         Logger::instance().log("[Simulation] End Data Parallel Cpu/Gpu - Fused");
+
+        /***** RUNTIME TEST - GPU-only Fused Actions *****/
+        Logger::instance().log("[Simulation] Start GPU-Only Runtime Test - Fused Actions");
+
+        computeLaplacianFused_gpu.name            = "LaplacianFused_gpu";
+        computeLaplacianFused_gpu.nInitialThreads = 3;
+        computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+        computeLaplacianFused_gpu.nTilesPerPacket = 20;
+        computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
+
+        nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
+            computeLaplacianFused_gpu.nTilesPerPacket = nBlks;
+
+            for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-1; ++nThreads) {
+                computeLaplacianFused_gpu.nInitialThreads = nThreads;
+
+                setUp();
+
+                tStart = MPI_Wtime(); 
+                runtime.executeGpuTasks("LapFused", computeLaplacianFused_gpu);
+                tWalltime = MPI_Wtime() - tStart; 
+
+                tearDown(fname, "RuntimeFusedActions", 1, 1, nThreads, nBlks, 0, tWalltime);
+            }
+        }
+        Logger::instance().log("[Simulation] End GPU-Only Runtime Test - Fused Actions");
+
+        /***** RUNTIME TEST - CPU/GPU Shared Fused *****/
+        Logger::instance().log("[Simulation] Start Data Parallel Cpu/Gpu - Fused Actions");
+
+        computeLaplacianFused_cpu.name            = "LaplacianFused_cpu";
+        computeLaplacianFused_cpu.nInitialThreads = 3;
+        computeLaplacianFused_cpu.teamType        = ThreadTeamDataType::BLOCK;
+        computeLaplacianFused_cpu.nTilesPerPacket = 0;
+        computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+
+        computeLaplacianFused_gpu.name            = "LaplacianFused_gpu";
+        computeLaplacianFused_gpu.nInitialThreads = 3;
+        computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+        computeLaplacianFused_gpu.nTilesPerPacket = 20;
+        computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
+
+        // Don't allow the CPU to perform all work
+        maxTurnSize = 0;
+        if (N_BLOCKS < 2*TURN_STEP_SIZE) {
+            // If the number of blocks is too small compared to the desired
+            // step size, then shrink step and prefer to give more work to CPU
+            // Note that maxTurnSize < TURN_STEP_SIZE
+            maxTurnSize = ceil(N_BLOCKS / 2.0);
+        } else {
+            maxTurnSize = std::min(N_BLOCKS - TURN_STEP_SIZE, MAX_TURN_SIZE);
+        }
+
+        // TODO: I think that this is gathering too much data.  For instance, if
+        // the number of blocks is low and the number of blocks to be done in the
+        // first CPU turn is just less than this, then the only data packet will
+        // have just a few blocks.  There is no sense in repeating the data
+        // gathering for ever larger blocks that will never be completely
+        // filled.
+        nBlks = 0;
+        while (nBlks < N_BLOCKS) {
+            nBlks = std::min(N_BLOCKS, nBlks + PACKET_STEP_SIZE);
+            computeLaplacianFused_gpu.nTilesPerPacket = nBlks;
+
+            for (unsigned int nThreads=1; nThreads<=N_THREADS_PER_PROC-2; ++nThreads) {
+                unsigned int nThdHost = N_THREADS_PER_PROC - nThreads - 1;
+                unsigned int nThdGpu  = nThreads;
+                computeLaplacianFused_cpu.nInitialThreads = nThdHost;
+                computeLaplacianFused_gpu.nInitialThreads = nThdGpu;
+
+                unsigned int    tilesPerTurn = 0;
+                while (tilesPerTurn < maxTurnSize) {
+                    tilesPerTurn = std::min(maxTurnSize, tilesPerTurn + TURN_STEP_SIZE);
+
+                    setUp();
+
+                    tStart = MPI_Wtime(); 
+                    runtime.executeCpuGpuSplitTasks("DataParallelFused",
+                                                    computeLaplacianFused_cpu,
+                                                    computeLaplacianFused_gpu,
+                                                    tilesPerTurn);
+                    tWalltime = MPI_Wtime() - tStart; 
+
+                    tearDown(fname, "RuntimeFusedActions", 1, nThdHost+1, nThdGpu, nBlks, tilesPerTurn, tWalltime);
+                }
+            }
+        }
+        Logger::instance().log("[Simulation] End Data Parallel Cpu/Gpu - Fused Actions");
 #endif
 
         Logger::instance().log("[Simulation] End trial " + std::to_string(j+1));
