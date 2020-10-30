@@ -1,13 +1,8 @@
-// WIP: Somehow NDEBUG is getting set and deactivating the asserts
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-#include <cassert>
-
 #include "Runtime.h"
 
-#include <stdexcept>
+#include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 #include "ThreadTeam.h"
 #include "Grid.h"
@@ -33,52 +28,50 @@ bool            Runtime::instantiated_      = false;
  *
  * \return 
  */
-Runtime& Runtime::instance(void) {
-    static Runtime     orSingleton;
-    return orSingleton;
-}
+void   Runtime::instantiate(const unsigned int nTeams,
+                            const unsigned int nThreadsPerTeam,
+                            const unsigned int nStreams,
+                            const std::size_t  nBytesInMemoryPools) {
+    Logger::instance().log("[Runtime] Initializing...");
 
-/**
- * 
- *
- * \return 
- */
-void Runtime::setLogFilename(const std::string& filename) {
-    orchestration::Logger::setLogFilename(filename);
-}
-
-/**
- * 
- *
- * \return 
- */
-void Runtime::setNumberThreadTeams(const unsigned int nTeams) {
     if (instantiated_) {
-        throw std::logic_error("[Runtime::setNumberThreadTeams] "
-                               "Set only when runtime does not exist");
+        throw std::logic_error("[Runtime::instantiate] Already instantiated");
     } else if (nTeams == 0) {
-        throw std::invalid_argument("[Runtime::setNumberThreadTeams] "
+        throw std::invalid_argument("[Runtime::instantiate] "
                                     "Need at least one ThreadTeam");
-    }
-
-    nTeams_ = nTeams;
-}
-
-/**
- * 
- *
- * \return 
- */
-void Runtime::setMaxThreadsPerTeam(const unsigned int nThreads) {
-    if (instantiated_) {
-        throw std::logic_error("[Runtime::setMaxThreadsPerTeam] "
-                               "Set only when runtime does not exist");
-    } else if (nThreads == 0) {
-        throw std::invalid_argument("[Runtime::setMaxThreadsPerTeam] "
+    } else if (nThreadsPerTeam == 0) {
+        throw std::invalid_argument("[Runtime::instantiate] "
                                     "Need at least one thread per team");
     }
 
-    maxThreadsPerTeam_ = nThreads;
+    nTeams_ = nTeams;
+    maxThreadsPerTeam_ = nThreadsPerTeam;
+    instantiated_ = true;
+
+    // Create/initialize singletons needed by runtime
+#ifdef USE_CUDA_BACKEND
+    orchestration::CudaStreamManager::instantiate(nStreams);
+    orchestration::CudaMemoryManager::instantiate(nBytesInMemoryPools);
+#endif
+
+    // Create/initialize runtime
+    instance();
+
+    Logger::instance().log("[Runtime] Created and ready for use");
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
+Runtime& Runtime::instance(void) {
+    if (!instantiated_) {
+        throw std::logic_error("[Runtime::instance] Instantiate first");
+    }
+
+    static Runtime     singleton;
+    return singleton;
 }
 
 /**
@@ -89,13 +82,6 @@ void Runtime::setMaxThreadsPerTeam(const unsigned int nThreads) {
 Runtime::Runtime(void)
     : teams_{nullptr}
 {
-    Logger::instance().log("[Runtime] Initializing...");
-
-    if (nTeams_ <= 0) {
-        throw std::invalid_argument("[Runtime::Runtime] "
-                                    "Need to create at least one team");
-    }
-
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
         teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
@@ -108,14 +94,7 @@ Runtime::Runtime(void)
                         + " GPU device(s) per process found\n"
                         + gpuEnv.information();
     Logger::instance().log(msg);
-
-    CudaStreamManager::instance();
-    CudaMemoryManager::instance();
 #endif
-
-    instantiated_ = true;
-
-    Logger::instance().log("[Runtime] Created and ready for use");
 }
 
 /**
@@ -126,14 +105,14 @@ Runtime::Runtime(void)
 Runtime::~Runtime(void) {
     Logger::instance().log("[Runtime] Finalizing...");
 
-    instantiated_ = false;
-
     for (unsigned int i=0; i<nTeams_; ++i) {
         delete teams_[i];
         teams_[i] = nullptr;
     }
     delete [] teams_;
     teams_ = nullptr;
+
+    instantiated_ = false;
 
     Logger::instance().log("[Runtime] Finalized");
 }

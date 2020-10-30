@@ -25,7 +25,7 @@ public:
     CudaMemoryManager& operator=(const CudaMemoryManager&) = delete;
     CudaMemoryManager& operator=(CudaMemoryManager&&)      = delete;
 
-    static void                 setBufferSize(const std::size_t bytes);
+    static void                 instantiate(const std::size_t nBytesInMemoryPools);
     static CudaMemoryManager&   instance(void);
 
     void   requestMemory(const std::size_t bytes,
@@ -39,7 +39,7 @@ private:
     CudaMemoryManager(void);
 
     static std::size_t  nBytes_;
-    static bool         wasInstantiated_;
+    static bool         instantiated_;
 
     pthread_mutex_t   mutex_;
     pthread_cond_t    memoryReleased_;

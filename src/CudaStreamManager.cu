@@ -21,7 +21,24 @@ namespace orchestration {
 // constructor such that client code will get an error if they do not explicitly
 // set the numer of streams before accessing the manager.
 int    CudaStreamManager::nMaxStreams_     = -1;
-bool   CudaStreamManager::wasInstantiated_ = false;
+bool   CudaStreamManager::instantiated_ = false;
+
+void   CudaStreamManager::instantiate(const int nMaxStreams) {
+    if (instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instantiate] Already instantiated");
+    } else if (nMaxStreams <= 0) {
+        // We need at least one stream to avoid deadlocking in requestStream
+        // when there are no free streams.
+        throw std::invalid_argument("[StreamManager::instantiate] "
+                                    "Need at least one stream");
+    }
+
+    // Create/initialize
+    nMaxStreams_ = nMaxStreams;
+    instantiated_ = true;
+
+    instance();
+}
 
 /**
  * Before calling this routine, client code must first set the number of streams
@@ -30,35 +47,12 @@ bool   CudaStreamManager::wasInstantiated_ = false;
  * \return 
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
-    if (nMaxStreams_ <= 0) {
-        throw std::invalid_argument("[CudaStreamManager::instance] "
-                                    "Set max number of streams before accessing manager");
+    if (!instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instance] Instantiate first");
     }
 
     static CudaStreamManager   stream_manager;
     return stream_manager;
-}
-
-/**
- * This member must be called before accessing the manager, but cannot be called
- * after accessing the manager.
- *
- * \return 
- */
-void CudaStreamManager::setMaxNumberStreams(const int nMaxStreams) {
-    if (wasInstantiated_) {
-        throw std::logic_error("[CudaStreamManager::setMaxNumberStreams] "
-                               "Cannot be set once the manager has been accessed");
-    } else if (nMaxStreams <= 0) {
-        // We need at least one stream to avoid deadlocking in requestStream
-        // when there are no free streams.
-        throw std::invalid_argument("[CudaStreamManager::setMaxNumberStreams] "
-                                    "Need at least one stream");
-    }
-
-    nMaxStreams_ = nMaxStreams;
-    Logger::instance().log( "[CudaStreamManager] Number of streams set to "
-                           + std::to_string(nMaxStreams_));
 }
 
 /**
@@ -109,7 +103,6 @@ CudaStreamManager::CudaStreamManager(void)
                            + " CUDA streams");
 #endif
 
-    wasInstantiated_ = true;
     Logger::instance().log("[CudaStreamManager] Created and ready for use");
 
     pthread_mutex_unlock(&idxMutex_);
@@ -162,7 +155,7 @@ CudaStreamManager::~CudaStreamManager(void) {
     pthread_cond_destroy(&streamReleased_);
     pthread_mutex_destroy(&idxMutex_);
 
-    wasInstantiated_ = false;
+    instantiated_ = false;
     Logger::instance().log("[CudaStreamManager] Destroyed");
 }
 

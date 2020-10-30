@@ -1,3 +1,7 @@
+#ifndef USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
+
 #include "CudaMemoryManager.h"
 
 #include <stdexcept>
@@ -8,43 +12,44 @@
 
 namespace orchestration {
 
-// Default value chosen in conjunction with the error checking in the
-// constructor such that client code will get an error if they do not explicitly
-// set the numer of bytes before accessing the manager.
 std::size_t   CudaMemoryManager::nBytes_ = 0;
-bool          CudaMemoryManager::wasInstantiated_ = false;
+bool          CudaMemoryManager::instantiated_ = false;
 
 /**
- * Before calling this routine, client code must first set the size of memory
- * buffers to be managed using setBufferSize().
  *
  * \return 
  */
-CudaMemoryManager&   CudaMemoryManager::instance(void) {
-    static CudaMemoryManager   manager;
-    return manager;
-}
+void CudaMemoryManager::instantiate(const std::size_t nBytesInMemoryPools) {
+    Logger::instance().log("[CudaMemoryManager] Initializing...");
 
-/**
- * This member must be called before accessing the manager, but cannot be called
- * after accessing the manager.
- *
- * \return 
- */
-void CudaMemoryManager::setBufferSize(const std::size_t bytes) {
-    if (wasInstantiated_) {
-        throw std::logic_error("[CudaMemoryManager::setBufferSize] "
-                               "Cannot be set once the manager has been accessed");
-    } else if (bytes == 0) {
-        throw std::invalid_argument("[CudaMemoryManager::setBufferSize] "
+    if (instantiated_) {
+        throw std::logic_error("[CudaMemoryManager::instantiate] "
+                               "StreamManager already instantiated");
+    } else if (nBytesInMemoryPools == 0) {
+        throw std::invalid_argument("[CudaMemoryManager::instantiate] "
                                     "Buffers must be non-empty");
     }
     // TODO: Check that buffers are sized for byte alignment?
 
-    nBytes_ = bytes;
-    Logger::instance().log( "[CudaMemoryManager] Buffer size set to "
-                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
-                           + " Gb");
+    nBytes_ = nBytesInMemoryPools;
+    instantiated_ = true;
+
+    instance();
+
+    Logger::instance().log("[CudaMemoryManager] Created and ready for use");
+}
+
+/**
+ *
+ * \return 
+ */
+CudaMemoryManager&   CudaMemoryManager::instance(void) {
+    if (!instantiated_) {
+        throw std::logic_error("[CudaMemoryManager::instance] Instantiate first");
+    }
+
+    static CudaMemoryManager   manager;
+    return manager;
 }
 
 /**
@@ -57,21 +62,15 @@ CudaMemoryManager::CudaMemoryManager(void)
       gpuBuffer_{nullptr},
       offset_{0}
 {
-    Logger::instance().log("[CudaMemoryManager] Initializing...");
-
     std::size_t   gpuMemBytes = CudaGpuEnvironment::instance().bytesInDeviceMemory();
     Logger::instance().log(  "[CudaMemoryManager] GPU memory has " 
                            + std::to_string(gpuMemBytes / std::pow(1024.0, 3.0))
                            + " Gb");
-    // TODO: How to get RAM size in portable way?
-
-    if (nBytes_ == 0) {
-        throw std::invalid_argument("[CudaMemoryManager::CudaMemoryManager] "
-                                    "Set buffer size before accessing manager");
-    } else if (nBytes_ >= gpuMemBytes) {
+    if (nBytes_ >= gpuMemBytes) {
         throw std::invalid_argument("[CudaMemoryManager::CudaMemoryManager] "
                                     "Cannot use all GPU memory as buffer");
     }
+    // TODO: How to get RAM size in portable way?
 
     pthread_cond_init(&memoryReleased_, NULL);
     pthread_mutex_init(&mutex_, NULL);
@@ -104,10 +103,7 @@ CudaMemoryManager::CudaMemoryManager(void)
                            + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                            + " Gb of GPU memory");
 
-    wasInstantiated_ = true;
     pthread_mutex_unlock(&mutex_);
-
-    Logger::instance().log("[CudaMemoryManager] Created and ready for use");
 }
 
 /**
@@ -153,7 +149,7 @@ CudaMemoryManager::~CudaMemoryManager(void) {
     }
  
     offset_ = 0;
-    wasInstantiated_ = false;
+    instantiated_ = false;
 
     pthread_mutex_unlock(&mutex_);
 

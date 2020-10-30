@@ -24,8 +24,8 @@ public:
     Logger& operator=(const Logger&) = delete;
     Logger& operator=(Logger&&)      = delete;
 
+    static void    instantiate(const std::string& filename);
     static Logger& instance(void);
-    static void   setLogFilename(const std::string& filename);
 
     void   log(const std::string& msg) const;
 
@@ -33,6 +33,7 @@ private:
     Logger(void);
 
     static std::string    logFilename_;
+    static bool           instantiated_;
 
     std::chrono::steady_clock::time_point   startTime_;
 };

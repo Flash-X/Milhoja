@@ -8,14 +8,24 @@
 namespace orchestration {
 
 std::string     Logger::logFilename_ = "";
+bool            Logger::instantiated_ = false;
 
-void   Logger::setLogFilename(const std::string& filename) {
-    if (filename == "") {
-        throw std::logic_error("[Logger::setLogFilename] "
+/**
+ * 
+ *
+ */
+void   Logger::instantiate(const std::string& filename) {
+    if (instantiated_) {
+        throw std::logic_error("[Logger::instantiate] Already instantiated");
+    } else if (filename == "") {
+        throw std::logic_error("[Logger::instantiate] "
                                "Empty filename given");
     }
 
     logFilename_ = filename;
+    instantiated_ = true;
+
+    instance();
 }
 
 /**
@@ -24,16 +34,19 @@ void   Logger::setLogFilename(const std::string& filename) {
  * \return 
  */
 Logger& Logger::instance(void) {
-    if (logFilename_ == "") {
-        std::cerr << "ERROR - set log filename before getting instance\n";
+    if (!instantiated_) {
         throw std::logic_error("[Logger::instance] "
-                               "Set filename before getting instance");
+                               "Logger must be instantiated first");
     }
 
-    static Logger     orSingleton;
-    return orSingleton;
+    static Logger     singleton;
+    return singleton;
 }
 
+/**
+ * 
+ *
+ */
 Logger::Logger(void)
     : startTime_{std::chrono::steady_clock::now()}
 {
@@ -48,14 +61,24 @@ Logger::Logger(void)
     log("[Logger] Started at " + std::string(timestamp) + " UTC");
 }
 
+/**
+ * 
+ *
+ */
 Logger::~Logger(void) {
     auto         now   = std::chrono::system_clock::now();
     std::time_t  now_t = std::chrono::system_clock::to_time_t(now);
     char  timestamp[100];
     std::strftime(timestamp, sizeof(timestamp), "%FT%T", std::gmtime(&now_t));
     log("[Logger] Terminated at " + std::string(timestamp) + " UTC");
+
+    instantiated_ = false;
 }
 
+/**
+ * 
+ *
+ */
 void   Logger::log(const std::string& msg) const {
     using seconds = std::chrono::duration<double>;
 

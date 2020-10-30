@@ -31,9 +31,10 @@ public:
     Runtime& operator=(const Runtime&) = delete;
     Runtime& operator=(Runtime&&)      = delete;
 
-    static void          setLogFilename(const std::string& filename);
-    static void          setNumberThreadTeams(const unsigned int nTeams);
-    static void          setMaxThreadsPerTeam(const unsigned int maxThreads);
+    static void          instantiate(const unsigned int nTeams,
+                                     const unsigned int nThreadsPerTeam,
+                                     const unsigned int nStreams,
+                                     const std::size_t nBytesInMemoryPools);
     static Runtime&      instance(void);
 
     void executeTasks(const ActionBundle& bundle);

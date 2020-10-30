@@ -1,10 +1,6 @@
 #include "Grid.h"
 #include "Runtime.h"
-
-#ifdef USE_CUDA_BACKEND
-#include "CudaStreamManager.h"
-#include "CudaMemoryManager.h"
-#endif
+#include "OrchestrationLogger.h"
 
 #include <gtest/gtest.h>
 
@@ -14,7 +10,7 @@
 // only streams mapped to queues.
 constexpr int            N_STREAMS = 32; 
 constexpr unsigned int   N_THREAD_TEAMS = 3;
-constexpr unsigned int   MAX_THREADS = 10;
+constexpr unsigned int   N_THREADS_PER_TEAM = 10;
 constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
 
 // We need to create our own main for the testsuite since we can only call
@@ -22,20 +18,10 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
-    orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
-    orchestration::Runtime::setLogFilename("RuntimeTest.log");
-
-#ifdef USE_CUDA_BACKEND
-    orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
-    orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
-#endif
-
-    // Call this explicitly early on since this will, in turn, initialize the
-    // stream and memory resource managers, which can acquire resources.
-    orchestration::Runtime::instance();
-
-    // Initialize Grid unit/AMReX/MPI
+    // Grid initialized AMReX and MPI
+    orchestration::Logger::instantiate("RuntimeTest.log");
+    orchestration::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                                        N_STREAMS, MEMORY_POOL_SIZE_BYTES);
     orchestration::Grid::instantiate();
 
     int  rank = -1;

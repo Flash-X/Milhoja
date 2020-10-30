@@ -26,7 +26,7 @@ class CudaStreamManager {
 public:
     ~CudaStreamManager();
 
-    static void                 setMaxNumberStreams(const int nMaxStreams);
+    static void                 instantiate(const int nMaxStreams);
     static int                  getMaxNumberStreams(void)   { return nMaxStreams_; };
     static CudaStreamManager&   instance(void);
 
@@ -39,7 +39,7 @@ private:
     CudaStreamManager();
 
     static int                  nMaxStreams_;
-    static bool                 wasInstantiated_;
+    static bool                 instantiated_;
 
     std::vector<cudaStream_t>   streams_;
 
