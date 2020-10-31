@@ -42,6 +42,8 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/StreamManager.h \
     $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/setInitialConditions.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
@@ -51,7 +53,6 @@ CXX_HDRS   = \
 CU_HDRS   = \
     $(INCDIR)/CudaGpuEnvironment.h \
     $(INCDIR)/CudaDataPacket.h \
-    $(INCDIR)/CudaStream.h \
     $(INCDIR)/CudaStreamManager.h \
     $(INCDIR)/CudaMemoryManager.h
 SRCS       = \
@@ -74,7 +75,7 @@ SRCS       = \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/MoverUnpacker.cpp \
-    $(SRCDIR)/CudaStream.cpp \
+    $(SRCDIR)/StreamManager.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \

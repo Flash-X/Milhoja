@@ -11,18 +11,34 @@ std::string     Logger::logFilename_ = "";
 bool            Logger::instantiated_ = false;
 
 /**
+ * In most cases, the log will be written to a single log file throughout the entire
+ * application execution.  Therefore, setting the filename via instantiate
+ * should be sufficient.
+ *
+ * This method is provided so that each test in a test suite can write their
+ * results to a dedicated log file.
+ *
+ * \param filename - the name of the file to which logging should be written.
+ *                   An empty value is not acceptable.
+ */
+void   Logger::setLogFilename(const std::string& filename) {
+    if (filename == "") {
+        throw std::logic_error("[Logger::setLogFilename] Empty filename given");
+    }
+
+    logFilename_ = filename;
+}
+
+/**
  * 
  *
  */
 void   Logger::instantiate(const std::string& filename) {
     if (instantiated_) {
         throw std::logic_error("[Logger::instantiate] Already instantiated");
-    } else if (filename == "") {
-        throw std::logic_error("[Logger::instantiate] "
-                               "Empty filename given");
     }
 
-    logFilename_ = filename;
+    setLogFilename(filename);
     instantiated_ = true;
 
     instance();

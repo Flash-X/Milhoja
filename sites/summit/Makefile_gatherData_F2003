@@ -8,7 +8,9 @@ BASEDIR  = ../..
 INCDIR   = $(BASEDIR)/includes
 SRCDIR   = $(BASEDIR)/src
 TESTDIR  = $(BASEDIR)/test/GatherDataF2003
-AMREXDIR = $(HOME)/local/gcc_9.1.0/AMReX_2d
+AMREXDIR = $(HOME)/local/pgi_19.9/AMReX_2d
+CUDADIR  = $(OLCF_CUDA_ROOT)
+PGIDIR   = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files
 CXX_HDRS   = \
@@ -35,32 +37,48 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/DataItem.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/StreamManager.h \
     $(INCDIR)/Runtime.h
+CU_HDRS   = \
+    $(INCDIR)/CudaGpuEnvironment.h \
+    $(INCDIR)/CudaDataPacket.h \
+    $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/CudaMemoryManager.h
 CXX_SRCS       = \
-    $(SRCDIR)/FArray1D.cpp \
-    $(SRCDIR)/FArray4D.cpp \
-    $(SRCDIR)/Tile.cpp \
-    $(SRCDIR)/TileAmrex.cpp \
-    $(SRCDIR)/Grid_IntVect.cpp \
-    $(SRCDIR)/Grid_RealVect.cpp \
-    $(SRCDIR)/Grid.cpp \
-    $(SRCDIR)/GridAmrex.cpp \
-    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
-    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
     $(SRCDIR)/ThreadTeamIdle.cpp \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/FArray1D.cpp \
+    $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/DataPacket.cpp \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
+    $(SRCDIR)/StreamManager.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp
+CU_SRCS       = \
+    $(SRCDIR)/CudaGpuEnvironment.cu \
+    $(SRCDIR)/CudaDataPacket.cu \
+    $(SRCDIR)/CudaStreamManager.cu \
+    $(SRCDIR)/CudaMemoryManager.cu
 F2003_SRCS       = \
     $(SRCDIR)/tile_mod.F90 \
     $(SRCDIR)/Grid_interface.F90 \
@@ -89,19 +107,24 @@ F2003_SRCS       = \
     $(TESTDIR)/Physics_op1_executeTask3_Tile.F90
 
 OBJS       = $(addsuffix .o, $(basename $(CXX_SRCS)))
+CUOBJS     = $(addsuffix .o, $(basename $(CU_SRCS)))
 MODS       = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND    =  $(BASE).x
 
 CXX        = mpic++
-CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include
+CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
 CXXWARNS   =
 
+CU         = nvcc
+CUFLAGS    = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -D__PGI
+CUWARNS    =
+
 F2003      = mpif90
-F2003FLAGS = -g -O0 -cpp -std=f2003 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003FLAGS = -g -O0 -cpp -I$(TESTDIR) -I$(AMREXDIR)/include -r8 -i4 -DUSE_CUDA_BACKEND
 F2003WARNS =
 
-LIBS       = -lpthread -lstdc++ -lamrex
-LDFLAGS    = -L$(AMREXDIR)/lib
+LIBS       = -lpthread -lstdc++ -lamrex -lcudart
+LDFLAGS    = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
  
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -110,13 +133,16 @@ endif
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp .mod .F90
+.SUFFIXES: .o .cpp .cu .mod .F90
 
-$(COMMAND): $(OBJS) $(MODS) $(MAKEFILE) 
-	$(F2003) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(OBJS) $(CUOBJS) $(MODS) $(MAKEFILE) 
+	$(F2003) -o $(COMMAND) $(OBJS) $(CUOBJS) $(MODS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.cu.o: $(CU_HDRS) $(MAKEFILE)
+	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
 
 # Move buildInfo.inc out so that we just write it once
 # Also, find commands that are universal
@@ -134,20 +160,20 @@ $(COMMAND): $(OBJS) $(MODS) $(MAKEFILE)
 	@printf "character(*), parameter :: HOSTNAME = \'" >> $(TESTDIR)/buildInfo.inc
 	@printf "%s\'\n" `hostname` >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: MACHINE_INFO = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.inc
+#	@printf "character(*), parameter :: MACHINE_INFO = \'" >> $(TESTDIR)/buildInfo.inc
+#	@printf "%s\'\n" `$(CXX) -dumpmachine` >> $(TESTDIR)/buildInfo.inc
 
 	@printf "character(*), parameter :: CXX_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
 	@printf "%s\'\n" $(CXX) >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: CXX_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+#	@printf "character(*), parameter :: CXX_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
+#	@printf "%s\'\n" `$(CXX) -dumpversion` >> $(TESTDIR)/buildInfo.inc
 
 	@printf "character(*), parameter :: F2003_COMPILER = \'" >> $(TESTDIR)/buildInfo.inc
 	@printf "%s\'\n" $(F2003) >> $(TESTDIR)/buildInfo.inc
 
-	@printf "character(*), parameter :: F2003_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
-	@printf "%s\'\n" `$(F2003) -dumpversion` >> $(TESTDIR)/buildInfo.inc
+#	@printf "character(*), parameter :: F2003_COMPILER_VERSION = \'" >> $(TESTDIR)/buildInfo.inc
+#	@printf "%s\'\n" `$(F2003) -dumpversion` >> $(TESTDIR)/buildInfo.inc
 
 	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
 

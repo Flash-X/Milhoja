@@ -14,18 +14,13 @@
 #include "setInitialConditions.h"
 #include "sleepyGoByeBye.h"
 
-#ifdef USE_CUDA_BACKEND
-#include "CudaStreamManager.h"
-#include "CudaMemoryManager.h"
-#endif
-
 // Have make specify build-time constants for file headers
 #include "buildInfo.h"
 
 constexpr unsigned int   N_TRIALS = 3;
 
 constexpr unsigned int   N_THREAD_TEAMS = 1;
-constexpr unsigned int   MAX_THREADS = 7;
+constexpr unsigned int   N_THREADS_PER_TEAM = 7;
 constexpr int            N_STREAMS = 32; 
 constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 12884901888; 
 
@@ -70,16 +65,11 @@ int   main(int argc, char* argv[]) {
     using namespace orchestration;
 
     // Initialize simulation
-    orchestration::Runtime::setNumberThreadTeams(N_THREAD_TEAMS);
-    orchestration::Runtime::setMaxThreadsPerTeam(MAX_THREADS);
-    orchestration::Runtime::setLogFilename("GatherDataCudaCpp.log");
+    Logger::instantiate("GatherDataCudaCpp.log");
 
-#ifdef USE_CUDA_BACKEND
-    orchestration::CudaStreamManager::setMaxNumberStreams(N_STREAMS);
-    orchestration::CudaMemoryManager::setBufferSize(MEMORY_POOL_SIZE_BYTES);
-#endif
-
-    orchestration::Runtime&   runtime = orchestration::Runtime::instance();
+    Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+    Runtime&   runtime = orchestration::Runtime::instance();
 
     Grid::instantiate();
     Grid&   grid = Grid::instance();

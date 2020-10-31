@@ -26,6 +26,7 @@ public:
 
     static void    instantiate(const std::string& filename);
     static Logger& instance(void);
+    static void    setLogFilename(const std::string& filename);
 
     void   log(const std::string& msg) const;
 

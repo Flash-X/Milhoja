@@ -1,11 +1,10 @@
-// WIP: Somehow NDEBUG is getting set and deactivating the asserts
-#ifdef NDEBUG
-#undef NDEBUG
+#ifndef USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
 #endif
-#include <cassert>
 
 #include "CudaDataPacket.h"
 
+#include <cassert>
 #include <cstring>
 #include <stdexcept>
 
@@ -58,10 +57,9 @@ CudaDataPacket::~CudaDataPacket(void) {
  *
  */
 void  CudaDataPacket::nullify(void) {
-    if (stream_.object != nullptr) {
+    if (stream_.cudaStream != nullptr) {
         CudaStreamManager::instance().releaseStream(stream_);
-        assert(stream_.object == nullptr);
-        assert(stream_.id == CudaStream::NULL_STREAM_ID);
+        assert(stream_.cudaStream == nullptr);
     }
 
     CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
@@ -84,7 +82,7 @@ void  CudaDataPacket::nullify(void) {
  *
  */
 std::string  CudaDataPacket::isNull(void) const {
-    if ((stream_.object != nullptr) || (stream_.id != CudaStream::NULL_STREAM_ID)) {
+    if (stream_.cudaStream != nullptr) {
         return "CUDA stream already acquired";
     } else if (packet_p_ != nullptr) {
         return "Pinned memory buffer has already been allocated";
@@ -203,9 +201,8 @@ void  CudaDataPacket::pack(void) {
                                    +        1 * COORDS_Y_SIZE_BYTES
                                    +        2 * ARRAY1_SIZE_BYTES);
 
-    // For the present purpose of development, fail if no streams available
     stream_ = CudaStreamManager::instance().requestStream(true);
-    if ((stream_.object == nullptr) || (stream_.id == CudaStream::NULL_STREAM_ID)) {
+    if (stream_.cudaStream == nullptr) {
         throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire stream");
     }
 
@@ -358,7 +355,7 @@ void  CudaDataPacket::unpack(void) {
     } else if (packet_d_ == nullptr) {
         throw std::logic_error("[CudaDataPacket::unpack] "
                                "No pointer to start of packet in GPU memory");
-    } else if ((stream_.object == nullptr) || (stream_.id == CudaStream::NULL_STREAM_ID)) {
+    } else if (stream_.cudaStream == nullptr) {
         throw std::logic_error("[CudaDataPacket::unpack] "
                                "CUDA stream not acquired");
     } else if (contents_p_ == nullptr) {
@@ -374,8 +371,7 @@ void  CudaDataPacket::unpack(void) {
 
     // Release stream as soon as possible
     CudaStreamManager::instance().releaseStream(stream_);
-    assert(stream_.object == nullptr);
-    assert(stream_.id == CudaStream::NULL_STREAM_ID);
+    assert(stream_.cudaStream == nullptr);
 
     PacketContents*   tilePtrs_p = contents_p_;
     for (std::size_t n=0; n<tiles_.size(); ++n, ++tilePtrs_p) {
@@ -429,11 +425,10 @@ void  CudaDataPacket::unpack(void) {
 void  CudaDataPacket::initiateHostToDeviceTransfer(void) {
     pack();
 
-    cudaStream_t  stream = *(stream_.object);
     cudaError_t cErr = cudaMemcpyAsync(packet_d_, packet_p_,
                                        nBytesPerPacket_,
                                        cudaMemcpyHostToDevice,
-                                       stream);
+                                       stream_.cudaStream);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::initiateHostToDeviceTransfer] ";
         errMsg += "Unable to execute H-to-D transfer\n";
@@ -444,17 +439,16 @@ void  CudaDataPacket::initiateHostToDeviceTransfer(void) {
 }
 
 /**
- *
+ *  \todo Determine how to implement this as an asynchronous transfer.
  */
 void  CudaDataPacket::transferFromDeviceToHost(void) {
     // Bring data back to host.  Use asynchronous transfer so that we can keep
     // the transfer off the default stream and therefore only wait on this
     // transfer.
-    cudaStream_t  stream = *(stream_.object);
     cudaError_t   cErr = cudaMemcpyAsync(packet_p_, packet_d_,
                                          nBytesPerPacket_,
                                          cudaMemcpyDeviceToHost,
-                                         stream);
+                                         stream_.cudaStream);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::transferFromDeviceToHost] ";
         errMsg += "Unable to execute D-to-H transfer\n";
@@ -462,7 +456,7 @@ void  CudaDataPacket::transferFromDeviceToHost(void) {
         errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
         throw std::runtime_error(errMsg);
     }
-    cudaStreamSynchronize(stream);
+    cudaStreamSynchronize(stream_.cudaStream);
 
     unpack();
 }

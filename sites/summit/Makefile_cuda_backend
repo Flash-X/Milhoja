@@ -14,11 +14,12 @@ CUDADIR      = $(OLCF_CUDA_ROOT)
 # Common files
 HDRS   = \
     $(INCDIR)/OrchestrationLogger.h \
-    $(INCDIR)/CudaStream.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/StreamManager.h \
     $(INCDIR)/CudaStreamManager.h
 SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/CudaStream.cpp \
+    $(SRCDIR)/StreamManager.cpp \
     $(TESTDIR)/testCudaStreamManager.cpp \
     $(TESTDIR)/runCudaBackendTests.cpp
 CU_SRCS       = \
@@ -28,12 +29,14 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
+OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
 CXX       = pgc++
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -D__PGI
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -D__PGI
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -lcudart -lgtest

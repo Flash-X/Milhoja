@@ -11,7 +11,7 @@
 #include "FArray4D.h"
 #include "Tile.h"
 #include "DataPacket.h"
-#include "CudaStream.h"
+#include "Stream.h"
 
 #include "constants.h"
 #include "Flash.h"
@@ -68,10 +68,10 @@ public:
     void                   initiateHostToDeviceTransfer(void) override;
     void                   transferFromDeviceToHost(void) override;
 #ifdef ENABLE_OPENACC_OFFLOAD
-    int                    asynchronousQueue(void) override { return stream_.id; }
+    int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
 #endif
 #ifdef ENABLE_CUDA_OFFLOAD
-    cudaStream_t           stream(void) { return *(stream_.object); };
+    cudaStream_t           stream(void) { return stream_.cudaStream; };
 #endif
 
     PacketDataLocation     getDataLocation(void) const override;
@@ -98,7 +98,7 @@ private:
     std::size_t*                           nTiles_d_;
     PacketContents*                        contents_p_;
     PacketContents*                        contents_d_;
-    CudaStream                             stream_;
+    Stream                                 stream_;
     std::size_t                            nBytesPerPacket_;
 };
 

@@ -6,8 +6,7 @@
 
 #include "DataItem.h"
 #include "DataPacket.h"
-
-#include "CudaStreamManager.h"
+#include "StreamManager.h"
 
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
@@ -24,10 +23,15 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
     const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
 
-    // FIXME: This is a temporary and unacceptable hack.  Action routines should
-    // not know that the runtime is using a Cuda backend.
-    CudaStream   stream = CudaStreamManager::instance().requestStream(true);
-    const int    queue2_h = stream.id;
+    // FIXME: If we allow this request to block, the code could deadlock.  We
+    // therefore, do not block in favor of aborting execution.
+    StreamManager& sMgr = StreamManager::instance();
+    Stream         stream = sMgr.requestStream(false);
+    const int      queue2_h = stream.accAsyncQueue;
+    if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
+        throw std::runtime_error("[computeLaplacianFusedActions_packet_oacc_summit] "
+                                 "Unable to acquire an extra asynchronous queue");
+    }
 
     packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
 
@@ -90,6 +94,6 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
 
     #pragma acc wait(queue_h,queue2_h)
 
-    CudaStreamManager::instance().releaseStream(stream);
+    sMgr.releaseStream(stream);
 }
 

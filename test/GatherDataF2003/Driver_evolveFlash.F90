@@ -110,12 +110,12 @@ program Driver_evolveFlash
     write(FOUT,'(A,A)')       "# Git Commit,", PROJECT_GIT_REPO_VER
 !    write(FOUT,'(A,A)')       "# AMReX version,", amrex::Version()
     write(FOUT,'(A,A)')       "# C++ compiler,", CXX_COMPILER
-    write(FOUT,'(A,A)')       "# C++ compiler version,", CXX_COMPILER_VERSION
+!    write(FOUT,'(A,A)')       "# C++ compiler version,", CXX_COMPILER_VERSION
     write(FOUT,'(A,A)')       "# F2003 compiler,", F2003_COMPILER
-    write(FOUT,'(A,A)')       "# F2003 compiler version,", F2003_COMPILER_VERSION
+!    write(FOUT,'(A,A)')       "# F2003 compiler version,", F2003_COMPILER_VERSION
     write(FOUT,'(A,A)')       "# Build date,", BUILD_DATETIME
     write(FOUT,'(A,A)')       "# Hostname, ", HOSTNAME
-    write(FOUT,'(A,A)')       "# Host information,", MACHINE_INFO
+!    write(FOUT,'(A,A)')       "# Host information,", MACHINE_INFO
     write(FOUT,'(A,E15.8,A)') "# MPI_Wtick,", MPI_Wtick(), ",sec"
     write(FOUT,'(A)')   "pmode,n_loops,n_thd_task1,n_thd_task2,n_thd_task3," // &
                         "NXB,NYB,NZB,N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z,"      // &

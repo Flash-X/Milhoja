@@ -8,6 +8,7 @@
 #include "ActionBundle.h"
 #include "ThreadTeamDataType.h"
 #include "Runtime.h"
+#include "OrchestrationLogger.h"
 
 using namespace orchestration;
 
@@ -17,13 +18,35 @@ extern "C" {
      */
     int    orchestration_init_fi(const int nTeams,
                                  const int nThreadsPerTeam,
+                                 const int nStreams,
+                                 const long long nBytesInMemoryPools,
                                  char* logFilename) {
-        try {
-            orchestration::Runtime::setNumberThreadTeams(static_cast<unsigned int>(nTeams));
-            orchestration::Runtime::setMaxThreadsPerTeam(static_cast<unsigned int>(nThreadsPerTeam));
-            orchestration::Runtime::setLogFilename(logFilename);
+        constexpr   std::size_t   MAX_SIZE_T = static_cast<std::size_t>(-1);
 
-            orchestration::Runtime::instance();
+        if (nTeams < 0) {
+            std::cerr << "[orchestration_init_fi] nTeams must be non-negative\n\n";
+            return 0;
+        } else if (nThreadsPerTeam < 0) {
+            std::cerr << "[orchestration_init_fi] nThreadsPerTeam must be non-negative\n\n";
+            return 0;
+        } else if (nStreams < 0) {
+            std::cerr << "[orchestration_init_fi] nStreams must be non-negative\n\n";
+            return 0;
+        } else if (nBytesInMemoryPools < 0) {
+            std::cerr << "[orchestration_init_fi] nBytesInMemoryPools must be non-negative\n\n";
+            return 0;
+        } else if (nBytesInMemoryPools > MAX_SIZE_T) {
+            std::cerr << "[orchestration_init_fi] nBytesInMemoryPools is too large\n\n";
+            return 0;
+        }
+
+        try {
+            orchestration::Logger::instantiate(logFilename);
+
+            orchestration::Runtime::instantiate(static_cast<unsigned int>(nTeams),
+                                                static_cast<unsigned int>(nThreadsPerTeam),
+                                                static_cast<unsigned int>(nStreams),
+                                                static_cast<std::size_t>(nBytesInMemoryPools));
         } catch (std::invalid_argument& e) {
             std::cerr << "\nINVALID ARGUMENT: " << e.what() << "\n\n";
             return 0;

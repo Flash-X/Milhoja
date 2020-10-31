@@ -1,6 +1,16 @@
-#include "cudaTestConstants.h"
-#include "CudaStreamManager.h"
+#ifndef USE_CUDA_BACKEND
+#error "No sense in running this test if CUDA backend not chosen"
+#endif
+
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "Please enable offloading with OpenACC"
+#endif
+
 #include "OrchestrationLogger.h"
+
+#include "CudaStreamManager.h"
+
+#include "cudaTestConstants.h"
 
 #include "gtest/gtest.h"
 
@@ -19,15 +29,16 @@ TEST(TestCudaStreamManager, TestManager) {
 
     Logger::instance().log("[googletest] Start TestManager test");
 
-    int  maxNumStreams = CudaStreamManager::getMaxNumberStreams();
-    CudaStreamManager&   sm = CudaStreamManager::instance();
+    StreamManager&   sm = StreamManager::instance();
+    int  maxNumStreams = sm.maxNumberStreams();
+    ASSERT_EQ(3, maxNumStreams);
     ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
 
     // Confirm that streams are null streams by default
-    CudaStream   streams[maxNumStreams];
+    Stream   streams[maxNumStreams];
     for (std::size_t i=0; i<maxNumStreams; ++i) {
-        ASSERT_EQ(CudaStream::NULL_STREAM_ID, streams[i].id);
-        ASSERT_EQ(nullptr,                    streams[i].object);
+        ASSERT_EQ(NULL_ACC_ASYNC_QUEUE, streams[i].accAsyncQueue);
+        ASSERT_EQ(nullptr,              streams[i].cudaStream);
     }
 
     // Check out all available streams and confirm that they are valid streams
@@ -35,92 +46,63 @@ TEST(TestCudaStreamManager, TestManager) {
     streams[1] = sm.requestStream(true); 
     streams[2] = sm.requestStream(true); 
     ASSERT_EQ(0, sm.numberFreeStreams());
-    EXPECT_NE(CudaStream::NULL_STREAM_ID, streams[0].id);
-    EXPECT_NE(nullptr,                    streams[0].object);
-    EXPECT_NE(CudaStream::NULL_STREAM_ID, streams[1].id);
-    EXPECT_NE(nullptr,                    streams[1].object);
-    EXPECT_NE(CudaStream::NULL_STREAM_ID, streams[2].id);
-    EXPECT_NE(nullptr,                    streams[2].object);
+    EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
+    EXPECT_NE(nullptr,              streams[0].cudaStream);
+    EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[1].accAsyncQueue);
+    EXPECT_NE(nullptr,              streams[1].cudaStream);
+    EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[2].accAsyncQueue);
+    EXPECT_NE(nullptr,              streams[2].cudaStream);
 
     // TODO: Get start time, call request, wait for a given amount of time,
     //       have another thread
     //       free a stream, and them confirm that time blocked is >= given time.
-//    CudaStream    blockedStream = sm.requestStream(true);
+//    Stream    blockedStream = sm.requestStream(true);
     
     // If there are no free streams and we don't want to be blocked, then the
     // returned stream should be a null stream.
-    CudaStream    nullStream = sm.requestStream(false);
-    EXPECT_EQ(CudaStream::NULL_STREAM_ID, nullStream.id);
-    EXPECT_EQ(nullptr,                    nullStream.object);
+    Stream    nullStream = sm.requestStream(false);
+    EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, nullStream.accAsyncQueue);
+    EXPECT_EQ(nullptr,              nullStream.cudaStream);
 
     // Confirm that releasing a stream nullifies my stream.
     sm.releaseStream(streams[0]);
     ASSERT_EQ(1, sm.numberFreeStreams());
-    EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[0].id);
-    EXPECT_EQ(nullptr,                    streams[0].object);
+    EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
+    EXPECT_EQ(nullptr,              streams[0].cudaStream);
 
     streams[0] = sm.requestStream(true); 
     ASSERT_EQ(0, sm.numberFreeStreams());
-    EXPECT_NE(CudaStream::NULL_STREAM_ID, streams[0].id);
-    EXPECT_NE(nullptr,                    streams[0].object);
+    EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
+    EXPECT_NE(nullptr,              streams[0].cudaStream);
 
-    // A double release should fail as the stream should not be free on the
-    // second call.  Try the double call now so that we know that the error
-    // that we would like to test is not mixed with the error of returning too
-    // many streams.
-    CudaStream  goodStream;
-    goodStream.id      = streams[0].id;
-    goodStream.object  = streams[0].object;
-
-    // Create a counterfeit stream.  The ID doesn't match the stream pointer.
-    // Use the ID of streams[1] as that stream will still be out at the time of
-    // the test.
-    CudaStream  badStream;
-    badStream.id      = streams[1].id;
-    badStream.object  = streams[0].object;
-
-    // Double release should fail
     sm.releaseStream(streams[0]); 
-    try {
-        sm.releaseStream(goodStream); 
-        EXPECT_TRUE(false);
-    } catch(const std::invalid_argument&) {
-        EXPECT_TRUE(true);
-    }
-
-    // Confirm that counterfeit streams can't be released.
-    try {
-        sm.releaseStream(badStream); 
-        EXPECT_TRUE(false);
-    } catch(const std::invalid_argument&) {
-        EXPECT_TRUE(true);
-    }
-
     sm.releaseStream(streams[2]); 
     sm.releaseStream(streams[1]); 
     ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
-    EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[0].id);
-    EXPECT_EQ(nullptr,                    streams[0].object);
-    EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[1].id);
-    EXPECT_EQ(nullptr,                    streams[1].object);
-    EXPECT_EQ(CudaStream::NULL_STREAM_ID, streams[2].id);
-    EXPECT_EQ(nullptr,                    streams[2].object);
+    EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
+    EXPECT_EQ(nullptr,              streams[0].cudaStream);
+    EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[1].accAsyncQueue);
+    EXPECT_EQ(nullptr,              streams[1].cudaStream);
+    EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[2].accAsyncQueue);
+    EXPECT_EQ(nullptr,              streams[2].cudaStream);
 
     // TEST ERRORS ASSOCIATED WITH RELEASING STREAMS
     // Run the tests when there is still one stream to return
     // so that we cannot mistake the desired error with the error of releasing
     // more streams than the manager owns.
     streams[0] = sm.requestStream(true);
-    CudaStream   goodStream2;
-    goodStream.id      = streams[0].id;
-    goodStream.object  = streams[0].object;
-    goodStream2.id     = goodStream.id;
-    goodStream2.object = goodStream.object;
+    Stream   goodStream;
+    Stream   goodStream2;
+    goodStream.accAsyncQueue  = streams[0].accAsyncQueue;
+    goodStream.cudaStream     = streams[0].cudaStream;
+    goodStream2.accAsyncQueue = goodStream.accAsyncQueue;
+    goodStream2.cudaStream    = goodStream.cudaStream;
 
-    // Cannot release a stream with a null ID
+    // Cannot release a stream with a null OpenACC async queue ID
+    Stream   badStream;
     try {
-        badStream.id     = CudaStream::NULL_STREAM_ID;
-        badStream.object = goodStream.object;
+        badStream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
+        badStream.cudaStream    = goodStream.cudaStream;
         sm.releaseStream(badStream);
         EXPECT_TRUE(false);
     } catch(const std::invalid_argument&) {
@@ -129,18 +111,8 @@ TEST(TestCudaStreamManager, TestManager) {
 
     // The stream pointer cannot be null
     try {
-        badStream.id     = goodStream.id;
-        badStream.object = nullptr;
-        sm.releaseStream(badStream);
-        EXPECT_TRUE(false);
-    } catch(const std::invalid_argument&) {
-        EXPECT_TRUE(true);
-    }
-
-    // The stream ID must be valid
-    try {
-        badStream.id     = maxNumStreams + 1;
-        badStream.object = goodStream.object;
+        badStream.accAsyncQueue = goodStream.accAsyncQueue;
+        badStream.cudaStream    = nullptr;
         sm.releaseStream(badStream);
         EXPECT_TRUE(false);
     } catch(const std::invalid_argument&) {
@@ -175,14 +147,14 @@ TEST(TestCudaStreamManager, TestStreams) {
     // into smaller equal-sized chunks for computation with GPU.
     constexpr  std::size_t  N_DATA_PER_PACKET = 1024;
 
-    int  maxNumStreams = CudaStreamManager::getMaxNumberStreams();
+    StreamManager&   sm = StreamManager::instance();
+    int  maxNumStreams = sm.maxNumberStreams();
+    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+
     int  nPackets = maxNumStreams;
     int  nData = nPackets * N_DATA_PER_PACKET;
 
-    CudaStreamManager&   sm = CudaStreamManager::instance();
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
-
-    CudaStream   streams[maxNumStreams];
+    Stream   streams[maxNumStreams];
     for (unsigned int i=0; i<maxNumStreams; ++i) {
         streams[i] = sm.requestStream(true); 
     }
@@ -201,7 +173,7 @@ TEST(TestCudaStreamManager, TestStreams) {
     }
 
     for (unsigned int i=0; i<maxNumStreams; ++i) {
-        cudaStream_t  myStream = *(streams[i].object);
+        cudaStream_t  myStream = streams[i].cudaStream;
         unsigned int  offset = i * N_DATA_PER_PACKET;
         cErr = cudaMemcpyAsync(data_d + offset,
                                data_p + offset,
