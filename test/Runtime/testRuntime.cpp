@@ -328,6 +328,39 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
 #endif
 
 #if defined(USE_CUDA_BACKEND)
+TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
+    Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu Fused Actions");
+
+    RuntimeAction    computeLaplacian_cpu;
+    RuntimeAction    computeLaplacian_gpu;
+
+    computeLaplacian_cpu.name            = "LaplacianFused_cpu";
+    computeLaplacian_cpu.nInitialThreads = 3;
+    computeLaplacian_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacian_cpu.nTilesPerPacket = 0;
+    computeLaplacian_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+
+    computeLaplacian_gpu.name            = "LaplacianFused_gpu";
+    computeLaplacian_gpu.nInitialThreads = 3;
+    computeLaplacian_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacian_gpu.nTilesPerPacket = 20;
+    computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
+                                                computeLaplacian_cpu,
+                                                computeLaplacian_gpu,
+                                                15);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Data Parallel Cpu/Gpu Fused Actions");
+}
+#endif
+
+#if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu Fused Kernels");
 
