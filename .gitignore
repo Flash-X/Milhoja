@@ -6,6 +6,7 @@ gatherDataF2003_*_*_*_*_*_*.dat
 docs/OrchestrationSystem.log
 docs/OrchestrationSystem.aux
 docs/OrchestrationSystem.pdf
+docs/OrchestrationRuntimeRepo.pdf
 docs/data\ types.pdf
 docs/GridPolymorphism.pdf
 sites/*/test_threadteam_cpp.x

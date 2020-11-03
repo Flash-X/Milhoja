@@ -1,0 +1,45 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage[toc,page]{appendix}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{commath}
+\usepackage{color}
+
+\title{Orchestration Runtime Repository Documentation}
+
+% No automatic indenting
+\setlength\parindent{0pt}
+
+% Set spacing between items in itemize/enumerate
+\setlist{itemsep=1pt}
+
+\newcommand{\N}                 {{\mathbb N}}
+\newcommand{\Z}                 {{\mathbb Z}}
+\newcommand{\Q}                 {{\mathbb Q}}
+\newcommand{\R}                 {{\mathbb R}}
+\newcommand{\C}                 {{\mathbb C}}
+\newcommand{\F}                 {{\mathbb F}}
+
+
+
+\begin{document}
+
+% Setup numbered/referentiable environment for requirements
+\theoremstyle{definition} % No italics or spaces
+\newtheorem{req}{Req}[section]
+\newtheorem{spec}{Spec}[section]
+
+\maketitle
+\section{Requirements}
+Talking about requirements for stuff like organization and build system.
+
+\section{Structure}
+Summary of the folder and file hierarchy in the repo.
+
+
+
+\end{document}
