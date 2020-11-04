@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage[margin=1in]{geometry}
+\usepackage{xspace} % use \xspace if you have spacing issues in your macros
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage[toc,page]{appendix}
@@ -17,14 +18,14 @@
 % Set spacing between items in itemize/enumerate
 \setlist{itemsep=1pt}
 
+\newcommand{\FutureFlash}       {\textsf{FLASH}-X\xspace}
+
 \newcommand{\N}                 {{\mathbb N}}
 \newcommand{\Z}                 {{\mathbb Z}}
 \newcommand{\Q}                 {{\mathbb Q}}
 \newcommand{\R}                 {{\mathbb R}}
 \newcommand{\C}                 {{\mathbb C}}
 \newcommand{\F}                 {{\mathbb F}}
-
-
 
 \begin{document}
 
@@ -35,11 +36,184 @@
 
 \maketitle
 \section{Requirements}
-Talking about requirements for stuff like organization and build system.
+The statements made in this section are intended to be informal, high-level
+requirements.  Specifically, they should be correct and satisfied at all points
+in time during the lifetime of the repository and ideally require little change
+as our repository needs and our repository design change.  In other words, these
+statements should not be informed by implementation ideas or details.  Note that
+the runtime is presently the main element of and driving motivation for the
+existence of the repository.  As the runtime is a standalone tool, our current
+understanding of the repository and its contents is that they provide general
+library-like facilities to external calling code.  In particular, this means
+that the requirements given here should provide for adequate encapsulation and
+modularity so that the contents of this repository are sufficiently decoupled
+from tools (such as the offline toolchain) that collaborate with and
+applications that could use the contents.  That said, it is our intent that the
+development and maintenance of the contents of this repository be done in a
+thoughtful way such that the interface of the code in the repository lends itself
+to simple and effective collaboration with the offline toolchain and for easy
+integration with calling code.\\
+
+Note that requirements that are written in black letter are considered to be actual
+requirements; in \textcolor{red}{red}, proposed requirements.
+
+\begin{req}
+\label{req:OsAndPlatform}
+ADAPTED FROM ORCHESTRATION SYSTEM DOC: The code in the repository shall be written so
+that all applications built from the code can be used on *nix operation systems
+including macOS and run on a variety of platforms including laptops.  In doing
+so, this repository will support \FutureFlash as a viable research tool for many
+researchers.
+\end{req}
+
+\begin{req}
+\label{req:LanguageStandards}
+ADAPTED FROM ORCHESTRATION SYSTEM DOC: All code in the repository that is
+written in C++ shall conform to C++11; written in Fortran, to F2003.  In the
+latter case, code in physics routines shall restrict itself to F95 where
+possible.  It is expected that the only Fortran code that will use F2003 is at
+C/Fortran interoperability layers.  Any multithreaded code  in the repository
+shall be portable across platforms that conform to Req~\ref{req:OsAndPlatform}.
+These requirements are motivated by the goals of
+\begin{itemize}
+\item{supporting \FutureFlash as a viable research tool for many researchers,}
+\item{avoiding the difficulties associated with heavily templated and modern
+C++, and}
+\item{increasing the likelihood that our code can be used effectively and early
+on emerging platforms as Fortran compilers are implemented.}
+\end{itemize}
+\end{req}
+\textcolor{blue}{Present implementation of runtime is with pthreads, which is
+portable based on OS (is it compliant with the POSIX standard).  Is this good
+enough?}\\
+\textcolor{blue}{Can we get away with prohbiting the use of classes in Fortran
+and if so, how do we enforce this?}
+
+\begin{req}
+\label{req:PreferC++}
+All new infrastructure code added to this repository should be written in C++
+rather than Fortran unless the code is part of a C/Fortran layer.  This is
+motivated by the current HPC atmosphere that tools and resources for current and
+future platforms should be invested in C++ over Fortran.
+\end{req}
+
+\textcolor{red}{
+\begin{req}
+\label{req:C++Standards}
+All C++ code in the repository shall adhere to Google's C++ standards.  This is
+chosen as it is likely well-informed, well-known, and requires no effort on our
+part to construct and maintain custom standards.  In addition, we expect that
+tools will exist to help us verify that this requirement is satisfied at all
+times.
+\end{req}}
+
+\begin{req}
+The repository infrastructure shall allow for continuous integration (CI)
+testing implemented with automatic build servers such that satisfaction of
+Req~\ref{req:OsAndPlatform} can be confirmed\footnote{This is contingent on the
+availability of different OS/platform configurations with the necessary build
+server facilities.}.  The integration with test servers shall include a
+web-based user interface such that developers, maintainers, and users can
+easily, unambiguously, and correctly determine if the code is correct and
+satisfies requirements.  In addition, the integration shall allow for developers
+and maintainers to determine what is failing so that identifying and correcting
+failures is efficient.
+\end{req}
+
+\begin{req}
+The test suite shall include valgrind-based tests to verify the absence of leaks
+in all thread team configurations available through the runtime interface.  The
+detection of leaks shall be propagated to the user through the CI test server
+interface.
+\end{req}
+
+\begin{req}
+Important indicators of thread team and runtime performance will be determined
+along with acceptable thresholds of these across different timing tests of all
+thread team configurations and across different platforms.  The test suite shall
+execute the same timing tests used to determine these and report for each test
+execution the associated values of these indicators.  The test infrastructure
+shall have a means for visualizing the timeline of these indicators as well as a
+means to determine if a performance regression has occurred.  The detection of a
+performance regression shall be propagated to maintainers via the CI build
+server interface.  Performance regression testing will be fundamental to aid in
+effective and efficient optimization of the runtime across all testing platforms
+and to avoid unwanted and unintended degradation of runtime performance by early
+detection of regressions.
+\end{req}
+
+\textcolor{blue}{Do we have requirements on running in TravisCI, for example,
+for smoke testing?  Does this, therefore, place a requirement on build/execution
+time for our build suite?}\\
+
+\textcolor{blue}{Documentation requirements?}\\
+
+\textcolor{blue}{Code coverage execution and visualization of results?}\\
+
+\textcolor{blue}{Should the build system allow not only for building tests, but
+also for building production and debug versions of the runtime as a library
+(static and dynamic?)?  Should we allow for building the library and testing
+through spack?  To save time, should the test suite just build a single instance
+of each of the production and debug libraries?  If so, then each test could just
+link to the static libraries.  Should the build system always build the full
+libraries or only build libraries that meet the requirements of a single
+intended use?  Can we build full libraries in our repo but allow \FutureFlash to
+build in only necessary files using its setup tool?}
 
 \section{Structure}
 Summary of the folder and file hierarchy in the repo.
 
+\section{Technical Specifications \& Design}
+The statements that appear in this section are being referred to as technical
+specifications rather than requirements in that these statements are low-level
+and directly informed by the design and how we plan to implement the design.
+Therefore, it is expected that a change in the design that does not violate the
+above requirements could still require significant changes to the technical
+specifications in this section.\\
 
+\textcolor{red}{
+\begin{spec}
+The repository infrastructure shall contain at least one linter that can be used
+to confirm that Req~\ref{req:C++Standards} is satisified.  When is the linter
+run and how is its output used to inform repo managers that there was an
+infraction?  How can violators know what part of there work needs improvement?
+\end{spec}}
+
+\begin{spec}
+The workflows for adding code to and modifying code already in the repository
+shall be created such that Req~\ref{req:PreferC++} is satisfied.  Ideally, such
+processes will identify the need to use C++ well before code reviews triggered
+by pull request.
+\end{spec}
+
+\begin{spec}
+The build system shall be designed and implemented such that any non-conformity
+of Req~\ref{req:LanguageStandards} are detected and result in an inability to
+build tests.  Such failures shall be connected to testing infrastructure so that
+it is immediately clear that a failure has occurred.
+\end{spec}
+
+\textcolor{red}{
+\begin{spec}
+Where compatible with individual test design, all automated tests shall make use
+of googletest.  How do we save googletest results to disk?  Will people be able
+to read this output and if so, how far in the timeline of test executions will
+they be able to look?  Is googletest able to communicate to our CI build servers
+the necessary pass/fail signal?  I like googletest because it can confirm that
+desired errors were detected and the correct error thrown.  But, can we make
+googletest work with more than one MPI process?
+\end{spec}}
+
+\textcolor{red}{
+\begin{spec}
+The repository shall be written such that its test suite and other quality
+assurance tools can be run on CELS- and Jenkins-based build servers.  In
+addition, we shall be able to use the ECP-based CI test system used so that our
+repository can run tests on the different leadership-class platforms and using
+different software stacks on each of these.  This latter point is important to
+ensure correct execution of the runtime and its backends on such platforms and
+to pinpoint possible performance regressions.
+\end{spec}}
 
 \end{document}
+
