@@ -160,6 +160,59 @@ libraries or only build libraries that meet the requirements of a single
 intended use?  Can we build full libraries in our repo but allow \FutureFlash to
 build in only necessary files using its setup tool?}
 
+\section{Build System}
+\begin{req}
+There shall exist a lightweight script tentatively called the 'Build tool' or 'Setup tool' that is invoked by the user to set up the build directory with the necessary files to \texttt{make} a test.
+\end{req}
+\begin{req}
+The build tool shall automate the process of running a linter and a code coverage checker on code. The linter shall run before compilation (always) and a code coverage report shall be able to be generated after the test is run (if requested).
+\end{req}
+
+\subsection{Makefile specs}
+\begin{spec}
+There exists a templated "site Makefile" which contains flags (e.g. optimization) and paths (e.g. AMReX) can be customized by users.
+\end{spec}
+\begin{spec}
+There exists a Makefile for the Runtime and Grid units, which is capable of building a linkable library with a specified backend for each.
+\end{spec}
+\begin{spec}
+Each test has a Makefile which is capable of building the test when combined with a site Makefile.
+\end{spec}
+
+
+\subsection{Runtime/Grid Library}
+\begin{spec}
+\textcolor{red}{
+During a run of a test suite, the Runtime and Grid units are built into a library as a first step (multiple to cover different ndim/backends). Then each test simply links the appropriate library. (Pro: reduces test suite running time)}
+
+OR
+
+\textcolor{red}{Each test builds the runtime and grid units individually (similar to FLASH's use of Paramesh). (Pro: simpler workflow, potentially more efficient?)}
+\end{spec}
+
+\subsection{Build Tool specs}
+\begin{spec}
+The script must get the following parameters from command line: build directory, site name, test name.
+\end{spec}
+\begin{spec}
+The build tool constructs parameter files (e.g. Flash.h, constants.h).
+\end{spec}
+\begin{spec}
+The build tool makes a composite test (and library?) Makefile with universal and site-specific information.
+\end{spec}
+\begin{spec}
+The build tool places the constructed Makefile(s) and parameter files into the build directory. 
+\end{spec}
+
+\subsection{Build Directory}
+\begin{spec}
+\textcolor{red}{The build tool compiles and puts .o files into build directory.}
+
+OR
+
+\textcolor{red}{The build tool symlinks all files into the build directory (FLASH-style) before compilation. Pro: can edit files from build dir, easier to list files in Makefile, might make linter and code coverage tool easier to use?}
+\end{spec}
+
 \section{Structure}
 Summary of the folder and file hierarchy in the repo.
 
