@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <AMReX.H>
-#include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include "TileIterAmrex.h"
 
@@ -107,7 +106,8 @@ void  GridAmrex::destroyDomain(void) {
  *
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
-void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
+void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
+                           ERROR_ROUTINE errorEst) {
     if (amrcore_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
                                " already called");
@@ -117,13 +117,31 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     }
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock);
+    amrcore_ = new AmrCoreFlash(initBlock,errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +
                       std::to_string(amrcore_->globalNumBlocks()) +
                       " total blocks.";
     Logger::instance().log(msg);
+}
+
+void GridAmrex::restrictAllLevels() {
+    amrcore_->averageDownAll();
+}
+
+/** Fill guard cells on all levels.
+  */
+void  GridAmrex::fillGuardCells() {
+    for(int lev=0; lev<=getMaxLevel(); ++lev) {
+#ifdef GRID_LOG
+        Logger::instance().log("[GridAmrex] GCFill on level " +
+                           std::to_string(lev) );
+#endif
+
+        amrex::MultiFab& unk = amrcore_->unk(lev);
+        amrcore_->fillPatch(unk, lev);
+    }
 }
 
 
@@ -186,13 +204,8 @@ unsigned int GridAmrex::getMaxLevel() const {
 /**
  *
  */
-void    GridAmrex::writeToFile(const std::string& filename) const {
-    amrex::Vector<std::string>    names(amrcore_->unk(0).nComp());
-    names[0] = "Density";
-    names[1] = "Energy";
-
-    amrex::WriteSingleLevelPlotfile(filename, amrcore_->unk(0), names,
-                                    amrcore_->Geom(0), 0.0, 0);
+void    GridAmrex::writePlotfile(const std::string& filename) const {
+    amrcore_->writeMultiPlotfile(filename);
 }
 
 /**
@@ -210,7 +223,7 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    GridAmrex::getDeltas(const unsigned int level) const {
-    return RealVect{amrcore_->Geom(0).CellSize()};
+    return RealVect{amrcore_->Geom(level).CellSize()};
 }
 
 
@@ -224,7 +237,7 @@ RealVect    GridAmrex::getDeltas(const unsigned int level) const {
 Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
                                    const unsigned int lev,
                                    const IntVect& coord) const {
-    return amrcore_->Geom(0).AreaLo( amrex::IntVect(coord) , axis);
+    return amrcore_->Geom(lev).AreaLo( amrex::IntVect(coord) , axis);
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
@@ -235,7 +248,7 @@ Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
   */
 Real  GridAmrex::getCellVolume(const unsigned int lev,
                                const IntVect& coord) const {
-    return amrcore_->Geom(0).Volume( amrex::IntVect(coord) );
+    return amrcore_->Geom(lev).Volume( amrex::IntVect(coord) );
 }
 
 /** fillCellCoords fills a Real array (passed by pointer) with the
@@ -247,6 +260,9 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
+  *
+  * \todo profile this, see if we can get a version that doesn't require
+  * extra copying.
   */
 FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
                                      const unsigned int edge,
@@ -269,17 +285,16 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
     amrex::Vector<amrex::Real> coordvec;
     switch (edge) {
         case Edge::Left:
-            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
+            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
             break;
         case Edge::Right:
             offset = 1;
-            amrcore_->Geom(0).GetEdgeLoc(coordvec,range,axis);
+            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
             break;
         case Edge::Center:
-            amrcore_->Geom(0).GetCellLoc(coordvec,range,axis);
+            amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
             break;
     }
-    // TODO profile these calls, see if we can get a version that doesn't require extra copying.
 
     //copy results to output
     FArray1D coords = FArray1D::buildScratchArray1D(lo[axis], hi[axis]);
@@ -313,7 +328,7 @@ void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox area_fab{range,1,areaPtr};
-    amrcore_->Geom(0).CoordSys::SetFaceArea(area_fab,range,axis);
+    amrcore_->Geom(lev).CoordSys::SetFaceArea(area_fab,range,axis);
 }
 
 
@@ -333,7 +348,7 @@ void    GridAmrex::fillCellVolumes(const unsigned int lev,
                                    Real* volPtr) const {
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
     amrex::FArrayBox vol_fab{range,1,volPtr};
-    amrcore_->Geom(0).CoordSys::SetVolume(vol_fab,range);
+    amrcore_->Geom(lev).CoordSys::SetVolume(vol_fab,range);
 }
 
 

@@ -21,6 +21,11 @@
 
 namespace orchestration {
 
+/**
+  * Grid is an abstract base class designed with the singleton pattern.
+  * Each AMR package will have a corresponding derived class from Grid,
+  * implementing at least the pure virtual functions.
+  */
 class Grid {
 public:
     virtual ~Grid(void) { instantiated_ = false; }
@@ -37,15 +42,19 @@ public:
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
-    virtual void initDomain(ACTION_ROUTINE initBlock) = 0;
+    virtual void initDomain(ACTION_ROUTINE initBlock,
+                            ERROR_ROUTINE errorEst) = 0;
+    virtual void restrictAllLevels() = 0;
+    virtual void fillGuardCells() = 0;
+    virtual void regrid() = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;
     virtual IntVect        getDomainHi(const unsigned int lev) const = 0;
     virtual RealVect       getProbLo() const = 0;
     virtual RealVect       getProbHi() const = 0;
     virtual unsigned int   getMaxRefinement() const = 0;
     virtual unsigned int   getMaxLevel() const = 0;
-    virtual void writeToFile(const std::string& filename) const = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
+    virtual void writePlotfile(const std::string& filename) const = 0;
 
 
     // Virtual functions with a default implementation that may be
@@ -76,7 +85,7 @@ public:
 
 protected:
     Grid(void) {}
-    static bool instantiated_;
+    static bool instantiated_; //!< Track if singleton has been instantiated.
 
 };
 

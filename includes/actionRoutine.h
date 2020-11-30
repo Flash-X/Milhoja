@@ -13,12 +13,18 @@
 #define ACTION_ROUTINE_H__
 
 #include "DataItem.h"
+#include <memory>
 
 namespace orchestration {
 
 // The data item must be passed as a pointer for interoperability with Fortran
 // interface
 using ACTION_ROUTINE = void (*)(const int tId, DataItem* work);
+
+
+// TODO rethink how error calculation/tagging for refinement will work.
+class Tile;
+using ERROR_ROUTINE = void (*) (std::shared_ptr<Tile> tileDesc, int* tptr);
 
 }
 

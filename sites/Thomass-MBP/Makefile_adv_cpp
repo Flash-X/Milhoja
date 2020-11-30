@@ -2,15 +2,16 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE         = test_grid_cpp
-MAKEFILE     = Makefile_grid_cpp
+BASE         = test_adv_cpp
+MAKEFILE     = Makefile_adv_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
-TESTDIR      = $(BASEDIR)/test/Grid
+TESTDIR      = $(BASEDIR)/test/Adv
 AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
+ADVBASE       = $(HOME)/Documents/amrex/Tutorials/Amr/Advection_AmrCore
 
 # Common files
 CXX_HDRS   = \
@@ -33,26 +34,20 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/OrchestrationRuntime.h \
-    $(TESTBASEDIR)/setInitialConditions_block.h \
-    $(TESTDIR)/setInitialInterior.h
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.h \
-    $(TESTBASEDIR)/scaleEnergy_block.h \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.h \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.h \
-    $(TESTBASEDIR)/scaleEnergy_packet.h \
-    $(TESTBASEDIR)/Analysis.h
+    $(TESTDIR)/setInitialAdv.h \
+    $(TESTDIR)/Driver.h \
+    $(ADVBASE)/Source/AmrCoreAdv_F.H
 SRCS       = \
-    $(TESTDIR)/runGridTest.cpp \
-    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTDIR)/runAdvTest.cpp \
+    $(TESTDIR)/advectionTest.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/FArray4D.cpp \
-    $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/Tile.cpp \
+    $(TESTDIR)/Driver.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/OrchestrationRuntime.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
@@ -64,28 +59,32 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/DataItemSplitter.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp \
-    $(TESTDIR)/setInitialInteriorTest.cpp \
-    $(TESTBASEDIR)/errorEstBlank.cpp \
-    $(TESTDIR)/errorEstMultiple.cpp \
-    $(TESTDIR)/errorEstMaximal.cpp
-    #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
-    $(TESTBASEDIR)/scaleEnergy_block.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_packet.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_packet.cpp \
-    $(TESTBASEDIR)/scaleEnergy_packet.cpp \
-    $(TESTBASEDIR)/Analysis.cpp
+    $(TESTDIR)/setInitialAdv.cpp \
+    $(TESTDIR)/errorEstAdv.cpp
 
-OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+F2003_SRCS = \
+    $(ADVBASE)/Exec/SingleVortex/Prob.f90 \
+    $(ADVBASE)/Exec/SingleVortex/face_velocity_2d.f90 \
+    $(ADVBASE)/Source/Src_2d/slope_2d.f90 \
+    $(ADVBASE)/Source/bc_fill_nd.F90 \
+    $(ADVBASE)/Source/Src_2d/compute_flux_2d.f90 \
+    $(ADVBASE)/Source/Src_2d/Adv_2d.f90 \
+    $(ADVBASE)/Source/Src_nd/Tagging_nd.f90
+
+OBJS      = $(addsuffix .o,   $(basename $(SRCS)))
+MODS      = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include -I$(ADVBASE)/Source
 CXXWARNS  =
 
+F2003     = mpif90
+F2003FLAGS = -g -O0 -cpp -std=f2008 -I$(TESTDIR) -I$(AMREXDIR)/include -fdefault-real-8 -fdefault-double-8
+F2003WARNS =
+
 #LIBS      = -lpthread -lstdc++ -lgfortran -lamrex -lgtest
-LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LIBS      = -lpthread -lc++ -lstdc++ -lamrex -lgtest
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
 
 ifdef DEBUG
@@ -98,13 +97,20 @@ endif
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp
+.SUFFIXES: .o .cpp .mod .F90 .f90
 
-$(COMMAND): $(OBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(MODS) $(OBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.F90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
+	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
+
+.f90.mod: $(CXX_SRC) $(CXX_HDRS) $(MAKEFILE)
+	$(F2003) -c $(F2003FLAGS) $(F2003WARNS) -o $@ $<
+
 
 clean:
 	/bin/rm -f $(COMMAND)
@@ -112,4 +118,5 @@ clean:
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.mod
 
