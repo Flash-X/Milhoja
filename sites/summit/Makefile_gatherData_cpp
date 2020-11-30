@@ -46,6 +46,7 @@ CXX_HDRS   = \
     $(INCDIR)/StreamManager.h \
     $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/setInitialConditions.h \
+    $(TESTBASEDIR)/errorEstBlank.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/computeLaplacianFused.h \
@@ -79,6 +80,7 @@ SRCS       = \
     $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_oacc_summit.cpp \

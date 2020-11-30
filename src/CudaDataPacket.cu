@@ -8,10 +8,14 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "Grid_REAL.h"
+#include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
 #include "Grid.h"
+#include "FArray1D.h"
+#include "FArray4D.h"
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 

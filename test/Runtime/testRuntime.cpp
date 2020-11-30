@@ -2,6 +2,7 @@
 #include "RuntimeAction.h"
 #include "Runtime.h"
 #include "OrchestrationLogger.h"
+#include "errorEstBlank.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -21,7 +22,8 @@ namespace {
 class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
-        Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+        Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                    Simulation::errorEstBlank);
     }
 
     ~TestRuntime(void) {

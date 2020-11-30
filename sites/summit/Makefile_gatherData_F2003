@@ -2,15 +2,16 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE     = gather_data_F2003
-MAKEFILE = Makefile_gatherData_F2003
-BASEDIR  = ../..
-INCDIR   = $(BASEDIR)/includes
-SRCDIR   = $(BASEDIR)/src
-TESTDIR  = $(BASEDIR)/test/GatherDataF2003
-AMREXDIR = $(HOME)/local/pgi_19.9/AMReX_2d
-CUDADIR  = $(OLCF_CUDA_ROOT)
-PGIDIR   = $(OLCF_PGI_ROOT)/linuxpower/19.9
+BASE        = gather_data_F2003
+MAKEFILE    = Makefile_gatherData_F2003
+BASEDIR     = ../..
+INCDIR      = $(BASEDIR)/includes
+SRCDIR      = $(BASEDIR)/src
+TESTBASEDIR = $(BASEDIR)/test/Base
+TESTDIR     = $(BASEDIR)/test/GatherDataF2003
+AMREXDIR    = $(HOME)/local/pgi_19.9/AMReX_2d
+CUDADIR     = $(OLCF_CUDA_ROOT)
+PGIDIR      = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files
 CXX_HDRS   = \
@@ -43,7 +44,8 @@ CXX_HDRS   = \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/Stream.h \
     $(INCDIR)/StreamManager.h \
-    $(INCDIR)/Runtime.h
+    $(INCDIR)/Runtime.h \
+    $(TESTBASEDIR)/errorEstBlank.h
 CU_HDRS   = \
     $(INCDIR)/CudaGpuEnvironment.h \
     $(INCDIR)/CudaDataPacket.h \
@@ -73,7 +75,8 @@ CXX_SRCS       = \
     $(SRCDIR)/Runtime.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
-    $(SRCDIR)/orchestration_runtime_fi.cpp
+    $(SRCDIR)/orchestration_runtime_fi.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp
 CU_SRCS       = \
     $(SRCDIR)/CudaGpuEnvironment.cu \
     $(SRCDIR)/CudaDataPacket.cu \
@@ -112,7 +115,7 @@ MODS       = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND    =  $(BASE).x
 
 CXX        = mpic++
-CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
+CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
 CXXWARNS   =
 
 CU         = nvcc

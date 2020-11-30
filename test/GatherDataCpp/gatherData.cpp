@@ -8,6 +8,7 @@
 #include "Grid.h"
 #include "Runtime.h"
 #include "OrchestrationLogger.h"
+#include "errorEstBlank.h"
 
 #include "Flash.h"
 #include "constants.h"
@@ -129,7 +130,8 @@ int   main(int argc, char* argv[]) {
 
     Grid::instantiate();
     Grid&   grid = Grid::instance();
-    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                    Simulation::errorEstBlank);
 
     // Setup logging of results
     std::string  fname("gatherDataCpp_");
