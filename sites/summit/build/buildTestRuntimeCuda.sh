@@ -12,17 +12,15 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
-module purge
-module load git/2.20.1
-module load pgi/19.9
-module load spectrum-mpi/10.3.1.2-20200121
-module load cuda/10.1.243
-module list
+. $RUNTIME_PGI_SETUP
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
+echo
 date
+echo
+module list
 echo
 echo "Current Branches in Repository"
 echo "-----------------------------------------------------------"

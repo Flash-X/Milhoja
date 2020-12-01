@@ -12,15 +12,15 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
-module purge
-module load git
-module load gcc/9.1.0
-module list
+. $RUNTIME_GNU_SETUP
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
+echo
 date
+echo
+module list
 echo
 echo "Current Branches in Repository"
 echo "-----------------------------------------------------------"

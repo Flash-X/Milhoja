@@ -10,7 +10,6 @@ SRCDIR      = $(BASEDIR)/src
 TESTBASEDIR = $(BASEDIR)/test/Base
 TESTDIR     = $(BASEDIR)/test/GatherDataF2003
 AMREXDIR    = $(HOME)/local/pgi_19.9/AMReX_2d
-CUDADIR     = $(OLCF_CUDA_ROOT)
 PGIDIR      = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files
@@ -38,19 +37,14 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/DataItem.h \
-    $(INCDIR)/DataPacket.h \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/ActionBundle.h \
     $(INCDIR)/Stream.h \
     $(INCDIR)/StreamManager.h \
+    $(INCDIR)/NullStreamManager.h \
     $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/errorEstBlank.h
-CU_HDRS   = \
-    $(INCDIR)/CudaGpuEnvironment.h \
-    $(INCDIR)/CudaDataPacket.h \
-    $(INCDIR)/CudaStreamManager.h \
-    $(INCDIR)/CudaMemoryManager.h
 CXX_SRCS       = \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
@@ -65,23 +59,16 @@ CXX_SRCS       = \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
-    $(SRCDIR)/DataPacket.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/MoverUnpacker.cpp \
     $(SRCDIR)/StreamManager.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(SRCDIR)/tile_fi.cpp \
     $(SRCDIR)/grid_fi.cpp \
     $(SRCDIR)/orchestration_runtime_fi.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp
-CU_SRCS       = \
-    $(SRCDIR)/CudaGpuEnvironment.cu \
-    $(SRCDIR)/CudaDataPacket.cu \
-    $(SRCDIR)/CudaStreamManager.cu \
-    $(SRCDIR)/CudaMemoryManager.cu
 F2003_SRCS       = \
     $(SRCDIR)/tile_mod.F90 \
     $(SRCDIR)/Grid_interface.F90 \
@@ -110,24 +97,19 @@ F2003_SRCS       = \
     $(TESTDIR)/Physics_op1_executeTask3_Tile.F90
 
 OBJS       = $(addsuffix .o, $(basename $(CXX_SRCS)))
-CUOBJS     = $(addsuffix .o, $(basename $(CU_SRCS)))
 MODS       = $(addsuffix .mod, $(basename $(F2003_SRCS)))
 COMMAND    =  $(BASE).x
 
 CXX        = mpic++
-CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
+CXXFLAGS   = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include
 CXXWARNS   =
 
-CU         = nvcc
-CUFLAGS    = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(PGIDIR)/include -I$(INCDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -D__PGI
-CUWARNS    =
-
 F2003      = mpif90
-F2003FLAGS = -g -O0 -cpp -I$(TESTDIR) -I$(AMREXDIR)/include -r8 -i4 -DUSE_CUDA_BACKEND
+F2003FLAGS = -g -O0 -cpp -I$(TESTDIR) -I$(AMREXDIR)/include -r8 -i4
 F2003WARNS =
 
-LIBS       = -lpthread -lstdc++ -lamrex -lcudart
-LDFLAGS    = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
+LIBS       = -lpthread -lstdc++ -lamrex
+LDFLAGS    = -L$(AMREXDIR)/lib -L$(PGIDIR)/lib
  
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
@@ -136,16 +118,13 @@ endif
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp .cu .mod .F90
+.SUFFIXES: .o .cpp .mod .F90
 
-$(COMMAND): $(OBJS) $(CUOBJS) $(MODS) $(MAKEFILE) 
-	$(F2003) -o $(COMMAND) $(OBJS) $(CUOBJS) $(MODS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(OBJS) $(MODS) $(MAKEFILE) 
+	$(F2003) -o $(COMMAND) $(OBJS) $(MODS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
-
-.cu.o: $(CU_HDRS) $(MAKEFILE)
-	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
 
 # Move buildInfo.inc out so that we just write it once
 # Also, find commands that are universal
