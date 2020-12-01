@@ -39,13 +39,24 @@ CXX_HDRS   = \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/StreamManager.h \
+    $(INCDIR)/NullStreamManager.h \
     $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/setInitialConditions.h \
+    $(TESTBASEDIR)/errorEstBlank.h \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
-    $(TESTBASEDIR)/scaleEnergy.h \
+    $(TESTBASEDIR)/computeLaplacianFused.h \
     $(TESTBASEDIR)/Analysis.h
 SRCS       = \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/FArray4D.cpp \
     $(SRCDIR)/Tile.cpp \
@@ -56,22 +67,17 @@ SRCS       = \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
-    $(SRCDIR)/ThreadTeam.cpp \
-    $(SRCDIR)/ThreadTeamIdle.cpp \
-    $(SRCDIR)/ThreadTeamTerminating.cpp \
-    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
-    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
-    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/StreamManager.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
-    $(TESTBASEDIR)/scaleEnergy.cpp \
-    $(TESTBASEDIR)/scaleEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/gatherData.cpp 
 

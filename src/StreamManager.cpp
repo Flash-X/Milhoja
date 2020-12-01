@@ -4,6 +4,8 @@
 
 #ifdef USE_CUDA_BACKEND
 #include "CudaStreamManager.h"
+#else
+#include "NullStreamManager.h"
 #endif
 
 namespace orchestration {
@@ -50,7 +52,7 @@ StreamManager&   StreamManager::instance(void) {
 #ifdef USE_CUDA_BACKEND
     static CudaStreamManager   manager;
 #else
-#error "Please specify a runtime backend"
+    static NullStreamManager   manager;
 #endif
 
     return manager;
