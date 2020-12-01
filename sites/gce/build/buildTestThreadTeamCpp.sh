@@ -12,8 +12,7 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
-module purge
-module load intel/19.0
+. $FLASH_INTEL_SETUP
 module list
 
 ######################################################################

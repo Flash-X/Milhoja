@@ -12,9 +12,7 @@ N_BLOCKS_X=256
 N_BLOCKS_Y=128
 N_BLOCKS_Z=1
 
-module purge
-module load intel/19.0
-module load mpich/3.3.2-intel
+. $FLASH_INTEL_SETUP
 module list
 
 ######################################################################

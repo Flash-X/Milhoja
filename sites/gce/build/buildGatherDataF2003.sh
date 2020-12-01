@@ -7,9 +7,7 @@
 N_CELLS_PER_BLOCK=(2 4 8 16 32 64 128 256 512)
 N_BLOCKS=(16)
 
-module purge
-module load intel/19.0
-module load mpich/3.3.2-intel
+. $FLASH_INTEL_SETUP
 module list
 
 ######################################################################

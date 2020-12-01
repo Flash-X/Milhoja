@@ -1,4 +1,5 @@
 #include "Tile.h"
+#include "DataItem.h"
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
@@ -10,9 +11,10 @@
 using namespace orchestration;
 
 extern "C" {
-    void tile_set_limits_fi(Tile* tileDesc, int& gid, int& level,
+    void tile_set_limits_fi(DataItem* item, int& gid, int& level,
                             int lo[MDIM],   int hi[MDIM],
                             int loGC[MDIM], int hiGC[MDIM]) {
+        Tile*   tileDesc = dynamic_cast<Tile*>(item);
         gid = static_cast<int>(tileDesc->gridIndex());
         level = static_cast<int>(tileDesc->level());
 
@@ -28,7 +30,8 @@ extern "C" {
         }
     }
 
-    void tile_get_data_ptr_fi(Tile* tileDesc, Real*& cptr) {
+    void tile_get_data_ptr_fi(DataItem* item, Real*& cptr) {
+        Tile*   tileDesc = dynamic_cast<Tile*>(item);
         cptr = tileDesc->dataPtr();
     }
 }
