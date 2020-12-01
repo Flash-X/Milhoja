@@ -83,6 +83,16 @@ public:
                                      const IntVect& hi,
                                      Real* volPtr) const;
 
+    virtual void     subcellGeometry(const unsigned int nsubI,
+                                     const unsigned int nsubJ,
+                                     const unsigned int nsubK,
+                                     const Real dvCell,
+                                     Real* dvSubPtr,
+                                     const Real xL = 0.0_wp,
+                                     const Real xR = 0.0_wp,
+                                     const Real yL = 0.0_wp,
+                                     const Real yR = 0.0_wp);
+
 protected:
     Grid(void) {}
     static bool instantiated_; //!< Track if singleton has been instantiated.

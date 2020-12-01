@@ -120,6 +120,12 @@ TEST_F(GridUnitTest,ProbConfigGetters){
         }
     }
 
+    Real subVols[32];
+    grid.subcellGeometry(8,4,2,12.8,subVols);
+    for (int i=0;i<32;++i) {
+        EXPECT_NEAR( subVols[i], 0.2, eps);
+    }
+
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
