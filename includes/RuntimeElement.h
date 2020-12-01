@@ -9,7 +9,8 @@
  * Common functionality is implemented.
  *
  * The implementations of the data/thread publisher/subscriber design aspects
- * are one-directional versions of the Observer design pattern (Pp. 293).
+ * are one-directional versions of the Observer design pattern in the Gang of
+ * Four design patterns book (Pp. 293).
  */
 
 #ifndef RUNTIME_ELEMENT_H__
@@ -24,6 +25,13 @@ namespace orchestration {
 
 class RuntimeElement {
 public:
+    RuntimeElement(RuntimeElement&)                  = delete;
+    RuntimeElement(const RuntimeElement&)            = delete;
+    RuntimeElement(RuntimeElement&&)                 = delete;
+    RuntimeElement& operator=(RuntimeElement&)       = delete;
+    RuntimeElement& operator=(const RuntimeElement&) = delete;
+    RuntimeElement& operator=(RuntimeElement&&)      = delete;
+
     // Thread Publisher/Subscriber interface
     virtual void increaseThreadCount(const unsigned int nThreads) = 0;
 
@@ -46,14 +54,6 @@ protected:
                                             to once this team's action has
                                             already been applied to the
                                             items. */
-
-private:
-    RuntimeElement(RuntimeElement&) = delete;
-    RuntimeElement(const RuntimeElement&) = delete;
-    RuntimeElement(RuntimeElement&&) = delete;
-    RuntimeElement& operator=(RuntimeElement&) = delete;
-    RuntimeElement& operator=(const RuntimeElement&) = delete;
-    RuntimeElement& operator=(RuntimeElement&&) = delete;
 };
 
 }

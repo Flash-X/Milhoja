@@ -4,14 +4,15 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "ThreadTeam.h"
 #include "Grid.h"
 #include "DataPacket.h"
 #include "OrchestrationLogger.h"
+#include "StreamManager.h"
 
 #ifdef USE_CUDA_BACKEND
+// TODO: Should these be designed like StreamManager so that the Runtime class
+// is not dealing with backend-specific details?
 #include "CudaGpuEnvironment.h"
-#include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 #endif
 
@@ -49,8 +50,8 @@ void   Runtime::instantiate(const unsigned int nTeams,
     instantiated_ = true;
 
     // Create/initialize singletons needed by runtime
+    orchestration::StreamManager::instantiate(nStreams);
 #ifdef USE_CUDA_BACKEND
-    orchestration::CudaStreamManager::instantiate(nStreams);
     orchestration::CudaMemoryManager::instantiate(nBytesInMemoryPools);
 #endif
 
@@ -88,6 +89,8 @@ Runtime::Runtime(void)
     }
 
 #ifdef USE_CUDA_BACKEND
+    // TODO: Should this class have an instantiate message and log this
+    // message itself when instantiated?
     CudaGpuEnvironment&    gpuEnv = CudaGpuEnvironment::instance();
     std::string   msg =   "[Runtime] " 
                         + std::to_string(gpuEnv.nGpuDevices()) 
@@ -177,8 +180,8 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuTasks] "
-                               "Given CPU action should run on block-based "
-                               "thread team, which is not in configuration");
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
@@ -191,6 +194,15 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     // CPU action parallel pipeline
     // 1) CPU action applied to blocks by CPU team
     ThreadTeam*   cpuTeam = teams_[0];
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads = cpuAction.nInitialThreads + 1;
+    if (nTotalThreads > cpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeCpuTasks] "
+                               "CPU team could receive too many thread "
+                               "activation calls from distributor");
+    }
 
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
@@ -225,11 +237,11 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[Runtime::executeGpuTasks] "
-                               "Given GPU action should run on a thread team "
-                               "that works with data packets of blocks");
+                               "Given GPU action should run on "
+                               "data packets of blocks");
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeGpuTasks] "
-                                    "Need at least one tile per packet");
+                                    "Need at least one block per packet");
     } else if (nTeams_ < 1) {
         throw std::logic_error("[Runtime::executeGpuTasks] "
                                "Need at least one ThreadTeam in runtime");
@@ -244,11 +256,19 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     ThreadTeam*       gpuTeam   = teams_[0];
     gpuTeam->attachDataReceiver(&gpuToHost1_);
 
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads = gpuAction.nInitialThreads + 1;
+    if (nTotalThreads > gpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeGpuTasks] "
+                               "GPU team could receive too many thread "
+                               "activation calls from distributor");
+    }
+
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
 
     //***** ACTION PARALLEL DISTRIBUTOR
-
     unsigned int                  level = 0;
     Grid&                         grid = Grid::instance();
     std::shared_ptr<DataPacket>   packet_gpu = DataPacket::createPacket();
@@ -267,7 +287,6 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
             packet_gpu = DataPacket::createPacket();
         }
-
     }
 
     if (packet_gpu->nTiles() > 0) {
@@ -307,21 +326,21 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuGpuTasks] "
-                               "Given CPU action should run on tile-based "
-                               "thread team, which is not in configuration");
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[Runtime::executeCpuGpuTasks] "
-                               "Given GPU action should run on packet-based "
-                               "thread team, which is not in configuration");
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuTasks] "
                                     "Need at least one tile per GPU packet");
     } else if (nTeams_ < 2) {
         throw std::logic_error("[Runtime::executeCpuGpuTasks] "
-                               "Need at least three ThreadTeams in runtime");
+                               "Need at least two ThreadTeams in runtime");
     }
 
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
@@ -342,13 +361,13 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
-    unsigned int nTotalThreads =       cpuAction.nInitialThreads
-                                 +     gpuAction.nInitialThreads
-                                 +     1;
+    unsigned int nTotalThreads =   cpuAction.nInitialThreads
+                                 + gpuAction.nInitialThreads
+                                 + 1;
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeCpuGpuTasks] "
                                 "CPU could receive too many thread "
-                                "activation calls from GPU team");
+                                "activation calls");
     }
 
     //***** START EXECUTION CYCLE
@@ -387,7 +406,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
             throw std::logic_error("[Runtime::executeCpuGpuTasks] tile_cpu ownership not transferred");
         }
 
-        // GPU/Post-GPU action parallel pipeline
+        // GPU action parallel pipeline
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
             packet_gpu->initiateHostToDeviceTransfer();
 
@@ -448,21 +467,21 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
-                               "Given CPU action should run on tile-based "
-                               "thread team, which is not in configuration");
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
-                               "Given GPU action should run on packet-based "
-                               "thread team, which is not in configuration");
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks] "
                                     "Need at least one tile per GPU packet");
     } else if (nTeams_ < 2) {
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
-                               "Need at least three ThreadTeams in runtime");
+                               "Need at least two ThreadTeams in runtime");
     }
 
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
@@ -489,7 +508,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
                                 "CPU could receive too many thread "
-                                "activation calls from GPU team");
+                                "activation calls");
     }
 
     //***** START EXECUTION CYCLE
@@ -509,7 +528,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         tileDesc = ti->buildCurrentTile();
         if ((tileDesc == nullptr) || (tileDesc.use_count() != 1)) {
-            throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] tileDesc ownership not transferred");
+            throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] tileDesc acquisition failed");
         }
 
         if (isCpuTurn) {
@@ -592,8 +611,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
     if        (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
-                               "Given CPU action should run on tile-based "
-                               "thread team, which is not in configuration");
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (actionA_cpu.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuWowzaTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
@@ -645,7 +664,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     if (nTotalThreads > teamA_cpu->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
                                 "CPU could receive too many thread "
-                                "activation calls from Action A GPU team");
+                                "activation calls");
     }
 
     //***** START EXECUTION CYCLE
@@ -719,9 +738,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     teamA_gpu->closeQueue();
     teamB_gpu->closeQueue();
 
-    // host thread blocks until cycle ends, so activate another thread 
-    // in the device team first
-//    teamA_cpu->increaseThreadCount(1);
+    // We are letting the host thread block without activating a thread in
+    // a different thread team.
     teamA_cpu->wait();
     teamA_gpu->wait();
     teamB_gpu->wait();
@@ -750,22 +768,22 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Given CPU action should run on tile-based "
-                               "thread team, which is not in configuration");
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Given GPU action should run on packet-based "
-                               "thread team, which is not in configuration");
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
     } else if (gpuAction.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Need at least one tile per GPU packet");
     } else if (postGpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
-                               "Given post-GPU action should run on tile-based "
-                               "thread team, which is not in configuration");
+                               "Given post-GPU action should run on tiles, "
+                               "which is not in configuration");
     } else if (postGpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeTasks_FullPacket] "
                                     "Post-GPU should have zero tiles/packet as "
@@ -802,7 +820,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     if (nTotalThreads > postGpuTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
                                 "Post-GPU could receive too many thread "
-                                "activation calls from CPU and GPU teams");
+                                "activation calls");
     }
 
     //***** START EXECUTION CYCLE

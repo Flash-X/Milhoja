@@ -14,7 +14,7 @@ bool   StreamManager::instantiated_ = false;
 /**
  * Instantiate and initalize the application's singleton stream manager object.
  *
- * \param nMaxStreams - the maximum number streams to be made available.  The
+ * \param nMaxStreams - the maximum number of streams to be made available.  The
  *                      given value must be a positive integer.
  */
 void   StreamManager::instantiate(const int nMaxStreams) {
@@ -38,7 +38,8 @@ void   StreamManager::instantiate(const int nMaxStreams) {
 /**
  * Before calling this routine, client code must first instantiate the manager.
  *
- * \return 
+ * \return A reference to the stream manager that is associated with the 
+ *         runtime backend.
  */
 StreamManager&   StreamManager::instance(void) {
     if (!instantiated_) {
@@ -47,12 +48,12 @@ StreamManager&   StreamManager::instance(void) {
     }
 
 #ifdef USE_CUDA_BACKEND
-    static CudaStreamManager   stream_manager;
+    static CudaStreamManager   manager;
 #else
 #error "Please specify a runtime backend"
 #endif
 
-    return stream_manager;
+    return manager;
 }
 
 }

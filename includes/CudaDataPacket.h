@@ -10,8 +10,7 @@
 
 namespace orchestration {
 
-// TODO: This DataPacket is linked to CUDA.  Is this acceptable?
-// Will the offline toolchain write this?  If so, could we have templates that
+// TODO: Will the offline toolchain write this?  If so, could we have templates that
 // just need tweaking?
 // TODO: What if we have a DataPacket that starts at the host, is transferred to
 // the GPU, then to the FPGA, and finally back to the host?  In this sense,
@@ -63,7 +62,7 @@ public:
     int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
 #endif
 #ifdef ENABLE_CUDA_OFFLOAD
-    cudaStream_t           stream(void) { return stream_.cudaStream; };
+    cudaStream_t           stream(void) override { return stream_.cudaStream; };
 #endif
 
     PacketDataLocation     getDataLocation(void) const override;

@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef CUDA_RUNTIME_H__
-#define CUDA_RUNTIME_H__
+#ifndef RUNTIME_H__
+#define RUNTIME_H__
 
 #include <string>
 

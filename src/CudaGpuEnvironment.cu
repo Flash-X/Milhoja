@@ -9,16 +9,14 @@
 
 namespace orchestration {
 
-bool  CudaGpuEnvironment::instantiated_ = false;
-
 /**
  * 
  *
  * \return 
  */
 CudaGpuEnvironment& CudaGpuEnvironment::instance(void) {
-    static CudaGpuEnvironment     orSingleton;
-    return orSingleton;
+    static CudaGpuEnvironment     singleton;
+    return singleton;
 }
 
 /**
@@ -82,17 +80,6 @@ CudaGpuEnvironment::CudaGpuEnvironment(void)
 
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability
     gpuMaxConcurrentKernels_ = 128;
-
-    instantiated_ = true;
-}
-
-/**
- * 
- *
- * \return 
- */
-CudaGpuEnvironment::~CudaGpuEnvironment(void) {
-    instantiated_ = false;
 }
 
 std::string  CudaGpuEnvironment::information(void) const {

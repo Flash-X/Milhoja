@@ -1,7 +1,3 @@
-// WIP: Somehow NDEBUG is getting set and deactivating the asserts
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
 #include <cassert>
 
 #include "MoverUnpacker.h"
@@ -16,7 +12,12 @@ void MoverUnpacker::increaseThreadCount(const unsigned int nThreads) {
 }
 
 void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
+    // Unpacking only makes sense if the given data item is a packet.
+    // Therefore, this ugly upcasting is reasonable.
     DataPacket*    packet = dynamic_cast<DataPacket*>(dataItem.get());
+    // TODO: This is presently blocking as the transfer is effectively 
+    // synchronous.  How to alter this so that the transfer is truly
+    // asynchronous?
     packet->transferFromDeviceToHost();
 
     // Transfer the ownership of the data item in the packet to the next team

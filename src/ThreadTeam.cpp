@@ -540,7 +540,7 @@ void ThreadTeam::startCycle(const RuntimeAction& action,
         nItems = "n/a";
         break;
     case ThreadTeamDataType::SET_OF_TILES:
-        dataType = "Packet of Blocks";
+        dataType = "Packet of Tiles";
         nItems = std::to_string(action.nTilesPerPacket);
         break;
     case ThreadTeamDataType::SET_OF_BLOCKS:

@@ -98,13 +98,13 @@ FArray1D    Grid::getCellCoords(const unsigned int axis, const unsigned int edge
                                 const IntVect& hi) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
-        throw std::logic_error("Grid::fillCellCoords: Invalid axis.");
+        throw std::logic_error("Grid::getCellCoords: Invalid axis.");
     }
     if(edge!=Edge::Left && edge!=Edge::Right && edge!=Edge::Center){
-        throw std::logic_error("Grid::fillCellCoords: Invalid edge.");
+        throw std::logic_error("Grid::getCellCoords: Invalid edge.");
     }
 #endif
-    throw std::logic_error("Default Grid::fillCellCoords not yet implemented");
+    throw std::logic_error("Default Grid::getCellCoords not yet implemented");
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the

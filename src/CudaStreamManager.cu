@@ -150,6 +150,12 @@ int  CudaStreamManager::numberFreeStreams(void) {
  *         concept unless we know that all stream managers can dynamically grow
  *         their reserve.  This, presently, cannot be implemented as
  *         OpenACC+CUDA with PGI on Summit has an upper limit of 32 streams.
+ * \todo   It appears (see below) that deadlocking can presently occur.  Alter
+ *         design so that this is an impossibility.  Should a data packet
+ *         request all possible streams at creation?  Can we enforce the
+ *         rule that streams cannot be obtained outside of this?  Would this
+ *         be wasting stream resources if the extra streams are only needed
+ *         briefly once upfront for an action that will otherwise run for a long time?
  * \todo   Add in logging of release if verbosity level is high enough.
  *
  * \return The free stream that has been given to the calling code for exclusive

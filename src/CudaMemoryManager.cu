@@ -124,7 +124,6 @@ CudaMemoryManager::~CudaMemoryManager(void) {
                       << "CUDA error - "
                       << cudaGetErrorName(cErr) << "\n"
                       << cudaGetErrorString(cErr) << std::endl;
-            pthread_mutex_unlock(&mutex_);
         }
         pinnedBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
@@ -140,7 +139,6 @@ CudaMemoryManager::~CudaMemoryManager(void) {
                       << "CUDA error - "
                       << cudaGetErrorName(cErr) << "\n"
                       << cudaGetErrorString(cErr) << std::endl;
-            pthread_mutex_unlock(&mutex_);
         }
         gpuBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
@@ -215,7 +213,10 @@ void  CudaMemoryManager::requestMemory(const std::size_t bytes, void** hostPtr, 
  * \return 
  */
 void  CudaMemoryManager::releaseMemory(void** hostPtr, void** gpuPtr) {
-    // Memory requests are permanent for now (i.e. we leak if this gets called).
+    // Null so that we don't have dangling pointers.  This is inline with
+    // the present reset() ugliness --- at the end of a runtime execution cycle,
+    // all data packets should have called this routine so that effectively
+    // none of the memory in the pools is checked out.
     *hostPtr = nullptr;
     *gpuPtr  = nullptr;
 }

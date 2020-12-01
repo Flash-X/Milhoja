@@ -18,7 +18,6 @@
 #define CUDA_STREAM_MANAGER_H__
 
 #include <deque>
-#include <vector>
 #include <pthread.h>
 
 #include "StreamManager.h"
@@ -37,7 +36,7 @@ public:
 private:
     CudaStreamManager();
 
-    // DEV NOTE: needed for polymorphic singleton
+    // Needed for polymorphic singleton
     friend StreamManager& StreamManager::instance();
 
     std::deque<Stream>   streams_;

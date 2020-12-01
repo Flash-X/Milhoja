@@ -63,7 +63,7 @@ public:
      * offloading program model of choice?  Should developers mark this with our
      * own directive so that the toolchain has less work to do?  Since this is 
      * low-level infrastructure, should we just put in the directives protected 
-     * by preprocessor so that the compiler just choices the correct line?
+     * by preprocessor so that the compiler just chooses the correct line?
      */
 #ifdef ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq

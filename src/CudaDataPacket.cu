@@ -435,7 +435,7 @@ void  CudaDataPacket::initiateHostToDeviceTransfer(void) {
                                        stream_.cudaStream);
     if (cErr != cudaSuccess) {
         std::string  errMsg = "[CudaDataPacket::initiateHostToDeviceTransfer] ";
-        errMsg += "Unable to execute H-to-D transfer\n";
+        errMsg += "Unable to initiate H-to-D transfer\n";
         errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
         errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
         throw std::runtime_error(errMsg);

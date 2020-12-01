@@ -75,7 +75,7 @@ std::string RuntimeElement::attachDataReceiver(RuntimeElement* receiver) {
     } else if (dataReceiver_) {
         return "A data subscriber is already attached";
     }
-    // TODO: Conform that publisher and subscriber are assigned the same data type?
+    // TODO: Confirm that publisher and subscriber are assigned the same data type?
 
     dataReceiver_ = receiver;
 

@@ -13,7 +13,7 @@ namespace orchestration {
 
 class CudaGpuEnvironment {
 public:
-    ~CudaGpuEnvironment(void);
+    ~CudaGpuEnvironment(void)   { };
 
     CudaGpuEnvironment(CudaGpuEnvironment&)                  = delete;
     CudaGpuEnvironment(const CudaGpuEnvironment&)            = delete;
@@ -31,8 +31,6 @@ public:
 
 private:
     CudaGpuEnvironment(void);
-
-    static bool            instantiated_;
 
     int           nDevices_;
     std::string   gpuDeviceName_;
