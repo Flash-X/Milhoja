@@ -210,12 +210,10 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
         throw std::runtime_error(errMsg);
     }
 
-#ifdef DEBUG_RUNTIME
     msg =   "[" + hdr_ + "] Team initialized in state " 
           + getModeName(state_->mode()) + " with "
           + std::to_string(N_idle_) + " threads idling";
     Logger::instance().log(msg);
-#endif
 
     pthread_mutex_unlock(&teamMutex_);
 }
@@ -272,11 +270,9 @@ ThreadTeam::~ThreadTeam(void) {
         std::cerr << e.what() << std::endl;
     }
 
-#ifdef DEBUG_RUNTIME
     std::string msg =   "[" + hdr_ + "] " 
                       + std::to_string(nMaxThreads_) + " Threads terminated";
     Logger::instance().log(msg);
-#endif
 
     pthread_cond_destroy(&unblockWaitThread_);
     pthread_cond_destroy(&threadTerminated_);
@@ -313,10 +309,8 @@ ThreadTeam::~ThreadTeam(void) {
         stateRunNoMoreWork_ = nullptr;
     }
 
-#ifdef DEBUG_RUNTIME
     msg = "[" + hdr_ + "] Team destroyed";
     Logger::instance().log(msg);
-#endif
 }
 
 /**
@@ -533,6 +527,37 @@ void ThreadTeam::increaseThreadCount(const unsigned int nThreads) {
 void ThreadTeam::startCycle(const RuntimeAction& action,
                             const std::string& teamName,
                             const bool waitForThreads) {
+    std::string   logMsg;
+    std::string   dataType;
+    std::string   nItems;
+    switch (action.teamType) {
+    case ThreadTeamDataType::TILE:
+        dataType = "Tile";
+        nItems = "n/a";
+        break;
+    case ThreadTeamDataType::BLOCK:
+        dataType = "Block";
+        nItems = "n/a";
+        break;
+    case ThreadTeamDataType::SET_OF_TILES:
+        dataType = "Packet of Tiles";
+        nItems = std::to_string(action.nTilesPerPacket);
+        break;
+    case ThreadTeamDataType::SET_OF_BLOCKS:
+        dataType = "Packet of Blocks";
+        nItems = std::to_string(action.nTilesPerPacket);
+        break;
+    case ThreadTeamDataType::OTHER:
+        dataType = "Unknown";
+        nItems = std::to_string(action.nTilesPerPacket);
+        break;
+    };
+    logMsg =   "[" + hdr_ + "] Assigned action " + action.name + "\n";
+    logMsg += "\t\t\t\tData type        " + dataType + "\n";
+    logMsg += "\t\t\t\tN Items/Packet   " + nItems + "\n";
+    logMsg += "\t\t\t\tN Threads        " + std::to_string(action.nInitialThreads);
+    Logger::instance().log(logMsg);
+
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode

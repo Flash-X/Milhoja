@@ -77,9 +77,7 @@ GridAmrex::GridAmrex(void)
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
 
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Initialized Grid.");
-#endif
 }
 
 /** Detroy domain and then finalize AMReX.
@@ -88,9 +86,7 @@ GridAmrex::~GridAmrex(void) {
     destroyDomain();
     amrex::Finalize();
 
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Finalized Grid.");
-#endif
 }
 
 /** Destroy amrcore_. initDomain can be called again if desired.
@@ -100,9 +96,8 @@ void  GridAmrex::destroyDomain(void) {
         delete amrcore_; // deletes unk
         amrcore_ = nullptr;
     }
-#ifdef GRID_LOG
+
     Logger::instance().log("[GridAmrex] Destroyed domain.");
-#endif
 }
 
 /**
@@ -120,19 +115,15 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
         throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
                                " pointer given");
     }
-#ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Initializing domain...");
-#endif
 
     amrcore_ = new AmrCoreFlash(initBlock,errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
-#ifdef GRID_LOG
     std::string msg = "[GridAmrex] Initialized domain with " +
                       std::to_string(amrcore_->globalNumBlocks()) +
                       " total blocks.";
     Logger::instance().log(msg);
-#endif
 }
 
 void GridAmrex::restrictAllLevels() {
@@ -260,30 +251,34 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
     return amrcore_->Geom(lev).Volume( amrex::IntVect(coord) );
 }
 
-/** fillCellCoords fills a Real array (passed by pointer) with the
-  * cell coordinates in a given range
+/** Obtain the coordinates along a given axis for either the left edge, center,
+  * or right edge of each cell in a given contiguous region of the mesh as
+  * specified by lower and upper corners.  Due to the construction of coordinate
+  * systems of interest, the coordinate along a single axis only depends on the
+  * cell's index for that same axis.  Therefore, the set of coordinates for the
+  * region need only be stored as a 1D array.
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param edge Edge of desired coord (allowed: Edge::{Left,Right,Center})
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
+  * @returns The coordinates as a Fortran-style array.
   *
   * \todo profile this, see if we can get a version that doesn't require
   * extra copying.
   */
-void    GridAmrex::fillCellCoords(const unsigned int axis,
-                                  const unsigned int edge,
-                                  const unsigned int lev,
-                                  const IntVect& lo,
-                                  const IntVect& hi, Real* coordPtr) const {
+FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
+                                     const unsigned int edge,
+                                     const unsigned int lev,
+                                     const IntVect& lo,
+                                     const IntVect& hi) const {
 #ifndef GRID_ERRCHECK_OFF
     if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
-        throw std::logic_error("GridAmrex::fillCellCoords: Invalid axis.");
+        throw std::logic_error("GridAmrex::getCellCoords: Invalid axis.");
     }
     if(edge!=Edge::Left && edge!=Edge::Right && edge!=Edge::Center){
-        throw std::logic_error("GridAmrex::fillCellCoords: Invalid edge.");
+        throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
     }
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
@@ -306,9 +301,11 @@ void    GridAmrex::fillCellCoords(const unsigned int axis,
     }
 
     //copy results to output
+    FArray1D coords = FArray1D::buildScratchArray1D(lo[axis], hi[axis]);
     for(int i=0; i<nElements; ++i) {
-        coordPtr[i] = coordvec[i+offset];
+        coords(i+lo[axis]) = coordvec[i+offset];
     }
+    return coords;
 }
 
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the

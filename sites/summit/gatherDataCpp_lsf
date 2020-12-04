@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:30
+#BSUB -W 1:00
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
 #BSUB -J gatherDataCpp
@@ -14,21 +14,21 @@
 # IMPORTANT: Match this to X in smtX BSUB statment above
 N_HYPERTHREADS_PER_CORE=1
 
+# This should match the SW stack used to build the test binaries
+# as specified in buildGatherDataCpp.sh when the binary to be used here was
+# built
+. $RUNTIME_PGI_SETUP
+
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
-# This should match the SW stack used to build the test binaries
-# as specified in buildGatherDataCpp.sh
-module purge
-module load gcc/9.1.0
-module load spectrum-mpi/10.3.1.2-20200121
 module list
 
 # Resource Set = One MPI process/socket + maximal number of cores per MPI process
 # NOTE: We only want one MPI rank in total.  Leave second socket idle.
 N_PROC_PER_RS=1
-N_GPU_PER_PROC=0
-N_CORES_PER_PROC=21
+N_GPU_PER_PROC=1
+N_CORES_PER_PROC=7
 N_RS_PER_SOCKET=1
 N_RS_PER_NODE=1
 
@@ -66,6 +66,10 @@ mkdir -p $folder ; cd $folder
 
 date
 for binary in $LS_SUBCWD/binaries/gather_data_cpp_*_*.x; do
+    echo $binary
+    echo
+    ldd $binary
+    echo
     time jsrun -n $N_RS_PER_NODE \
                -r $N_RS_PER_NODE \
                -a $N_PROC_PER_RS \

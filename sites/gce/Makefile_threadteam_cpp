@@ -15,9 +15,10 @@ GTESTDIR     = $(HOME)/local/intel_19.0/googletest
 CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
-    $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/DataItem.h \
     $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -47,7 +48,7 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = icpc
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -xSKYLAKE-AVX512 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -lgtest

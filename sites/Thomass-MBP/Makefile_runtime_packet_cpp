@@ -52,6 +52,7 @@ CXX_HDRS   = \
     $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \

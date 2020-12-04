@@ -6,6 +6,7 @@
 #include "Grid_Axis.h"
 #include "Flash.h"
 #include "actionRoutine.h"
+#include "errorEstBlank.h"
 
 using namespace orchestration;
 
@@ -22,7 +23,11 @@ extern "C" {
      *
      */
     void   grid_init_domain_fi(ACTION_ROUTINE initBlock) {
-        Grid::instance().initDomain(initBlock);
+        // TODO: What to do with error estimate routine?
+        //       Should we allow users to supply their own Fortran-based
+        //       routine?  Should we only have a handful of C++-based routines
+        //       and allow users to specify which through the Fortran interface?
+        Grid::instance().initDomain(initBlock, Simulation::errorEstBlank);
     }
 
     /**

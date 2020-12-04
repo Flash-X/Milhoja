@@ -7,16 +7,15 @@
 N_CELLS_PER_BLOCK=(2 4 8 16 32 64 128 256 512)
 N_BLOCKS=(16)
 
-module purge
-module load git
-module load gcc/9.1.0
-module load spectrum-mpi/10.3.1.2-20200121
-module list
+. $RUNTIME_PGI_SETUP
 
 ######################################################################
 #####-----             DO NOT ALTER LINES BELOW             -----#####
 ######################################################################
+echo
 date
+echo
+module list
 echo
 echo "Current Branches in Repository"
 echo "-----------------------------------------------------------"

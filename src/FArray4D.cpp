@@ -5,7 +5,11 @@
 namespace orchestration {
 
 //----- static member function definitions
-//! Factory function to build an FArray4D that owns data.
+/** Factory function to build an FArray4D that owns data
+ *  The objects obtained by calling this function must never be copied to a
+ *  DataPacket as the destruction of the objects would lead to releasing
+ *  memory to be used later by the copies.
+ */
 FArray4D   FArray4D::buildScratchArray4D(const IntVect& lo,
                                          const IntVect& hi,
                                          const unsigned int ncomp) {
@@ -60,7 +64,12 @@ FArray4D::FArray4D(Real* data,
 #endif
 }
 
-//! Destructor that deletes data if it owns it.
+/** Destructor that deletes data if it owns it.
+ * IMPORTANT: Copies of objects of this type will be copied into data packets,
+ * which could persist for longer than the original object.  Therefore, the 
+ * destructor of this class must never perform any actions that could prevent
+ * the data packet copies from functioning correctly (e.g. releasing memory).
+ */
 FArray4D::~FArray4D(void) {
     if (owner_) {
         delete [] data_;

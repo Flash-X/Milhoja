@@ -14,6 +14,7 @@
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
 #include "Grid_IntVect.h"
+#include "FArray1D.h"
 #include "Tile.h"
 #include "TileIter.h"
 #include "actionRoutine.h"
@@ -67,12 +68,11 @@ public:
     virtual Real     getCellVolume(const unsigned int lev,
                                    const IntVect& coord) const;
 
-    virtual void     fillCellCoords(const unsigned int axis,
-                                    const unsigned int edge,
-                                    const unsigned int lev,
-                                    const IntVect& lo,
-                                    const IntVect& hi,
-                                    Real* coordPtr) const;
+    virtual FArray1D getCellCoords(const unsigned int axis,
+                                   const unsigned int edge,
+                                   const unsigned int lev,
+                                   const IntVect& lo,
+                                   const IntVect& hi) const;
     virtual void     fillCellFaceAreasLo(const unsigned int axis,
                                          const unsigned int lev,
                                          const IntVect& lo,

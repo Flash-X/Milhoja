@@ -17,5 +17,9 @@
 #define JAXIS 2
 #define KAXIS 3
 
+#define IAXIS_C 0
+#define JAXIS_C 1
+#define KAXIS_C 2
+
 #endif
 

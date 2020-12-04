@@ -35,13 +35,14 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(TESTDIR)/testRuntimeNull.cpp
+    $(TESTDIR)/testRuntimeNull.cpp \
+    $(TESTDIR)/runRuntimeTests.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpic++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -O3 -std=c++11 -xSKYLAKE-AVX512 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -lgtest -lgtest_main

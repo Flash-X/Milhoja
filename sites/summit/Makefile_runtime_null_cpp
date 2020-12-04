@@ -37,7 +37,8 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(TESTDIR)/testRuntimeNull.cpp
+    $(TESTDIR)/testRuntimeNull.cpp \
+    $(TESTDIR)/runRuntimeTests.cpp
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x

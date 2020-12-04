@@ -11,7 +11,8 @@ program Driver_evolveFlash
                                         Grid_getDeltas
     use Orchestration_interface, ONLY : Orchestration_init, &
                                         Orchestration_finalize, &
-                                        Orchestration_executeTasks
+                                        Orchestration_executeTasks, &
+                                        Orchestration_runtimeTask
     use Analysis_interface,      ONLY : Analysis_computeErrors
     use Analysis_data,           ONLY : an_LinfErrors, &
                                         an_meanAbsErrors, &
@@ -27,9 +28,9 @@ program Driver_evolveFlash
 #include "buildInfo.inc"
     integer, parameter :: FOUT = 111
 
-    integer, parameter :: N_THD_TASK1 = 2
-    integer, parameter :: N_THD_TASK2 = 2
-    integer, parameter :: N_THD_TASK3 = 0
+    integer, parameter :: N_THD_TASK1 = 6
+    integer, parameter :: N_THD_TASK2 = 6
+    integer, parameter :: N_THD_TASK3 = 6
 
     character(128) :: fname
     real           :: LinfDens
@@ -39,8 +40,12 @@ program Driver_evolveFlash
     double precision :: tStart
     double precision :: walltime
 
-    call Grid_init()
+    procedure(Orchestration_runtimeTask), pointer :: nullTaskPtr
+
+    nullify(nullTaskPtr)
+
     call Orchestration_init()
+    call Grid_init()
 
     call Grid_initDomain()
 
@@ -51,10 +56,22 @@ program Driver_evolveFlash
     tStart = MPI_Wtime()
     call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask1_Tile, &
                                     nCpuThreads=N_THD_TASK1, &
-                                    gpuTask=Physics_op1_executeTask2_Tile, &
-                                    nGpuThreads=N_THD_TASK2, &
-                                    postGpuTask=Physics_op1_executeTask3_Tile, &
-                                    nPostGpuThreads=N_THD_TASK3)
+                                    gpuTask=nullTaskPtr, &
+                                    nGpuThreads=0, &
+                                    postGpuTask=nullTaskPtr, &
+                                    nPostGpuThreads=0)
+    call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask2_Tile, &
+                                    nCpuThreads=N_THD_TASK2, &
+                                    gpuTask=nullTaskPtr, &
+                                    nGpuThreads=0, &
+                                    postGpuTask=nullTaskPtr, &
+                                    nPostGpuThreads=0)
+    call Orchestration_executeTasks(cpuTask=Physics_op1_executeTask3_Tile, &
+                                    nCpuThreads=N_THD_TASK3, &
+                                    gpuTask=nullTaskPtr, &
+                                    nGpuThreads=0, &
+                                    postGpuTask=nullTaskPtr, &
+                                    nPostGpuThreads=0)
     walltime = MPI_Wtime() - tStart
 
     ! DEV: Since we are breaking up the high-level operations so that we can
@@ -93,12 +110,12 @@ program Driver_evolveFlash
     write(FOUT,'(A,A)')       "# Git Commit,", PROJECT_GIT_REPO_VER
 !    write(FOUT,'(A,A)')       "# AMReX version,", amrex::Version()
     write(FOUT,'(A,A)')       "# C++ compiler,", CXX_COMPILER
-    write(FOUT,'(A,A)')       "# C++ compiler version,", CXX_COMPILER_VERSION
+!    write(FOUT,'(A,A)')       "# C++ compiler version,", CXX_COMPILER_VERSION
     write(FOUT,'(A,A)')       "# F2003 compiler,", F2003_COMPILER
-    write(FOUT,'(A,A)')       "# F2003 compiler version,", F2003_COMPILER_VERSION
+!    write(FOUT,'(A,A)')       "# F2003 compiler version,", F2003_COMPILER_VERSION
     write(FOUT,'(A,A)')       "# Build date,", BUILD_DATETIME
     write(FOUT,'(A,A)')       "# Hostname, ", HOSTNAME
-    write(FOUT,'(A,A)')       "# Host information,", MACHINE_INFO
+!    write(FOUT,'(A,A)')       "# Host information,", MACHINE_INFO
     write(FOUT,'(A,E15.8,A)') "# MPI_Wtick,", MPI_Wtick(), ",sec"
     write(FOUT,'(A)')   "pmode,n_loops,n_thd_task1,n_thd_task2,n_thd_task3," // &
                         "NXB,NYB,NZB,N_BLOCKS_X,N_BLOCKS_Y,N_BLOCKS_Z,"      // &

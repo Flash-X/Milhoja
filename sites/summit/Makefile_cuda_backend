@@ -1,0 +1,67 @@
+SHELL=/bin/sh
+
+# TODO: Redo this with more care.  Switch to CMAKE?
+
+BASE         = test_cuda_backend
+MAKEFILE     = Makefile_cuda_backend
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTDIR      = $(BASEDIR)/test/CudaBackend
+GTESTDIR     = $(HOME)/local/pgi_19.9/googletest
+CUDADIR      = $(OLCF_CUDA_ROOT)
+
+# Common files
+HDRS   = \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/StreamManager.h \
+    $(INCDIR)/CudaStreamManager.h
+SRCS       = \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/StreamManager.cpp \
+    $(TESTDIR)/testCudaStreamManager.cpp \
+    $(TESTDIR)/runCudaBackendTests.cpp
+CU_SRCS       = \
+    $(SRCDIR)/CudaStreamManager.cu
+
+OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
+COMMAND   =  $(BASE).x
+
+OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
+CXX       = pgc++
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXWARNS  =
+
+CU        = nvcc
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -D__PGI
+CUWARNS   =
+
+LIBS      = -lpthread -lstdc++ -lcudart -lgtest
+LDFLAGS   = -L$(CUDADIR)/lib64 -L$(GTESTDIR)/lib64
+
+ifdef DEBUG
+CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
+endif
+
+all:    $(COMMAND)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp .cu
+
+$(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS) $(OACC_FLAGS)
+
+.cpp.o: $(HDRS) $(MAKEFILE)
+	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.cu.o: $(HDRS) $(MAKEFILE)
+	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
+
+clean:
+	/bin/rm -f $(COMMAND)
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+

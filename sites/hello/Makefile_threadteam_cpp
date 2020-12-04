@@ -13,9 +13,10 @@ GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/goo
 CXX_HDRS   = \
     $(INCDIR)/actionRoutine.h \
     $(INCDIR)/OrchestrationLogger.h \
-    $(INCDIR)/ThreadTeamModes.h \
     $(INCDIR)/DataItem.h \
     $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/ThreadTeamModes.h \
+    $(INCDIR)/ThreadTeamBase.h \
     $(INCDIR)/ThreadTeam.h \
     $(INCDIR)/ThreadTeamState.h \
     $(INCDIR)/ThreadTeamIdle.h \
@@ -67,13 +68,8 @@ $(COMMAND): $(OBJS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 clean:
-	/bin/rm -f $(BASEDIR)/Test*.log
+	/bin/rm -f $(COMMAND)
+	/bin/rm -f Test*.log
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f *.mod
-	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
-	/bin/rm -f $(TESTDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/test_*.x 
-	/bin/rm -f $(BASEDIR)/gather_data_*.x 
 
