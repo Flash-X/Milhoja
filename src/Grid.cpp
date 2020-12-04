@@ -148,5 +148,34 @@ void    Grid::fillCellVolumes(const unsigned int lev, const IntVect& lo,
     throw std::logic_error("Default Grid::fillCellVolumes not yet implemented");
 }
 
+/** subcellGeometry fills a Real array (passed by pointer) with the
+  * volumes of subcells
+  *
+  * @param nsubI No. of subcell lengths per cell length in x-dir
+  * @param nsubJ No. of subcell lengths per cell length in y-dir
+  * @param nsubK No. of subcell lengths per cell length in z-dir
+  * @param dvCell Volume of whole cell
+  * @param dvSubPtr Volumes of subcells (should be length nsubI*nsubJ)
+  * @param xL x-coord of left cell face (optional, default 0.0)
+  * @param xR x-coord of right cell face (optional, default 0.0)
+  * @param yL y-coord of lower cell face (optional, default 0.0)
+  * @param yR y-coord of upper cell face (optional, default 0.0)
+  *
+  * \todo implement non-cartesian versions
+  * \todo adjust interface with FArray?
+  */
+void    Grid::subcellGeometry(const unsigned int nsubI,
+                              const unsigned int nsubJ,
+                              const unsigned int nsubK,
+                              const Real dvCell, Real* dvSubPtr,
+                              const Real xL, const Real xR,
+                              const Real yL, const Real yR) {
+    Real denom = Real(nsubI * nsubJ * nsubK);
+    Real dvs = dvCell / denom;
+    for (int i=0; i<nsubI*nsubJ; ++i) {
+        dvSubPtr[i] = dvs;
+    }
+}
+
 
 }
