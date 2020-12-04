@@ -170,10 +170,8 @@ void    Grid::subcellGeometry(const unsigned int nsubI,
                               const Real dvCell, Real* dvSubPtr,
                               const Real xL, const Real xR,
                               const Real yL, const Real yR) {
-    Real dvs = dvCell;
-    dvs /= Real(nsubI);
-    dvs /= Real(nsubJ);
-    dvs /= Real(nsubK);
+    Real denom = Real(nsubI * nsubJ * nsubK);
+    Real dvs = dvCell / denom;
     for (int i=0; i<nsubI*nsubJ; ++i) {
         dvSubPtr[i] = dvs;
     }
