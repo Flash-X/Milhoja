@@ -15,6 +15,7 @@ sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
+sites/*/sedov_*
 sites/hello/*.x
 sites/hello/*.dat
 sites/gce/*.dat
@@ -43,6 +44,8 @@ test/*/buildInfo.inc
 test/Flash.h
 test/constants.h
 test/*/*.o
+test/*.mod
+simulations/*/*.o
 test/*.mod
 studies/Summit_2020-04-15/gatherDataCpp_*
 studies/Summit_2020-04-15/gatherDataF2003_*

@@ -48,8 +48,36 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
     if (names.size()==1) {
         names[0] = "phi";
     } else {
-        names[0] = "Density";
-        names[1] = "Energy";
+#ifdef DENS_VAR_C
+        names[DENS_VAR_C] = "dens";
+#endif
+#ifdef VELX_VAR_C
+        names[VELX_VAR_C] = "velx";
+#endif
+#ifdef VELY_VAR_C
+        names[VELY_VAR_C] = "vely";
+#endif
+#ifdef VELZ_VAR_C
+        names[VELZ_VAR_C] = "velz";
+#endif
+#ifdef PRES_VAR_C
+        names[PRES_VAR_C] = "pres";
+#endif
+#ifdef ENER_VAR_C
+        names[ENER_VAR_C] = "ener";
+#endif
+#ifdef GAMC_VAR_C
+        names[GAMC_VAR_C] = "gamc";
+#endif
+#ifdef GAME_VAR_C
+        names[GAME_VAR_C] = "game";
+#endif
+#ifdef TEMP_VAR_C
+        names[TEMP_VAR_C] = "temp";
+#endif
+#ifdef EINT_VAR_C
+        names[EINT_VAR_C] = "eint";
+#endif
     }
     amrex::Vector<const amrex::MultiFab*> mfs;
     for(int i=0; i<=finest_level; ++i) {

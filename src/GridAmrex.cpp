@@ -273,35 +273,47 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
                                      const unsigned int lev,
                                      const IntVect& lo,
                                      const IntVect& hi) const {
-#ifndef GRID_ERRCHECK_OFF
-    if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
+    int   idxLo = 0;
+    int   idxHi = 0;
+    if        (axis == Axis::I) {
+        idxLo = lo.I();
+        idxHi = hi.I();
+    } else if (axis == Axis::J) {
+        idxLo = lo.J();
+        idxHi = hi.J();
+    } else if (axis == Axis::K) {
+        idxLo = lo.K();
+        idxHi = hi.K();
+    } else {
         throw std::logic_error("GridAmrex::getCellCoords: Invalid axis.");
     }
-    if(edge!=Edge::Left && edge!=Edge::Right && edge!=Edge::Center){
-        throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
-    }
-#endif
+
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    int nElements = hi[axis] - lo[axis] + 1;
+    int nElements = idxHi - idxLo + 1;
     int offset = 0; //accounts for indexing of left/right cases
+
+    FArray1D coords = FArray1D::buildScratchArray1D(idxLo, idxHi);
+    if (axis >= NDIM) {
+        // TODO: What value to put here?  Should it change
+        //       based on edge?
+        coords(idxLo) = 0.0;
+        return coords;
+    }
 
     //coordvec is length nElements + 1 if edge is Left or Right
     amrex::Vector<amrex::Real> coordvec;
-    switch (edge) {
-        case Edge::Left:
-            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Right:
-            offset = 1;
-            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Center:
-            amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
-            break;
+    if        (edge == Edge::Left) {
+        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+    } else if (edge == Edge::Right) {
+        offset = 1;
+        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+    } else if (edge == Edge::Center) {
+        amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
+    } else {
+        throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
     }
 
     //copy results to output
-    FArray1D coords = FArray1D::buildScratchArray1D(lo[axis], hi[axis]);
     for(int i=0; i<nElements; ++i) {
         coords(i+lo[axis]) = coordvec[i+offset];
     }
