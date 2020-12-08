@@ -1,7 +1,7 @@
 SHELL=/bin/sh
 
-BASE         = sedov_cpp
-MAKEFILE     = Makefile_sedov_cpp
+BASE         = sedov_cpu_cpp
+MAKEFILE     = Makefile_sedov_cpu_cpp
 BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
@@ -84,7 +84,7 @@ SRCS       = \
     $(SIMDIR)/Io.cpp \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
     $(SIMDIR)/Driver_data.cpp \
-    $(SIMDIR)/sedov.cpp 
+    $(SIMDIR)/sedov_cpu.cpp 
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x

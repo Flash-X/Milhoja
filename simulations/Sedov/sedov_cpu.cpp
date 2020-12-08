@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     // TODO: Shouldn't this be done through the IO unit?
-    grid.writePlotfile(rp_Simulation::NAME + "_ICs");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
 
     // Compute local integral quantities
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_" + std::to_string(nStep));
+            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
 
         //----- OUTPUT RESULTS TO FILES
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_final");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_final");
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 
