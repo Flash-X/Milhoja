@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H__
 #define CONSTANTS_H__
 
+#define MASTER_PE   0
+
 #define GRID_AMREX
 
 #define NXB  8

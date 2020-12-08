@@ -30,6 +30,8 @@ Fake runtime parameters here
 #define HY_ZMOM_FLUX_C  3
 #define HY_ENER_FLUX_C  4
 
+#define NMASS_SCALARS   0
+
 #define X_MIN      0.0
 #define X_MAX      1.0
 #define Y_MIN      0.0

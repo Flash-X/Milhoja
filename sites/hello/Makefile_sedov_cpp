@@ -46,6 +46,7 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/errorEstBlank.h \
     $(SIMDIR)/constants.h \
     $(SIMDIR)/Flash.h \
+    $(SIMDIR)/IO.h \
     $(SIMDIR)/Eos.h \
     $(SIMDIR)/Hydro.h \
     $(SIMDIR)/Driver.h \
@@ -80,6 +81,13 @@ SRCS       = \
     $(SIMDIR)/hy_updateSolutionHll.cpp \
     $(SIMDIR)/Hydro_advanceSolution_tile_cpu.cpp \
     $(SIMDIR)/Eos_idealGamma_dens_ie.cpp \
+    $(SIMDIR)/IO_data.cpp \
+    $(SIMDIR)/IO_initialize.cpp \
+    $(SIMDIR)/IO_finalize.cpp \
+    $(SIMDIR)/IO_computeBlockIntegralQuantities.cpp \
+    $(SIMDIR)/IO_computeBlockIntegralQuantities_tile_cpu.cpp \
+    $(SIMDIR)/IO_computeLocalIntegralQuantities.cpp \
+    $(SIMDIR)/IO_writeIntegralQuantities.cpp \
     $(SIMDIR)/Driver_data.cpp \
     $(SIMDIR)/sedov.cpp 
 

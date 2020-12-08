@@ -9,6 +9,7 @@ namespace Driver {
     // TODO: Include a pointer to the variable (i.e. dt_d) that stores dt in GPU
     // device memory.
     extern orchestration::Real     dt;
+    extern orchestration::Real     simTime;
 };
 
 namespace dr {

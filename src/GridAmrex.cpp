@@ -202,6 +202,33 @@ unsigned int GridAmrex::getMaxLevel() const {
 }
 
 /**
+  * Obtain the total number of blocks managed by the process.
+  *
+  * \todo Is there an AMReX function to get this information directly?
+  *
+  * \todo Can we use the AMReX iterator directly here?
+  *
+  * \todo Make this work for more than one level.
+  *
+  * \todo Check against FLASH-X to determine if flags are needed.  For
+  *       example, would users need # blocks for a given level?  Only count the
+  *       number of leaf blocks?
+  *
+  * \todo This routine should be const.  Right now, the creation of the
+  *       iterator does not allow for this.
+  *
+  * @return The number of local blocks.
+  */
+unsigned int GridAmrex::getNumberLocalBlocks() {
+    unsigned int   nBlocks = 0;
+    for (auto ti = buildTileIter(0); ti->isValid(); ti->next()) {
+        ++nBlocks;
+    }
+
+    return nBlocks;
+}
+
+/**
  *
  */
 void    GridAmrex::writePlotfile(const std::string& filename) const {

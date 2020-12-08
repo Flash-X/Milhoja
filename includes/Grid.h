@@ -53,6 +53,7 @@ public:
     virtual RealVect       getProbHi() const = 0;
     virtual unsigned int   getMaxRefinement() const = 0;
     virtual unsigned int   getMaxLevel() const = 0;
+    virtual unsigned int   getNumberLocalBlocks() = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
     virtual void writePlotfile(const std::string& filename) const = 0;
 
