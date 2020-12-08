@@ -1,11 +1,11 @@
-#include "IO.h"
+#include "Io.h"
 #include "Driver.h"
 
 #include "Tile.h"
 #include "Grid.h"
 
 /**
- * The action routine wrapper of computeBlockIntegralQuantities created so that
+ * The action routine wrapper of computeIntegralQuantitiesByBlock created so that
  * the function can be executed by the orchestration runtime using CPU resources
  * applied to Tiles.
  *
@@ -14,9 +14,12 @@
  *                   applied.  It is an error if this pointer does not point to
  *                   a Tile object.
  */
-void IO::computeBlockIntegralQuantities_tile_cpu(const int tId,
-                                                 orchestration::DataItem* dataItem) {
+void ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu(const int tId,
+                                                                  orchestration::DataItem* dataItem) {
     using namespace orchestration;
+
+    Io&   io   = Io::instance();
+    Grid& grid = Grid::instance();
 
     Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
 
@@ -29,9 +32,9 @@ void IO::computeBlockIntegralQuantities_tile_cpu(const int tId,
     Real   volumes_buffer[  (hi.I() - lo.I() + 1)
                           * (hi.J() - lo.J() + 1)
                           * (hi.K() - lo.K() + 1)];
-    Grid::instance().fillCellVolumes(level, lo, hi, volumes_buffer); 
+    grid.fillCellVolumes(level, lo, hi, volumes_buffer); 
     const FArray3D   volumes{volumes_buffer, lo, hi};
 
-    computeBlockIntegralQuantities(Driver::simTime, tId, lo, hi, volumes, U);
+    io.computeIntegralQuantitiesByBlock(Driver::simTime, tId, lo, hi, volumes, U);
 }
 

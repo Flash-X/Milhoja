@@ -3,7 +3,7 @@
 
 #include <mpi.h>
 
-#include "IO.h"
+#include "Io.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
@@ -19,8 +19,6 @@
 // TODO: This should be managed and correct assignment confirmed at the same
 // time that we make certain that the Real type specified in this repo matches
 // the Real used in the Grid backend.
-constexpr  int         ORCH_REAL                    = MPI_DOUBLE_PRECISION;
-constexpr  int         GLOBAL_COMM                  = MPI_COMM_WORLD;
 const      std::string SIMULATION_NAME              = "sedov";
 const      std::string LOG_FILENAME                 = SIMULATION_NAME + ".log";
 const      std::string INTEGRAL_QUANTITIES_FILENAME = SIMULATION_NAME + ".dat";
@@ -42,12 +40,13 @@ int main(int argc, char* argv[]) {
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init
-    IO::initialize(INTEGRAL_QUANTITIES_FILENAME);
+    orchestration::Io::instantiate(INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
     //----- MIMIC Grid_initDomain
+    orchestration::Io&       io      = orchestration::Io::instance();
     orchestration::Grid&     grid    = orchestration::Grid::instance();
     orchestration::Logger&   logger  = orchestration::Logger::instance();
     orchestration::Runtime&  runtime = orchestration::Runtime::instance();
@@ -61,25 +60,22 @@ int main(int argc, char* argv[]) {
 
     //----- OUTPUT RESULTS TO FILES
     // This only makes sense if the iteration is over LEAF blocks.
-    RuntimeAction     computeBlockIntQuantities;
-    computeBlockIntQuantities.name            = "Compute Integral Quantities";
-    computeBlockIntQuantities.nInitialThreads = 2;
-    computeBlockIntQuantities.teamType        = ThreadTeamDataType::BLOCK;
-    computeBlockIntQuantities.nTilesPerPacket = 0;
-    computeBlockIntQuantities.routine         = IO::computeBlockIntegralQuantities_tile_cpu;
+    RuntimeAction     computeIntQuantitiesByBlk;
+    computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
+    computeIntQuantitiesByBlk.nInitialThreads = 2;
+    computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
+    computeIntQuantitiesByBlk.nTilesPerPacket = 0;
+    computeIntQuantitiesByBlk.routine         
+        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
+    // TODO: Shouldn't this be done through the IO unit?
     grid.writePlotfile(SIMULATION_NAME + "_ICs");
 
     // Compute local integral quantities
-    runtime.executeCpuTasks("IntegralQ", computeBlockIntQuantities);
-    IO::computeLocalIntegralQuantities();
-
-    // Compute  global integral quantities
-    int err = MPI_Reduce((void*)IO::localIntegralQuantities,
-                         (void*)IO::globalIntegralQuantities,
-                         IO::nIntegralQuantities, ORCH_REAL, MPI_SUM,
-                         MASTER_PE, MPI_COMM_WORLD);
-    IO::writeIntegralQuantities(Driver::simTime);
+    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    // Compute global integral quantities via DATA MOVEMENT
+    io.reduceToGlobalIntegralQuantities();
+    io.writeIntegralQuantities(Driver::simTime);
 
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance;
@@ -125,15 +121,9 @@ int main(int argc, char* argv[]) {
         // Compute local integral quantities
         // TODO: This should be run as a CPU-based pipeline extension
         //       to the physics action bundle.
-        runtime.executeCpuTasks("IntegralQ", computeBlockIntQuantities);
-        IO::computeLocalIntegralQuantities();
-
-        // Compute  global integral quantities
-        err = MPI_Reduce((void*)IO::localIntegralQuantities,
-                         (void*)IO::globalIntegralQuantities,
-                         IO::nIntegralQuantities, ORCH_REAL, MPI_SUM,
-                         MASTER_PE, MPI_COMM_WORLD);
-        IO::writeIntegralQuantities(Driver::simTime);
+        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        io.reduceToGlobalIntegralQuantities();
+        io.writeIntegralQuantities(Driver::simTime);
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -167,8 +157,6 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
-
-    IO::finalize();
 
     return 0;
 }

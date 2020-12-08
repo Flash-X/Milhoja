@@ -45,6 +45,7 @@ Fake runtime parameters here
 #define LREFINE_MAX 1
 
 #define REAL_IS_DOUBLE
+#define ORCH_REAL    MPI_DOUBLE_PRECISION
 
 #if 0
 Assuming 2D only for now
