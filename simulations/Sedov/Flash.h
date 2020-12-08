@@ -3,11 +3,6 @@
 
 #define NGUARD 1
 
-#if 0
-Fake runtime parameters here
-#endif
-#define GAMMA  1.4
-
 #define DENS_VAR_C 0
 #define VELX_VAR_C 1
 #define VELY_VAR_C 2
@@ -31,18 +26,6 @@ Fake runtime parameters here
 #define HY_ENER_FLUX_C  4
 
 #define NMASS_SCALARS   0
-
-#define X_MIN      0.0
-#define X_MAX      1.0
-#define Y_MIN      0.0
-#define Y_MAX      1.0
-#define Z_MIN      0.0
-#define Z_MAX      1.0
-#define N_BLOCKS_X 32
-#define N_BLOCKS_Y 32
-#define N_BLOCKS_Z 1
-
-#define LREFINE_MAX 1
 
 #define REAL_IS_DOUBLE
 #define ORCH_REAL    MPI_DOUBLE_PRECISION

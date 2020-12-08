@@ -13,6 +13,7 @@
 #include "OrchestrationLogger.h"
 
 #include "Flash.h"
+#include "Flash_par.h"
 #include "constants.h"
 
 namespace orchestration {
@@ -24,36 +25,42 @@ void passRPToAmrex() {
 #endif
     {
         amrex::ParmParse pp("geometry");
-        pp.addarr("is_periodic", std::vector<int>{1,1,1} );
-        pp.add("coord_sys",0); //cartesian
-        pp.addarr("prob_lo",std::vector<Real>{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)});
-        pp.addarr("prob_hi",std::vector<Real>{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)});
+        pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
+        pp.add("coord_sys", 0); //cartesian
+        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_Grid::X_MIN,
+                                                         rp_Grid::Y_MIN,
+                                                         rp_Grid::Z_MIN)});
+        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_Grid::X_MAX,
+                                                         rp_Grid::Y_MAX,
+                                                         rp_Grid::Z_MAX)});
     }
 
     {
         amrex::ParmParse pp("amr");
 
-        pp.add("v",0); //verbosity
+        // TODO: Check for overflow
+        int  lrefineMax = static_cast<int>(rp_Grid::LREFINE_MAX);
+
+        pp.add("v", 0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
-        pp.add("max_level",LREFINE_MAX-1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB*N_BLOCKS_X,
-                                      NYB*N_BLOCKS_Y,
-                                      NZB*N_BLOCKS_Z)});
+        pp.add("max_level", lrefineMax - 1); //0-based
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_Grid::N_BLOCKS_X,
+                                                      NYB * rp_Grid::N_BLOCKS_Y,
+                                                      NZB * rp_Grid::N_BLOCKS_Z)});
 
         //octree mode:
-        pp.add("max_grid_size_x",NXB);
-        pp.add("max_grid_size_y",NYB);
-        pp.add("max_grid_size_z",NZB);
-        pp.add("blocking_factor_x",NXB*2);
-        pp.add("blocking_factor_y",NYB*2);
-        pp.add("blocking_factor_z",NZB*2);
-        pp.add("refine_grid_layout",0);
-        pp.add("grid_eff",1.0);
-        pp.add("n_proper",1);
-        pp.add("n_error_buf",0);
-        pp.addarr("ref_ratio",std::vector<int>(LREFINE_MAX,2));
+        pp.add("max_grid_size_x", NXB);
+        pp.add("max_grid_size_y", NYB);
+        pp.add("max_grid_size_z", NZB);
+        pp.add("blocking_factor_x", NXB*2);
+        pp.add("blocking_factor_y", NYB*2);
+        pp.add("blocking_factor_z", NZB*2);
+        pp.add("refine_grid_layout", 0);
+        pp.add("grid_eff", 1.0);
+        pp.add("n_proper", 1);
+        pp.add("n_error_buf", 0);
+        pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
     }
-
 }
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
@@ -107,6 +114,7 @@ void  GridAmrex::destroyDomain(void) {
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
+                           const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst) {
     if (amrcore_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
@@ -117,7 +125,7 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
     }
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock,errorEst);
+    amrcore_ = new AmrCoreFlash(initBlock, nRuntimeThreads, errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +

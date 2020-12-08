@@ -4,11 +4,10 @@
 
 #include <stdexcept>
 
-#include "Orchestration.h"
 #include "OrchestrationLogger.h"
 
 #include "constants.h"
-#include "Flash.h"
+#include "Flash_par.h"
 
 using namespace orchestration;
 
@@ -88,7 +87,7 @@ Io::Io(void)
     //
     // Leave the accumulators zeroed so that they are ready for use.
     logger.log("[IO] Integral quantities to be computed and output are");
-    unsigned int   nThreads = Orchestration::nThreadsPerTeam;
+    unsigned int   nThreads = rp_Runtime::N_THREADS_PER_TEAM;
 #ifdef DENS_VAR_C
     intQuantities_mass_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
@@ -387,7 +386,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     // Any or all of the threads in the thread team that ran
     // computeIntegralQuantitiesByBlock could have computed part of the
     // integration.  Therefore, we integrate across all threads.
-    for (unsigned int i=0; i<Orchestration::nThreadsPerTeam; ++i) {
+    for (unsigned int i=0; i<rp_Runtime::N_THREADS_PER_TEAM; ++i) {
         // The order in which quantities are stored in the array must match the
         // order in which quantities are listed in the output file's header.
 #ifdef DENS_VAR_C

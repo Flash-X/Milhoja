@@ -12,13 +12,5 @@ namespace Driver {
     extern orchestration::Real     simTime;
 };
 
-namespace dr {
-    // This is how I fake a Driver_computeDt
-    constexpr orchestration::Real   dtAfter          = 5.0e-5_wp;
-
-    // Fix runtime parameters
-    constexpr unsigned int          writeEveryNSteps = 10;
-};
-
 #endif
 

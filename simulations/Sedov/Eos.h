@@ -14,17 +14,5 @@ namespace Eos {
                             orchestration::FArray4D& solnData);
 };
 
-namespace eos {
-    // Taken from FLASH-X Sedov/setup_params file 
-    constexpr orchestration::Real   SINGLE_SPECIES_A = 1.0_wp;
-    
-    // Taken from FLASH-X Physical Constants
-    constexpr orchestration::Real   GAS_CONSTANT = 8.3144598e7_wp;  // J/mol/K
-    
-    // Derived from runtime parameters/constants
-    constexpr orchestration::Real   GGPROD_INV    = (GAMMA - 1.0_wp) / GAS_CONSTANT;
-    constexpr orchestration::Real   GAMMA_M_1_INV = (GAMMA - 1.0_wp);
-};
-
 #endif
 

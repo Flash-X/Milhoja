@@ -33,6 +33,7 @@ public:
 
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock,
+                            const unsigned int nRuntimeThreads,
                             ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;

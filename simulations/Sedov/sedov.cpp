@@ -7,7 +7,6 @@
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
-#include "Orchestration.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
@@ -16,31 +15,26 @@
 
 #include "errorEstBlank.h"
 
-// TODO: This should be managed and correct assignment confirmed at the same
-// time that we make certain that the Real type specified in this repo matches
-// the Real used in the Grid backend.
-const      std::string SIMULATION_NAME              = "sedov";
-const      std::string LOG_FILENAME                 = SIMULATION_NAME + ".log";
-const      std::string INTEGRAL_QUANTITIES_FILENAME = SIMULATION_NAME + ".dat";
+#include "Flash_par.h"
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(LOG_FILENAME);
+    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
 
     // Analogous to calling Orchestration_init
-    orchestration::Runtime::instantiate(orch::nThreadTeams, 
-                                        Orchestration::nThreadsPerTeam,
-                                        orch::nStreams,
-                                        orch::memoryPoolSizeBytes);
+    orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
+                                        rp_Runtime::N_THREADS_PER_TEAM,
+                                        rp_Runtime::N_STREAMS,
+                                        rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(INTEGRAL_QUANTITIES_FILENAME);
+    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
@@ -51,25 +45,26 @@ int main(int argc, char* argv[]) {
     orchestration::Logger&   logger  = orchestration::Logger::instance();
     orchestration::Runtime&  runtime = orchestration::Runtime::instance();
 
-    Driver::dt      = Simulation::dtInit;
-    Driver::simTime = Simulation::t_0;
+    Driver::dt      = rp_Simulation::DT_INIT;
+    Driver::simTime = rp_Simulation::T_0;
 
     logger.log("[Simulation] Generate mesh and set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
 
     //----- OUTPUT RESULTS TO FILES
     // This only makes sense if the iteration is over LEAF blocks.
     RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
-    computeIntQuantitiesByBlk.nInitialThreads = 2;
+    computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
     computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     // TODO: Shouldn't this be done through the IO unit?
-    grid.writePlotfile(SIMULATION_NAME + "_ICs");
+    grid.writePlotfile(rp_Simulation::NAME + "_ICs");
 
     // Compute local integral quantities
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
@@ -80,24 +75,24 @@ int main(int argc, char* argv[]) {
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance;
     hydroAdvance.name            = "Advance Hydro Solution";
-    hydroAdvance.nInitialThreads = 2;
+    hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
     hydroAdvance.teamType        = ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolution_tile_cpu;
 
-    logger.log("[Simulation] " + SIMULATION_NAME + " simulation started");
+    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 
     unsigned int   nStep   = 1;
-    while ((nStep <= Simulation::maxSteps) && (Driver::simTime < Simulation::t_max)) {
+    while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
-        if ((Driver::simTime + Driver::dt) > Simulation::t_max) {
+        if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
             Real   origDt = Driver::dt;
-            Driver::dt = (Simulation::t_max - Driver::simTime);
-            Driver::simTime = Simulation::t_max;
+            Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
+            Driver::simTime = rp_Simulation::T_MAX;
             logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
                        + " to " + std::to_string(Driver::dt)
-                       + " so that tmax=" + std::to_string(Simulation::t_max)
+                       + " so that tmax=" + std::to_string(rp_Simulation::T_MAX)
                        + " is not exceeded");
         } else {
             Driver::simTime += Driver::dt;
@@ -113,8 +108,8 @@ int main(int argc, char* argv[]) {
         }
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
 
-        if ((nStep % dr::writeEveryNSteps) == 0) {
-            grid.writePlotfile(SIMULATION_NAME + "_" + std::to_string(nStep));
+        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
+            grid.writePlotfile(rp_Simulation::NAME + "_" + std::to_string(nStep));
         }
 
         //----- OUTPUT RESULTS TO FILES
@@ -139,20 +134,20 @@ int main(int argc, char* argv[]) {
         //
         // When a dt value of 5.0e-5 is used, FLASH-X complains that it is too
         // low and sets dt to the Hydro CFL-determined dt value, which should be 
-        // Simulation::dtInit.  There after, it allows for 5.0e-5.  Therefore,
+        // Simulation::DT_INIT.  There after, it allows for 5.0e-5.  Therefore,
         // we mimic that dt sequence here so that we can directly compare
         // results.
-        Driver::dt = dr::dtAfter;
+        Driver::dt = rp_Driver::DT_AFTER;
 
         ++nStep;
     }
-    logger.log("[Simulation] " + SIMULATION_NAME + " simulation terminated");
-    if (Driver::simTime >= Simulation::t_max) {
+    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation terminated");
+    if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(SIMULATION_NAME + "_final");
+    grid.writePlotfile(rp_Simulation::NAME + "_final");
 
-    nStep = std::min(nStep, Simulation::maxSteps);
+    nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is

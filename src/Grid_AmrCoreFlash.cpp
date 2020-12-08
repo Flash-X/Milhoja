@@ -11,6 +11,7 @@
 #include <AMReX_FillPatchUtil.H>
 
 #include "Flash.h"
+#include "Flash_par.h"
 
 namespace orchestration {
 
@@ -19,8 +20,10 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+                           const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst)
     : initBlock_{initBlock},
+      nThreads_initBlock_{nRuntimeThreads},
       errorEst_{errorEst} {
 
     // Allocate and resize unk_ (vector of Multifabs).
@@ -181,18 +184,18 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 
     // Initalize simulation block data in unk_[lev].
     // Must fill interiors, GC optional.
-    // TODO: Thread count should be a runtime variable
     RuntimeAction    action;
     action.name = "initBlock";
-    action.nInitialThreads = 4;
+    action.nInitialThreads = nThreads_initBlock_ - 1;
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock_;
-    ThreadTeam  team(4, 1);
+    ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
     for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
         team.enqueue( ti->buildCurrentTile() );
     }
     team.closeQueue();
+    team.increaseThreadCount(1);
     team.wait();
 
     // DO A GC FILL HERE?
