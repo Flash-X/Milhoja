@@ -86,8 +86,14 @@ SRCS       = \
     $(SIMDIR)/hy_updateSolutionHll_FlY_oacc_summit.cpp \
     $(SIMDIR)/hy_updateSolutionHll_FlZ_oacc_summit.cpp \
     $(SIMDIR)/hy_rescaleSolutionHll_oacc_summit.cpp \
-    $(SIMDIR)/hy_updateEintHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_computeEintHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_updateDensityHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_updateVelxHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_updateVelyHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_updateVelzHll_oacc_summit.cpp \
+    $(SIMDIR)/hy_updateEnergyHll_oacc_summit.cpp \
     $(SIMDIR)/Hydro_advanceSolution_oacc_summit.cpp \
+    $(SIMDIR)/Hydro_advanceSolution2_oacc_summit.cpp \
     $(SIMDIR)/Eos_idealGamma_dens_ie.cpp \
     $(SIMDIR)/Io.cpp \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \

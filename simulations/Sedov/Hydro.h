@@ -14,6 +14,8 @@ namespace Hydro {
                                   orchestration::DataItem* dataItem);
     void advanceSolution_oacc_summit(const int tId,
                                      orchestration::DataItem* dataItem);
+    void advanceSolution2_oacc_summit(const int tId,
+                                      orchestration::DataItem* dataItem);
 };
 
 namespace hy {
@@ -72,6 +74,9 @@ namespace hy {
     // if they should be broken up to limit register pressure.  I think that
     // each variable should have its own kernel as this might keep register
     // pressure low and make better use of data locality.
+    //
+    // Kernel-decomposition I -
+    // apply one operation at a time across all variables
     void scaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
                                       const orchestration::IntVect& hi,
                                       const orchestration::FArray4D& Uin,
@@ -96,9 +101,50 @@ namespace hy {
                                         const orchestration::IntVect& hi,
                                         orchestration::FArray4D& U);
 
-    void updateEintHll_oacc_summit(const orchestration::IntVect& lo,
+    void computeEintHll_oacc_summit(const orchestration::IntVect& lo,
+                                    const orchestration::IntVect& hi,
+                                    orchestration::FArray4D& U);
+
+    // Kernel-decomposition II -
+    // Updated each variable individually
+    void updateDensityHll_oacc_summit(const orchestration::IntVect& lo,
+                                      const orchestration::IntVect& hi,
+                                      const orchestration::FArray4D& Uin,
+                                      orchestration::FArray4D& Uout,
+                                      const orchestration::FArray4D& flX,
+                                      const orchestration::FArray4D& flY,
+                                      const orchestration::FArray4D& flZ);
+
+    void updateVelxHll_oacc_summit(const orchestration::IntVect& lo,
                                    const orchestration::IntVect& hi,
-                                   orchestration::FArray4D& U);
+                                   const orchestration::FArray4D& Uin,
+                                   orchestration::FArray4D& Uout,
+                                   const orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& flY,
+                                   const orchestration::FArray4D& flZ);
+
+    void updateVelyHll_oacc_summit(const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   const orchestration::FArray4D& Uin,
+                                   orchestration::FArray4D& Uout,
+                                   const orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& flY,
+                                   const orchestration::FArray4D& flZ);
+
+    void updateVelzHll_oacc_summit(const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   const orchestration::FArray4D& Uin,
+                                   orchestration::FArray4D& Uout,
+                                   const orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& flY,
+                                   const orchestration::FArray4D& flZ);
+    void updateEnergyHll_oacc_summit(const orchestration::IntVect& lo,
+                                     const orchestration::IntVect& hi,
+                                     const orchestration::FArray4D& Uin,
+                                     orchestration::FArray4D& Uout,
+                                     const orchestration::FArray4D& flX,
+                                     const orchestration::FArray4D& flY,
+                                     const orchestration::FArray4D& flZ);
 };
 
 #endif

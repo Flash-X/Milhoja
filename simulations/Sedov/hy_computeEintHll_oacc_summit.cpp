@@ -2,9 +2,9 @@
 
 #include "Flash.h"
 
-void hy::updateEintHll_oacc_summit(const orchestration::IntVect& lo,
-                                   const orchestration::IntVect& hi,
-                                   orchestration::FArray4D& U) {
+void hy::computeEintHll_oacc_summit(const orchestration::IntVect& lo,
+                                    const orchestration::IntVect& hi,
+                                    orchestration::FArray4D& U) {
     using namespace orchestration;
 
     // Correct energy
