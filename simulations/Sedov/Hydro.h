@@ -12,14 +12,17 @@ namespace Hydro {
     //----- ORCHESTRATION RUNTIME ACTION ROUTINES
     void advanceSolution_tile_cpu(const int tId,
                                   orchestration::DataItem* dataItem);
+    void advanceSolution_oacc_summit(const int tId,
+                                     orchestration::DataItem* dataItem);
 };
 
 namespace hy {
+    //----- CPU ACTION ROUTINES
     void computeFluxesHll(const orchestration::Real dt,
                           const orchestration::IntVect& lo,
                           const orchestration::IntVect& hi,
                           const orchestration::RealVect& deltas,
-                          const orchestration::FArray4D& Uin,
+                          const orchestration::FArray4D& U,
                           orchestration::FArray4D& flX,
                           orchestration::FArray4D& flY,
                           orchestration::FArray4D& flZ,
@@ -32,6 +35,73 @@ namespace hy {
                            const orchestration::FArray4D& flX,
                            const orchestration::FArray4D& flY,
                            const orchestration::FArray4D& flZ);
+
+    //----- GPU ACTION ROUTINES FOR ADVANCE SOLUTION HYDRO OPERATION
+    // Kernels that compose compute flux
+    void computeSoundSpeedHll_oacc_summit(const orchestration::IntVect& lo,
+                                          const orchestration::IntVect& hi,
+                                          const orchestration::FArray4D& U,
+                                          orchestration::FArray3D& auxC);
+
+    void computeFluxesHll_X_oacc_summit(const orchestration::Real dt,
+                                        const orchestration::IntVect& lo,
+                                        const orchestration::IntVect& hi,
+                                        const orchestration::RealVect& deltas,
+                                        const orchestration::FArray4D& U,
+                                        orchestration::FArray4D& flX,
+                                        const orchestration::FArray3D& auxC);
+
+    void computeFluxesHll_Y_oacc_summit(const orchestration::Real dt,
+                                        const orchestration::IntVect& lo,
+                                        const orchestration::IntVect& hi,
+                                        const orchestration::RealVect& deltas,
+                                        const orchestration::FArray4D& U,
+                                        orchestration::FArray4D& flY,
+                                        const orchestration::FArray3D& auxC);
+
+    void computeFluxesHll_Z_oacc_summit(const orchestration::Real dt,
+                                        const orchestration::IntVect& lo,
+                                        const orchestration::IntVect& hi,
+                                        const orchestration::RealVect& deltas,
+                                        const orchestration::FArray4D& U,
+                                        orchestration::FArray4D& flZ,
+                                        const orchestration::FArray3D& auxC);
+
+    // Kernels that compose update solution
+    // TODO: Conceptually, these should be a single kernel.  Remains to be seen
+    // if they should be broken up to limit register pressure.  I think that
+    // each variable should have its own kernel as this might keep register
+    // pressure low and make better use of data locality.
+    void scaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
+                                      const orchestration::IntVect& hi,
+                                      const orchestration::FArray4D& Uin,
+                                      orchestration::FArray4D& Uout,
+                                      const orchestration::FArray4D& flX,
+                                      const orchestration::FArray4D& flY,
+                                      const orchestration::FArray4D& flZ);
+
+    void updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect& lo,
+                                           const orchestration::IntVect& hi,
+                                           orchestration::FArray4D& U,
+                                           const orchestration::FArray4D& flX);
+
+    void updateSolutionHll_FlY_oacc_summit(const orchestration::IntVect& lo,
+                                           const orchestration::IntVect& hi,
+                                           orchestration::FArray4D& U,
+                                           const orchestration::FArray4D& flY);
+
+    void updateSolutionHll_FlZ_oacc_summit(const orchestration::IntVect& lo,
+                                           const orchestration::IntVect& hi,
+                                           orchestration::FArray4D& U,
+                                           const orchestration::FArray4D& flZ);
+
+    void rescaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
+                                        const orchestration::IntVect& hi,
+                                        orchestration::FArray4D& U);
+
+    void updateEintHll_oacc_summit(const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   orchestration::FArray4D& U);
 };
 
 #endif
