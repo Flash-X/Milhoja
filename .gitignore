@@ -26,6 +26,7 @@ sites/summit/testCudaBackend.*
 sites/summit/testRuntimeCuda.*
 sites/summit/gatherDataCpp.*
 sites/summit/gatherDataF2003.*
+sites/summit/sedovCpuCpp.*
 sites/bebop/build/build_*.log
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*
@@ -46,6 +47,7 @@ test/constants.h
 test/*/*.o
 test/*.mod
 simulations/*/*.o
+simulations/*/Flash_par.h
 test/*.mod
 studies/Summit_2020-04-15/gatherDataCpp_*
 studies/Summit_2020-04-15/gatherDataF2003_*

@@ -278,15 +278,32 @@ void   Io::computeIntegralQuantitiesByBlock(const orchestration::Real simTime,
                                             const orchestration::FArray3D& cellVolumes,
                                             const orchestration::FArray4D& solnData) {
     Real    dvol = 0.0_wp;
+#if defined(DENS_VAR_C)
     Real    mass = 0.0_wp;
     Real    massSum = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
     Real    xmomSum = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
     Real    ymomSum = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
     Real    zmomSum = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
     Real    enerSum = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
     Real    keSum   = 0.0_wp;
+#endif
+#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
     Real    eintSum = 0.0_wp;
+#endif
+#ifdef MAGP_VAR_C
     Real    magpSum = 0.0_wp;
+#endif
+
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
