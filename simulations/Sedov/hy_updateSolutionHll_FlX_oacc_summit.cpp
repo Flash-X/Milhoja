@@ -11,6 +11,8 @@ void hy::updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect& lo,
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
+                U(i, j, k, DENS_VAR_C) += (  flX(i,   j, k, HY_DENS_FLUX_C)
+                                           - flX(i+1, j, k, HY_DENS_FLUX_C) );
                 U(i, j, k, VELX_VAR_C) += (  flX(i,   j, k, HY_XMOM_FLUX_C)
                                            - flX(i+1, j, k, HY_XMOM_FLUX_C) );
                 U(i, j, k, VELY_VAR_C) += (  flX(i,   j, k, HY_YMOM_FLUX_C)

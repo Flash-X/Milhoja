@@ -49,7 +49,7 @@ void Hydro::advanceSolution_oacc_summit(const int tId,
 #endif
 
     // Update solutions (Uin = Uout)
-    hy::scaleSolutionHll_oacc_summit(lo, hi, U, U, flX, flY, flZ);
+    hy::scaleSolutionHll_oacc_summit(lo, hi, U, U);
     hy::updateSolutionHll_FlX_oacc_summit(lo, hi, U, flX);
 #if NDIM >= 2
     hy::updateSolutionHll_FlY_oacc_summit(lo, hi, U, flY);

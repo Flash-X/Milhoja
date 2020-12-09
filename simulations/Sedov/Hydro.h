@@ -75,10 +75,7 @@ namespace hy {
     void scaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
                                       const orchestration::IntVect& hi,
                                       const orchestration::FArray4D& Uin,
-                                      orchestration::FArray4D& Uout,
-                                      const orchestration::FArray4D& flX,
-                                      const orchestration::FArray4D& flY,
-                                      const orchestration::FArray4D& flZ);
+                                      orchestration::FArray4D& Uout);
 
     void updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect& lo,
                                            const orchestration::IntVect& hi,
