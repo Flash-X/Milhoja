@@ -6,8 +6,8 @@
 
 #include "Flash.h"
 
-void Hydro::advanceSolution_tile_cpu(const int tId,
-                                     orchestration::DataItem* dataItem) {
+void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
+                                                    orchestration::DataItem* dataItem) {
     using namespace orchestration;
 
     Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
@@ -38,8 +38,18 @@ void Hydro::advanceSolution_tile_cpu(const int tId,
     //   * No tiling for now means that computing fluxes and updating the
     //     solution can be fused and the full advance run independently on each
     //     block.
-    hy::computeFluxesHll(Driver::dt, lo, hi, deltas, U, flX, flY, flZ, auxC);
-    hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
+    //
+    // Compute fluxes
+    hy::computeSoundSpeedHll_oacc_summit(lo, hi, U, auxC);
+    hy::computeFluxesHll_X_oacc_summit(Driver::dt, lo, hi, deltas, U, flX, auxC);
+#if NDIM >= 2
+    hy::computeFluxesHll_Y_oacc_summit(Driver::dt, lo, hi, deltas, U, flY, auxC);
+#endif
+#if NDIM == 3
+    hy::computeFluxesHll_Z_oacc_summit(Driver::dt, lo, hi, deltas, U, flZ, auxC);
+#endif
+
+    hy::updateSolutionHll_oacc_summit(lo, hi, U, flX, flY, flZ);
     Eos::idealGamma_dens_ie(lo, hi, U);
 }
 

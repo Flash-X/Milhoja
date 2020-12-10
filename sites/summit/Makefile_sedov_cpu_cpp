@@ -79,7 +79,7 @@ SRCS       = \
     $(SIMDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
     $(SIMDIR)/hy_computeFluxesHll.cpp \
     $(SIMDIR)/hy_updateSolutionHll.cpp \
-    $(SIMDIR)/Hydro_advanceSolution_tile_cpu.cpp \
+    $(SIMDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
     $(SIMDIR)/Eos_idealGamma_dens_ie.cpp \
     $(SIMDIR)/Io.cpp \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \

@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
     hydroAdvance.teamType        = ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
-    hydroAdvance.routine         = Hydro::advanceSolution_tile_cpu;
+    hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
     logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 

@@ -10,14 +10,14 @@
 
 namespace Hydro {
     //----- ORCHESTRATION RUNTIME ACTION ROUTINES
-    void advanceSolution_tile_cpu(const int tId,
-                                  orchestration::DataItem* dataItem);
-    void advanceSolution_oacc_summit(const int tId,
+    void advanceSolutionHll_tile_cpu(const int tId,
                                      orchestration::DataItem* dataItem);
-    void advanceSolution2_oacc_summit(const int tId,
-                                      orchestration::DataItem* dataItem);
-    void advanceSolution3_oacc_summit(const int tId,
-                                      orchestration::DataItem* dataItem);
+    void advanceSolutionHll_packet_oacc_summit_1(const int tId,
+                                                 orchestration::DataItem* dataItem);
+    void advanceSolutionHll_packet_oacc_summit_2(const int tId,
+                                                 orchestration::DataItem* dataItem);
+    void advanceSolutionHll_packet_oacc_summit_3(const int tId,
+                                                 orchestration::DataItem* dataItem);
 };
 
 namespace hy {
