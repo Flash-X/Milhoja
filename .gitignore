@@ -15,7 +15,7 @@ sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
-sites/*/sedov_*
+sites/*/sedov_plt_*
 sites/hello/*.x
 sites/hello/*.dat
 sites/gce/*.dat

@@ -8,6 +8,7 @@ SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 SIMDIR       = $(BASEDIR)/simulations/Sedov
 AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
+CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Common files
 CXX_HDRS   = \
@@ -36,12 +37,13 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/DataItem.h \
+    $(INCDIR)/DataPacket.h \
     $(INCDIR)/RuntimeElement.h \
     $(INCDIR)/RuntimeAction.h \
     $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/MoverUnpacker.h \
     $(INCDIR)/Stream.h \
     $(INCDIR)/StreamManager.h \
-    $(INCDIR)/NullStreamManager.h \
     $(INCDIR)/Runtime.h \
     $(TESTBASEDIR)/errorEstBlank.h \
     $(SIMDIR)/constants.h \
@@ -52,6 +54,11 @@ CXX_HDRS   = \
     $(SIMDIR)/Driver.h \
     $(SIMDIR)/Simulation.h \
     $(SIMDIR)/Orchestration.h
+CU_HDRS   = \
+    $(INCDIR)/CudaGpuEnvironment.h \
+    $(INCDIR)/CudaDataPacket.h \
+    $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/CudaMemoryManager.h
 SRCS       = \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
@@ -68,10 +75,12 @@ SRCS       = \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Grid_IntVect.cpp \
     $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/DataPacket.cpp \
     $(SRCDIR)/Grid.cpp \
     $(SRCDIR)/GridAmrex.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
     $(SRCDIR)/StreamManager.cpp \
     $(SRCDIR)/Runtime.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
@@ -101,27 +110,40 @@ SRCS       = \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
     $(SIMDIR)/Driver_data.cpp \
     $(SIMDIR)/sedov_gpu.cpp 
+CU_SRCS       = \
+    $(SRCDIR)/CudaGpuEnvironment.cu \
+    $(SRCDIR)/CudaDataPacket.cu \
+    $(SRCDIR)/CudaStreamManager.cu \
+    $(SRCDIR)/CudaMemoryManager.cu
 
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
+CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include
+CXXFLAGS  = -g -O0 -traceback -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex
-LDFLAGS   = -L$(AMREXDIR)/lib
+CU        = nvcc
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(SIMDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
+CUWARNS   =
+
+LIBS      = -lpthread -lstdc++ -pgf90libs -lcudart -lamrex
+LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64
 
 all:    $(COMMAND)
 
 .SUFFIXES:
-.SUFFIXES: .o .cpp
+.SUFFIXES: .o .cpp .cu
 
-$(COMMAND): $(OBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(LDFLAGS) $(LIBS)
+$(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+.cu.o: $(CU_HDRS) $(MAKEFILE)
+	$(CU) -c $(CUFLAGS) $(CUWARNS) -o $@ $<
 
 clean:
 	/bin/rm -f $(COMMAND)

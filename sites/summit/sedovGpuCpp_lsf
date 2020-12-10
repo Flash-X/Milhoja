@@ -32,8 +32,8 @@ N_GPU_PER_SOCKET=3
 N_PROC_PER_RS=1
 N_GPU_PER_PROC=1
 N_CORES_PER_PROC=7
-N_RS_PER_SOCKET=3
-N_RS_PER_NODE=$(($N_RS_PER_SOCKET * $N_SOCKET_PER_NODE))
+N_RS_PER_SOCKET=1
+N_RS_PER_NODE=1
 
 # Dynamically determine the number of nodes from LSF env var
 # The host output contains the word batch1 and repeats of the hosts names
