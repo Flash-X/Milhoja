@@ -203,7 +203,8 @@ void  CudaDataPacket::pack(void) {
                                    +        2 * ARRAY4_SIZE_BYTES
                                    +        1 * COORDS_X_SIZE_BYTES
                                    +        1 * COORDS_Y_SIZE_BYTES
-                                   +        2 * ARRAY1_SIZE_BYTES);
+                                   +        1 * COORDS_Z_SIZE_BYTES
+                                   +        3 * ARRAY1_SIZE_BYTES);
 
     stream_ = CudaStreamManager::instance().requestStream(true);
     if (stream_.cudaStream == nullptr) {
@@ -248,10 +249,14 @@ void  CudaDataPacket::pack(void) {
                                                            level, loGC, hiGC); 
         const FArray1D      yCoordsGC = grid.getCellCoords(Axis::J, Edge::Center,
                                                            level, loGC, hiGC); 
+        const FArray1D      zCoordsGC = grid.getCellCoords(Axis::K, Edge::Center,
+                                                           level, loGC, hiGC); 
         const Real*         xCoordsGC_h = xCoordsGC.dataPtr();
         const Real*         yCoordsGC_h = yCoordsGC.dataPtr();
+        const Real*         zCoordsGC_h = zCoordsGC.dataPtr();
         Real*               xCoordsGC_data_d = nullptr;
         Real*               yCoordsGC_data_d = nullptr;
+        Real*               zCoordsGC_data_d = nullptr;
         Real*               data_h = tileDesc_h->dataPtr();
         Real*               CC1_data_d = nullptr;
         Real*               CC2_data_d = nullptr;
@@ -311,6 +316,11 @@ void  CudaDataPacket::pack(void) {
         ptr_p += COORDS_Y_SIZE_BYTES;
         ptr_d += COORDS_Y_SIZE_BYTES;
 
+        zCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
+        std::memcpy((void*)ptr_p, (void*)zCoordsGC_h, COORDS_Z_SIZE_BYTES);
+        ptr_p += COORDS_Z_SIZE_BYTES;
+        ptr_d += COORDS_Z_SIZE_BYTES;
+
         tilePtrs_p->xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   xCoordGCArray_d{xCoordsGC_data_d, loGC.I()};
         std::memcpy((void*)ptr_p, (void*)&xCoordGCArray_d, ARRAY1_SIZE_BYTES);
@@ -320,6 +330,12 @@ void  CudaDataPacket::pack(void) {
         tilePtrs_p->yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   yCoordGCArray_d{yCoordsGC_data_d, loGC.J()};
         std::memcpy((void*)ptr_p, (void*)&yCoordGCArray_d, ARRAY1_SIZE_BYTES);
+        ptr_p += ARRAY1_SIZE_BYTES;
+        ptr_d += ARRAY1_SIZE_BYTES;
+ 
+        tilePtrs_p->zCoords_d = static_cast<FArray1D*>((void*)ptr_d);
+        FArray1D   zCoordGCArray_d{zCoordsGC_data_d, loGC.K()};
+        std::memcpy((void*)ptr_p, (void*)&zCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
         ptr_d += ARRAY1_SIZE_BYTES;
  

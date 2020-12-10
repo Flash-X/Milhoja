@@ -28,6 +28,7 @@ struct PacketContents {
     IntVect*                hiGC_d     = nullptr;
     FArray1D*               xCoords_d  = nullptr;  //!< From loGC to hiGC
     FArray1D*               yCoords_d  = nullptr;  //!< From loGC to hiGC
+    FArray1D*               zCoords_d  = nullptr;  //!< From loGC to hiGC
     FArray4D*               CC1_d      = nullptr;
     FArray4D*               CC2_d      = nullptr;
 };
@@ -81,6 +82,8 @@ protected:
     static constexpr std::size_t    COORDS_X_SIZE_BYTES = (NXB + 2 * NGUARD * K1D)
                                                                   * sizeof(Real);
     static constexpr std::size_t    COORDS_Y_SIZE_BYTES = (NYB + 2 * NGUARD * K2D)
+                                                                  * sizeof(Real);
+    static constexpr std::size_t    COORDS_Z_SIZE_BYTES = (NZB + 2 * NGUARD * K3D)
                                                                   * sizeof(Real);
 };
 
