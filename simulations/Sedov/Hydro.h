@@ -16,6 +16,8 @@ namespace Hydro {
                                      orchestration::DataItem* dataItem);
     void advanceSolution2_oacc_summit(const int tId,
                                       orchestration::DataItem* dataItem);
+    void advanceSolution3_oacc_summit(const int tId,
+                                      orchestration::DataItem* dataItem);
 };
 
 namespace hy {
@@ -32,8 +34,7 @@ namespace hy {
 
     void updateSolutionHll(const orchestration::IntVect& lo,
                            const orchestration::IntVect& hi,
-                           const orchestration::FArray4D& Uin,
-                           orchestration::FArray4D& Uout,
+                           orchestration::FArray4D& U,
                            const orchestration::FArray4D& flX,
                            const orchestration::FArray4D& flY,
                            const orchestration::FArray4D& flZ);
@@ -145,6 +146,15 @@ namespace hy {
                                      const orchestration::FArray4D& flX,
                                      const orchestration::FArray4D& flY,
                                      const orchestration::FArray4D& flZ);
+
+    // Kernel-decomposition III -
+    // One giant kernel!
+    void updateSolutionHll_oacc_summit(const orchestration::IntVect& lo,
+                                       const orchestration::IntVect& hi,
+                                       orchestration::FArray4D& U,
+                                       const orchestration::FArray4D& flX,
+                                       const orchestration::FArray4D& flY,
+                                       const orchestration::FArray4D& flZ);
 };
 
 #endif

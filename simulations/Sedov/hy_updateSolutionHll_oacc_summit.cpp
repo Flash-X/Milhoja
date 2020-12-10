@@ -2,12 +2,12 @@
 
 #include "Flash.h"
 
-void hy::updateSolutionHll(const orchestration::IntVect& lo,
-                           const orchestration::IntVect& hi,
-                           orchestration::FArray4D& U,
-                           const orchestration::FArray4D& flX,
-                           const orchestration::FArray4D& flY,
-                           const orchestration::FArray4D& flZ) {
+void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect& lo,
+                                       const orchestration::IntVect& hi,
+                                       orchestration::FArray4D& U,
+                                       const orchestration::FArray4D& flX,
+                                       const orchestration::FArray4D& flY,
+                                       const orchestration::FArray4D& flZ) {
     using namespace orchestration;
 
 #ifdef EINT_VAR_C
