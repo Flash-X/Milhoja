@@ -40,6 +40,6 @@ void Hydro::advanceSolutionHll_tile_cpu(const int tId,
     //     block.
     hy::computeFluxesHll(Driver::dt, lo, hi, deltas, U, flX, flY, flZ, auxC);
     hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
-    Eos::idealGamma_dens_ie(lo, hi, U);
+    Eos::idealGammaDensIe(lo, hi, U);
 }
 

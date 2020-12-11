@@ -5,9 +5,9 @@
 
 namespace Eos {
 
-void idealGamma_dens_ie(const orchestration::IntVect& lo, 
-                        const orchestration::IntVect& hi,
-                        orchestration::FArray4D& U) {
+void idealGammaDensIe(const orchestration::IntVect& lo, 
+                      const orchestration::IntVect& hi,
+                      orchestration::FArray4D& U) {
     using namespace orchestration;
 
     // Taken from FLASH-X Sedov/setup_params file 

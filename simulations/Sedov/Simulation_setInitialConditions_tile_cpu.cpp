@@ -33,6 +33,6 @@ void Simulation::setInitialConditions_tile_cpu(const int tId,
                               xCoords, yCoords, zCoords,
                               deltas,
                               U);
-    Eos::idealGamma_dens_ie(loGC, hiGC, U);
+    Eos::idealGammaDensIe(loGC, hiGC, U);
 }
 

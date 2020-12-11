@@ -9,9 +9,9 @@
 
 namespace Eos {
     // lo/hi can be any two corners, including loGC/hiGC
-    void idealGamma_dens_ie(const orchestration::IntVect& lo,
-                            const orchestration::IntVect& hi,
-                            orchestration::FArray4D& solnData);
+    void idealGammaDensIe(const orchestration::IntVect& lo,
+                          const orchestration::IntVect& hi,
+                          orchestration::FArray4D& solnData);
 };
 
 #endif

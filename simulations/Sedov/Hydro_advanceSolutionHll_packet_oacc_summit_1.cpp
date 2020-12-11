@@ -64,6 +64,6 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
 #endif
 
     // Apply EoS on interior
-    Eos::idealGamma_dens_ie(lo, hi, U);
+    Eos::idealGammaDensIe(lo, hi, U);
 }
 

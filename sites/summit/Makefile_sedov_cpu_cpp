@@ -80,7 +80,7 @@ SRCS       = \
     $(SIMDIR)/hy_computeFluxesHll.cpp \
     $(SIMDIR)/hy_updateSolutionHll.cpp \
     $(SIMDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
-    $(SIMDIR)/Eos_idealGamma_dens_ie.cpp \
+    $(SIMDIR)/Eos_idealGammaDensIe.cpp \
     $(SIMDIR)/Io.cpp \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
     $(SIMDIR)/Driver_data.cpp \
