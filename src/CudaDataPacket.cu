@@ -394,19 +394,22 @@ void  CudaDataPacket::pack(void) {
         ptr_d += FCZ_BLOCK_SIZE_BYTES;
 
         tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   FCX_d{FCX_data_d, lo, hi, NFLUXES};
+        IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
+        FArray4D   FCX_d{FCX_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCX_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   FCY_d{FCY_data_d, lo, hi, NFLUXES};
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
+        FArray4D   FCY_d{FCY_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCY_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   FCZ_d{FCZ_data_d, lo, hi, NFLUXES};
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
+        FArray4D   FCZ_d{FCZ_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;

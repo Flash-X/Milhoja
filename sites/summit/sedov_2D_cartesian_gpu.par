@@ -45,7 +45,7 @@ namespace rp_Eos {
 namespace rp_Hydro {
     // advanceSolution run in GPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 2;
+    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 6;
     constexpr unsigned int          N_BLOCKS_PER_PACKET_FOR_ADV_SOLN = 80;
 }
 
@@ -56,7 +56,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 1;
+    constexpr  unsigned int         MAX_STEPS = 70;
     // When FLASH-X runs Sedov/2D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.

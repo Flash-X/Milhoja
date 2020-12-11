@@ -92,6 +92,13 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                 hy::updateSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
                                                   U_d, flX_d, flY_d, flZ_d);
             }
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d = ptrs->CC1_d;
+
+                Eos::idealGammaDensIe_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
+            }
 //        } else if (location == PacketDataLocation::CC2) {
 //
         } else {
