@@ -50,6 +50,6 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 #endif
 
     hy::updateSolutionHll_oacc_summit(lo, hi, U, flX, flY, flZ);
-    Eos::idealGammaDensIe(lo, hi, U);
+//    Eos::idealGammaDensIe(lo, hi, U);
 }
 

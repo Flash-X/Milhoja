@@ -106,6 +106,8 @@ SRCS       = \
     $(SIMDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
     $(SIMDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
     $(SIMDIR)/Eos_idealGammaDensIe.cpp \
+    $(SIMDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
+    $(SIMDIR)/Eos_idealGammaDensIe_packet_oacc_summit.cpp \
     $(SIMDIR)/Io.cpp \
     $(SIMDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
     $(SIMDIR)/Driver_data.cpp \
@@ -120,12 +122,14 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
+OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
+CXXFLAGS  = -g -O0 -traceback -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(SIMDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND
+CUFLAGS   = -ccbin=pgc++ -g -O0 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(SIMDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lcudart -lamrex
@@ -137,7 +141,7 @@ all:    $(COMMAND)
 .SUFFIXES: .o .cpp .cu
 
 $(COMMAND): $(OBJS) $(CUOBJS) $(MAKEFILE) 
-	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS)
+	$(CXX) -o $(COMMAND) $(OBJS) $(CUOBJS) $(LDFLAGS) $(LIBS) $(OACC_FLAGS)
 
 .cpp.o: $(CXX_HDRS) $(MAKEFILE)
 	$(CXX) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<

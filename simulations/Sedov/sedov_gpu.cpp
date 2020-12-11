@@ -4,6 +4,7 @@
 #include <mpi.h>
 
 #include "Io.h"
+#include "Eos.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
@@ -77,8 +78,15 @@ int main(int argc, char* argv[]) {
     hydroAdvance.name            = "Advance Hydro Solution";
     hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
     hydroAdvance.teamType        = ThreadTeamDataType::BLOCK;
-    hydroAdvance.nTilesPerPacket = 0;
+    hydroAdvance.nTilesPerPacket = rp_Hydro::N_BLOCKS_PER_PACKET_FOR_ADV_SOLN;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
+
+    RuntimeAction     applyEos;
+    applyEos.name            = "Ideal Gamma Dens/Ie";
+    applyEos.nInitialThreads = 2;
+    applyEos.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    applyEos.nTilesPerPacket = 80;
+    applyEos.routine         = Eos::idealGammaDensIe_packet_oacc_summit;
 
     logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 
@@ -107,6 +115,7 @@ int main(int argc, char* argv[]) {
             grid.fillGuardCells();
         }
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        runtime.executeGpuTasks("Apply Eos", applyEos);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
