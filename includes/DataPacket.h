@@ -68,6 +68,13 @@ public:
     virtual void                  setDataLocation(const PacketDataLocation location) = 0;
     virtual void                  setVariableMask(const int startVariable, 
                                                   const int endVariable) = 0;
+
+    // FIXME:  This is a temporary solution as it seems like the easiest way to
+    // get dt in to the GPU memory.  There is no reason for dt to be included in
+    // each data packet.  It is a "global" value that is valid for all blocks
+    // and all operations applied during a solution advance phase.
+    virtual Real*                 timeStepGpu(void) const = 0;
+
 protected:
     DataPacket(void)   { };
 
@@ -85,6 +92,7 @@ protected:
     static constexpr std::size_t    N_ELEMENTS_PER_FCZ_PER_VARIABLE = NXB * NYB * (NZB + 1);
     static constexpr std::size_t    N_ELEMENTS_PER_FCZ = N_ELEMENTS_PER_FCZ_PER_VARIABLE * NFLUXES;
 
+    static constexpr std::size_t    DRIVER_DT_SIZE_BYTES =          sizeof(Real);
     static constexpr std::size_t    DELTA_SIZE_BYTES     =          sizeof(RealVect);
     static constexpr std::size_t    CC_BLOCK_SIZE_BYTES  = N_ELEMENTS_PER_CC
                                                                   * sizeof(Real);

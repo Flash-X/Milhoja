@@ -69,6 +69,9 @@ public:
     void                   setDataLocation(const PacketDataLocation location) override;
     void                   setVariableMask(const int startVariable, 
                                            const int endVariable) override;
+
+    Real*                  timeStepGpu(void) const override  { return dt_d_; }
+
 protected:
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
@@ -91,6 +94,8 @@ private:
     PacketContents*                        contents_d_;
     Stream                                 stream_;
     std::size_t                            nBytesPerPacket_;
+
+    Real*                                  dt_d_;
 };
 
 }

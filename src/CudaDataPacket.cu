@@ -19,6 +19,8 @@
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 
+#include "Driver.h"
+
 #include "Flash.h"
 
 namespace orchestration {
@@ -38,7 +40,8 @@ CudaDataPacket::CudaDataPacket(void)
       contents_p_{nullptr},
       contents_d_{nullptr},
       stream_{},
-      nBytesPerPacket_{0}
+      nBytesPerPacket_{0},
+      dt_d_{nullptr}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -80,6 +83,7 @@ void  CudaDataPacket::nullify(void) {
     nTiles_d_   = nullptr;
     contents_p_ = nullptr;
     contents_d_ = nullptr;
+    dt_d_       = nullptr;
 }
 
 /**
@@ -98,6 +102,8 @@ std::string  CudaDataPacket::isNull(void) const {
         return "Non-zero packet size";
     } else if (nTiles_d_ != nullptr) {
         return "N tiles exist in GPU";
+    } else if (dt_d_ != nullptr) {
+        return "dt already exists in GPU";
     } else if (contents_p_ != nullptr) {
         return "Pinned contents exist";
     } else if (contents_d_ != nullptr) {
@@ -196,6 +202,7 @@ void  CudaDataPacket::pack(void) {
     // TODO: Deltas should just be placed into the packet once.
     std::size_t    nTiles = tiles_.size();
     nBytesPerPacket_ =            sizeof(std::size_t) 
+                       +                        DRIVER_DT_SIZE_BYTES
                        + nTiles * sizeof(PacketContents)
                        + nTiles * (         1 * DELTA_SIZE_BYTES
                                    +        4 * POINT_SIZE_BYTES
@@ -232,6 +239,11 @@ void  CudaDataPacket::pack(void) {
     std::memcpy((void*)ptr_p, (void*)&nTiles, sizeof(std::size_t));
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);
+    
+    dt_d_ = static_cast<Real*>((void*)ptr_d); 
+    std::memcpy((void*)ptr_p, (void*)&Driver::dt, DRIVER_DT_SIZE_BYTES);
+    ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
+    ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
 
     contents_p_ = static_cast<PacketContents*>((void*)ptr_p);
     contents_d_ = static_cast<PacketContents*>((void*)ptr_d);
