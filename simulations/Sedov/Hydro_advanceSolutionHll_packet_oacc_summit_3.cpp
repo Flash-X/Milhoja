@@ -1,55 +1,59 @@
-#include "Eos.h"
-#include "Hydro.h"
-#include "Driver.h"
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
 
-#include "Tile.h"
+#include "Hydro.h"
+
+#include "DataPacket.h"
 
 #include "Flash.h"
 
 void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
-                                                    orchestration::DataItem* dataItem) {
+                                                    orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
-    const IntVect       lo     = tileDesc->lo();
-    const IntVect       hi     = tileDesc->hi();
-    FArray4D            U      = tileDesc->data();
-    RealVect            deltas = tileDesc->deltas();
+    const int                  queue_h    = packet_h->asynchronousQueue();
+    const PacketDataLocation   location   = packet_h->getDataLocation();
+    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
+    const PacketContents*      contents_d = packet_h->tilePointers();
 
-    //----- ALLOCATE SCRATCH MEMORY NEEDED BY PHYSICS
-    // Fluxes needed on interior and boundary faces only
-    IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
-    FArray4D   flX = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
-    FArray4D   flY = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
-    FArray4D   flZ = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    IntVect    cLo = IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)};
-    IntVect    cHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)};
-    FArray3D   auxC = FArray3D::buildScratchArray(cLo, cHi);
+    packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);
 
     //----- ADVANCE SOLUTION
     // Update unk data on interiors only
     //   * It is assumed that the GC are filled already
     //   * No tiling for now means that computing fluxes and updating the
     //     solution can be fused and the full advance run independently on each
-    //     block.
-    //
-    // Compute fluxes
-    hy::computeSoundSpeedHll_oacc_summit(lo, hi, U, auxC);
-    hy::computeFluxesHll_X_oacc_summit(Driver::dt, lo, hi, deltas, U, flX, auxC);
-#if NDIM >= 2
-    hy::computeFluxesHll_Y_oacc_summit(Driver::dt, lo, hi, deltas, U, flY, auxC);
-#endif
-#if NDIM == 3
-    hy::computeFluxesHll_Z_oacc_summit(Driver::dt, lo, hi, deltas, U, flZ, auxC);
-#endif
+    //     block and in place.
+    #pragma acc data deviceptr(nTiles_d, contents_d)
+    {
+        if        (location == PacketDataLocation::CC1) {
+            // Send auxC results back for storing in AMReX MFab and for
+            // visualiziation.
+            // FIXME: Remove this after testing auxC!
+            packet_h->setDataLocation(PacketDataLocation::CC2);
 
-    hy::updateSolutionHll_oacc_summit(lo, hi, U, flX, flY, flZ);
-//    Eos::idealGammaDensIe(lo, hi, U);
+            // Compute fluxes
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                const FArray4D*        U_d    = ptrs->CC1_d;
+                FArray4D*              auxC_d = ptrs->CC2_d;
+
+                hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                     U_d, auxC_d);
+            }
+//        } else if (location == PacketDataLocation::CC2) {
+//
+        } else {
+            throw std::logic_error("[Hydro_advanceSolutionHll_packet_oacc_summit_3] "
+                                   "Data not in CC1 or CC2");
+        }
+
+    } // OpenACC data block
+
+    #pragma acc wait(queue_h)
 }
 

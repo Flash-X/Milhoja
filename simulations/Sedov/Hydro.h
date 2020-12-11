@@ -41,10 +41,11 @@ namespace hy {
 
     //----- GPU ACTION ROUTINES FOR ADVANCE SOLUTION HYDRO OPERATION
     // Kernels that compose compute flux
-    void computeSoundSpeedHll_oacc_summit(const orchestration::IntVect& lo,
-                                          const orchestration::IntVect& hi,
-                                          const orchestration::FArray4D& U,
-                                          orchestration::FArray3D& auxC);
+    #pragma acc routine vector
+    void computeSoundSpeedHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                          const orchestration::IntVect* hi_d,
+                                          const orchestration::FArray4D* U_d,
+                                          orchestration::FArray4D* auxC_d);
 
     void computeFluxesHll_X_oacc_summit(const orchestration::Real dt,
                                         const orchestration::IntVect& lo,
