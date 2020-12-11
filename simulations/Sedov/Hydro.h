@@ -13,11 +13,11 @@ namespace Hydro {
     void advanceSolutionHll_tile_cpu(const int tId,
                                      orchestration::DataItem* dataItem);
     void advanceSolutionHll_packet_oacc_summit_1(const int tId,
-                                                 orchestration::DataItem* dataItem);
+                                                 orchestration::DataItem* dataItem_h);
     void advanceSolutionHll_packet_oacc_summit_2(const int tId,
-                                                 orchestration::DataItem* dataItem);
+                                                 orchestration::DataItem* dataItem_h);
     void advanceSolutionHll_packet_oacc_summit_3(const int tId,
-                                                 orchestration::DataItem* dataItem);
+                                                 orchestration::DataItem* dataItem_h);
 };
 
 namespace hy {
@@ -47,29 +47,32 @@ namespace hy {
                                           const orchestration::FArray4D* U_d,
                                           orchestration::FArray4D* auxC_d);
 
-    void computeFluxesHll_X_oacc_summit(const orchestration::Real dt,
-                                        const orchestration::IntVect& lo,
-                                        const orchestration::IntVect& hi,
-                                        const orchestration::RealVect& deltas,
-                                        const orchestration::FArray4D& U,
-                                        orchestration::FArray4D& flX,
-                                        const orchestration::FArray3D& auxC);
+    #pragma acc routine vector
+    void computeFluxesHll_X_oacc_summit(const orchestration::Real* dt_d,
+                                        const orchestration::IntVect* lo_d,
+                                        const orchestration::IntVect* hi_d,
+                                        const orchestration::RealVect* deltas_d,
+                                        const orchestration::FArray4D* U_d,
+                                        orchestration::FArray4D* flX_d,
+                                        const orchestration::FArray4D* auxC_d);
 
-    void computeFluxesHll_Y_oacc_summit(const orchestration::Real dt,
-                                        const orchestration::IntVect& lo,
-                                        const orchestration::IntVect& hi,
-                                        const orchestration::RealVect& deltas,
-                                        const orchestration::FArray4D& U,
-                                        orchestration::FArray4D& flY,
-                                        const orchestration::FArray3D& auxC);
+    #pragma acc routine vector
+    void computeFluxesHll_Y_oacc_summit(const orchestration::Real* dt_d,
+                                        const orchestration::IntVect* lo_d,
+                                        const orchestration::IntVect* hi_d,
+                                        const orchestration::RealVect* deltas_d,
+                                        const orchestration::FArray4D* U_d,
+                                        orchestration::FArray4D* flY_d,
+                                        const orchestration::FArray4D* auxC_d);
 
-    void computeFluxesHll_Z_oacc_summit(const orchestration::Real dt,
-                                        const orchestration::IntVect& lo,
-                                        const orchestration::IntVect& hi,
-                                        const orchestration::RealVect& deltas,
-                                        const orchestration::FArray4D& U,
-                                        orchestration::FArray4D& flZ,
-                                        const orchestration::FArray3D& auxC);
+    #pragma acc routine vector
+    void computeFluxesHll_Z_oacc_summit(const orchestration::Real* dt_d,
+                                        const orchestration::IntVect* lo_d,
+                                        const orchestration::IntVect* hi_d,
+                                        const orchestration::RealVect* deltas_d,
+                                        const orchestration::FArray4D* U_d,
+                                        orchestration::FArray4D* flZ_d,
+                                        const orchestration::FArray4D* auxC_d);
 
     // Kernels that compose update solution
     // TODO: Conceptually, these should be a single kernel.  Remains to be seen
@@ -150,12 +153,13 @@ namespace hy {
 
     // Kernel-decomposition III -
     // One giant kernel!
-    void updateSolutionHll_oacc_summit(const orchestration::IntVect& lo,
-                                       const orchestration::IntVect& hi,
-                                       orchestration::FArray4D& U,
-                                       const orchestration::FArray4D& flX,
-                                       const orchestration::FArray4D& flY,
-                                       const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                       const orchestration::IntVect* hi_d,
+                                       orchestration::FArray4D* U_d,
+                                       const orchestration::FArray4D* flX_d,
+                                       const orchestration::FArray4D* flY_d,
+                                       const orchestration::FArray4D* flZ_d);
 };
 
 #endif
