@@ -76,5 +76,5 @@ time jsrun -n $N_RS_PER_NODE \
            -c $N_CORES_PER_RS \
            -g $N_GPU_PER_RS \
            -l CPU-CPU -d cyclic -b rs \
-           $binary
+           nvprof -o sedovGpuCpp.%h.%p $binary
 
