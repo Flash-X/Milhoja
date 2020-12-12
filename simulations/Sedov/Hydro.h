@@ -82,33 +82,39 @@ namespace hy {
     //
     // Kernel-decomposition I -
     // apply one operation at a time across all variables
-    void scaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
-                                      const orchestration::IntVect& hi,
-                                      const orchestration::FArray4D& Uin,
-                                      orchestration::FArray4D& Uout);
+    #pragma acc routine vector
+    void scaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                      const orchestration::IntVect* hi_d,
+                                      const orchestration::FArray4D* Uin_d,
+                                      orchestration::FArray4D* Uout_d);
 
-    void updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect& lo,
-                                           const orchestration::IntVect& hi,
-                                           orchestration::FArray4D& U,
-                                           const orchestration::FArray4D& flX);
+    #pragma acc routine vector
+    void updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect* lo_d,
+                                           const orchestration::IntVect* hi_d,
+                                           orchestration::FArray4D* U_d,
+                                           const orchestration::FArray4D* flX_d);
 
-    void updateSolutionHll_FlY_oacc_summit(const orchestration::IntVect& lo,
-                                           const orchestration::IntVect& hi,
-                                           orchestration::FArray4D& U,
-                                           const orchestration::FArray4D& flY);
+    #pragma acc routine vector
+    void updateSolutionHll_FlY_oacc_summit(const orchestration::IntVect* lo_d,
+                                           const orchestration::IntVect* hi_d,
+                                           orchestration::FArray4D* U_d,
+                                           const orchestration::FArray4D* flY_d);
 
-    void updateSolutionHll_FlZ_oacc_summit(const orchestration::IntVect& lo,
-                                           const orchestration::IntVect& hi,
-                                           orchestration::FArray4D& U,
-                                           const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateSolutionHll_FlZ_oacc_summit(const orchestration::IntVect* lo_d,
+                                           const orchestration::IntVect* hi_d,
+                                           orchestration::FArray4D* U_d,
+                                           const orchestration::FArray4D* flZ_d);
 
-    void rescaleSolutionHll_oacc_summit(const orchestration::IntVect& lo,
-                                        const orchestration::IntVect& hi,
-                                        orchestration::FArray4D& U);
+    #pragma acc routine vector
+    void rescaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                        const orchestration::IntVect* hi_d,
+                                        orchestration::FArray4D* U_d);
 
-    void computeEintHll_oacc_summit(const orchestration::IntVect& lo,
-                                    const orchestration::IntVect& hi,
-                                    orchestration::FArray4D& U);
+    #pragma acc routine vector
+    void computeEintHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                    const orchestration::IntVect* hi_d,
+                                    orchestration::FArray4D* U_d);
 
     // Kernel-decomposition II -
     // Updated each variable individually

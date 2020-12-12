@@ -1,69 +1,155 @@
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+
 #include "Eos.h"
 #include "Hydro.h"
-#include "Driver.h"
 
-#include "Tile.h"
+#include "DataPacket.h"
 
 #include "Flash.h"
 
 void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
-                                                    orchestration::DataItem* dataItem) {
+                                                    orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
-    const IntVect       lo     = tileDesc->lo();
-    const IntVect       hi     = tileDesc->hi();
-    FArray4D            U      = tileDesc->data();
-    RealVect            deltas = tileDesc->deltas();
+    const int                  queue_h    = packet_h->asynchronousQueue();
+    const PacketDataLocation   location   = packet_h->getDataLocation();
+    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
+    const PacketContents*      contents_d = packet_h->tilePointers();
+    const Real*                dt_d       = packet_h->timeStepGpu();
 
-    //----- ALLOCATE SCRATCH MEMORY NEEDED BY PHYSICS
-    // Fluxes needed on interior and boundary faces only
-    IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
-    FArray4D   flX = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
-    FArray4D   flY = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
-    FArray4D   flZ = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-    IntVect    cLo = IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)};
-    IntVect    cHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)};
-    FArray3D   auxC = FArray3D::buildScratchArray(cLo, cHi);
+    packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);
 
     //----- ADVANCE SOLUTION
     // Update unk data on interiors only
     //   * It is assumed that the GC are filled already
-    //   * No tiling for now means that these two actions can be fused and that
-    //     updateSolution can update U inplace (i.e. Uout = Uin).
-    //
-    // Compute fluxes
-    hy::computeSoundSpeedHll_oacc_summit(lo, hi, U, auxC);
-    hy::computeFluxesHll_X_oacc_summit(Driver::dt, lo, hi, deltas, U, flX, auxC);
+    //   * No tiling for now means that computing fluxes and updating the
+    //     solution can be fused and the full advance run independently on each
+    //     block and in place.
+    #pragma acc data deviceptr(nTiles_d, contents_d, dt_d)
+    {
+        if        (location == PacketDataLocation::CC1) {
+            // Compute fluxes
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                const FArray4D*        U_d    = ptrs->CC1_d;
+                FArray4D*              auxC_d = ptrs->CC2_d;
+
+                hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                     U_d, auxC_d);
+            }
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                const FArray4D*        U_d    = ptrs->CC1_d;
+                const FArray4D*        auxC_d = ptrs->CC2_d;
+                FArray4D*              flX_d  = ptrs->FCX_d;
+
+                hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                                   ptrs->deltas_d,
+                                                   U_d, flX_d, auxC_d);
+            }
 #if NDIM >= 2
-    hy::computeFluxesHll_Y_oacc_summit(Driver::dt, lo, hi, deltas, U, flY, auxC);
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                const FArray4D*        U_d    = ptrs->CC1_d;
+                const FArray4D*        auxC_d = ptrs->CC2_d;
+                FArray4D*              flY_d  = ptrs->FCY_d;
+
+                hy::computeFluxesHll_Y_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                                   ptrs->deltas_d,
+                                                   U_d, flY_d, auxC_d);
+            }
 #endif
 #if NDIM == 3
-    hy::computeFluxesHll_Z_oacc_summit(Driver::dt, lo, hi, deltas, U, flZ, auxC);
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                const FArray4D*        U_d    = ptrs->CC1_d;
+                const FArray4D*        auxC_d = ptrs->CC2_d;
+                FArray4D*              flZ_d  = ptrs->FCZ_d;
+
+                hy::computeFluxesHll_Z_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                                   ptrs->deltas_d,
+                                                   U_d, flZ_d, auxC_d);
+            }
 #endif
 
-    // Update solutions (Uin = Uout)
-    hy::scaleSolutionHll_oacc_summit(lo, hi, U, U);
-    hy::updateSolutionHll_FlX_oacc_summit(lo, hi, U, flX);
+            // Update solutions in place (Uin = Uout)
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+
+                hy::scaleSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, U_d);
+            }
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+                const FArray4D*        flX_d = ptrs->FCX_d;
+
+                hy::updateSolutionHll_FlX_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flX_d);
+            }
 #if NDIM >= 2
-    hy::updateSolutionHll_FlY_oacc_summit(lo, hi, U, flY);
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+                const FArray4D*        flY_d = ptrs->FCY_d;
+
+                hy::updateSolutionHll_FlY_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flY_d);
+            }
 #endif
 #if NDIM == 3
-    hy::updateSolutionHll_FlZ_oacc_summit(lo, hi, U, flZ);
-#endif
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+                const FArray4D*        flZ_d = ptrs->FCZ_d;
 
-    hy::rescaleSolutionHll_oacc_summit(lo, hi, U);
+                hy::updateSolutionHll_FlZ_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flZ_d);
+            }
+#endif
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+
+                hy::rescaleSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
+            }
 #ifdef EINT_VAR_C
-    hy::computeEintHll_oacc_summit(lo, hi, U);
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d   = ptrs->CC1_d;
+
+                hy::computeEintHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
+            }
 #endif
 
-    // Apply EoS on interior
-    Eos::idealGammaDensIe(lo, hi, U);
+            // Apply EoS on interior
+            #pragma acc parallel loop gang default(none) async(queue_h)
+            for (std::size_t n=0; n<*nTiles_d; ++n) {
+                const PacketContents*  ptrs = contents_d + n;
+                FArray4D*              U_d = ptrs->CC1_d;
+
+                Eos::idealGammaDensIe_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
+            }
+//        } else if (location == PacketDataLocation::CC2) {
+//
+        } else {
+            throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "
+                                   "Data not in CC1 or CC2");
+        }
+
+    } // OpenACC data block
+
+    #pragma acc wait(queue_h)
 }
 

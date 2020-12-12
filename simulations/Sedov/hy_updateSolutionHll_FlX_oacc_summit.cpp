@@ -1,26 +1,39 @@
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+
 #include "Hydro.h"
 
 #include "Flash.h"
 
-void hy::updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect& lo,
-                                           const orchestration::IntVect& hi,
-                                           orchestration::FArray4D& U,
-                                           const orchestration::FArray4D& flX) {
+void hy::updateSolutionHll_FlX_oacc_summit(const orchestration::IntVect* lo_d,
+                                           const orchestration::IntVect* hi_d,
+                                           orchestration::FArray4D* U_d,
+                                           const orchestration::FArray4D* flX_d) {
     using namespace orchestration;
 
-    for         (int k=lo.K(); k<=hi.K(); ++k) {
-        for     (int j=lo.J(); j<=hi.J(); ++j) {
-            for (int i=lo.I(); i<=hi.I(); ++i) {
-                U(i, j, k, DENS_VAR_C) += (  flX(i,   j, k, HY_DENS_FLUX_C)
-                                           - flX(i+1, j, k, HY_DENS_FLUX_C) );
-                U(i, j, k, VELX_VAR_C) += (  flX(i,   j, k, HY_XMOM_FLUX_C)
-                                           - flX(i+1, j, k, HY_XMOM_FLUX_C) );
-                U(i, j, k, VELY_VAR_C) += (  flX(i,   j, k, HY_YMOM_FLUX_C)
-                                           - flX(i+1, j, k, HY_YMOM_FLUX_C) );
-                U(i, j, k, VELZ_VAR_C) += (  flX(i,   j, k, HY_ZMOM_FLUX_C)
-                                           - flX(i+1, j, k, HY_ZMOM_FLUX_C) );
-                U(i, j, k, ENER_VAR_C) += (  flX(i,   j, k, HY_ENER_FLUX_C)
-                                           - flX(i+1, j, k, HY_ENER_FLUX_C) );
+    int     i_s = lo_d->I();
+    int     j_s = lo_d->J();
+    int     k_s = lo_d->K();
+
+    int     i_e = hi_d->I();
+    int     j_e = hi_d->J();
+    int     k_e = hi_d->K();
+
+    #pragma acc loop vector collapse(3)
+    for         (int k=k_s; k<=k_e; ++k) {
+        for     (int j=j_s; j<=j_e; ++j) {
+            for (int i=i_s; i<=i_e; ++i) {
+                U_d->at(i, j, k, DENS_VAR_C) += (  flX_d->at(i,   j, k, HY_DENS_FLUX_C)
+                                                 - flX_d->at(i+1, j, k, HY_DENS_FLUX_C) );
+                U_d->at(i, j, k, VELX_VAR_C) += (  flX_d->at(i,   j, k, HY_XMOM_FLUX_C)
+                                                 - flX_d->at(i+1, j, k, HY_XMOM_FLUX_C) );
+                U_d->at(i, j, k, VELY_VAR_C) += (  flX_d->at(i,   j, k, HY_YMOM_FLUX_C)
+                                                 - flX_d->at(i+1, j, k, HY_YMOM_FLUX_C) );
+                U_d->at(i, j, k, VELZ_VAR_C) += (  flX_d->at(i,   j, k, HY_ZMOM_FLUX_C)
+                                                 - flX_d->at(i+1, j, k, HY_ZMOM_FLUX_C) );
+                U_d->at(i, j, k, ENER_VAR_C) += (  flX_d->at(i,   j, k, HY_ENER_FLUX_C)
+                                                 - flX_d->at(i+1, j, k, HY_ENER_FLUX_C) );
             }
         }
     }
