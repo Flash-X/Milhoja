@@ -103,6 +103,7 @@ SRCS       = \
     $(SIMDIR)/hy_updateEnergyHll_oacc_summit.cpp \
     $(SIMDIR)/hy_updateSolutionHll_oacc_summit.cpp \
     $(SIMDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_1.cpp \
+    $(SIMDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
     $(SIMDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
     $(SIMDIR)/Eos_idealGammaDensIe.cpp \
     $(SIMDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \

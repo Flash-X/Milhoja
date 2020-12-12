@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
     hydroAdvance.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
     hydroAdvance.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
-    hydroAdvance.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_1;
+    hydroAdvance.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_2;
 
     computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST_GPU;
 

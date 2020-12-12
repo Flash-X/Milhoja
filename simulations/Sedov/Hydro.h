@@ -118,44 +118,50 @@ namespace hy {
 
     // Kernel-decomposition II -
     // Updated each variable individually
-    void updateDensityHll_oacc_summit(const orchestration::IntVect& lo,
-                                      const orchestration::IntVect& hi,
-                                      const orchestration::FArray4D& Uin,
-                                      orchestration::FArray4D& Uout,
-                                      const orchestration::FArray4D& flX,
-                                      const orchestration::FArray4D& flY,
-                                      const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateDensityHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                      const orchestration::IntVect* hi_d,
+                                      const orchestration::FArray4D* Uin_d,
+                                      orchestration::FArray4D* Uout_d,
+                                      const orchestration::FArray4D* flX_d,
+                                      const orchestration::FArray4D* flY_d,
+                                      const orchestration::FArray4D* flZ_d);
 
-    void updateVelxHll_oacc_summit(const orchestration::IntVect& lo,
-                                   const orchestration::IntVect& hi,
-                                   const orchestration::FArray4D& Uin,
-                                   orchestration::FArray4D& Uout,
-                                   const orchestration::FArray4D& flX,
-                                   const orchestration::FArray4D& flY,
-                                   const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateVelxHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                   const orchestration::IntVect* hi_d,
+                                   const orchestration::FArray4D* Uin_d,
+                                   orchestration::FArray4D* Uout_d,
+                                   const orchestration::FArray4D* flX_d,
+                                   const orchestration::FArray4D* flY_d,
+                                   const orchestration::FArray4D* flZ_d);
 
-    void updateVelyHll_oacc_summit(const orchestration::IntVect& lo,
-                                   const orchestration::IntVect& hi,
-                                   const orchestration::FArray4D& Uin,
-                                   orchestration::FArray4D& Uout,
-                                   const orchestration::FArray4D& flX,
-                                   const orchestration::FArray4D& flY,
-                                   const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateVelyHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                   const orchestration::IntVect* hi_d,
+                                   const orchestration::FArray4D* Uin_d,
+                                   orchestration::FArray4D* Uout_d,
+                                   const orchestration::FArray4D* flX_d,
+                                   const orchestration::FArray4D* flY_d,
+                                   const orchestration::FArray4D* flZ_d);
 
-    void updateVelzHll_oacc_summit(const orchestration::IntVect& lo,
-                                   const orchestration::IntVect& hi,
-                                   const orchestration::FArray4D& Uin,
-                                   orchestration::FArray4D& Uout,
-                                   const orchestration::FArray4D& flX,
-                                   const orchestration::FArray4D& flY,
-                                   const orchestration::FArray4D& flZ);
-    void updateEnergyHll_oacc_summit(const orchestration::IntVect& lo,
-                                     const orchestration::IntVect& hi,
-                                     const orchestration::FArray4D& Uin,
-                                     orchestration::FArray4D& Uout,
-                                     const orchestration::FArray4D& flX,
-                                     const orchestration::FArray4D& flY,
-                                     const orchestration::FArray4D& flZ);
+    #pragma acc routine vector
+    void updateVelzHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                   const orchestration::IntVect* hi_d,
+                                   const orchestration::FArray4D* Uin_d,
+                                   orchestration::FArray4D* Uout_d,
+                                   const orchestration::FArray4D* flX_d,
+                                   const orchestration::FArray4D* flY_d,
+                                   const orchestration::FArray4D* flZ_d);
+
+    #pragma acc routine vector
+    void updateEnergyHll_oacc_summit(const orchestration::IntVect* lo_d,
+                                     const orchestration::IntVect* hi_d,
+                                     const orchestration::FArray4D* Uin_d,
+                                     orchestration::FArray4D* Uout_d,
+                                     const orchestration::FArray4D* flX_d,
+                                     const orchestration::FArray4D* flY_d,
+                                     const orchestration::FArray4D* flZ_d);
 
     // Kernel-decomposition III -
     // One giant kernel!

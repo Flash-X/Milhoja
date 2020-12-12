@@ -102,8 +102,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 //        } else if (location == PacketDataLocation::CC2) {
 //
         } else {
-            throw std::logic_error("[computeLaplacianDensity_packet_oacc_summit] "
-                                   "Data not in CC1 or CC2");
+            throw std::logic_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
+                                   "Data not in CC1");
         }
 
     } // OpenACC data block
