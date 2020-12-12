@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     // This only makes sense if the iteration is over LEAF blocks.
     RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
+    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_1::N_THREADS_CPU;
     computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
@@ -75,10 +75,12 @@ int main(int argc, char* argv[]) {
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance;
     hydroAdvance.name            = "Advance Hydro Solution";
-    hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
+    hydroAdvance.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
     hydroAdvance.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    hydroAdvance.nTilesPerPacket = rp_Hydro::N_BLOCKS_PER_PACKET_FOR_ADV_SOLN;
+    hydroAdvance.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
+
+    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST_GPU;
 
     logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 
@@ -106,19 +108,18 @@ int main(int argc, char* argv[]) {
         if (nStep > 1) {
             grid.fillGuardCells();
         }
-        runtime.executeGpuTasks("Advance Hydro Solution", hydroAdvance);
+        runtime.executeExtendedGpuTasks("Advance Hydro Solution",
+                                        hydroAdvance,
+                                        computeIntQuantitiesByBlk);
+
+        //----- OUTPUT RESULTS TO FILES
+        //  local integral quantities computed as part of previous bundle
+        io.reduceToGlobalIntegralQuantities();
+        io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
-
-        //----- OUTPUT RESULTS TO FILES
-        // Compute local integral quantities
-        // TODO: This should be run as a CPU-based pipeline extension
-        //       to the physics action bundle.
-        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-        io.reduceToGlobalIntegralQuantities();
-        io.writeIntegralQuantities(Driver::simTime);
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
