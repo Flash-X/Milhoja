@@ -6,8 +6,8 @@
 
 #define GRID_AMREX
 
-#define NXB  8
-#define NYB  8
+#define NXB  16
+#define NYB  16
 #define NZB  1
 
 #define MDIM 3

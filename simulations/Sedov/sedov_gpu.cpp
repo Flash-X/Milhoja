@@ -12,6 +12,9 @@
 #include "Grid.h"
 #include "Runtime.h"
 #include "OrchestrationLogger.h"
+#ifdef USE_CUDA_BACKEND
+#include "CudaMemoryManager.h"
+#endif
 
 #include "errorEstBlank.h"
 
@@ -139,6 +142,12 @@ int main(int argc, char* argv[]) {
         // we mimic that dt sequence here so that we can directly compare
         // results.
         Driver::dt = rp_Driver::DT_AFTER;
+
+#ifdef USE_CUDA_BACKEND
+        // FIXME: This is a cheap hack necessitated by the fact that the runtime
+        // does not yet have a real memory manager.
+        orchestration::CudaMemoryManager::instance().reset();
+#endif
 
         ++nStep;
     }
