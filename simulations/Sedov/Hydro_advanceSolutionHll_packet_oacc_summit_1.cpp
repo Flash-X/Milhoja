@@ -68,7 +68,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
             Stream         stream2 = sMgr.requestStream(false);
             const int      queue2_h = stream2.accAsyncQueue;
             if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
-                throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
+                throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_1] "
                                          "Unable to acquire an extra asynchronous queue");
             }
 
@@ -108,7 +108,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
             Stream         stream2 = sMgr.requestStream(false);
             const int      queue2_h = stream2.accAsyncQueue;
             if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
-                throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
+                throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_1] "
                                          "Unable to acquire second asynchronous queue");
             }
             Stream         stream3 = sMgr.requestStream(false);
