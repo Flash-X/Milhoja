@@ -172,7 +172,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
             #pragma acc wait(queue_h,queue2_h,queue3_h)
 #endif
 
-            //----- UPDATE SOLUTIONS IN PLACE
+            //----- UPDATE SOLUTIONS
             // Update solutions using separate U data blocks so that different
             // variables can be updated simultaneously
             #pragma acc parallel loop gang default(none) async(queue_h)
