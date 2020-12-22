@@ -15,28 +15,11 @@ N_BLOCKS_Z=1
 N_DIMS=2
 LREFINE=3
 
-######################################################################
-#####-----             DO NOT ALTER LINES BELOW             -----#####
-######################################################################
-date
-echo
-echo "Current Branches in Repository"
-echo "-----------------------------------------------------------"
-git branch -vva
-echo
-echo "Last Git repository log entries"
-echo "-----------------------------------------------------------"
-git log --oneline -10
-echo
-echo "Current state of the local workspace"
-echo "-----------------------------------------------------------"
-git status
 
 rm -r test_plt_0000*
-cd ..
 
 # Specified relative to location of Makefile
-TESTDIR=../../test
+TESTDIR=../test
 MAKEFILE=Makefile_grid_cpp
 BINARY=test_grid_cpp.x 
 DEBUG_BINARY=test_grid_cpp_debug.x
@@ -77,7 +60,6 @@ if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 4;
 fi
-mv $BINARY ./binaries/$BINARY
 
 rm $TESTDIR/Grid/Flash.h
 rm $TESTDIR/Grid/constants.h

@@ -5,7 +5,7 @@
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
-#include "setInitialConditions_block.h"
+#include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
 #include "errorEstMaximal.h"
@@ -32,7 +32,7 @@ protected:
 };
 
 TEST_F(GridUnitTest,VectorClasses){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 Simulation::errorEstBlank);
 
     //test creation and conversion
@@ -77,7 +77,7 @@ TEST_F(GridUnitTest,VectorClasses){
 }
 
 TEST_F(GridUnitTest,ProbConfigGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
@@ -129,7 +129,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
@@ -187,7 +187,7 @@ TEST_F(GridUnitTest,PerTileGetters){
 }
 
 TEST_F(GridUnitTest,MultiCellGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
 
@@ -264,7 +264,6 @@ TEST_F(GridUnitTest,MultiCellGetters){
         // Test Grid::fillCellCoords over an arbitrary range
         {
         int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
-        int nElements;
         Real actual_coord;
         for (int j=0; j<3; ++j) {
             //loop over edge cases
@@ -282,13 +281,11 @@ TEST_F(GridUnitTest,MultiCellGetters){
             }
             for(int n=0;n<NDIM;++n) {
                 //loop over axis cases
-                nElements = vhi[n] - vlo[n] + 1;
-                Real coord_ptr[nElements];
-                grid.fillCellCoords(n,edge[j],lev,vlo,vhi,coord_ptr);
-                for(int i=0; i<nElements; ++i) {
-                    actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset)
+                FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
+                for(int i=vlo[n]; i<=vhi[n]; ++i) {
+                    actual_coord = actual_min[n] + (Real(i)+offset)
                                    * actual_deltas[n];
-                    ASSERT_NEAR( coord_ptr[i], actual_coord, eps);
+                    ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
                 }
             }
         }
@@ -389,7 +386,7 @@ TEST_F(GridUnitTest,MultipleLevels){
 
 TEST_F(GridUnitTest,PlotfileOutput){
     Grid& grid = Grid::instance();
-    grid.initDomain(Simulation::setInitialConditions_block,
+    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                     Simulation::errorEstMaximal);
 
     grid.writePlotfile("test_plt_0000");

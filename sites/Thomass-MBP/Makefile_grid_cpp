@@ -4,7 +4,7 @@ SHELL=/bin/sh
 
 BASE         = test_grid_cpp
 MAKEFILE     = Makefile_grid_cpp
-BASEDIR      = ../..
+BASEDIR      = ..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
@@ -54,7 +54,7 @@ SRCS       = \
     $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
-    $(SRCDIR)/OrchestrationRuntime.cpp \
+    $(SRCDIR)/Runtime.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
@@ -63,12 +63,14 @@ SRCS       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/DataItemSplitter.cpp \
-    $(TESTBASEDIR)/setInitialConditions_block.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTDIR)/setInitialInteriorTest.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTDIR)/errorEstMultiple.cpp \
-    $(TESTDIR)/errorEstMaximal.cpp
+    $(TESTDIR)/errorEstMaximal.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
+    $(SRCDIR)/StreamManager.cpp
     #$(TESTBASEDIR)/computeLaplacianDensity_block.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_block.cpp \
     $(TESTBASEDIR)/scaleEnergy_block.cpp \
