@@ -1,0 +1,22 @@
+Build System reqs
+-----------------
+[x] There shall exist a lightweight script named `setup.py` that is invoked by the user to set up the build directory with the necessary files to make a test.
+
+[ ] The build tool shall automate the process of running a linter and a code coverage checker on code. The linter shall run before compilation (always) and a code coverage report shall be able to be generated after the test is run (if requested).
+
+Makefile specs
+--------------
+[x] There exists a templated "site Makefile" which contains flags (e.g. optimization) and paths (e.g. AMReX) can be customized by users.
+[x] There exists a Makefile for the files in Runtime and Grid units.
+[x] There exists a Makefile for each test with the files specific to the test. 
+[ ] There exists a general Makefile which gathers all the flags and lists the make commands. It is flexible enough to support the following modes:
+    [x] Building the entire test into one executable.
+    [ ] Building the Runtime library first, then linking it into the test executable.
+    [ ] Linking a prebuilt Runtime library into the test executable.
+
+
+Build Tool specs
+----------------
+[x] The script must get the following parameters from command line: build directory, site name, test name.
+[ ] The build tool constructs parameter files (e.g. Flash.h or Flash.par).
+[x] The build tool copies the Makefiles and parameter files into the build directory.
