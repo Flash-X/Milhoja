@@ -20,7 +20,7 @@ rm -r test_plt_0000*
 
 # Specified relative to location of Makefile
 TESTDIR=../test
-MAKEFILE=Makefile_grid_cpp
+MAKEFILE=Makefile
 BINARY=test_grid_cpp.x 
 DEBUG_BINARY=test_grid_cpp_debug.x
 

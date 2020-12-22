@@ -1,0 +1,2 @@
+AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
+GTESTDIR     = $(HOME)/Documents/googletest/googletest

@@ -18,10 +18,18 @@ def main():
     if not os.path.isdir(buildDir): os.makedirs(buildDir)
 
     #2. Copy makefiles parts from site, src, and test into build dir
-    #   **Demo just copies the test makefile
     siteDir = os.path.join(homeDir,'sites',args.site)
-    siteMakefile = os.path.join(siteDir,'Makefile_grid_cpp')
+    siteMakefile = os.path.join(siteDir,'Makefile.site')
     shutil.copy(siteMakefile,buildDir)
+
+    srcMakefile = os.path.join(homeDir,'src','Makefile.base')
+    shutil.copy(srcMakefile,buildDir)
+
+    testMakefile = os.path.join(homeDir,'test',args.test,'Makefile.test')
+    shutil.copy(testMakefile,buildDir)
+
+    mainMakefile = os.path.join(homeDir,'Makefile')
+    shutil.copy(mainMakefile,buildDir)
 
     #for demo, copy build file
     buildfile = os.path.join(siteDir,'build','buildGridUnitTestCpp.sh')

@@ -1,0 +1,13 @@
+BASE         = test_grid_cpp
+TESTDIR      = $(BASEDIR)/test/Grid
+TESTBASEDIR  = $(BASEDIR)/test/Base
+
+SRCS       += \
+    $(TESTDIR)/runGridTest.cpp \
+    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
+    $(TESTDIR)/setInitialInteriorTest.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp \
+    $(TESTDIR)/errorEstMultiple.cpp \
+    $(TESTDIR)/errorEstMaximal.cpp
