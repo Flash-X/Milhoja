@@ -1,23 +1,40 @@
+The contents of this file document the requirements and specifications of the Build Tool, a subsystem of the Orchestration System, as well as progress made on those goals. This document shall evolve alongside the development of the Build Tool. Last updated: 01/07/2020.
+
 Build System reqs
 -----------------
-[x] There shall exist a lightweight script named `setup.py` that is invoked by the user to set up the build directory with the necessary files to make a test.
+[x] The Build Tool shall be a subsystem of the Runtime that provides users the necessary facilities to build the Runtime and run tests on it. A primary function of the Build Tool shall be to build tests of the Runtime that are provided in the repository as part of its continuous integration test suite. It shall support the following build modes:
+    [x] Building an entire test into one executable.
+    [ ] Building the Runtime as a library first, then linking it into a test executable.
+    [ ] Linking a prebuilt Runtime library into a test executable.
 
-[ ] The build tool will determine flags, such as backend libraries and debug levels, based on command line input.
+[ ] The build tool shall determine flags, such as backend libraries and debug levels, based on command line input.
 
-[ ] The build tool will write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
+[ ] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
 
-[ ] The build tool shall automate the process of running a linter and a code coverage checker on code. The linter shall run before compilation (always) and a code coverage report shall be able to be generated after the test is run (if requested).
+[ ] The build tool shall automate the process of running a linter and a code coverage checker on code. The linter shall always run before compilation. The Build Tool interface shall also allow users to request code coverage functionality be built into the executable, although by default it is not. If code coverage is requested, after the test is run an lcov code coverage report shall be generated.
+
+[ ] The build tool shall consist of information and components divided into three categories, created and maintained by different actors:
+    - Project-wide:
+        - This category consists of information and components that are common across platforms, compilers, and tests. It also includes information that either (a) site managers and users cannot be expected to know or apply correctly and consistently, or (b) requires more intimate knowledge of Runtime implementation.
+        - Some examples are:
+            - List of files required to build different variants of the Runtime library.
+            - Compiler flags that are deemed necessary due to specific implementation details, as well as to ensure correct builds and execution.
+            - Compiler flags for confirming tests adhere to a certain language standard.
+        - It is intended that project-wide components and information be created and maintained by project maintainers, in accord with prevailing requirements and specifications.
+    - Test-specific:
+        - Test creators shall maintain test-specific contributions to the Build Tool and the test suite in accord with the prevailing requirements and specifications.
+    - Site-specific:
+        - Site managers shall create and maintain site-specific build information; e.g. compiler flags, environment variables.
+
+[ ] The Build Tool shall only require backend-specific information if the user is trying to build a test or a library configuration that requires that specific backend. Thus the tool shall not require site managers to support a backend they cannot or do not intend to use.
+
 
 Makefile specs
 --------------
-[x] For every platform, users will create and maintain a `Makefile.site`, based on a template, which contains platform-specific flags (e.g. optimization) and paths (e.g. AMReX).
-[x] Project maintainers will maintain `Makefile.base` for the files in Runtime and Grid units.
-[x] Test creators will maintain `Makefile.test` for each test with the files specific to the test. 
+[x] For every platform, site managers shall create and maintain a `Makefile.site`, based on a template, which contains platform-specific flags (e.g. optimization) and paths (e.g. AMReX). It need not include information about backends that the test or library configuration does not require.
+[x] Project maintainers shall maintain `Makefile.base` for the files in Runtime and Grid units. It shall account for backed-specific variants.
+[x] Test creators shall maintain `Makefile.test` for each test with the files specific to the test. 
 [ ] There exists `Makefile` which gathers site-specific flags, contains other flags based on command line input, and lists the make commands.
-[ ] The Makefiles are flexible enough to support the following modes:
-    [x] Building the entire test into one executable.
-    [ ] Building the Runtime library first, then linking it into the test executable.
-    [ ] Linking a prebuilt Runtime library into the test executable.
 
 
 Build Tool specs
