@@ -75,10 +75,11 @@ namespace hy {
                                         const orchestration::FArray4D* auxC_d);
 
     // Kernels that compose update solution
-    // TODO: Conceptually, these should be a single kernel.  Remains to be seen
-    // if they should be broken up to limit register pressure.  I think that
-    // each variable should have its own kernel as this might keep register
-    // pressure low and make better use of data locality.
+    // Conceptually, this should be a single kernel.  However, it could be that
+    // such an implementation would require many registers and lead to
+    // counterproductive register pressure.  Therefore, we offer two
+    // decompositions of this action to test out lower register counts/kernel
+    // and the possibility of executing small kernels concurrently in the GPU.
     //
     // Kernel-decomposition I -
     // apply one operation at a time across all variables

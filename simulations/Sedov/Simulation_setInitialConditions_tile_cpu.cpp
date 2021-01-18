@@ -17,7 +17,7 @@ void Simulation::setInitialConditions_tile_cpu(const int tId,
     const IntVect       loGC   = tileDesc->loGC();
     const IntVect       hiGC   = tileDesc->hiGC();
     FArray4D            U      = tileDesc->data();
-    RealVect            deltas = tileDesc->deltas();
+    const RealVect      deltas = tileDesc->deltas();
 
     Grid&   grid = Grid::instance();
     FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, level,

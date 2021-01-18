@@ -1,7 +1,6 @@
 #ifndef SIMULATION_H__
 #define SIMULATION_H__
 
-#include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "FArray1D.h"
