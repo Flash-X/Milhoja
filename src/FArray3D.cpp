@@ -22,9 +22,8 @@ FArray3D   FArray3D::buildScratchArray(const IntVect& lo, const IntVect& hi) {
 //----- member function definitions
 /** \brief Construct an FArray3D to wrap an input pointer.
   *
-  * The first three dimensions are defined by lo and hi, and the
-  * fourth dimension is defined by ncomp. User is responsible for ensuring
-  * size of data matches lo, hi, and ncomp.
+  * The three dimensions are defined by lo and hi.  The user is responsible for
+  * ensuring size of data matches lo and hi.
   */
 FArray3D::FArray3D(Real* data, const IntVect& lo, const IntVect& hi)
     : owner_{false},

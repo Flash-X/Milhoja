@@ -394,21 +394,24 @@ void  CudaDataPacket::pack(void) {
         ptr_d += FCZ_BLOCK_SIZE_BYTES;
 
         tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
-        IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
+        IntVect    fHi = IntVect{LIST_NDIM(hi.I()+1, hi.J(), hi.K())};
         FArray4D   FCX_d{FCX_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCX_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
-        fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
         FArray4D   FCY_d{FCY_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCY_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
+        // TODO: Is is necessary to always have the correct number of faces in
+        // these flux arrays for dimensions above NDIM?  Is it even necessary to
+        // make flux arrays available above NDIM?
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
-        fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
         FArray4D   FCZ_d{FCZ_data_d, lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;

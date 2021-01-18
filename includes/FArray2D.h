@@ -12,7 +12,7 @@
 namespace orchestration {
 
 /**
-  * \brief  A wrapper class that grants Fortran-like access to a 4D array.
+  * \brief  A wrapper class that grants Fortran-like access to a 2D array.
   *
   * A wrapper class around a 1D native C++ data array that allows for
   * Fortran-like access on a 2D array.  Note that the access pattern is also

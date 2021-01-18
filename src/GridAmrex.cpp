@@ -350,7 +350,7 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
 
     //copy results to output
     for(int i=0; i<nElements; ++i) {
-        coords(i+lo[axis]) = coordvec[i+offset];
+        coords(i+idxLo) = coordvec[i+offset];
     }
     return coords;
 }

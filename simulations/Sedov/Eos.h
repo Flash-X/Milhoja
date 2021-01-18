@@ -1,7 +1,6 @@
 #ifndef EOS_H__
 #define EOS_H__
 
-#include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "FArray4D.h"
 #include "DataItem.h"

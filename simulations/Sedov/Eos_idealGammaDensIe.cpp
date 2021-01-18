@@ -8,8 +8,6 @@ namespace Eos {
 void idealGammaDensIe(const orchestration::IntVect& lo, 
                       const orchestration::IntVect& hi,
                       orchestration::FArray4D& U) {
-    using namespace orchestration;
-
     // Taken from FLASH-X Sedov/setup_params file 
     constexpr orchestration::Real   SINGLE_SPECIES_A = 1.0_wp;
     
