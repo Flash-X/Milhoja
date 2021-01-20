@@ -54,7 +54,7 @@ basenm   = "sedov_"
 restart  = .false.
 
 #	checkpoint file output parameters
-checkpointFileIntervalTime = 0.01
+checkpointFileIntervalTime = 1.0
 checkpointFileIntervalStep = 0
 checkpointFileNumber       = 0
 
@@ -70,7 +70,7 @@ nblockz    = 1
 dtinit     = 2.0e-5
 dtmin      = 2.0e-5
 dtmax      = 2.0e-5
-nend       = 170
+nend       = 1000
 tmax       = 0.05
 
 # use MeshCalls for now so that we can compare AMReX, which does not have

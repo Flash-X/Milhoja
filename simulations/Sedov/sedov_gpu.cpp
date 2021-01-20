@@ -67,7 +67,8 @@ int main(int argc, char* argv[]) {
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     // TODO: Shouldn't this be done through the IO unit?
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+    // FIXME: Disable this for testing as these might be quite large
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
 
     // Compute local integral quantities
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
