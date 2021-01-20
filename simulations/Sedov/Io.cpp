@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 
+#include "Tile.h"
+#include "Grid.h"
 #include "OrchestrationLogger.h"
 
 #include "constants.h"
@@ -242,6 +244,33 @@ Io::~Io(void) {
     Logger::instance().log("[IO] Finalized");
 }
 
+void   Io::computeLocalIntegralQuantities(void) {
+    orchestration::Grid&     grid    = orchestration::Grid::instance();
+
+    unsigned int            level{0};
+    std::shared_ptr<Tile>   tileDesc{};
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        tileDesc = ti->buildCurrentTile();
+
+        unsigned int        level = tileDesc->level();
+        const IntVect       lo    = tileDesc->lo();
+        const IntVect       hi    = tileDesc->hi();
+        const FArray4D      U     = tileDesc->data();
+
+        Real   volumes_buffer[  (hi.I() - lo.I() + 1)
+                              * (hi.J() - lo.J() + 1)
+                              * (hi.K() - lo.K() + 1)];
+        grid.fillCellVolumes(level, lo, hi, volumes_buffer); 
+        const FArray3D   volumes{volumes_buffer, lo, hi};
+
+        // FIXME: This is an inefficient hack whereby we can use the present
+        // ThreadTeam reduction trick but have the integral quantities
+        // aggregated into a single variable.  This hack should disappear once
+        // the reduction is built into calls to the runtime itself.
+        computeIntegralQuantitiesByBlock(0, lo, hi, volumes, U);
+    }
+}
+
 /**
  * Integrate the physical integral quantities of interest across the given
  * region.  Note that this function
@@ -261,7 +290,6 @@ Io::~Io(void) {
  * are zeroed by default at instantiation and can otherwise be zeroed by calling
  * the function reduceToGlobalIntegralQuantities.
  *
- * \param simTime - the time at which the given data is the valid solution
  * \param threadIdx - the index into the array in which this result should
  *                    accumulate.  This value must be in the set {0, 1, ..., N-1},
  *                    where N is the total number of threads in the thread team used
@@ -271,8 +299,7 @@ Io::~Io(void) {
  * \param cellVolumes - the volumes of each cell in the block
  * \param solnData - the data to integrate
  */
-void   Io::computeIntegralQuantitiesByBlock(const orchestration::Real simTime,
-                                            const int threadIdx,
+void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
                                             const orchestration::IntVect& lo,
                                             const orchestration::IntVect& hi,
                                             const orchestration::FArray3D& cellVolumes,

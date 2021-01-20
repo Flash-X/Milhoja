@@ -43,12 +43,12 @@ public:
 #endif
     static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP + NMASS_SCALARS;
 
-    void   computeIntegralQuantitiesByBlock(const orchestration::Real simTime,
-                                            const int threadIndex,
+    void   computeIntegralQuantitiesByBlock(const int threadIndex,
                                             const orchestration::IntVect& lo,
                                             const orchestration::IntVect& hi,
                                             const orchestration::FArray3D& cellVolumes,
                                             const orchestration::FArray4D& solnData);
+    void   computeLocalIntegralQuantities(void);
     void   reduceToGlobalIntegralQuantities(void);
     void   writeIntegralQuantities(const orchestration::Real simTime);
 

@@ -1,5 +1,4 @@
 #include "Io.h"
-#include "Driver.h"
 
 #include "Tile.h"
 #include "Grid.h"
@@ -35,6 +34,6 @@ void ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu(const int tId,
     grid.fillCellVolumes(level, lo, hi, volumes_buffer); 
     const FArray3D   volumes{volumes_buffer, lo, hi};
 
-    io.computeIntegralQuantitiesByBlock(Driver::simTime, tId, lo, hi, volumes, U);
+    io.computeIntegralQuantitiesByBlock(tId, lo, hi, volumes, U);
 }
 
