@@ -84,6 +84,9 @@ GridAmrex::GridAmrex(void)
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
 
+    // Tell Logger to get its rank once AMReX has initialized MPI, but
+    // before we log anything
+    Logger::instance().acquireRank();
     Logger::instance().log("[GridAmrex] Initialized Grid.");
 }
 

@@ -28,6 +28,8 @@ public:
     static Logger& instance(void);
     static void    setLogFilename(const std::string& filename);
 
+    void   acquireRank(void);
+
     void   log(const std::string& msg) const;
 
 private:
@@ -37,6 +39,7 @@ private:
     static bool           instantiated_;
 
     std::chrono::steady_clock::time_point   startTime_;
+    int                                     rank_;
 };
 
 }
