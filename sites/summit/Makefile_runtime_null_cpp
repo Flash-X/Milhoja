@@ -9,7 +9,7 @@ INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/RuntimeNull
-GTESTDIR     = $(RUNTIME_DEP_PATH)/gcc_9.1.0/googletest
+GTESTDIR     = $(RUNTIME_DEP_PATH)/gnu_9.1.0/googletest
 
 # Common files
 CXX_HDRS   = \
@@ -27,7 +27,8 @@ CXX_HDRS   = \
     $(INCDIR)/ThreadTeamRunningClosed.h \
     $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
     $(INCDIR)/RuntimeAction.h \
-    $(TESTBASEDIR)/NullItem.h
+    $(TESTBASEDIR)/NullItem.h \
+    $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp  \
     $(SRCDIR)/RuntimeElement.cpp  \

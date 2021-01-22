@@ -28,7 +28,9 @@ public:
     static Logger& instance(void);
     static void    setLogFilename(const std::string& filename);
 
+#ifndef LOGGER_NO_MPI
     void   acquireRank(void);
+#endif
 
     void   log(const std::string& msg) const;
 

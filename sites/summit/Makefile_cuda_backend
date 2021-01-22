@@ -16,7 +16,8 @@ HDRS   = \
     $(INCDIR)/OrchestrationLogger.h \
     $(INCDIR)/Stream.h \
     $(INCDIR)/StreamManager.h \
-    $(INCDIR)/CudaStreamManager.h
+    $(INCDIR)/CudaStreamManager.h \
+    $(TESTDIR)/constants.h
 SRCS       = \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/StreamManager.cpp \
@@ -32,7 +33,7 @@ COMMAND   =  $(BASE).x
 OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 CXX       = pgc++
-CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS  = -g -O0 -traceback -std=c++11  -I$(INCDIR) -I$(TESTDIR) -I$(GTESTDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DLOGGER_NO_MPI
 CXXWARNS  =
 
 CU        = nvcc

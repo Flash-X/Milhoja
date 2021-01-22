@@ -18,6 +18,8 @@ NOTE: The data packet variable masking presently requires that
 #define UNK_VARS_BEGIN    DENS_VAR
 #define UNK_VARS_END      ENER_VAR
 
+#define NFLUXES    0
+
 #define REAL_IS_DOUBLE
 
 #if 0

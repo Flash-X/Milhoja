@@ -51,7 +51,8 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/computeLaplacianFused.h \
-    $(TESTBASEDIR)/Analysis.h
+    $(TESTBASEDIR)/Analysis.h \
+    $(TESTDIR)/Driver.h
 CU_HDRS   = \
     $(INCDIR)/CudaGpuEnvironment.h \
     $(INCDIR)/CudaDataPacket.h \

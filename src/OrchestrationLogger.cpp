@@ -5,7 +5,9 @@
 #include <stdexcept>
 #include <iostream>
 
+#ifndef LOGGER_NO_MPI
 #include <mpi.h>
+#endif
 
 #include "constants.h"
 
@@ -96,9 +98,11 @@ Logger::~Logger(void) {
     instantiated_ = false;
 }
 
+#ifndef LOGGER_NO_MPI
 void   Logger::acquireRank(void) {
     MPI_Comm_rank(GLOBAL_COMM, &rank_);
 }
+#endif
 
 /**
  * 
@@ -107,7 +111,9 @@ void   Logger::acquireRank(void) {
 void   Logger::log(const std::string& msg) const {
     using seconds = std::chrono::duration<double>;
 
+#ifndef LOGGER_NO_MPI
     if (rank_ == MASTER_PE) {
+#endif
         auto endTime = std::chrono::steady_clock::now();
         std::string   elapsedTime = std::to_string(seconds(endTime - startTime_).count());
         elapsedTime += " s - ";
@@ -116,7 +122,9 @@ void   Logger::log(const std::string& msg) const {
         logFile.open(logFilename_, std::ios::out | std::ios::app);
         logFile << elapsedTime << msg << std::endl;
         logFile.close();
+#ifndef LOGGER_NO_MPI
     }
+#endif
 }
 
 }
