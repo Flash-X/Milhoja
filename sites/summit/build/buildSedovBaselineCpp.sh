@@ -17,10 +17,10 @@ else
 fi
 
 # Specified relative to location of Makefile
-PAR_FILE=sedov_${NDIM}D_cartesian_gpu.par
+PAR_FILE=sedov_${NDIM}D_cartesian_cpu.par
 
 # When running a binary created with this script, the job script
-# sedovGpuCpp_lsf must be setup to use this same module setup.
+# sedovCpuCpp_lsf must be setup to use this same module setup.
 . $RUNTIME_PGI_SETUP
 
 ######################################################################
@@ -48,9 +48,9 @@ cd ..
 
 # Specified relative to location of Makefile
 SIMDIR=../../simulations/Sedov
-MAKEFILE=Makefile_sedov_gpu_cpp
-BINARY=sedov_gpu_cpp.x
-DEBUG_BINARY=sedov_gpu_cpp_debug.x
+MAKEFILE=Makefile_sedov_baseline_cpp
+BINARY=sedov_baseline_cpp.x
+DEBUG_BINARY=sedov_baseline_cpp_debug.x
 
 # Setup par file for compilation
 rm $SIMDIR/Flash_par.h

@@ -8,7 +8,7 @@ BASEDIR      = ../..
 INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTDIR      = $(BASEDIR)/test/CudaBackend
-GTESTDIR     = $(HOME)/local/pgi_19.9/googletest
+GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Common files

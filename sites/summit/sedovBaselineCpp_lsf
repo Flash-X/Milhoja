@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:02
+#BSUB -W 0:05
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
-#BSUB -J sedovCpuCpp
-#BSUB -o sedovCpuCpp.%J
-#BSUB -e sedovCpuCpp.%J
+#BSUB -J sedovBaselineCpp
+#BSUB -o sedovBaselineCpp.%J
+#BSUB -e sedovBaselineCpp.%J
  
 ######################################################################
 #####-----              FULLY SPECIFY TEST RUN              -----#####
@@ -28,11 +28,11 @@ module list
 N_SOCKET_PER_NODE=2
 N_GPU_PER_SOCKET=3
 
-# Resource Set - 1 MPI process with 7 cores
+# Resource Set - 1 MPI process per core
 N_PROC_PER_RS=1
 N_GPU_PER_PROC=0
-N_CORES_PER_PROC=7
-N_RS_PER_SOCKET=3
+N_CORES_PER_PROC=1
+N_RS_PER_SOCKET=21
 N_RS_PER_NODE=$(($N_RS_PER_SOCKET * $N_SOCKET_PER_NODE))
 
 # Dynamically determine the number of nodes from LSF env var
@@ -60,9 +60,9 @@ echo "Number of HW Threads per Core = $N_HYPERTHREADS_PER_CORE"
 echo "Number of Threads per Process = $N_THREADS_PER_PROC"
 echo "---------------------------------------------------------------------"
 
-binary=$LS_SUBCWD/binaries/sedov_cpu_cpp.x
+binary=$LS_SUBCWD/binaries/sedov_baseline_cpp.x
 
-folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/sedovCpuCpp_$LSB_JOBID
+folder=/gpfs/alpine/scratch/joneal/ast136/OrchestrationRuntime/sedovBaselineCpp_$LSB_JOBID
 mkdir -p $folder ; cd $folder
 
 date

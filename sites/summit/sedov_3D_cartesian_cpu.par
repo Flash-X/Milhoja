@@ -14,7 +14,7 @@ namespace rp_Driver {
 namespace rp_Io {
     // computeIntegralQuantitiesByBlock run in CPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 2;
+    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 6;
 }
 
 namespace rp_Grid {
@@ -33,10 +33,10 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 4;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 7;
     constexpr unsigned int          N_THREAD_TEAMS         = 1;
-    constexpr int                   N_STREAMS              = 32; 
-    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 12884901888;
+    constexpr int                   N_STREAMS              = 1; 
+    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 0;
 }
 
 namespace rp_Eos {
@@ -46,7 +46,7 @@ namespace rp_Eos {
 namespace rp_Hydro {
     // advanceSolution run in CPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 2;
+    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 6;
 }
 
 namespace rp_Simulation {
@@ -64,7 +64,7 @@ namespace rp_Simulation {
 
     // setInitialConditions run in CPU-only thread team
     // configuration using blocks
-    constexpr  unsigned int         N_THREADS_FOR_IC = 2;
+    constexpr  unsigned int         N_THREADS_FOR_IC = 6;
 
     constexpr unsigned int          N_PROFILE    = 10000;
     constexpr orchestration::Real   P_AMBIENT    = 1.0e-5_wp;

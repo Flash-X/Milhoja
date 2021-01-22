@@ -7,7 +7,7 @@ INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 SIMDIR       = $(BASEDIR)/simulations/Sedov
-AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
+AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d
 
 # Common files
 CXX_HDRS   = \

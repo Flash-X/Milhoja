@@ -28,12 +28,13 @@ module list
 N_SOCKET_PER_NODE=2
 N_GPU_PER_SOCKET=3
 
-# Resource Set - 1 MPI process with 7 cores
+# Resource Set - Use all resources so that we can compare against a
+#                CPU run using all node resources
 N_PROC_PER_RS=1
 N_GPU_PER_PROC=1
 N_CORES_PER_PROC=7
-N_RS_PER_SOCKET=1
-N_RS_PER_NODE=1
+N_RS_PER_SOCKET=3
+N_RS_PER_NODE=$(($N_RS_PER_SOCKET * $N_SOCKET_PER_NODE))
 
 # Dynamically determine the number of nodes from LSF env var
 # The host output contains the word batch1 and repeats of the hosts names
@@ -70,11 +71,19 @@ echo $binary
 echo
 ldd $binary
 echo
+#time jsrun -n $N_RS_PER_NODE \
+#           -r $N_RS_PER_NODE \
+#           -a $N_PROC_PER_RS \
+#           -c $N_CORES_PER_RS \
+#           -g $N_GPU_PER_RS \
+#           -l CPU-CPU -d cyclic -b rs \
+#           nvprof -o sedovGpuCpp.%h.%p $binary
+
 time jsrun -n $N_RS_PER_NODE \
            -r $N_RS_PER_NODE \
            -a $N_PROC_PER_RS \
            -c $N_CORES_PER_RS \
            -g $N_GPU_PER_RS \
            -l CPU-CPU -d cyclic -b rs \
-           nvprof -o sedovGpuCpp.%h.%p $binary
+           $binary
 
