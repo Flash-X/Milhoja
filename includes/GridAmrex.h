@@ -33,6 +33,7 @@ public:
 
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock,
+                            const unsigned int nRuntimeThreads,
                             ERROR_ROUTINE errorEst) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;
@@ -44,6 +45,7 @@ public:
     RealVect     getProbHi() const override;
     unsigned int getMaxRefinement() const override;
     unsigned int getMaxLevel() const override;
+    unsigned int getNumberLocalBlocks() override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
     void         writePlotfile(const std::string& filename) const override;
 

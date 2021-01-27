@@ -24,13 +24,12 @@ sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/Runtime/constants.h
 sed -i '' "s/N_DIMENSIONS/2/g"             $TESTDIR/Runtime/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
-rm $TESTDIR/Runtime/Flash.h
-sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
-        $TESTDIR/Flash_base.h > \
-        $TESTDIR/Runtime/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Runtime/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash.h
-sed -i '' "s/REFINEMENT_LEVELS/1/g"          $TESTDIR/Runtime/Flash.h
+rm $TESTDIR/Runtime/Flash_par.h
+sed "s/SED_REPLACE_N_BLOCKS_X/$N_BLOCKS_X/g" \
+        $TESTDIR/Runtime/flash.par > \
+        $TESTDIR/Runtime/Flash_par.h
+sed -i '' "s/SED_REPLACE_N_BLOCKS_Y/$N_BLOCKS_Y/g" $TESTDIR/Runtime/Flash_par.h
+sed -i '' "s/SED_REPLACE_N_BLOCKS_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash_par.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
@@ -54,7 +53,7 @@ if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 3;
 fi
-rm $TESTDIR/Runtime/Flash.h
+rm $TESTDIR/Runtime/Flash_par.h
 rm $TESTDIR/Runtime/constants.h
 
 time ./$BINARY

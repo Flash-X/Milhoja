@@ -11,6 +11,7 @@
 #include <AMReX_FillPatchUtil.H>
 
 #include "Flash.h"
+#include "Flash_par.h"
 
 namespace orchestration {
 
@@ -19,8 +20,10 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+                           const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst)
     : initBlock_{initBlock},
+      nThreads_initBlock_{nRuntimeThreads},
       errorEst_{errorEst} {
 
     // Allocate and resize unk_ (vector of Multifabs).
@@ -48,8 +51,49 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
     if (names.size()==1) {
         names[0] = "phi";
     } else {
-        names[0] = "Density";
-        names[1] = "Energy";
+#ifdef DENS_VAR_C
+    // FIXME: Temporarily use the same generic names that are used in FLASH-X
+    // AMREX-based plot files so that we can compare runtime vs. FLASH-X Sedov
+    // results for testing.
+//        names[DENS_VAR_C] = "dens";
+        names[DENS_VAR_C] = "var0001";
+#endif
+#ifdef VELX_VAR_C
+//        names[VELX_VAR_C] = "velx";
+        names[VELX_VAR_C] = "var0008";
+#endif
+#ifdef VELY_VAR_C
+//        names[VELY_VAR_C] = "vely";
+        names[VELY_VAR_C] = "var0009";
+#endif
+#ifdef VELZ_VAR_C
+//        names[VELZ_VAR_C] = "velz";
+        names[VELZ_VAR_C] = "var0010";
+#endif
+#ifdef PRES_VAR_C
+//        names[PRES_VAR_C] = "pres";
+        names[PRES_VAR_C] = "var0006";
+#endif
+#ifdef ENER_VAR_C
+//        names[ENER_VAR_C] = "ener";
+        names[ENER_VAR_C] = "var0003";
+#endif
+#ifdef GAMC_VAR_C
+//        names[GAMC_VAR_C] = "gamc";
+        names[GAMC_VAR_C] = "var0004";
+#endif
+#ifdef GAME_VAR_C
+//        names[GAME_VAR_C] = "game";
+        names[GAME_VAR_C] = "var0005";
+#endif
+#ifdef TEMP_VAR_C
+//        names[TEMP_VAR_C] = "temp";
+        names[TEMP_VAR_C] = "var0007";
+#endif
+#ifdef EINT_VAR_C
+//        names[EINT_VAR_C] = "eint";
+        names[EINT_VAR_C] = "var0002";
+#endif
     }
     amrex::Vector<const amrex::MultiFab*> mfs;
     for(int i=0; i<=finest_level; ++i) {
@@ -153,18 +197,18 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 
     // Initalize simulation block data in unk_[lev].
     // Must fill interiors, GC optional.
-    // TODO: Thread count should be a runtime variable
     RuntimeAction    action;
     action.name = "initBlock";
-    action.nInitialThreads = 4;
+    action.nInitialThreads = nThreads_initBlock_ - 1;
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock_;
-    ThreadTeam  team(4, 1);
+    ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
     for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
         team.enqueue( ti->buildCurrentTile() );
     }
     team.closeQueue();
+    team.increaseThreadCount(1);
     team.wait();
 
     // DO A GC FILL HERE?

@@ -27,13 +27,13 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         sed -i '' "s/N_DIMENSIONS/2/g"        $TESTDIR/GatherDataCpp/constants.h
 
         # Setup Flash.h with current simulation's Grid parameters
-        rm $TESTDIR/GatherDataCpp/Flash.h
-        sed "s/N_BLOCKS_ALONG_X/$n_blocks/g" \
-                $TESTDIR/Flash_base.h > \
-                $TESTDIR/GatherDataCpp/Flash.h
-        sed -i '' "s/N_BLOCKS_ALONG_Y/$n_blocks/g" $TESTDIR/GatherDataCpp/Flash.h
-        sed -i '' "s/N_BLOCKS_ALONG_Z/1/g"         $TESTDIR/GatherDataCpp/Flash.h
-        sed -i '' "s/REFINEMENT_LEVELS/1/g"        $TESTDIR/GatherDataCpp/Flash.h
+        rm $TESTDIR/GatherDataCpp/Flash_par.h
+        sed "s/SED_REPLACE_N_BLOCKS_X/$n_blocks/g" \
+                $TESTDIR/GatherDataCpp/flash.par > \
+                $TESTDIR/GatherDataCpp/Flash_par.h
+        sed -i '' "s/SED_REPLACE_N_BLOCKS_Y/$n_blocks/g" $TESTDIR/GatherDataCpp/Flash_par.h
+        sed -i '' "s/SED_REPLACE_N_BLOCKS_Z/1/g"         $TESTDIR/GatherDataCpp/Flash_par.h
+        sed -i '' "s/REFINEMENT_LEVELS/1/g"              $TESTDIR/GatherDataCpp/Flash_par.h
 
         # Build test binary
         make -f $MAKEFILE clean all
@@ -49,7 +49,7 @@ for n_cells in ${N_CELLS_PER_BLOCK[@]}; do
         fi
     done
 done
-        
-rm $TESTDIR/GatherDataCpp/Flash.h
+
+rm $TESTDIR/GatherDataCpp/Flash_par.h
 rm $TESTDIR/GatherDataCpp/constants.h
 

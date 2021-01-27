@@ -9,7 +9,7 @@ INCDIR      = $(BASEDIR)/includes
 SRCDIR      = $(BASEDIR)/src
 TESTBASEDIR = $(BASEDIR)/test/Base
 TESTDIR     = $(BASEDIR)/test/GatherDataF2003
-AMREXDIR    = $(HOME)/local/pgi_19.9/AMReX_2d
+AMREXDIR    = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_2d
 PGIDIR      = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
 # Common files

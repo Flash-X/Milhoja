@@ -11,6 +11,7 @@
 #include "errorEstBlank.h"
 
 #include "Flash.h"
+#include "Flash_par.h"
 #include "constants.h"
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
@@ -41,7 +42,9 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 12884901888;
 constexpr unsigned int   N_THREADS_PER_PROC = 7;
 
 // Allow for the largest packet to contain all blocks
-constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z;
+constexpr unsigned int   N_BLOCKS =   rp_Grid::N_BLOCKS_X
+                                    * rp_Grid::N_BLOCKS_Y
+                                    * rp_Grid::N_BLOCKS_Z;
 constexpr unsigned int   PACKET_STEP_SIZE = 10;
 
 constexpr unsigned int   TURN_STEP_SIZE = 5;
@@ -52,7 +55,7 @@ void  setUp(void) {
 
     RuntimeAction    setICs;
     setICs.name            = "SetICs";
-    setICs.nInitialThreads = N_THREADS_PER_PROC - 1;
+    setICs.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC - 1;
     setICs.teamType        = ThreadTeamDataType::BLOCK;
     setICs.nTilesPerPacket = 0;
     setICs.routine         = ActionRoutines::setInitialConditions_tile_cpu;
@@ -89,7 +92,9 @@ void  tearDown(const std::string& filename,
         double   L_inf_dens = 0.0;
         double   L_inf_ener = 0.0;
         double   meanAbsError = 0.0;
-        Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
+        Analysis::initialize(  rp_Grid::N_BLOCKS_X
+                             * rp_Grid::N_BLOCKS_Y
+                             * rp_Grid::N_BLOCKS_Z);
         Runtime::instance().executeCpuTasks("ComputeErrors", computeError);
 
         Analysis::densityErrors(&L_inf_dens, &meanAbsError);
@@ -105,9 +110,9 @@ void  tearDown(const std::string& filename,
              << (nTilesPerPacket < 1 ? "NaN" : std::to_string(nTilesPerPacket)) << ","
              << (nTilesPerCpuTurn < 1 ? "NaN" : std::to_string(nTilesPerCpuTurn)) << ","
              << NXB << "," << NYB << "," << NZB << ","
-             << N_BLOCKS_X << ","
-             << N_BLOCKS_Y << ","
-             << N_BLOCKS_Z << ","
+             << rp_Grid::N_BLOCKS_X << ","
+             << rp_Grid::N_BLOCKS_Y << ","
+             << rp_Grid::N_BLOCKS_Z << ","
              << dx << "," << dy << ","
              << L_inf_dens << "," << L_inf_ener << ","
              << walltime << std::endl;
@@ -131,6 +136,7 @@ int   main(int argc, char* argv[]) {
     Grid::instantiate();
     Grid&   grid = Grid::instance();
     grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
 
     // Setup logging of results
@@ -138,9 +144,9 @@ int   main(int argc, char* argv[]) {
     fname += std::to_string(NXB) + "_";
     fname += std::to_string(NYB) + "_";
     fname += std::to_string(NZB) + "_";
-    fname += std::to_string(N_BLOCKS_X) + "_";
-    fname += std::to_string(N_BLOCKS_Y) + "_";
-    fname += std::to_string(N_BLOCKS_Z) + ".dat";
+    fname += std::to_string(rp_Grid::N_BLOCKS_X) + "_";
+    fname += std::to_string(rp_Grid::N_BLOCKS_Y) + "_";
+    fname += std::to_string(rp_Grid::N_BLOCKS_Z) + ".dat";
 
     // Write header to file
     std::ofstream  fptr;
@@ -162,9 +168,9 @@ int   main(int argc, char* argv[]) {
     std::string   testName  = "NXB=" + std::to_string(NXB) + " / ";
                   testName += "NYB=" + std::to_string(NYB) + " / ";
                   testName += "NZB=" + std::to_string(NZB) + " / ";
-                  testName += "N Blocks X=" + std::to_string(N_BLOCKS_X) + " / ";
-                  testName += "N Blocks Y=" + std::to_string(N_BLOCKS_Y) + " / ";
-                  testName += "N Blocks Z=" + std::to_string(N_BLOCKS_Z);
+                  testName += "N Blocks X=" + std::to_string(rp_Grid::N_BLOCKS_X) + " / ";
+                  testName += "N Blocks Y=" + std::to_string(rp_Grid::N_BLOCKS_Y) + " / ";
+                  testName += "N Blocks Z=" + std::to_string(rp_Grid::N_BLOCKS_Z);
     Logger::instance().log("[Simulation] Start " + testName);
 
     for (unsigned int j=0; j<N_TRIALS; ++j) {

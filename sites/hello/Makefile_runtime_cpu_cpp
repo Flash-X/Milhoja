@@ -112,9 +112,5 @@ clean:
 	/bin/rm -f $(SRCDIR)/*.o
 	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f $(TESTDIR)/*.o
-	/bin/rm -f *.mod
-	/bin/rm -f $(SRCDIR)/*.mod
-	/bin/rm -f $(BASEDIR)/*.mod
-	/bin/rm -f $(TESTDIR)/*.mod
 	/bin/rm -f $(BASEDIR)/test_*.x 
 

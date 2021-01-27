@@ -20,17 +20,17 @@ TESTDIR=../../test
 rm $TESTDIR/constants.h
 sed "s/N_CELLS_IN_X/$N_CELLS_IN_X/g" \
         $TESTDIR/constants_base.h > \
-        $TESTDIR/constants.h
-sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/constants.h
-sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/constants.h
+        $TESTDIR/ThreadTeam/constants.h
+sed -i '' "s/N_CELLS_IN_Y/$N_CELLS_IN_Y/g" $TESTDIR/ThreadTeam/constants.h
+sed -i '' "s/N_CELLS_IN_Z/$N_CELLS_IN_Z/g" $TESTDIR/ThreadTeam/constants.h
 
 # Setup Flash.h with current simulation's Grid parameters
 rm $TESTDIR/Flash.h
 sed "s/N_BLOCKS_ALONG_X/$N_BLOCKS_X/g" \
         $TESTDIR/Flash_base.h > \
-        $TESTDIR/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/Flash.h
-sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/Flash.h
+        $TESTDIR/ThreadTeam/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Y/$N_BLOCKS_Y/g" $TESTDIR/ThreadTeam/Flash.h
+sed -i '' "s/N_BLOCKS_ALONG_Z/$N_BLOCKS_Z/g" $TESTDIR/ThreadTeam/Flash.h
 
 # Build test binary
 if   [[ "$#" -eq 0 ]]; then
