@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     // TODO: Shouldn't this be done through the IO unit?
     // FIXME: We disable this for testing as the plot files might be very large
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
 
     // Compute local integral quantities
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
