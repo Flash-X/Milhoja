@@ -7,7 +7,7 @@
 
 namespace rp_Driver {
     // This is how I fake a Driver_computeDt
-    constexpr orchestration::Real   DT_AFTER            = 1.5e-5_wp;
+    constexpr orchestration::Real   DT_AFTER            = 1.1e-4_wp;
     constexpr unsigned int          WRITE_EVERY_N_STEPS = 10000;
 }
 
@@ -56,7 +56,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 50;
+    constexpr  unsigned int         MAX_STEPS = 250;
     // When FLASH-X runs Sedov/3D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.
