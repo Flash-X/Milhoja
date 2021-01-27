@@ -225,7 +225,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         for (int i=dlo.I(); i<=dhi.I(); ++i) {
         for (int j=dlo.J(); j<=dhi.J(); ++j) {
         for (int k=dlo.K(); k<=dhi.K(); ++k) {
-            ASSERT_NEAR( vol_domain({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+            ASSERT_NEAR( vol_domain(amrex::IntVect(LIST_NDIM(i,j,k)),0) , actual_vol , eps);
         }}}
         }
 
@@ -243,7 +243,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         for (int i=vlo.I(); i<=vhi.I(); ++i) {
         for (int j=vlo.J(); j<=vhi.J(); ++j) {
         for (int k=vlo.K(); k<=vhi.K(); ++k) {
-            ASSERT_NEAR( vol_fab({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+            ASSERT_NEAR( vol_fab(amrex::IntVect(LIST_NDIM(i,j,k)),0) , actual_vol , eps);
         }}}
         }
 
@@ -256,7 +256,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
             for (int i=vlo.I(); i<=vhi.I(); ++i) {
             for (int j=vlo.J(); j<=vhi.J(); ++j) {
             for (int k=vlo.K(); k<=vhi.K(); ++k) {
-                ASSERT_NEAR( area_fab({LIST_NDIM(i,j,k)},0), actual_fa[n], eps);
+                ASSERT_NEAR( area_fab(amrex::IntVect(LIST_NDIM(i,j,k)),0), actual_fa[n], eps);
             }}}
         }
         }

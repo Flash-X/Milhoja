@@ -1,6 +1,5 @@
-BASE         = test_grid_cpp
+BINARYNAME   = test_grid_cpp.x
 TESTDIR      = $(BASEDIR)/test/Grid
-TESTBASEDIR  = $(BASEDIR)/test/Base
 
 SRCS       += \
     $(TESTDIR)/runGridTest.cpp \

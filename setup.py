@@ -34,7 +34,7 @@ def main():
     shutil.copy(mainMakefile,buildDir)
 
     #for demo, copy build file
-    buildfile = os.path.join(siteDir,'build','buildGridUnitTestCpp.sh')
+    buildfile = os.path.join(siteDir,'build',args.par)
     shutil.copy(buildfile,buildDir)
 
     #4. Copy par file into build dir
