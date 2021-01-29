@@ -15,8 +15,8 @@ namespace rp_Bundle_2 {
     // A Gpu/Post-GPU pipeline
     //   - GPU applies Hydro solution advance
     //   - Post-GPU computes the local integral quantities
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 2;
-    constexpr unsigned int          N_THREADS_GPU = 5;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 1;
+    constexpr unsigned int          N_THREADS_GPU = 6;
     constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
     constexpr unsigned int          N_THREADS_POST_GPU = 0;
 }
@@ -73,7 +73,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 250;
+    constexpr  unsigned int         MAX_STEPS = 5;
     // When FLASH-X runs Sedov/3D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.
