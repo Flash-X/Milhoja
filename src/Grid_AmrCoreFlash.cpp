@@ -1,5 +1,7 @@
 #include "Grid_AmrCoreFlash.h"
 
+#include <stdexcept>
+
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 #include "RuntimeAction.h"
@@ -20,11 +22,18 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+                           const unsigned int nDistributorThreads,
                            const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst)
     : initBlock_{initBlock},
       nThreads_initBlock_{nRuntimeThreads},
+      nDistributorThreads_initBlock_{nDistributorThreads},
       errorEst_{errorEst} {
+
+#ifndef _OPENMP
+      // Override if multithreading is disabled
+      nDistributorThreads_initBlock_ = 1;
+#endif
 
     // Allocate and resize unk_ (vector of Multifabs).
     unk_.resize(max_level+1);
@@ -197,18 +206,37 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 
     // Initalize simulation block data in unk_[lev].
     // Must fill interiors, GC optional.
+    if (nThreads_initBlock_ <= 0) {
+        throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
+                                    "N computation threads must be positive");
+    } else if (nDistributorThreads_initBlock_ <= 0) {
+        throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
+                                    "N distributor threads must be positive");
+    } else if (nDistributorThreads_initBlock_ > nThreads_initBlock_) {
+        throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
+                                    "More distributor threads than computation threads");
+    }
+
     RuntimeAction    action;
     action.name = "initBlock";
-    action.nInitialThreads = nThreads_initBlock_ - 1;
+    action.nInitialThreads = nThreads_initBlock_ - nDistributorThreads_initBlock_;
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock_;
     ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
-    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
-        team.enqueue( ti->buildCurrentTile() );
+
+#ifdef _OPENMP
+#pragma omp parallel default(none) \
+                     shared(grid, lev, team) \
+                     num_threads(nDistributorThreads_initBlock_)
+#endif
+    {
+        for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+            team.enqueue( ti->buildCurrentTile() );
+        }
+        team.increaseThreadCount(1);
     }
     team.closeQueue();
-    team.increaseThreadCount(1);
     team.wait();
 
     // DO A GC FILL HERE?

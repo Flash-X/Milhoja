@@ -37,9 +37,11 @@ public:
                                      const std::size_t nBytesInMemoryPools);
     static Runtime&      instance(void);
 
-    void executeTasks(const ActionBundle& bundle);
+    void executeTasks(const ActionBundle& bundle,
+                      const unsigned int nDistributorThreads);
 
     void executeCpuTasks(const std::string& actionName,
+                         const unsigned int nDistributorThreads,
                          const RuntimeAction& cpuAction);
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,

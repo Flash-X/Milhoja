@@ -117,6 +117,7 @@ void  GridAmrex::destroyDomain(void) {
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
+                           const unsigned int nDistributorThreads,
                            const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst) {
     if (amrcore_) {
@@ -128,7 +129,8 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
     }
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock, nRuntimeThreads, errorEst);
+    amrcore_ = new AmrCoreFlash(initBlock, nDistributorThreads,
+                                nRuntimeThreads, errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +

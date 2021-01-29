@@ -24,6 +24,7 @@ class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
         Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                                     rp_Simulation::N_THREADS_FOR_IC,
                                     Simulation::errorEstBlank);
     }
@@ -43,7 +44,9 @@ protected:
         Analysis::initialize(  rp_Grid::N_BLOCKS_X
                              * rp_Grid::N_BLOCKS_Y
                              * rp_Grid::N_BLOCKS_Z);
-        Runtime::instance().executeCpuTasks("Analysis", computeError);
+        Runtime::instance().executeCpuTasks("Analysis",
+                                            rp_Simulation::N_DISTRIBUTOR_THREADS,
+                                            computeError);
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;
@@ -85,8 +88,12 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
-    Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
+    Runtime::instance().executeCpuTasks("LapDens", 
+                                        rp_Simulation::N_DISTRIBUTOR_THREADS,
+                                        computeLaplacianDensity);
+    Runtime::instance().executeCpuTasks("LapEner",
+                                        rp_Simulation::N_DISTRIBUTOR_THREADS,
+                                        computeLaplacianEnergy);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -107,7 +114,9 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("Fused Kernels CPU", computeLaplacianFused_cpu);
+    Runtime::instance().executeCpuTasks("Fused Kernels CPU",
+                                        rp_Simulation::N_DISTRIBUTOR_THREADS,
+                                        computeLaplacianFused_cpu);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
