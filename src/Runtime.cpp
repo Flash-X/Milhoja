@@ -1,6 +1,6 @@
 #include "Runtime.h"
 
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
 #include <omp.h>
 #include <cstdio>
 #endif
@@ -199,7 +199,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
                                "Need at least one ThreadTeam in runtime");
     }
 
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
     const unsigned int  nDistThreads = 1;
@@ -227,7 +227,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     Grid&   grid = Grid::instance();
     int                       tId{-1};
     std::shared_ptr<Tile>     tileDesc{};
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
                      shared(grid, level, cpuTeam) \
                      private(tId, tileDesc) \
@@ -236,7 +236,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             tileDesc = ti->buildCurrentTile();
-//#ifdef _OPENMP
+//#ifdef USE_THREADED_DISTRIBUTOR
 //            tId = omp_get_thread_num();
 //            printf("[Thread %d] Working on block %d\n", tId, tileDesc->gridIndex());
 //#endif

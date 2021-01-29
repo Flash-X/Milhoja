@@ -8,7 +8,7 @@
 #ifndef TILEITERAMREX_H__
 #define TILEITERAMREX_H__
 
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
 #include <omp.h>
 #include <cstdio>
 #endif
@@ -37,7 +37,7 @@ public:
         : lev_{lev},
           mfi_{mf_in},
           mfRef_{mf_in} {
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
     int tId = omp_get_thread_num();
     printf("[Thread %d] TileIterAmrex created its own MFIter\n", tId);
 #endif

@@ -30,7 +30,7 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
       nDistributorThreads_initBlock_{nDistributorThreads},
       errorEst_{errorEst} {
 
-#ifndef _OPENMP
+#ifndef USE_THREADED_DISTRIBUTOR
       // Override if multithreading is disabled
       nDistributorThreads_initBlock_ = 1;
 #endif
@@ -225,7 +225,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
 
-#ifdef _OPENMP
+#ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
                      shared(grid, lev, team) \
                      num_threads(nDistributorThreads_initBlock_)
