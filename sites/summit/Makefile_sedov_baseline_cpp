@@ -88,7 +88,7 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -traceback -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include -DGRID_LOG
+CXXFLAGS  = -O3 -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include -DGRID_LOG
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lamrex

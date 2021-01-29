@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #BSUB -P AST136
-#BSUB -W 0:01
+#BSUB -W 0:10
 #BSUB -nnodes 1
 #BSUB -alloc_flags smt1
 #BSUB -J sedovGpuCpp
@@ -71,19 +71,19 @@ echo $binary
 echo
 ldd $binary
 echo
-time jsrun -n $N_RS_PER_NODE \
-           -r $N_RS_PER_NODE \
-           -a $N_PROC_PER_RS \
-           -c $N_CORES_PER_RS \
-           -g $N_GPU_PER_RS \
-           -l CPU-CPU -d cyclic -b rs \
-           nvprof -o sedovGpuCpp.%h.%p $binary
-
 #time jsrun -n $N_RS_PER_NODE \
 #           -r $N_RS_PER_NODE \
 #           -a $N_PROC_PER_RS \
 #           -c $N_CORES_PER_RS \
 #           -g $N_GPU_PER_RS \
 #           -l CPU-CPU -d cyclic -b rs \
-#           $binary
+#           nvprof -o sedovGpuCpp.%h.%p $binary
+
+time jsrun -n $N_RS_PER_NODE \
+           -r $N_RS_PER_NODE \
+           -a $N_PROC_PER_RS \
+           -c $N_CORES_PER_RS \
+           -g $N_GPU_PER_RS \
+           -l CPU-CPU -d cyclic -b rs \
+           $binary
 
