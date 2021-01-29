@@ -8,6 +8,11 @@
 #ifndef TILEITERAMREX_H__
 #define TILEITERAMREX_H__
 
+#ifdef _OPENMP
+#include <omp.h>
+#include <cstdio>
+#endif
+
 #include "TileIter.h"
 #include "TileAmrex.h"
 
@@ -31,7 +36,12 @@ public:
     TileIterAmrex(amrex::MultiFab& mf_in, const unsigned int lev)
         : lev_{lev},
           mfi_{mf_in},
-          mfRef_{mf_in} {}
+          mfRef_{mf_in} {
+#ifdef _OPENMP
+    int tId = omp_get_thread_num();
+    printf("[Thread %d] TileIterAmrex created its own MFIter\n", tId);
+#endif
+}
 
     //! Default destructor.
     ~TileIterAmrex() = default;

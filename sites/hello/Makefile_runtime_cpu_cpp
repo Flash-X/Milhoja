@@ -85,11 +85,13 @@ SRCS       = \
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
+OMP_FLAGS = -fopenmp
+
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 $(OMP_FLAGS) -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lamrex -lgtest
+LIBS      = -lpthread -lstdc++ -lgomp -lamrex -lgtest
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
 
 ifdef DEBUG

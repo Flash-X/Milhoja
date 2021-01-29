@@ -1,5 +1,10 @@
 #include "Runtime.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#include <cstdio>
+#endif
+
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -210,8 +215,24 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
+    int                       tId{-1};
+    std::shared_ptr<Tile>     tileDesc{};
+#ifdef _OPENMP
+#pragma omp parallel default(none) \
+                     shared(grid, level, cpuTeam) \
+                     private(tId, tileDesc) \
+                     num_threads(4)
+#endif
+    {
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        cpuTeam->enqueue( ti->buildCurrentTile() );
+        tileDesc = ti->buildCurrentTile();
+#ifdef _OPENMP
+        tId = omp_get_thread_num();
+        printf("[Thread %d] Working on block %d\n", tId, tileDesc->gridIndex());
+#endif
+        cpuTeam->enqueue(std::move(tileDesc));
+//        cpuTeam->enqueue( ti->buildCurrentTile() );
+    }
     }
     cpuTeam->closeQueue();
 
