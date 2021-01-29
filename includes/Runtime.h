@@ -50,6 +50,7 @@ public:
                             const RuntimeAction& cpuAction,
                             const RuntimeAction& gpuAction);
     void executeExtendedGpuTasks(const std::string& bundleName,
+                                 const unsigned int nDistributorThreads,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction);
     void executeCpuGpuSplitTasks(const std::string& bundleName,
