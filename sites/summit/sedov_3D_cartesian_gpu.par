@@ -7,6 +7,7 @@
 
 //----- ACTION ROUTINE BUNDLE RUNTIME PARAMETERS
 namespace rp_Bundle_1 {
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 1;
     constexpr unsigned int          N_THREADS_CPU = 6;
 }
 
@@ -14,6 +15,7 @@ namespace rp_Bundle_2 {
     // A Gpu/Post-GPU pipeline
     //   - GPU applies Hydro solution advance
     //   - Post-GPU computes the local integral quantities
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 1;
     constexpr unsigned int          N_THREADS_GPU = 6;
     constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
     constexpr unsigned int          N_THREADS_POST_GPU = 0;
@@ -80,6 +82,7 @@ namespace rp_Simulation {
     // setInitialConditions run in CPU-only thread team
     // configuration using blocks
     constexpr  unsigned int         N_THREADS_FOR_IC = 6;
+    constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 1;
 
     constexpr unsigned int          N_PROFILE    = 10000;
     constexpr orchestration::Real   P_AMBIENT    = 1.0e-5_wp;

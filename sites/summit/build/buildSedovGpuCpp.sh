@@ -65,7 +65,7 @@ cp $SIMDIR/constants_${NDIM}D.h $SIMDIR/constants.h
 echo
 echo "Building production version"
 echo "----------------------------------------------------------"
-make -f $MAKEFILE clean all
+make -f $MAKEFILE clean all THREADED_DISTRIBUTOR=T
 if [[ $? -ne 0 ]]; then
     echo "Unable to compile $BINARY"
     exit 4;
