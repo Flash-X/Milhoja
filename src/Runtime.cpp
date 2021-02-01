@@ -213,9 +213,9 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            cpuTeam->enqueue( ti->buildCurrentTile() );
-        }
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        cpuTeam->enqueue( ti->buildCurrentTile() );
+    }
     cpuTeam->closeQueue();
 
     // host thread blocks until cycle ends, so activate another thread 
