@@ -26,8 +26,8 @@ include Makefile.test
 
 # List of object files
 OBJS        = $(addsuffix .o, $(basename $(SRCS)))
-# List of object files without full path
-OBJSINBUILD = $(addsuffix .o, $(basename $(notdir $(SRCS))))
+## List of object files without full path
+#OBJSINBUILD = $(addsuffix .o, $(basename $(notdir $(SRCS))))
 
 
 # TODO: is this needed?
@@ -50,11 +50,11 @@ test:
 # Main make command depends on making all object files first
 # TODO investigate if dependencies actually work here
 $(BINARYNAME): $(OBJS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJSINBUILD) $(LDFLAGS) $(LIBS)
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS) $(LIBS)
 
 # $(notdir $@) puts object files in build dir
 %.o: %.cpp $(CXX_HDRS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
-	$(CXXCOMP) -c $(CXXFLAGS) $(CXXWARNS) -o $(notdir $@) $<
+	$(CXXCOMP) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
 # TODO: Only do if code coverage requested
 .PHONY: default all clean lcov
@@ -65,7 +65,9 @@ lcov:
 clean:
 	/bin/rm -f $(BINARYNAME)
 	/bin/rm -f *.log
-	/bin/rm -f *.o
+	/bin/rm -f $(SRCDIR)/*.o
+	/bin/rm -f $(TESTDIR)/*.o
+	/bin/rm -f $(TESTBASEDIR)/*.o
 	/bin/rm -f *.gcda
 	/bin/rm -f *.gcno
 	/bin/rm -f lcov_temp.info
