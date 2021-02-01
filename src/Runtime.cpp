@@ -551,7 +551,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     Grid&                             grid = Grid::instance();
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
-                     shared(grid, level, gpuTeam, gpuAction, postGpuTeam) \
+                     shared(grid, level, gpuTeam, gpuAction) \
                      num_threads(nDistThreads)
 #endif
     {
@@ -576,7 +576,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
         }
 
         // host thread blocks until cycle ends, so activate a thread
-        postGpuTeam->increaseThreadCount(1);
+        gpuTeam->increaseThreadCount(1);
     }
 
     gpuTeam->closeQueue();
