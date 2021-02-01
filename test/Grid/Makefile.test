@@ -1,5 +1,8 @@
 BINARYNAME   = test_grid_cpp.x
 TESTDIR      = $(BASEDIR)/test/Grid
+TESTBASEDIR  = $(BASEDIR)/test/Base
+
+CXXFLAGS    += -I$(TESTBASEDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
 
 SRCS       += \
     $(TESTDIR)/runGridTest.cpp \

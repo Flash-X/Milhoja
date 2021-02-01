@@ -1,2 +1,17 @@
+BASEDIR      = /Users/tklosterman/Documents/orchestrationruntime
+
 AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
+
+
+CXXCOMP      = mpicxx
+
+CXXFLAGS    += -g -O0 -I$(AMREXDIR)/include
+
+# TODO add LIB_(backend) variables
+LIBS        += -lpthread -lstdc++ -lamrex -lgtest
+LDFLAGS     += -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
+
+
+COVERAGETOOL = lcov
+HTMLCOMMAND = genhtml

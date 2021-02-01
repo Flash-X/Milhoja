@@ -1,4 +1,9 @@
 SRCDIR       = $(BASEDIR)/src
+INCDIR       = $(BASEDIR)/includes
+
+CXXFLAGS    += -I$(INCDIR)
+
+#TODO: Header files? express dependencies
 
 SRCS       += \
     $(SRCDIR)/Grid.cpp \
