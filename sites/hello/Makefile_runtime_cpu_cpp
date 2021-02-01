@@ -2,22 +2,14 @@ SHELL=/bin/sh
 
 # TODO: Redo this with more care.  Make certain that template .h/.cpp dependencies are correct
 
-BASE            = test_runtime_cpu_cpp
-MAKEFILE        = Makefile_runtime_cpu_cpp
-BASEDIR         = ../..
-INCDIR          = $(BASEDIR)/includes
-SRCDIR          = $(BASEDIR)/src
-TESTBASEDIR     = $(BASEDIR)/test/Base
-TESTDIR         = $(BASEDIR)/test/Runtime
-# Site managers should specify where both forms of the library are if the test
-# has the possibility of being run with and without multithreaded distributors.
-# Note, I tried to build a non-OMP version of this test using the OMP version of
-# AMReX, and compilation aborted.  TODO: Does this mean that the test designers
-# are responsible for ensuring that the site managers provide both?  Should we
-# always insist that all sites specify both even if one is always empty?
-AMREXDIR_OMP    = $(HOME)/local/gcc_6.5.0/AMReX_2D_OpenMP
-AMREXDIR_NO_OMP = $(HOME)/local/gcc_6.5.0/AMReX_2D_noOpenMP
-
+BASE         = test_runtime_cpu_cpp
+MAKEFILE     = Makefile_runtime_cpu_cpp
+BASEDIR      = ../..
+INCDIR       = $(BASEDIR)/includes
+SRCDIR       = $(BASEDIR)/src
+TESTBASEDIR  = $(BASEDIR)/test/Base
+TESTDIR      = $(BASEDIR)/test/Runtime
+AMREXDIR     = $(HOME)/local/gcc_6.5.0/AMReX_2D
 GTESTDIR     = /usr/local/spack/opt/spack/darwin-highsierra-x86_64/gcc-6.5.0/googletest-1.8.1-6y5spjfzq4uiazxbcb7sw3qrloxbrhgw
 
 # Common files
@@ -93,32 +85,15 @@ SRCS       = \
 OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
-# Site managers know what information is needed to build with OpenMP, so they
-# should specify this.
-OMP_FLAGS = -fopenmp
-
-ifdef THREADED_DISTRIBUTOR
-AMREXDIR  = $(AMREXDIR_OMP)
-else
-# Override site manager info if OpenMP is not needed for multithreaded
-# distributor
-OMP_FLAGS =
-AMREXDIR  = $(AMREXDIR_NO_OMP)
-endif
-
 CXX       = mpicxx
-CXXFLAGS  = -g -O0 -std=c++11 $(OMP_FLAGS) -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTBASEDIR) -I$(TESTDIR) -I$(AMREXDIR)/include -I$(GTESTDIR)/include
 CXXWARNS  =
 
-LIBS      = -lpthread -lstdc++ -lgomp -lamrex -lgtest
+LIBS      = -lpthread -lstdc++ -lamrex -lgtest
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(GTESTDIR)/lib
 
 ifdef DEBUG
 CXXFLAGS := $(CXXFLAGS) -DDEBUG_RUNTIME
-endif
-
-ifdef THREADED_DISTRIBUTOR
-CXXFLAGS := $(CXXFLAGS) -DUSE_THREADED_DISTRIBUTOR
 endif
 
 all:    $(COMMAND)
