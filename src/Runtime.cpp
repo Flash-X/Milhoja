@@ -2,7 +2,6 @@
 
 #ifdef USE_THREADED_DISTRIBUTOR
 #include <omp.h>
-#include <cstdio>
 #endif
 
 #include <cassert>
