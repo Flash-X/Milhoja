@@ -35,8 +35,10 @@ sed -i '' "s/SED_REPLACE_N_BLOCKS_Z/$N_BLOCKS_Z/g" $TESTDIR/Runtime/Flash_par.h
 if   [[ "$#" -eq 0 ]]; then
         make -f $MAKEFILE clean all
 elif [[ "$#" -eq 1 ]]; then
-    if [[ "$1" = "--use_multithreaded_distributor" ]]; then
-        make -f $MAKEFILE clean all THREADED_DISTRIBUTOR=T
+    if [[ "$1" = "--debug" ]]; then
+        echo "No debug-compatible tests in suite"
+        exit 5;
+#        make -f $MAKEFILE clean all DEBUG=T
     else
         echo "Unknown command line argument", $1
         exit 1;
