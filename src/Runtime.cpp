@@ -130,8 +130,7 @@ Runtime::~Runtime(void) {
  *
  * \return 
  */
-void Runtime::executeTasks(const ActionBundle& bundle,
-                           const unsigned int nDistributorThreads) {
+void Runtime::executeTasks(const ActionBundle& bundle) {
     std::string msg = "[Runtime] Start execution of " + bundle.name;
     Logger::instance().log(msg);
 
@@ -148,7 +147,7 @@ void Runtime::executeTasks(const ActionBundle& bundle,
     // will need and then write this routine for each?  If not, the
     // combinatorics could grow out of control fairly quickly.
     if (hasCpuAction && !hasGpuAction && !hasPostGpuAction) {
-        executeCpuTasks(bundle.name, nDistributorThreads, bundle.cpuAction);
+        executeCpuTasks(bundle.name, bundle.cpuAction);
 #if defined(USE_CUDA_BACKEND)
     } else if (!hasCpuAction && hasGpuAction && !hasPostGpuAction) {
         executeGpuTasks(bundle.name,
@@ -180,7 +179,6 @@ void Runtime::executeTasks(const ActionBundle& bundle,
  * \return 
  */
 void Runtime::executeCpuTasks(const std::string& actionName,
-                              const unsigned int nDistributorThreads,
                               const RuntimeAction& cpuAction) {
     Logger::instance().log("[Runtime] Start single CPU action");
 
@@ -188,9 +186,6 @@ void Runtime::executeCpuTasks(const std::string& actionName,
         throw std::logic_error("[Runtime::executeCpuTasks] "
                                "Given CPU action should run on tiles, "
                                "which is not in configuration");
-    } else if (nDistributorThreads <= 0) {
-        throw std::invalid_argument("[Runtime::executeCpuTasks] "
-                                    "nDistributorThreads must be positive");
     } else if (cpuAction.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeCpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
@@ -199,12 +194,6 @@ void Runtime::executeCpuTasks(const std::string& actionName,
                                "Need at least one ThreadTeam in runtime");
     }
 
-#ifdef USE_THREADED_DISTRIBUTOR
-    const unsigned int  nDistThreads = nDistributorThreads;
-#else
-    const unsigned int  nDistThreads = 1;
-#endif
-
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
     // CPU action parallel pipeline
     // 1) CPU action applied to blocks by CPU team
@@ -212,7 +201,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
-    unsigned int nTotalThreads = cpuAction.nInitialThreads + nDistThreads;
+    unsigned int nTotalThreads = cpuAction.nInitialThreads + 1;
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeCpuTasks] "
                                "CPU team could receive too many thread "
@@ -225,27 +214,14 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    int                       tId{-1};
-    std::shared_ptr<Tile>     tileDesc{};
-#ifdef USE_THREADED_DISTRIBUTOR
-#pragma omp parallel default(none) \
-                     shared(grid, level, cpuTeam) \
-                     private(tId, tileDesc) \
-                     num_threads(nDistThreads)
-#endif
-    {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            tileDesc = ti->buildCurrentTile();
-//#ifdef USE_THREADED_DISTRIBUTOR
-//            tId = omp_get_thread_num();
-//            printf("[Thread %d] Working on block %d\n", tId, tileDesc->gridIndex());
-//#endif
-            cpuTeam->enqueue(std::move(tileDesc));
-//            cpuTeam->enqueue( ti->buildCurrentTile() );
+            cpuTeam->enqueue( ti->buildCurrentTile() );
         }
-        cpuTeam->increaseThreadCount(1);
-    }
     cpuTeam->closeQueue();
+
+    // host thread blocks until cycle ends, so activate another thread 
+    // in team first
+    cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
 
     // No need to break apart the thread team configuration

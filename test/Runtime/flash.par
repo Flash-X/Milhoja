@@ -23,10 +23,6 @@ namespace rp_Simulation {
     // configuration using blocks
     constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 2;
     constexpr  unsigned int         N_THREADS_FOR_IC = 4;
-
-    // Number of threads to activate in the action parallel distributor of the
-    // CPU-task thread team configuration
-    constexpr  unsigned int         N_DISTRIBUTOR_THREADS = 3;
 }
 
 #endif

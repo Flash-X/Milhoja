@@ -137,16 +137,18 @@ OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
 
 ifdef THREADED_DISTRIBUTOR
 AMREXDIR  = $(AMREXDIR_OMP)
+DIST_FLAG = -DUSE_THREADED_DISTRIBUTOR
 else
 # Override site manager info if OpenMP is not needed for multithreaded
 # distributor
 OMP_FLAGS    =
 CU_OMP_FLAGS =
 AMREXDIR     = $(AMREXDIR_NO_OMP)
+DIST_FLAG =
 endif
 
 CXX       = mpicxx
-CXXFLAGS  = -O3 -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include $(OMP_FLAGS) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG
+CXXFLAGS  = -O3 -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include $(OMP_FLAGS) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG $(DIST_FLAG)
 CXXWARNS  =
 
 CU        = nvcc
@@ -155,10 +157,6 @@ CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lcudart -lamrex
 LDFLAGS   = -L$(AMREXDIR)/lib -L$(CUDADIR)/lib64
-
-ifdef THREADED_DISTRIBUTOR
-CXXFLAGS := $(CXXFLAGS) -DUSE_THREADED_DISTRIBUTOR
-endif
 
 all:    $(COMMAND)
 

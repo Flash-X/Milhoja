@@ -31,8 +31,7 @@ public:
     TileIterAmrex(amrex::MultiFab& mf_in, const unsigned int lev)
         : lev_{lev},
           mfi_{mf_in},
-          mfRef_{mf_in} {
-}
+          mfRef_{mf_in} {}
 
     //! Default destructor.
     ~TileIterAmrex() = default;

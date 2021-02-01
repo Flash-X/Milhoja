@@ -72,9 +72,7 @@ int main(int argc, char* argv[]) {
     grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
 
     // Compute local integral quantities
-    runtime.executeCpuTasks("IntegralQ",
-                            rp_Bundle_1::N_DISTRIBUTOR_THREADS,
-                            computeIntQuantitiesByBlk);
+    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
     // Compute global integral quantities via DATA MOVEMENT
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);

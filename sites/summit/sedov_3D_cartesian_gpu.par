@@ -7,7 +7,6 @@
 
 //----- ACTION ROUTINE BUNDLE RUNTIME PARAMETERS
 namespace rp_Bundle_1 {
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 1;
     constexpr unsigned int          N_THREADS_CPU = 6;
 }
 
@@ -73,7 +72,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 5;
+    constexpr  unsigned int         MAX_STEPS = 250;
     // When FLASH-X runs Sedov/3D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.

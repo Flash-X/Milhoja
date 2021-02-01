@@ -183,6 +183,11 @@ void AmrCoreFlash::ClearLevel (int lev) {
 /**
   * \brief Make new level from scratch
   *
+  * \todo Simulations should be allowed to use the GPU for setting the ICs.
+  * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
+  * team configuration should be used.  If the GPU-only configuration is
+  * allowed, then we should allow for more than one distributor thread.
+  *
   * \param lev Level being made
   * \param time Simulation time
   * \param ba BoxArray of level being made
@@ -209,9 +214,9 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     if (nThreads_initBlock_ <= 0) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "N computation threads must be positive");
-    } else if (nDistributorThreads_initBlock_ <= 0) {
+    } else if (nDistributorThreads_initBlock_ != 1) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
-                                    "N distributor threads must be positive");
+                                    "Only one distributor thread presently allowed");
     } else if (nDistributorThreads_initBlock_ > nThreads_initBlock_) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "More distributor threads than computation threads");
@@ -225,18 +230,11 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
 
-#ifdef USE_THREADED_DISTRIBUTOR
-#pragma omp parallel default(none) \
-                     shared(grid, lev, team) \
-                     num_threads(nDistributorThreads_initBlock_)
-#endif
-    {
-        for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
-            team.enqueue( ti->buildCurrentTile() );
-        }
-        team.increaseThreadCount(1);
+    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+        team.enqueue( ti->buildCurrentTile() );
     }
     team.closeQueue();
+    team.increaseThreadCount(nDistributorThreads_initBlock_);
     team.wait();
 
     // DO A GC FILL HERE?
