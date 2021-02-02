@@ -1,14 +1,21 @@
 SHELL=/bin/sh
 
-BASE         = sedov_gpu_cpp
-MAKEFILE     = Makefile_sedov_gpu_cpp
-BASEDIR      = ../..
-INCDIR       = $(BASEDIR)/includes
-SRCDIR       = $(BASEDIR)/src
-TESTBASEDIR  = $(BASEDIR)/test/Base
-SIMDIR       = $(BASEDIR)/simulations/Sedov
-AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d
-CUDADIR      = $(OLCF_CUDA_ROOT)
+BASE            = sedov_gpu_cpp
+MAKEFILE        = Makefile_sedov_gpu_cpp
+BASEDIR         = ../..
+INCDIR          = $(BASEDIR)/includes
+SRCDIR          = $(BASEDIR)/src
+TESTBASEDIR     = $(BASEDIR)/test/Base
+SIMDIR          = $(BASEDIR)/simulations/Sedov
+# Site managers should specify where both forms of the library are if the test
+# has the possibility of being run with and without multithreaded distributors.
+# Note, I tried to build a non-OMP version of this test using the OMP version of
+# AMReX, and compilation aborted.  TODO: Does this mean that the test designers
+# are responsible for ensuring that the site managers provide both?  Should we
+# always insist that all sites specify both even if one is always empty?
+AMREXDIR_NO_OMP = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d
+AMREXDIR_OMP    = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d_OMP
+CUDADIR         = $(OLCF_CUDA_ROOT)
 
 # Common files
 CXX_HDRS   = \
@@ -122,14 +129,30 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 CUOBJS    = $(addsuffix .o, $(basename $(CU_SRCS)))
 COMMAND   =  $(BASE).x
 
-OACC_FLAGS = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+# Site managers know what information is needed to build with OpenMP, so they
+# should specify this.
+OMP_FLAGS     = -mp
+CU_OMP_FLAGS  = -Xcompiler -mp
+OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+
+ifdef THREADED_DISTRIBUTOR
+AMREXDIR  = $(AMREXDIR_OMP)
+DIST_FLAG = -DUSE_THREADED_DISTRIBUTOR
+else
+# Override site manager info if OpenMP is not needed for multithreaded
+# distributor
+OMP_FLAGS    =
+CU_OMP_FLAGS =
+AMREXDIR     = $(AMREXDIR_NO_OMP)
+DIST_FLAG =
+endif
 
 CXX       = mpicxx
-CXXFLAGS  = -O3 -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG
+CXXFLAGS  = -O3 -std=c++11 -m64 -I$(INCDIR) -I$(TESTBASEDIR) -I$(SIMDIR) -I$(AMREXDIR)/include $(OMP_FLAGS) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG $(DIST_FLAG)
 CXXWARNS  =
 
 CU        = nvcc
-CUFLAGS   = -ccbin=pgc++ -O3 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(SIMDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG
+CUFLAGS   = -ccbin=pgc++ -O3 -std=c++11 -m64 -gencode arch=compute_70,code=sm_70 -I$(INCDIR) -I$(SIMDIR) -I$(TESTBASEDIR) -I$(AMREXDIR)/include $(CU_OMP_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -DGRID_LOG
 CUWARNS   =
 
 LIBS      = -lpthread -lstdc++ -pgf90libs -lcudart -lamrex

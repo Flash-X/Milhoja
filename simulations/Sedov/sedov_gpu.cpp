@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
 
     logger.log("[Simulation] Generate mesh and set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
 
@@ -113,6 +114,7 @@ int main(int argc, char* argv[]) {
             grid.fillGuardCells();
         }
         runtime.executeExtendedGpuTasks("Advance Hydro Solution",
+                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
                                         hydroAdvance,
                                         computeIntQuantitiesByBlk);
 
