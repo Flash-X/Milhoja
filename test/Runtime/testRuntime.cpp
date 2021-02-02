@@ -24,6 +24,7 @@ class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
         Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                                     rp_Simulation::N_THREADS_FOR_IC,
                                     Simulation::errorEstBlank);
     }
