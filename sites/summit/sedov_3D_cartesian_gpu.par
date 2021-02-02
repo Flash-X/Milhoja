@@ -27,12 +27,6 @@ namespace rp_Driver {
     constexpr unsigned int          WRITE_EVERY_N_STEPS = 10000;
 }
 
-namespace rp_Io {
-    // computeIntegralQuantitiesByBlock run in CPU-only thread team
-    // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 6;
-}
-
 namespace rp_Grid {
     constexpr orchestration::Real   X_MIN       = 0.0_wp;
     constexpr orchestration::Real   X_MAX       = 1.0_wp;
@@ -57,12 +51,6 @@ namespace rp_Runtime {
 
 namespace rp_Eos {
     constexpr orchestration::Real   GAMMA = 1.4_wp;
-}
-
-namespace rp_Hydro {
-    // advanceSolution run in CPU-only thread team
-    // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 6;
 }
 
 namespace rp_Simulation {
