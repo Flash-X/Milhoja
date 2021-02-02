@@ -44,6 +44,9 @@ CXXFLAGS += -DGRID_LOG
 default: $(BINARYNAME)
 all:     $(BINARYNAME)
 test:
+	/bin/rm -f $(SRCDIR)/*.gcda
+	/bin/rm -f $(TESTDIR)/*.gcda
+	/bin/rm -f $(TESTBASEDIR)/*.gcda
 	./$(BINARYNAME)
 
 

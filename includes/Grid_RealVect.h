@@ -137,7 +137,7 @@ class RealVect
                 return k_;
 #endif
         }
-        return i_; 
+        return i_;
     }
 
     //TODO: Potential operators

@@ -15,6 +15,8 @@
 #include <AMReX_FArrayBox.H>
 #include "Tile.h"
 
+#include <iostream>
+
 
 using namespace orchestration;
 
@@ -37,11 +39,14 @@ TEST_F(GridUnitTest,VectorClasses){
 
     //test creation and conversion
     IntVect intVec1{LIST_NDIM(3,10,2)};
+    const IntVect intVecConst{LIST_NDIM(3,10,2)};
     RealVect realVec1{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
+    const RealVect realVecConst{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
     IntVect intVec2 = realVec1.floor();
     RealVect realVec2 = RealVect(intVec1);
 
     //test operators for IntVect
+    EXPECT_EQ( intVec1           , intVecConst);
     EXPECT_EQ( realVec1.round()  , IntVect(LIST_NDIM(2,3,6)) );
     EXPECT_EQ( realVec1.floor()  , IntVect(LIST_NDIM(1,3,5)) );
     EXPECT_EQ( realVec1.ceil()   , IntVect(LIST_NDIM(2,4,6)) );
@@ -50,6 +55,7 @@ TEST_F(GridUnitTest,VectorClasses){
     EXPECT_EQ( intVec1-intVec2   , IntVect(LIST_NDIM(2,7,-3)) );
     EXPECT_EQ( intVec1*intVec2   , IntVect(LIST_NDIM(3,30,10)) );
     EXPECT_EQ( intVec1+5         , IntVect(LIST_NDIM(8,15,7)) );
+    EXPECT_EQ( 7+intVec1         , IntVect(LIST_NDIM(10,17,9)) );
     EXPECT_EQ( intVec1-9         , IntVect(LIST_NDIM(-6,1,-7)) );
     EXPECT_EQ( intVec1*2         , IntVect(LIST_NDIM(6,20,4)) );
     EXPECT_EQ( 2*intVec1         , IntVect(LIST_NDIM(6,20,4)) );
@@ -59,6 +65,7 @@ TEST_F(GridUnitTest,VectorClasses){
     //test operators for RealVect
     float eps = 1.0e-14;
     for (int i=0;i<NDIM;++i) {
+        EXPECT_NEAR(realVec1[i] , realVecConst[i] , eps);
         EXPECT_NEAR(realVec2[i] ,
                 RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
         EXPECT_NEAR((realVec1+realVec2)[i] ,
@@ -74,6 +81,95 @@ TEST_F(GridUnitTest,VectorClasses){
         EXPECT_NEAR((realVec1/2.0_wp)[i] ,
                 RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
     }
+
+    //Test logic errors
+    int caughtErrors = 0;
+    try {
+        Real r = realVec1[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        Real r = realVecConst[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        int x = intVec1[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        int x = intVecConst[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    EXPECT_EQ( caughtErrors, 4);
+
+    // Test output
+    std::cout << "Sample IntVect: " << intVec1 << std::endl;
+    std::cout << "Sample RealVect: " << realVec1 << std::endl;
+}
+
+TEST_F(GridUnitTest,FArrayClasses){
+    //Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+    //                            Simulation::errorEstBlank);
+
+    //test creation and assignment
+    Real arrayData[10];
+    FArray1D data{arrayData, 0};
+    FArray1D scratchData = FArray1D::buildScratchArray1D(5,14);
+    IntVect lo{LIST_NDIM(0,0,0)}, hi{LIST_NDIM(2,4,3)};
+    Real arrayData4[hi.product() * 3];
+    FArray4D data4{arrayData4, lo, hi, 3};
+    FArray4D scratchData4 = FArray4D::buildScratchArray4D(lo, hi, 3);
+
+    // Test assignment of 1D
+    for (int i=0; i<10; ++i) {
+        data(i) = i*5.0_wp;
+        scratchData(i+5) = i*7.0_wp;
+    }
+    float eps = 1.0e-14;
+    for (int i=0;i<10;++i) {
+        EXPECT_NEAR( data(i), i*5.0_wp, eps);
+        EXPECT_NEAR( scratchData(i+5), i*7.0_wp, eps);
+    }
+
+    // TODO test assignment of 4D
+
+    //Test logic errors
+    int caughtErrors = 0;
+    try {
+        FArray1D dataNull{ nullptr, 0};
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ nullptr, lo, hi, 3};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ arrayData4, lo, hi, 0};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ arrayData4, hi, lo, 3};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    //try {
+    //    Real r = data(10); 
+    //} catch (const std::logic_error& e) {
+    //    caughtErrors++;
+    //}
+    //try {
+    //    Real r = scratchData(4);
+    //} catch (const std::logic_error& e) {
+    //    caughtErrors++;
+    //}
+    EXPECT_EQ( caughtErrors, 4);
 }
 
 TEST_F(GridUnitTest,ProbConfigGetters){
@@ -382,6 +478,34 @@ TEST_F(GridUnitTest,MultipleLevels){
             ASSERT_NEAR(data(i,j,k,0) , 1.25_wp, eps);
         }}}
     }
+}
+
+TEST_F(GridUnitTest,LogicErrors){
+    Grid& grid = Grid::instance();
+    int caughtErrors = 0;
+    try {
+        Grid::instantiate();
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        grid.initDomain(nullptr,
+                                Simulation::errorEstMaximal);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                Simulation::errorEstMaximal);
+
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                        Simulation::errorEstMaximal);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    EXPECT_EQ( caughtErrors, 3);
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
