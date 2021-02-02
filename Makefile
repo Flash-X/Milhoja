@@ -59,12 +59,8 @@ $(BINARYNAME): $(OBJS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
 # TODO: Only do if code coverage requested
 .PHONY: default all clean lcov
 lcov:
-ifeq ($(wildcard lcov_temp.info),"")
-	$(COVERAGETOOL) -o lcov_temp.info -c -d .
+	$(COVERAGETOOL) -o lcov_temp.info -c -d $(BASEDIR)
 	$(HTMLCOMMAND)  -o Coverage_Report lcov_temp.info
-else
-	$(info Please compile and run test binary before generating code coverage report.)
-endif
 
 clean:
 	/bin/rm -f $(BINARYNAME)
