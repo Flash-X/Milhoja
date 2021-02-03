@@ -1,10 +1,17 @@
-BINARYNAME   = test_grid_cpp.x
-TESTDIR      = $(BASEDIR)/test/Grid
-TESTBASEDIR  = $(BASEDIR)/test/Base
+# Define the desired binary name with BINARYNAME
+BINARYNAME    = test_grid_cpp.x
 
-CXXFLAGS    += -I$(TESTBASEDIR) -I$(TESTDIR) -I$(GTESTDIR)/include
+# Define relevant paths
+TESTDIR       = $(BASEDIR)/test/Grid
+TESTBASEDIR   = $(BASEDIR)/test/Base
 
-SRCS       += \
+# Define compiler flags in CXXFLAGS_TEST
+CXXFLAGS_TEST = -I$(TESTBASEDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+
+LDFLAGS_TEST  = $(LIB_GTEST)
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST      = \
     $(TESTDIR)/runGridTest.cpp \
     $(TESTDIR)/gridUnitTest.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \

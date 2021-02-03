@@ -1,17 +1,36 @@
+# Define the following paths:
+#  - BASEDIR: Path to the repository root directory
+#  - AMREXDIR: Path to the appropriate AMReX build directory
+#  - GTESTDIR: Path to the Googletest build directory
 BASEDIR      = /Users/tklosterman/Documents/orchestrationruntime
-
 AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
 
-
+# Define the following compiler-related flags
+#  - CXXCOMP: The desired C++ compiler command or path
+#  - CXXFLAGS_PROD, CXXFLAGS_DEBUG: The set of compiler flags. The debug option
+#        will be chosen if --debug (or -d) is included in the setup command,
+#        otherwise the production flags will be used.
+#  - CXXWARNS
 CXXCOMP      = mpicxx
 
-CXXFLAGS    += -g -O0 -I$(AMREXDIR)/include
+CXXFLAGS_PROD    = -g -O0
+CXXFLAGS_DEBUG   = -g -O0
 
-# TODO add LIB_(backend) variables
-LIBS        += -lpthread -lstdc++ -lamrex -lgtest
-LDFLAGS     += -L$(AMREXDIR)/lib -L$(GTESTDIR)/mybuild/lib
+CXXWARNS     =
 
+# Define the following backend-related flags:
+#  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
+#  - CXXFLAGS_GTEST: Flags for Googletest (e.g. include dir)
+#  - LIB_AMREX: Linker flags for AMReX
+#  - LIB_GTEST: Linker flags for Googletest
+CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib
+LIB_GTEST        = -lgtest -L$(GTESTDIR)/mybuild/lib
 
-COVERAGETOOL = lcov
-HTMLCOMMAND = genhtml
+# Define the follwing paths for generating code coverage reports.
+#  - LCOV: path or command for the coverage tool (lcov)
+#  - GENHTML: path or command for generating html reports (genhtml).
+LCOV = lcov
+GENHTML = genhtml

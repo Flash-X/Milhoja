@@ -1,31 +1,32 @@
 SHELL=/bin/sh
 
+
 ########################################################
 # Makefile flags and defintions
 
 MAKEFILE     = Makefile
 
-#TODO: how to deal with this compiler specific flag
-CXXFLAGS = -std=c++11
-CXXWARNS =
-
-LIBS =
-LDFLAGS =
-
-# TODO Include these for only if code coverage requested
-CXXFLAGS += -fprofile-arcs -ftest-coverage
-LDFLAGS += --coverage
-
-
-# Makefile.site defines BASEDIR, AMREXDIR and GTESTDIR, and CXXCOMP
+# Must include site first so BASEDIR is defined.
 include Makefile.site
-# Makefile.base defines SRCS and INCDIR
 include Makefile.base
-# Makefile.test defines BINARYNAME, TESTDIR and adds to SRCS
 include Makefile.test
 
+#TODO: how to deal with this compiler specific flag
+CXXFLAGS_STD = -std=c++11
+LDFLAGS_STD  = -lpthread -lstdc++
+
+# TODO Include these for only if code coverage requested
+CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
+LDFLAGS_COV  = --coverage
+
+# Combine all compiler and linker flags
+CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
+           $(CXXFLAGS_AMREX) $(CXXFLAGS_COV)
+LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_COV)
+
 # List of object files
-OBJS        = $(addsuffix .o, $(basename $(SRCS)))
+SRCS     = $(SRCS_BASE) $(SRCS_TEST)
+OBJS     = $(addsuffix .o, $(basename $(SRCS)))
 ## List of object files without full path
 #OBJSINBUILD = $(addsuffix .o, $(basename $(notdir $(SRCS))))
 
@@ -44,26 +45,24 @@ CXXFLAGS += -DGRID_LOG
 default: $(BINARYNAME)
 all:     $(BINARYNAME)
 test:
-	/bin/rm -f $(SRCDIR)/*.gcda
-	/bin/rm -f $(TESTDIR)/*.gcda
-	/bin/rm -f $(TESTBASEDIR)/*.gcda
 	./$(BINARYNAME)
-
 
 # Main make command depends on making all object files first
 # TODO investigate if dependencies actually work here
 $(BINARYNAME): $(OBJS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS) $(LIBS)
+	/bin/rm -f $(SRCDIR)/*.gcda
+	/bin/rm -f $(TESTDIR)/*.gcda
+	/bin/rm -f $(TESTBASEDIR)/*.gcda
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
-# $(notdir $@) puts object files in build dir
 %.o: %.cpp $(CXX_HDRS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
 	$(CXXCOMP) -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
 
-# TODO: Only do if code coverage requested
-.PHONY: default all clean lcov
-lcov:
-	$(COVERAGETOOL) -o lcov_temp.info -c -d $(BASEDIR)
-	$(HTMLCOMMAND)  -o Coverage_Report lcov_temp.info
+# TODO: Only do if code coverage requested, fail if test not run
+.PHONY: default all clean coverage
+coverage:
+	$(LCOV) -o lcov_temp.info -c -d $(BASEDIR)
+	$(GENHTML)  -o Coverage_Report lcov_temp.info
 
 clean:
 	/bin/rm -f $(BINARYNAME)
