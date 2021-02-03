@@ -19,9 +19,16 @@ LDFLAGS_STD  = -lpthread -lstdc++
 
 
 # Combine all compiler and linker flags
+ifeq ($(DEBUG),true)
+CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
+           $(CXXFLAGS_AMREX)
+LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
+else
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
            $(CXXFLAGS_AMREX)
 LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
+endif
+
 
 # Add code coverage flags
 ifeq ($(CODECOVERAGE), true)
