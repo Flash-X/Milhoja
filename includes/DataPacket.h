@@ -1,7 +1,7 @@
 #ifndef DATA_PACKET_H__
 #define DATA_PACKET_H__
 
-#ifdef ENABLE_CUDA_OFFLOAD
+#if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
 #include <cuda_runtime.h>
 #endif
 
@@ -36,6 +36,11 @@ struct PacketContents {
     FArray4D*               FCZ_d      = nullptr;  //!< From lo to hi  
 };
 
+/**
+ * \todo initiateDeviceToHost is CUDA specific.  Can we use preprocessor to
+ * allow for each backend to have its own version?
+ *
+ */
 class DataPacket : public DataItem {
 public:
     static std::unique_ptr<DataPacket>   createPacket(void);
@@ -56,7 +61,9 @@ public:
     virtual const PacketContents*  tilePointers(void) const = 0;
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
-    virtual void                   transferFromDeviceToHost(void) = 0;
+    virtual void                   initiateDeviceToHostTransfer(cudaHostFn_t callback,
+                                                                void* callbackData) = 0;
+    virtual void                   unpack(void) = 0;
 #ifdef ENABLE_OPENACC_OFFLOAD
     virtual int                    asynchronousQueue(void) = 0;
 #endif
