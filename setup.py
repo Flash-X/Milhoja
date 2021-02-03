@@ -26,16 +26,17 @@ def main():
     # Copy makefiles parts from site, src, and test into build dir
     siteDir = os.path.join(homeDir,'sites',args.site)
     siteMakefile = os.path.join(siteDir,'Makefile.site')
-    shutil.copy(siteMakefile,buildDir)
+    os.symlink(siteMakefile,os.path.join(buildDir,'Makefile.site'))
 
     srcMakefile = os.path.join(homeDir,'src','Makefile.base')
-    shutil.copy(srcMakefile,buildDir)
+    os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
 
-    testMakefile = os.path.join(homeDir,'test',args.test,'Makefile.test')
-    shutil.copy(testMakefile,buildDir)
+    testDir = os.path.join(homeDir,'test',args.test)
+    testMakefile = os.path.join(testDir,'Makefile.test')
+    os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
 
     mainMakefile = os.path.join(homeDir,'Makefile')
-    shutil.copy(mainMakefile,buildDir)
+    os.symlink(mainMakefile,os.path.join(buildDir,'Makefile'))
 
     # Write Makefile.setup in builddir
     setupMakefile = os.path.join(buildDir,'Makefile.setup')
