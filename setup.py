@@ -11,6 +11,7 @@ def main():
     parser.add_argument('--test','-t',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
     parser.add_argument('--debug','-d',action="store_true",help='Set up in debug mode.')
+    parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
     args = parser.parse_args()
 
     # Setup.py is located in the repository root directory.
@@ -35,6 +36,21 @@ def main():
 
     mainMakefile = os.path.join(homeDir,'Makefile')
     shutil.copy(mainMakefile,buildDir)
+
+    # Write Makefile.setup in builddir
+    setupMakefile = os.path.join(buildDir,'Makefile.setup')
+    with open(setupMakefile,'w') as f:
+        f.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
+        f.write("OBJDIR = $(BUILDDIR)/obj\n")
+        if args.debug:
+            f.write("DEBUG = true\n")
+        else:
+            f.write("DEBUG = false\n")
+
+        if args.coverage:
+            f.write("CODECOVERAGE = true\n")
+        else:
+            f.write("CODECOVERAGE = false\n")
 
 
     # Copy par file into build dir

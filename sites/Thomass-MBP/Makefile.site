@@ -14,8 +14,8 @@ GTESTDIR     = $(HOME)/Documents/googletest/googletest
 #  - CXXWARNS
 CXXCOMP      = mpicxx
 
-CXXFLAGS_PROD    = -g -O0
-CXXFLAGS_DEBUG   = -g -O0
+CXXFLAGS_PROD    = -g -O0 -DGRID_LOG
+CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
 
 CXXWARNS     =
 
@@ -32,5 +32,10 @@ LIB_GTEST        = -lgtest -L$(GTESTDIR)/mybuild/lib
 # Define the follwing paths for generating code coverage reports.
 #  - LCOV: path or command for the coverage tool (lcov)
 #  - GENHTML: path or command for generating html reports (genhtml).
+#  - CXXFLAGS_COV
+#  - LDFLAGS_COV
 LCOV = lcov
 GENHTML = genhtml
+
+CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
+LDFLAGS_COV  = --coverage
