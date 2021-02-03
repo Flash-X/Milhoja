@@ -6,20 +6,23 @@ import argparse, sys, os, shutil
 def main():
     # Parse command line args
     parser = argparse.ArgumentParser(description='Runtime Setup Tool')
-    parser.add_argument('--site',type=str,help='site name')
-    parser.add_argument('--build',type=str,default='build',help='build directory')
-    parser.add_argument('--test',type=str,help='Name of test')
-    parser.add_argument('--par',type=str,help='Name of par file (in site dir)')
+    parser.add_argument('--site','-s',type=str,help='site name')
+    parser.add_argument('--build','-b',type=str,default='build',help='build directory')
+    parser.add_argument('--test','-t',type=str,help='Name of test')
+    parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
+    parser.add_argument('--debug','-d',action="store_true",help='Set up in debug mode.')
     args = parser.parse_args()
 
-    # Setup.py is located in repo home directory
+    # Setup.py is located in the repository root directory.
     homeDir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
-    #1. Make build directory
+    # Make build directory in root directory. Delete it first if it already exists.
     buildDir = os.path.join( homeDir, args.build)
-    if not os.path.isdir(buildDir): os.makedirs(buildDir)
+    if os.path.isdir(buildDir):
+        shutil.rmtree(buildDir)
+    os.makedirs(buildDir)
 
-    #2. Copy makefiles parts from site, src, and test into build dir
+    # Copy makefiles parts from site, src, and test into build dir
     siteDir = os.path.join(homeDir,'sites',args.site)
     siteMakefile = os.path.join(siteDir,'Makefile.site')
     shutil.copy(siteMakefile,buildDir)
@@ -33,12 +36,12 @@ def main():
     mainMakefile = os.path.join(homeDir,'Makefile')
     shutil.copy(mainMakefile,buildDir)
 
+
+    # Copy par file into build dir
+    #(Start with: copy Flash.h, constants.h)
     #for demo, copy build file
     buildfile = os.path.join(siteDir,'build',args.par)
     shutil.copy(buildfile,buildDir)
-
-    #4. Copy par file into build dir
-    #(Start with: copy Flash.h, constants.h)
 
 
 
