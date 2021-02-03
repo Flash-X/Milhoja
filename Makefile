@@ -5,11 +5,16 @@ SHELL=/bin/sh
 # Makefile flags and defintions
 
 MAKEFILE     = Makefile
+MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base Makefile.test
 
 # Must include site first so BASEDIR is defined.
 include Makefile.site
 include Makefile.base
 include Makefile.test
+
+# TODO define these in a Makefile.setup
+BUILDDIR = $(BASEDIR)/build
+OBJDIR = $(BUILDDIR)/obj
 
 #TODO: how to deal with this compiler specific flag
 CXXFLAGS_STD = -std=c++11
@@ -24,12 +29,12 @@ CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
            $(CXXFLAGS_AMREX) $(CXXFLAGS_COV)
 LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_COV)
 
-# List of object files
-SRCS     = $(SRCS_BASE) $(SRCS_TEST)
-OBJS     = $(addsuffix .o, $(basename $(SRCS)))
-DEPS     = $(addsuffix .d, $(basename $(SRCS)))
-## List of object files without full path
-#OBJSINBUILD = $(addsuffix .o, $(basename $(notdir $(SRCS))))
+# List of sources, objects, and dependencies
+C_SRCS     = $(SRCS_BASE) $(SRCS_TEST)
+OBJS_TEMP     = $(addsuffix .o, $(basename $(C_SRCS)))
+OBJS     =  $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(OBJS_TEMP))
+OBJTREE  =  $(sort $(dir $(OBJS)))
+DEPS     = $(addsuffix .d, $(basename $(OBJS)))
 
 
 # TODO: is this needed?
@@ -48,29 +53,30 @@ all:     $(BINARYNAME)
 test:
 	./$(BINARYNAME)
 
-# Main make command depends on making all object files first
-# TODO investigate if dependencies actually work here
-$(BINARYNAME): $(OBJS) $(MAKEFILE) Makefile.site Makefile.base Makefile.test
-	/bin/rm -f $(addsuffix .gcda, $(basename $(SRCS)))
+
+# Main make command depends on making all object files and creating object tree
+$(BINARYNAME): $(OBJTREE) $(OBJS) $(MAKEFILES)
+	/bin/rm -f $(OBJDIR)/**/*.gcda
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
 # -MMD generates a dependecy list for each file as a side effect
-%.o: %.cpp $(MAKEFILE) Makefile.site Makefile.base Makefile.test
+$(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES)
 	$(CXXCOMP) -MMD -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+
+# Make directories in the object tree
+$(OBJTREE):
+	mkdir -p $@
 
 # TODO: Only do if code coverage requested, fail if test not run
 .PHONY: default all clean coverage
 coverage:
-	$(LCOV) -o lcov_temp.info -c -d $(BASEDIR)
+	$(LCOV) -o lcov_temp.info -c -d $(OBJDIR)
 	$(GENHTML)  -o Coverage_Report lcov_temp.info
 
 clean:
 	/bin/rm -f $(BINARYNAME)
 	/bin/rm -f *.log
-	/bin/rm -f $(OBJS)
-	/bin/rm -f $(DEPS)
-	/bin/rm -f $(addsuffix .gcno, $(basename $(SRCS)))
-	/bin/rm -f $(addsuffix .gcda, $(basename $(SRCS)))
+	/bin/rm -f -r $(OBJDIR)
 	/bin/rm -f lcov_temp.info
 
 
