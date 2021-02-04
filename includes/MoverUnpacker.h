@@ -5,6 +5,10 @@
  * transferring data from device to host and, if necessary, splitting up composite
  * data items into small items and enqueueing these with a data receiver.
  *
+ * This thread helper class is designed as an extended finite state
+ * machine (eFSM).  While its design is similar to that of the ThreadTeam, it is
+ * simpler as it has no internal threads to manage.
+ *
  * The threads of the data publishers to objects of this class that call enqueue
  * are used to initiate asynchronous transport of the given data item back to
  * the host.  Once this starts, the calling threads are released and the objects
@@ -16,13 +20,18 @@
  * data items even though some data items might still be transferring back to
  * the host.
  *
- * The present implementation assumes that once closeQueue is called, no
- * attempts will be made to enqueue data until the next cycle starts.
- *
- * \todo Add in a wait routine so that TT configurations that don't have a data
- * receiver attached to the MoverUnpacker can know when the execution cycle has
- * really finished as opposed to when the transfer of the final data packet has
- * been initiated.
+ * As objects instantiated from this class will be used to build thread team
+ * configurations, such objects must manage correctly the shared_ptr to
+ * DataPacket items whose ownership flows through pipelines along with the
+ * share_ptrs themselves.  It is assumed that neither this helper nor the
+ * downstream elements in its pipeline will use the given DataPacket once the
+ * helper has finished with it.  Therefore, the enqueue member function will
+ * assume ownership of the given shared_ptr to a DataPacket as expected.  The
+ * ownership is transferred to the DataPacket to hold during the transfer.
+ * Ownership is transferred back to the MoverUnpacker when the DataPacket calls
+ * handleTransferFinished.  Finally, this static function will free the
+ * shared_ptr once all necessary work has been applied to the contents of the
+ * DataPacket.
  */
 
 #ifndef MOVER_UNPACKER_H__
@@ -47,26 +56,33 @@ public:
     MoverUnpacker& operator=(const MoverUnpacker&) = delete;
     MoverUnpacker& operator=(MoverUnpacker&&)      = delete;
 
+    void startCycle(void);
     void increaseThreadCount(const unsigned int nThreads) override;
-
     void enqueue(std::shared_ptr<DataItem>&& dataItem) override;
     void closeQueue(void) override;
 
+    void wait(void);
+
     RuntimeElement*  dataReceiver(void) const  { return dataReceiver_; }
-    void             notifyCallbackFinished(void);
 
 private:
+    enum class State {Idle, Open, Closed};
+
     struct CallbackData {
         std::shared_ptr<DataItem>*   dataItem = nullptr;
         MoverUnpacker*               unpacker = nullptr;
     };
 
-    static void finalizeAfterTransfer(void* userData);
+    static void handleTransferFinished(void* userData);
+    void        handleTransferFinished_Stateful(void);
 
-    unsigned int   nInCallback_;
-    bool           wasCloseQueueCalled_;
+    State          state_;
+    unsigned int   nInTransit_;
 
-    pthread_mutex_t   mutex_;  //!< Use to access all private data members
+    // TODO: I think that we need to maintain the local queue status, which
+    // might imply that this helper needs a startCycle command to clear it.
+    pthread_mutex_t   mutex_;               //!< Use to access all private data members
+    pthread_cond_t    unblockWaitThreads_;  //!< To be emitted when last transfer handled
 };
 
 }

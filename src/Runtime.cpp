@@ -520,6 +520,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -555,7 +556,6 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     }
 
     gpuTeam->closeQueue();
-    gpuTeam->wait();
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION

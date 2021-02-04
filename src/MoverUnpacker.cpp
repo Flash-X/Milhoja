@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 
 #include "MoverUnpacker.h"
 
@@ -6,24 +7,62 @@
 
 namespace orchestration {
 
+/**
+ * Instantiate a MoverUnpacker extended finite state machine in the Idle state
+ * with no data items in transit.
+ */
 MoverUnpacker::MoverUnpacker(void)
-    : nInCallback_{0},
-      wasCloseQueueCalled_{false} {
+    : state_{State::Idle},
+      nInTransit_{0} {
+    pthread_cond_init(&unblockWaitThreads_, NULL);
     pthread_mutex_init(&mutex_, NULL);
 }
 
+/**
+ * Destroy the eFSM.
+ */
 MoverUnpacker::~MoverUnpacker(void) {
     pthread_mutex_lock(&mutex_);
 
-    if (nInCallback_ != 0) {
+    if (nInTransit_ != 0) {
         std::cerr << "[MoverUnpacker::~MoverUnpacker] "
                   << "Data packets still in transit\n";
+    } else if (state_ != State::Idle) {
+        std::cerr << "[MoverUnpacker::~MoverUnpacker] "
+                  << "MoverUnpacker is not Idle\n";
     }
 
     pthread_mutex_unlock(&mutex_);
     pthread_mutex_destroy(&mutex_);
+    pthread_cond_destroy(&unblockWaitThreads_);
 }
 
+/**
+ * Indicate to the eFSM that it should start accepting enqueued data items.  It
+ * is a logical error for this to be called if the eFSM is not in Idle.
+ */
+void MoverUnpacker::startCycle(void) {
+    pthread_mutex_lock(&mutex_);
+
+    if (state_ != State::Idle) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::logic_error("[MoverUnpacker::startCycle] "
+                               "startCycle can only be called from Idle");
+    } else if (nInTransit_ != 0) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::runtime_error("[MoverUnpacker::startCycle] "
+                                 "Number of items in transit not zero");
+    }
+
+    state_ = State::Open;
+
+    pthread_mutex_unlock(&mutex_);
+}
+
+/**
+ * The RuntimeElement interface requires defining this event.  However, it is a
+ * logical error to call this as this eFSM cannot be a thread subscriber.
+ */
 void MoverUnpacker::increaseThreadCount(const unsigned int nThreads) {
     throw std::logic_error("[MoverUnpacker::increaseThreadCount] "
                            "MoverUnpackers do no have threads to awaken");
@@ -31,13 +70,9 @@ void MoverUnpacker::increaseThreadCount(const unsigned int nThreads) {
 
 /**
  * Use the calling thread to initiate the asynchronous transfer of the given
- * data packet from device to host. 
- *
- * This member function will assume ownership of the given shared_ptr.  It is
- * assumed that neither this helper nor the downstream elements in its pipeline
- * will use the given DataPacket once the helper has finished with it.
- * Therefore, the shared_ptr will be automatically freed once the transfer has
- * finished, data is unpacked, and enqueueing done.
+ * data packet from device to host.  This function also registers the
+ * handleTransferFinished static function with the DataPacket.  See the
+ * documentation for this routine for more information.
  *
  * \param  dataItem   The data packet that should be moved back to the host and
  *                    whose constituent data items should be enqueued with this
@@ -51,11 +86,14 @@ void MoverUnpacker::increaseThreadCount(const unsigned int nThreads) {
  */
 void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
     pthread_mutex_lock(&mutex_);
-    if (wasCloseQueueCalled_) {
+
+    if (state_ != State::Open) {
+        pthread_mutex_unlock(&mutex_);
         throw std::logic_error("[MoverUnpacker::enqueue] "
-                               "The queue has been closed already");
+                               "enqueue only when in Open state");
     }
-    ++nInCallback_;
+    ++nInTransit_;
+
     pthread_mutex_unlock(&mutex_);
 
     // The action taken here only makes sense if the given data item is a packet.
@@ -80,57 +118,39 @@ void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
     // counter to the intent of using smart pointers
     //    (i.e. don't use raw C++ pointers and
     //          limit use of new calls outside of constructors),
-    // so that the shared_ptr persists as it moves to CUDA and back.
+    // so that the shared_ptr persists as it moves to the data packet and back.
     userData->dataItem = new std::shared_ptr<DataItem>{ std::move(dataItem) };
     if ((dataItem.use_count() != 0) || (dataItem != nullptr)) {
         throw std::runtime_error("[MoverUnpacker::enqueue] "
                                  "shared_ptr not nullified as expected");
     }
 
-    // This registers the callback
-    packet->initiateDeviceToHostTransfer(finalizeAfterTransfer, userData);
+    // This registers the callback and transfers ownership.
+    packet->initiateDeviceToHostTransfer(handleTransferFinished, userData);
     userData = nullptr;
 }
 
 /**
- * It is intended that this routine only be called by the callback function
- * finalizeAfterTransfer once it has finished its work.  This is necessary so
- * that the static callback routine can allow the object that registered the
- * callback with the packet can keep track of how many callback routines have
- * yet to be run and to close the queue of the object's data receiver once all
- * callbacks have been run.
- */
-void  MoverUnpacker::notifyCallbackFinished(void) {
-    pthread_mutex_lock(&mutex_);
-
-    if (nInCallback_ <= 0) {
-        throw std::logic_error("[MoverUnpacker::notifyCallbackFinished] "
-                               "Callback count underflow");
-    }
-    --nInCallback_;
-
-    if (wasCloseQueueCalled_ && (nInCallback_ == 0)) {
-        // Reset for the next runtime execution cycle
-        wasCloseQueueCalled_ = false;
-
-        if (dataReceiver_) {
-            dataReceiver_->closeQueue();
-        }
-    }
-
-    pthread_mutex_unlock(&mutex_);
-}
-
-/**
- * It is intended that this static function only be used as a callback
- * registered with a data packet when its transfer to host is initiated.  This
- * implies that this routine will be called by a host thread outside of the
- * thread team configuration when the packet's transfer is complete.  This
- * callback is, therefore, responsible for unpacking the packet's data and
- * enqueueing constituent data items with the data receiver of the helper that
- * handled the packet.  In addition, this function must close the queue of the
- * data receiver if it is working on the final data packet to be transferred in
- * the current runtime execution cycle.
+ * One input/event to the eFSM is the transferFinished event that indicates when
+ * an asynchronous transfer of a specific data packet has finished.  This event
+ * is emitted by a data packet once it has arrived at the host and is emitted
+ * by calling this function.  Therefore, It is intended that this static function
+ * implement on behalf of the eFSM the appropriate triggering of outputs and
+ * state transition associated with the occurrence of this event.  As this can
+ * only be accomplished with knowledge of the actual state of the eFSM, the data
+ * provided to this static function includes the MoverUnpacker object that is
+ * managing the data packet and some responsibilities are carried out by the
+ * object's handleTransferFinished_Stateful function.
+ *
+ * In particular, it is intended that this static function only be used as a
+ * callback registered with a data packet when its transfer to host is
+ * initiated.  This implies that this routine will be called by a host thread
+ * outside of the thread team configuration when the packet's transfer is
+ * complete.  This callback is, therefore, responsible for unpacking the
+ * packet's data and enqueueing constituent data items with the data receiver of
+ * the helper that handled the packet.  In addition, this function must close
+ * the queue of the data receiver if it is working on the final data packet to
+ * be transferred in the current runtime execution cycle.
  *
  * This routine not only assumes ownership of the given userData structure, and
  * therefore has the responsibility to release its resources, but also the
@@ -144,14 +164,14 @@ void  MoverUnpacker::notifyCallbackFinished(void) {
  *                     registered the callback as well as the data item that was
  *                     transferred.
  */
-void MoverUnpacker::finalizeAfterTransfer(void* userData) {
+void MoverUnpacker::handleTransferFinished(void* userData) {
     CallbackData*   data = static_cast<CallbackData*>(userData);
     if (!data) {
-        throw std::logic_error("[MoverUnpacker::finalizeAfterTransfer] Given null pointer");
+        throw std::logic_error("[MoverUnpacker::handleTransferFinished] Given null pointer");
     }
     MoverUnpacker*   unpacker = data->unpacker;
     if (!unpacker) {
-        throw std::logic_error("[MoverUnpacker::finalizeAfterTransfer] Given null unpacker");
+        throw std::logic_error("[MoverUnpacker::handleTransferFinished] Given null unpacker");
     }
     RuntimeElement*  dataReceiver = unpacker->dataReceiver();
  
@@ -159,7 +179,7 @@ void MoverUnpacker::finalizeAfterTransfer(void* userData) {
     // Therefore, this ugly upcasting is reasonable.
     DataPacket*      packet = dynamic_cast<DataPacket*>(data->dataItem->get());
     if (!packet) {
-        throw std::logic_error("[MoverUnpacker::finalizeAfterTransfer] Given null packet");
+        throw std::logic_error("[MoverUnpacker::handleTransferFinished] Given null packet");
     }
     packet->unpack();
 
@@ -179,8 +199,36 @@ void MoverUnpacker::finalizeAfterTransfer(void* userData) {
     data->unpacker = nullptr;
     delete data;   data = nullptr;
 
-    unpacker->notifyCallbackFinished();
+    unpacker->handleTransferFinished_Stateful();
     unpacker = nullptr;
+}
+
+/**
+ * It is intended that this routine only be called by the callback function
+ * handleTransferFinished once it has finished its work.  This is necessary as
+ * some of the outputs required for transitions associated with the
+ * transferFinished event must be based on the state of the MoverUnpacker
+ * managing the movement of the data packet that issued the event.
+ */
+void  MoverUnpacker::handleTransferFinished_Stateful(void) {
+    pthread_mutex_lock(&mutex_);
+
+    if (nInTransit_ <= 0) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::logic_error("[MoverUnpacker::handleTransferFinished_Stateful] "
+                               "Callback count underflow");
+    }
+    --nInTransit_;
+
+    if ((nInTransit_ == 0) && (state_ == State::Closed)) {
+        if (dataReceiver_) {
+            dataReceiver_->closeQueue();
+        }
+        state_ = State::Idle;
+        pthread_cond_broadcast(&unblockWaitThreads_);
+    }
+
+    pthread_mutex_unlock(&mutex_);
 }
 
 /**
@@ -191,28 +239,43 @@ void MoverUnpacker::finalizeAfterTransfer(void* userData) {
  * receiver will not be closed until the last data packet to be transferred in
  * the present runtime execution cycle by this helper has been handled by a
  * callback function.
- *
- * \todo If calling code calls closeQueue when there are no callbacks out, then
- *       the calling code could subsequently call enqueue() without triggering an
- *       error.  I believe that this is an edge case associated with a
- *       programmer's logical error, but it should be studied.
  */
 void MoverUnpacker::closeQueue(void) {
     pthread_mutex_lock(&mutex_);
 
-    if (wasCloseQueueCalled_) {
+    if (state_ != State::Open) {
+        pthread_mutex_unlock(&mutex_);
         throw std::logic_error("[MoverUnpacker::closeQueue] "
-                               "closeQueue already called");
+                               "Queue can be closed only in Open state");
     }
 
-    if (nInCallback_ > 0) {
-        // Setting this true means that this object's "queue" is effectively
-        // closed.  However, its data receiver's queue is not closed until the
-        // last callback has finished running.
-        wasCloseQueueCalled_ = true;
-    } else if (dataReceiver_) {
-        // Both this helper and its receiver have closed queues.
-        dataReceiver_->closeQueue();
+    if (nInTransit_ == 0) {
+        state_ = State::Idle;
+        if (dataReceiver_) {
+            dataReceiver_->closeQueue();
+        }
+        pthread_cond_broadcast(&unblockWaitThreads_);
+    } else {
+        state_ = State::Closed;
+    }
+
+    pthread_mutex_unlock(&mutex_);
+}
+
+/**
+ * Block the calling thread until this object has finished transferring and
+ * working on all data packets that will be enqueued with the object in the
+ * current runtime execution cycle.  This function is non-blocking if the
+ * current runtime execution cycle finished before the calling thread managed to
+ * call this function.
+ *
+ * More than one thread can call wait during any given runtime execution cycle.
+ */
+void MoverUnpacker::wait(void) {
+    pthread_mutex_lock(&mutex_);
+
+    if (state_ != State::Idle) {
+        pthread_cond_wait(&unblockWaitThreads_, &mutex_);
     }
 
     pthread_mutex_unlock(&mutex_);
