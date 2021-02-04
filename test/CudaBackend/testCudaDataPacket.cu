@@ -9,6 +9,7 @@
 #include "CudaStreamManager.h"
 
 #include "Flash.h"
+#include "Flash_par.h"
 #include "constants.h"
 
 #include "gpuKernel.h"
@@ -49,8 +50,12 @@ protected:
 
     TestCudaDataPacket(void) {
         Grid&    grid = Grid::instance();
-        grid.initDomain(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX,
-                        N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z,
+        grid.initDomain(rp_Grid::X_MIN, rp_Grid::X_MAX,
+                        rp_Grid::Y_MIN, rp_Grid::Y_MAX,
+                        rp_Grid::Z_MIN, rp_Grid::Z_MAX,
+                        rp_Grid::N_BLOCKS_X,
+                        rp_Grid::N_BLOCKS_Y,
+                        rp_Grid::N_BLOCKS_Z,
                         NUNKVAR, 
                         TestCudaDataPacket::setInitialConditions_block);
    }
@@ -120,7 +125,9 @@ TEST_F(TestCudaDataPacket, TestNullifyPacket) {
 }
 
 TEST_F(TestCudaDataPacket, TestNDataItems) {
-    constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z; 
+    constexpr unsigned int   N_BLOCKS =   rp_Grid::N_BLOCKS_X
+                                        * rp_Grid::N_BLOCKS_Y
+                                        * rp_Grid::N_BLOCKS_Z; 
 
     Tile dataItem;
     amrex::MultiFab&   unk = Grid::instance().unk();
@@ -140,7 +147,9 @@ TEST_F(TestCudaDataPacket, TestNDataItems) {
 }
 
 TEST_F(TestCudaDataPacket, TestAddDataItem) {
-    constexpr unsigned int   N_BLOCKS = N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z; 
+    constexpr unsigned int   N_BLOCKS =   rp_Grid::N_BLOCKS_X
+                                        * rp_Grid::N_BLOCKS_Y
+                                        * rp_Grid::N_BLOCKS_Z; 
 
     amrex::MultiFab&   unk = Grid::instance().unk();
 

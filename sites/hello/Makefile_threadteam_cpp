@@ -46,7 +46,7 @@ OBJS      = $(addsuffix .o, $(basename $(SRCS)))
 COMMAND   =  $(BASE).x
 
 CXX       = g++
-CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include
+CXXFLAGS  = -g -O0 -std=c++11 -I$(INCDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(GTESTDIR)/include -DLOGGER_NO_MPI
 CXXWARNS  =
 
 LIBS      = -lpthread -lstdc++ -lgtest

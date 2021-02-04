@@ -5,6 +5,7 @@
 #include "errorEstBlank.h"
 
 #include "Flash.h"
+#include "Flash_par.h"
 #include "constants.h"
 
 #include "setInitialConditions.h"
@@ -23,6 +24,8 @@ class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
         Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                    rp_Simulation::N_THREADS_FOR_IC,
                                     Simulation::errorEstBlank);
     }
 
@@ -38,7 +41,9 @@ protected:
         computeError.nTilesPerPacket = 0;
         computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
 
-        Analysis::initialize(N_BLOCKS_X * N_BLOCKS_Y * N_BLOCKS_Z);
+        Analysis::initialize(  rp_Grid::N_BLOCKS_X
+                             * rp_Grid::N_BLOCKS_Y
+                             * rp_Grid::N_BLOCKS_Z);
         Runtime::instance().executeCpuTasks("Analysis", computeError);
 
         double L_inf1      = 0.0;

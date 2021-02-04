@@ -22,6 +22,8 @@ class AmrCoreFlash
 {
 public:
     AmrCoreFlash(ACTION_ROUTINE initBlock,
+                 const unsigned int nDistributorThreads,
+                 const unsigned int nRuntimeThreads,
                  ERROR_ROUTINE errorEst);
     ~AmrCoreFlash();
 
@@ -94,6 +96,8 @@ private:
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.
     ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
+    unsigned int   nThreads_initBlock_;  //!< Number of runtime threads to use for computing the ICs
+    unsigned int   nDistributorThreads_initBlock_;  //!< Number of host threads to use for distributing data items for computing the ICs
     ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
 
 };

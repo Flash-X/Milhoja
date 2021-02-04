@@ -9,8 +9,8 @@ INCDIR       = $(BASEDIR)/includes
 SRCDIR       = $(BASEDIR)/src
 TESTBASEDIR  = $(BASEDIR)/test/Base
 TESTDIR      = $(BASEDIR)/test/Runtime
-AMREXDIR     = $(HOME)/local/pgi_19.9/AMReX_2d
-GTESTDIR     = $(HOME)/local/pgi_19.9/googletest
+AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_2d
+GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 PGIDIR       = $(OLCF_PGI_ROOT)/linuxpower/19.9
 
@@ -51,7 +51,8 @@ CXX_HDRS   = \
     $(TESTBASEDIR)/computeLaplacianDensity.h \
     $(TESTBASEDIR)/computeLaplacianEnergy.h \
     $(TESTBASEDIR)/computeLaplacianFused.h \
-    $(TESTBASEDIR)/Analysis.h
+    $(TESTBASEDIR)/Analysis.h \
+    $(TESTDIR)/Driver.h
 CU_HDRS   = \
     $(INCDIR)/CudaGpuEnvironment.h \
     $(INCDIR)/CudaDataPacket.h \

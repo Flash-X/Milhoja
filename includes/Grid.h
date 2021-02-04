@@ -43,6 +43,8 @@ public:
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
     virtual void initDomain(ACTION_ROUTINE initBlock,
+                            const unsigned int nDistributorThreads,
+                            const unsigned int nRuntimeThreads,
                             ERROR_ROUTINE errorEst) = 0;
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
@@ -53,6 +55,7 @@ public:
     virtual RealVect       getProbHi() const = 0;
     virtual unsigned int   getMaxRefinement() const = 0;
     virtual unsigned int   getMaxLevel() const = 0;
+    virtual unsigned int   getNumberLocalBlocks() = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
     virtual void writePlotfile(const std::string& filename) const = 0;
 

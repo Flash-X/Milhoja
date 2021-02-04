@@ -5,6 +5,12 @@
 #include <stdexcept>
 #include <iostream>
 
+#ifndef LOGGER_NO_MPI
+#include <mpi.h>
+#endif
+
+#include "constants.h"
+
 namespace orchestration {
 
 std::string     Logger::logFilename_ = "";
@@ -64,7 +70,8 @@ Logger& Logger::instance(void) {
  *
  */
 Logger::Logger(void)
-    : startTime_{std::chrono::steady_clock::now()}
+    : startTime_{std::chrono::steady_clock::now()},
+      rank_{-1}
 {
     using namespace std::chrono;
 
@@ -91,6 +98,12 @@ Logger::~Logger(void) {
     instantiated_ = false;
 }
 
+#ifndef LOGGER_NO_MPI
+void   Logger::acquireRank(void) {
+    MPI_Comm_rank(GLOBAL_COMM, &rank_);
+}
+#endif
+
 /**
  * 
  *
@@ -98,14 +111,20 @@ Logger::~Logger(void) {
 void   Logger::log(const std::string& msg) const {
     using seconds = std::chrono::duration<double>;
 
-    auto endTime = std::chrono::steady_clock::now();
-    std::string   elapsedTime = std::to_string(seconds(endTime - startTime_).count());
-    elapsedTime += " s - ";
+#ifndef LOGGER_NO_MPI
+    if (rank_ == MASTER_PE) {
+#endif
+        auto endTime = std::chrono::steady_clock::now();
+        std::string   elapsedTime = std::to_string(seconds(endTime - startTime_).count());
+        elapsedTime += " s - ";
 
-    std::ofstream  logFile{};
-    logFile.open(logFilename_, std::ios::out | std::ios::app);
-    logFile << elapsedTime << msg << std::endl;
-    logFile.close();
+        std::ofstream  logFile{};
+        logFile.open(logFilename_, std::ios::out | std::ios::app);
+        logFile << elapsedTime << msg << std::endl;
+        logFile.close();
+#ifndef LOGGER_NO_MPI
+    }
+#endif
 }
 
 }

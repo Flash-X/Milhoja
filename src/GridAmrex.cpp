@@ -13,6 +13,7 @@
 #include "OrchestrationLogger.h"
 
 #include "Flash.h"
+#include "Flash_par.h"
 #include "constants.h"
 
 namespace orchestration {
@@ -24,36 +25,42 @@ void passRPToAmrex() {
 #endif
     {
         amrex::ParmParse pp("geometry");
-        pp.addarr("is_periodic", std::vector<int>{1,1,1} );
-        pp.add("coord_sys",0); //cartesian
-        pp.addarr("prob_lo",std::vector<Real>{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)});
-        pp.addarr("prob_hi",std::vector<Real>{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)});
+        pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
+        pp.add("coord_sys", 0); //cartesian
+        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_Grid::X_MIN,
+                                                         rp_Grid::Y_MIN,
+                                                         rp_Grid::Z_MIN)});
+        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_Grid::X_MAX,
+                                                         rp_Grid::Y_MAX,
+                                                         rp_Grid::Z_MAX)});
     }
 
     {
         amrex::ParmParse pp("amr");
 
-        pp.add("v",0); //verbosity
+        // TODO: Check for overflow
+        int  lrefineMax = static_cast<int>(rp_Grid::LREFINE_MAX);
+
+        pp.add("v", 0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
-        pp.add("max_level",LREFINE_MAX-1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB*N_BLOCKS_X,
-                                      NYB*N_BLOCKS_Y,
-                                      NZB*N_BLOCKS_Z)});
+        pp.add("max_level", lrefineMax - 1); //0-based
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_Grid::N_BLOCKS_X,
+                                                      NYB * rp_Grid::N_BLOCKS_Y,
+                                                      NZB * rp_Grid::N_BLOCKS_Z)});
 
         //octree mode:
-        pp.add("max_grid_size_x",NXB);
-        pp.add("max_grid_size_y",NYB);
-        pp.add("max_grid_size_z",NZB);
-        pp.add("blocking_factor_x",NXB*2);
-        pp.add("blocking_factor_y",NYB*2);
-        pp.add("blocking_factor_z",NZB*2);
-        pp.add("refine_grid_layout",0);
-        pp.add("grid_eff",1.0);
-        pp.add("n_proper",1);
-        pp.add("n_error_buf",0);
-        pp.addarr("ref_ratio",std::vector<int>(LREFINE_MAX,2));
+        pp.add("max_grid_size_x", NXB);
+        pp.add("max_grid_size_y", NYB);
+        pp.add("max_grid_size_z", NZB);
+        pp.add("blocking_factor_x", NXB*2);
+        pp.add("blocking_factor_y", NYB*2);
+        pp.add("blocking_factor_z", NZB*2);
+        pp.add("refine_grid_layout", 0);
+        pp.add("grid_eff", 1.0);
+        pp.add("n_proper", 1);
+        pp.add("n_error_buf", 0);
+        pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
     }
-
 }
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
@@ -77,6 +84,9 @@ GridAmrex::GridAmrex(void)
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
 
+    // Tell Logger to get its rank once AMReX has initialized MPI, but
+    // before we log anything
+    Logger::instance().acquireRank();
     Logger::instance().log("[GridAmrex] Initialized Grid.");
 }
 
@@ -107,6 +117,8 @@ void  GridAmrex::destroyDomain(void) {
  * @param initBlock Function pointer to the simulation's initBlock routine.
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
+                           const unsigned int nDistributorThreads,
+                           const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst) {
     if (amrcore_) {
         throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
@@ -117,7 +129,8 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
     }
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock,errorEst);
+    amrcore_ = new AmrCoreFlash(initBlock, nDistributorThreads,
+                                nRuntimeThreads, errorEst);
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +
@@ -202,6 +215,33 @@ unsigned int GridAmrex::getMaxLevel() const {
 }
 
 /**
+  * Obtain the total number of blocks managed by the process.
+  *
+  * \todo Is there an AMReX function to get this information directly?
+  *
+  * \todo Can we use the AMReX iterator directly here?
+  *
+  * \todo Make this work for more than one level.
+  *
+  * \todo Check against FLASH-X to determine if flags are needed.  For
+  *       example, would users need # blocks for a given level?  Only count the
+  *       number of leaf blocks?
+  *
+  * \todo This routine should be const.  Right now, the creation of the
+  *       iterator does not allow for this.
+  *
+  * @return The number of local blocks.
+  */
+unsigned int GridAmrex::getNumberLocalBlocks() {
+    unsigned int   nBlocks = 0;
+    for (auto ti = buildTileIter(0); ti->isValid(); ti->next()) {
+        ++nBlocks;
+    }
+
+    return nBlocks;
+}
+
+/**
  *
  */
 void    GridAmrex::writePlotfile(const std::string& filename) const {
@@ -273,37 +313,49 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
                                      const unsigned int lev,
                                      const IntVect& lo,
                                      const IntVect& hi) const {
-#ifndef GRID_ERRCHECK_OFF
-    if(axis!=Axis::I && axis!=Axis::J && axis!=Axis::K ){
+    int   idxLo = 0;
+    int   idxHi = 0;
+    if        (axis == Axis::I) {
+        idxLo = lo.I();
+        idxHi = hi.I();
+    } else if (axis == Axis::J) {
+        idxLo = lo.J();
+        idxHi = hi.J();
+    } else if (axis == Axis::K) {
+        idxLo = lo.K();
+        idxHi = hi.K();
+    } else {
         throw std::logic_error("GridAmrex::getCellCoords: Invalid axis.");
     }
-    if(edge!=Edge::Left && edge!=Edge::Right && edge!=Edge::Center){
-        throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
-    }
-#endif
+
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    int nElements = hi[axis] - lo[axis] + 1;
+    int nElements = idxHi - idxLo + 1;
     int offset = 0; //accounts for indexing of left/right cases
+
+    FArray1D coords = FArray1D::buildScratchArray1D(idxLo, idxHi);
+    if (axis >= NDIM) {
+        // TODO: What value to put here?  Should it change
+        //       based on edge?
+        coords(idxLo) = 0.0;
+        return coords;
+    }
 
     //coordvec is length nElements + 1 if edge is Left or Right
     amrex::Vector<amrex::Real> coordvec;
-    switch (edge) {
-        case Edge::Left:
-            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Right:
-            offset = 1;
-            amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
-            break;
-        case Edge::Center:
-            amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
-            break;
+    if        (edge == Edge::Left) {
+        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+    } else if (edge == Edge::Right) {
+        offset = 1;
+        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+    } else if (edge == Edge::Center) {
+        amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
+    } else {
+        throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
     }
 
     //copy results to output
-    FArray1D coords = FArray1D::buildScratchArray1D(lo[axis], hi[axis]);
     for(int i=0; i<nElements; ++i) {
-        coords(i+lo[axis]) = coordvec[i+offset];
+        coords(i+idxLo) = coordvec[i+offset];
     }
     return coords;
 }

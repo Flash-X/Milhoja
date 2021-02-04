@@ -19,6 +19,8 @@
 #include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 
+#include "Driver.h"
+
 #include "Flash.h"
 
 namespace orchestration {
@@ -38,7 +40,8 @@ CudaDataPacket::CudaDataPacket(void)
       contents_p_{nullptr},
       contents_d_{nullptr},
       stream_{},
-      nBytesPerPacket_{0}
+      nBytesPerPacket_{0},
+      dt_d_{nullptr}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -80,6 +83,7 @@ void  CudaDataPacket::nullify(void) {
     nTiles_d_   = nullptr;
     contents_p_ = nullptr;
     contents_d_ = nullptr;
+    dt_d_       = nullptr;
 }
 
 /**
@@ -98,6 +102,8 @@ std::string  CudaDataPacket::isNull(void) const {
         return "Non-zero packet size";
     } else if (nTiles_d_ != nullptr) {
         return "N tiles exist in GPU";
+    } else if (dt_d_ != nullptr) {
+        return "dt already exists in GPU";
     } else if (contents_p_ != nullptr) {
         return "Pinned contents exist";
     } else if (contents_d_ != nullptr) {
@@ -196,14 +202,22 @@ void  CudaDataPacket::pack(void) {
     // TODO: Deltas should just be placed into the packet once.
     std::size_t    nTiles = tiles_.size();
     nBytesPerPacket_ =            sizeof(std::size_t) 
+                       +                        DRIVER_DT_SIZE_BYTES
                        + nTiles * sizeof(PacketContents)
                        + nTiles * (         1 * DELTA_SIZE_BYTES
                                    +        4 * POINT_SIZE_BYTES
-                                   + N_BLOCKS * BLOCK_SIZE_BYTES
-                                   +        2 * ARRAY4_SIZE_BYTES
+                                   + N_BLOCKS * CC_BLOCK_SIZE_BYTES
+                                   + N_BLOCKS * ARRAY4_SIZE_BYTES
+#if NFLUXES > 0
+                                   +            FCX_BLOCK_SIZE_BYTES
+                                   +            FCY_BLOCK_SIZE_BYTES
+                                   +            FCZ_BLOCK_SIZE_BYTES
+                                   +        3 * ARRAY4_SIZE_BYTES
+#endif
                                    +        1 * COORDS_X_SIZE_BYTES
                                    +        1 * COORDS_Y_SIZE_BYTES
-                                   +        2 * ARRAY1_SIZE_BYTES);
+                                   +        1 * COORDS_Z_SIZE_BYTES
+                                   +        3 * ARRAY1_SIZE_BYTES);
 
     stream_ = CudaStreamManager::instance().requestStream(true);
     if (stream_.cudaStream == nullptr) {
@@ -225,6 +239,11 @@ void  CudaDataPacket::pack(void) {
     std::memcpy((void*)ptr_p, (void*)&nTiles, sizeof(std::size_t));
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);
+    
+    dt_d_ = static_cast<Real*>((void*)ptr_d); 
+    std::memcpy((void*)ptr_p, (void*)&Driver::dt, DRIVER_DT_SIZE_BYTES);
+    ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
+    ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
 
     contents_p_ = static_cast<PacketContents*>((void*)ptr_p);
     contents_d_ = static_cast<PacketContents*>((void*)ptr_d);
@@ -248,13 +267,22 @@ void  CudaDataPacket::pack(void) {
                                                            level, loGC, hiGC); 
         const FArray1D      yCoordsGC = grid.getCellCoords(Axis::J, Edge::Center,
                                                            level, loGC, hiGC); 
+        const FArray1D      zCoordsGC = grid.getCellCoords(Axis::K, Edge::Center,
+                                                           level, loGC, hiGC); 
         const Real*         xCoordsGC_h = xCoordsGC.dataPtr();
         const Real*         yCoordsGC_h = yCoordsGC.dataPtr();
+        const Real*         zCoordsGC_h = zCoordsGC.dataPtr();
         Real*               xCoordsGC_data_d = nullptr;
         Real*               yCoordsGC_data_d = nullptr;
+        Real*               zCoordsGC_data_d = nullptr;
         Real*               data_h = tileDesc_h->dataPtr();
         Real*               CC1_data_d = nullptr;
         Real*               CC2_data_d = nullptr;
+#if NFLUXES > 0
+        Real*               FCX_data_d = nullptr;
+        Real*               FCY_data_d = nullptr;
+        Real*               FCZ_data_d = nullptr;
+#endif
         if (data_h == nullptr) {
             throw std::logic_error("[CudaDataPacket::pack] "
                                    "Invalid pointer to data in host memory");
@@ -292,14 +320,14 @@ void  CudaDataPacket::pack(void) {
         location_ = PacketDataLocation::CC1;
         tilePtrs_p->CC1_data_p = static_cast<Real*>((void*)ptr_p);
         CC1_data_d  = static_cast<Real*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)data_h, BLOCK_SIZE_BYTES);
-        ptr_p += BLOCK_SIZE_BYTES;
-        ptr_d += BLOCK_SIZE_BYTES;
+        std::memcpy((void*)ptr_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
+        ptr_p += CC_BLOCK_SIZE_BYTES;
+        ptr_d += CC_BLOCK_SIZE_BYTES;
 
         tilePtrs_p->CC2_data_p = static_cast<Real*>((void*)ptr_p);
         CC2_data_d  = static_cast<Real*>((void*)ptr_d);
-        ptr_p += BLOCK_SIZE_BYTES;
-        ptr_d += BLOCK_SIZE_BYTES;
+        ptr_p += CC_BLOCK_SIZE_BYTES;
+        ptr_d += CC_BLOCK_SIZE_BYTES;
 
         xCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)xCoordsGC_h, COORDS_X_SIZE_BYTES);
@@ -311,6 +339,11 @@ void  CudaDataPacket::pack(void) {
         ptr_p += COORDS_Y_SIZE_BYTES;
         ptr_d += COORDS_Y_SIZE_BYTES;
 
+        zCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
+        std::memcpy((void*)ptr_p, (void*)zCoordsGC_h, COORDS_Z_SIZE_BYTES);
+        ptr_p += COORDS_Z_SIZE_BYTES;
+        ptr_d += COORDS_Z_SIZE_BYTES;
+
         tilePtrs_p->xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   xCoordGCArray_d{xCoordsGC_data_d, loGC.I()};
         std::memcpy((void*)ptr_p, (void*)&xCoordGCArray_d, ARRAY1_SIZE_BYTES);
@@ -320,6 +353,12 @@ void  CudaDataPacket::pack(void) {
         tilePtrs_p->yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
         FArray1D   yCoordGCArray_d{yCoordsGC_data_d, loGC.J()};
         std::memcpy((void*)ptr_p, (void*)&yCoordGCArray_d, ARRAY1_SIZE_BYTES);
+        ptr_p += ARRAY1_SIZE_BYTES;
+        ptr_d += ARRAY1_SIZE_BYTES;
+ 
+        tilePtrs_p->zCoords_d = static_cast<FArray1D*>((void*)ptr_d);
+        FArray1D   zCoordGCArray_d{zCoordsGC_data_d, loGC.K()};
+        std::memcpy((void*)ptr_p, (void*)&zCoordGCArray_d, ARRAY1_SIZE_BYTES);
         ptr_p += ARRAY1_SIZE_BYTES;
         ptr_d += ARRAY1_SIZE_BYTES;
  
@@ -340,6 +379,44 @@ void  CudaDataPacket::pack(void) {
         std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
+
+#if NFLUXES > 0
+        FCX_data_d  = static_cast<Real*>((void*)ptr_d);
+        ptr_p += FCX_BLOCK_SIZE_BYTES;
+        ptr_d += FCX_BLOCK_SIZE_BYTES;
+
+        FCY_data_d  = static_cast<Real*>((void*)ptr_d);
+        ptr_p += FCY_BLOCK_SIZE_BYTES;
+        ptr_d += FCY_BLOCK_SIZE_BYTES;
+
+        FCZ_data_d  = static_cast<Real*>((void*)ptr_d);
+        ptr_p += FCZ_BLOCK_SIZE_BYTES;
+        ptr_d += FCZ_BLOCK_SIZE_BYTES;
+
+        tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
+        IntVect    fHi = IntVect{LIST_NDIM(hi.I()+1, hi.J(), hi.K())};
+        FArray4D   FCX_d{FCX_data_d, lo, fHi, NFLUXES};
+        std::memcpy((void*)ptr_p, (void*)&FCX_d, ARRAY4_SIZE_BYTES);
+        ptr_p += ARRAY4_SIZE_BYTES;
+        ptr_d += ARRAY4_SIZE_BYTES;
+
+        tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
+        FArray4D   FCY_d{FCY_data_d, lo, fHi, NFLUXES};
+        std::memcpy((void*)ptr_p, (void*)&FCY_d, ARRAY4_SIZE_BYTES);
+        ptr_p += ARRAY4_SIZE_BYTES;
+        ptr_d += ARRAY4_SIZE_BYTES;
+
+        // TODO: Is is necessary to always have the correct number of faces in
+        // these flux arrays for dimensions above NDIM?  Is it even necessary to
+        // make flux arrays available above NDIM?
+        tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
+        fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
+        FArray4D   FCZ_d{FCZ_data_d, lo, fHi, NFLUXES};
+        std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
+        ptr_p += ARRAY4_SIZE_BYTES;
+        ptr_d += ARRAY4_SIZE_BYTES;
+#endif
     }
 
     // TODO: Use pointers to determine size of packet and compare against
@@ -407,12 +484,12 @@ void  CudaDataPacket::unpack(void) {
         // adjust Flash.h appropriately.
         assert(UNK_VARS_BEGIN_C == 0);
         assert(UNK_VARS_END_C == (NUNKVAR - 1));
-        std::size_t  offset =   N_ELEMENTS_PER_BLOCK_PER_VARIABLE
+        std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
                               * static_cast<std::size_t>(startVariable_);
         Real*              start_h = data_h + offset;
         const Real*        start_p = data_p + offset;
         std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
-                              * N_ELEMENTS_PER_BLOCK_PER_VARIABLE
+                              * N_ELEMENTS_PER_CC_PER_VARIABLE
                               * sizeof(Real);
         std::memcpy((void*)start_h, (void*)start_p, nBytes);
     }

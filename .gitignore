@@ -15,6 +15,7 @@ sites/*/gather_data_cpp_*_*.x
 sites/*/gather_data_F2003.x
 sites/*/gather_data_F2003_*_*.x
 sites/*/binaries
+sites/*/sedov_plt_*
 sites/hello/*.x
 sites/hello/*.dat
 sites/gce/*.dat
@@ -25,6 +26,9 @@ sites/summit/testCudaBackend.*
 sites/summit/testRuntimeCuda.*
 sites/summit/gatherDataCpp.*
 sites/summit/gatherDataF2003.*
+sites/summit/sedovCpuCpp.*
+sites/summit/sedovGpuCpp.*
+sites/summit/sedovBaselineCpp.*
 sites/bebop/build/build_*.log
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*
@@ -43,6 +47,9 @@ test/*/buildInfo.inc
 test/Flash.h
 test/constants.h
 test/*/*.o
+test/*.mod
+simulations/*/*.o
+simulations/*/Flash_par.h
 test/*.mod
 studies/Summit_2020-04-15/gatherDataCpp_*
 studies/Summit_2020-04-15/gatherDataF2003_*
