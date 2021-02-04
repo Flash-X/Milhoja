@@ -59,8 +59,11 @@ test:
 
 
 # Main make command depends on making all object files and creating object tree
+# If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
 $(BINARYNAME): $(OBJTREE) $(OBJS) $(MAKEFILES)
-	/bin/rm -f $(OBJDIR)/**/*.gcda
+ifeq ($(CODECOVERAGE), true)
+	/bin/rm -f $(addsuffix *.gcda,$(OBJTREE))
+endif
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
 # -MMD generates a dependecy list for each file as a side effect
@@ -72,7 +75,12 @@ $(OBJTREE):
 	mkdir -p $@
 
 clean:
-	/bin/rm -f -r $(OBJDIR)
+	/bin/rm -f $(addsuffix *.o,$(OBJTREE))
+	/bin/rm -f $(addsuffix *.d,$(OBJTREE))
+ifeq ($(CODECOVERAGE), true)
+	/bin/rm -f $(addsuffix *.gcno,$(OBJTREE))
+	/bin/rm -f $(addsuffix *.gcda,$(OBJTREE))
+endif
 	/bin/rm -f lcov_temp.info
 
 
