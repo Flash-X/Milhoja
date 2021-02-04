@@ -13,8 +13,11 @@ include Makefile.base
 include Makefile.test
 include Makefile.setup
 
-#TODO: how to deal with this compiler specific flag
+# Use C++11 standard, flags differ by compiler
+ifeq ($(CXXCOMPNAME),gnu)
 CXXFLAGS_STD = -std=c++11
+else
+endif
 
 
 # Combine all compiler and linker flags
@@ -74,6 +77,7 @@ $(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES)
 $(OBJTREE):
 	mkdir -p $@
 
+# Clean removes all intermediate files
 clean:
 	/bin/rm -f $(addsuffix *.o,$(OBJTREE))
 	/bin/rm -f $(addsuffix *.d,$(OBJTREE))
@@ -84,7 +88,6 @@ endif
 	/bin/rm -f lcov_temp.info
 
 
-# TODO: Only do if code coverage requested, fail if test not run
 .PHONY: coverage
 coverage:
 ifeq ($(CODECOVERAGE), true)
