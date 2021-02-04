@@ -3,7 +3,7 @@
 #  - AMREXDIR: Path to the appropriate AMReX build directory
 #  - GTESTDIR: Path to the Googletest build directory
 BASEDIR      = /Users/tklosterman/Documents/orchestrationruntime
-AMREXDIR     = $(HOME)/Documents/amrex/2d_gnu
+AMREXDIR     = $(HOME)/Documents/amrex/$(NDIM)d_gnu
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
 
 # Define the following compiler-related flags

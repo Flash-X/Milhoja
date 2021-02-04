@@ -10,7 +10,8 @@ def main():
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
     parser.add_argument('--test','-t',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
-    parser.add_argument('--debug','-d',action="store_true",help='Set up in debug mode.')
+    parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
+    parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
     args = parser.parse_args()
 
@@ -53,14 +54,16 @@ def main():
         else:
             f.write("CODECOVERAGE = false\n")
 
+        f.write("NDIM = {}\n".format(args.dim))
+
 
     # Copy par file into build dir
     parFile = os.path.join(siteDir,args.par)
     shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
 
     # Copy Flash_ND.h and constants_ND.h to build dir as Flash.h and constants.h
-    flashH = os.path.join(testDir,'Flash_{}D.h'.format(2))
-    constantsH = os.path.join(testDir,'constants_{}D.h'.format(2))
+    flashH = os.path.join(testDir,'Flash_{}D.h'.format(args.dim))
+    constantsH = os.path.join(testDir,'constants_{}D.h'.format(args.dim))
     shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
     shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
 
