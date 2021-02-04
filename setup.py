@@ -55,10 +55,14 @@ def main():
 
 
     # Copy par file into build dir
-    #(Start with: copy Flash.h, constants.h)
-    #for demo, copy build file
-    buildfile = os.path.join(siteDir,'build',args.par)
-    shutil.copy(buildfile,buildDir)
+    parFile = os.path.join(siteDir,args.par)
+    shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
+
+    # Copy Flash_ND.h and constants_ND.h to build dir as Flash.h and constants.h
+    flashH = os.path.join(testDir,'Flash_{}D.h'.format(2))
+    constantsH = os.path.join(testDir,'constants_{}D.h'.format(2))
+    shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
+    shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
 
 
 
