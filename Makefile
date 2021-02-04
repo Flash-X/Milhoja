@@ -15,7 +15,6 @@ include Makefile.setup
 
 #TODO: how to deal with this compiler specific flag
 CXXFLAGS_STD = -std=c++11
-LDFLAGS_STD  = -lpthread -lstdc++
 
 
 # Combine all compiler and linker flags
@@ -52,7 +51,7 @@ endif
 ##########################################################
 # Makefile commands:
 
-.PHONY: default all clean
+.PHONY: default all clean test
 default: $(BINARYNAME)
 all:     $(BINARYNAME)
 test:
@@ -66,15 +65,13 @@ $(BINARYNAME): $(OBJTREE) $(OBJS) $(MAKEFILES)
 
 # -MMD generates a dependecy list for each file as a side effect
 $(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES)
-	$(CXXCOMP) -MMD -c $(CXXFLAGS) $(CXXWARNS) -o $@ $<
+	$(CXXCOMP) -MMD -c $(CXXFLAGS) -o $@ $<
 
 # Make directories in the object tree
 $(OBJTREE):
 	mkdir -p $@
 
 clean:
-	/bin/rm -f $(BINARYNAME)
-	/bin/rm -f *.log
 	/bin/rm -f -r $(OBJDIR)
 	/bin/rm -f lcov_temp.info
 

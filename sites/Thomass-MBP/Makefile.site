@@ -11,13 +11,12 @@ GTESTDIR     = $(HOME)/Documents/googletest/googletest
 #  - CXXFLAGS_PROD, CXXFLAGS_DEBUG: The set of compiler flags. The debug option
 #        will be chosen if --debug (or -d) is included in the setup command,
 #        otherwise the production flags will be used.
-#  - CXXWARNS
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -g -O0 -DGRID_LOG
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
 
-CXXWARNS     =
+LDFLAGS_STD = -lpthread -lstdc++
 
 # Define the following backend-related flags:
 #  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
