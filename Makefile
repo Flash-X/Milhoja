@@ -28,7 +28,7 @@ LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
 else
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
            $(CXXFLAGS_AMREX) -I$(BUILDDIR)
-LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
+LDFLAGS  = $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_STD) 
 endif
 
 
@@ -47,7 +47,7 @@ DEPS     = $(addsuffix .d, $(basename $(OBJS)))
 
 
 # TODO: is this needed?
-ifdef DEBUG
+ifeq ($(DEBUG), true)
 CXXFLAGS += -DDEBUG_RUNTIME
 endif
 
