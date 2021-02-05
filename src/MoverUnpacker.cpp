@@ -236,7 +236,7 @@ void  MoverUnpacker::handleTransferFinished_Stateful(void) {
  * conceptually understand that the helper's "queue" is closed when this member
  * function is called in the sense that no data publishers should subsequently
  * call the helper's enqueue member function.  However, the queue of any data
- * receiver will not be closed until the last data packet to be transferred in
+ * subscriber will not be closed until the last data packet to be transferred in
  * the present runtime execution cycle by this helper has been handled by a
  * callback function.
  */
