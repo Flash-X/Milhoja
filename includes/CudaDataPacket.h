@@ -57,7 +57,9 @@ public:
     const PacketContents*  tilePointers(void) const override { return contents_d_; };
 
     void                   initiateHostToDeviceTransfer(void) override;
-    void                   transferFromDeviceToHost(void) override;
+    void                   initiateDeviceToHostTransfer(cudaHostFn_t callback,
+                                                        void* callbackData) override;
+    void                   unpack(void) override;
 #ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
 #endif
@@ -80,7 +82,6 @@ protected:
     std::string  isNull(void) const;
 
     void         pack(void);
-    void         unpack(void);
 
 private:
     PacketDataLocation                     location_;
