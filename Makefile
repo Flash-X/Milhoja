@@ -63,14 +63,14 @@ test:
 
 # Main make command depends on making all object files and creating object tree
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJTREE) $(OBJS) $(MAKEFILES)
+$(BINARYNAME): $(OBJS) $(MAKEFILES)
 ifeq ($(CODECOVERAGE), true)
 	/bin/rm -f $(addsuffix *.gcda,$(OBJTREE))
 endif
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
 # -MMD generates a dependecy list for each file as a side effect
-$(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES)
+$(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES) | $(OBJTREE)
 	$(CXXCOMP) -MMD -c $(CXXFLAGS) -o $@ $<
 
 # Make directories in the object tree
