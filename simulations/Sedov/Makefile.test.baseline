@@ -1,0 +1,22 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME    = sedov_baseline_cpp.x
+
+# Define relevant paths
+TESTDIR       = $(BASEDIR)/simulations/Sedov
+TESTBASEDIR   = $(BASEDIR)/test/Base
+
+# Define compiler flags in CXXFLAGS_TEST
+CXXFLAGS_TEST = -I$(TESTDIR) -I$(TESTBASEDIR)
+LDFLAGS_TEST  =
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST     = \
+	$(TESTBASEDIR)/errorEstBlank.cpp \
+	$(TESTDIR)/Driver_data.cpp \
+	$(TESTDIR)/Eos_idealGammaDensIe.cpp \
+	$(TESTDIR)/Io.cpp \
+	$(TESTDIR)/hy_computeFluxesHll.cpp \
+	$(TESTDIR)/hy_updateSolutionHll.cpp \
+	$(TESTDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(TESTDIR)/sim_setInitialConditions.cpp \
+	$(TESTDIR)/sedov_baseline.cpp

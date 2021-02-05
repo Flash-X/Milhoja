@@ -10,6 +10,7 @@ def main():
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
     parser.add_argument('--test','-t',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
+    parser.add_argument('--makefile','-M',type=str,help='Name of Makefile (in test dir)')
     parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
     parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
@@ -32,8 +33,20 @@ def main():
     srcMakefile = os.path.join(homeDir,'src','Makefile.base')
     os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
 
+    # Find test directory (in either test or simulations)
     testDir = os.path.join(homeDir,'test',args.test)
-    testMakefile = os.path.join(testDir,'Makefile.test')
+    if not os.path.isdir(testDir):
+        testDir = os.path.join(homeDir,'simulations',args.test)
+    if not os.path.isdir(testDir):
+        raise ValueError("Test directory not found in test or simulations")
+
+    # Get test makefile
+    if args.makefile is None:
+        testMakefile = os.path.join(testDir,'Makefile.test')
+        if not os.path.isfile(testMakefile):
+            raise ValueError("Makefile.test not in test dir")
+    else:
+        testMakefile = os.path.join(testDir,args.makefile)
     os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
 
     mainMakefile = os.path.join(homeDir,'Makefile')

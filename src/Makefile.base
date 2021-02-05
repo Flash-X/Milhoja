@@ -12,6 +12,8 @@ SRCS_BASE       = \
     $(SRCDIR)/Grid_RealVect.cpp \
     $(SRCDIR)/Grid_AmrCoreFlash.cpp \
     $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/FArray3D.cpp \
+    $(SRCDIR)/FArray2D.cpp \
     $(SRCDIR)/FArray1D.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
