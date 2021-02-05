@@ -61,8 +61,10 @@ public:
     virtual const PacketContents*  tilePointers(void) const = 0;
 
     virtual void                   initiateHostToDeviceTransfer(void) = 0;
+#ifdef USE_CUDA_BACKEND
     virtual void                   initiateDeviceToHostTransfer(cudaHostFn_t callback,
                                                                 void* callbackData) = 0;
+#endif
     virtual void                   unpack(void) = 0;
 #ifdef ENABLE_OPENACC_OFFLOAD
     virtual int                    asynchronousQueue(void) = 0;
