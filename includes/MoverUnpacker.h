@@ -76,11 +76,9 @@ private:
     static void handleTransferFinished(void* userData);
     void        handleTransferFinished_Stateful(void);
 
-    State          state_;
-    unsigned int   nInTransit_;
+    State          state_;          //!< Qualitative state of eFSM
+    unsigned int   nInTransit_;     //!< N DataPackets in transit.  Quantitative state of eFSM.
 
-    // TODO: I think that we need to maintain the local queue status, which
-    // might imply that this helper needs a startCycle command to clear it.
     pthread_mutex_t   mutex_;               //!< Use to access all private data members
     pthread_cond_t    unblockWaitThreads_;  //!< To be emitted when last transfer handled
 };
