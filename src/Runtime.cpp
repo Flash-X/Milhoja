@@ -270,6 +270,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                  level = 0;
@@ -307,7 +308,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
     gpuTeam->increaseThreadCount(1);
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
@@ -376,6 +377,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -440,7 +442,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     // in the host team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachThreadReceiver();
@@ -520,6 +522,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -555,7 +558,6 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     }
 
     gpuTeam->closeQueue();
-    gpuTeam->wait();
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
@@ -634,6 +636,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "ActionSharing_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     // Let CPU start work so that we overlap the first host-to-device transfer
@@ -700,7 +703,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     // in the device team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachThreadReceiver();
@@ -791,6 +794,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     teamA_cpu->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
     teamA_gpu->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
     teamB_gpu->startCycle(actionB_gpu, "ActionParallel_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
+    gpuToHost2_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     // Let CPU start work so that we overlap the first host-to-device transfer
@@ -861,8 +866,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     // We are letting the host thread block without activating a thread in
     // a different thread team.
     teamA_cpu->wait();
-    teamA_gpu->wait();
-    teamB_gpu->wait();
+    gpuToHost1_.wait();
+    gpuToHost2_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     teamA_gpu->detachThreadReceiver();
@@ -947,6 +952,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -1011,7 +1017,6 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     // in the host team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
