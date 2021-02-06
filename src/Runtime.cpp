@@ -722,9 +722,9 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                               const unsigned int nDistributorThreads,
-                                              const RuntimeAction& cpuAction,
-                                              const RuntimeAction& gpuAction,
-                                              const RuntimeAction& postAction,
+                                              const RuntimeAction& actionA_cpu,
+                                              const RuntimeAction& actionA_gpu,
+                                              const RuntimeAction& postActionB_cpu,
                                               const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -739,35 +739,35 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     msg =   "[Runtime] "
           + std::to_string(nTilesPerCpuTurn)
           + " tiles sent to CPU for every packet of "
-          + std::to_string(gpuAction.nTilesPerPacket)
+          + std::to_string(actionA_gpu.nTilesPerPacket)
           + " tiles sent to GPU";
     Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                     "nDistributorThreads must be positive");
-    } else if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+    } else if (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
-                               "Given CPU action should run on tiles, "
+                               "Given CPU action A should run on tiles, "
                                "which is not in configuration");
-    } else if (cpuAction.nTilesPerPacket != 0) {
+    } else if (actionA_cpu.nTilesPerPacket != 0) {
         throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
-                                    "CPU tiles/packet should be zero since it is tile-based");
-    } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+                                    "CPU A tiles/packet should be zero since it is tile-based");
+    } else if (actionA_gpu.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                "Given GPU action should run on packet of blocks, "
                                "which is not in configuration");
-    } else if (gpuAction.nTilesPerPacket <= 0) {
+    } else if (actionA_gpu.nTilesPerPacket <= 0) {
         throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                     "Need at least one tile per GPU packet");
-    } else if (postAction.teamType != cpuAction.teamType) {
+    } else if (postActionB_cpu.teamType != actionA_cpu.teamType) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                "Given post action data type must match that "
-                               "of CPU action");
-    } else if (postAction.nTilesPerPacket != cpuAction.nTilesPerPacket) {
+                               "of CPU action A");
+    } else if (postActionB_cpu.nTilesPerPacket != actionA_cpu.nTilesPerPacket) {
         throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                     "Given post action tiles/packet must match that "
-                                    "of CPU action");
+                                    "of CPU action A");
     } else if (nTeams_ < 3) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                "Need at least three ThreadTeams in runtime");
@@ -796,15 +796,15 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
-    unsigned int nTotalThreads =   cpuAction.nInitialThreads
+    unsigned int nTotalThreads =   actionA_cpu.nInitialThreads
                                  + nDistThreads;
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
                                 "CPU team could receive too many thread "
                                 "activation calls");
     }
-    nTotalThreads =   cpuAction.nInitialThreads
-                    + postAction.nInitialThreads
+    nTotalThreads =   actionA_cpu.nInitialThreads
+                    + postActionB_cpu.nInitialThreads
                     + nDistThreads;
     if (nTotalThreads > postTeam->nMaximumThreads()) {
         throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
@@ -813,9 +813,9 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     }
 
     //***** START EXECUTION CYCLE
-    cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");
-    gpuTeam->startCycle(gpuAction, "ActionSharing_GPU_Packet_Team");
-    postTeam->startCycle(postAction, "PostAction_CPU_Block_Team");
+    cpuTeam->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
+    gpuTeam->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
+    postTeam->startCycle(postActionB_cpu, "PostAction_CPU_Block_Team");
     gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
@@ -823,7 +823,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     Grid&                             grid = Grid::instance();
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
-                     shared(grid, level, cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn) \
+                     shared(grid, level, cpuTeam, gpuTeam, actionA_gpu, nTilesPerCpuTurn) \
                      num_threads(nDistThreads)
 #endif
     {
@@ -847,7 +847,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
             } else {
                 packet_gpu->addTile( std::move(tileDesc) );
 
-                if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+                if (packet_gpu->nTiles() >= actionA_gpu.nTilesPerPacket) {
                     packet_gpu->initiateHostToDeviceTransfer();
 
                     gpuTeam->enqueue( std::move(packet_gpu) );
