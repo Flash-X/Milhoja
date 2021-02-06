@@ -6,7 +6,8 @@ using namespace orchestration;
 
 RuntimeElement::RuntimeElement(void)
     : threadReceiver_{nullptr},
-      dataReceiver_{nullptr}
+      dataReceiver_{nullptr},
+      calledCloseQueue_{}
 { }
 
 RuntimeElement::~RuntimeElement(void) {
@@ -15,6 +16,14 @@ RuntimeElement::~RuntimeElement(void) {
     }
     if (dataReceiver_) {
         std::cerr << "[RuntimeElement::~RuntimeElement] Data Subscriber still attached\n";
+    }
+    if (!calledCloseQueue_.empty()) {
+        std::cerr << "[RuntimeElement::~RuntimeElement] Data publishers still attached\n";
+        // FIXME: Does this help prevent valgrind from finding potential pointer
+        // issues? 
+        while (!calledCloseQueue_.empty()) {
+            calledCloseQueue_.erase(calledCloseQueue_.begin());
+        }
     }
 }
 
@@ -62,8 +71,7 @@ std::string RuntimeElement::detachThreadReceiver(void) {
 
 /**
  * Register given object as a data subscriber.  Therefore, this converts
- * the calling object into a data publisher.  A data publisher and data
- * subscriber must have the same same data type.
+ * the calling object into a data publisher.
  *
  * \param  receiver - the team to which data items shall be published.
  */
@@ -75,11 +83,10 @@ std::string RuntimeElement::attachDataReceiver(RuntimeElement* receiver) {
     } else if (dataReceiver_) {
         return "A data subscriber is already attached";
     }
-    // TODO: Confirm that publisher and subscriber are assigned the same data type?
 
+    // Establish the two-way communication
     dataReceiver_ = receiver;
-
-    return "";
+    return dataReceiver_->attachDataPublisher(this);
 }
 
 /**
@@ -91,8 +98,59 @@ std::string RuntimeElement::detachDataReceiver(void) {
         return "No data subscriber attached";
     }
 
+    // Completely breakdown two-way communication
+    std::string  errMsg = dataReceiver_->detachDataPublisher(this);
+    if (errMsg != "") {
+        return errMsg;
+    }
+
     dataReceiver_ = nullptr;
     
+    return "";
+}
+
+/**
+ * This member function should only be called by attachDataReceiver as part of
+ * establishing the two-way communication between the data publisher and
+ * subscriber.
+ *
+ * \param  publisher - the RuntimeElement that is registering itself with the
+ *                     object as one of its (possibly many) data publishers.
+ *
+ * \return An empty string if successful.  Otherwise, an error message.
+ */
+std::string RuntimeElement::attachDataPublisher(RuntimeElement* publisher) {
+    // If attachDataReceiver is written correctly, this check should not be
+    // necessary.
+    if (calledCloseQueue_.find(publisher) != calledCloseQueue_.end()) {
+        return "Given publisher already attached as a publisher";
+    }
+
+    calledCloseQueue_[publisher] = false;
+
+    return "";
+}
+
+/**
+ * This member function should only be called by detachDataReceiver as part of
+ * breaking down the two-way communication between the data publisher and
+ * subscriber.
+ *
+ * \param  publisher - the RuntimeElement that was registered with the object
+ *                     as one of its (possibly many) data publishers and that
+ *                     will no longer publish to the object.
+ *
+ * \return An empty string if successful.  Otherwise, an error message.
+ */
+std::string RuntimeElement::detachDataPublisher(RuntimeElement* publisher) {
+    std::map<RuntimeElement*,bool>::iterator    itor = calledCloseQueue_.find(publisher);
+    if (itor == calledCloseQueue_.end()) {
+        return "Given publisher never attached as a publisher";
+    }
+
+    // TODO: Should this fail if the key has an unacceptable value?
+    calledCloseQueue_.erase(itor);
+
     return "";
 }
 

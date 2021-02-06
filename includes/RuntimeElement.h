@@ -16,6 +16,7 @@
 #ifndef RUNTIME_ELEMENT_H__
 #define RUNTIME_ELEMENT_H__
 
+#include <map>
 #include <string>
 #include <memory>
 
@@ -49,11 +50,21 @@ protected:
     RuntimeElement(void);
     virtual ~RuntimeElement(void);
 
+    std::string    attachDataPublisher(RuntimeElement* publisher);
+    std::string    detachDataPublisher(RuntimeElement* publisher);
+
     RuntimeElement*   threadReceiver_; //!< RuntimeElement to notify when threads terminate
     RuntimeElement*   dataReceiver_;   /*!< RuntimeElement to pass data items
                                             to once this team's action has
                                             already been applied to the
                                             items. */
+
+    std::map<RuntimeElement*,bool>   calledCloseQueue_;  /*!< The keys in this map serve as a list
+                                                              of data publishers attached to the object.
+                                                              Values indicate which publishers have
+                                                              called the object's closeQueue member
+                                                              function in the current runtime
+                                                              execution cycle. */
 };
 
 }
