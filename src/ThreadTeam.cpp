@@ -640,7 +640,7 @@ void ThreadTeam::closeQueue(const RuntimeElement* publisher) {
             msg = "If publisher is distributor, no other publisher allowed";
             errMsg = printState_NotThreadsafe("closeQueue", 0, msg);
             pthread_mutex_unlock(&teamMutex_);
-            throw std::runtime_error(errMsg);
+            throw std::logic_error(errMsg);
         }
 
         // can proceed with closeQueue of subscriber

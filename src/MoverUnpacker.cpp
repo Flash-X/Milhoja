@@ -54,8 +54,8 @@ void MoverUnpacker::startCycle(void) {
                                  "Number of items in transit not zero");
     } else if (calledCloseQueue_.size() > 1) {
         pthread_mutex_unlock(&mutex_);
-        throw std::runtime_error("[MoverUnpacker::startCycle] "
-                                 "At most one data publisher allowed");
+        throw std::logic_error("[MoverUnpacker::startCycle] "
+                               "At most one data publisher allowed");
     }
 
     state_ = State::Open;
@@ -262,8 +262,8 @@ void MoverUnpacker::closeQueue(const RuntimeElement* publisher) {
                                "At most one data publisher allowed");
     } else if (!publisher) {
         pthread_mutex_unlock(&mutex_);
-        throw std::logic_error("[MoverUnpacker::closeQueue] "
-                               "Distributor cannot be data publisher for MoverUnpacker");
+        throw std::invalid_argument("[MoverUnpacker::closeQueue] "
+                                    "Distributor cannot be data publisher for MoverUnpacker");
     }
 
     calledCloseQueue_.at(publisher) = true;
