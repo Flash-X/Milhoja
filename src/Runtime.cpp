@@ -827,7 +827,11 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                      num_threads(nDistThreads)
 #endif
     {
+#ifdef USE_THREADED_DISTRIBUTOR
         int         tId = omp_get_thread_num();
+#else
+        int         tId = 0;
+#endif
         bool        isCpuTurn = ((tId % 2) == 0);
         int         nInCpuTurn = 0;
 
