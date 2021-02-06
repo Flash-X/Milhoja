@@ -784,7 +784,6 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     //    c) Mover/Unpacker transfers packet back to CPU,
     //       copies results to Grid data structures,
     //       and enqueues with post action thread team.
-    // 3) Both CPU and GPU teams send 
     ThreadTeam*        teamA_cpu = teams_[0];
     ThreadTeam*        teamA_gpu = teams_[1];
     ThreadTeam*        teamB_cpu = teams_[2];
