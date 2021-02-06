@@ -56,6 +56,7 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const unsigned int nTilesPerCpuTurn);
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
+                                         const unsigned int nDistributorThreads,
                                          const RuntimeAction& cpuAction,
                                          const RuntimeAction& gpuAction,
                                          const RuntimeAction& postAction,

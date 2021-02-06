@@ -121,6 +121,7 @@ int main(int argc, char* argv[]) {
             grid.fillGuardCells();
         }
         runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
+                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
                                                 hydroAdvance_cpu,
                                                 hydroAdvance_gpu,
                                                 computeIntQuantitiesByBlk,
