@@ -116,13 +116,14 @@ std::string RuntimeElement::detachDataReceiver(void) {
  *
  * \param  publisher - the RuntimeElement that is registering itself with the
  *                     object as one of its (possibly many) data publishers.
+ *                     A null pointer is not a valid publisher.
  *
  * \return An empty string if successful.  Otherwise, an error message.
  */
-std::string RuntimeElement::attachDataPublisher(RuntimeElement* publisher) {
-    // If attachDataReceiver is written correctly, this check should not be
-    // necessary.
-    if (calledCloseQueue_.find(publisher) != calledCloseQueue_.end()) {
+std::string RuntimeElement::attachDataPublisher(const RuntimeElement* publisher) {
+    if (!publisher) {
+        return "Given publisher is null";
+    } else if (calledCloseQueue_.find(publisher) != calledCloseQueue_.end()) {
         return "Given publisher already attached as a publisher";
     }
 
@@ -142,8 +143,8 @@ std::string RuntimeElement::attachDataPublisher(RuntimeElement* publisher) {
  *
  * \return An empty string if successful.  Otherwise, an error message.
  */
-std::string RuntimeElement::detachDataPublisher(RuntimeElement* publisher) {
-    std::map<RuntimeElement*,bool>::iterator    itor = calledCloseQueue_.find(publisher);
+std::string RuntimeElement::detachDataPublisher(const RuntimeElement* publisher) {
+    std::map<const RuntimeElement*,bool>::iterator    itor = calledCloseQueue_.find(publisher);
     if (itor == calledCloseQueue_.end()) {
         return "Given publisher never attached as a publisher";
     }

@@ -216,7 +216,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         cpuTeam->enqueue( ti->buildCurrentTile() );
     }
-    cpuTeam->closeQueue();
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
@@ -303,7 +303,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
@@ -435,8 +435,8 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeCpuGpuTasks] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the host team first
@@ -557,7 +557,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
         gpuTeam->increaseThreadCount(1);
     }
 
-    gpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
@@ -696,8 +696,8 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the device team first
@@ -859,9 +859,9 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
         packetB_gpu.reset();
     }
 
-    teamA_cpu->closeQueue();
-    teamA_gpu->closeQueue();
-    teamB_gpu->closeQueue();
+    teamA_cpu->closeQueue(nullptr);
+    teamA_gpu->closeQueue(nullptr);
+    teamB_gpu->closeQueue(nullptr);
 
     // We are letting the host thread block without activating a thread in
     // a different thread team.
@@ -1010,8 +1010,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeTasks_FullPacket] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the host team first

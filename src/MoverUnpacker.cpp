@@ -52,6 +52,10 @@ void MoverUnpacker::startCycle(void) {
         pthread_mutex_unlock(&mutex_);
         throw std::runtime_error("[MoverUnpacker::startCycle] "
                                  "Number of items in transit not zero");
+    } else if (calledCloseQueue_.size() > 1) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::runtime_error("[MoverUnpacker::startCycle] "
+                                 "At most one data publisher allowed");
     }
 
     state_ = State::Open;
@@ -222,7 +226,7 @@ void  MoverUnpacker::handleTransferFinished_Stateful(void) {
 
     if ((nInTransit_ == 0) && (state_ == State::Closed)) {
         if (dataReceiver_) {
-            dataReceiver_->closeQueue();
+            dataReceiver_->closeQueue(this);
         }
         state_ = State::Idle;
         pthread_cond_broadcast(&unblockWaitThreads_);
@@ -239,20 +243,35 @@ void  MoverUnpacker::handleTransferFinished_Stateful(void) {
  * subscriber will not be closed until the last data packet to be transferred in
  * the present runtime execution cycle by this helper has been handled by a
  * callback function.
+ *
+ * \param publisher - a pointer to the object's data publisher, which is calling
+ *                    this function.  A MoverUnpacker cannot have an action
+ *                    parallel distributor as its publisher.  Therefore, a null
+ *                    pointer is not an acceptable argument.
  */
-void MoverUnpacker::closeQueue(void) {
+void MoverUnpacker::closeQueue(const RuntimeElement* publisher) {
     pthread_mutex_lock(&mutex_);
 
     if (state_ != State::Open) {
         pthread_mutex_unlock(&mutex_);
         throw std::logic_error("[MoverUnpacker::closeQueue] "
                                "Queue can be closed only in Open state");
+    } else if (calledCloseQueue_.size() > 1) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::logic_error("[MoverUnpacker::closeQueue] "
+                               "At most one data publisher allowed");
+    } else if (!publisher) {
+        pthread_mutex_unlock(&mutex_);
+        throw std::logic_error("[MoverUnpacker::closeQueue] "
+                               "Distributor cannot be data publisher for MoverUnpacker");
     }
+
+    calledCloseQueue_.at(publisher) = true;
 
     if (nInTransit_ == 0) {
         state_ = State::Idle;
         if (dataReceiver_) {
-            dataReceiver_->closeQueue();
+            dataReceiver_->closeQueue(this);
         }
         pthread_cond_broadcast(&unblockWaitThreads_);
     } else {
