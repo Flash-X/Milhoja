@@ -100,7 +100,9 @@ std::string ThreadTeamRunningOpen::enqueue_NotThreadsafe(std::shared_ptr<DataIte
 }
 
 /**
- * See ThreadTeam.cpp documentation for same method for basic information.
+ * See ThreadTeam.cpp documentation for same method for basic information.  This
+ * function should not be called unless all data publishers for the associated
+ * team have called closedQueue.
  *
  * \warning This method is *not* thread safe and therefore should only be called
  *          when the calling code has already acquired teamMutex_.
@@ -123,7 +125,7 @@ std::string ThreadTeamRunningOpen::closeQueue_NotThreadsafe(void) {
         }
 
         if (team_->dataReceiver_) {
-            team_->dataReceiver_->closeQueue();
+            team_->dataReceiver_->closeQueue(team_);
         }
     } else if (isQueueEmpty) {
         // No more data items, but we have threads that need to transition to Idle

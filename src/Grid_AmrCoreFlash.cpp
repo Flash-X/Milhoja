@@ -233,7 +233,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
         team.enqueue( ti->buildCurrentTile() );
     }
-    team.closeQueue();
+    team.closeQueue(nullptr);
     team.increaseThreadCount(nDistributorThreads_initBlock_);
     team.wait();
 

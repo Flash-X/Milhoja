@@ -88,8 +88,8 @@ TEST_F(ThreadRuntimeNull, TestSingle_ManualCheck) {
             gpu_int.enqueue( std::move(dataItem_gpu) );
         }
         // gpu will call closeQueue of postGpu when gpu transitions to Idle
-        gpu_int.closeQueue();
-        cpu_int.closeQueue();
+        gpu_int.closeQueue(nullptr);
+        cpu_int.closeQueue(nullptr);
 
         cpu_int.wait();
         gpu_int.wait();
@@ -164,8 +164,8 @@ TEST_F(ThreadRuntimeNull, TestMultipleFast) {
                 cpu_int.enqueue( std::move(dataItem_cpu) );
                 gpu_int.enqueue( std::move(dataItem_gpu) );
             }
-            gpu_int.closeQueue();
-            cpu_int.closeQueue();
+            gpu_int.closeQueue(nullptr);
+            cpu_int.closeQueue(nullptr);
 
             cpu_int.wait();
             gpu_int.wait();
@@ -245,8 +245,8 @@ TEST_F(ThreadRuntimeNull, TestMultipleRandomWait) {
                 cpu_int.enqueue( std::move(dataItem_cpu) );
                 gpu_int.enqueue( std::move(dataItem_gpu) );
             }
-            gpu_int.closeQueue();
-            cpu_int.closeQueue();
+            gpu_int.closeQueue(nullptr);
+            cpu_int.closeQueue(nullptr);
 
             cpu_int.wait();
             gpu_int.wait();

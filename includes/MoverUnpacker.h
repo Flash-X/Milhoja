@@ -59,7 +59,7 @@ public:
     void startCycle(void);
     void increaseThreadCount(const unsigned int nThreads) override;
     void enqueue(std::shared_ptr<DataItem>&& dataItem) override;
-    void closeQueue(void) override;
+    void closeQueue(const RuntimeElement* publisher) override;
 
     void wait(void);
 

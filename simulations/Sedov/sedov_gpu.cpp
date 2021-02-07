@@ -78,14 +78,21 @@ int main(int argc, char* argv[]) {
     io.writeIntegralQuantities(Driver::simTime);
 
     //----- MIMIC Driver_evolveFlash
-    RuntimeAction     hydroAdvance;
-    hydroAdvance.name            = "Advance Hydro Solution";
-    hydroAdvance.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
-    hydroAdvance.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    hydroAdvance.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
-    hydroAdvance.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
+    RuntimeAction     hydroAdvance_cpu;
+    hydroAdvance_cpu.name            = "Advance Hydro Solution - CPU";
+    hydroAdvance_cpu.nInitialThreads = rp_Bundle_2::N_THREADS_CPU;
+    hydroAdvance_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    hydroAdvance_cpu.nTilesPerPacket = 0;
+    hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST_GPU;
+    RuntimeAction     hydroAdvance_gpu;
+    hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
+    hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
+    hydroAdvance_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    hydroAdvance_gpu.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
+    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
+
+    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST;
 
     logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 
@@ -113,10 +120,12 @@ int main(int argc, char* argv[]) {
         if (nStep > 1) {
             grid.fillGuardCells();
         }
-        runtime.executeExtendedGpuTasks("Advance Hydro Solution",
-                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                        hydroAdvance,
-                                        computeIntQuantitiesByBlk);
+        runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
+                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                                hydroAdvance_cpu,
+                                                hydroAdvance_gpu,
+                                                computeIntQuantitiesByBlk,
+                                                rp_Bundle_2::N_TILES_PER_CPU_TURN);
 
         //----- OUTPUT RESULTS TO FILES
         //  local integral quantities computed as part of previous bundle
