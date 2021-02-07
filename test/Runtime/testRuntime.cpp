@@ -196,7 +196,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     computeLaplacian_gpu.name            = "LaplacianDensity_gpu";
     computeLaplacian_gpu.nInitialThreads = 2;
     computeLaplacian_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    computeLaplacian_gpu.nTilesPerPacket = 20;
+    computeLaplacian_gpu.nTilesPerPacket = 30;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
     double tStart = MPI_Wtime(); 

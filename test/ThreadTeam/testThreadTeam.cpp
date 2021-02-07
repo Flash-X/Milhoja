@@ -202,7 +202,7 @@ TEST_F(ThreadTeamTest, TestDestruction) {
     }
 
     // Close task & let Waiting threads go Idle
-    team1->closeQueue();
+    team1->closeQueue(nullptr);
     for (unsigned int i=0; i<100; ++i) {
         team1->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         if (N_idle == 3)      break;
@@ -247,7 +247,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
     // as many times as we want
     noop.nInitialThreads = 0;
     team1.startCycle(noop, "test1");
-    team1.closeQueue();
+    team1.closeQueue(nullptr);
     for (unsigned int i=0; i<10; ++i) {
         if (team1.mode() == ThreadTeamMode::IDLE)      break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -270,7 +270,7 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    team1.closeQueue();
+    team1.closeQueue(nullptr);
     // Legitimate wait call
     team1.wait();
     EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -318,7 +318,7 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
     EXPECT_EQ(0, N_comp);
     EXPECT_EQ(0, N_Q);
 
-    team1.closeQueue();
+    team1.closeQueue(nullptr);
     team1.wait();
     // Next line will hang if team1 doesn't call team2's closeQueue()
     team2.wait();
@@ -361,7 +361,7 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
         // Use methods that are not allowed in Idle
         EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
                      std::runtime_error);
-        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(nullptr), std::runtime_error);
 
         // Detach when no teams have been attached
         EXPECT_THROW(team1.detachThreadReceiver(), std::logic_error);
@@ -406,7 +406,7 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
         noop.nInitialThreads = 5;
         team1.startCycle(noop, "test1");
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
     }
 }
@@ -447,8 +447,8 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
         team3.startCycle(noop,        "quick");
         team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team3.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team2.closeQueue();
-        team3.closeQueue();
+        team2.closeQueue(nullptr);
+        team3.closeQueue(nullptr);
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
         EXPECT_EQ(ThreadTeamMode::IDLE, team1.mode());
@@ -546,7 +546,7 @@ TEST_F(ThreadTeamTest, TestNoWork) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
 
         team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -613,7 +613,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
         // Confirm that all of the above were called in the same mode
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
 
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
     }
 
@@ -646,7 +646,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
         // Confirm that all of the above were called in the same mode
         EXPECT_EQ(ThreadTeamMode::RUNNING_OPEN_QUEUE, team1.mode());
 
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
         team2.wait();
 
@@ -725,7 +725,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_Q);
 
         // This should result in threads being sent to Team 2
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
         for (unsigned int i=0; i<10; ++i) {
             team2.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
@@ -749,7 +749,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team2.closeQueue();
+        team2.closeQueue(nullptr);
         team2.wait();
     }
 
@@ -848,7 +848,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
         EXPECT_EQ(0, N_Q);
 
         // Thread team 1 will call closeQueue for team 2
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         team1.wait();
         team2.wait();
 
@@ -878,7 +878,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
         team1.startCycle(delay_100ms, "wait");
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
 
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
         nullRoutine.nInitialThreads = 0;
@@ -894,7 +894,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
 
         EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
                                     std::runtime_error);
-        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(nullptr), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeamMode::RUNNING_CLOSED_QUEUE, team1.mode());
@@ -926,7 +926,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_Q == 2)     break;
@@ -1006,7 +1006,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)    break;
@@ -1140,7 +1140,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
         delay_100ms.nInitialThreads = 1;
         team1.startCycle(delay_100ms, "wait");
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         for (unsigned int i=0; i<50; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)     break;
@@ -1161,7 +1161,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
 
         EXPECT_THROW(team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } ),
                                     std::runtime_error);
-        EXPECT_THROW(team1.closeQueue(), std::runtime_error);
+        EXPECT_THROW(team1.closeQueue(nullptr), std::runtime_error);
 
         // Make certain that all of the above was still done in Running & Closed
         EXPECT_EQ(ThreadTeamMode::RUNNING_NO_MORE_WORK, team1.mode());
@@ -1201,7 +1201,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         team2.startCycle(delay_100ms, "wait");
         team1.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
         team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_comp == 1)     break;
@@ -1272,7 +1272,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
         EXPECT_EQ(0, N_comp);
         EXPECT_EQ(0, N_Q);
 
-        team2.closeQueue();
+        team2.closeQueue(nullptr);
         team2.wait();
     }
 
@@ -1353,7 +1353,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
         // of transitionThread to all waiting threads
         // Confirm here that the waiting threads are correctly transitioned to Idle
         // and that thread resources are forwarded to Team 3
-        team1.closeQueue();
+        team1.closeQueue(nullptr);
         for (unsigned int i=0; i<10; ++i) {
             team1.stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
             if (N_idle == 5)     break;
@@ -1430,7 +1430,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
         team2.increaseThreadCount(3);
         team2.wait();
-        team3.closeQueue();
+        team3.closeQueue(nullptr);
         team3.wait();
     }
 
@@ -1519,7 +1519,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
             wtimes_us[i] = microseconds(end - start).count();
             EXPECT_TRUE(wtimes_us[i] > 0.0);
 
-            team2.closeQueue();
+            team2.closeQueue(nullptr);
             team2.wait();
         }
         processWalltimes(wtimes_us, &mean_wtime_us, &std_wtime_us);
@@ -1554,7 +1554,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
             start = steady_clock::now();
             // Since true was passed above, all threads at the start of this
             // measurement should be in Wait
-            team2.closeQueue();
+            team2.closeQueue(nullptr);
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();
@@ -1595,7 +1595,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
 
             start = steady_clock::now();
             team2.startCycle(noop, "quick", true);
-            team2.closeQueue();
+            team2.closeQueue(nullptr);
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();
@@ -1635,7 +1635,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
             for (unsigned int j=0; j<N_WORK; ++j) {
                 team2.enqueue( std::shared_ptr<DataItem>{ new NullItem{} } );
             }
-            team2.closeQueue();
+            team2.closeQueue(nullptr);
             team2.wait();
             end = steady_clock::now();
             wtimes_us[i] = microseconds(end - start).count();

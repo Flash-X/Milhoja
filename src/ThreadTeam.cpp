@@ -610,8 +610,14 @@ void ThreadTeam::startCycle(const RuntimeAction& action,
  * Indicate to the thread team that no more data items will be enqueued with the 
  * team during the present execution cycle, which will end once the team's
  * action has been applied to all data items presently in the queue (if any).
+ *
+ * \param publisher - a pointer to the data publisher that is calling this
+ *                    function.  Passing a null pointer is only valid if the
+ *                    calling code is an action parallel distributor.  If this
+ *                    is the case, it is a logical error for the object to have
+ *                    another data publisher.
  */
-void ThreadTeam::closeQueue(void) {
+void ThreadTeam::closeQueue(const RuntimeElement* publisher) {
     pthread_mutex_lock(&teamMutex_);
 
     // Test conditions that should be checked regardless of team's current mode
@@ -628,10 +634,29 @@ void ThreadTeam::closeQueue(void) {
         throw std::runtime_error(errMsg);
     }
 
-    errMsg = state_->closeQueue_NotThreadsafe();
-    if (errMsg != "") {
-        pthread_mutex_unlock(&teamMutex_);
-        throw std::runtime_error(errMsg);
+    bool readyToClose = true;
+    if (!publisher) {
+        if (calledCloseQueue_.size() != 0) {
+            msg = "If publisher is distributor, no other publisher allowed";
+            errMsg = printState_NotThreadsafe("closeQueue", 0, msg);
+            pthread_mutex_unlock(&teamMutex_);
+            throw std::logic_error(errMsg);
+        }
+
+        // can proceed with closeQueue of subscriber
+    } else {
+        calledCloseQueue_.at(publisher) = true;
+        for (auto& kv : calledCloseQueue_) {
+            readyToClose = readyToClose && kv.second;
+        }
+    }
+
+    if (readyToClose) {
+        errMsg = state_->closeQueue_NotThreadsafe();
+        if (errMsg != "") {
+            pthread_mutex_unlock(&teamMutex_);
+            throw std::runtime_error(errMsg);
+        }
     }
 
     pthread_mutex_unlock(&teamMutex_);
@@ -1162,7 +1187,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
                     throw std::runtime_error(msg);
                 }
                 if (team->dataReceiver_) {
-                    team->dataReceiver_->closeQueue();
+                    team->dataReceiver_->closeQueue(team);
                 }
 
 #ifdef DEBUG_RUNTIME
