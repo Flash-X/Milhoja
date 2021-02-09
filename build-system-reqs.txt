@@ -1,4 +1,4 @@
-The contents of this file document the requirements and specifications of the Build Tool, a subsystem of the Orchestration System, as well as progress made on those goals. This document shall evolve alongside the development of the Build Tool. Last updated: 01/07/2020.
+The contents of this file document the requirements and specifications of the Build Tool, a subsystem of the Orchestration System, as well as progress made on those goals. This document shall evolve alongside the development of the Build Tool. Last updated: 02/09/2021.
 
 Build System reqs
 -----------------
@@ -7,13 +7,23 @@ Build System reqs
     [ ] Building the Runtime as a library first, then linking it into a test executable.
     [ ] Linking a prebuilt Runtime library into a test executable.
 
-[ ] The build tool shall determine flags, such as backend libraries and debug levels, based on command line input.
+[ ] The build tool shall determine the following flags based on command line input:
+    [x] Test name
+    [x] Dimensionality
+    [x] Site directory
+    [x] Build directory
+    [x] Runtime parameter file ("par file")
+    [ ] Backend libraries
+    [ ] Debug levels
+    [ ] Multithreaded distributor
 
 [ ] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
 
-[ ] The build tool shall automate the process of running a linter and a code coverage checker on code. The linter shall always run before compilation. The Build Tool interface shall also allow users to request code coverage functionality be built into the executable, although by default it is not. If code coverage is requested, after the test is run an lcov code coverage report shall be generated.
+[ ] The build tool shall automate the process of running a linter. The linter shall always run before compilation.
 
-[ ] The build tool shall consist of information and components divided into three categories, created and maintained by different actors:
+[x] The build tool shall allow users to request code coverage functionality be built into the executable, although by default it is not. If code coverage is requested, after the test is run an lcov code coverage report can be generated.
+
+[x] The build tool shall consist of information and components divided into three categories, created and maintained by different actors:
     - Project-wide:
         - This category consists of information and components that are common across platforms, compilers, and tests. It also includes information that either (a) site managers and users cannot be expected to know or apply correctly and consistently, or (b) requires more intimate knowledge of Runtime implementation.
         - Some examples are:
@@ -31,16 +41,16 @@ Build System reqs
 
 Makefile specs
 --------------
-[x] For every platform, site managers shall create and maintain a `Makefile.site`, based on a template, which contains platform-specific flags (e.g. optimization) and paths (e.g. AMReX). It need not include information about backends that the test or library configuration does not require.
+[x] For every platform, site managers shall create and maintain a `Makefile.site`, based on a template, which contains platform-specific flags (e.g. optimization) and paths (e.g. AMReX). It need not include information about backends that the test or library configuration does not require. Site managers can refer to a template located in the sites base directory for information on which flags are required.
 [x] Project maintainers shall maintain `Makefile.base` for the files in Runtime and Grid units. It shall account for backed-specific variants.
 [x] Test creators shall maintain `Makefile.test` for each test with the files specific to the test. 
-[ ] There exists `Makefile` which gathers site-specific flags, contains other flags based on command line input, and lists the make commands.
+[x] There exists `Makefile` which gathers site-specific flags, contains other flags based on command line input, and lists the make commands.
 
 
 Build Tool specs
 ----------------
-[x] The script must get the following parameters from command line: build directory, site name, test name.
-[ ] The build tool must create the build directory and empty it if it already exists.
-[ ] The build tool constructs parameter files (e.g. Flash.h or Flash.par).
-[x] The build tool copies the Makefiles and parameter files into the build directory.
-[ ] The build tool symlinks all source files into the build directory, so that the object files are put alongside the executable and not polluting the repository. Also, site maintainers do not need to determine a compiler-specific way to handle the object files.
+[x] The build tool must create the build directory and empty it if it already exists. The build directory's name will be specified from a command line argument, and the folder will always be created in the repository's root directory (which is determined by the location of the file setup.py).
+[x] The build tool copies parameter files (Flash.h, constants.h, and par file) from the site and test directories.
+[x] The build tool symlinks all Makefiles into the build directory.
+[x] The build tool puts object files into a subdirectory of the build directory, with a tree structure parallel to the source tree.
+[ ] The build tool shall determine how to compile with the C++ 11 standard depending on the compiler specified by the user (gnu, pgi, xl, or clang).
