@@ -50,7 +50,7 @@ endif
 ifeq ($(THREADED_DISTRIBUTOR),true)
 $(info Warning! multi-threaded distributor not tested yet)
 AMREXDIR     = $(AMREXDIR_OMP)
-CXXFLAGS    += $(OMP_FLAGS) $(OACC_FLAGS) -DUSE_THREADED_DISTRIBUTOR
+CXXFLAGS    += $(OMP_FLAGS) -DUSE_THREADED_DISTRIBUTOR
 CUFLAGS     += $(CU_OMP_FLAGS)
 endif
 

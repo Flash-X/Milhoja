@@ -1,5 +1,5 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = sedov_cpu_cpp.x
+BINARYNAME    = sedov_gpu_cpp.x
 
 # Define relevant paths
 SEDOVDIR   = $(BASEDIR)/simulations/Sedov
@@ -11,6 +11,10 @@ CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
 CUFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
                 -DENABLE_OPENACC_OFFLOAD
 LDFLAGS_TEST  = -lcudart -L$(CUDADIR)/lib64
+
+# Adjust flags for OpenMP (OACC_FLAGS defined in Makefile.site)
+CXXFLAGS_TEST += $(OACC_FLAGS)
+LDFLAGS_TEST  += $(OACC_FLAGS)
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST      = \
