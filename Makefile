@@ -20,7 +20,9 @@ CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD
 else ifeq ($(CXXCOMPNAME), pgi)
 CXXFLAGS_STD = -std=c++11
-DEPFLAG = -MMD$(@:.o=.d)
+DEPFLAG = -MMD
+else
+$(info $(CXXCOMPNAME) compiler not yet supported.)
 endif
 CUFLAGS_STD  = -std=c++11
 
