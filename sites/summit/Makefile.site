@@ -3,9 +3,11 @@
 #  - AMREXDIR: Path to the appropriate AMReX build directory
 #              (can use the variable NDIM from Makefile.setup)
 #  - GTESTDIR: Path to the Googletest build directory
+#  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(HOME)/orchestrationruntime
-AMREXDIR     = $(HOME)/amrex/summit_$(NDIM)d_gnu
-#GTESTDIR     = $(HOME)/Documents/googletest/googletest
+AMREXDIR     = $(OLCF_AMREX$(NDIM)D_ROOT)
+GTESTDIR     =
+CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Define the following compiler-related flags
 #  - CXXCOMPNAME: Name of C++ compiler {gnu, pgi, xl, clang}
@@ -13,23 +15,29 @@ AMREXDIR     = $(HOME)/amrex/summit_$(NDIM)d_gnu
 #  - CXXFLAGS_PROD, CXXFLAGS_DEBUG: The set of compiler flags. The debug option
 #        will be chosen if --debug (or -d) is included in the setup command,
 #        otherwise the production flags will be used.
-CXXCOMPNAME  = gnu
+#  - CUCOMP, CUFLAGS_PROD
+CXXCOMPNAME  = pgi
 CXXCOMP      = mpicxx
 
-CXXFLAGS_PROD    = -g -O0 -DGRID_LOG -m64
+CXXFLAGS_PROD    = -O3 -DGRID_LOG -m64
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 
-LDFLAGS_STD = -lpthread -lstdc++
+
+CUCOMP       = nvcc
+CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70 \
+               -DGRID_LOG
+
+LDFLAGS_STD = -lpthread -lstdc++ -pgf90libs
 
 # Define the following backend-related flags:
 #  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
+#  - CUFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
 #  - CXXFLAGS_GTEST: Flags for Googletest (e.g. include dir)
 #  - LIB_AMREX: Linker flags for AMReX
 #  - LIB_GTEST: Linker flags for Googletest
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
-#CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
+CUFLAGS_AMREX    = -I$(AMREXDIR)/include
 LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran
-#LIB_GTEST        = -lgtest -L$(GTESTDIR)/mybuild/lib
 
 # Define the follwing paths for generating code coverage reports.
 #  - LCOV: path or command for the coverage tool (lcov)
@@ -41,3 +49,10 @@ LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran
 
 CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
 LDFLAGS_COV  = --coverage
+
+# Define flags for OpenMP
+AMREXDIR_OMP  =
+OMP_FLAGS     = -mp
+CU_OMP_FLAGS  = -Xcompiler -mp
+OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+

@@ -16,20 +16,25 @@ include Makefile.setup
 # Use C++11 standard, flags differ by compiler
 ifeq ($(CXXCOMPNAME),gnu)
 CXXFLAGS_STD = -std=c++11
-else
+DEPFLAG = -MMD
+else ifeq ($(CXXCOMPNAME), pgi)
+CXXFLAGS_STD = -std=c++11
+DEPFLAG = -MMD$(@:.o=.d)
 endif
+CUFLAGS_STD  = -std=c++11
 
 
 # Combine all compiler and linker flags
 ifeq ($(DEBUG),true)
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
            $(CXXFLAGS_AMREX) -I$(BUILDDIR)
-LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
 else
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
            $(CXXFLAGS_AMREX) -I$(BUILDDIR)
-LDFLAGS  = $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_STD) 
 endif
+CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
+	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
+LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
 
 
 # Add code coverage flags
@@ -38,17 +43,31 @@ CXXFLAGS += $(CXXFLAGS_COV)
 LDFLAGS  += $(LDFLAGS_COV)
 endif
 
+# Adjust flags for multithreaded distributor
+ifeq ($(THREADED_DISTRIBUTOR),true)
+$(info Warning! multi-threaded distributor not tested yet)
+AMREXDIR     = $(AMREXDIR_OMP)
+CXXFLAGS    += $(OMP_FLAGS) $(OACC_FLAGS) -DUSE_THREADED_DISTRIBUTOR
+CUFLAGS     += $(CU_OMP_FLAGS)
+endif
+
+
 # List of sources, objects, and dependencies
-C_SRCS     = $(SRCS_BASE) $(SRCS_TEST)
-OBJS_TEMP     = $(addsuffix .o, $(basename $(C_SRCS)))
-OBJS     =  $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(OBJS_TEMP))
-OBJTREE  =  $(sort $(dir $(OBJS)))
-DEPS     = $(addsuffix .d, $(basename $(OBJS)))
+C_SRCS        = $(SRCS_BASE) $(SRCS_TEST)
+C_OBJS_TEMP   = $(addsuffix .o, $(basename $(C_SRCS)))
+C_OBJS        = $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(C_OBJS_TEMP))
+
+CU_OBJS_TEMP  = $(addsuffix .o, $(basename $(CU_SRCS)))
+CU_OBJS       = $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(CU_OBJS_TEMP))
+
+OBJS = $(C_OBJS) $(CU_OBJS)
+OBJTREE       = $(sort $(dir $(OBJS)))
+DEPS          = $(OBJS:.o=.d)
 
 
 # TODO: is this needed?
 ifeq ($(DEBUG), true)
-CXXFLAGS += -DDEBUG_RUNTIME
+#CXXFLAGS += -DDEBUG_RUNTIME
 endif
 
 ##########################################################
@@ -70,8 +89,13 @@ endif
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
 # -MMD generates a dependecy list for each file as a side effect
-$(OBJDIR)/%.o: $(BASEDIR)/%.cpp  $(MAKEFILES) | $(OBJTREE)
-	$(CXXCOMP) -MMD -c $(CXXFLAGS) -o $@ $<
+#  TODO : research different compiler equivalents to -MMD
+$(OBJDIR)/%.o: $(BASEDIR)/%.cpp $(MAKEFILES) | $(OBJTREE)
+	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
+
+$(OBJDIR)/%.o: $(BASEDIR)/%.cu $(MAKEFILES) | $(OBJTREE)
+	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
+	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
 # Make directories in the object tree
 $(OBJTREE):

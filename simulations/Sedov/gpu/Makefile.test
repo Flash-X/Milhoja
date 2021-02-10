@@ -6,8 +6,11 @@ SEDOVDIR   = $(BASEDIR)/simulations/Sedov
 TESTDIR    = $(BASEDIR)/simulations/Sedov/gpu
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR)
-LDFLAGS_TEST  =
+CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
+                -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
+                -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST  = -lcudart -L$(CUDADIR)/lib64
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST      = \
@@ -42,7 +45,7 @@ SRCS_TEST      = \
 	$(TESTDIR)/sedov_gpu.cpp
 
 
-SRCS_CU       = \
+CU_SRCS       = \
 	$(SRCDIR)/CudaGpuEnvironment.cu \
 	$(SRCDIR)/CudaDataPacket.cu \
 	$(SRCDIR)/CudaStreamManager.cu \

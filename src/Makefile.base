@@ -2,6 +2,7 @@ SRCDIR       = $(BASEDIR)/src
 INCDIR       = $(BASEDIR)/includes
 
 CXXFLAGS_BASE    = -I$(INCDIR)
+CUFLAGS_BASE    = -I$(INCDIR)
 
 #TODO: Header files? express dependencies
 
@@ -18,6 +19,7 @@ SRCS_BASE       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Runtime.cpp \
+    $(SRCDIR)/DataPacket.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \
