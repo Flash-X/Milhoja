@@ -19,7 +19,6 @@ SRCS_BASE       = \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Runtime.cpp \
-    $(SRCDIR)/DataPacket.cpp \
     $(SRCDIR)/OrchestrationLogger.cpp \
     $(SRCDIR)/RuntimeElement.cpp \
     $(SRCDIR)/ThreadTeam.cpp \

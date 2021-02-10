@@ -14,6 +14,7 @@ include Makefile.test
 include Makefile.setup
 
 # Use C++11 standard, flags differ by compiler
+# -MMD generates a dependecy list for each file as a side effect
 ifeq ($(CXXCOMPNAME),gnu)
 CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD
@@ -53,16 +54,18 @@ endif
 
 
 # List of sources, objects, and dependencies
-C_SRCS        = $(SRCS_BASE) $(SRCS_TEST)
-C_OBJS_TEMP   = $(addsuffix .o, $(basename $(C_SRCS)))
-C_OBJS        = $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(C_OBJS_TEMP))
+C_SRCS    = $(SRCS_BASE) $(SRCS_TEST)
+SRCS      = $(C_SRCS) $(CU_SRCS)
 
-CU_OBJS_TEMP  = $(addsuffix .o, $(basename $(CU_SRCS)))
-CU_OBJS       = $(patsubst $(BASEDIR)/%,$(OBJDIR)/%,$(CU_OBJS_TEMP))
+C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
+CU_OBJS   = $(addsuffix .o, $(basename $(notdir $(CU_SRCS))))
+OBJS      = $(C_OBJS) $(CU_OBJS)
+DEPS      = $(OBJS:.o=.d)
 
-OBJS = $(C_OBJS) $(CU_OBJS)
-OBJTREE       = $(sort $(dir $(OBJS)))
-DEPS          = $(OBJS:.o=.d)
+# Use VPATH as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
+# This puts all targets in a single directory (the build directory) and allows the Makefile to
+# search the source tree for the prerequisites.
+VPATH    = $(sort $(dir $(C_SRCS)))
 
 
 # TODO: is this needed?
@@ -84,30 +87,25 @@ test:
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
 $(BINARYNAME): $(OBJS) $(MAKEFILES)
 ifeq ($(CODECOVERAGE), true)
-	/bin/rm -f $(addsuffix *.gcda,$(OBJTREE))
+	/bin/rm -f *.gcda
 endif
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
-# -MMD generates a dependecy list for each file as a side effect
-#  TODO : research different compiler equivalents to -MMD
-$(OBJDIR)/%.o: $(BASEDIR)/%.cpp $(MAKEFILES) | $(OBJTREE)
+%.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
 
-$(OBJDIR)/%.o: $(BASEDIR)/%.cu $(MAKEFILES) | $(OBJTREE)
+%.o: %.cu $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
-# Make directories in the object tree
-$(OBJTREE):
-	mkdir -p $@
 
 # Clean removes all intermediate files
 clean:
-	/bin/rm -f $(addsuffix *.o,$(OBJTREE))
-	/bin/rm -f $(addsuffix *.d,$(OBJTREE))
+	/bin/rm -f *.o
+	/bin/rm -f *.d
 ifeq ($(CODECOVERAGE), true)
-	/bin/rm -f $(addsuffix *.gcno,$(OBJTREE))
-	/bin/rm -f $(addsuffix *.gcda,$(OBJTREE))
+	/bin/rm -f *.gcno
+	/bin/rm -f *.gcda
 endif
 	/bin/rm -f lcov_temp.info
 
@@ -115,7 +113,7 @@ endif
 .PHONY: coverage
 coverage:
 ifeq ($(CODECOVERAGE), true)
-	$(LCOV) -o lcov_temp.info -c -d $(OBJDIR)
+	$(LCOV) -o lcov_temp.info -c -d .
 	$(GENHTML)  -o Coverage_Report lcov_temp.info
 else
 	$(info Include --coverage in your setup line to enable code coverage.)

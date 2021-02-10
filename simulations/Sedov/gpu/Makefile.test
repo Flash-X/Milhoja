@@ -14,6 +14,7 @@ LDFLAGS_TEST  = -lcudart -L$(CUDADIR)/lib64
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST      = \
+	$(SRCDIR)/DataPacket.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
