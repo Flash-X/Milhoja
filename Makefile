@@ -21,6 +21,12 @@ DEPFLAG = -MMD
 else ifeq ($(CXXCOMPNAME), pgi)
 CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD
+else ifeq ($(CXXCOMPNAME), ibm)
+CXXFLAGS_STD = -std=c++11
+DEPFLAG = -MMD
+else ifeq ($(CXXCOMPNAME), llvm)
+CXXFLAGS_STD = -std=c++11
+DEPFLAG = -MMD
 else
 $(info $(CXXCOMPNAME) compiler not yet supported.)
 endif
