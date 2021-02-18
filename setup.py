@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
     parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
+    parser.add_argument('--multithreaded',action="store_true",help='Enable multithreaded distributor.')
     args = parser.parse_args()
 
     print("Orchestration Runtime setup")
@@ -77,6 +78,10 @@ def main():
             f.write("CODECOVERAGE = false\n")
 
         f.write("NDIM = {}\n".format(args.dim))
+        if args.multithreaded:
+            f.write("THREADED_DISTRIBUTOR = true\n")
+        else:
+            f.write("THREADED_DISTRIBUTOR = false\n")
 
 
     # Copy par file into build dir
