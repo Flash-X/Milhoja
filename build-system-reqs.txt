@@ -1,0 +1,69 @@
+The contents of this file document the requirements and specifications of the Build Tool, a subsystem of the Orchestration System, as well as progress made on those goals. This document shall evolve alongside the development of the Build Tool. Last updated: 02/09/2021.
+
+Build System reqs
+-----------------
+[x] The Build Tool shall be a subsystem of the Runtime that provides users the necessary facilities to build the Runtime and run tests on it. A primary function of the Build Tool shall be to build tests of the Runtime that are provided in the repository as part of its continuous integration test suite. It shall support the following build modes:
+    [x] Building an entire test into one executable.
+    [ ] Building the Runtime as a library first, then linking it into a test executable.
+    [ ] Linking a prebuilt Runtime library into a test executable.
+
+[ ] The build tool shall determine the following flags based on command line input:
+    [x] Test name
+    [x] Dimensionality
+    [x] Site directory
+    [x] Build directory
+    [x] Runtime parameter file ("par file")
+    [ ] Backend libraries
+    [ ] Debug levels
+    [ ] Multithreaded distributor
+
+[x] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
+
+[ ] The build tool shall automate the process of running a linter. The linter shall always run before compilation.
+
+[x] The build tool shall allow users to request code coverage functionality be built into the executable, although by default it is not. If code coverage is requested, after the test is run an lcov code coverage report can be generated.
+
+[x] The build tool shall consist of information and components divided into three categories, created and maintained by different actors:
+    - Project-wide:
+        - This category consists of information and components that are common across platforms, compilers, and tests. It also includes information that either (a) site managers and users cannot be expected to know or apply correctly and consistently, or (b) requires more intimate knowledge of Runtime implementation.
+        - Some examples are:
+            - List of files required to build different variants of the Runtime library.
+            - Compiler flags that are deemed necessary due to specific implementation details, as well as to ensure correct builds and execution.
+            - Compiler flags for confirming tests adhere to a certain language standard.
+        - It is intended that project-wide components and information be created and maintained by project maintainers, in accord with prevailing requirements and specifications.
+    - Test-specific:
+        - Test creators shall maintain test-specific contributions to the Build Tool and the test suite in accord with the prevailing requirements and specifications.
+    - Site-specific:
+        - Site managers shall create and maintain site-specific build information; e.g. compiler flags, environment variables.
+
+[ ] The Build Tool shall only require backend-specific information if the user is trying to build a test or a library configuration that requires that specific backend. Thus the tool shall not require site managers to support a backend they cannot or do not intend to use.
+
+
+File Name Requirements
+----------------------
+[x] Each test directory should include files named Flash_ND.h and constants_ND.h where N is each supported dimensionality of the test. Each site should include parameter files ("par files") which will be specified in a command line argument and copied into the build directory as Flash_par.h.
+
+[x] The build system auto-generates files with the name Makefile.setup, Flash.h, constants.h, and Flash_par.h in the build directory. Thus, files of these names should not be located anywhere else in the repository.
+
+[x] In order to avoid errors caused by ambiguous include statements, the following set of directories should not contain files with the same name:
+	- The main source directores (currently `src` and `includes`)
+	- The test directory of any given test
+	- The site directory for any given site
+Note that this means different tests and sites can (and should) have files with overlapping names, for example Flash_ND.h files. This requirement is not checked for in the current build system, so for now all contributors must self-enforce.
+
+
+Makefile specs
+--------------
+[x] For every platform, site managers shall create and maintain a `Makefile.site`, based on a template, which contains platform-specific flags (e.g. optimization) and paths (e.g. AMReX). It need not include information about backends that the test or library configuration does not require. Site managers can refer to a template located in the sites base directory for information on which flags are required.
+[x] Project maintainers shall maintain `Makefile.base` for the files in Runtime and Grid units. It shall account for backed-specific variants.
+[x] Test creators shall maintain `Makefile.test` for each test with the files specific to the test. 
+[x] There exists `Makefile` which gathers site-specific flags, contains other flags based on command line input, and lists the make commands.
+
+
+Build Tool specs
+----------------
+[x] The build tool must create the build directory and empty it if it already exists. The build directory's name will be specified from a command line argument, and the folder will always be created in the repository's root directory (which is determined by the location of the file setup.py).
+[x] The build tool copies parameter files (Flash.h, constants.h, and par file) from the site and test directories.
+[x] The build tool symlinks all Makefiles into the build directory.
+[x] The build tool puts object files into a subdirectory of the build directory, with a tree structure parallel to the source tree.
+[ ] The build tool shall determine how to compile with the C++ 11 standard depending on the compiler specified by the user (gnu, pgi, xl, or clang).

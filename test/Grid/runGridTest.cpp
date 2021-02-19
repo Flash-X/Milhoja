@@ -1,11 +1,11 @@
 #include "Grid.h"
-#include "OrchestrationRuntime.h"
+#include "OrchestrationLogger.h"
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[]) {
         ::testing::InitGoogleTest(&argc, argv);
 
-        orchestration::Runtime::setLogFilename("GridUnitTest.log");
+        orchestration::Logger::instantiate("GridUnitTest.log");
 
         orchestration::Grid::instantiate();
 

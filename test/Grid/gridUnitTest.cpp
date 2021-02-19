@@ -1,11 +1,12 @@
 #include "Flash.h"
 #include "constants.h"
+#include "Flash_par.h"
 
 #include "Grid.h"
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
-#include "setInitialConditions_block.h"
+#include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
 #include "errorEstMaximal.h"
@@ -14,6 +15,8 @@
 #include <AMReX.H>
 #include <AMReX_FArrayBox.H>
 #include "Tile.h"
+
+#include <iostream>
 
 
 using namespace orchestration;
@@ -32,16 +35,21 @@ protected:
 };
 
 TEST_F(GridUnitTest,VectorClasses){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                rp_Simulation::N_THREADS_FOR_IC,
                                 Simulation::errorEstBlank);
 
     //test creation and conversion
     IntVect intVec1{LIST_NDIM(3,10,2)};
+    const IntVect intVecConst{LIST_NDIM(3,10,2)};
     RealVect realVec1{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
+    const RealVect realVecConst{LIST_NDIM(1.5_wp,3.2_wp,5.8_wp)};
     IntVect intVec2 = realVec1.floor();
     RealVect realVec2 = RealVect(intVec1);
 
     //test operators for IntVect
+    EXPECT_EQ( intVec1           , intVecConst);
     EXPECT_EQ( realVec1.round()  , IntVect(LIST_NDIM(2,3,6)) );
     EXPECT_EQ( realVec1.floor()  , IntVect(LIST_NDIM(1,3,5)) );
     EXPECT_EQ( realVec1.ceil()   , IntVect(LIST_NDIM(2,4,6)) );
@@ -50,6 +58,7 @@ TEST_F(GridUnitTest,VectorClasses){
     EXPECT_EQ( intVec1-intVec2   , IntVect(LIST_NDIM(2,7,-3)) );
     EXPECT_EQ( intVec1*intVec2   , IntVect(LIST_NDIM(3,30,10)) );
     EXPECT_EQ( intVec1+5         , IntVect(LIST_NDIM(8,15,7)) );
+    EXPECT_EQ( 7+intVec1         , IntVect(LIST_NDIM(10,17,9)) );
     EXPECT_EQ( intVec1-9         , IntVect(LIST_NDIM(-6,1,-7)) );
     EXPECT_EQ( intVec1*2         , IntVect(LIST_NDIM(6,20,4)) );
     EXPECT_EQ( 2*intVec1         , IntVect(LIST_NDIM(6,20,4)) );
@@ -59,6 +68,7 @@ TEST_F(GridUnitTest,VectorClasses){
     //test operators for RealVect
     float eps = 1.0e-14;
     for (int i=0;i<NDIM;++i) {
+        EXPECT_NEAR(realVec1[i] , realVecConst[i] , eps);
         EXPECT_NEAR(realVec2[i] ,
                 RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
         EXPECT_NEAR((realVec1+realVec2)[i] ,
@@ -74,25 +84,124 @@ TEST_F(GridUnitTest,VectorClasses){
         EXPECT_NEAR((realVec1/2.0_wp)[i] ,
                 RealVect(LIST_NDIM(0.75_wp,1.6_wp,2.9_wp))[i] , eps);
     }
+
+    //Test logic errors
+    int caughtErrors = 0;
+    try {
+        Real r = realVec1[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        Real r = realVecConst[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        int x = intVec1[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        int x = intVecConst[3];
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    EXPECT_EQ( caughtErrors, 4);
+
+    // Test output
+    std::cout << "Sample IntVect: " << intVec1 << std::endl;
+    std::cout << "Sample RealVect: " << realVec1 << std::endl;
+}
+
+TEST_F(GridUnitTest,FArrayClasses){
+    //Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+    //                            rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+    //                            rp_Simulation::N_THREADS_FOR_IC,
+    //                            Simulation::errorEstBlank);
+
+    //test creation and assignment
+    Real arrayData[10];
+    FArray1D data{arrayData, 0};
+    FArray1D scratchData = FArray1D::buildScratchArray1D(5,14);
+    IntVect lo{LIST_NDIM(0,0,0)}, hi{LIST_NDIM(2,4,3)};
+    Real arrayData4[hi.product() * 3];
+    FArray4D data4{arrayData4, lo, hi, 3};
+    FArray4D scratchData4 = FArray4D::buildScratchArray4D(lo, hi, 3);
+
+    // Test assignment of 1D
+    for (int i=0; i<10; ++i) {
+        data(i) = i*5.0_wp;
+        scratchData(i+5) = i*7.0_wp;
+    }
+    float eps = 1.0e-14;
+    for (int i=0;i<10;++i) {
+        EXPECT_NEAR( data(i), i*5.0_wp, eps);
+        EXPECT_NEAR( scratchData(i+5), i*7.0_wp, eps);
+    }
+
+    // TODO test assignment of 4D
+
+    //Test logic errors
+    int caughtErrors = 0;
+    try {
+        FArray1D dataNull{ nullptr, 0};
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ nullptr, lo, hi, 3};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ arrayData4, lo, hi, 0};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    try {
+        FArray4D dataNull{ arrayData4, hi, lo, 3};
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    //try {
+    //    Real r = data(10); 
+    //} catch (const std::logic_error& e) {
+    //    caughtErrors++;
+    //}
+    //try {
+    //    Real r = scratchData(4);
+    //} catch (const std::logic_error& e) {
+    //    caughtErrors++;
+    //}
+    EXPECT_EQ( caughtErrors, 4);
 }
 
 TEST_F(GridUnitTest,ProbConfigGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                rp_Simulation::N_THREADS_FOR_IC,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
-    RealVect actual_max{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
+                                  rp_Grid::Y_MIN,
+                                  rp_Grid::Z_MIN)};
+    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
+                                  rp_Grid::Y_MAX,
+                                  rp_Grid::Z_MAX)};
+    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
+                              rp_Grid::N_BLOCKS_Y,
+                              rp_Grid::N_BLOCKS_Z)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
     // Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_EQ(grid.getMaxRefinement() , LREFINE_MAX-1);
-    EXPECT_EQ(grid.getMaxLevel()      , LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxRefinement() , rp_Grid::LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxLevel()      , rp_Grid::LREFINE_MAX-1);
 
     // Testing Grid::getProb{Lo,Hi}
     RealVect probLo   = grid.getProbLo();
@@ -129,15 +238,23 @@ TEST_F(GridUnitTest,ProbConfigGetters){
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                rp_Simulation::N_THREADS_FOR_IC,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
     int count;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
-    RealVect actual_max{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
+                                  rp_Grid::Y_MIN,
+                                  rp_Grid::Z_MIN)};
+    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
+                                  rp_Grid::Y_MAX,
+                                  rp_Grid::Z_MAX)};
+    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
+                              rp_Grid::N_BLOCKS_Y,
+                              rp_Grid::N_BLOCKS_Z)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
@@ -187,14 +304,22 @@ TEST_F(GridUnitTest,PerTileGetters){
 }
 
 TEST_F(GridUnitTest,MultiCellGetters){
-    Grid::instance().initDomain(Simulation::setInitialConditions_block,
+    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                rp_Simulation::N_THREADS_FOR_IC,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(X_MIN,Y_MIN,Z_MIN)};
-    RealVect actual_max{LIST_NDIM(X_MAX,Y_MAX,Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(N_BLOCKS_X, N_BLOCKS_Y, N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
+                                  rp_Grid::Y_MIN,
+                                  rp_Grid::Z_MIN)};
+    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
+                                  rp_Grid::Y_MAX,
+                                  rp_Grid::Z_MAX)};
+    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
+                              rp_Grid::N_BLOCKS_Y,
+                              rp_Grid::N_BLOCKS_Z)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
@@ -225,7 +350,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         for (int i=dlo.I(); i<=dhi.I(); ++i) {
         for (int j=dlo.J(); j<=dhi.J(); ++j) {
         for (int k=dlo.K(); k<=dhi.K(); ++k) {
-            ASSERT_NEAR( vol_domain({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+            ASSERT_NEAR( vol_domain(amrex::IntVect(LIST_NDIM(i,j,k)),0) , actual_vol , eps);
         }}}
         }
 
@@ -243,7 +368,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         for (int i=vlo.I(); i<=vhi.I(); ++i) {
         for (int j=vlo.J(); j<=vhi.J(); ++j) {
         for (int k=vlo.K(); k<=vhi.K(); ++k) {
-            ASSERT_NEAR( vol_fab({LIST_NDIM(i,j,k)},0) , actual_vol , eps);
+            ASSERT_NEAR( vol_fab(amrex::IntVect(LIST_NDIM(i,j,k)),0) , actual_vol , eps);
         }}}
         }
 
@@ -256,7 +381,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
             for (int i=vlo.I(); i<=vhi.I(); ++i) {
             for (int j=vlo.J(); j<=vhi.J(); ++j) {
             for (int k=vlo.K(); k<=vhi.K(); ++k) {
-                ASSERT_NEAR( area_fab({LIST_NDIM(i,j,k)},0), actual_fa[n], eps);
+                ASSERT_NEAR( area_fab(amrex::IntVect(LIST_NDIM(i,j,k)),0), actual_fa[n], eps);
             }}}
         }
         }
@@ -264,7 +389,6 @@ TEST_F(GridUnitTest,MultiCellGetters){
         // Test Grid::fillCellCoords over an arbitrary range
         {
         int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
-        int nElements;
         Real actual_coord;
         for (int j=0; j<3; ++j) {
             //loop over edge cases
@@ -282,13 +406,11 @@ TEST_F(GridUnitTest,MultiCellGetters){
             }
             for(int n=0;n<NDIM;++n) {
                 //loop over axis cases
-                nElements = vhi[n] - vlo[n] + 1;
-                Real coord_ptr[nElements];
-                grid.fillCellCoords(n,edge[j],lev,vlo,vhi,coord_ptr);
-                for(int i=0; i<nElements; ++i) {
-                    actual_coord = actual_min[n] + (Real(vlo[n]+i)+offset)
+                FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
+                for(int i=vlo[n]; i<=vhi[n]; ++i) {
+                    actual_coord = actual_min[n] + (Real(i)+offset)
                                    * actual_deltas[n];
-                    ASSERT_NEAR( coord_ptr[i], actual_coord, eps);
+                    ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
                 }
             }
         }
@@ -302,6 +424,8 @@ TEST_F(GridUnitTest,GCFill){
     float eps = 1.0e-14;
 
     grid.initDomain(Simulation::setInitialInteriorTest,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMaximal);
 
     grid.fillGuardCells();
@@ -341,6 +465,8 @@ TEST_F(GridUnitTest,MultipleLevels){
     Grid& grid = Grid::instance();
     float eps = 1.0e-10;
     grid.initDomain(Simulation::setInitialInteriorTest,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMultiple);
 
     for(auto ti=grid.buildTileIter(0); ti->isValid(); ti->next()) {
@@ -387,9 +513,45 @@ TEST_F(GridUnitTest,MultipleLevels){
     }
 }
 
+TEST_F(GridUnitTest,LogicErrors){
+    Grid& grid = Grid::instance();
+    int caughtErrors = 0;
+    try {
+        Grid::instantiate();
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        grid.initDomain(nullptr,
+                        rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                        rp_Simulation::N_THREADS_FOR_IC,
+                        Simulation::errorEstMaximal);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC,
+                    Simulation::errorEstMaximal);
+
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                        rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                        rp_Simulation::N_THREADS_FOR_IC,
+                        Simulation::errorEstMaximal);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    EXPECT_EQ( caughtErrors, 3);
+}
+
 TEST_F(GridUnitTest,PlotfileOutput){
     Grid& grid = Grid::instance();
-    grid.initDomain(Simulation::setInitialConditions_block,
+    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMaximal);
 
     grid.writePlotfile("test_plt_0000");

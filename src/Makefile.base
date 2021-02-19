@@ -1,0 +1,31 @@
+SRCDIR       = $(BASEDIR)/src
+INCDIR       = $(BASEDIR)/includes
+
+CXXFLAGS_BASE    = -I$(INCDIR)
+CUFLAGS_BASE    = -I$(INCDIR)
+
+#TODO: Header files? express dependencies
+
+SRCS_BASE       = \
+    $(SRCDIR)/Grid.cpp \
+    $(SRCDIR)/GridAmrex.cpp \
+    $(SRCDIR)/Grid_IntVect.cpp \
+    $(SRCDIR)/Grid_RealVect.cpp \
+    $(SRCDIR)/Grid_AmrCoreFlash.cpp \
+    $(SRCDIR)/FArray4D.cpp \
+    $(SRCDIR)/FArray3D.cpp \
+    $(SRCDIR)/FArray2D.cpp \
+    $(SRCDIR)/FArray1D.cpp \
+    $(SRCDIR)/Tile.cpp \
+    $(SRCDIR)/TileAmrex.cpp \
+    $(SRCDIR)/Runtime.cpp \
+    $(SRCDIR)/OrchestrationLogger.cpp \
+    $(SRCDIR)/RuntimeElement.cpp \
+    $(SRCDIR)/ThreadTeam.cpp \
+    $(SRCDIR)/ThreadTeamIdle.cpp \
+    $(SRCDIR)/ThreadTeamTerminating.cpp \
+    $(SRCDIR)/ThreadTeamRunningOpen.cpp \
+    $(SRCDIR)/ThreadTeamRunningClosed.cpp \
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(SRCDIR)/MoverUnpacker.cpp \
+    $(SRCDIR)/StreamManager.cpp

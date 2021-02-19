@@ -44,14 +44,12 @@ src/*.o
 src/*.mod
 test/*/buildInfo.h
 test/*/buildInfo.inc
-test/Flash.h
-test/constants.h
 test/*/*.o
 test/*.mod
 simulations/*/*.o
-simulations/*/Flash_par.h
 test/*.mod
 studies/Summit_2020-04-15/gatherDataCpp_*
 studies/Summit_2020-04-15/gatherDataF2003_*
 studies/Summit_2020-04-15/testRuntimeCpp_*
 studies/Summit_2020-04-15/testThreadTeam_*
+build/*
