@@ -35,11 +35,11 @@ CUFLAGS_STD  = -std=c++11
 
 # Combine all compiler and linker flags
 ifeq ($(DEBUG),true)
-CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
-           $(CXXFLAGS_AMREX) -I$(BUILDDIR)
+CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
+           $(CXXFLAGS_TEST) $(CXXFLAGS_AMREX)
 else
-CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) $(CXXFLAGS_TEST) \
-           $(CXXFLAGS_AMREX) -I$(BUILDDIR)
+CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
+           $(CXXFLAGS_TEST) $(CXXFLAGS_AMREX)
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
 	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
@@ -54,7 +54,7 @@ endif
 
 # Adjust flags for multithreaded distributor
 ifeq ($(THREADED_DISTRIBUTOR),true)
-$(info Warning! multi-threaded distributor not tested yet)
+$(info Warning! multi-threaded distributor not fully tested)
 AMREXDIR     = $(AMREXDIR_OMP)
 CXXFLAGS    += $(OMP_FLAGS) -DUSE_THREADED_DISTRIBUTOR
 CUFLAGS     += $(CU_OMP_FLAGS)
@@ -76,11 +76,6 @@ DEPS      = $(OBJS:.o=.d)
 vpath %.cpp $(sort $(dir $(C_SRCS)))
 vpath %.cu  $(sort $(dir $(CU_SRCS)))
 
-
-# TODO: is this needed?
-ifeq ($(DEBUG), true)
-#CXXFLAGS += -DDEBUG_RUNTIME
-endif
 
 ##########################################################
 # Makefile commands:

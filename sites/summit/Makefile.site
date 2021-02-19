@@ -27,7 +27,7 @@ CUCOMP       = nvcc
 CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70 \
                -DGRID_LOG
 
-LDFLAGS_STD = -lpthread -lstdc++ -pgf90libs
+LDFLAGS_STD = -lpthread -lstdc++
 
 # Define the following backend-related flags:
 #  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
@@ -37,7 +37,7 @@ LDFLAGS_STD = -lpthread -lstdc++ -pgf90libs
 #  - LIB_GTEST: Linker flags for Googletest
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
 CUFLAGS_AMREX    = -I$(AMREXDIR)/include
-LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran -pgf90libs
 
 # Define the follwing paths for generating code coverage reports.
 #  - LCOV: path or command for the coverage tool (lcov)
