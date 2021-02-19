@@ -90,7 +90,7 @@ public:
                             const std::string& teamName,
                             const bool waitForThreads=false);
     void         enqueue(std::shared_ptr<DataItem>&& dataItem) override;
-    void         closeQueue(void) override;
+    void         closeQueue(const RuntimeElement* publisher) override;
     void         wait(void);
 
     // State-dependent methods whose simple dependence is handled by this class

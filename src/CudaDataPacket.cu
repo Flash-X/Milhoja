@@ -520,26 +520,41 @@ void  CudaDataPacket::initiateHostToDeviceTransfer(void) {
 }
 
 /**
- *  \todo Determine how to implement this as an asynchronous transfer.
+ *  Initiate an asychronous transfer of the packet from the device to the host
+ *  on the packet's stream.  As part of this, launch on the same stream the given
+ *  callback for handling the unpacking and other auxiliary work that must occur
+ *  once the packet is back in pinned memory.
+ *
+ * \param  callback - the routine that will be registered with the CUDA runtime
+ *                    so that the routine can unpack the packet (likely using
+ *                    unpack) and perform other desired actions.
+ * \param  callbackData - the data that must be passed to the callback so that
+ *                        it can carry out its work.  This resource just passes
+ *                        through this routine so that this routine has no
+ *                        responsibility in managing the resources.
  */
-void  CudaDataPacket::transferFromDeviceToHost(void) {
-    // Bring data back to host.  Use asynchronous transfer so that we can keep
-    // the transfer off the default stream and therefore only wait on this
-    // transfer.
+void  CudaDataPacket::initiateDeviceToHostTransfer(cudaHostFn_t callback,
+                                                   void* callbackData) {
     cudaError_t   cErr = cudaMemcpyAsync(packet_p_, packet_d_,
                                          nBytesPerPacket_,
                                          cudaMemcpyDeviceToHost,
                                          stream_.cudaStream);
     if (cErr != cudaSuccess) {
-        std::string  errMsg = "[CudaDataPacket::transferFromDeviceToHost] ";
-        errMsg += "Unable to execute D-to-H transfer\n";
+        std::string  errMsg = "[CudaDataPacket::initiateDeviceToHostTransfer] ";
+        errMsg += "Unable to initiate D-to-H transfer\n";
         errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
         errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
         throw std::runtime_error(errMsg);
     }
-    cudaStreamSynchronize(stream_.cudaStream);
 
-    unpack();
+    cErr = cudaLaunchHostFunc(stream_.cudaStream, callback, callbackData); 
+    if (cErr != cudaSuccess) {
+        std::string  errMsg = "[CudaDataPacket::initiateDeviceToHostTransfer] ";
+        errMsg += "Unable to register D-to-H callback function\n";
+        errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+        errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+        throw std::runtime_error(errMsg);
+    }
 }
 
 }

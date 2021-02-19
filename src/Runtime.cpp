@@ -216,7 +216,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         cpuTeam->enqueue( ti->buildCurrentTile() );
     }
-    cpuTeam->closeQueue();
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
@@ -270,6 +270,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                  level = 0;
@@ -302,12 +303,12 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
     gpuTeam->increaseThreadCount(1);
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
@@ -376,6 +377,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -433,14 +435,14 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeCpuGpuTasks] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the host team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachThreadReceiver();
@@ -465,12 +467,13 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
 #else
     const unsigned int  nDistThreads = 1;
 #endif
-    std::string   msg =   "[Runtime] Start GPU/Post-GPU action bundle - "
+    Logger::instance().log("[Runtime] Start GPU/Post-GPU action bundle");
+    std::string   msg =   "[Runtime] "
                         + std::to_string(nDistThreads)
-                        + " Distributor Threads";
+                        + " distributor threads";
     Logger::instance().log(msg);
 
-    if        (nDistributorThreads <= 0) {
+    if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeExtendedGpuTasks] "
                                     "nDistributorThreads must be positive");
     } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
@@ -520,6 +523,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -554,8 +558,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
         gpuTeam->increaseThreadCount(1);
     }
 
-    gpuTeam->closeQueue();
-    gpuTeam->wait();
+    gpuTeam->closeQueue(nullptr);
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
@@ -634,6 +637,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "ActionSharing_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     // Let CPU start work so that we overlap the first host-to-device transfer
@@ -693,20 +697,192 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the device team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
+    gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action");
+}
+#endif
+
+/**
+ * 
+ *
+ * \return 
+ */
+#if defined(USE_CUDA_BACKEND)
+void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
+                                              const unsigned int nDistributorThreads,
+                                              const RuntimeAction& actionA_cpu,
+                                              const RuntimeAction& actionA_gpu,
+                                              const RuntimeAction& postActionB_cpu,
+                                              const unsigned int nTilesPerCpuTurn) {
+#ifdef USE_THREADED_DISTRIBUTOR
+    const unsigned int  nDistThreads = nDistributorThreads;
+#else
+    const unsigned int  nDistThreads = 1;
+#endif
+    Logger::instance().log("[Runtime] Start extended CPU/GPU shared action");
+    std::string   msg =   "[Runtime] "
+                        + std::to_string(nDistThreads)
+                        + " distributor threads";
+    Logger::instance().log(msg);
+    msg =   "[Runtime] "
+          + std::to_string(nTilesPerCpuTurn)
+          + " tiles sent to CPU for every packet of "
+          + std::to_string(actionA_gpu.nTilesPerPacket)
+          + " tiles sent to GPU";
+    Logger::instance().log(msg);
+
+    if        (nDistThreads <= 0) {
+        throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                    "nDistributorThreads must be positive");
+    } else if (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                               "Given CPU action A should run on tiles, "
+                               "which is not in configuration");
+    } else if (actionA_cpu.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                    "CPU A tiles/packet should be zero since it is tile-based");
+    } else if (actionA_gpu.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
+    } else if (actionA_gpu.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                    "Need at least one tile per GPU packet");
+    } else if (postActionB_cpu.teamType != actionA_cpu.teamType) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                               "Given post action data type must match that "
+                               "of CPU action A");
+    } else if (postActionB_cpu.nTilesPerPacket != actionA_cpu.nTilesPerPacket) {
+        throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                    "Given post action tiles/packet must match that "
+                                    "of CPU action A");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                               "Need at least three ThreadTeams in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU/GPU action parallel pipeline
+    // 1) Action Parallel Distributor will send one fraction of data items
+    //    to CPU for computation and each of these is enqueued directly with the post
+    //    action thread team.
+    // 2) For the remaining data items,
+    //    a) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    //    b) GPU action applied to blocks in packet by GPU team
+    //    c) Mover/Unpacker transfers packet back to CPU,
+    //       copies results to Grid data structures,
+    //       and enqueues with post action thread team.
+    ThreadTeam*        teamA_cpu = teams_[0];
+    ThreadTeam*        teamA_gpu = teams_[1];
+    ThreadTeam*        teamB_cpu = teams_[2];
+
+    teamA_cpu->attachThreadReceiver(teamB_cpu);
+    teamA_cpu->attachDataReceiver(teamB_cpu);
+    teamA_gpu->attachDataReceiver(&gpuToHost1_);
+    gpuToHost1_.attachDataReceiver(teamB_cpu);
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads =   actionA_cpu.nInitialThreads
+                                 + nDistThreads;
+    if (nTotalThreads > teamA_cpu->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                "CPU team could receive too many thread "
+                                "activation calls");
+    }
+    nTotalThreads =   actionA_cpu.nInitialThreads
+                    + postActionB_cpu.nInitialThreads
+                    + nDistThreads;
+    if (nTotalThreads > teamB_cpu->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeExtendedCpuGpuSplitTasks] "
+                                "Post could receive too many thread "
+                                "activation calls");
+    }
+
+    //***** START EXECUTION CYCLE
+    teamA_cpu->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
+    teamA_gpu->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
+    teamB_cpu->startCycle(postActionB_cpu, "PostAction_CPU_Block_Team");
+    gpuToHost1_.startCycle();
+
+    //***** ACTION PARALLEL DISTRIBUTOR
+    unsigned int                      level = 0;
+    Grid&                             grid = Grid::instance();
+#ifdef USE_THREADED_DISTRIBUTOR
+#pragma omp parallel default(none) \
+                     shared(grid, level, teamA_cpu, teamA_gpu, actionA_gpu, nTilesPerCpuTurn) \
+                     num_threads(nDistThreads)
+#endif
+    {
+#ifdef USE_THREADED_DISTRIBUTOR
+        int         tId = omp_get_thread_num();
+#else
+        int         tId = 0;
+#endif
+        bool        isCpuTurn = ((tId % 2) == 0);
+        int         nInCpuTurn = 0;
+
+        std::shared_ptr<Tile>             tileDesc{};
+        std::shared_ptr<DataPacket>       packet_gpu = DataPacket::createPacket();
+        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+            tileDesc = ti->buildCurrentTile();
+
+            if (isCpuTurn) {
+                teamA_cpu->enqueue( std::move(tileDesc) );
+
+                ++nInCpuTurn;
+                if (nInCpuTurn >= nTilesPerCpuTurn) {
+                    isCpuTurn = false;
+                    nInCpuTurn = 0;
+                }
+            } else {
+                packet_gpu->addTile( std::move(tileDesc) );
+
+                if (packet_gpu->nTiles() >= actionA_gpu.nTilesPerPacket) {
+                    packet_gpu->initiateHostToDeviceTransfer();
+
+                    teamA_gpu->enqueue( std::move(packet_gpu) );
+
+                    packet_gpu = DataPacket::createPacket();
+                    isCpuTurn = true;
+                }
+            }
+        }
+
+        if (packet_gpu->nTiles() > 0) {
+            packet_gpu->initiateHostToDeviceTransfer();
+            teamA_gpu->enqueue( std::move(packet_gpu) );
+        } else {
+            packet_gpu.reset();
+        }
+
+        teamA_cpu->increaseThreadCount(1);
+    }
+    teamA_gpu->closeQueue(nullptr);
+    teamA_cpu->closeQueue(nullptr);
+
+    // All data flowing through the Action B/Post-A team
+    teamB_cpu->wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    teamA_cpu->detachThreadReceiver();
+    teamA_cpu->detachDataReceiver();
+    teamA_gpu->detachDataReceiver();
+    gpuToHost1_.detachDataReceiver();
+
+    Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
 }
 #endif
 
@@ -791,6 +967,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     teamA_cpu->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
     teamA_gpu->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
     teamB_gpu->startCycle(actionB_gpu, "ActionParallel_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
+    gpuToHost2_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     // Let CPU start work so that we overlap the first host-to-device transfer
@@ -854,15 +1032,15 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
         packetB_gpu.reset();
     }
 
-    teamA_cpu->closeQueue();
-    teamA_gpu->closeQueue();
-    teamB_gpu->closeQueue();
+    teamA_cpu->closeQueue(nullptr);
+    teamA_gpu->closeQueue(nullptr);
+    teamB_gpu->closeQueue(nullptr);
 
     // We are letting the host thread block without activating a thread in
     // a different thread team.
     teamA_cpu->wait();
-    teamA_gpu->wait();
-    teamB_gpu->wait();
+    gpuToHost1_.wait();
+    gpuToHost2_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
     teamA_gpu->detachThreadReceiver();
@@ -947,6 +1125,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     cpuTeam->startCycle(cpuAction, "Concurrent_CPU_Block_Team");
     gpuTeam->startCycle(gpuAction, "Concurrent_GPU_Packet_Team");
     postGpuTeam->startCycle(postGpuAction, "Post_GPU_Block_Team");
+    gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
@@ -1004,14 +1183,13 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeTasks_FullPacket] packet_gpu ownership not transferred (after)");
     }
 
-    gpuTeam->closeQueue();
-    cpuTeam->closeQueue();
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
     // in the host team first
     cpuTeam->increaseThreadCount(1);
     cpuTeam->wait();
-    gpuTeam->wait();
     postGpuTeam->wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
