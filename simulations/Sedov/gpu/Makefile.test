@@ -22,6 +22,8 @@ SRCS_TEST      = \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+    $(SEDOVDIR)/hy_computeFluxesHll.cpp \
+    $(SEDOVDIR)/hy_updateSolutionHll.cpp \
 	$(TESTDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
@@ -38,6 +40,7 @@ SRCS_TEST      = \
 	$(TESTDIR)/hy_updateVelzHll_oacc_summit.cpp \
 	$(TESTDIR)/hy_updateEnergyHll_oacc_summit.cpp \
 	$(TESTDIR)/hy_updateSolutionHll_oacc_summit.cpp \
+    $(SEDOVDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_1.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \

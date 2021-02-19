@@ -20,5 +20,5 @@ SRCS_TEST      = \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
-	$(TESTDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
+	$(SEDOVDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
 	$(TESTDIR)/sedov_cpu.cpp
