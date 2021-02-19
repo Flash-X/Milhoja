@@ -86,17 +86,20 @@ def main():
 
 
     # Copy par file into build dir
-    print("Copying par file "+args.par+" as Flash_par.h")
-    parFile = os.path.join(siteDir,args.par)
-    shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
+    if args.par is not None:
+        print("Copying par file "+args.par+" as Flash_par.h")
+        parFile = os.path.join(siteDir,args.par)
+        shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
 
     # Copy Flash_ND.h and constants_ND.h to build dir as Flash.h and constants.h
-    print("Copying Flash_{}D.h as Flash.h".format(args.dim))
-    print("Copying constants_{}D.h as Flash.h".format(args.dim))
     flashH = os.path.join(testDir,'Flash_{}D.h'.format(args.dim))
     constantsH = os.path.join(testDir,'constants_{}D.h'.format(args.dim))
-    shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
-    shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
+    if os.path.isfile(flashH):
+        print("Copying Flash_{}D.h as Flash.h".format(args.dim))
+        shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
+    if os.path.isfile(constantsH):
+        print("Copying constants_{}D.h as Flash.h".format(args.dim))
+        shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
 
     print("Writing setup.log")
     logfileName = os.path.join(buildDir,"setup.log")
@@ -119,9 +122,15 @@ def main():
         f.write('\n')
 
         f.write('Path to copied files:\n')
-        f.write('Flash_par.h copied from: {}\n'.format(os.path.abspath(parFile)) )
-        f.write('Flash.h copied from: {}\n'.format(os.path.abspath(constantsH)) )
-        f.write('constants.h copied from: {}\n'.format(os.path.abspath(flashH)) )
+        if args.par is not None:
+            f.write('Flash_par.h copied from: {}\n'.format(
+                    os.path.abspath(parFile)) )
+        if os.path.isfile(flashH):
+            f.write('Flash.h copied from: {}\n'.format(
+                    os.path.abspath(flashH)) )
+        if os.path.isfile(constantsH):
+            f.write('constants.h copied from: {}\n'.format(
+                    os.path.abspath(constantsH)) )
         f.write('\n')
 
         f.write('Contents of Makefile.setup:\n')
