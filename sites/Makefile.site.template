@@ -8,17 +8,21 @@ AMREXDIR     =
 GTESTDIR     =
 
 # Define the following compiler-related flags
-#  - CXXCOMPNAME: Name of C++ compiler {gnu, pgi, xl, clang}
+#  - CXXCOMPNAME: Name of C++ compiler {gnu, pgi, ibm, llvm}
 #  - CXXCOMP: The desired C++ compiler command or path
 #  - CXXFLAGS_PROD, CXXFLAGS_DEBUG: The set of compiler flags. The debug option
 #        will be chosen if --debug (or -d) is included in the setup command,
 #        otherwise the production flags will be used.
 #  - LDFLAGS_STD: Set of linker flags. Should include pthread and std c++ library.
+#  - CUCOMP, CUFLAGS_PROD: Cuda compiler and flags, if using Cuda backend
 CXXCOMPNAME  = gnu
 CXXCOMP      = mpicxx
 
-CXXFLAGS_PROD    = -g -O2
+CXXFLAGS_PROD    = -g -O3
 CXXFLAGS_DEBUG   = -g -O0
+
+CUCOMP       = nvcc
+CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 
 LDFLAGS_STD = -lpthread -lstdc++
 
@@ -42,3 +46,9 @@ GENHTML = genhtml
 
 CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
 LDFLAGS_COV  = --coverage
+
+# Define flags for OpenMP
+AMREXDIR_OMP  =
+OMP_FLAGS     = -mp
+CU_OMP_FLAGS  = -Xcompiler -mp
+OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
