@@ -7,11 +7,13 @@ SHELL=/bin/sh
 MAKEFILE     = Makefile
 MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base Makefile.test
 
-# Must include site first so BASEDIR is defined.
 include Makefile.site
 include Makefile.base
 include Makefile.test
 include Makefile.setup
+
+# Default shell commands
+RM ?= /bin/rm
 
 # Use C++11 standard, flags differ by compiler
 # -MMD generates a dependecy list for each file as a side effect
@@ -87,11 +89,10 @@ test:
 	./$(BINARYNAME)
 
 
-# Main make command depends on making all object files and creating object tree
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
 $(BINARYNAME): $(OBJS) $(MAKEFILES)
 ifeq ($(CODECOVERAGE), true)
-	/bin/rm -f *.gcda
+	$(RM) -f *.gcda
 endif
 	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
 
@@ -105,13 +106,13 @@ endif
 
 # Clean removes all intermediate files
 clean:
-	/bin/rm -f *.o
-	/bin/rm -f *.d
+	$(RM) -f *.o
+	$(RM) -f *.d
 ifeq ($(CODECOVERAGE), true)
-	/bin/rm -f *.gcno
-	/bin/rm -f *.gcda
+	$(RM) -f *.gcno
+	$(RM) -f *.gcda
 endif
-	/bin/rm -f lcov_temp.info
+	$(RM) -f lcov_temp.info
 
 
 .PHONY: coverage

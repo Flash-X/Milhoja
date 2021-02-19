@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# This script is the main workhorse of the build system. Users should invoke this script with a setup line
+# similar to the following, which will set up a build directory with the necessary files for making a test.
+# `python setup.py -s Thomass-MBP -d 2 -p grid_2D.par -t Grid`
+#
+# To make the test, cd into the build directory and run `make` or `make all`. Then, the test can be run with
+# `make test` and the code coverage report can be generated with `make coverage`.
+#
+# To get a summary of all the command line options, run `python setup.py --help`.
+
 import argparse, sys, os, shutil
 from subprocess import check_output
 
@@ -30,11 +39,12 @@ def main():
         shutil.rmtree(buildDir)
     os.makedirs(buildDir)
 
+    # Link main makefile
     print("Linking Makefile")
     mainMakefile = os.path.join(homeDir,'Makefile')
     os.symlink(mainMakefile,os.path.join(buildDir,'Makefile'))
 
-    # Copy makefiles parts from site, src, and test into build dir
+    # Link makefiles parts from site and src
     print("Linking Makefile.base")
     srcMakefile = os.path.join(homeDir,'src','Makefile.base')
     os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
@@ -101,6 +111,7 @@ def main():
         print("Copying constants_{}D.h as constants.h".format(args.dim))
         shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
 
+    # Write the setup logfile
     print("Writing setup.log")
     logfileName = os.path.join(buildDir,"setup.log")
     with open(logfileName,'w') as f:
