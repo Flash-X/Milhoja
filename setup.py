@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse, sys, os, shutil
+from subprocess import check_output
 
 def main():
     # Parse command line args
@@ -128,6 +129,16 @@ def main():
         with open(setupMakefile,'r') as fread:
             for line in fread:
                 f.write(line)
+        f.write('----------------------------\n\n')
+
+        f.write('Repository status:\n')
+        f.write('----------------------------\n')
+        f.write( check_output(['git','status']).decode('utf-8') )
+        f.write('----------------------------\n\n')
+
+        f.write('Most recent commits:\n')
+        f.write('----------------------------\n')
+        f.write( check_output(['git','log','--max-count','5']).decode('utf-8') )
         f.write('----------------------------\n')
 
     print("Successfully set up build directory!")
