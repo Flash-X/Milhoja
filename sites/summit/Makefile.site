@@ -6,7 +6,7 @@
 #  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(HOME)/orchestrationruntime
 AMREXDIR     = $(OLCF_AMREX$(NDIM)D_ROOT)
-GTESTDIR     =
+GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Define the following compiler-related flags
@@ -36,8 +36,10 @@ LDFLAGS_STD = -lpthread -lstdc++
 #  - LIB_AMREX: Linker flags for AMReX
 #  - LIB_GTEST: Linker flags for Googletest
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
 CUFLAGS_AMREX    = -I$(AMREXDIR)/include
 LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran -pgf90libs
+LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib64
 
 # Define the follwing paths for generating code coverage reports.
 #  - LCOV: path or command for the coverage tool (lcov)

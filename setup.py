@@ -98,7 +98,7 @@ def main():
         print("Copying Flash_{}D.h as Flash.h".format(args.dim))
         shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
     if os.path.isfile(constantsH):
-        print("Copying constants_{}D.h as Flash.h".format(args.dim))
+        print("Copying constants_{}D.h as constants.h".format(args.dim))
         shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
 
     print("Writing setup.log")

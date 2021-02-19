@@ -1,0 +1,30 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME    = test_cuda_backend.x
+
+# Define relevant paths
+TESTDIR       = $(BASEDIR)/test/CudaBackend
+
+# Define compiler flags in CXXFLAGS_TEST
+CXXFLAGS_TEST = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -D__PGI
+LDFLAGS_TEST = -lcudart -L$(CUDADIR)/lib64
+
+# This test uses Google Test
+CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
+CUFLAGS_TEST += $(CXXFLAGS_GTEST)
+LDFLAGS_TEST  += $(LIB_GTEST)
+
+# This test uses OACC
+CXXFLAGS_TEST += $(OACC_FLAGS)
+LDFLAGS_TEST  += $(OACC_FLAGS)
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST      = \
+        $(SRCDIR)/DataPacket.cpp \
+	$(TESTDIR)/runCudaBackendTests.cpp
+
+CU_SRCS = $(TESTDIR)/testCudaStreamManager.cu \
+          $(SRCDIR)/CudaGpuEnvironment.cu \
+          $(SRCDIR)/CudaDataPacket.cu \
+          $(SRCDIR)/CudaStreamManager.cu \
+          $(SRCDIR)/CudaMemoryManager.cu
