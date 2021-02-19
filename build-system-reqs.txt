@@ -41,7 +41,7 @@ Build System reqs
 
 File Name Requirements
 ----------------------
-[x] Each test directory should include files named Flash_ND.h and constants_ND.h where N is each supported dimensionality of the test.
+[x] Each test directory should include files named Flash_ND.h and constants_ND.h where N is each supported dimensionality of the test. Each site should include parameter files ("par files") which will be specified in a command line argument and copied into the build directory as Flash_par.h.
 
 [x] The build system auto-generates files with the name Makefile.setup, Flash.h, constants.h, and Flash_par.h in the build directory. Thus, files of these names should not be located anywhere else in the repository.
 

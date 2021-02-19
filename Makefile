@@ -89,7 +89,6 @@ test:
 	./$(BINARYNAME)
 
 
-# Main make command depends on making all object files and creating object tree
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
 $(BINARYNAME): $(OBJS) $(MAKEFILES)
 ifeq ($(CODECOVERAGE), true)
