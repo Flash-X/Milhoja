@@ -17,7 +17,7 @@ Build System reqs
     [ ] Debug levels
     [ ] Multithreaded distributor
 
-[ ] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
+[x] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
 
 [ ] The build tool shall automate the process of running a linter. The linter shall always run before compilation.
 
@@ -37,6 +37,19 @@ Build System reqs
         - Site managers shall create and maintain site-specific build information; e.g. compiler flags, environment variables.
 
 [ ] The Build Tool shall only require backend-specific information if the user is trying to build a test or a library configuration that requires that specific backend. Thus the tool shall not require site managers to support a backend they cannot or do not intend to use.
+
+
+File Name Requirements
+----------------------
+[x] Each test directory should include files named Flash_ND.h and constants_ND.h where N is each supported dimensionality of the test.
+
+[x] The build system auto-generates files with the name Makefile.setup, Flash.h, constants.h, and Flash_par.h in the build directory. Thus, files of these names should not be located anywhere else in the repository.
+
+[x] In order to avoid errors caused by ambiguous include statements, the following set of directories should not contain files with the same name:
+	- The main source directores (currently `src` and `includes`)
+	- The test directory of any given test
+	- The site directory for any given site
+Note that this means different tests and sites can (and should) have files with overlapping names, for example the required Flash_ND.h files. This requirement is not checked for in the current build system, so for now all contributors must self-enforce.
 
 
 Makefile specs
