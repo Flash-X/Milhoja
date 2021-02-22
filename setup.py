@@ -79,7 +79,7 @@ def main():
     with open(setupMakefile,'w') as f:
         f.write("ifneq ($(BASEDIR),{})\n".format(homeDir) )
         f.write("$(warning BASEDIR=$(BASEDIR) but repository root directory is {})\n".format(homeDir))
-	f.write("endif\n\n")
+        f.write("endif\n\n")
         f.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
         if args.debug:
             f.write("DEBUG = true\n")
