@@ -5,7 +5,7 @@
 #  - GTESTDIR: Path to the Googletest build directory
 #  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(HOME)/orchestrationruntime
-AMREXDIR     = $(OLCF_AMREX$(NDIM)D_ROOT)
+AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d
 GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
@@ -19,13 +19,11 @@ CUDADIR      = $(OLCF_CUDA_ROOT)
 CXXCOMPNAME  = pgi
 CXXCOMP      = mpicxx
 
-CXXFLAGS_PROD    = -g -O0 -DGRID_LOG -m64
+CXXFLAGS_PROD    = -O3 -m64
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 
-
 CUCOMP       = nvcc
-CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70 \
-               -DGRID_LOG
+CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 
 LDFLAGS_STD = -lpthread -lstdc++
 
