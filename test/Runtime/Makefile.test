@@ -27,6 +27,7 @@ LDFLAGS_TEST  += $(OACC_FLAGS)
 # Define list of sources in SRCS_TEST
 SRCS_TEST      = \
     $(SRCDIR)/DataPacket.cpp \
+	$(SRCDIR)/MoverUnpacker.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \

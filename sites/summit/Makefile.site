@@ -38,7 +38,7 @@ LDFLAGS_STD = -lpthread -lstdc++
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
 CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
 CUFLAGS_AMREX    = -I$(AMREXDIR)/include
-LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -lgfortran -pgf90libs
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -pgf90libs
 LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib64
 
 # Define the follwing paths for generating code coverage reports.
