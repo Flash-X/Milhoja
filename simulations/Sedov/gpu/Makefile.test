@@ -15,7 +15,8 @@ CUFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
 LDFLAGS_TEST  = -lcudart -L$(CUDADIR)/lib64
 
 # Adjust flags for OpenMP (OACC_FLAGS defined in Makefile.site)
-CXXFLAGS_TEST += $(OACC_FLAGS)
+CXXFLAGS_TEST_PROD  += $(OACC_FLAGS)
+CXXFLAGS_TEST_DEBUG += $(OACC_FLAGS)
 LDFLAGS_TEST  += $(OACC_FLAGS)
 
 # Define list of sources in SRCS_TEST
