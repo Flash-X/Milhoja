@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <string>
+#include <fstream>
+#include <iomanip>
 
 #include <mpi.h>
 
@@ -17,7 +19,55 @@
 
 #include "Flash_par.h"
 
+void createLogfile(const std::string& filename,
+                   const unsigned int nCpuThreads) {
+    // Write header to file
+    std::ofstream  fptr;
+    fptr.open(filename, std::ios::out);
+    fptr << "# Testname = CPU\n";
+    fptr << "# NXB = " << NXB << "\n";
+    fptr << "# NYB = " << NYB << "\n";
+    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# N_BLOCKS_X = " << rp_Grid::N_BLOCKS_X << "\n";
+    fptr << "# N_BLOCKS_Y = " << rp_Grid::N_BLOCKS_Y << "\n";
+    fptr << "# N_BLOCKS_Z = " << rp_Grid::N_BLOCKS_Z << "\n";
+    fptr << "# n_distributor_threads = 1\n";
+    fptr << "# n_cpu_threads = " << nCpuThreads << "\n";
+    fptr << "# n_gpu_threads = 0\n";
+    fptr << "# n_blocks_per_packet = 0\n";
+    fptr << "# n_blocks_per_cpu_turn = 0\n";
+    fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
+    fptr << "# step,nblocks_1,walltime_sec_1,...,nblocks_N,walltime_sec_N\n";
+    fptr.close();
+}
+
+void logTimestep(const std::string& filename,
+                 const unsigned int step,
+                 const double* walltimes_sec,
+                 const unsigned int* blockCounts,
+                 const int nProcs) {
+    std::ofstream  fptr;
+    fptr.open(filename, std::ios::out | std::ios::app);
+    fptr << std::setprecision(15) 
+         << step << ",";
+    for (int rank=0; rank<nProcs; ++rank) {
+        fptr << blockCounts[rank] << ',' << walltimes_sec[rank];
+        if (rank < nProcs - 1) {
+            fptr << ',';
+        }
+    }
+    fptr << std::endl;
+    fptr.close();
+}
+
 int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        std::cerr << "Two and only two command line arguments\n";
+        return 1;
+    }
+
+    std::string  fname_hydro{argv[1]};
+    std::string  fname_integrate{argv[2]};
     // TODO: Add in error handling code
 
     //----- MIMIC Driver_init
@@ -37,7 +87,16 @@ int main(int argc, char* argv[]) {
     orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
+    int  nProcs = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_size(GLOBAL_COMM, &nProcs);
+
+    double*       walltimes_sec = nullptr;
+    unsigned int* blockCounts = nullptr;
+    if (rank == MASTER_PE) {
+        walltimes_sec = new double[nProcs];
+        blockCounts   = new unsigned int[nProcs];
+    }
 
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();
@@ -82,6 +141,12 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
+    if (rank == MASTER_PE) {
+        createLogfile(fname_hydro, hydroAdvance.nInitialThreads);
+        createLogfile(fname_integrate, 
+                      computeIntQuantitiesByBlk.nInitialThreads);
+    }
+
     logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
 
     unsigned int   nStep   = 1;
@@ -108,7 +173,28 @@ int main(int argc, char* argv[]) {
         if (nStep > 1) {
             grid.fillGuardCells();
         }
+
+        // For the CSE21 presentation, time each action separetely to
+        // gather information about walltime/block as a function of 
+        // number of threads.  This should help tune the runtime
+        // configuration.
+        // 
+        // Each process measures and reports its own walltime for this
+        // computation as well as the number of blocks it applied the
+        // computation to.
+        double   tStart = MPI_Wtime(); 
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        double       wtime_sec = MPI_Wtime() - tStart;
+        unsigned int nBlocks   = grid.getNumberLocalBlocks();
+        MPI_Gather(&wtime_sec, 1, MPI_DOUBLE,
+                   walltimes_sec, 1, MPI_DOUBLE, MASTER_PE,
+                   GLOBAL_COMM);
+        MPI_Gather(&nBlocks, 1, MPI_UNSIGNED,
+                   blockCounts, 1, MPI_UNSIGNED, MASTER_PE,
+                   GLOBAL_COMM);
+        if (rank == MASTER_PE) {
+            logTimestep(fname_hydro, nStep, walltimes_sec, blockCounts, nProcs);
+        }
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
@@ -118,7 +204,16 @@ int main(int argc, char* argv[]) {
         // Compute local integral quantities
         // TODO: This should be run as a CPU-based pipeline extension
         //       to the physics action bundle.
+        tStart = MPI_Wtime(); 
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        wtime_sec = MPI_Wtime() - tStart;
+        MPI_Gather(&wtime_sec, 1, MPI_DOUBLE,
+                   walltimes_sec, 1, MPI_DOUBLE, MASTER_PE,
+                   GLOBAL_COMM);
+        if (rank == MASTER_PE) {
+            logTimestep(fname_integrate, nStep, walltimes_sec, blockCounts, nProcs);
+        }
+
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
@@ -154,6 +249,12 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    if (rank == MASTER_PE) {
+        delete [] walltimes_sec;
+        walltimes_sec = nullptr;
+        delete [] blockCounts;
+        blockCounts = nullptr;
+    }
 
     return 0;
 }
