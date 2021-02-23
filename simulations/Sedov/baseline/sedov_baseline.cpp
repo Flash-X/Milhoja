@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <string>
+#include <fstream>
+#include <iomanip>
 
 #include <mpi.h>
 
@@ -17,9 +19,54 @@
 
 #include "Flash_par.h"
 
-int main(int argc, char* argv[]) {
-    // TODO: Add in error handling code
+void createLogfile(const std::string& filename) {
+    // Write header to file
+    std::ofstream  fptr;
+    fptr.open(filename, std::ios::out);
+    fptr << "# Testname = Baseline\n";
+    fptr << "# NXB = " << NXB << "\n";
+    fptr << "# NYB = " << NYB << "\n";
+    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# N_BLOCKS_X = " << rp_Grid::N_BLOCKS_X << "\n";
+    fptr << "# N_BLOCKS_Y = " << rp_Grid::N_BLOCKS_Y << "\n";
+    fptr << "# N_BLOCKS_Z = " << rp_Grid::N_BLOCKS_Z << "\n";
+    fptr << "# n_distributor_threads = 1 \n";
+    fptr << "# n_cpu_threads = 0 \n";
+    fptr << "# n_gpu_threads = 0 \n";
+    fptr << "# n_blocks_per_packet = 0 \n";
+    fptr << "# n_blocks_per_cpu_turn = 0 \n";
+    fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
+    fptr << "# step,nblocks_1,walltime_sec_1,...,nblocks_N,walltime_sec_N\n";
+    fptr.close();
+}
 
+void logTimestep(const std::string& filename,
+                 const unsigned int step,
+                 const double* walltimes_sec,
+                 const unsigned int* blockCounts,
+                 const int nProcs) {
+    std::ofstream  fptr;
+    fptr.open(filename, std::ios::out | std::ios::app);
+    fptr << std::setprecision(15) 
+         << step << ",";
+    for (int rank=0; rank<nProcs; ++rank) {
+        fptr << blockCounts[rank] << ',' << walltimes_sec[rank];
+        if (rank < nProcs - 1) {
+            fptr << ',';
+        }
+    }
+    fptr << std::endl;
+    fptr.close();
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "One and only one command line argument" << std::endl;
+        return 1;
+    }
+    std::string  filename{argv[1]};
+
+    // TODO: Add in error handling code
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
     orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
@@ -31,7 +78,18 @@ int main(int argc, char* argv[]) {
     orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
+    int  nProcs = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_size(GLOBAL_COMM, &nProcs);
+
+    double*       walltimes_sec = nullptr;
+    unsigned int* blockCounts = nullptr;
+    if (rank == MASTER_PE) {
+        walltimes_sec = new double[nProcs];
+        blockCounts   = new unsigned int[nProcs];
+
+        createLogfile(filename);
+    }
 
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();
@@ -88,6 +146,15 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION
         // Update unk data on interiors only
+        
+        // For the CSE21 presentation I will time the full time step between
+        // data movements.  This should allow me to time the same computation
+        // in the GPU runtime version of Sedov.
+        // 
+        // Each process measures and reports its own walltime for this
+        // computation as well as the number of blocks it applied the
+        // computation to.
+        double   tStart = MPI_Wtime(); 
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             tileDesc = ti->buildCurrentTile();
 
@@ -117,8 +184,20 @@ int main(int argc, char* argv[]) {
             Eos::idealGammaDensIe(lo, hi, U);
         }
 
-        //----- OUTPUT RESULTS TO FILES
         io.computeLocalIntegralQuantities();
+        double       wtime_sec = MPI_Wtime() - tStart;
+        unsigned int nBlocks   = grid.getNumberLocalBlocks();
+        MPI_Gather(&wtime_sec, 1, MPI_DOUBLE,
+                   walltimes_sec, 1, MPI_DOUBLE, MASTER_PE,
+                   GLOBAL_COMM);
+        MPI_Gather(&nBlocks, 1, MPI_UNSIGNED,
+                   blockCounts, 1, MPI_UNSIGNED, MASTER_PE,
+                   GLOBAL_COMM);
+        if (rank == MASTER_PE) {
+            logTimestep(filename, nStep, walltimes_sec, blockCounts, nProcs);
+        }
+
+        //----- OUTPUT RESULTS TO FILES
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
@@ -158,6 +237,12 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    if (rank == MASTER_PE) {
+        delete [] walltimes_sec;
+        walltimes_sec = nullptr;
+        delete [] blockCounts;
+        blockCounts = nullptr;
+    }
 
     return 0;
 }
