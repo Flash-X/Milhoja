@@ -6,7 +6,8 @@ SEDOVDIR      = $(BASEDIR)/simulations/Sedov
 TESTDIR       = $(BASEDIR)/simulations/Sedov/cpu
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(TESTDIR)
 LDFLAGS_TEST  =
 
 # Define list of sources in SRCS_TEST
