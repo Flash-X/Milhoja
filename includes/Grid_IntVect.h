@@ -113,11 +113,6 @@ class IntVect
 
     //! Get and set values of the internal array.
     int& operator[] (const unsigned int i) {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM) {
-            throw std::logic_error("Index out-of-bounds in IntVect.");
-        }
-#endif
         switch(i) {
             case Axis::I:
                 return i_;
@@ -130,15 +125,10 @@ class IntVect
                 return k_;
 #endif
         }
-        return i_;
+        throw std::logic_error("Index out-of-bounds in IntVect.");
     }
     //! Get values of the internal array as const.
     const int& operator[] (const unsigned int i) const {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM) {
-            throw std::logic_error("Index out-of-bounds in IntVect.");
-        }
-#endif
         switch(i) {
             case Axis::I:
                 return i_;
@@ -151,7 +141,7 @@ class IntVect
                 return k_;
 #endif
         }
-        return i_;
+        throw std::logic_error("Index out-of-bounds in IntVect.");
     }
 
     //! Check if two vectors are equal element-by-element.

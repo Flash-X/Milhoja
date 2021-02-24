@@ -96,14 +96,8 @@ class RealVect
     }
 
     /** \brief Get and set values of the internal array.
-      * Perform bounds check unless GRID_ERRCHECK_OFF is set.
       */
     Real& operator[] (const int i) {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) {
-            throw std::logic_error("Index out-of-bounds in RealVect.");
-        }
-#endif
         switch(i) {
             case Axis::I:
                 return i_;
@@ -116,15 +110,10 @@ class RealVect
                 return k_;
 #endif
         }
-        return i_;
+        throw std::logic_error("Index out-of-bounds in RealVect.");
     }
     //! Get values of the internal array as consts.
     const Real& operator[] (const int i) const {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) {
-            throw std::logic_error("Index out-of-bounds in RealVect.");
-        }
-#endif
         switch(i) {
             case Axis::I:
                 return i_;
@@ -137,7 +126,7 @@ class RealVect
                 return k_;
 #endif
         }
-        return i_;
+        throw std::logic_error("Index out-of-bounds in RealVect.");
     }
 
     //TODO: Potential operators
