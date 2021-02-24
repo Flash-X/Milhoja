@@ -510,11 +510,15 @@ TEST_F(GridUnitTest,MultipleLevels){
 TEST_F(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
+
+    // Try instantiating Grid after it's already been done
     try {
         Grid::instantiate();
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
+
+    // Try initDomain with null setInitialConditions routine
     try {
         grid.initDomain(nullptr,
                         rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
@@ -529,6 +533,7 @@ TEST_F(GridUnitTest,LogicErrors){
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMaximal);
 
+    // Try initDomain after it's already been called
     try {
         grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                         rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
@@ -538,7 +543,68 @@ TEST_F(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    EXPECT_EQ( caughtErrors, 3);
+    // Try unimplemented routines
+    try {
+        grid.Grid::getDeltas(0);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        grid.Grid::getCellFaceAreaLo(0,0,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        grid.Grid::getCellVolume(0,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        grid.Grid::getCellCoords(0,0,0,iv,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongAxis = 3;
+        grid.Grid::getCellCoords(wrongAxis,0,0,iv,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongEdge = -1;
+        grid.Grid::getCellCoords(0,wrongEdge,0,iv,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        Real* rp;
+        grid.Grid::fillCellFaceAreasLo(0,0,iv,iv,rp);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongAxis = 3;
+        Real* rp;
+        grid.Grid::fillCellFaceAreasLo(wrongAxis,0,iv,iv,rp);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        Real* rp;
+        grid.Grid::fillCellVolumes(0,iv,iv,rp);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    EXPECT_EQ( caughtErrors, 12);
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
