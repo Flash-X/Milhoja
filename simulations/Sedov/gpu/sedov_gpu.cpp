@@ -192,20 +192,26 @@ int main(int argc, char* argv[]) {
             grid.fillGuardCells();
         }
 
-        // For the CSE21 presentation I will time the full time step between
-        // data movements.  This must be done to match timing in Baseline
-        // problem.
+        // Time the hydro advance when no compute work is being done on
+        // the CPU so that we can determine what optimal transportation
+        // and execution times look like in the absence of  host-side
+        // resource contention.  These results can hopefully be used to
+        // tune runtime parameters.
+        //
+        // Ideally, I would do this first a GPU-only TT config running
+        // just Hydro so that I could also determine if adding a 
+        // CPU action afterward slows down GPU execution.  However,
+        // I don't have time to do that now.  I will, however, run the
+        // tests with zero initial threads for the CPU team.
         // 
         // Each process measures and reports its own walltime for this
         // computation as well as the number of blocks it applied the
         // computation to.
         double   tStart = MPI_Wtime(); 
-        runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
-                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                                hydroAdvance_cpu,
-                                                hydroAdvance_gpu,
-                                                computeIntQuantitiesByBlk,
-                                                rp_Bundle_2::N_TILES_PER_CPU_TURN);
+        runtime.executeExtendedGpuTasks("Advance Hydro Solution",
+                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                        hydroAdvance_gpu,
+                                        computeIntQuantitiesByBlk);
         double       wtime_sec = MPI_Wtime() - tStart;
         unsigned int nBlocks   = grid.getNumberLocalBlocks();
         MPI_Gather(&wtime_sec, 1, MPI_DOUBLE,

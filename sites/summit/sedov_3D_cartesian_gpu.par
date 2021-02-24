@@ -14,10 +14,10 @@ namespace rp_Bundle_2 {
     // An Extended Cpu/Gpu pipeline
     //   - CPU & GPU apply Hydro solution advance
     //   - Post computes the local integral quantities
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 4;
-    constexpr unsigned int          N_TILES_PER_CPU_TURN = 20;
-    constexpr unsigned int          N_THREADS_CPU = 3;
-    constexpr unsigned int          N_THREADS_GPU = 4;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 1;
+    constexpr unsigned int          N_TILES_PER_CPU_TURN = 0;
+    constexpr unsigned int          N_THREADS_CPU = 0;
+    constexpr unsigned int          N_THREADS_GPU = 1;
     constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
     constexpr unsigned int          N_THREADS_POST = 0;
 }
@@ -45,7 +45,7 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 14;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 10;
     constexpr unsigned int          N_THREAD_TEAMS         = 3;
     constexpr int                   N_STREAMS              = 32;
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 15032385536;
