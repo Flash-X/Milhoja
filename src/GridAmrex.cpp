@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <assert.h>
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
@@ -68,18 +69,14 @@ void passRPToAmrex() {
 GridAmrex::GridAmrex(void)
     : amrcore_{nullptr}
 {
-    // Check amrex::Real matches orchestraton::Real
-    if(!std::is_same<amrex::Real,Real>::value) {
-      throw std::logic_error("amrex::Real does not match orchestration::Real");
-    }
+    // Assert that amrex::Real matches orchestration::Real
+    static_assert( std::is_same<amrex::Real,Real>::value,
+        "amrex::Real and orchestration::Real do not match");
 
-    // Check IntVect::{I,J,K} behavior matches amrex::Dim3
+    // Check orchestration::IntVect behavior matches amrex::Dim3
     IntVect iv{LIST_NDIM(17,19,21)};
     amrex::Dim3 d3 = amrex::IntVect(iv).dim3();
-    if( iv.I()!=d3.x || iv.J()!=d3.y || iv.K()!=d3.z ) {
-      throw std::logic_error("amrex::Dim3 and orchestration::IntVect do not "
-                             "have matching default values.");
-    }
+    assert( iv.I()==d3.x && iv.J()==d3.y && iv.K()==d3.z);
 
     passRPToAmrex();
     amrex::Initialize(MPI_COMM_WORLD);
