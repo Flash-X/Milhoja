@@ -228,7 +228,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
         EXPECT_EQ( domainHi, actual_dhi - 1 );
 
         RealVect deltas = grid.getDeltas(lev);
-        for(int i=1;i<NDIM;++i) {
+        for(int i=0;i<NDIM;++i) {
             EXPECT_NEAR(actual_deltas[i] , deltas[i], eps);
         }
     }
@@ -280,7 +280,7 @@ TEST_F(GridUnitTest,PerTileGetters){
             RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
 
             RealVect blkCenterCoords = tileDesc->getCenterCoords();
-            for(int i=1;i<NDIM;++i) {
+            for(int i=0;i<NDIM;++i) {
                 ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
             }
         }
@@ -300,6 +300,9 @@ TEST_F(GridUnitTest,PerTileGetters){
         for (int i=0;i<NDIM;++i) {
             actual_fa[i] = actual_vol / actual_deltas[i];
         }
+#if NDIM==1
+        actual_fa[0] = 0.0_wp;
+#endif
 
         for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
             count = (count+1)%7;
@@ -308,7 +311,7 @@ TEST_F(GridUnitTest,PerTileGetters){
             std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
             IntVect vert = tileDesc->lo();
             ASSERT_NEAR( actual_vol, grid.getCellVolume(lev,vert), eps);
-            for(int i=1;i<NDIM;++i) {
+            for(int i=0;i<NDIM;++i) {
                 ASSERT_NEAR( actual_fa[i],
                              grid.getCellFaceAreaLo(i,lev,vert) , eps);
             }
@@ -574,6 +577,11 @@ TEST_F(GridUnitTest,LogicErrors){
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
+    try {
+        grid.buildTileIter(grid.getMaxLevel() + 1);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
 
     // Try invalid axis/edge cases
     try {
@@ -660,7 +668,7 @@ TEST_F(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    EXPECT_EQ( caughtErrors, 17);
+    EXPECT_EQ( caughtErrors, 18);
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){

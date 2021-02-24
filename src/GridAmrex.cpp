@@ -265,6 +265,8 @@ RealVect    GridAmrex::getDeltas(const unsigned int level) const {
 
 
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
+  * DEV NOTE: CoordSys::AreaLo defaults to 0 for NDIM==1 (This is different
+  * than the multi cell getter)
   *
   * @param axis Axis of desired face, returns the area of the lo side.
   * @param lev Level (0-based)
@@ -360,6 +362,7 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
 /** fillCellFaceAreasLo fills a Real array (passed by pointer) with the
   * cell face areas in a given range.
   * DEV NOTE: I assumed CoordSys::SetFaceArea corresponds to AreaLo (not AreaHi)
+  * DEV NOTE: CoordSys::SetFaceArea defaults to 1.0 for NDIM==1.
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param lev Level (0-based)
