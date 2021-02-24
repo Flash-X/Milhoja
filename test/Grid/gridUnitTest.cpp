@@ -183,7 +183,6 @@ TEST_F(GridUnitTest,ProbConfigGetters){
                                 rp_Simulation::N_THREADS_FOR_IC,
                                 Simulation::errorEstMaximal);
     float eps = 1.0e-14;
-    int count;
 
     Grid& grid = Grid::instance();
     RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
@@ -260,9 +259,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
     for (int i=0;i<NDIM;++i) {
-        int p1 = int(i==0);
-        int p2 = 2 - int(i==2);
-        actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1], *actual_deltas[p2] );
+        actual_fa[i] = actual_vol / actual_deltas[i];
     }
 
     // Test Tile::getCenterCoords with tile iterator
@@ -325,10 +322,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
     for (int i=0;i<NDIM;++i) {
-        int p1 = int(i==0);
-        int p2 = 2 - int(i==2);
-        actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1],
-                                    *actual_deltas[p2] );
+        actual_fa[i] = actual_vol / actual_deltas[i];
     }
 
     for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
