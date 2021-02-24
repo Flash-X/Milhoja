@@ -553,7 +553,7 @@ TEST_F(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    // Try initDomain with null setInitialConditions routine
+    // Try initDomain with invalid arguments
     try {
         grid.initDomain(nullptr,
                         rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
@@ -562,6 +562,33 @@ TEST_F(GridUnitTest,LogicErrors){
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
+    //try {
+    //    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+    //                    2,
+    //                    rp_Simulation::N_THREADS_FOR_IC,
+    //                    Simulation::errorEstMaximal);
+    //} catch (const std::invalid_argument& e) {
+    //    caughtErrors++;
+    //}
+    //grid.destroyDomain();
+    //try {
+    //    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+    //                    rp_Simulation::N_THREADS_FOR_IC + 1,
+    //                    rp_Simulation::N_THREADS_FOR_IC,
+    //                    Simulation::errorEstMaximal);
+    //} catch (const std::invalid_argument& e) {
+    //    caughtErrors++;
+    //}
+    //grid.destroyDomain();
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                        rp_Simulation::N_THREADS_FOR_IC,
+                        0,
+                        Simulation::errorEstMaximal);
+    } catch (const std::invalid_argument& e) {
+        caughtErrors++;
+    }
+    grid.destroyDomain();
 
     grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
@@ -668,7 +695,7 @@ TEST_F(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    EXPECT_EQ( caughtErrors, 18);
+    EXPECT_EQ( caughtErrors, 19);
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
