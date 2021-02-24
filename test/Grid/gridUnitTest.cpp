@@ -517,6 +517,7 @@ TEST_F(GridUnitTest,MultipleLevels){
 
     grid.fillGuardCells();
     grid.regrid();
+    EXPECT_EQ(grid.getMaxLevel() , 2 );
 
     for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
         auto tileDesc = ti->buildCurrentTile();
@@ -529,6 +530,43 @@ TEST_F(GridUnitTest,MultipleLevels){
             ASSERT_NEAR(data(i,j,k,0) , 1.25_wp, eps);
         }}}
     }
+
+    // Test Remake Level (derefine half of max level)
+    IntVect midpoint = (grid.getDomainHi(2)+1)/2;
+    for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
+        auto tileDesc = ti->buildCurrentTile();
+        auto data = tileDesc->data();
+        auto lo = tileDesc->lo();
+        auto hi = tileDesc->hi();
+        if (hi.allLT(midpoint)) {
+            for (int k = lo.K(); k <= hi.K(); ++k) {
+            for (int j = lo.J(); j <= hi.J(); ++j) {
+            for (int i = lo.I(); i <= hi.I(); ++i) {
+                data(i,j,k,0) = 1.15_wp;
+            }}}
+        }
+    }
+    grid.restrictAllLevels();
+    grid.fillGuardCells();
+    grid.regrid();
+    EXPECT_EQ( grid.getMaxLevel(), 2 );
+
+    // Test derefinment
+    for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
+        auto tileDesc = ti->buildCurrentTile();
+        auto data = tileDesc->data();
+        auto lo = tileDesc->lo();
+        auto hi = tileDesc->hi();
+        for (int k = lo.K(); k <= hi.K(); ++k) {
+        for (int j = lo.J(); j <= hi.J(); ++j) {
+        for (int i = lo.I(); i <= hi.I(); ++i) {
+            data(i,j,k,0) = 1.15_wp;
+        }}}
+    }
+    grid.restrictAllLevels();
+    grid.fillGuardCells();
+    grid.regrid();
+    EXPECT_EQ( grid.getMaxLevel(), 1 );
 }
 
 TEST_F(GridUnitTest,LogicErrors){
