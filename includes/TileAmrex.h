@@ -33,7 +33,6 @@ public:
     TileAmrex& operator=(const TileAmrex&) = delete;
 
     // Overrides to pure virtual functions
-    bool           isNull(void) const override;
     int            gridIndex(void) const override { return gridIdx_; }
     unsigned int   level(void) const override { return level_; }
 

@@ -60,16 +60,6 @@ TileAmrex::~TileAmrex(void) {
 }
 
 /**
- * \brief Checks whether a Tile is null.
- */
-bool   TileAmrex::isNull(void) const {
-    return (   (gridIdx_ < 0) //TODO this is never true?
-            && (level_ == 0) 
-            && (interior_    == nullptr)
-            && (GC_          == nullptr));
-}
-
-/**
  * \brief Gets index of lo cell in the Tile
  *
  * \return IntVect with index of lower left cell.

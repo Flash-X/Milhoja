@@ -30,7 +30,6 @@ public:
     Tile& operator=(const Tile&) = delete;
 
     // Pure virtual functions
-    virtual bool         isNull(void) const = 0;
     virtual int          gridIndex(void) const = 0;
     virtual unsigned int level(void) const = 0;
     virtual IntVect      lo(void) const = 0;
