@@ -198,6 +198,10 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
+    // Test getNumberLocalBlocks
+    unsigned int nBlocksLocal   = grid.getNumberLocalBlocks();
+    EXPECT_EQ(nBlocksLocal, nBlocks.product() );
+
     // Testing Grid::getMaxRefinement and getMaxLevel
     EXPECT_EQ(grid.getMaxRefinement() , rp_Grid::LREFINE_MAX-1);
     EXPECT_EQ(grid.getMaxLevel()      , rp_Grid::LREFINE_MAX-1);
@@ -228,6 +232,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
         }
     }
 
+    // Test subcellGeometry
     Real subVols[32];
     grid.subcellGeometry(8,4,2,12.8,subVols);
     for (int i=0;i<32;++i) {
