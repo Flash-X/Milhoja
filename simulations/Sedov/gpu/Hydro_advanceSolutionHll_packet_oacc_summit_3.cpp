@@ -17,6 +17,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
     const int                  queue_h    = packet_h->asynchronousQueue();
+    Stream&                    stream2_h  = packet_h->extraStream(0);
+    Stream&                    stream3_h  = packet_h->extraStream(1);
     const PacketDataLocation   location   = packet_h->getDataLocation();
     const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
@@ -82,15 +84,12 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
             }
 #elif NDIM == 3
             // Acquire extra streams
-            StreamManager& sMgr = StreamManager::instance();
-            Stream         stream2 = sMgr.requestStream(false);
-            const int      queue2_h = stream2.accAsyncQueue;
+            const int      queue2_h = stream2_h.accAsyncQueue;
             if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
                 throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
                                          "Unable to acquire second asynchronous queue");
             }
-            Stream         stream3 = sMgr.requestStream(false);
-            const int      queue3_h = stream3.accAsyncQueue;
+            const int      queue3_h = stream3_h.accAsyncQueue;
             if (queue3_h == NULL_ACC_ASYNC_QUEUE) {
                 throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
                                          "Unable to acquire third asynchronous queue");
@@ -134,10 +133,11 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                    U_d, flZ_d, auxC_d);
             }
             // BARRIER - fluxes must all be computed before updated the solution
+            StreamManager& sMgr = StreamManager::instance();
             #pragma acc wait(queue_h,queue2_h,queue3_h)
 
-            sMgr.releaseStream(stream2);
-            sMgr.releaseStream(stream3);
+            sMgr.releaseStream(stream2_h);
+            sMgr.releaseStream(stream3_h);
 #endif
 
             //----- UPDATE SOLUTIONS IN PLACE

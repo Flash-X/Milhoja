@@ -11,6 +11,9 @@
 #include "FArray4D.h"
 #include "Tile.h"
 #include "DataItem.h"
+#ifdef ENABLE_OPENACC_OFFLOAD
+#include "Stream.h"
+#endif
 
 namespace orchestration {
 
@@ -68,6 +71,7 @@ public:
     virtual void                   unpack(void) = 0;
 #ifdef ENABLE_OPENACC_OFFLOAD
     virtual int                    asynchronousQueue(void) = 0;
+    virtual Stream&                extraStream(const int idx) = 0;
 #endif
 #ifdef ENABLE_CUDA_OFFLOAD
     virtual cudaStream_t           stream(void) = 0;

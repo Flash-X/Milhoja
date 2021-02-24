@@ -62,6 +62,7 @@ public:
     void                   unpack(void) override;
 #ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
+    Stream&                extraStream(const int idx)       { return streamsExtra_[idx]; }
 #endif
 #ifdef ENABLE_CUDA_OFFLOAD
     cudaStream_t           stream(void) override { return stream_.cudaStream; };
@@ -94,6 +95,7 @@ private:
     PacketContents*                        contents_p_;
     PacketContents*                        contents_d_;
     Stream                                 stream_;
+    Stream*                                streamsExtra_;
     std::size_t                            nBytesPerPacket_;
 
     Real*                                  dt_d_;

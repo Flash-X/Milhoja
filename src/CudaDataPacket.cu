@@ -40,6 +40,7 @@ CudaDataPacket::CudaDataPacket(void)
       contents_p_{nullptr},
       contents_d_{nullptr},
       stream_{},
+      streamsExtra_{nullptr},
       nBytesPerPacket_{0},
       dt_d_{nullptr}
 {
@@ -69,6 +70,19 @@ void  CudaDataPacket::nullify(void) {
         assert(stream_.cudaStream == nullptr);
     }
 
+    if (streamsExtra_) {
+        // FIXME: Hardcoded size!
+        for (unsigned int i=0; i<2; ++i) {
+            if (streamsExtra_[i].cudaStream != nullptr) {
+                CudaStreamManager::instance().releaseStream(streamsExtra_[i]);
+                assert(streamsExtra_[i].cudaStream == nullptr);
+            }
+        }
+
+        delete [] streamsExtra_;
+        streamsExtra_ = nullptr;
+    }
+
     CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
     assert(packet_p_ == nullptr);
     assert(packet_d_ == nullptr);
@@ -92,6 +106,8 @@ void  CudaDataPacket::nullify(void) {
 std::string  CudaDataPacket::isNull(void) const {
     if (stream_.cudaStream != nullptr) {
         return "CUDA stream already acquired";
+    } else if (streamsExtra_ != nullptr) {
+        return "Extra stream already acquired";
     } else if (packet_p_ != nullptr) {
         return "Pinned memory buffer has already been allocated";
     } else if (packet_d_ != nullptr) {
@@ -223,6 +239,21 @@ void  CudaDataPacket::pack(void) {
     if (stream_.cudaStream == nullptr) {
         throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire stream");
     }
+
+    // TODO: This is an ugly workaround for now.  If we want eager acquisition
+    // of stream resources in order to prevent possible deadlocks on
+    // dynamic requesting of streams, then this needs to be made more
+    // configurable.
+#if NDIM == 3
+    // FIXME: Hardcoded size!
+    streamsExtra_ = new Stream[2];
+    for (unsigned int i=0; i<2; ++i) {
+        streamsExtra_[i] = CudaStreamManager::instance().requestStream(true);
+        if (streamsExtra_[i].cudaStream == nullptr) {
+            throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire extra stream");
+        }
+    }
+#endif
 
     // Allocate memory in pinned and device memory on demand for now
     CudaMemoryManager::instance().requestMemory(nBytesPerPacket_,
@@ -453,6 +484,19 @@ void  CudaDataPacket::unpack(void) {
     // Release stream as soon as possible
     CudaStreamManager::instance().releaseStream(stream_);
     assert(stream_.cudaStream == nullptr);
+
+    if (streamsExtra_) {
+        // FIXME: Hardcoded size!
+        for (unsigned int i=0; i<2; ++i) {
+            if (streamsExtra_[i].cudaStream != nullptr) {
+                CudaStreamManager::instance().releaseStream(streamsExtra_[i]);
+                assert(streamsExtra_[i].cudaStream == nullptr);
+            }
+        }
+
+        delete [] streamsExtra_;
+        streamsExtra_ = nullptr;
+    }
 
     PacketContents*   tilePtrs_p = contents_p_;
     for (std::size_t n=0; n<tiles_.size(); ++n, ++tilePtrs_p) {
