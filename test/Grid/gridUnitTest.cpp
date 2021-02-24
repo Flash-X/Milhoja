@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "Flash_par.h"
 
+#include "OrchestrationLogger.h"
 #include "Grid.h"
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
@@ -395,7 +396,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         }
         }
 
-        // Test Grid::fillCellCoords over an arbitrary range
+        // Test Grid::getCellCoords over an arbitrary range
         {
         int edge[3] = {Edge::Left, Edge::Right, Edge::Center};
         Real actual_coord;
@@ -413,13 +414,18 @@ TEST_F(GridUnitTest,MultiCellGetters){
                     offset = 0.5_wp;
                     break;
             }
-            for(int n=0;n<NDIM;++n) {
+            for(int n=0;n<MDIM;++n) {
                 //loop over axis cases
                 FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
-                for(int i=vlo[n]; i<=vhi[n]; ++i) {
-                    actual_coord = actual_min[n] + (Real(i)+offset)
-                                   * actual_deltas[n];
-                    ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
+                if (n<NDIM) {
+                    for(int i=vlo[n]; i<=vhi[n]; ++i) {
+                        actual_coord = actual_min[n] + (Real(i)+offset)
+                                       * actual_deltas[n];
+                        ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
+                    }
+                } else {
+                    // Test default value for axes above NDIM
+                    ASSERT_NEAR( coord_ptr(0), 0.0_wp, eps);
                 }
             }
         }
@@ -526,9 +532,20 @@ TEST_F(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
 
-    // Try instantiating Grid after it's already been done
+    // Try instantiating Grid & Logger after it's already been done
     try {
         Grid::instantiate();
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        Logger::instantiate("GridUnitTest.log");
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    // Try Logger::setLogFilename with empty name
+    try {
+        Logger::setLogFilename("");
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
@@ -554,6 +571,30 @@ TEST_F(GridUnitTest,LogicErrors){
                         rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                         rp_Simulation::N_THREADS_FOR_IC,
                         Simulation::errorEstMaximal);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    // Try invalid axis/edge cases
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongAxis = 3;
+        grid.getCellCoords(wrongAxis,0,0,iv,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongEdge = -1;
+        grid.getCellCoords(0,wrongEdge,0,iv,iv);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+    try {
+        IntVect iv{LIST_NDIM(0,0,0)};
+        int wrongAxis = 3;
+        Real* rp;
+        grid.fillCellFaceAreasLo(wrongAxis,0,iv,iv,rp);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
@@ -619,7 +660,7 @@ TEST_F(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    EXPECT_EQ( caughtErrors, 12);
+    EXPECT_EQ( caughtErrors, 17);
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
