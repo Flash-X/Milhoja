@@ -417,20 +417,22 @@ TEST_F(GridUnitTest,MultiCellGetters){
                     offset = 0.5_wp;
                     break;
             }
-            for(int n=0;n<MDIM;++n) {
+            for(int n=0;n<NDIM;++n) {
                 //loop over axis cases
                 FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
-                if (n<NDIM) {
-                    for(int i=vlo[n]; i<=vhi[n]; ++i) {
-                        actual_coord = actual_min[n] + (Real(i)+offset)
-                                       * actual_deltas[n];
-                        ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
-                    }
-                } else {
-                    // Test default value for axes above NDIM
-                    ASSERT_NEAR( coord_ptr(0), 0.0_wp, eps);
+                for(int i=vlo[n]; i<=vhi[n]; ++i) {
+                    actual_coord = actual_min[n] + (Real(i)+offset)
+                                   * actual_deltas[n];
+                    ASSERT_NEAR( coord_ptr(i), actual_coord, eps);
                 }
             }
+#if NDIM<3
+            for(int n=NDIM; n<MDIM; ++n) {
+                // Test default value for axes above NDIM
+                FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
+                ASSERT_NEAR( coord_ptr(0), 0.0_wp, eps);
+            }
+#endif
         }
         }
     }
@@ -600,24 +602,24 @@ TEST_F(GridUnitTest,LogicErrors){
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
-    //try {
-    //    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-    //                    2,
-    //                    rp_Simulation::N_THREADS_FOR_IC,
-    //                    Simulation::errorEstMaximal);
-    //} catch (const std::invalid_argument& e) {
-    //    caughtErrors++;
-    //}
-    //grid.destroyDomain();
-    //try {
-    //    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-    //                    rp_Simulation::N_THREADS_FOR_IC + 1,
-    //                    rp_Simulation::N_THREADS_FOR_IC,
-    //                    Simulation::errorEstMaximal);
-    //} catch (const std::invalid_argument& e) {
-    //    caughtErrors++;
-    //}
-    //grid.destroyDomain();
+#ifdef MULTITHREADED_DISTRIBUTOR
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                        2,
+                        rp_Simulation::N_THREADS_FOR_IC,
+                        Simulation::errorEstMaximal);
+    } catch (const std::invalid_argument& e) {
+    }
+    grid.destroyDomain();
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                        rp_Simulation::N_THREADS_FOR_IC + 1,
+                        rp_Simulation::N_THREADS_FOR_IC,
+                        Simulation::errorEstMaximal);
+    } catch (const std::invalid_argument& e) {
+    }
+    grid.destroyDomain();
+#endif
     try {
         grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                         rp_Simulation::N_THREADS_FOR_IC,

@@ -215,13 +215,16 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     if (nThreads_initBlock_ <= 0) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "N computation threads must be positive");
-    } else if (nDistributorThreads_initBlock_ != 1) {
+    }
+#ifdef MULTITHREAD_DISTRIBUTOR
+    if (nDistributorThreads_initBlock_ != 1) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "Only one distributor thread presently allowed");
     } else if (nDistributorThreads_initBlock_ > nThreads_initBlock_) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "More distributor threads than computation threads");
     }
+#endif
 
     RuntimeAction    action;
     action.name = "initBlock";
