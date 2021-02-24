@@ -261,11 +261,6 @@ TEST_F(GridUnitTest,PerTileGetters){
                               rp_Grid::N_BLOCKS_Z)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
-    Real actual_vol = actual_deltas.product();
-    RealVect actual_fa;
-    for (int i=0;i<NDIM;++i) {
-        actual_fa[i] = actual_vol / actual_deltas[i];
-    }
 
     // Test Tile::getCenterCoords with tile iterator
     count = 0;
@@ -291,18 +286,33 @@ TEST_F(GridUnitTest,PerTileGetters){
     }
 
 
-    // Test Grid::getCellVolume and Grid::getCellFaceAreaLo with cell-by-cell iterator
-    /*count = 0;
-    for (amrex::MFIter itor(grid.unk(),amrex::IntVect(1)); itor.isValid(); ++itor) {
-        count++;
-        if(count%7 != 0) continue;
-        TileAmrex tileDesc(itor, 0);
-        IntVect coord = tileDesc.lo();
-        ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
-        for(int i=1;i<NDIM;++i) {
-            ASSERT_NEAR( actual_fa[i] , grid.getCellFaceAreaLo(0,i,coord) , eps);
+    // Test Grid::getCellVolume and Grid::getCellFaceAreaLo on lo vertices
+    count = 0;
+    actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
+    Real actual_vol;
+    RealVect actual_fa;
+    for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
+        if(lev>0) {
+            actual_deltas = actual_deltas * 0.5_wp;
         }
-    }*/
+        actual_vol = actual_deltas.product();
+        for (int i=0;i<NDIM;++i) {
+            actual_fa[i] = actual_vol / actual_deltas[i];
+        }
+
+        for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
+            count = (count+1)%7;
+            if(count == 0) continue;
+
+            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+            IntVect vert = tileDesc->lo();
+            ASSERT_NEAR( actual_vol, grid.getCellVolume(lev,vert), eps);
+            for(int i=1;i<NDIM;++i) {
+                ASSERT_NEAR( actual_fa[i],
+                             grid.getCellFaceAreaLo(i,lev,vert) , eps);
+            }
+        }
+    }
 }
 
 TEST_F(GridUnitTest,MultiCellGetters){
