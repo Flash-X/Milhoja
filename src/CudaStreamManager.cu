@@ -189,7 +189,7 @@ Stream    CudaStreamManager::requestStream(const bool block) {
             // subsequently request an extra stream, then they will all wait for
             // a free stream and none will therefore release a stream.
             do {
-                Logger::instance().log("[CudaStreamManager] No streams available.  Blocking as requested.");
+//                Logger::instance().log("[CudaStreamManager] No streams available.  Blocking as requested.");
                 pthread_cond_wait(&streamReleased_, &idxMutex_);
 //                Logger::instance().log("[CudaStreamManager] Stream has been released");
             } while(streams_.size() <= 0);
