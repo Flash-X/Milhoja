@@ -59,6 +59,16 @@ void logTimestep(const std::string& filename,
     fptr.close();
 }
 
+void startTimer(const std::string& msg) {
+    MPI_Barrier(GLOBAL_COMM);
+    orchestration::Logger::instance().log("[Simulation] " + msg + " started");
+}
+
+void endTimer(const std::string& msg) {
+    MPI_Barrier(GLOBAL_COMM);
+    orchestration::Logger::instance().log("[Simulation] " + msg + " terminated");
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "One and only one command line argument" << std::endl;
@@ -99,23 +109,26 @@ int main(int argc, char* argv[]) {
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
-    logger.log("[Simulation] Generate mesh and set initial conditions");
+    startTimer("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
+    io.computeLocalIntegralQuantities();
+    endTimer("Set initial conditions");
 
     //----- OUTPUT RESULTS TO FILES
-    // TODO: Shouldn't this be done through the IO unit?
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
 
 //    // Compute global integral quantities via DATA MOVEMENT
-    io.computeLocalIntegralQuantities();
+    startTimer("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
+    // TODO: Shouldn't this be done through the IO unit?
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+    endTimer("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
+    startTimer(rp_Simulation::NAME + " simulation");
 
     unsigned int            level{0};
     std::shared_ptr<Tile>   tileDesc{};
@@ -141,7 +154,9 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
+            startTimer("GC Fill");
             grid.fillGuardCells();
+            endTimer("GC Fill");
         }
 
         //----- ADVANCE SOLUTION
@@ -186,6 +201,7 @@ int main(int argc, char* argv[]) {
 
         io.computeLocalIntegralQuantities();
         double       wtime_sec = MPI_Wtime() - tStart;
+        startTimer("Gather/Write");
         unsigned int nBlocks   = grid.getNumberLocalBlocks();
         MPI_Gather(&wtime_sec, 1, MPI_DOUBLE,
                    walltimes_sec, 1, MPI_DOUBLE, MASTER_PE,
@@ -196,14 +212,17 @@ int main(int argc, char* argv[]) {
         if (rank == MASTER_PE) {
             logTimestep(filename, nStep, walltimes_sec, blockCounts, nProcs);
         }
+        endTimer("Gather/Write");
 
         //----- OUTPUT RESULTS TO FILES
+        startTimer("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
+        endTimer("Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -226,7 +245,8 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation terminated");
+    endTimer(rp_Simulation::NAME + " simulation");
+
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
