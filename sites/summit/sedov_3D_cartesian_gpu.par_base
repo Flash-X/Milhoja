@@ -18,7 +18,7 @@ namespace rp_Bundle_2 {
     constexpr unsigned int          N_TILES_PER_CPU_TURN = REPLACE_NTPCT;
     constexpr unsigned int          N_THREADS_CPU = REPLACE_NTC;
     constexpr unsigned int          N_THREADS_GPU = 3;
-    constexpr unsigned int          N_BLOCKS_PER_PACKET = 25;
+    constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
     constexpr unsigned int          N_THREADS_POST = 0;
 }
 

@@ -221,11 +221,13 @@ int main(int argc, char* argv[]) {
         // Each process measures and reports its own walltime for this
         // computation as well as the number of blocks it applied the
         // computation to.
-        double   tStart = MPI_Wtime(); 
-        runtime.executeExtendedGpuTasks("Advance Hydro Solution",
-                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                        hydroAdvance_gpu,
-                                        computeIntQuantitiesByBlk);
+        double   tStart = MPI_Wtime();
+        runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
+                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                                hydroAdvance_cpu,
+                                                hydroAdvance_gpu,
+                                                computeIntQuantitiesByBlk,
+                                                rp_Bundle_2::N_TILES_PER_CPU_TURN);
         double       wtime_sec = MPI_Wtime() - tStart;
         startTimer("Gather/Write");
         unsigned int nBlocks   = grid.getNumberLocalBlocks();
