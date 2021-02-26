@@ -43,7 +43,7 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 14;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 11;
     constexpr unsigned int          N_THREAD_TEAMS         = 3;
     constexpr int                   N_STREAMS              = 32;
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 15032385536;
@@ -60,7 +60,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 5;
+    constexpr  unsigned int         MAX_STEPS = 250;
     // When FLASH-X runs Sedov/2D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.
