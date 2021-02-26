@@ -43,7 +43,7 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 11;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 14;
     constexpr unsigned int          N_THREAD_TEAMS         = 3;
     constexpr int                   N_STREAMS              = 32;
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 15032385536;
