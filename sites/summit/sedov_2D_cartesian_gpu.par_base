@@ -37,8 +37,8 @@ namespace rp_Grid {
 
     constexpr unsigned int          LREFINE_MAX = 1;
 
-    constexpr unsigned int          N_BLOCKS_X  = 32;
-    constexpr unsigned int          N_BLOCKS_Y  = 32;
+    constexpr unsigned int          N_BLOCKS_X  = 100;
+    constexpr unsigned int          N_BLOCKS_Y  = 100;
     constexpr unsigned int          N_BLOCKS_Z  = 1;
 }
 
