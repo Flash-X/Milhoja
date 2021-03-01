@@ -12,11 +12,11 @@ namespace rp_Bundle_2 {
     // An Extended Cpu/Gpu pipeline
     //   - CPU & GPU apply Hydro solution advance
     //   - Post-GPU computes the local integral quantities
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 4;
-    constexpr unsigned int          N_TILES_PER_CPU_TURN = 20;
-    constexpr unsigned int          N_THREADS_CPU = 3;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 3;
+    constexpr unsigned int          N_TILES_PER_CPU_TURN = 30;
+    constexpr unsigned int          N_THREADS_CPU = 9;
     constexpr unsigned int          N_THREADS_GPU = 4;
-    constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
+    constexpr unsigned int          N_BLOCKS_PER_PACKET = 40;
     constexpr unsigned int          N_THREADS_POST = 0;
 }
 
