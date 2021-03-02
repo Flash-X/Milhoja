@@ -33,6 +33,8 @@ CudaDataPacket::CudaDataPacket(void)
       location_{PacketDataLocation::NOT_ASSIGNED},
       startVariable_{UNK_VARS_BEGIN_C - 1},
       endVariable_{UNK_VARS_BEGIN_C - 1},
+      buffer_p_{nullptr},
+      buffer_d_{nullptr},
       packet_p_{nullptr},
       packet_d_{nullptr},
       tiles_{},
@@ -83,9 +85,11 @@ void  CudaDataPacket::nullify(void) {
         streamsExtra_ = nullptr;
     }
 
-    CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
-    assert(packet_p_ == nullptr);
-    assert(packet_d_ == nullptr);
+    CudaMemoryManager::instance().releaseMemory(&buffer_p_, &buffer_d_);
+    assert(buffer_p_ == nullptr);
+    assert(buffer_d_ == nullptr);
+    packet_p_ = nullptr;
+    packet_d_ = nullptr;
 
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
@@ -108,10 +112,14 @@ std::string  CudaDataPacket::isNull(void) const {
         return "CUDA stream already acquired";
     } else if (streamsExtra_ != nullptr) {
         return "Extra stream already acquired";
-    } else if (packet_p_ != nullptr) {
+    } else if (buffer_p_ != nullptr) {
         return "Pinned memory buffer has already been allocated";
-    } else if (packet_d_ != nullptr) {
+    } else if (buffer_d_ != nullptr) {
         return "Device memory buffer has already been allocated";
+    } else if (packet_p_ != nullptr) {
+        return "Pinned packet already exists";
+    } else if (packet_d_ != nullptr) {
+        return "Device packet already exists";
     } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
         return "Data location already assigned";
     } else if (nBytesPerPacket_ > 0) {
@@ -220,20 +228,19 @@ void  CudaDataPacket::pack(void) {
     nBytesPerPacket_ =            sizeof(std::size_t) 
                        +                        DRIVER_DT_SIZE_BYTES
                        + nTiles * sizeof(PacketContents)
-                       + nTiles * (         1 * DELTA_SIZE_BYTES
-                                   +        4 * POINT_SIZE_BYTES
-                                   + N_BLOCKS * CC_BLOCK_SIZE_BYTES
-                                   + N_BLOCKS * ARRAY4_SIZE_BYTES
+                       + nTiles * (  1 * DELTA_SIZE_BYTES
+                                   + 4 * POINT_SIZE_BYTES
+                                   + 1 * CC_BLOCK_SIZE_BYTES
+                                   + 2 * ARRAY4_SIZE_BYTES
 #if NFLUXES > 0
-                                   +            FCX_BLOCK_SIZE_BYTES
-                                   +            FCY_BLOCK_SIZE_BYTES
-                                   +            FCZ_BLOCK_SIZE_BYTES
-                                   +        3 * ARRAY4_SIZE_BYTES
+                                   + 3 * ARRAY4_SIZE_BYTES
 #endif
-                                   +        1 * COORDS_X_SIZE_BYTES
-                                   +        1 * COORDS_Y_SIZE_BYTES
-                                   +        1 * COORDS_Z_SIZE_BYTES
-                                   +        3 * ARRAY1_SIZE_BYTES);
+                                   + 1 * COORDS_X_SIZE_BYTES
+                                   + 1 * COORDS_Y_SIZE_BYTES
+                                   + 1 * COORDS_Z_SIZE_BYTES
+                                   + 3 * ARRAY1_SIZE_BYTES);
+    std::size_t    bufferSizeBytes =            nBytesPerPacket_
+                                     + nTiles * BUFFER_SIZE_PER_TILE;
 
     stream_ = CudaStreamManager::instance().requestStream(true);
     if (stream_.cudaStream == nullptr) {
@@ -256,9 +263,18 @@ void  CudaDataPacket::pack(void) {
 #endif
 
     // Allocate memory in pinned and device memory on demand for now
-    CudaMemoryManager::instance().requestMemory(nBytesPerPacket_,
-                                                &packet_p_,
-                                                &packet_d_);
+    CudaMemoryManager::instance().requestMemory(bufferSizeBytes,
+                                                &buffer_p_,
+                                                &buffer_d_);
+
+    // Scratch data allocated at top of allocated memory block.
+    // Maintain a pointer to the next bit of scratch memory available.
+    char*   scratch_d = static_cast<char*>(buffer_d_);
+
+    // Set pointers to start of data packet.
+    // TODO: Note that we can request less pinned memory.
+    packet_p_ = buffer_p_;
+    packet_d_ = static_cast<void*>(scratch_d + BUFFER_SIZE_PER_TILE * nTiles);
 
     // Pointer to the next free byte in the current data packets
     // Should be true by C++ standard
@@ -355,10 +371,10 @@ void  CudaDataPacket::pack(void) {
         ptr_p += CC_BLOCK_SIZE_BYTES;
         ptr_d += CC_BLOCK_SIZE_BYTES;
 
-        tilePtrs_p->CC2_data_p = static_cast<Real*>((void*)ptr_p);
-        CC2_data_d  = static_cast<Real*>((void*)ptr_d);
-        ptr_p += CC_BLOCK_SIZE_BYTES;
-        ptr_d += CC_BLOCK_SIZE_BYTES;
+        // FIXME: For Sedov, we aren't copying CC2 data back;
+        tilePtrs_p->CC2_data_p = nullptr;
+        CC2_data_d  = static_cast<Real*>((void*)scratch_d);
+        scratch_d += CC_BLOCK_SIZE_BYTES;
 
         xCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)xCoordsGC_h, COORDS_X_SIZE_BYTES);
@@ -412,17 +428,14 @@ void  CudaDataPacket::pack(void) {
         ptr_d += ARRAY4_SIZE_BYTES;
 
 #if NFLUXES > 0
-        FCX_data_d  = static_cast<Real*>((void*)ptr_d);
-        ptr_p += FCX_BLOCK_SIZE_BYTES;
-        ptr_d += FCX_BLOCK_SIZE_BYTES;
+        FCX_data_d  = static_cast<Real*>((void*)scratch_d);
+        scratch_d += FCX_BLOCK_SIZE_BYTES;
 
-        FCY_data_d  = static_cast<Real*>((void*)ptr_d);
-        ptr_p += FCY_BLOCK_SIZE_BYTES;
-        ptr_d += FCY_BLOCK_SIZE_BYTES;
+        FCY_data_d  = static_cast<Real*>((void*)scratch_d);
+        scratch_d += FCY_BLOCK_SIZE_BYTES;
 
-        FCZ_data_d  = static_cast<Real*>((void*)ptr_d);
-        ptr_p += FCZ_BLOCK_SIZE_BYTES;
-        ptr_d += FCZ_BLOCK_SIZE_BYTES;
+        FCZ_data_d  = static_cast<Real*>((void*)scratch_d);
+        scratch_d += FCZ_BLOCK_SIZE_BYTES;
 
         tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
         IntVect    fHi = IntVect{LIST_NDIM(hi.I()+1, hi.J(), hi.K())};

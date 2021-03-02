@@ -78,6 +78,17 @@ public:
 protected:
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
+    // FIXME: For a particular flavor of the Sedov problem, the solution
+    // is updated in place.  Therefore, the second CC block and the FC[XYZ]
+    // blocks are truly scratch - they do not need to be transferred back
+    // to host.  Therefore, we need not include the space in the data packet.
+    static constexpr std::size_t    BUFFER_SIZE_PER_TILE =
+#if NFLUXES > 0
+                                        FCX_BLOCK_SIZE_BYTES +
+                                        FCY_BLOCK_SIZE_BYTES +
+                                        FCZ_BLOCK_SIZE_BYTES +
+#endif
+                                        CC_BLOCK_SIZE_BYTES;
 
     void         nullify(void);
     std::string  isNull(void) const;
@@ -88,6 +99,8 @@ private:
     PacketDataLocation                     location_;
     int                                    startVariable_;
     int                                    endVariable_;
+    void*                                  buffer_p_;
+    void*                                  buffer_d_;
     void*                                  packet_p_;
     void*                                  packet_d_;
     std::deque<std::shared_ptr<Tile>>      tiles_;
