@@ -231,14 +231,11 @@ void  CudaDataPacket::pack(void) {
                        + nTiles * (  1 * DELTA_SIZE_BYTES
                                    + 4 * POINT_SIZE_BYTES
                                    + 1 * CC_BLOCK_SIZE_BYTES
-                                   + 2 * ARRAY4_SIZE_BYTES
-#if NFLUXES > 0
-                                   + 3 * ARRAY4_SIZE_BYTES
+#if NFLUXES == 0
+                                   + 2 * ARRAY4_SIZE_BYTES);
+#else
+                                   + 5 * ARRAY4_SIZE_BYTES);
 #endif
-                                   + 1 * COORDS_X_SIZE_BYTES
-                                   + 1 * COORDS_Y_SIZE_BYTES
-                                   + 1 * COORDS_Z_SIZE_BYTES
-                                   + 3 * ARRAY1_SIZE_BYTES);
     std::size_t    bufferSizeBytes =            nBytesPerPacket_
                                      + nTiles * BUFFER_SIZE_PER_TILE;
 
@@ -310,18 +307,6 @@ void  CudaDataPacket::pack(void) {
         const IntVect       hi     = tileDesc_h->hi();
         const IntVect       loGC   = tileDesc_h->loGC();
         const IntVect       hiGC   = tileDesc_h->hiGC();
-        const FArray1D      xCoordsGC = grid.getCellCoords(Axis::I, Edge::Center,
-                                                           level, loGC, hiGC); 
-        const FArray1D      yCoordsGC = grid.getCellCoords(Axis::J, Edge::Center,
-                                                           level, loGC, hiGC); 
-        const FArray1D      zCoordsGC = grid.getCellCoords(Axis::K, Edge::Center,
-                                                           level, loGC, hiGC); 
-        const Real*         xCoordsGC_h = xCoordsGC.dataPtr();
-        const Real*         yCoordsGC_h = yCoordsGC.dataPtr();
-        const Real*         zCoordsGC_h = zCoordsGC.dataPtr();
-        Real*               xCoordsGC_data_d = nullptr;
-        Real*               yCoordsGC_data_d = nullptr;
-        Real*               zCoordsGC_data_d = nullptr;
         Real*               data_h = tileDesc_h->dataPtr();
         Real*               CC1_data_d = nullptr;
         Real*               CC2_data_d = nullptr;
@@ -376,39 +361,6 @@ void  CudaDataPacket::pack(void) {
         CC2_data_d  = static_cast<Real*>((void*)scratch_d);
         scratch_d += CC_BLOCK_SIZE_BYTES;
 
-        xCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)xCoordsGC_h, COORDS_X_SIZE_BYTES);
-        ptr_p += COORDS_X_SIZE_BYTES;
-        ptr_d += COORDS_X_SIZE_BYTES;
-
-        yCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)yCoordsGC_h, COORDS_Y_SIZE_BYTES);
-        ptr_p += COORDS_Y_SIZE_BYTES;
-        ptr_d += COORDS_Y_SIZE_BYTES;
-
-        zCoordsGC_data_d = static_cast<Real*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)zCoordsGC_h, COORDS_Z_SIZE_BYTES);
-        ptr_p += COORDS_Z_SIZE_BYTES;
-        ptr_d += COORDS_Z_SIZE_BYTES;
-
-        tilePtrs_p->xCoords_d = static_cast<FArray1D*>((void*)ptr_d);
-        FArray1D   xCoordGCArray_d{xCoordsGC_data_d, loGC.I()};
-        std::memcpy((void*)ptr_p, (void*)&xCoordGCArray_d, ARRAY1_SIZE_BYTES);
-        ptr_p += ARRAY1_SIZE_BYTES;
-        ptr_d += ARRAY1_SIZE_BYTES;
-
-        tilePtrs_p->yCoords_d = static_cast<FArray1D*>((void*)ptr_d);
-        FArray1D   yCoordGCArray_d{yCoordsGC_data_d, loGC.J()};
-        std::memcpy((void*)ptr_p, (void*)&yCoordGCArray_d, ARRAY1_SIZE_BYTES);
-        ptr_p += ARRAY1_SIZE_BYTES;
-        ptr_d += ARRAY1_SIZE_BYTES;
- 
-        tilePtrs_p->zCoords_d = static_cast<FArray1D*>((void*)ptr_d);
-        FArray1D   zCoordGCArray_d{zCoordsGC_data_d, loGC.K()};
-        std::memcpy((void*)ptr_p, (void*)&zCoordGCArray_d, ARRAY1_SIZE_BYTES);
-        ptr_p += ARRAY1_SIZE_BYTES;
-        ptr_d += ARRAY1_SIZE_BYTES;
- 
         // Create an FArray4D object in host memory but that already points
         // to where its data will be in device memory (i.e. the device object
         // will already be attached to its data in device memory).

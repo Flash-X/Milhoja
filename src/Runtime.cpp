@@ -179,7 +179,7 @@ void Runtime::executeTasks(const ActionBundle& bundle) {
  */
 void Runtime::executeCpuTasks(const std::string& actionName,
                               const RuntimeAction& cpuAction) {
-    Logger::instance().log("[Runtime] Start single CPU action");
+//    Logger::instance().log("[Runtime] Start single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuTasks] "
@@ -225,7 +225,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     // No need to break apart the thread team configuration
 
-    Logger::instance().log("[Runtime] End single CPU action");
+//    Logger::instance().log("[Runtime] End single CPU action");
 }
 
 /**
