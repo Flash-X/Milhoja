@@ -1,9 +1,9 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = sedov_baseline_cpp.x
+BINARYNAME    = sedov_mpi.x
 
 # Define relevant paths
 SEDOVDIR      = $(BASEDIR)/simulations/Sedov
-TESTDIR       = $(BASEDIR)/simulations/Sedov/baseline
+TESTDIR       = $(BASEDIR)/simulations/Sedov/mpi
 
 # Define compiler flags in CXXFLAGS_TEST
 CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(TESTDIR)
@@ -20,4 +20,4 @@ SRCS_TEST     = \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
-	$(TESTDIR)/sedov_baseline.cpp
+	$(TESTDIR)/sedov_mpi.cpp
