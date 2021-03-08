@@ -53,3 +53,6 @@ studies/Summit_2020-04-15/gatherDataF2003_*
 studies/Summit_2020-04-15/testRuntimeCpp_*
 studies/Summit_2020-04-15/testThreadTeam_*
 build/*
+tools/sedov_pypkg/Sedov.egg-info/
+tools/sedov_pypkg/dist/
+tools/sedov_pypkg/sedov/__pycache__/
