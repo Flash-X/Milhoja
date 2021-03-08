@@ -18,17 +18,7 @@ NOTE: The data packet variable masking presently requires that
 #define UNK_VARS_BEGIN    DENS_VAR
 #define UNK_VARS_END      ENER_VAR
 
-#define X_MIN      0.0
-#define X_MAX      1.0
-#define Y_MIN      0.0
-#define Y_MAX      1.0
-#define Z_MIN      0.0
-#define Z_MAX      0.0
-#define N_BLOCKS_X N_BLOCKS_ALONG_X
-#define N_BLOCKS_Y N_BLOCKS_ALONG_Y
-#define N_BLOCKS_Z N_BLOCKS_ALONG_Z
-
-#define LREFINE_MAX REFINEMENT_LEVELS
+#define NFLUXES    0
 
 #define REAL_IS_DOUBLE
 

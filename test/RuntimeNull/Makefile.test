@@ -1,13 +1,12 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = test_runtime_null_cpp.x
+BINARYNAME     = test_runtime_null.x
 
 # Define relevant paths
-TESTDIR       = $(BASEDIR)/test/RuntimeNull
-TESTBASEDIR   = $(BASEDIR)/test/Base
+TESTDIR        = $(BASEDIR)/test/RuntimeNull
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(TESTBASEDIR) -I$(TESTDIR)
-LDFLAGS_TEST  =
+CXXFLAGS_TEST  = -I$(TESTDIR)
+LDFLAGS_TEST   =
 
 # This test uses Google Test
 CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
@@ -17,3 +16,4 @@ LDFLAGS_TEST  += $(LIB_GTEST)
 SRCS_TEST      = \
     $(TESTDIR)/testRuntimeNull.cpp \
     $(TESTDIR)/runRuntimeTests.cpp
+

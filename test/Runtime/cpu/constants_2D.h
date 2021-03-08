@@ -6,12 +6,12 @@
 
 #define GRID_AMREX
 
-#define NXB N_CELLS_IN_X
-#define NYB N_CELLS_IN_Y
-#define NZB N_CELLS_IN_Z
+#define NXB 8
+#define NYB 16
+#define NZB 1
 
 #define MDIM 3
-#define NDIM N_DIMENSIONS
+#define NDIM 2
 
 #define LOW 1
 #define HIGH 2

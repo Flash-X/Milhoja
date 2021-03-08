@@ -1,23 +1,18 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = test_runtime_cuda.x
+BINARYNAME     = test_runtime_cuda.x
 
 # Define relevant paths
-TESTDIR       = $(BASEDIR)/test/Runtime
-TESTBASEDIR   = $(BASEDIR)/test/Base
-
-PGIDIR        = $(OLCF_PGI_ROOT)/linuxpower/19.9
+TESTDIR        = $(BASEDIR)/test/Runtime
+TESTBASEDIR    = $(BASEDIR)/test/Base
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(TESTBASEDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND \
-		-DENABLE_OPENACC_OFFLOAD -UNDEBUG
-CUFLAGS_TEST  = -I$(PGIDIR)/include -I$(TESTBASEDIR) -I$(TESTDIR) \
-		-DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -UNDEBUG \
-		-D__PGI
-LDFLAGS_TEST  = -lcudart -L$(CUDADIR)/lib64 -L$(PGIDIR)/lib
+CXXFLAGS_TEST  = -I$(TESTBASEDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST   = -I$(TESTBASEDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST   =
 
 # This test uses Google Test
 CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
-CUFLAGS_TEST  += $(CXXFLAGS_GTEST)
+CUFLAGS_TEST  += $(CUFLAGS_GTEST)
 LDFLAGS_TEST  += $(LIB_GTEST)
 
 # This test uses OACC
@@ -54,3 +49,4 @@ CU_SRCS       = \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu
+

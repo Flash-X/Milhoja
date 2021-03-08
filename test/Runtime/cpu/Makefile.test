@@ -1,0 +1,30 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME     = test_runtime_cpu.x
+
+# Define relevant paths
+TESTDIR        = $(BASEDIR)/test/Runtime
+TESTBASEDIR    = $(BASEDIR)/test/Base
+
+# Define compiler flags in CXXFLAGS_TEST
+CXXFLAGS_TEST  = -I$(TESTBASEDIR) -I$(TESTDIR) -I$(TESTDIR)/cpu
+LDFLAGS_TEST   =
+
+# This test uses Google Test
+CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
+LDFLAGS_TEST  += $(LIB_GTEST)
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST      = \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/errorEstBlank.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity.cpp \
+    $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
+    $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
+    $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/testRuntime.cpp \
+    $(TESTDIR)/runRuntimeTests.cpp
+

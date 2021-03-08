@@ -1,17 +1,17 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = test_cuda_backend.x
+BINARYNAME     = test_cuda_backend.x
 
 # Define relevant paths
-TESTDIR       = $(BASEDIR)/test/CudaBackend
+TESTDIR        = $(BASEDIR)/test/CudaBackend
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CUFLAGS_TEST = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD -D__PGI
-LDFLAGS_TEST = -lcudart -L$(CUDADIR)/lib64
+CXXFLAGS_TEST  = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST   = -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST   =
 
 # This test uses Google Test
 CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
-CUFLAGS_TEST += $(CXXFLAGS_GTEST)
+CUFLAGS_TEST  += $(CUFLAGS_GTEST)
 LDFLAGS_TEST  += $(LIB_GTEST)
 
 # This test uses OACC
@@ -24,8 +24,9 @@ SRCS_TEST      = \
 	$(SRCDIR)/MoverUnpacker.cpp \
 	$(TESTDIR)/runCudaBackendTests.cpp
 
-CU_SRCS = $(TESTDIR)/testCudaStreamManager.cu \
-          $(SRCDIR)/CudaGpuEnvironment.cu \
+CU_SRCS = $(SRCDIR)/CudaGpuEnvironment.cu \
           $(SRCDIR)/CudaDataPacket.cu \
           $(SRCDIR)/CudaStreamManager.cu \
-          $(SRCDIR)/CudaMemoryManager.cu
+          $(SRCDIR)/CudaMemoryManager.cu \
+          $(TESTDIR)/testCudaStreamManager.cu
+

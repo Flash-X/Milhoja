@@ -13,16 +13,14 @@ namespace rp_Grid {
 
     constexpr unsigned int          LREFINE_MAX = 1;
 
-    constexpr unsigned int          N_BLOCKS_X  = SED_REPLACE_N_BLOCKS_X;
-    constexpr unsigned int          N_BLOCKS_Y  = SED_REPLACE_N_BLOCKS_Y;
-    constexpr unsigned int          N_BLOCKS_Z  = SED_REPLACE_N_BLOCKS_Z;
+    constexpr unsigned int          N_BLOCKS_X  = 256;
+    constexpr unsigned int          N_BLOCKS_Y  = 128;
+    constexpr unsigned int          N_BLOCKS_Z  = 1;
 }
 
 namespace rp_Simulation {
-    // setInitialConditions run in CPU-only thread team
-    // configuration using blocks
-    constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 2;
-    constexpr  unsigned int         N_THREADS_FOR_IC = 4;
+    constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 1;
+    constexpr  unsigned int         N_THREADS_FOR_IC             = 4;
 }
 
 #endif

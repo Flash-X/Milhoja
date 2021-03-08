@@ -36,6 +36,7 @@ LDFLAGS_STD = -lpthread -lstdc++
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
 CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
 CUFLAGS_AMREX    = -I$(AMREXDIR)/include
+CUFLAGS_GTEST    = -I$(GTESTDIR)/include
 LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -pgf90libs
 LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib64
 
