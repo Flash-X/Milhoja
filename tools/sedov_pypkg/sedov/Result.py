@@ -1,3 +1,5 @@
+import yt
+
 import numpy as np
 import pandas as pd
 
@@ -11,6 +13,9 @@ from sedov import IQ_ETOT_IDX
 from sedov import IQ_THRESHOLD_VEL
 from sedov import IQ_THRESHOLD_MASS
 from sedov import IQ_THRESHOLD_ETOT
+from sedov import YT_XAXIS
+from sedov import YT_YAXIS
+from sedov import YT_ZAXIS
 
 class Result(object):
     """
@@ -38,8 +43,50 @@ class Result(object):
         self.__fname_plot = Path(fname_plot)
         self.__fname_data = Path(fname_data)
         self.__fname_log  = Path(fname_log)
+        if   not self.__fname_data.is_file():
+            raise ValueError(f'{self.__fname_data} does not exist')
+        elif not self.__fname_log.is_file():
+            raise ValueError(f'{self.__fname_log} does not exist')
+
+        self.__dataset = None
+        if not self.__fname_plot.is_dir():
+            self.__fname_plot = ''
+        else:
+            self.__dataset = yt.load(str(self.__fname_plot))
+
+        assert(self.__dataset.coordinates.axis_id['x'] == YT_XAXIS)
+        assert(self.__dataset.coordinates.axis_id['y'] == YT_YAXIS)
+        assert(self.__dataset.coordinates.axis_id['z'] == YT_ZAXIS)
 
         super().__init__()
+
+    @property
+    def z_coordinates(self):
+        """
+        """
+        data = self.__dataset.all_data()
+        return sorted(np.unique(data['z']))
+
+    def z_data_slice(self, z, var):
+        """
+        Obtain a 2D slice of the data for the given variable as a 2D array
+        that can be visualized with Matplotlib.
+
+        https://yt-project.org/doc/analyzing/generating_processed_data.html
+        """
+        z_coords = self.z_coordinates
+        if z not in z_coords:
+            raise ValueError(f'{z} not a valid z-coordinate')
+
+        xmin, ymin, zmin = [float(e) for e in self.__dataset.domain_left_edge]
+        xmax, ymax, zmax = [float(e) for e in self.__dataset.domain_right_edge]
+        n_cells_x, n_cells_y, n_cells_z = self.__dataset.domain_dimensions
+
+        sl = self.__dataset.slice(YT_ZAXIS, z)
+        extent = (xmin, xmax, ymin, ymax)
+        frb = yt.FixedResolutionBuffer(sl, extent, (n_cells_x, n_cells_y))
+
+        return extent, frb[var]
 
     @property
     def integral_quantities(self):

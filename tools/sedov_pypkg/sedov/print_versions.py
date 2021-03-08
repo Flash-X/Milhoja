@@ -1,6 +1,6 @@
 import sys
 
-#import yt
+import yt
 import matplotlib
 
 import numpy as np
@@ -16,6 +16,6 @@ def print_versions():
     print('numpy      version\t{}'.format(np.__version__))
     print('pandas     version\t{}'.format(pd.__version__))
     print('matplotlib version\t{}'.format(matplotlib.__version__))
-#    print('yt         version\t{}'.format(yt.__version__))
+    print('yt         version\t{}'.format(yt.__version__))
     print('Sedov      version\t{}'.format(sedov.__version__))
 

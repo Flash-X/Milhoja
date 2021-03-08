@@ -18,6 +18,7 @@ from sedov.Result import Result
 
 # visualizations
 from sedov.MplConservedQuantities import MplConservedQuantities
+from sedov.MplFinalSolution import MplFinalSolution
 
 # data models
 
