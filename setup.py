@@ -56,12 +56,10 @@ def main():
     print("Linking Makefile.site from site: "+args.site)
     os.symlink(siteMakefile,os.path.join(buildDir,'Makefile.site'))
 
-    # Find test directory (in either test or simulations)
+    # Find test directory
     testDir = os.path.join(homeDir,'test',args.test)
     if not os.path.isdir(testDir):
-        testDir = os.path.join(homeDir,'simulations',args.test)
-    if not os.path.isdir(testDir):
-        raise ValueError("Test directory not found in test or simulations")
+        raise ValueError("Test directory not found")
 
     # Get test makefile
     print("Linking Makefile.test from test: "+args.test)

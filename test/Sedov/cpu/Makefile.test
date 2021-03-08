@@ -1,9 +1,9 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = sedov_cpu_cpp.x
+BINARYNAME    = sedov_cpu.x
 
 # Define relevant paths
-SEDOVDIR      = $(BASEDIR)/simulations/Sedov
-TESTDIR       = $(BASEDIR)/simulations/Sedov/cpu
+SEDOVDIR      = $(BASEDIR)/test/Sedov
+TESTDIR       = $(BASEDIR)/test/Sedov/cpu
 
 # Define compiler flags in CXXFLAGS_TEST
 CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR)
