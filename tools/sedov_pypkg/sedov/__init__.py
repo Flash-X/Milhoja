@@ -8,15 +8,16 @@ import nose.core
 import pkg_resources
 
 # constants
-#from sedov.constants import *
+from sedov.constants import *
 
 # functions
 from sedov.print_versions import print_versions
 
 # classes
-#from sedov.Results import Results
+from sedov.Result import Result
 
 # visualizations
+from sedov.MplConservedQuantities import MplConservedQuantities
 
 # data models
 

@@ -14,8 +14,7 @@ def version():
     with open(fname, 'r') as fptr:
         return fptr.read().strip()
 
-#reqs_list = ['f90nml', 'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'h5py']
-reqs_list = []
+reqs_list = ['numpy', 'pandas', 'matplotlib']
 
 pkg_dict = {'sedov': ['PkgData/*', 'TestData/*']}
 
