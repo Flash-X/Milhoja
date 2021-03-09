@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 
 import datetime as dt
+import subprocess as sbp
 import matplotlib.pyplot as plt
 import matplotlib.figure as mfig
 
@@ -50,12 +52,17 @@ if __name__ == '__main__':
     result_A = Path(sys.argv[1])
     result_B = Path(sys.argv[2])
 
+    FCOMPARE_ENV_VAR = os.getenv('FCOMPARE_PATH')
+    if FCOMPARE_ENV_VAR == None:
+        print_usage('Please set FCOMPARE_PATH')
+        exit(2)
+
     if   not result_A.is_dir():
         print_usage(f'{result_A} does not exist or is not a folder')
-        exit(2)
+        exit(3)
     elif not result_B.is_dir():
         print_usage(f'{result_B} does not exist or is not a folder')
-        exit(3)
+        exit(4)
 
     fname_data_A = result_A.joinpath('sedov.dat')
     fname_log_A  = result_A.joinpath('sedov.log')
@@ -74,33 +81,42 @@ if __name__ == '__main__':
 
     # Comparison fails if individual integral quantity checks fail.
     # The checks are run automatically when acquiring the IQ.
+    did_iq_fail = False
     try:
         r_A = sedov.Result(fname_plot_A, fname_data_A, fname_log_A)
         iq_A_df = r_A.integral_quantities
+        print()
+        print(f'Integral Quantities A Check - SUCCESS')
+        print()
     except ValueError as err:
         print()
-        print(f'Comparison failure A - {err}')
+        print(f'Integral Quantities A Check - FAILED')
+        print(err)
         print()
-        exit(4)
+        did_iq_fail = True
     except:
         print()
         print('An unknown error was trapped on A')
         print()
-        exit(5)
+        did_iq_fail = True
 
     try:
         r_B = sedov.Result(fname_plot_B, fname_data_B, fname_log_B)
         iq_B_df = r_B.integral_quantities
+        print()
+        print(f'Integral Quantities B Check - SUCCESS')
+        print()
     except ValueError as err:
         print()
-        print(f'Comparison failure B - {err}')
+        print(f'Integral Quantities B Check - FAILED')
+        print(err)
         print()
-        exit(6)
+        did_iq_fail = True
     except:
         print()
         print('An unknown error was trapped on B')
         print()
-        exit(7)
+        did_iq_fail = True
 
     print()
     print('Sedov A Result Summary')
@@ -111,6 +127,12 @@ if __name__ == '__main__':
     print('-' * 80)
     print(r_B)
     print()
+
+    if did_iq_fail:
+        print()
+        print(f'A/B Comparison Failed - CANNOT PROCEED')
+        print()
+        exit(5)
 
     #####----- VISUALIZE CONSERVED QUANTITIES TIMESERIES
     subp = mfig.SubplotParams(left=0.06, right=0.97, top=0.84, bottom=0.10, \
@@ -124,6 +146,39 @@ if __name__ == '__main__':
     fig = plt.figure(num=2, FigureClass=sedov.MplConservedQuantities, \
                             figsize=(15, 7), subplotpars=subp)
     fig.draw_plot(iq_B_df, N_BINS, f'{result_B}')
+
+    # Non-conservative integral quantities should track each other closely
+    # across runs.  Also the conserved quantities should have similar 
+    # values.
+    try:
+        sedov.compare_integral_quantities(r_A, r_B)
+        print()
+        print(f'A/B Integral Quantities Comparison - SUCCESS')
+        print()
+    except ValueError as err:
+        print()
+        print(f'A/B Integral Quantities Comparison - FAILED')
+        print(err)
+        print()
+        did_iq_fail = True
+
+    plt.show()
+
+    did_fcompare_fail = False
+    try:
+        cmd = [FCOMPARE_ENV_VAR, \
+               '--norm', str(sedov.FCOMPARE_NORM), \
+               '--rel_tol', str(sedov.FCOMPARE_TOLERANCE_RELERR), \
+               fname_plot_A, fname_plot_B]
+        sbp.run(cmd, check=True)
+        print()
+        print(f'A/B Plotfile Comparison - SUCCESS')
+        print()
+    except sbp.CalledProcessError as err:
+        print()
+        print(f'A/B Plotfile Comparison - FAILED')
+        print()
+        did_fcompare_fail = True
 
     #####----- VISUALIZE FINAL SOLUTION
     z_coords_A = r_A.z_coordinates
@@ -141,14 +196,14 @@ if __name__ == '__main__':
 
     plt.show()
 
-    # Non-conservative integral quantities should track each other closely
-    # across runs.  Also the conserved quantities should have similar 
-    # values.
-    try:
-        sedov.compare_integral_quantities(r_A, r_B)
-    except ValueError as err:
+    # Let users see fcompare results and difference regardless of success
+    if did_iq_fail or did_fcompare_fail:
         print()
-        print(f'A/B comparison failure - {err}')
+        print('Total A/B Comparison - FAILED')
         print()
-        exit(8)
+        exit(6)
+    else:
+        print()
+        print('Total A/B Comparison - SUCCESS')
+        print()
 

@@ -36,3 +36,8 @@ YT_VAR_LUT = [(1,  'Density'), \
               (10, 'Z-Velocity')]
 YT_N_VARS = len(YT_VAR_LUT)
 
+#####----- COMPARING PLOTFILES
+# 0 means sup norm
+FCOMPARE_NORM = 0
+FCOMPARE_TOLERANCE_RELERR = 2.5e-15
+
