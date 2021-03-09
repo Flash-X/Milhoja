@@ -13,6 +13,10 @@ IQ_THRESHOLD_VEL  = 2.5e-16
 IQ_THRESHOLD_MASS = 2.5e-15
 IQ_THRESHOLD_ETOT = 2.5e-12
 
+# The non-conserved integrated energies should match reasonably well across runs
+IQ_THRESHOLD_KE   = 7.5e-16
+IQ_THRESHOLD_EINT = 1.0e-12
+
 #####----- Working with YT
 YT_XAXIS = 0
 YT_YAXIS = 1

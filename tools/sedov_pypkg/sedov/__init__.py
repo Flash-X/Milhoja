@@ -12,6 +12,7 @@ from sedov.constants import *
 
 # functions
 from sedov.print_versions import print_versions
+from sedov.compare_integral_quantities import compare_integral_quantities
 
 # classes
 from sedov.Result import Result
@@ -19,8 +20,7 @@ from sedov.Result import Result
 # visualizations
 from sedov.MplConservedQuantities import MplConservedQuantities
 from sedov.MplFinalSolution import MplFinalSolution
-
-# data models
+from sedov.MplSolutionComparison import MplSolutionComparison
 
 # unittests
 from sedov.TestNoop import suite as suite1

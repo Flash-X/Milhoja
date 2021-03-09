@@ -109,24 +109,33 @@ class Result(object):
 #        assert(data.shape[0] == self.n_steps + 1)
 
         # Conserved quantities
-        assert(data[0, IQ_XMOM_IDX] == 0.0)
-        assert(data[0, IQ_YMOM_IDX] == 0.0)
-        assert(data[0, IQ_ZMOM_IDX] == 0.0)
-        assert(np.max(np.abs(data[:, IQ_XMOM_IDX])) < IQ_THRESHOLD_VEL)
-        assert(np.max(np.abs(data[:, IQ_YMOM_IDX])) < IQ_THRESHOLD_VEL)
-        assert(np.max(np.abs(data[:, IQ_ZMOM_IDX])) < IQ_THRESHOLD_VEL)
+        # TODO: These should all be put under test
+        checks = [('x', IQ_XMOM_IDX), ('y', IQ_YMOM_IDX), ('z', IQ_ZMOM_IDX)]
+        for axis, idx in checks:
+            max_mom_abserr = np.max(np.abs(data[:, idx]))
+            if data[0, idx] != 0.0:
+                raise ValueError(f'Initial {axis}-momentum is non-zero')
+            elif max_mom_abserr > IQ_THRESHOLD_VEL:
+                msg = '{}-momentum conservation absolute error {} exceeds threshold {}'
+                raise ValueError(msg.format(axis, max_mom_abserr, IQ_THRESHOLD_VEL))
 
         mass_err = data[1:, IQ_MASS_IDX] - data[0, IQ_MASS_IDX]
-        assert(np.max(np.abs(mass_err)) < IQ_THRESHOLD_MASS)
+        max_mass_abserr = np.max(np.abs(mass_err))
+        if max_mass_abserr > IQ_THRESHOLD_MASS:
+            msg = 'Mass conservation absolute error {} exceeds threshold {}'
+            raise ValueError(msg.format(max_mass_abserr, IQ_THRESHOLD_MASS))
 
         etot_err = data[1:, IQ_ETOT_IDX] - data[0, IQ_ETOT_IDX]
-        assert(np.max(np.abs(etot_err)) < IQ_THRESHOLD_ETOT)
+        max_etot_abserr = np.max(np.abs(etot_err))
+        if max_etot_abserr > IQ_THRESHOLD_ETOT:
+            msg = 'Total energy conservation absolute error {} exceeds threshold {}'
+            raise ValueError(msg.format(max_etot_abserr, IQ_THRESHOLD_ETOT))
 
         df = pd.DataFrame(data=data, columns=columns)
         df.index = df.index.rename('step')
-        
+
         return df
-    
+
     @property
     def integral_quantities_statistics(self):
         """
