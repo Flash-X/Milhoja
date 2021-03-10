@@ -1,19 +1,17 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME     = test_threadteam.x
+BINARYNAME          = test_threadteam.x
 
 # Define relevant paths
-TESTDIR        = $(BASEDIR)/test/ThreadTeam
+TESTDIR             = $(BASEDIR)/test/ThreadTeam
 
-# Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST  = -I$(TESTDIR)
-LDFLAGS_TEST   =
-
+# Define compiler flags in CXXFLAGS_TEST_*
 # This test uses Google Test
-CXXFLAGS_TEST += $(CXXFLAGS_GTEST) -DLOGGER_NO_MPI
-LDFLAGS_TEST  += $(LIB_GTEST)
+CXXFLAGS_TEST_DEBUG = -I$(TESTDIR) $(CXXFLAGS_GTEST) -DDEBUG_RUNTIME
+CXXFLAGS_TEST_PROD  = -I$(TESTDIR) $(CXXFLAGS_GTEST)
+LDFLAGS_TEST        = $(LIB_GTEST)
 
 # Define list of sources in SRCS_TEST
-SRCS_TEST      = \
+SRCS_TEST = \
     $(TESTDIR)/estimateTimerResolution.cpp \
     $(TESTDIR)/testThreadRoutines.cpp \
     $(TESTDIR)/testThreadTeam.cpp \

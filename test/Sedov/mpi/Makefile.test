@@ -1,16 +1,17 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME    = sedov_mpi.x
+BINARYNAME          = sedov_mpi.x
 
 # Define relevant paths
-SEDOVDIR      = $(BASEDIR)/test/Sedov
-TESTDIR       = $(BASEDIR)/test/Sedov/mpi
+SEDOVDIR            = $(BASEDIR)/test/Sedov
+TESTDIR             = $(BASEDIR)/test/Sedov/mpi
 
-# Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST = -I$(SEDOVDIR) -I$(TESTDIR)
-LDFLAGS_TEST  =
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(TESTDIR)
+LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
-SRCS_TEST     = \
+SRCS_TEST = \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \

@@ -25,7 +25,7 @@ CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 CUCOMP       = nvcc
 CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 
-LDFLAGS_STD = -lpthread -lstdc++
+LDFLAGS_STD = -lpthread -lstdc++ -lcudart -L$(CUDADIR)/lib64
 
 # Define the following backend-related flags:
 #  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)

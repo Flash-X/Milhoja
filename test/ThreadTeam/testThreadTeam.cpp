@@ -863,11 +863,6 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
 TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
     unsigned int   N_ITERS = 10;
 
-    unsigned int   N_idle = 0;
-    unsigned int   N_wait = 0;
-    unsigned int   N_comp = 0;
-    unsigned int   N_Q    = 0;
-
     orchestration::Logger::setLogFilename("TestRunningClosedErrors.log");
 
     ThreadTeam  team1(5, 1);

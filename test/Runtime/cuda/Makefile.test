@@ -1,26 +1,19 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME     = test_runtime_cuda.x
+BINARYNAME          = test_runtime_cuda.x
 
 # Define relevant paths
-TESTDIR        = $(BASEDIR)/test/Runtime
-TESTBASEDIR    = $(BASEDIR)/test/Base
+RUNTIMEDIR          = $(BASEDIR)/test/Runtime
+TESTDIR             = $(RUNTIMEDIR)/cuda
+TESTBASEDIR         = $(BASEDIR)/test/Base
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST  = -I$(TESTBASEDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CUFLAGS_TEST   = -I$(TESTBASEDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-LDFLAGS_TEST   =
-
-# This test uses Google Test
-CXXFLAGS_TEST += $(CXXFLAGS_GTEST)
-CUFLAGS_TEST  += $(CUFLAGS_GTEST)
-LDFLAGS_TEST  += $(LIB_GTEST)
-
-# This test uses OACC
-CXXFLAGS_TEST += $(OACC_FLAGS)
-LDFLAGS_TEST  += $(OACC_FLAGS)
+CXXFLAGS_TEST_DEBUG = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS_TEST_PROD  = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST        = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CUFLAGS_GTEST)                -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST        = $(LIB_GTEST) $(OACC_FLAGS)
 
 # Define list of sources in SRCS_TEST
-SRCS_TEST      = \
+SRCS_TEST = \
     $(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
@@ -41,10 +34,10 @@ SRCS_TEST      = \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/testRuntime.cpp \
-    $(TESTDIR)/runRuntimeTests.cpp
+    $(RUNTIMEDIR)/testRuntime.cpp \
+    $(RUNTIMEDIR)/runRuntimeTests.cpp
 
-CU_SRCS       = \
+CU_SRCS = \
     $(SRCDIR)/CudaGpuEnvironment.cu \
     $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \

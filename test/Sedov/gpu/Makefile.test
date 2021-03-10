@@ -1,21 +1,18 @@
 # Define the desired binary name with BINARYNAME
-BINARYNAME     = sedov_gpu.x
+BINARYNAME          = sedov_gpu.x
 
 # Define relevant paths
-SEDOVDIR       = $(BASEDIR)/test/Sedov
-TESTDIR        = $(BASEDIR)/test/Sedov/gpu
+SEDOVDIR            = $(BASEDIR)/test/Sedov
+TESTDIR             = $(BASEDIR)/test/Sedov/gpu
 
-# Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST  = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CUFLAGS_TEST   = -I$(SEDOVDIR) -I$(TESTDIR) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-LDFLAGS_TEST   =
-
-# Adjust flags for OpenMP (OACC_FLAGS defined in Makefile.site)
-CXXFLAGS_TEST += $(OACC_FLAGS)
-LDFLAGS_TEST  += $(OACC_FLAGS)
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST        = -I$(SEDOVDIR) -I$(TESTDIR)               -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST        = $(OACC_FLAGS)
 
 # Define list of sources in SRCS_TEST
-SRCS_TEST      = \
+SRCS_TEST = \
 	$(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
@@ -51,7 +48,7 @@ SRCS_TEST      = \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(TESTDIR)/sedov_gpu.cpp
 
-CU_SRCS       = \
+CU_SRCS = \
 	$(SRCDIR)/CudaGpuEnvironment.cu \
 	$(SRCDIR)/CudaDataPacket.cu \
 	$(SRCDIR)/CudaStreamManager.cu \
