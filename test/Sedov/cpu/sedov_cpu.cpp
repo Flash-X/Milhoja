@@ -10,6 +10,7 @@
 
 #include "Grid_REAL.h"
 #include "Grid.h"
+#include "Timer.h"
 #include "Runtime.h"
 #include "OrchestrationLogger.h"
 
@@ -48,13 +49,6 @@ int main(int argc, char* argv[]) {
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
-    logger.log("[Simulation] Generate mesh and set initial conditions");
-    grid.initDomain(Simulation::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstBlank);
-
-    //----- OUTPUT RESULTS TO FILES
     // This only makes sense if the iteration is over LEAF blocks.
     RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
@@ -64,15 +58,22 @@ int main(int argc, char* argv[]) {
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
-    // TODO: Shouldn't this be done through the IO unit?
-    // FIXME: We disable this for testing as the plot files might be very large
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
-
+    orchestration::Timer::start("Set initial conditions");
+    grid.initDomain(Simulation::setInitialConditions_tile_cpu,
+                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC,
+                    Simulation::errorEstBlank);
     // Compute local integral quantities
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    orchestration::Timer::stop("Set initial conditions");
+
+    //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
+    orchestration::Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+    orchestration::Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance;
@@ -82,7 +83,7 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
+    orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
@@ -106,21 +107,28 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
+            orchestration::Timer::start("GC Fill");
             grid.fillGuardCells();
+            orchestration::Timer::stop("GC Fill");
         }
-        runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
 
-        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
-        }
+        orchestration::Timer::start("Hydro");
+        runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        orchestration::Timer::stop("Hydro");
 
         //----- OUTPUT RESULTS TO FILES
         // Compute local integral quantities
         // TODO: This should be run as a CPU-based pipeline extension
         //       to the physics action bundle.
-        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        orchestration::Timer::start("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
+
+        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
+            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
+        }
+        orchestration::Timer::stop("Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -143,7 +151,8 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation terminated");
+    orchestration::Timer::stop(rp_Simulation::NAME + " simulation");
+
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
