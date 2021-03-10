@@ -18,7 +18,8 @@ N_BINS = 50
 
 # Index of Z-value at which to get slice of final solution
 # This should be close to the center of the explosion
-Z_IDX = 128
+#Z_IDX = 128
+Z_IDX = 0
 
 #####----- AESTHETICS - These should be used consistently throughout
 FONTSIZE   = 16
