@@ -1,0 +1,23 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME          = sedov_mpi_omp.x
+
+# Define relevant paths
+SEDOVDIR            = $(BASEDIR)/test/Sedov
+TESTDIR             = $(BASEDIR)/test/Sedov/mpi_omp
+
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(TESTDIR)
+LDFLAGS_TEST        =
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST = \
+	$(SEDOVDIR)/Driver_data.cpp \
+	$(SEDOVDIR)/errorEstBlank.cpp \
+	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
+	$(SEDOVDIR)/Io.cpp \
+	$(SEDOVDIR)/hy_computeFluxesHll.cpp \
+	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
+	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(SEDOVDIR)/sim_setInitialConditions.cpp \
+	$(TESTDIR)/sedov_mpi_omp.cpp

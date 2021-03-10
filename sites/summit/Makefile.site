@@ -52,7 +52,7 @@ CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
 LDFLAGS_COV  = --coverage
 
 # Define flags for OpenMP
-AMREXDIR_OMP  =
+AMREXDIR_OMP  = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d_OMP
 OMP_FLAGS     = -mp
 CU_OMP_FLAGS  = -Xcompiler -mp
 OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
