@@ -12,6 +12,8 @@ from pathlib import Path
 
 import sedov
 
+plt.style.use('ggplot')
+
 #####----- CONFIGURATION VALUES
 # Conserved quantities bins
 N_BINS = 50
@@ -65,13 +67,15 @@ if __name__ == '__main__':
         print_usage(f'{result_B} does not exist or is not a folder')
         exit(4)
 
-    fname_data_A = result_A.joinpath('sedov.dat')
-    fname_log_A  = result_A.joinpath('sedov.log')
-    fname_plot_A = result_A.joinpath('sedov_plt_final')
+    fname_data_A   = result_A.joinpath('sedov.dat')
+    fname_log_A    = result_A.joinpath('sedov.log')
+    fname_plot_A   = result_A.joinpath('sedov_plt_final')
+    fname_timing_A = result_A.joinpath('sedov_timings.dat')
 
-    fname_data_B = result_B.joinpath('sedov.dat')
-    fname_log_B  = result_B.joinpath('sedov.log')
-    fname_plot_B = result_B.joinpath('sedov_plt_final')
+    fname_data_B   = result_B.joinpath('sedov.dat')
+    fname_log_B    = result_B.joinpath('sedov.log')
+    fname_plot_B   = result_B.joinpath('sedov_plt_final')
+    fname_timing_B = result_B.joinpath('sedov_timings.dat')
 
     print()
     print('Execution started at {} UTC'.format(dt.datetime.utcnow()))
@@ -84,7 +88,8 @@ if __name__ == '__main__':
     # The checks are run automatically when acquiring the IQ.
     did_iq_fail = False
     try:
-        r_A = sedov.Result(fname_plot_A, fname_data_A, fname_log_A)
+        r_A = sedov.Result(fname_plot_A, fname_data_A, \
+                           fname_log_A, fname_timing_A)
         iq_A_df = r_A.integral_quantities
         print()
         print(f'Integral Quantities A Check - SUCCESS')
@@ -102,7 +107,8 @@ if __name__ == '__main__':
         did_iq_fail = True
 
     try:
-        r_B = sedov.Result(fname_plot_B, fname_data_B, fname_log_B)
+        r_B = sedov.Result(fname_plot_B, fname_data_B, \
+                           fname_log_B, fname_timing_B)
         iq_B_df = r_B.integral_quantities
         print()
         print(f'Integral Quantities B Check - SUCCESS')
@@ -194,6 +200,16 @@ if __name__ == '__main__':
     fig.draw_plot(z_coords_A[Z_IDX], \
                   r_A, f'{result_A.name}', \
                   r_B, f'{result_B.name}')
+
+    subp = mfig.SubplotParams(left=0.09, right=0.975, top=0.92, bottom=0.11)
+    fig = plt.figure(num=4, FigureClass=sedov.MplWalltimesByStep, \
+                            figsize=(12, 6), subplotpars=subp)
+    fig.draw_plot(r_A, N_BINS, f'{result_A.name}', 'ms')
+
+    subp = mfig.SubplotParams(left=0.09, right=0.975, top=0.92, bottom=0.11)
+    fig = plt.figure(num=5, FigureClass=sedov.MplWalltimesByStep, \
+                            figsize=(12, 6), subplotpars=subp)
+    fig.draw_plot(r_B, N_BINS, f'{result_B.name}', 'ms')
 
     plt.show()
 

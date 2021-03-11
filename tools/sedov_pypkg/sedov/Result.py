@@ -82,11 +82,7 @@ class Result(object):
 
     @property
     def dimension(self):
-        _, _, nzb        = self.blocks_shape
-        _, _, n_blocks_z = self.domain_shape
-        if (nzb == 1) and (n_blocks_z == 1):
-            return 2
-        return 3
+        return int(self.__hdr['Dimension'])
 
     @property
     def blocks_shape(self):
@@ -388,6 +384,7 @@ class Result(object):
         msg += f'Study name\t\t\t{self.study_name}\n'
         msg += f'N MPI Processes\t\t\t{self.n_mpi_processes}\n'
         msg += f'N Steps\t\t\t\t{self.n_steps}\n'
+        msg += f'Dimension\t\t\t{self.dimension}\n'
         msg += f'NXB\t\t\t\t{nxb}\n'
         msg += f'NYB\t\t\t\t{nyb}\n'
         msg += f'NZB\t\t\t\t{nzb}\n'
