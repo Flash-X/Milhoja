@@ -16,6 +16,7 @@ SRCS_TEST = \
 	$(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
+	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
