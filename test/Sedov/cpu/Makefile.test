@@ -14,6 +14,7 @@ LDFLAGS_TEST        =
 SRCS_TEST = \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
+	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \

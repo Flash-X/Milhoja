@@ -7,6 +7,7 @@
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
+#include "ProcessTimer.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
@@ -17,6 +18,11 @@
 #include "errorEstBlank.h"
 
 #include "Flash_par.h"
+
+constexpr  unsigned int N_DIST_THREADS      = 1;
+constexpr  unsigned int N_GPU_THREADS       = 0;
+constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
+constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
@@ -83,6 +89,18 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
+    ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
+                        N_DIST_THREADS,
+                        hydroAdvance.nInitialThreads,
+                        N_GPU_THREADS,
+                        N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
+
+    ProcessTimer  intQ{rp_Simulation::NAME + "_timings_iq.dat", "CPU",
+                       N_DIST_THREADS,
+                       computeIntQuantitiesByBlk.nInitialThreads,
+                       N_GPU_THREADS,
+                       N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
+
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
@@ -112,10 +130,19 @@ int main(int argc, char* argv[]) {
             orchestration::Timer::stop("GC Fill");
         }
 
-        orchestration::Timer::start("Hydro");
+        double   tStart = MPI_Wtime();
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        double   wtime_sec = MPI_Wtime() - tStart;
+        orchestration::Timer::start("Gather/Write");
+        hydro.logTimestep(nStep, wtime_sec);
+        orchestration::Timer::stop("Gather/Write");
+
+        tStart = MPI_Wtime();
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-        orchestration::Timer::stop("Hydro");
+        wtime_sec = MPI_Wtime() - tStart;
+        orchestration::Timer::start("Gather/Write");
+        intQ.logTimestep(nStep, wtime_sec);
+        orchestration::Timer::stop("Gather/Write");
 
         //----- OUTPUT RESULTS TO FILES
         // Compute local integral quantities
