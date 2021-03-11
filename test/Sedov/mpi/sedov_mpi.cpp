@@ -11,6 +11,7 @@
 
 #include "Grid_REAL.h"
 #include "Grid.h"
+#include "Timer.h"
 #include "OrchestrationLogger.h"
 
 #include "errorEstBlank.h"
@@ -41,23 +42,24 @@ int main(int argc, char* argv[]) {
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
-    logger.log("[Simulation] Generate mesh and set initial conditions");
+    orchestration::Timer::start("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
+    io.computeLocalIntegralQuantities();
+    orchestration::Timer::stop("Set initial conditions");
 
     //----- OUTPUT RESULTS TO FILES
-    // TODO: Shouldn't this be done through the IO unit?
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
-
-//    // Compute global integral quantities via DATA MOVEMENT
-    io.computeLocalIntegralQuantities();
+    // Compute global integral quantities via DATA MOVEMENT
+    orchestration::Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+    orchestration::Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation started");
+    orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int            level{0};
     std::shared_ptr<Tile>   tileDesc{};
@@ -83,11 +85,14 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
+            orchestration::Timer::start("GC Fill");
             grid.fillGuardCells();
+            orchestration::Timer::stop("GC Fill");
         }
 
         //----- ADVANCE SOLUTION
         // Update unk data on interiors only
+        orchestration::Timer::start("Hydro");
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             tileDesc = ti->buildCurrentTile();
 
@@ -116,15 +121,18 @@ int main(int argc, char* argv[]) {
             hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
             Eos::idealGammaDensIe(lo, hi, U);
         }
+        io.computeLocalIntegralQuantities();
+        orchestration::Timer::stop("Hydro");
 
         //----- OUTPUT RESULTS TO FILES
-        io.computeLocalIntegralQuantities();
+        orchestration::Timer::start("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
+        orchestration::Timer::stop("Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -147,7 +155,8 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    logger.log("[Simulation] " + rp_Simulation::NAME + " simulation terminated");
+    orchestration::Timer::stop(rp_Simulation::NAME + " simulation");
+
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }

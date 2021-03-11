@@ -4,6 +4,7 @@
 #include <mpi.h>
 
 #include "Io.h"
+#include "Eos.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
@@ -11,11 +12,7 @@
 #include "Grid_REAL.h"
 #include "Grid.h"
 #include "Timer.h"
-#include "Runtime.h"
 #include "OrchestrationLogger.h"
-#ifdef USE_CUDA_BACKEND
-#include "CudaMemoryManager.h"
-#endif
 
 #include "errorEstBlank.h"
 
@@ -27,12 +24,6 @@ int main(int argc, char* argv[]) {
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
     orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
-
-    // Analogous to calling Orchestration_init
-    orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
-                                        rp_Runtime::N_THREADS_PER_TEAM,
-                                        rp_Runtime::N_STREAMS,
-                                        rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
     orchestration::Grid::instantiate();
@@ -47,27 +38,16 @@ int main(int argc, char* argv[]) {
     orchestration::Io&       io      = orchestration::Io::instance();
     orchestration::Grid&     grid    = orchestration::Grid::instance();
     orchestration::Logger&   logger  = orchestration::Logger::instance();
-    orchestration::Runtime&  runtime = orchestration::Runtime::instance();
 
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
-
-    // This only makes sense if the iteration is over LEAF blocks.
-    RuntimeAction     computeIntQuantitiesByBlk;
-    computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_1::N_THREADS_CPU;
-    computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
-    computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-    computeIntQuantitiesByBlk.routine         
-        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     orchestration::Timer::start("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    // Compute local integral quantities
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    io.computeLocalIntegralQuantities();
     orchestration::Timer::stop("Set initial conditions");
 
     //----- OUTPUT RESULTS TO FILES
@@ -79,25 +59,11 @@ int main(int argc, char* argv[]) {
     orchestration::Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    RuntimeAction     hydroAdvance_cpu;
-    hydroAdvance_cpu.name            = "Advance Hydro Solution - CPU";
-    hydroAdvance_cpu.nInitialThreads = rp_Bundle_2::N_THREADS_CPU;
-    hydroAdvance_cpu.teamType        = ThreadTeamDataType::BLOCK;
-    hydroAdvance_cpu.nTilesPerPacket = 0;
-    hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
-
-    RuntimeAction     hydroAdvance_gpu;
-    hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
-    hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
-    hydroAdvance_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-    hydroAdvance_gpu.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
-    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
-
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST;
-
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
-    unsigned int   nStep   = 1;
+    unsigned int            level{0};
+    std::shared_ptr<Tile>   tileDesc{};
+    unsigned int            nStep{1};
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -124,17 +90,47 @@ int main(int argc, char* argv[]) {
             orchestration::Timer::stop("GC Fill");
         }
 
+        //----- ADVANCE SOLUTION
+        // Update unk data on interiors only
         orchestration::Timer::start("Hydro");
-        runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
-                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                                hydroAdvance_cpu,
-                                                hydroAdvance_gpu,
-                                                computeIntQuantitiesByBlk,
-                                                rp_Bundle_2::N_TILES_PER_CPU_TURN);
+#pragma omp parallel default(none) \
+                     private(tileDesc) \
+                     shared(grid, level, Driver::dt) \
+                     num_threads(rp_Hydro::N_THREADS_FOR_ADV_SOLN)
+        {
+            for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+                tileDesc = ti->buildCurrentTile();
+
+                const IntVect       lo = tileDesc->lo();
+                const IntVect       hi = tileDesc->hi();
+                FArray4D            U  = tileDesc->data();
+
+                // FIXME: We should be able to reindex the scratch array so that
+                // we aren't needlessly allocating/deallocating scratch blocks.
+                IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
+                FArray4D   flX = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
+
+                fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
+                FArray4D   flY = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
+
+                fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
+                FArray4D   flZ = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
+
+                IntVect    cLo = IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)};
+                IntVect    cHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)};
+                FArray3D   auxC = FArray3D::buildScratchArray(cLo, cHi);
+
+                hy::computeFluxesHll(Driver::dt, lo, hi,
+                                     tileDesc->deltas(),
+                                     U, flX, flY, flZ, auxC);
+                hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
+                Eos::idealGammaDensIe(lo, hi, U);
+            }
+        }
+        io.computeLocalIntegralQuantities();
         orchestration::Timer::stop("Hydro");
 
         //----- OUTPUT RESULTS TO FILES
-        //  local integral quantities computed as part of previous bundle
         orchestration::Timer::start("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
@@ -162,12 +158,6 @@ int main(int argc, char* argv[]) {
         // we mimic that dt sequence here so that we can directly compare
         // results.
         Driver::dt = rp_Driver::DT_AFTER;
-
-#ifdef USE_CUDA_BACKEND
-        // FIXME: This is a cheap hack necessitated by the fact that the runtime
-        // does not yet have a real memory manager.
-        orchestration::CudaMemoryManager::instance().reset();
-#endif
 
         ++nStep;
     }

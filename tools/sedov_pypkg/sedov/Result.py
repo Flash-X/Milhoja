@@ -175,6 +175,67 @@ class Result(object):
         columns = ['summary_stats']
         return pd.DataFrame(data=intQuantities, index=index, columns=columns)
 
+    @property
+    def __timers_results(self):
+        timers = ['Set initial conditions',
+                  'Reduce/Write',
+                  'sedov simulation',
+                  'Hydro',
+                  'GC Fill']
+
+        times_sec = {}
+        for key in timers:
+            assert(key not in times_sec)
+            times_sec[key] = {}
+            times_sec[key]['start'] = []
+            times_sec[key]['end']   = []
+
+        with open(self.__fname_log, 'r') as fptr:
+            for line in fptr.readlines():
+                if '[Logger] Terminated at' in line:
+                    wtime_total_sec = float(line.split()[0])
+
+                for key in timers:
+                    if '[Timer] Start timing ' + key in line:
+                        times_sec[key]['start'].append( float(line.split()[0]) )
+                    if '[Timer] Stop timing ' + key in line:
+                        times_sec[key]['end'].append( float(line.split()[0]) )
+
+        for key in timers:
+            start = np.array(times_sec[key]['start'])
+            end   = np.array(times_sec[key]['end'])
+            assert(len(start) == len(end))
+        for key in ['Set initial conditions', 'sedov simulation']:
+            assert(len(times_sec[key]['start']) == 1)
+
+        wtimes_sec = {}
+        for key in times_sec:
+            assert(key not in wtimes_sec)
+            start = np.array(times_sec[key]['start'])
+            end   = np.array(times_sec[key]['end'])
+            wtimes_sec[key] = np.sum(end - start)
+
+        wtime_setup_sec    = times_sec['Set initial conditions']['start'][0]
+        wtime_init_sec     = times_sec['sedov simulation']['start'][0]
+        wtime_ic_sec       = wtimes_sec['Set initial conditions']
+        wtime_sim_sec      = wtimes_sec['sedov simulation']
+        wtime_gc_sec       = wtimes_sec['GC Fill']
+        wtime_finalize_sec = wtime_total_sec - times_sec['sedov simulation']['end'][0]
+        wtime_comp_sec     = wtimes_sec['Hydro']
+        wtime_reduce_sec   = wtimes_sec['Reduce/Write']
+
+        msg  = f'Total walltime\t\t\t\t\t{wtime_total_sec} s\n'
+        msg += f'\tInitialization walltime\t\t\t\t{wtime_init_sec} s\n'
+        msg += f'\t\tSetup walltime\t\t\t\t\t{wtime_setup_sec} s\n'
+        msg += f'\t\tICs walltime\t\t\t\t\t{wtime_ic_sec} s\n'
+        msg += f'\tSimulation walltime\t\t\t\t{wtime_sim_sec} s\n'
+        msg += f'\t\tGC fill walltime\t\t\t\t{wtime_gc_sec} s\n'
+        msg += f'\t\tComputation walltime\t\t\t\t{wtime_comp_sec} s\n'
+        msg += f'\t\tReduction walltime\t\t\t\t{wtime_reduce_sec} s\n'
+        msg += f'\tFinalization walltime\t\t\t\t{wtime_finalize_sec} s\n'
+
+        return msg
+
     def __str__(self):
         """
         """
@@ -207,6 +268,8 @@ class Result(object):
         msg += f'Mean(Total Energy Error)\t{E_mean}\n'
         msg += f'Std(Total Energy Error)\t\t{E_std}\n'
         msg += f'Max(|Total Energy Error|)\t{E_max}\n'
+        msg += '\n'
+        msg += self.__timers_results
 
         return msg
 
