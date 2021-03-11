@@ -21,6 +21,7 @@ from sedov.Result import Result
 from sedov.MplConservedQuantities import MplConservedQuantities
 from sedov.MplFinalSolution import MplFinalSolution
 from sedov.MplSolutionComparison import MplSolutionComparison
+from sedov.MplWalltimesByStep import MplWalltimesByStep
 
 # unittests
 from sedov.TestNoop import suite as suite1

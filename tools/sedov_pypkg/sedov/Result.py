@@ -2,6 +2,7 @@ import yt
 
 import numpy as np
 import pandas as pd
+import itertools as it
 
 from pathlib import Path
 
@@ -22,7 +23,7 @@ class Result(object):
     A class for accessing the results of a single Sedov test run and that
     automatically applies some sanity checks to the results.
     """
-    def __init__(self, fname_plot, fname_data, fname_log):
+    def __init__(self, fname_plot, fname_data, fname_log, fname_timing):
         """
         Create an instance of the class for accessing the results associated
         with the given individual result files.  It is generally intended that
@@ -30,23 +31,29 @@ class Result(object):
         the Sedov test problem.
 
         Parameters:
-            fname_plot - the full path to the AMReX-format folder containing the
-                         solution at the end of the simulation
-            fname_data - the filename including full path of the ASCII-format
-                         file that contains the integral quantities as computed
-                         at each timestep.
-            fname_log  - the filename including full path of the ASCII-format
-                         file that contains the simulation log information.
+            fname_plot   - the full path to the AMReX-format folder containing
+                           the solution at the end of the simulation
+            fname_data   - the filename including full path of the ASCII-format
+                           file that contains the integral quantities as
+                           computed at each timestep.
+            fname_log    - the filename including full path of the ASCII-format
+                           file that contains the simulation log information.
+            fname_timing - the filename including full path of the ASCII-format
+                           file that contains the computation timing data.
         Returns
             The object
         """
-        self.__fname_plot = Path(fname_plot)
-        self.__fname_data = Path(fname_data)
-        self.__fname_log  = Path(fname_log)
+        # TODO: Should we pass in the IQ timing file when acquired as well?
+        self.__fname_plot   = Path(fname_plot)
+        self.__fname_data   = Path(fname_data)
+        self.__fname_log    = Path(fname_log)
+        self.__fname_timing = Path(fname_timing)
         if   not self.__fname_data.is_file():
             raise ValueError(f'{self.__fname_data} does not exist')
         elif not self.__fname_log.is_file():
             raise ValueError(f'{self.__fname_log} does not exist')
+        elif not self.__fname_timing.is_file():
+            raise ValueError(f'{self.__fname_timing} does not exist')
 
         self.__dataset = None
         if not self.__fname_plot.is_dir():
@@ -58,7 +65,115 @@ class Result(object):
         assert(self.__dataset.coordinates.axis_id['y'] == YT_YAXIS)
         assert(self.__dataset.coordinates.axis_id['z'] == YT_ZAXIS)
 
+        with open(self.__fname_timing, 'r') as fptr:
+            comments = (each.lstrip().lstrip('#') for each in fptr.readlines() \
+                                                  if each.lstrip()[0] == '#')
+            comments = (each.split() for each in comments \
+                                     if len(each.split()) == 3)
+            pairs = ((each[0], each[2]) for each in comments \
+                                        if each[1] == '=')
+            self.__hdr = dict(pairs)
+
         super().__init__()
+
+    @property
+    def study_name(self):
+        return self.__hdr['Testname']
+
+    @property
+    def dimension(self):
+        _, _, nzb        = self.blocks_shape
+        _, _, n_blocks_z = self.domain_shape
+        if (nzb == 1) and (n_blocks_z == 1):
+            return 2
+        return 3
+
+    @property
+    def blocks_shape(self):
+        return (int(self.__hdr['NXB']), \
+                int(self.__hdr['NYB']), \
+                int(self.__hdr['NZB']))
+
+    @property
+    def domain_shape(self):
+        return (int(self.__hdr['N_BLOCKS_X']), \
+                int(self.__hdr['N_BLOCKS_Y']), \
+                int(self.__hdr['N_BLOCKS_Z'])) 
+
+    @property
+    def n_mpi_processes(self):
+        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+        assert(raw_data.shape[1] % 2 == 1)
+        return int(0.5 * (raw_data.shape[1] - 1))
+
+    @property
+    def n_steps(self):
+        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+        n_rows = raw_data.shape[0]
+        assert(all(raw_data[:, 0] == range(1, n_rows+1)))
+        return raw_data.shape[0]
+
+    @property
+    def n_distributor_threads(self):
+        return int(self.__hdr['n_distributor_threads'])
+
+    @property
+    def n_cpu_threads(self):
+        return int(self.__hdr['n_cpu_threads'])
+
+    @property
+    def n_gpu_threads(self):
+        return int(self.__hdr['n_gpu_threads'])
+
+    @property
+    def n_blocks_per_packet(self):
+        return int(self.__hdr['n_blocks_per_packet'])
+
+    @property
+    def n_blocks_per_cpu_turn(self):
+        return int(self.__hdr['n_blocks_per_cpu_turn'])
+
+    @property
+    def timer_resolution_sec(self):
+        return float(self.__hdr['MPI_Wtick_sec'])
+
+    @property
+    def raw_timings(self):
+        n_procs = self.n_mpi_processes
+
+        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+
+        steps = raw_data[:, 0].astype(int)
+        procs = range(1, n_procs+1)
+        idx = pd.MultiIndex.from_tuples(it.product(steps, procs), \
+                                        names=['step', 'proc'])
+
+        columns = ['n_blocks', 'wtime_sec']
+        data = np.full([len(idx), len(columns)], 0.0, float)
+        for row, (s_idx, p_idx) in enumerate(idx):
+            data[row, 0] = raw_data[s_idx-1, 2*(p_idx - 1) + 1]
+            data[row, 1] = raw_data[s_idx-1, 2* p_idx]
+
+        df = pd.DataFrame(data=data, index=idx, columns=columns)
+        df['n_blocks'] = df.n_blocks.astype(int)
+        df['wtime_per_blk_sec'] = df.wtime_sec / df.n_blocks
+
+        return df
+
+    @property
+    def timings_per_step(self):
+        """
+        For each timestep, obtain the maximum walltime per timestep across all
+        MPI processes.
+        """
+        raw_df = self.raw_timings
+        steps = raw_df.index.get_level_values('step').unique().values
+        max_wtime_sec = np.zeros(len(steps))
+        for j, n in enumerate(steps):
+            max_wtime_sec[j] = raw_df.xs(n, level='step').wtime_sec.max()
+
+        columns = ['max_wtime_sec']
+        return pd.DataFrame(data=max_wtime_sec, index=steps, columns=columns)
 
     @property
     def z_coordinates(self):
@@ -177,10 +292,15 @@ class Result(object):
 
     @property
     def __timers_results(self):
+        n_blocks = np.prod(self.domain_shape)
+        n_proc = self.n_mpi_processes
+        n_steps = self.n_steps
+        n_blocks_per_proc = np.ceil(n_blocks / float(n_proc))
+
         timers = ['Set initial conditions',
                   'Reduce/Write',
+                  'Gather/Write',
                   'sedov simulation',
-                  'Hydro',
                   'GC Fill']
 
         times_sec = {}
@@ -221,16 +341,18 @@ class Result(object):
         wtime_sim_sec      = wtimes_sec['sedov simulation']
         wtime_gc_sec       = wtimes_sec['GC Fill']
         wtime_finalize_sec = wtime_total_sec - times_sec['sedov simulation']['end'][0]
-        wtime_comp_sec     = wtimes_sec['Hydro']
+        wtime_comp_sec     = self.timings_per_step.max_wtime_sec.sum()
         wtime_reduce_sec   = wtimes_sec['Reduce/Write']
 
         msg  = f'Total walltime\t\t\t\t\t{wtime_total_sec} s\n'
         msg += f'\tInitialization walltime\t\t\t\t{wtime_init_sec} s\n'
         msg += f'\t\tSetup walltime\t\t\t\t\t{wtime_setup_sec} s\n'
         msg += f'\t\tICs walltime\t\t\t\t\t{wtime_ic_sec} s\n'
+        msg += f'\t\tICs walltime/block\t\t\t\t{wtime_ic_sec / float(n_blocks_per_proc*n_steps)} s\n'
         msg += f'\tSimulation walltime\t\t\t\t{wtime_sim_sec} s\n'
         msg += f'\t\tGC fill walltime\t\t\t\t{wtime_gc_sec} s\n'
         msg += f'\t\tComputation walltime\t\t\t\t{wtime_comp_sec} s\n'
+        msg += f'\t\tComputation walltime/block\t\t\t{wtime_comp_sec / float(n_blocks_per_proc*n_steps)} s\n'
         msg += f'\t\tReduction walltime\t\t\t\t{wtime_reduce_sec} s\n'
         msg += f'\tFinalization walltime\t\t\t\t{wtime_finalize_sec} s\n'
 
@@ -239,6 +361,9 @@ class Result(object):
     def __str__(self):
         """
         """
+        nxb, nyb, nzb = self.blocks_shape
+        n_blocks_x, n_blocks_y, n_blocks_z = self.domain_shape
+
         iq_df = self.integral_quantities_statistics
         M0     = iq_df.loc['Initial_Mass', 'summary_stats']
         M_mean = iq_df.loc['Mean_Mass_Err', 'summary_stats']
@@ -258,6 +383,23 @@ class Result(object):
         else:
             msg += f'Plotfile Name\t\t\t{self.__fname_plot.name}\n'
             msg += f'Plotfile Name Path\t\t{self.__fname_plot.parent}\n'
+        msg  = f'Filename\t\t\t{self.__fname_timing.name}\n'
+        msg += f'Data Repo\t\t\t{self.__fname_timing.parent}\n'
+        msg += f'Study name\t\t\t{self.study_name}\n'
+        msg += f'N MPI Processes\t\t\t{self.n_mpi_processes}\n'
+        msg += f'N Steps\t\t\t\t{self.n_steps}\n'
+        msg += f'NXB\t\t\t\t{nxb}\n'
+        msg += f'NYB\t\t\t\t{nyb}\n'
+        msg += f'NZB\t\t\t\t{nzb}\n'
+        msg += f'N_BLOCKS_X\t\t\t{n_blocks_x}\n'
+        msg += f'N_BLOCKS_Y\t\t\t{n_blocks_y}\n'
+        msg += f'N_BLOCKS_Z\t\t\t{n_blocks_z}\n'
+        msg += f'N Distributor Threads\t\t{self.n_distributor_threads}\n'
+        msg += f'N CPU         Threads\t\t{self.n_cpu_threads}\n'
+        msg += f'N GPU         Threads\t\t{self.n_gpu_threads}\n'
+        msg += f'N Blocks/Packet\t\t\t{self.n_blocks_per_packet}\n'
+        msg += f'N Blocks/CPU Turn\t\t{self.n_blocks_per_cpu_turn}\n'
+        msg += f'Timer Resolution\t\t{self.timer_resolution_sec} sec\n'
 
         msg += '\n'
         msg += f'Initial Mass\t\t\t{M0}\n'
