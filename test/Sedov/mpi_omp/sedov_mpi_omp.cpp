@@ -138,12 +138,15 @@ int main(int argc, char* argv[]) {
                 Eos::idealGammaDensIe(lo, hi, U);
             }
         }
-        io.computeLocalIntegralQuantities();
         double       wtime_sec = MPI_Wtime() - tStart;
 
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
         orchestration::Timer::stop("Gather/Write");
+
+        orchestration::Timer::start("LocalIntQ");
+        io.computeLocalIntegralQuantities();
+        orchestration::Timer::stop("LocalIntQ");
 
         //----- OUTPUT RESULTS TO FILES
         orchestration::Timer::start("Reduce/Write");
