@@ -34,6 +34,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     if (rank_ == MASTER_PE) {
         fptr_.open(filename, std::ios::out);
         fptr_ << "# Testname = " << testname << "\n";
+        fptr_ << "# Dimension = " << NDIM << "\n";
         fptr_ << "# NXB = " << NXB << "\n";
         fptr_ << "# NYB = " << NYB << "\n";
         fptr_ << "# NZB = " << NZB << "\n";
