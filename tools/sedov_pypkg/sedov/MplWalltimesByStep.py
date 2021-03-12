@@ -48,7 +48,8 @@ class MplWalltimesByStep(mfig.Figure):
         subpy = self.add_subplot(gs[0, 0])
         for proc in range(1, result.n_mpi_processes + 1):
             df = wtime_sec_df.xs(proc, level='proc')
-            subpy.plot(df.wtime_per_blk_sec.values * conv, '.')
+            subpy.plot(df.index, \
+                       df.wtime_per_blk_sec.values * conv, '.')
         subpy.set_ylabel(f'Time/Blk/Step ({time_unit})', \
                          fontsize=self.__fontsize)
         for each in self.gca().get_xticklabels():
@@ -65,7 +66,8 @@ class MplWalltimesByStep(mfig.Figure):
             each.set_visible(False)
 
         subpy = self.add_subplot(gs[1, 0], sharex=subpy)
-        subpy.plot(max_wtime_df.max_wtime_sec.values * conv, '.')
+        subpy.plot(max_wtime_df.index, \
+                   max_wtime_df.max_wtime_sec.values * conv, '.')
         subpy.set_xlabel('Timestep', \
                          fontsize=self.__fontsize)
         subpy.set_ylabel(f'Max Time/Step ({time_unit})', \
