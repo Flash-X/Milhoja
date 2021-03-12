@@ -217,7 +217,7 @@ class Result(object):
             data = np.loadtxt(fptr)
 
         # IC + all steps
-#        assert(data.shape[0] == self.n_steps + 1)
+        assert(data.shape[0] == self.n_steps + 1)
 
         # Conserved quantities
         # TODO: These should all be put under test
