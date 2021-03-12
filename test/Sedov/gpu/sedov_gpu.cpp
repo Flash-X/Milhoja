@@ -7,6 +7,7 @@
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
+#include "ProcessTimer.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
@@ -95,6 +96,13 @@ int main(int argc, char* argv[]) {
 
     computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST;
 
+    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
+                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                        hydroAdvance_cpu.nInitialThreads,
+                        hydroAdvance_gpu.nInitialThreads,
+                        hydroAdvance_gpu.nTilesPerPacket,
+                        rp_Bundle_2::N_TILES_PER_CPU_TURN};
+
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
@@ -124,14 +132,18 @@ int main(int argc, char* argv[]) {
             orchestration::Timer::stop("GC Fill");
         }
 
-        orchestration::Timer::start("Hydro");
+        double   tStart = MPI_Wtime();
         runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
                                                 rp_Bundle_2::N_DISTRIBUTOR_THREADS,
                                                 hydroAdvance_cpu,
                                                 hydroAdvance_gpu,
                                                 computeIntQuantitiesByBlk,
                                                 rp_Bundle_2::N_TILES_PER_CPU_TURN);
-        orchestration::Timer::stop("Hydro");
+        double   wtime_sec = MPI_Wtime() - tStart;
+
+        orchestration::Timer::start("Gather/Write");
+        hydro.logTimestep(nStep, wtime_sec);
+        orchestration::Timer::stop("Gather/Write");
 
         //----- OUTPUT RESULTS TO FILES
         //  local integral quantities computed as part of previous bundle

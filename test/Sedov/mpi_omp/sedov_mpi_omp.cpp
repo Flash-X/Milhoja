@@ -8,6 +8,7 @@
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
+#include "ProcessTimer.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
@@ -17,6 +18,12 @@
 #include "errorEstBlank.h"
 
 #include "Flash_par.h"
+
+constexpr  unsigned int N_DIST_THREADS      = 0;
+constexpr  unsigned int N_CPU_THREADS       = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
+constexpr  unsigned int N_GPU_THREADS       = 0;
+constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
+constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
@@ -33,6 +40,10 @@ int main(int argc, char* argv[]) {
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
+
+    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI+OpenMP",
+                        N_DIST_THREADS, N_CPU_THREADS, N_GPU_THREADS,
+                        N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
 
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();
@@ -92,7 +103,7 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION
         // Update unk data on interiors only
-        orchestration::Timer::start("Hydro");
+        double   tStart = MPI_Wtime();
 #pragma omp parallel default(none) \
                      private(tileDesc) \
                      shared(grid, level, Driver::dt) \
@@ -127,8 +138,15 @@ int main(int argc, char* argv[]) {
                 Eos::idealGammaDensIe(lo, hi, U);
             }
         }
+        double       wtime_sec = MPI_Wtime() - tStart;
+
+        orchestration::Timer::start("Gather/Write");
+        hydro.logTimestep(nStep, wtime_sec);
+        orchestration::Timer::stop("Gather/Write");
+
+        orchestration::Timer::start("LocalIntQ");
         io.computeLocalIntegralQuantities();
-        orchestration::Timer::stop("Hydro");
+        orchestration::Timer::stop("LocalIntQ");
 
         //----- OUTPUT RESULTS TO FILES
         orchestration::Timer::start("Reduce/Write");
