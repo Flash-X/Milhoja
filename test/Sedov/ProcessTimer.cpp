@@ -27,11 +27,11 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     MPI_Comm_rank(GLOBAL_COMM, &rank_);
     MPI_Comm_size(GLOBAL_COMM, &nProcs_);
 
-    wtimes_sec_  = new double[nProcs_];
-    blockCounts_ = new unsigned int[nProcs_];
-
     // Write header to file
     if (rank_ == MASTER_PE) {
+        wtimes_sec_  = new double[nProcs_];
+        blockCounts_ = new unsigned int[nProcs_];
+
         fptr_.open(filename, std::ios::out);
         fptr_ << "# Testname = " << testname << "\n";
         fptr_ << "# Dimension = " << NDIM << "\n";
