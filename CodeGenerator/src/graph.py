@@ -1,5 +1,5 @@
 from src.node import *
-import networkx, copy
+import networkx, copy, sys
 
 ################
 # Abstract Graph
@@ -96,6 +96,8 @@ class AbstractGraph():
         except TypeError:
             assert isinstance(node, int), type(node)
             self.G.nodes[node][attributeName] = attributeValue
+        except:
+            raise
 
     def addEdge(self, nodeSource : int, nodeTarget : int):
         assert isinstance(nodeSource, int) or nodeSource is None, type(nodeSource)
@@ -197,14 +199,13 @@ class AbstractGraph():
         coarseEdges = list()  # storage for edges of coarse graph
         subEdges    = list()  # storage for edges of (fine) subgraphs
         for u, adjdict in self.G.adjacency():
-            keep = False
+            isCoarseEdge = False
             adjitems = adjdict.items()
             for v, eattr in adjitems:
-                assert edgeAttributeName in eattr
-                if eattr[edgeAttributeName]:
-                    keep = True
+                if edgeAttributeName in eattr and eattr[edgeAttributeName]:
+                    isCoarseEdge = True
                     break
-            if keep:
+            if isCoarseEdge:
                 for v, eattr in adjitems:
                     coarseEdges.append((u, v))
             else:
@@ -217,18 +218,21 @@ class AbstractGraph():
         # extract nodes of connected components
         edgeGraph = self.G.edge_subgraph(subEdges)
         connNodes = networkx.weakly_connected_components(edgeGraph)
+        allNodes  = set(self.G.nodes)
         # create subgraphs
         subGraphs = list()
-        for nodes in connNodes:
+        for nodes in connNodes:  # loop over sets of nodes
+            allNodes = allNodes.difference(nodes)
             subGraphs.append(self.G.subgraph(nodes).copy())
             assert self._isValid_nxGraph(subGraphs[-1])
+        for node in allNodes:  # loop over individual nodes
+            subGraphs.append(self.G.subgraph(node).copy())
         return subGraphs
-        #TODO Q: can we have remaining nodes that are not part of any subgraph?
 
     def _toHierarchicalGraph_createHierarchicalGraph(self, subGraphs : list, coarseEdges : list):
         assert isinstance(subGraphs, list), type(subGraphs)
         assert isinstance(coarseEdges, list), type(coarseEdges)
-        # create hierarchical graph, a shallow copy of `self`
+        # init hierarchical graph as a shallow copy of `self`
         hGraph = self._copy()
         # add subgraphs as nodes in hierarchical graph; get bounds of all subgraphs
         boundsSG = dict()
@@ -236,6 +240,8 @@ class AbstractGraph():
             node = hGraph.addNode(SG)
             boundsSG[node] = self._searchBounds(SG)
             for attributeName, attributeValue in self.G.nodes[boundsSG[node][0]].items():
+                if attributeName in hGraph.G.nodes[node]:
+                    continue
                 hGraph.addNodeAttribute(node, attributeName, attributeValue)
         # translate edges for hierarchical graph
         hEdges = list()
@@ -298,15 +304,31 @@ class AbstractGraph():
 # Task Graph
 ############
 
+class RootNode():
+    def __init__(self):
+        self.type = 'Root'
+
+    def __str__(self):
+        return str(self.__class__) + ': ' + str(self.__dict__)
+
+    def instantiateCodeAssembler(self, functionName=None, device=None):
+        return None
+
+
 class TaskGraph(AbstractGraph):
     def __init__(self, devices=['CPU', 'GPU'], verbose=False, initGraph=True):
         super().__init__(verbose=verbose, verbose_prefix='[TaskGraph]')
         if initGraph:
             self.addNode(RootNode())
         # set devices
+        self.deviceDefault = 'Default'
         assert isinstance(devices, list), type(devices)
-        self.deviceList       = devices
-        self.deviceDefault    = devices[0]
+        if initGraph:
+            assert not (self.deviceDefault in devices)
+            self.deviceList = [self.deviceDefault, *devices]
+        else:
+            assert (self.deviceDefault in devices)
+            self.deviceList = devices
         # set attribute names pertaining to devices
         self.deviceName       = 'device'
         self.deviceChangeName = self.deviceName + '_change'
@@ -341,16 +363,16 @@ class TaskGraph(AbstractGraph):
         assert isinstance(memoryCopy, list), type(memoryCopy)
         assert isinstance(memoryScratch, list), type(memoryScratch)
         # process (current) node
-        if self.deviceName not in self.G.nodes[node]:  # if need default value
+        if self.deviceName not in self.G.nodes[node]:  # if device is not set
             self.G.nodes[node][self.deviceName] = self.deviceDefault
         assert 'obj' in self.G.nodes[node]
         if isinstance(self.G.nodes[node]['obj'], ConcurrentDataBeginNode):  # if has memory information
-            memoryCopy.extend(self.G.nodes[node]['obj'].unkIn)
+            memoryCopy.extend(self.G.nodes[node]['obj'].Uin)
             memoryScratch.extend(self.G.nodes[node]['obj'].scratch)
         # check the node's neighbors
         for nbr in list(self.G.successors(node)):  # loop over all neighbors
             # process neighboring node
-            if self.deviceName not in self.G.nodes[nbr]:  # if need default value
+            if self.deviceName not in self.G.nodes[nbr]:  # if device is not set
                 self.G.nodes[nbr][self.deviceName] = self.deviceDefault
             isChange = self.G[node][nbr][self.deviceChangeName] = \
                 self.nodeAttributeChange(node, nbr, self.deviceName)
@@ -372,4 +394,119 @@ class TaskGraph(AbstractGraph):
         return super().toPrunedGraph(self.deviceChangeName)
 
     def toHierarchicalGraph(self):
-        return super().toHierarchicalGraph(self.deviceChangeName)
+            return super().toHierarchicalGraph(self.deviceChangeName)
+
+    def parseCode(self):
+        return self.parseCode_nxGraph(self.G, self.rootid)
+
+    @staticmethod
+    def parseCode_nxGraph(nxGraph, rootid=0):
+        subroutine = dict()
+        codeNodes  = set()  #TODO unused
+        code = TaskGraph._parseCodeRecurively_nxGraph(nxGraph, rootid, subroutine, codeNodes)
+        return code, subroutine
+
+    @staticmethod
+    def _parseCodeRecurively_nxGraph(nxGraph, node : int, subroutine : dict, codeNodes : set):
+        assert isinstance(node, int), type(node)
+        assert isinstance(subroutine, dict), type(subroutine)
+        assert isinstance(codeNodes, set), type(codeNodes)
+        # extract (non-hidden) attributes of current node
+        substituteDict = {'__ID__': node}  # TODO make params dict with `_param:` entries
+        for key, attr in nxGraph.nodes[node].items():
+            if not key.startswith('_'):
+                substituteDict['__'+key+'__'] = attr
+                #TODO update param variables
+        # extract arguments
+        argsDict = dict()
+        for key, attr in nxGraph.nodes[node].items():
+            if key.startswith('_args'):
+                label = TaskGraph._substitute(key.split(':')[1], substituteDict)
+                value = TaskGraph._trim(str(attr))
+                argsDict[label] = value
+        # process subgraph of (current) node
+        assert 'obj' in nxGraph.nodes[node]
+        subRoutineName = 'subroutine_id{}'.format(node)
+        subGraph       = nxGraph.nodes[node]['obj']
+        subCode        = TaskGraph._parseCode_subgraph(subGraph, subRoutineName)
+        if subCode:
+            substituteDict['__subroutine_name__'] = subRoutineName
+            subroutine[subRoutineName] = subCode
+        # process (current) node
+        code = ''
+        for key, attr in nxGraph.nodes[node].items():
+            if key.startswith('_code'):
+                label = TaskGraph._substitute(key.split(':')[1], substituteDict)
+                value = TaskGraph._substitute(TaskGraph._trim(attr), substituteDict)
+                code += '[{}]\n'.format(label)
+                if label in argsDict:
+                    code += 'args = ' + argsDict[label] + '\n'
+                code += 'definition =\n' + value + '\n\n'
+                codeNodes.add(node)
+        # go to the node's neighbors
+        for nbr in list(nxGraph.successors(node)):  # loop over all neighbors
+            code += TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, subroutine, codeNodes)
+        return code
+
+    @staticmethod
+    def _parseCode_subgraph(subGraph, subRoutineName):
+        assert isinstance(subGraph, networkx.DiGraph), type(subGraph)
+        assert isinstance(subRoutineName, str), type(subRoutineName)
+        rootid = AbstractGraph._searchBounds(subGraph)[0]
+        assert 'obj' in subGraph.nodes[rootid]
+        assert 'device' in subGraph.nodes[rootid]
+        device        = subGraph.nodes[rootid]['device']
+        codeAssembler = subGraph.nodes[rootid]['obj'].instantiateCodeAssembler(functionName=subRoutineName, device=device)
+        #TODO why is code assembler coming from a specific node?
+        if codeAssembler:
+            TaskGraph._parseCodeRecursively_subgraph(subGraph, rootid, codeAssembler)
+            return codeAssembler.parse()
+        else:
+            return None
+
+    @staticmethod
+    def _parseCodeRecursively_subgraph(subGraph, node, codeAssembler):
+        assert 'obj' in subGraph.nodes[node]
+        assert 'device' in subGraph.nodes[node]
+        # process (current) node
+        device = subGraph.nodes[node]['device']
+        subGraph.nodes[node]['obj'].assembleCode(codeAssembler, device=device)
+        # go to the node's neighbors
+        for nbr in list(subGraph.successors(node)):  # loop over all neighbors
+            TaskGraph._parseCodeRecursively_subgraph(subGraph, nbr, codeAssembler)
+
+    @staticmethod
+    def _substitute(string : str, subDict : dict):
+        for old, new in subDict.items():
+            if old in string:
+                string = string.replace(old, str(new))
+        return string
+
+    @staticmethod
+    def _trim(docstring : str):
+        '''Handle indentation.
+        Source: https://www.python.org/dev/peps/pep-0257/
+        '''
+        if not docstring:
+            return ''
+        # convert tabs to spaces (following the normal Python rules)
+        # and split into a list of lines:
+        lines = docstring.expandtabs().splitlines()
+        # determine minimum indentation (first line doesn't count):
+        indent = sys.maxsize
+        for line in lines[1:]:
+            stripped = line.lstrip()
+            if stripped:
+                indent = min(indent, len(line) - len(stripped))
+        # remove indentation (first line is special):
+        trimmed = [lines[0].strip()]
+        if indent < sys.maxsize:
+            for line in lines[1:]:
+                trimmed.append(line[indent:].rstrip())
+        # strip off trailing and leading blank lines:
+        while trimmed and not trimmed[-1]:
+            trimmed.pop()
+        while trimmed and not trimmed[0]:
+            trimmed.pop(0)
+        # return a single string:
+        return '\n'.join(trimmed)

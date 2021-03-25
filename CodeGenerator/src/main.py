@@ -74,52 +74,76 @@ def setDevice(node, device):
     assert _graph is not None
     return _graph.setNodeDevice(node, device)
 
-def finalizeDeviceSetup():
+def setUp():
     assert _graph is not None
     return _graph.setUp()
 
-def getThreadTeamGraph():
+def _createThreadTeamGraph():
     assert _graph is not None
     global _h_graph
     global _threadteam_graph
-    hTaskGraph  = _h_graph = _graph.toHierarchicalGraph()  # hierarchical task graph
-    ttGraphList = createThreadTeamGraphList()              # thread team graphs
-    ttGraph     = _threadteam_graph = matchThreadTeamGraph(ttGraphList, hTaskGraph.G)
-    if ttGraph is not None:
-        print(_PREFIX, 'Matching Thread Team:', ttGraph.graph['name'])
+    _h_graph          = _graph.toHierarchicalGraph()  # hierarchical task graph
+    ttGraphList       = createThreadTeamGraphList()   # thread team graphs
+    _threadteam_graph = matchThreadTeamGraph(ttGraphList, _h_graph.G)
+    if _threadteam_graph is not None:
+        print(_PREFIX, 'Matching Thread Team:', _threadteam_graph.graph['name'])
     else:
         print(_PREFIX, 'Matching Thread Team was not found.')
-    return ttGraph
+    return
 
-def generateThreadTeamCode():
-    # find thread team
-    ttGraph = getThreadTeamGraph()
+def parseCode():
+    _createThreadTeamGraph()
+    assert _h_graph is not None
     # return if noting to do
-    if ttGraph is None:
+    if _threadteam_graph is None:
         return None
-    # generate code
-    nodeids = set()
+    # parse code
+    return _h_graph.parseCode()
+
+##################
+# Thread Team Code TODO DEPRECATED
+##################
+
+def _generateThreadTeamCode_node(ttGraph):
     code = ''
+    nodeids = set()
     # add code from nodes
     for u in ttGraph.nodes:
-        subDict = dict()
+        substituteDict = dict()
+        # extract nom-hidden attributes of this node
         for key, attr in ttGraph.nodes[u].items():
             if not key.startswith('_'):
-                subDict['__'+key+'__'] = attr
+                substituteDict['__'+key+'__'] = attr
+        # extract arguments
+        argsDict = dict()
+        # create code of this node
+        for key, attr in ttGraph.nodes[u].items():
+            if key.startswith('_args'):
+                label = key.split(':')[1]
+                value = trim(str(attr))
+                argsDict[label] = value
         for key, attr in ttGraph.nodes[u].items():
             if key.startswith('_code'):
                 nodeids.add(u)
                 label = key.split(':')[1]
-                value = substitute(trim(attr), subDict)
-                code += '[{}_{}]\n'.format(label, u)
+                value = substitute(trim(attr), substituteDict)
+                code += '[{}]\n'.format(label)
+                if label in argsDict:
+                    code += 'args = ' + argsDict[label] + '\n'
                 code += 'definition =\n' + value + '\n\n'
-    # add code from graph
+    code = '# id: ' + str(nodeids) + '\n\n' + code
+    return code
+
+def _generateThreadTeamCode_graph(ttGraph):
+    code = ''
+    # extract arguments
     argsDict = dict()
     for key, attr in ttGraph.graph.items():
         if key.startswith('_args'):
             label = key.split(':')[1]
             value = trim(str(attr))
             argsDict[label] = value
+    # add code from graph
     for key, attr in ttGraph.graph.items():
         if key.startswith('_code'):
             label = key.split(':')[1]
@@ -128,8 +152,6 @@ def generateThreadTeamCode():
             if label in argsDict:
                 code += 'args = ' + argsDict[label] + '\n'
             code += 'definition =\n' + value + '\n\n'
-    # add node id's
-    code = '# id: ' + str(nodeids) + '\n\n' + code
     return code
 
 def substitute(string : str, subDict : dict):
@@ -166,9 +188,9 @@ def trim(docstring : str):
     # return a single string:
     return '\n'.join(trimmed)
 
-##############################
-# Thread Team Graph Operations
-##############################
+####################
+# Thread Team Graphs
+####################
 
 def createThreadTeamGraphList():
     ttGraphList = []
@@ -185,11 +207,13 @@ def matchThreadTeamGraph(ttGraphList, chkG):
 def compareThreadTeamGraphs(refG, chkG):
     def nm(refNodeAttr, chkNodeAttr):
         # exit if attributes do not exist
-        if bool(refNodeAttr) and not bool(chkNodeAttr):  # if only chk has no attributes
+        if bool(refNodeAttr) and not bool(chkNodeAttr):  # if only chk is without attributes
             return False
         # compare attributes
         for key, val in refNodeAttr.items():
             if key.startswith('_'):
+                # copy hidden attributes from reference
+                chkNodeAttr[key] = refNodeAttr[key]
                 continue
             if not (key in chkNodeAttr):
                 return False
@@ -197,7 +221,7 @@ def compareThreadTeamGraphs(refG, chkG):
                 if val != chkNodeAttr[key]:
                     return False
             else:
-                # copy non-None value
+                # overwrite None value of reference
                 refNodeAttr[key] = chkNodeAttr[key]
         return True
     return networkx.is_isomorphic(refG, chkG, node_match=nm, edge_match=None)
@@ -210,32 +234,33 @@ def compareThreadTeamGraphs(refG, chkG):
 def createThreadTeamGraph_ExtendedGpuTasks():
     G = networkx.DiGraph(name='ExtendedGpuTasks')
     # add nodes
-    G.add_node(0, device='CPU')
+    G.add_node(0, device='Default')
     G.add_node(1, device='GPU', nInitialThreads=None, nTilesPerPacket=None)
     G.add_node(2, device='CPU', nInitialThreads=None, nTilesPerPacket=0)
+    G.add_node(3, device='Default')
     # add edges
-    networkx.add_path(G, [0, 1, 2])
+    networkx.add_path(G, [0, 1, 2, 3])
     # add code templates
-    G.nodes[1]['_code:initAction'] = \
-        '''RuntimeAction action_GPU;'''
-    G.nodes[1]['_code:setAction'] = \
-        '''action_GPU.name            = "__action_name__";
-           action_GPU.nInitialThreads = __nInitialThreads__;
-           action_GPU.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-           action_GPU.nTilesPerPacket = __nTilesPerPacket__;
-           action_GPU.routine         = __action_routine__;'''
-    G.nodes[2]['_code:initAction'] = \
-        '''RuntimeAction action_CPU;'''
-    G.nodes[2]['_code:setAction'] = \
-        '''action_CPU.name            = "__action_name__";
-           action_CPU.nInitialThreads = __nInitialThreads__;
-           action_CPU.teamType        = ThreadTeamDataType::BLOCK;
-           action_CPU.nTilesPerPacket = __nTilesPerPacket__;
-           action_CPU.routine         = __action_routine__;'''
-    G.graph['_args:execute'] = \
+    G.nodes[1]['_code:initActionBundle___ID__'] = \
+        '''RuntimeAction actionBundle_GPU;'''
+    G.nodes[1]['_code:setActionBundle___ID__'] = \
+        '''actionBundle_GPU.name            = "ActionBundle __ID__";
+           actionBundle_GPU.nInitialThreads = __nInitialThreads__;
+           actionBundle_GPU.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+           actionBundle_GPU.nTilesPerPacket = __nTilesPerPacket__;
+           actionBundle_GPU.routine         = __subroutine_name__;'''
+    G.nodes[2]['_code:initActionBundle___ID__'] = \
+        '''RuntimeAction actionBundle_CPU;'''
+    G.nodes[2]['_code:setActionBundle___ID__'] = \
+        '''actionBundle_CPU.name            = "ActionBundle __ID__";
+           actionBundle_CPU.nInitialThreads = __nInitialThreads__;
+           actionBundle_CPU.teamType        = ThreadTeamDataType::BLOCK;
+           actionBundle_CPU.nTilesPerPacket = __nTilesPerPacket__;
+           actionBundle_CPU.routine         = __subroutine_name__;'''
+    G.nodes[3]['_args:executeActionBundles'] = \
         '''__runtime__'''
-    G.graph['_code:execute'] = \
-        '''__runtime__.executeExtendedGpuTasks("__bundle_name__", action_GPU, action_CPU);'''
+    G.nodes[3]['_code:executeActionBundles'] = \
+        '''__runtime__.executeExtendedGpuTasks("ActionBundles GPU,CPU", actionBundle_GPU, actionBundle_CPU);'''
     # return thread team graph
     return G
 

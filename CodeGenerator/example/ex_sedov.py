@@ -16,15 +16,17 @@ initializeCodeGenerator()
 ########
 
 it   = Iterator(iterType='leaves')
-dIn  = ConcurrentDataBegin(unkIn=['DENS', 'VELX', 'VELY', 'VELZ', 'PRES', 'ENER'],
-                           scratch=['FLX', 'FLY', 'FLZ', 'AUXC'])(it)
-hyFl = Action(name='hy_computeFluxesHll')(dIn)
-hyUp = Action(name='hy_updateSolutionHll')(hyFl)
-ioIq = Action(name='io_computeIntegralQuantitiesByBlock')(hyUp)
-dOut = ConcurrentDataEnd(unkOut=['DENS', 'VELX', 'VELY', 'VELZ', 'PRES', 'ENER'])(ioIq)
+dIn  = ConcurrentDataBegin(Uin=['DENS', 'VELX', 'VELY', 'VELZ', 'PRES', 'ENER'],
+                           scratch=['flX', 'flY', 'flZ', 'auxC'])(it)
+hySp = Action(name='hy_computeSoundSpeedHll', args=['lo', 'hi', 'U', 'auxC'])(dIn)
+hyFl = Action(name='hy_computeFluxesHll', args=['dt', 'lo', 'hi', 'deltas', 'U', 'flX', 'flY', 'flZ', 'auxC'])(hySp)
+hyUp = Action(name='hy_updateSolutionHll', args=['lo', 'hi', 'U', 'flX', 'flY', 'flZ'])(hyFl)
+eosG = Action(name='eos_idealGammaDensIe', args=['lo', 'hi', 'U'])(hyUp)
+ioIq = Action(name='io_computeIntegralQuantitiesByBlock', args=['tId', 'lo', 'hi', 'volumes', 'U'])(eosG)
+dOut = ConcurrentDataEnd(Uout=['DENS', 'VELX', 'VELY', 'VELZ', 'PRES', 'ENER'])(ioIq)
 
 ConcurrentHardware(CPU={'nInitialThreads':  4, 'nTilesPerPacket':  0, 'actions': [ioIq]},
-                   GPU={'nInitialThreads': 16, 'nTilesPerPacket': 64, 'actions': [hyFl, hyUp]})
+                   GPU={'nInitialThreads': 16, 'nTilesPerPacket': 64, 'actions': [hySp, hyFl, hyUp, eosG]})
 
 # Note: dict key 'actions' is not a good name since the corresponding list
 #       contains "action handles"
