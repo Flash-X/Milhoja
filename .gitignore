@@ -53,3 +53,4 @@ studies/Summit_2020-04-15/gatherDataF2003_*
 studies/Summit_2020-04-15/testRuntimeCpp_*
 studies/Summit_2020-04-15/testThreadTeam_*
 build/*
+__pycache__
