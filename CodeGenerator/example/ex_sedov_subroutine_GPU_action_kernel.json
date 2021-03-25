@@ -1,0 +1,22 @@
+{
+    "_param:__file__": "ex_sedov_subroutine_GPU_action_kernel.json",
+    "_connector:execute": {
+        "_param:U":      "U_d",
+        "_param:auxC":   "auxC_d",
+        "_param:flX":    "ptrs->FCX_d",
+        "_param:flY":    "ptrs->FCY_d",
+        "_param:flZ":    "ptrs->FCZ_d",
+        "_param:lo":     "ptrs->lo_d",
+        "_param:hi":     "ptrs->hi_d",
+        "_param:deltas": "ptrs->deltas_d",
+
+        "_param:setup_U":    "FArray4D*  _param:U    = ptrs->_param:pointer_U;",
+        "_param:setup_auxC": "FArray4D*  _param:auxC = ptrs->_param:pointer_auxC;",
+
+        "_code": [
+            "const PacketContents*  ptrs = _param:contents + _param:iterIndex;",
+            { "_link:setup": [] },
+            { "_link:execute": [] }
+        ]
+    }
+}

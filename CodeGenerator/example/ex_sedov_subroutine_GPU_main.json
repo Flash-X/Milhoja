@@ -1,0 +1,49 @@
+{
+    "_param:__file__": "ex_sedov_subroutine_GPU_main.json",
+    "_connector:setup": {
+        "_code": [
+            "#ifndef ENABLE_OPENACC_OFFLOAD",
+            "#error \"This file should only be compiled if using OpenACC offloading\"",
+            "#endif",
+            "#include \"DataPacket.h\"",
+            "#include \"StreamManager.h\""
+        ]
+    },
+    "_connector:execute": {
+        "_param:queue": "queue_h",
+        "_param:nTiles": "nTiles_d",
+        "_param:contents": "contents_d",
+        "_param:dt": "dt_d",
+        "_code": [
+            "DataPacket*                packet_h = dynamic_cast<DataPacket*>(_param:dataItem);",
+            "const PacketDataLocation   location = packet_h->getDataLocation();",
+            "const int                  _param:queue    = packet_h->asynchronousQueue();",
+            "const std::size_t*         _param:nTiles   = packet_h->nTilesGpu();",
+            "const PacketContents*      _param:contents = packet_h->tilePointers();",
+            "const Real*                _param:dt       = packet_h->timeStepGpu();",
+            "packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);",
+            { "_link:setup": [] },
+            "#pragma acc data deviceptr(_param:nTiles, _param:contents, _param:dt)",
+            "{",
+            "    if (location == PacketDataLocation::CC1) {",
+            {
+                "_param:indent": 2,
+                "_param:pointer_U": "CC1_d",
+                "_param:pointer_auxC": "CC2_d",
+                "_link:execute": []
+            },
+            "    } else if (location == PacketDataLocation::CC2) {",
+            {
+                "_param:indent": 2,
+                "_param:pointer_U": "CC2_d",
+                "_param:pointer_auxC": "CC1_d",
+                "_link:execute": []
+            },
+            "    } else {",
+            "        throw std::logic_error(\"[_param:functionName] Data location is not CC1 or CC2\");",
+            "    }",
+            "} // OpenACC data block",
+            "#pragma acc wait(_param:queue)"
+        ]
+    }
+}

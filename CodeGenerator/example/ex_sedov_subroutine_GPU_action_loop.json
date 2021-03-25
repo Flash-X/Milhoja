@@ -1,0 +1,15 @@
+{
+    "_param:__file__": "ex_sedov_subroutine_GPU_action_loop.json",
+    "_connector:execute": {
+        "_param:iterIndex": "n",
+        "_code": [
+            "#pragma acc parallel loop gang default(none) async(_param:queue)",
+            "for (std::size_t _param:iterIndex=0; _param:iterIndex<*nTiles_d; ++_param:iterIndex) {",
+            {
+                "_param:indent": 1,
+                "_link:execute": []
+            },
+            "}"
+        ]
+    }
+}

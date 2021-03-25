@@ -1,0 +1,27 @@
+{
+    "_param:__file__": "ex_sedov_subroutine_generic.json",
+    "_connector:setup": {
+        "_code": [
+            "#include \"Eos.h\"",
+            "#include \"Hydro.h\"",
+            "#include \"Driver.h\"",
+            "#include \"Flash.h\"",
+            { "_link:setup": [] }
+        ]
+    },
+    "_connector:execute": {
+        "_param:functionName": "__default_function_name__",
+        "_param:tId": "dataItem",
+        "_param:dataItem": "dataItem",
+        "_code": [
+            "void _param:functionName(const int _param:tId, orchestration::DataItem* _param:dataItem)",
+            "{",
+            "    using namespace orchestration;",
+            {
+                "_param:indent": 1,
+                "_link:execute": []
+            },
+            "}"
+        ]
+    }
+}

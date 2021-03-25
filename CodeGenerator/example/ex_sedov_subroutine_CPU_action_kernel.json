@@ -1,0 +1,40 @@
+{
+    "_param:__file__": "ex_sedov_subroutine_CPU_action.json",
+    "_connector:execute": {
+        "_param:flX":     "flX",
+        "_param:flY":     "flX",
+        "_param:flZ":     "flZ",
+        "_param:auxC":    "auxC",
+        "_param:volumes": "volumes",
+
+        "_param:fHiX": "IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())}",
+        "_param:fHiY": "IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())}",
+        "_param:fHiZ": "IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)}",
+        "_param:setup_flX": "FArray4D  _param:flX = FArray4D::buildScratchArray4D(lo, _param:fHiX, NFLUXES);",
+        "_param:setup_flY": "FArray4D  _param:flY = FArray4D::buildScratchArray4D(lo, _param:fHiY, NFLUXES);",
+        "_param:setup_flZ": "FArray4D  _param:flZ = FArray4D::buildScratchArray4D(lo, _param:fHiZ, NFLUXES);",
+
+        "_param:cLo": "IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)}",
+        "_param:cHi": "IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)}",
+        "_param:setup_auxC": "FArray3D  _param:auxC = FArray3D::buildScratchArray(_param:cLo, _param:cHi);",
+
+        "_param:setup_volumes": [
+            "Grid& grid = Grid::instance();",
+            "Real  volumes_buffer[  (_param:hi.I() - _param:lo.I() + 1)",
+            "                     * (_param:hi.J() - _param:lo.J() + 1)",
+            "                     * (_param:hi.K() - _param:lo.K() + 1)];",
+            "grid.fillCellVolumes(_param:level, _param:lo, _param:hi, volumes_buffer);",
+            "const FArray3D  _param:volumes = {volumes_buffer, _param:lo, _param:hi};"
+        ],
+
+        "_code": [
+            "{",
+            {
+                "_param:indent": 1,
+                "_link:setup": [],
+                "_link:execute": []
+            },
+            "}"
+        ]
+    }
+}
