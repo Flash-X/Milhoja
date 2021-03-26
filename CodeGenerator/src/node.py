@@ -16,10 +16,14 @@ class CodeAssembler():
 
     @staticmethod
     def load(path, isTopLayer=False):
-        with open(path, 'r') as f:
-            tree = json.load(f)
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        fileType = path.suffix
+        if '.json' == fileType:
+            with open(path, 'r') as f:
+                tree = json.load(f)
+            # remove connectors from top layer
             if isTopLayer:
-                # remove connectors from top layer
                 items     = tree.pop('_connector:setup', None)
                 moreItems = tree.pop('_connector:execute', None)
                 if items is not None and moreItems is not None:
@@ -36,13 +40,45 @@ class CodeAssembler():
                 elif moreItems is not None:
                     items = moreItems
                 tree.update(items)
-            return tree
-        return None
+        elif '.cpp' == fileType:
+            code = path.read_text().splitlines()
+            # process links
+            indent = 0
+            for i, line in enumerate(code):
+                if '{' in line:
+                    indent += 1
+                if '}' in line:
+                    indent -= 1
+                if '_link:setup' in line:
+                    code[i] = { '_param:indent': indent, '_link:setup': [] }
+                elif '_link:execute' in line:
+                    code[i] = { '_param:indent': indent, '_link:execute': [] }
+            # assemble code tree
+            if isTopLayer:
+                tree = {
+                    '_param:__file__': path.name,
+                    '_code': code
+                }
+            else:
+                tree = {
+                    '_param:__file__': path.name,
+                    '_connector:execute': { '_code': code }
+                }
+        else:
+            raise NotImplementedError('File type "{}" is not supported'.format(fileType))
+        return tree
 
     @staticmethod
     def dump(tree, path):
+        assert isinstance(tree, dict), type(tree)
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        fileType = path.suffix
         with open(path, 'w') as f:
-            json.dump(tree, f, indent=4)
+            if '.json' == fileType:
+                json.dump(tree, f, indent=4)
+            else:
+                raise NotImplementedError('File type "{}" is not supported'.format(fileType))
 
     def instantiateCodeAssembler(self, functionName=None, device=None):
         assert isinstance(functionName, str), type(functionName)
