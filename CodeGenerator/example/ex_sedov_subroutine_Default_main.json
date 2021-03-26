@@ -1,5 +1,4 @@
 {
-    "_param:__file__": "ex_sedov_subroutine_generic.json",
     "_connector:setup": {
         "_code": [
             "#include \"Eos.h\"",

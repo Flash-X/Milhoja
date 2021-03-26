@@ -1,5 +1,4 @@
 {
-    "_param:__file__": "ex_sedov_subroutine_GPU_action_loop.json",
     "_connector:execute": {
         "_param:iterIndex": "n",
         "_code": [

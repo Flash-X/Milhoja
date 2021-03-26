@@ -1,5 +1,4 @@
 {
-    "_param:__file__": "ex_sedov_subroutine_GPU_main.json",
     "_connector:setup": {
         "_code": [
             "#ifndef ENABLE_OPENACC_OFFLOAD",

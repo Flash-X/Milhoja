@@ -1,22 +1,23 @@
 import src.main
 import src.node
 
-def initializeCodeGenerator():
-    return src.main.initialize()
+def initializeCodeGenerator(codeAssembler):
+    return src.main.initialize(codeAssembler)
 
 def finalizeCodeGenerator(basename=None):
-    # set up and parse code
+    # perform setup and parse code
     src.main.setUp()
-    code, subroutine = src.main.parseCode()
-    # write main code
-    if basename is not None and code is not None:
-        with open('{}_main.ini'.format(basename), 'w') as f:
-            f.write(code)
-    # write subroutine code
-    for nameSub, codeSub in subroutine.items():
-        with open('{}_{}.cpp'.format(basename, nameSub), 'w') as f:
-            f.write(codeSub)
-            # TODO incomplete
+    driverCode, subroutineCode = src.main.parseCode()
+    if basename is not None:
+        # write driver code
+        if driverCode is not None:
+            with open('_code_{}_driver.cpp'.format(basename), 'w') as f:
+                f.write(driverCode)
+        # write subroutine code
+        if subroutineCode is not None:
+            for nameSub, codeSub in subroutineCode.items():
+                with open('_code_{}_{}.cpp'.format(basename, nameSub), 'w') as f:
+                    f.write(codeSub)
     return src.main.finalize()
 
 def Iterator(iterType : str):

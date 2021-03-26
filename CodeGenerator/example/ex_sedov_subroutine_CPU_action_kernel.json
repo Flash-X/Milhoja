@@ -1,5 +1,4 @@
 {
-    "_param:__file__": "ex_sedov_subroutine_CPU_action.json",
     "_connector:execute": {
         "_param:flX":     "flX",
         "_param:flY":     "flX",

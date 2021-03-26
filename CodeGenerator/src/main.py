@@ -20,10 +20,10 @@ _graph = None
 _h_graph = None
 _threadteam_graph = None
 
-def initialize():
+def initialize(codeAssembler):
     print(_PREFIX, 'Initialize')
     global _graph
-    _graph = TaskGraph(verbose=True)
+    _graph = TaskGraph(codeAssembler=codeAssembler, verbose=True)
     return _graph
 
 def finalize():

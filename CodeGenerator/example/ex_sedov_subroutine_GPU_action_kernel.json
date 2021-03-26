@@ -1,5 +1,4 @@
 {
-    "_param:__file__": "ex_sedov_subroutine_GPU_action_kernel.json",
     "_connector:execute": {
         "_param:U":      "U_d",
         "_param:auxC":   "auxC_d",

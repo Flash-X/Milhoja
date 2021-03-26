@@ -311,17 +311,68 @@ class RootNode():
     def __str__(self):
         return str(self.__class__) + ': ' + str(self.__dict__)
 
-    def instantiateCodeAssembler(self, functionName=None, device=None):
-        return None
+
+class CodeNodeDEV():
+    def __init__(self):
+        self.type = 'Driver'
+
+    def __str__(self):
+        return str(self.__class__) + ': ' + str(self.__dict__)
+
+    @staticmethod
+    def assembleCodeSetup(codeAssembler, uId, nodeAttributes, subRoutineName):
+        assert 'device' in nodeAttributes
+        assert 'nInitialThreads' in nodeAttributes
+        assert 'nTilesPerPacket' in nodeAttributes
+        if 'GPU' == nodeAttributes['device']:
+            teamType = 'ThreadTeamDataType::SET_OF_BLOCKS'
+        else:
+            teamType = 'ThreadTeamDataType::BLOCK'
+        actionName = 'action_{}'.format(uId)
+        code = [
+            'RuntimeAction  {};'.format(actionName),
+            actionName + '.name            = "{}";'.format(uId),
+            actionName + '.nInitialThreads = {};'.format(nodeAttributes['nInitialThreads']),
+            actionName + '.teamType        = {};'.format(teamType),
+            actionName + '.nTilesPerPacket = {};'.format(nodeAttributes['nTilesPerPacket']),
+            actionName + '.routine         = {};'.format(subRoutineName)
+        ]
+        tree = { '_connector:setup': {'_code': code} }
+        # link code into code tree
+        locations = codeAssembler.link(tree, codeAssembler.linkLocation)
+        if not locations:
+            cl = CodeNodeDEV.__class__.__name__
+            fn = 'assembleCodeSetup'
+            codeAssembler.dump(tree, '_debug_{}_{}.json'.format(cl, fn))
+        assert locations, 'Linking failed, using link location: ' + str(codeAssembler.linkLocation)
+        return actionName
+
+    @staticmethod
+    def assembleCodeExecute(codeAssembler, action):
+        assert isinstance(action, list), type(action)
+        name = 'Action Pipeline'  #TODO more descriptive name
+        code = [ '_param:runtime.executeExtendedGpuTasks("{}", {});'.format(name, ', '.join(action)) ]
+        tree = { '_connector:execute': {'_code': code} }
+        # link code into code tree
+        locations = codeAssembler.link(tree, codeAssembler.linkLocation)
+        if not locations:
+            cl = CodeNodeDEV.__class__.__name__
+            fn = 'assembleCodeExecute'
+            codeAssembler.dump(tree, '_debug_{}_{}.json'.format(cl, fn))
+        assert locations, 'Linking failed, using link location: ' + str(codeAssembler.linkLocation)
 
 
 class TaskGraph(AbstractGraph):
-    def __init__(self, devices=['CPU', 'GPU'], verbose=False, initGraph=True):
+    deviceDefault = 'Default'
+
+    def __init__(self, codeAssembler=None, devices=['CPU', 'GPU'], verbose=False, initGraph=True):
         super().__init__(verbose=verbose, verbose_prefix='[TaskGraph]')
         if initGraph:
             self.addNode(RootNode())
+        # set code assembler
+        assert codeAssembler is not None
+        self.codeAssembler = codeAssembler
         # set devices
-        self.deviceDefault = 'Default'
         assert isinstance(devices, list), type(devices)
         if initGraph:
             assert not (self.deviceDefault in devices)
@@ -340,9 +391,8 @@ class TaskGraph(AbstractGraph):
         self.memoryScratch    = self.memoryName + '_scratch'
 
     def _copy(self):
-        shallowCopy = TaskGraph(devices=self.deviceList, verbose=self.verbose, initGraph=False)
+        shallowCopy = TaskGraph(codeAssembler=self.codeAssembler, devices=self.deviceList, verbose=self.verbose, initGraph=False)
         copyAttr = [
-            'deviceDefault',
             'deviceName', 'deviceChangeName', 'deviceSourceName', 'deviceTargetName',
             'memoryName', 'memoryCopy', 'memoryScratch']
         for name in copyAttr:
@@ -394,71 +444,50 @@ class TaskGraph(AbstractGraph):
         return super().toPrunedGraph(self.deviceChangeName)
 
     def toHierarchicalGraph(self):
-            return super().toHierarchicalGraph(self.deviceChangeName)
+        return super().toHierarchicalGraph(self.deviceChangeName)
 
     def parseCode(self):
-        return self.parseCode_nxGraph(self.G, self.rootid)
+        self.codeAssembler.initializeDriver()
+        subroutineCode = TaskGraph._parseCodeRecurively_nxGraph(self.G, self.rootid, self.codeAssembler)
+        driverCode     = self.codeAssembler.parse()
+        return driverCode, subroutineCode
 
     @staticmethod
-    def parseCode_nxGraph(nxGraph, rootid=0):
-        subroutine = dict()
-        codeNodes  = set()  #TODO unused
-        code = TaskGraph._parseCodeRecurively_nxGraph(nxGraph, rootid, subroutine, codeNodes)
-        return code, subroutine
-
-    @staticmethod
-    def _parseCodeRecurively_nxGraph(nxGraph, node : int, subroutine : dict, codeNodes : set):
+    def _parseCodeRecurively_nxGraph(nxGraph, node : int, codeAssembler, isFirst=True, action=list(), subroutine=dict()):
         assert isinstance(node, int), type(node)
         assert isinstance(subroutine, dict), type(subroutine)
-        assert isinstance(codeNodes, set), type(codeNodes)
-        # extract (non-hidden) attributes of current node
-        substituteDict = {'__ID__': node}  # TODO make params dict with `_param:` entries
-        for key, attr in nxGraph.nodes[node].items():
-            if not key.startswith('_'):
-                substituteDict['__'+key+'__'] = attr
-                #TODO update param variables
-        # extract arguments
-        argsDict = dict()
-        for key, attr in nxGraph.nodes[node].items():
-            if key.startswith('_args'):
-                label = TaskGraph._substitute(key.split(':')[1], substituteDict)
-                value = TaskGraph._trim(str(attr))
-                argsDict[label] = value
-        # process subgraph of (current) node
-        assert 'obj' in nxGraph.nodes[node]
-        subRoutineName = 'subroutine_id{}'.format(node)
-        subGraph       = nxGraph.nodes[node]['obj']
-        subCode        = TaskGraph._parseCode_subgraph(subGraph, subRoutineName)
-        if subCode:
-            substituteDict['__subroutine_name__'] = subRoutineName
-            subroutine[subRoutineName] = subCode
+        # set unique id
+        assert 'device' in nxGraph.nodes[node]
+        uId = 'id{}_{}'.format(node, nxGraph.nodes[node]['device'])
         # process (current) node
-        code = ''
-        for key, attr in nxGraph.nodes[node].items():
-            if key.startswith('_code'):
-                label = TaskGraph._substitute(key.split(':')[1], substituteDict)
-                value = TaskGraph._substitute(TaskGraph._trim(attr), substituteDict)
-                code += '[{}]\n'.format(label)
-                if label in argsDict:
-                    code += 'args = ' + argsDict[label] + '\n'
-                code += 'definition =\n' + value + '\n\n'
-                codeNodes.add(node)
+        assert 'obj' in nxGraph.nodes[node]
+        subGraph       = nxGraph.nodes[node]['obj']
+        subRoutineName = 'subroutine_{}'.format(uId)
+        subCode        = TaskGraph._parseCode_subgraph(subGraph, subRoutineName, codeAssembler.copy())
+        if subCode:
+            subroutine[subRoutineName] = subCode
+            actionName = CodeNodeDEV.assembleCodeSetup(codeAssembler, uId, nxGraph.nodes[node], subRoutineName)
+            if actionName:
+                action.append(actionName)
         # go to the node's neighbors
         for nbr in list(nxGraph.successors(node)):  # loop over all neighbors
-            code += TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, subroutine, codeNodes)
-        return code
+            TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, codeAssembler, isFirst=False, action=action, subroutine=subroutine)
+        # finalize and return
+        if isFirst:
+            CodeNodeDEV.assembleCodeExecute(codeAssembler, action)
+            return subroutine
+        else:
+            return None
 
     @staticmethod
-    def _parseCode_subgraph(subGraph, subRoutineName):
+    def _parseCode_subgraph(subGraph, subRoutineName, codeAssembler):
         assert isinstance(subGraph, networkx.DiGraph), type(subGraph)
         assert isinstance(subRoutineName, str), type(subRoutineName)
         rootid = AbstractGraph._searchBounds(subGraph)[0]
-        assert 'obj' in subGraph.nodes[rootid]
         assert 'device' in subGraph.nodes[rootid]
-        device        = subGraph.nodes[rootid]['device']
-        codeAssembler = subGraph.nodes[rootid]['obj'].instantiateCodeAssembler(functionName=subRoutineName, device=device)
-        #TODO why is code assembler coming from a specific node?
-        if codeAssembler:
+        device = subGraph.nodes[rootid]['device']
+        if device != TaskGraph.deviceDefault:
+            codeAssembler.initializeSubroutine(functionName=subRoutineName, device=device)
             TaskGraph._parseCodeRecursively_subgraph(subGraph, rootid, codeAssembler)
             return codeAssembler.parse()
         else:

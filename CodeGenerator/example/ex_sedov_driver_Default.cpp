@@ -46,6 +46,8 @@ int main(int argc, char* argv[]) {
     orchestration::Grid&     grid    = orchestration::Grid::instance();
     orchestration::Logger&   logger  = orchestration::Logger::instance();
     orchestration::Runtime&  runtime = orchestration::Runtime::instance();
+    /* _param:runtime = runtime */
+    /* _param:a = A, _param:b B; _param:c = C */
 
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;

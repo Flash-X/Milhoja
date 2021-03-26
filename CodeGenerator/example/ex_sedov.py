@@ -2,14 +2,16 @@
 # Initialize
 ############
 
-import sys
+import pathlib, sys
 
 sys.path.append('..')
 from CodeGenerator import *
+from CodeAssembler import *
 
 BASENAME: str = 'ex_sedov'
 
-initializeCodeGenerator()
+codeAssembler = CodeAssembler(codePath=pathlib.Path('.'), debug=True)
+initializeCodeGenerator(codeAssembler)
 
 ########
 # Recipe
