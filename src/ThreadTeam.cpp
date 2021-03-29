@@ -36,8 +36,6 @@ namespace orchestration {
  * \param  nMaxThreads The maximum permissible number of threads in the team.
  *                     Zero or one thread is considered to be a logical error.
  * \param  id          A unique thread team ID for debug use.
- * \param  logFilename The file to which logging information is appended if the
- *                     code is built with DEBUG_RUNTIME.
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
                        const unsigned int id)

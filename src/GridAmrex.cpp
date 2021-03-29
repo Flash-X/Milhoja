@@ -115,6 +115,10 @@ void  GridAmrex::destroyDomain(void) {
  * calls amrex::AmrCore::InitFromScratch.
  *
  * @param initBlock Function pointer to the simulation's initBlock routine.
+ * @param nDistributorThreads number of threads to activate in distributor
+ * @param nRuntimeThreads     number of threads to use to apply IC
+ * @param errorEst            the routine to use estimate errors as part
+ *                            of refining blocks
  */
 void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
                            const unsigned int nDistributorThreads,
@@ -394,7 +398,7 @@ void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param vols Real Ptr to some fortran-style data structure. Will be filled
+  * @param volPtr Real Ptr to some fortran-style data structure. Will be filled
   *             with volumes. Should be of shape:
   *                 (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */

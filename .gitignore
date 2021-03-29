@@ -1,6 +1,7 @@
 .DS_Store
 */.DS_Store
 .ipynb_checkpoints
+ctags
 gatherDataCpp_*_*_*_*_*_*.dat
 gatherDataF2003_*_*_*_*_*_*.dat
 docs/OrchestrationSystem.log
@@ -8,6 +9,8 @@ docs/OrchestrationSystem.aux
 docs/OrchestrationSystem.pdf
 docs/data\ types.pdf
 docs/GridPolymorphism.pdf
+docs/doxygen/html
+docs/doxygen/latex
 sites/*/test_threadteam_cpp.x
 sites/*/test_runtime_null_cpp.x
 sites/*/gather_data_cpp.x
