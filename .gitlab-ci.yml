@@ -3,7 +3,12 @@ default:
  - public
  - shared_ssh
 
-test:
+stages:
+  - build
+  - test
+  - after_success
+
+test_doxygen:
  stage: test
  script:
  - pushd docs/doxygen && doxygen && popd
