@@ -11,10 +11,8 @@ namespace orchestration {
     typedef GridAmrex GridVersion;
 }
 #else
-throw std::logic_error("Need to specify Grid implementation with "
-                       "GRID_[NAME] macro.");
+#error "Need to specify Grid implementation with GRID_[NAME] macro"
 #endif
-
 
 namespace orchestration {
 
@@ -90,7 +88,7 @@ Real  Grid::getCellVolume(const unsigned int lev, const IntVect& coord) const {
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param coordPtr Real Ptr to array of length hi[axis]-lo[axis]+1.
+  * @return FArray1D wrapper around array of length hi[axis]-lo[axis]+1.
   * \todo default implementation
   */
 FArray1D    Grid::getCellCoords(const unsigned int axis, const unsigned int edge,
@@ -136,7 +134,7 @@ void    Grid::fillCellFaceAreasLo(const unsigned int axis,
   * @param lev Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
-  * @param vols Real Ptr to some fortran-style data structure. Will be filled with volumes.
+  * @param volPtr Real Ptr to some fortran-style data structure. Will be filled with volumes.
   *             Should be of shape (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   * \todo default implementation
   */

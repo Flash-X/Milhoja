@@ -58,9 +58,15 @@ extern "C" {
     }
 
     /**
-     * TODO remove this, as FLASH already has a library-agnostic way of doing this.
-     * @param vols Pointer to a fortran array of shape (loVect(IAXIS):hiVect(IAXIS),
-     *             loVect(JAXIS):hiVect(JAXIS), loVect(KAXIS):hiVect(KAXIS)).
+     * @param level  - level  at which volumes should be obtained
+     * @param loVect - the lo point used to define the region of cells whose
+     *                 volumes should be obtained.
+     * @param hiVect - the hi point used to define the region of cells whose
+     *                 volumes should be obtained.
+     * @param vols   - Pointer to a fortran array of shape
+     *                      (loVect(IAXIS):hiVect(IAXIS),
+     *                       loVect(JAXIS):hiVect(JAXIS),
+     *                       loVect(KAXIS):hiVect(KAXIS)).
      */
     void   grid_get_cellvolumes_fi(const int level, const int loVect[3], const int hiVect[3], double* vols) {
         Grid&   grid = Grid::instance();
