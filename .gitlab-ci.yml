@@ -8,6 +8,17 @@ stages:
   - test
   - after_success
 
+test_gnu:
+ stage: test
+ script:
+ - module purge
+ - module load gcc/7.5.0-7sxdzdq
+ - module load mpich/3.3.2-gnu
+ - module load anaconda3/2020.02
+ - ./setup.py -t Grid -d 1 -p grid_1d.par -s gce && cd build && make -j4 all test
+ - ./setup.py -t Grid -d 2 -p grid_2d.par -s gce && cd build && make -j4 all test
+ - ./setup.py -t Grid -d 3 -p grid_3d.par -s gce && cd build && make -j4 all test
+
 test_doxygen:
  stage: test
  script:
