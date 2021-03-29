@@ -1,0 +1,10 @@
+default:
+ tags:
+ - public
+ - shared_ssh
+
+test:
+ stage: test
+ script:
+ - pushd docs/doxygen && doxygen && popd
+
