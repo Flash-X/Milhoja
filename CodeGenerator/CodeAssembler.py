@@ -144,8 +144,8 @@ class CodeAssembler():
         if self.debug:
             cl = self.__class__.__name__
             try:
-                fn = '{}_{}'.format(self.tree['_param:functionName'], self.device)
-            except (AttributeError, KeyError):
+                fn = self.tree['_param:functionName']
+            except KeyError:
                 fn = 'DEV'
                 #TODO set proper function name
             except:

@@ -1,4 +1,4 @@
-from src.node import *
+from src.node import *  #TODO remove dependency
 import networkx, copy, sys
 
 ################
@@ -312,56 +312,6 @@ class RootNode():
         return str(self.__class__) + ': ' + str(self.__dict__)
 
 
-class CodeNodeDEV():
-    def __init__(self):
-        self.type = 'Driver'
-
-    def __str__(self):
-        return str(self.__class__) + ': ' + str(self.__dict__)
-
-    @staticmethod
-    def assembleCodeSetup(codeAssembler, uId, nodeAttributes, subRoutineName):
-        assert 'device' in nodeAttributes
-        assert 'nInitialThreads' in nodeAttributes
-        assert 'nTilesPerPacket' in nodeAttributes
-        if 'GPU' == nodeAttributes['device']:
-            teamType = 'ThreadTeamDataType::SET_OF_BLOCKS'
-        else:
-            teamType = 'ThreadTeamDataType::BLOCK'
-        actionName = 'action_{}'.format(uId)
-        code = [
-            'RuntimeAction  {};'.format(actionName),
-            actionName + '.name            = "{}";'.format(uId),
-            actionName + '.nInitialThreads = {};'.format(nodeAttributes['nInitialThreads']),
-            actionName + '.teamType        = {};'.format(teamType),
-            actionName + '.nTilesPerPacket = {};'.format(nodeAttributes['nTilesPerPacket']),
-            actionName + '.routine         = {};'.format(subRoutineName)
-        ]
-        tree = { '_connector:setup': {'_code': code} }
-        # link code into code tree
-        locations = codeAssembler.link(tree, codeAssembler.linkLocation)
-        if not locations:
-            cl = CodeNodeDEV.__class__.__name__
-            fn = 'assembleCodeSetup'
-            codeAssembler.dump(tree, '_debug_{}_{}.json'.format(cl, fn))
-        assert locations, 'Linking failed, using link location: ' + str(codeAssembler.linkLocation)
-        return actionName
-
-    @staticmethod
-    def assembleCodeExecute(codeAssembler, action):
-        assert isinstance(action, list), type(action)
-        name = 'Action Pipeline'  #TODO more descriptive name
-        code = [ '_param:runtime.executeExtendedGpuTasks("{}", {});'.format(name, ', '.join(action)) ]
-        tree = { '_connector:execute': {'_code': code} }
-        # link code into code tree
-        locations = codeAssembler.link(tree, codeAssembler.linkLocation)
-        if not locations:
-            cl = CodeNodeDEV.__class__.__name__
-            fn = 'assembleCodeExecute'
-            codeAssembler.dump(tree, '_debug_{}_{}.json'.format(cl, fn))
-        assert locations, 'Linking failed, using link location: ' + str(codeAssembler.linkLocation)
-
-
 class TaskGraph(AbstractGraph):
     deviceDefault = 'Default'
 
@@ -447,13 +397,15 @@ class TaskGraph(AbstractGraph):
         return super().toHierarchicalGraph(self.deviceChangeName)
 
     def parseCode(self):
+        assert 'CodeModelClass' in self.G.graph
         self.codeAssembler.initializeDriver()
-        subroutineCode = TaskGraph._parseCodeRecurively_nxGraph(self.G, self.rootid, self.codeAssembler)
+        codeModel      = self.G.graph['CodeModelClass'](self.codeAssembler)
+        subroutineCode = TaskGraph._parseCodeRecurively_nxGraph(self.G, self.rootid, codeModel)
         driverCode     = self.codeAssembler.parse()
         return driverCode, subroutineCode
 
     @staticmethod
-    def _parseCodeRecurively_nxGraph(nxGraph, node : int, codeAssembler, isFirst=True, action=list(), subroutine=dict()):
+    def _parseCodeRecurively_nxGraph(nxGraph, node : int, codeModel, isFirst=True, action=list(), subroutine=dict()):
         assert isinstance(node, int), type(node)
         assert isinstance(subroutine, dict), type(subroutine)
         # set unique id
@@ -463,18 +415,21 @@ class TaskGraph(AbstractGraph):
         assert 'obj' in nxGraph.nodes[node]
         subGraph       = nxGraph.nodes[node]['obj']
         subRoutineName = 'subroutine_{}'.format(uId)
-        subCode        = TaskGraph._parseCode_subgraph(subGraph, subRoutineName, codeAssembler.copy())
+        subCode        = TaskGraph._parseCode_subgraph(subGraph, subRoutineName, codeModel.copyCodeAssembler())
         if subCode:
             subroutine[subRoutineName] = subCode
-            actionName = CodeNodeDEV.assembleCodeSetup(codeAssembler, uId, nxGraph.nodes[node], subRoutineName)
+            actionName = codeModel.assembleCode_setup(uId, 'name DEV',
+                                                      nodeAttributes=nxGraph.nodes[node], subRoutineName=subRoutineName)
+            #TODO substitute DEV
             if actionName:
                 action.append(actionName)
         # go to the node's neighbors
         for nbr in list(nxGraph.successors(node)):  # loop over all neighbors
-            TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, codeAssembler, isFirst=False, action=action, subroutine=subroutine)
+            TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, codeModel, isFirst=False, action=action, subroutine=subroutine)
         # finalize and return
         if isFirst:
-            CodeNodeDEV.assembleCodeExecute(codeAssembler, action)
+            codeModel.assembleCode_execute('uniqueIdDEV', 'name DEV', action=action)
+            #TODO substitute DEV
             return subroutine
         else:
             return None
@@ -503,39 +458,3 @@ class TaskGraph(AbstractGraph):
         # go to the node's neighbors
         for nbr in list(subGraph.successors(node)):  # loop over all neighbors
             TaskGraph._parseCodeRecursively_subgraph(subGraph, nbr, codeAssembler)
-
-    @staticmethod
-    def _substitute(string : str, subDict : dict):
-        for old, new in subDict.items():
-            if old in string:
-                string = string.replace(old, str(new))
-        return string
-
-    @staticmethod
-    def _trim(docstring : str):
-        '''Handle indentation.
-        Source: https://www.python.org/dev/peps/pep-0257/
-        '''
-        if not docstring:
-            return ''
-        # convert tabs to spaces (following the normal Python rules)
-        # and split into a list of lines:
-        lines = docstring.expandtabs().splitlines()
-        # determine minimum indentation (first line doesn't count):
-        indent = sys.maxsize
-        for line in lines[1:]:
-            stripped = line.lstrip()
-            if stripped:
-                indent = min(indent, len(line) - len(stripped))
-        # remove indentation (first line is special):
-        trimmed = [lines[0].strip()]
-        if indent < sys.maxsize:
-            for line in lines[1:]:
-                trimmed.append(line[indent:].rstrip())
-        # strip off trailing and leading blank lines:
-        while trimmed and not trimmed[-1]:
-            trimmed.pop()
-        while trimmed and not trimmed[0]:
-            trimmed.pop(0)
-        # return a single string:
-        return '\n'.join(trimmed)
