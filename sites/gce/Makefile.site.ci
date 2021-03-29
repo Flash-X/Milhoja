@@ -1,4 +1,4 @@
-BASEDIR      = $(CI_BUILDS_DIR)
+BASEDIR      = $(CI_PROJECT_DIR)
 AMREXDIR     = $(RUNTIME_DEP_PATH)/gnu_7.5.0/AMReX_$(NDIM)D
 GTESTDIR     = $(RUNTIME_DEP_PATH)/gnu_7.5.0/googletest
 CUDADIR      =
