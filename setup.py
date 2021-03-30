@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
     parser.add_argument('--test','-t',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
-    parser.add_argument('--makefile','-M',type=str,help='Name of Makefile (in test dir)')
+    parser.add_argument('--makefile','-M',type=str,help='Name of Makefile (in site dir)')
     parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
     parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
@@ -50,7 +50,10 @@ def main():
     os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
 
     siteDir = os.path.join(homeDir,'sites',args.site)
-    siteMakefile = os.path.join(siteDir,'Makefile.site')
+    if args.makefile is None:
+        siteMakefile = os.path.join(siteDir,'Makefile.site')
+    else:
+        siteMakefile = os.path.join(siteDir,args.makefile)
     if not os.path.isfile(siteMakefile):
         raise ValueError("Site Makefile not found in site directory")
     print("Linking Makefile.site from site: "+args.site)
@@ -63,10 +66,7 @@ def main():
 
     # Get test makefile
     print("Linking Makefile.test from test: "+args.test)
-    if args.makefile is None:
-        testMakefile = os.path.join(testDir,'Makefile.test')
-    else:
-        testMakefile = os.path.join(testDir,args.makefile)
+    testMakefile = os.path.join(testDir,'Makefile.test')
     if not os.path.isfile(testMakefile):
         raise ValueError("Test Makefile not found in test dir")
     os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
