@@ -24,7 +24,7 @@ test_gnu:
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t ThreadTeam   -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/null -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu  -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && mpirun -np 8 ./sedov_cpu.x
 
 test_doxygen:
  stage: test
