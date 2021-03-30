@@ -18,13 +18,13 @@ test_gnu:
  - module load gcc/7.5.0-7sxdzdq
  - module load mpich/3.3.2-gnu
  - module load anaconda3/2020.02
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 1 -p grid_1d.par              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 2 -p grid_2d.par              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 3 -p grid_3d.par              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t ThreadTeam   -d 2 -p par_threadteam.h         -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/null -d 2 -p par_runtime.h            -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu  -d 2 -p par_runtime.h            -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    -d 2 -p sedov_2D_cartesian_cpu.h -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 3 -p grid_3d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t ThreadTeam   -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/null -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu  -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
 
 test_doxygen:
  stage: test
