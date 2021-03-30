@@ -9,7 +9,7 @@ stages:
   - after_success
 
 variables:
- RUNTIME_DEP_PATH: /scratch/joneal/deps
+ RUNTIME_DEP_PATH: /nfs/gce/projects/Milhoja/deps
 
 test_gnu:
  stage: test
