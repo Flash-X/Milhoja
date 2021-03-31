@@ -74,6 +74,9 @@ class Result(object):
                                         if each[1] == '=')
             self.__hdr = dict(pairs)
 
+        # Create structure for caching 2D z-slices
+        self.__frbs = {}
+
         super().__init__()
 
     @property
@@ -188,16 +191,18 @@ class Result(object):
         z_coords = self.z_coordinates
         if z not in z_coords:
             raise ValueError(f'{z} not a valid z-coordinate')
+        z_flt = float(z)
 
         xmin, ymin, zmin = [float(e) for e in self.__dataset.domain_left_edge]
         xmax, ymax, zmax = [float(e) for e in self.__dataset.domain_right_edge]
-        n_cells_x, n_cells_y, n_cells_z = self.__dataset.domain_dimensions
-
-        sl = self.__dataset.slice(YT_ZAXIS, z)
         extent = (xmin, xmax, ymin, ymax)
-        frb = yt.FixedResolutionBuffer(sl, extent, (n_cells_x, n_cells_y))
 
-        return extent, frb[var]
+        if z_flt not in self.__frbs:
+            sl = self.__dataset.slice(YT_ZAXIS, z)
+            n_cells_x, n_cells_y, n_cells_z = self.__dataset.domain_dimensions
+            self.__frbs[z_flt] = yt.FixedResolutionBuffer(sl, extent, (n_cells_x, n_cells_y))
+
+        return extent, self.__frbs[z_flt][var]
 
     @property
     def integral_quantities(self):
