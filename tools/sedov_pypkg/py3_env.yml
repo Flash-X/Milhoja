@@ -8,4 +8,5 @@ dependencies:
   - pip
   - pip:
     - nose==1.3.7
+    - nbdime==2.1.0
 
