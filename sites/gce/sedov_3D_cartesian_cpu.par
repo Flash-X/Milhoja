@@ -14,7 +14,7 @@ namespace rp_Driver {
 namespace rp_Io {
     // computeIntegralQuantitiesByBlock run in CPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 6;
+    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 2;
 }
 
 namespace rp_Grid {
@@ -33,7 +33,7 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 7;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 4;
     constexpr unsigned int          N_THREAD_TEAMS         = 1;
     constexpr int                   N_STREAMS              = 1; 
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 0;
@@ -46,7 +46,7 @@ namespace rp_Eos {
 namespace rp_Hydro {
     // advanceSolution run in CPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 6;
+    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 2;
 }
 
 namespace rp_Simulation {
@@ -56,7 +56,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 250;
+    constexpr  unsigned int         MAX_STEPS = 150;
     // When FLASH-X runs Sedov/3D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.
@@ -64,7 +64,7 @@ namespace rp_Simulation {
 
     // setInitialConditions run in CPU-only thread team
     // configuration using blocks
-    constexpr  unsigned int         N_THREADS_FOR_IC = 6;
+    constexpr  unsigned int         N_THREADS_FOR_IC = 2;
     constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 1;
 
     constexpr unsigned int          N_PROFILE    = 10000;
