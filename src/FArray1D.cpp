@@ -55,7 +55,7 @@ FArray1D::~FArray1D(void) {
  * 
  * @param lo - the new lower index 
  */
-void  FArray4D::reindex(const int lo) {
+void  FArray1D::reindex(const int lo) {
     if (owner_) {
         i0_ = lo;
     } else {
