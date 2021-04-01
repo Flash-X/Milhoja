@@ -14,8 +14,8 @@ variables:
  FCOMPARE:          $DATAREPO_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  FCOMPARE_NORM:     0
  FCOMPARE_RELTOL:   0
- SEDOV_BASELINE_2D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_2D
- SEDOV_BASELINE_3D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_3D
+ SEDOV_BASELINE_2D: $DATAREPO_PATH/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_2D
+ SEDOV_BASELINE_3D: $DATAREPO_PATH/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_3D
 
 test_gnu:
  stage: test
