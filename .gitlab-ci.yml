@@ -23,7 +23,7 @@ test_gnu:
  - module purge
  - module load gcc/7.5.0-7sxdzdq
  - module load mpich/3.3.2-gnu
- - module load hdf5-1.10.7-gcc-7.5.0-zn4vji2
+ - module load --ignore-cache hdf5-1.10.7-gcc-7.5.0-zn4vji2
  - module load zlib-1.2.11-gcc-7.5.0-vk2i2rk
  - module load anaconda3/2020.02
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
