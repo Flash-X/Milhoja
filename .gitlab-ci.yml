@@ -13,7 +13,7 @@ variables:
  RUNTIME_DEP_PATH:  $DATAREPO_PATH/deps
  FCOMPARE:          $DATAREPO_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  FCOMPARE_NORM:     0
- FCOMPARE_RELTOL:   0.0
+ FCOMPARE_RELTOL:   0
  SEDOV_BASELINE_2D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_3D
 
