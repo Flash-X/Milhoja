@@ -36,11 +36,11 @@ test_gnu:
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/null         -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu  --debug -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu          -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/mpi    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && mpirun -np 8 ./sedov_mpi.x
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/mpi    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_mpi.x
  - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_2D/sedov_plt_final ./sedov_plt_final
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && mpirun -np 8 ./sedov_cpu.x
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_cpu.x
  - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_2D/sedov_plt_final ./sedov_plt_final
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    --debug -d 3 -p sedov_3D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && mpirun -np 8 ./sedov_cpu.x
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    --debug -d 3 -p sedov_3D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_cpu.x
  - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_3D/sedov_plt_final ./sedov_plt_final
 
 test_doxygen:
