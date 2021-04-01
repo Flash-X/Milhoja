@@ -9,7 +9,13 @@ stages:
   - after_success
 
 variables:
- RUNTIME_DEP_PATH: /nfs/gce/projects/Milhoja/deps
+ DATAREPO_PATH:     /nfs/gce/projects/Milhoja
+ RUNTIME_DEP_PATH:  $DATAREPO_PATH/deps
+ FCOMPARE:          $DATAREPO_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
+ FCOMPARE_NORM:     0
+ FCOMPARE_RELTOL:   0.0
+ SEDOV_BASELINE_2D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_2D
+ SEDOV_BASELINE_3D: $DATA_REPO/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_3D
 
 test_gnu:
  stage: test
@@ -17,6 +23,8 @@ test_gnu:
  - module purge
  - module load gcc/7.5.0-7sxdzdq
  - module load mpich/3.3.2-gnu
+ - module load hdf5-1.10.7-gcc-7.5.0-zn4vji2
+ - module load zlib-1.2.11-gcc-7.5.0-vk2i2rk
  - module load anaconda3/2020.02
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Grid         -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
@@ -25,6 +33,7 @@ test_gnu:
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/null -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Runtime/cpu  -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py -t Sedov/cpu    -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && mpirun -np 8 ./sedov_cpu.x
+ - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_2D/sedov_plt_final ./sedov_plt_final
 
 test_doxygen:
  stage: test
