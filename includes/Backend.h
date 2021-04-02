@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+#include "Stream.h"
+
 namespace orchestration {
 
 class Backend {
@@ -19,6 +21,19 @@ public:
     static void     instantiate(const unsigned int nStreams,
                                 const std::size_t  nBytesInMemoryPools);
     static Backend& instance(void);
+
+    virtual Stream    requestStream(const bool block) = 0;
+    virtual void      releaseStream(Stream& stream) = 0;
+    virtual void      requestMemory(const std::size_t bytes,
+                                    void** hostPtr, void** gpuPtr) = 0;
+    virtual void      releaseMemory(void** hostPtr, void** gpuPtr) = 0;
+    virtual void      reset(void) = 0;
+    // FIXME: This is temprorary since this manager is so rudimentary
+
+    // TODO: See about taking data movements out of packet.
+    //       Given a packet, the backend could do transfers.
+    //       This could simplify the design/implementation of
+    //       packets in the runtime library.
 
 protected:
     Backend(void)     {};

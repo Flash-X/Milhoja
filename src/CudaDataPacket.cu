@@ -16,8 +16,7 @@
 #include "Grid.h"
 #include "FArray1D.h"
 #include "FArray4D.h"
-#include "CudaStreamManager.h"
-#include "CudaMemoryManager.h"
+#include "Backend.h"
 
 #include "Driver.h"
 
@@ -65,11 +64,11 @@ CudaDataPacket::~CudaDataPacket(void) {
  */
 void  CudaDataPacket::nullify(void) {
     if (stream_.cudaStream != nullptr) {
-        CudaStreamManager::instance().releaseStream(stream_);
+        Backend::instance().releaseStream(stream_);
         assert(stream_.cudaStream == nullptr);
     }
 
-    CudaMemoryManager::instance().releaseMemory(&packet_p_, &packet_d_);
+    Backend::instance().releaseMemory(&packet_p_, &packet_d_);
     assert(packet_p_ == nullptr);
     assert(packet_d_ == nullptr);
 
@@ -219,15 +218,15 @@ void  CudaDataPacket::pack(void) {
                                    +        1 * COORDS_Z_SIZE_BYTES
                                    +        3 * ARRAY1_SIZE_BYTES);
 
-    stream_ = CudaStreamManager::instance().requestStream(true);
+    stream_ = Backend::instance().requestStream(true);
     if (stream_.cudaStream == nullptr) {
         throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire stream");
     }
 
     // Allocate memory in pinned and device memory on demand for now
-    CudaMemoryManager::instance().requestMemory(nBytesPerPacket_,
-                                                &packet_p_,
-                                                &packet_d_);
+    Backend::instance().requestMemory(nBytesPerPacket_,
+                                      &packet_p_,
+                                      &packet_d_);
 
     // Pointer to the next free byte in the current data packets
     // Should be true by C++ standard
@@ -451,7 +450,7 @@ void  CudaDataPacket::unpack(void) {
     }
 
     // Release stream as soon as possible
-    CudaStreamManager::instance().releaseStream(stream_);
+    Backend::instance().releaseStream(stream_);
     assert(stream_.cudaStream == nullptr);
 
     PacketContents*   tilePtrs_p = contents_p_;

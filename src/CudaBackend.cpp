@@ -5,8 +5,7 @@
 #include "CudaBackend.h"
 
 #include "CudaGpuEnvironment.h"
-#include "StreamManager.h"
-//#include "CudaStreamManager.h"
+#include "CudaStreamManager.h"
 #include "CudaMemoryManager.h"
 
 namespace orchestration {
@@ -19,10 +18,45 @@ CudaBackend::CudaBackend(const unsigned int nStreams,
     // Since Backend calls instance() inside instantiate() and this constructor
     // should only be called once, these lines effectively carry out the 
     // instantiation work of this derived class.
-    orchestration::CudaGpuEnvironment::instantiate();
-    //  Eventually this should just instantiate directly the CUDA SM.
-    orchestration::StreamManager::instantiate(nStreams);
-    orchestration::CudaMemoryManager::instantiate(nBytesInMemoryPools);
+    CudaGpuEnvironment::instantiate();
+    CudaStreamManager::instantiate(nStreams);
+    CudaMemoryManager::instantiate(nBytesInMemoryPools);
+}
+
+/**
+ *
+ */
+Stream    CudaBackend::requestStream(const bool block) {
+    return CudaStreamManager::instance().requestStream(block);
+}
+
+/**
+ *
+ */
+void      CudaBackend::releaseStream(Stream& stream) {
+    CudaStreamManager::instance().releaseStream(stream);
+}
+
+/**
+ *
+ */
+void      CudaBackend::requestMemory(const std::size_t bytes,
+                                     void** hostPtr, void** gpuPtr) {
+    CudaMemoryManager::instance().requestMemory(bytes, hostPtr, gpuPtr);
+}
+
+/**
+ *
+ */
+void      CudaBackend::releaseMemory(void** hostPtr, void** gpuPtr) {
+    CudaMemoryManager::instance().releaseMemory(hostPtr, gpuPtr);
+}
+
+/**
+ *
+ */
+void      CudaBackend::reset(void) {
+    CudaMemoryManager::instance().reset();
 }
 
 }
