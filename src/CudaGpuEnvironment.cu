@@ -7,7 +7,34 @@
 #include <stdexcept>
 #include <sstream>
 
+#include "OrchestrationLogger.h"
+
 namespace orchestration {
+
+bool    CudaGpuEnvironment::instantiated_ = false;
+
+/**
+ * 
+ *
+ * \return 
+ */
+void   CudaGpuEnvironment::instantiate(void) {
+    Logger::instance().log("[CudaGpuEnvironment] Initializing...");
+
+    if (instantiated_) {
+        throw std::logic_error("[CudaGpuEnvironment::instantiate] Already instantiated");
+    }
+    instantiated_ = true;
+
+    // Create/initialize environment
+    const CudaGpuEnvironment&   gpuEnv = instance();
+    std::string   msg =   "[CudaGpuEnvironment] " 
+                        + std::to_string(gpuEnv.nGpuDevices()) 
+                        + " GPU device(s) per process found\n"
+                        + gpuEnv.information();
+    Logger::instance().log(msg);
+    Logger::instance().log("[CudaGpuEnvironment] Created and ready for use");
+}
 
 /**
  * 

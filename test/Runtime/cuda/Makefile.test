@@ -16,6 +16,7 @@ LDFLAGS_TEST        = $(LIB_GTEST) $(OACC_FLAGS)
 SRCS_TEST = \
     $(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
+	$(SRCDIR)/CudaBackend.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \

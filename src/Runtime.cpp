@@ -9,16 +9,9 @@
 #include <stdexcept>
 
 #include "Grid.h"
+#include "Backend.h"
 #include "DataPacket.h"
 #include "OrchestrationLogger.h"
-#include "StreamManager.h"
-
-#ifdef USE_CUDA_BACKEND
-// TODO: Should these be designed like StreamManager so that the Runtime class
-// is not dealing with backend-specific details?
-#include "CudaGpuEnvironment.h"
-#include "CudaMemoryManager.h"
-#endif
 
 #include "Flash.h"
 
@@ -53,11 +46,7 @@ void   Runtime::instantiate(const unsigned int nTeams,
     maxThreadsPerTeam_ = nThreadsPerTeam;
     instantiated_ = true;
 
-    // Create/initialize singletons needed by runtime
-    orchestration::StreamManager::instantiate(nStreams);
-#ifdef USE_CUDA_BACKEND
-    orchestration::CudaMemoryManager::instantiate(nBytesInMemoryPools);
-#endif
+    orchestration::Backend::instantiate(nStreams, nBytesInMemoryPools);
 
     // Create/initialize runtime
     instance();
@@ -91,17 +80,6 @@ Runtime::Runtime(void)
     for (unsigned int i=0; i<nTeams_; ++i) {
         teams_[i] = new ThreadTeam(maxThreadsPerTeam_, i);
     }
-
-#ifdef USE_CUDA_BACKEND
-    // TODO: Should this class have an instantiate message and log this
-    // message itself when instantiated?
-    CudaGpuEnvironment&    gpuEnv = CudaGpuEnvironment::instance();
-    std::string   msg =   "[Runtime] " 
-                        + std::to_string(gpuEnv.nGpuDevices()) 
-                        + " GPU device(s) per process found\n"
-                        + gpuEnv.information();
-    Logger::instance().log(msg);
-#endif
 }
 
 /**

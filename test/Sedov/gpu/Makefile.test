@@ -15,6 +15,7 @@ LDFLAGS_TEST        = $(OACC_FLAGS)
 SRCS_TEST = \
 	$(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
+	$(SRCDIR)/CudaBackend.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
