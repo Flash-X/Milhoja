@@ -55,6 +55,8 @@ public:
     FArray4D& operator=(const FArray4D&) = delete;
     FArray4D& operator=(FArray4D&&)      = delete;
 
+    void reindex(const IntVect& lo);
+
     /**
      * Get and set data in a Fortran-style way.
      *

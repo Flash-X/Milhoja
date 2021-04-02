@@ -43,6 +43,8 @@ public:
     FArray1D& operator=(const FArray1D&) = delete;
     FArray1D& operator=(FArray1D&&)      = delete;
 
+    void reindex(const int lo);
+
     //! Get and set data in a Fortran-style way.
 #ifdef ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq

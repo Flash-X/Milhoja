@@ -109,6 +109,24 @@ int main(int argc, char* argv[]) {
                      shared(grid, level, Driver::dt) \
                      num_threads(rp_Hydro::N_THREADS_FOR_ADV_SOLN)
         {
+            // Create thread-private scratch buffers.
+            // They will be reindexed as needed, but size needs to be correct.
+            FArray4D   flX = FArray4D::buildScratchArray4D(
+                                IntVect{LIST_NDIM(1,         1,   1)},
+                                IntVect{LIST_NDIM(NXB+K1D, NYB, NZB)},
+                                NFLUXES);
+            FArray4D   flY = FArray4D::buildScratchArray4D(
+                                IntVect{LIST_NDIM(1,         1,   1)},
+                                IntVect{LIST_NDIM(NXB, NYB+K2D, NZB)},
+                                NFLUXES);
+            FArray4D   flZ = FArray4D::buildScratchArray4D(
+                                IntVect{LIST_NDIM(1,     1,       1)},
+                                IntVect{LIST_NDIM(NXB, NYB, NZB+K3D)},
+                                NFLUXES);
+            FArray3D   auxC = FArray3D::buildScratchArray(
+                                IntVect{LIST_NDIM(1  -K1D, 1  -K2D, 1  -K3D)},
+                                IntVect{LIST_NDIM(NXB+K1D, NYB+K2D, NZB+K3D)});
+
             for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
                 tileDesc = ti->buildCurrentTile();
 
@@ -116,20 +134,13 @@ int main(int argc, char* argv[]) {
                 const IntVect       hi = tileDesc->hi();
                 FArray4D            U  = tileDesc->data();
 
-                // FIXME: We should be able to reindex the scratch array so that
-                // we aren't needlessly allocating/deallocating scratch blocks.
-                IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
-                FArray4D   flX = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-                fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
-                FArray4D   flY = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-                fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
-                FArray4D   flZ = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
-
-                IntVect    cLo = IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)};
-                IntVect    cHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)};
-                FArray3D   auxC = FArray3D::buildScratchArray(cLo, cHi);
+                const IntVect       cLo = IntVect{LIST_NDIM(lo.I()-K1D,
+                                                            lo.J()-K2D,
+                                                            lo.K()-K3D)};
+                flX.reindex(lo);
+                flY.reindex(lo);
+                flZ.reindex(lo);
+                auxC.reindex(cLo);
 
                 hy::computeFluxesHll(Driver::dt, lo, hi,
                                      tileDesc->deltas(),

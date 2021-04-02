@@ -39,5 +39,29 @@ FArray1D::~FArray1D(void) {
     data_ = nullptr;
 }
 
+/**
+ * While the elements of scratch arrays must be assigned a given index set at
+ * creation, conceptually they are not tied to any specific piece of data nor
+ * any particular region of an index space.  FArray objects created around a
+ * given array, however, are conceptually tied to one particular piece of data
+ * and, therefore, to the index set associated with the data.
+ * 
+ * To address the use case of a single scratch array that needs to be reused to
+ * store data associated with different index sets, this function allows calling
+ * code to reindex the scratch array, which avoids the wasteful scenario of
+ * deallocating/reallocating scratch arrays.  Base on the conceptual difference
+ * between the different types of FArray objects, it is a logical error to
+ * reindex a non-scratch array.
+ * 
+ * @param lo - the new lower index 
+ */
+void  FArray1D::reindex(const int lo) {
+    if (owner_) {
+        i0_ = lo;
+    } else {
+        throw std::logic_error("[FArray1D::reindex] Reindexing only allowed for scratch arrays");
+    }
+}
+
 }
 

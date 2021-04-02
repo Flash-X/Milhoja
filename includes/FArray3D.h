@@ -37,6 +37,8 @@ public:
     FArray3D& operator=(const FArray3D&) = delete;
     FArray3D& operator=(FArray3D&&)      = delete;
 
+    void reindex(const IntVect& lo);
+
     /**
      * Get and set data in a Fortran-style way.
      */
