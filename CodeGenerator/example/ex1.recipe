@@ -1,0 +1,43 @@
+#####################
+# Recipe Instructions
+#####################
+
+@BEGIN_RECIPEINSTRUCTIONS NAME Ex1_Instructions
+
+@DATASOURCE           NAME it                 ITERATE ALL LEAVES
+@BEGIN_CONCURRENTDATA NAME dIn  AFTER it      INDATA  (U, V), SCRATCH none
+@RecipeInstruction    NAME aQ   AFTER dIn     INVOKE Q
+@RecipeInstruction    NAME aX   AFTER aQ      INVOKE X (pi=3.16)
+@RecipeInstruction    NAME aY   AFTER aY      INVOKE Y
+@RecipeInstruction    NAME aZ   AFTER aY      INVOKE Z
+@END_CONCURRENTDATA   NAME dOut AFTER [aY,aZ] OUTDATA (H, G)
+
+@END_RECIPEINSTRUCTIONS   NAME Ex1_Instructions
+
+##########################
+# Recipe Hardware Mappings
+##########################
+
+@BEGIN_RECIPELOCATIONS NAME Ex1_Locations INSTRUCTIONS Ex1_Instructions
+@USE Ex1_Instructions
+@USE My_Machine_Hints
+
+@BEGIN_CONCURRENTHW
+@HwType NAME CPU   RUNS_INSTRUCTIONS aZ
+@HwType NAME GPU   RUNS_INSTRUCTIONS aQ, aX, aY
+@END_CONCURRENTHW
+
+@END_RECIPELOCATIONS   NAME Ex1_Locations
+
+#######################
+# Recipe Hardware Hints
+#######################
+
+@BEGIN_RECIPEHINTS NAME My_Machine_Hints
+
+@BEGIN_CONCURRENTHW
+@HwType NAME CPU   PARAMETERS {nThreads:  4}
+@HwType NAME GPU   PARAMETERS {nThreads: 16)
+@END_CONCURRENTHW
+
+@END_RECIPEHINTS   NAME My_Machine_Hints
