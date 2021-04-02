@@ -1,4 +1,4 @@
-#include "StreamManager.h"
+#include "Backend.h"
 #include "OrchestrationLogger.h"
 
 #include <gtest/gtest.h>
@@ -9,7 +9,8 @@ namespace cudaTestConstants {
 
 int main(int argc, char* argv[]) {
     // This value cannot be changed without breaking tests.
-    constexpr int   N_STREAMS = 3;
+    constexpr int           N_STREAMS = 3;
+    constexpr std::size_t   N_BYTES_IN_MEMORY_POOLS = 8;
 
     ::testing::InitGoogleTest(&argc, argv);
 
@@ -22,7 +23,7 @@ int main(int argc, char* argv[]) {
     // Instantiate up front so that the acquisition of stream resources is not
     // included in the timing of the first test.
     orchestration::Logger::instantiate("CudaBackend.log");
-    orchestration::StreamManager::instantiate(N_STREAMS);
+    orchestration::Backend::instantiate(N_STREAMS, N_BYTES_IN_MEMORY_POOLS);
 
     return RUN_ALL_TESTS();
 }

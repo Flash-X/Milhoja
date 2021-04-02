@@ -1,6 +1,8 @@
 #ifndef NULL_BACKEND_H__
 #define NULL_BACKEND_H__
 
+#include <stdexcept>
+
 #include "Backend.h"
 
 namespace orchestration {
@@ -15,6 +17,22 @@ public:
     NullBackend& operator=(NullBackend&)       = delete;
     NullBackend& operator=(const NullBackend&) = delete;
     NullBackend& operator=(NullBackend&&)      = delete;
+
+    int       maxNumberStreams(void) const override
+        { throw std::logic_error("[NullBackend::maxNumberStreams] Not implemented"); };
+    int       numberFreeStreams(void) override
+        { throw std::logic_error("[NullBackend::numberFreeStreams] Not implemented"); };
+    Stream    requestStream(const bool block) override
+        { throw std::logic_error("[NullBackend::requestStream] Not implemented"); };
+    void      releaseStream(Stream& stream) override
+        { throw std::logic_error("[NullBackend::releaseStream] Not implemented"); };
+    void      requestMemory(const std::size_t bytes,
+                            void** hostPtr, void** gpuPtr) override
+        { throw std::logic_error("[NullBackend::requestMemory] Not implemented"); };
+    void      releaseMemory(void** hostPtr, void** gpuPtr) override
+        { throw std::logic_error("[NullBackend::releaseMemory] Not implemented"); };
+    void      reset(void) override
+        { throw std::logic_error("[NullBackend::reset] Not implemented"); };
 
 private:
     NullBackend(void)        {};

@@ -21,7 +21,9 @@ public:
     static void     instantiate(const unsigned int nStreams,
                                 const std::size_t  nBytesInMemoryPools);
     static Backend& instance(void);
-
+ 
+    virtual int       maxNumberStreams(void) const = 0; 
+    virtual int       numberFreeStreams(void) = 0;
     virtual Stream    requestStream(const bool block) = 0;
     virtual void      releaseStream(Stream& stream) = 0;
     virtual void      requestMemory(const std::size_t bytes,

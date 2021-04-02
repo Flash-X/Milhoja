@@ -27,5 +27,4 @@ SRCS_BASE       = \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
-    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
-    $(SRCDIR)/StreamManager.cpp
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp

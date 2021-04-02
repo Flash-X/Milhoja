@@ -16,6 +16,49 @@
 
 namespace orchestration {
 
+bool   CudaStreamManager::instantiated_ = false;
+int    CudaStreamManager::nMaxStreams_ = -1;
+
+/**
+ * Instantiate and initalize the application's singleton stream manager object.
+ *
+ * \param nMaxStreams - the maximum number of streams to be made available.  The
+ *                      given value must be a positive integer.
+ */
+void   CudaStreamManager::instantiate(const int nMaxStreams) {
+    if (instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instantiate] "
+                               "Already instantiated");
+    } else if (nMaxStreams <= 0) {
+        // We need at least one stream to avoid deadlocking in requestStream
+        // when there are no free streams.
+        throw std::invalid_argument("[CudaStreamManager::instantiate] "
+                                    "Need at least one stream");
+    }
+
+    // Create/initialize
+    nMaxStreams_ = nMaxStreams;
+    instantiated_ = true;
+
+    instance();
+}
+
+/**
+ * Before calling this routine, client code must first instantiate the manager.
+ *
+ * \return A reference to the stream manager for the associated
+ *         runtime backend.
+ */
+CudaStreamManager&   CudaStreamManager::instance(void) {
+    if (!instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instance] "
+                               "CudaStreamManager must be instantiated first");
+    }
+
+    static CudaStreamManager   manager;
+    return manager;
+}
+
 /**
  * 
  *
@@ -113,6 +156,9 @@ CudaStreamManager::~CudaStreamManager(void) {
 
     pthread_cond_destroy(&streamReleased_);
     pthread_mutex_destroy(&idxMutex_);
+
+    nMaxStreams_ = -1;
+    instantiated_ = false;
 
     Logger::instance().log("[CudaStreamManager] Destroyed");
 }

@@ -6,7 +6,7 @@
 
 #include "DataItem.h"
 #include "DataPacket.h"
-#include "StreamManager.h"
+#include "Backend.h"
 
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
@@ -25,8 +25,8 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
 
     // FIXME: If we allow this request to block, the code could deadlock.  We
     // therefore, do not block in favor of aborting execution.
-    StreamManager& sMgr = StreamManager::instance();
-    Stream         stream = sMgr.requestStream(false);
+    Backend& bknd = Backend::instance();
+    Stream         stream = bknd.requestStream(false);
     const int      queue2_h = stream.accAsyncQueue;
     if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
         throw std::runtime_error("[computeLaplacianFusedActions_packet_oacc_summit] "
@@ -94,6 +94,6 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
 
     #pragma acc wait(queue_h,queue2_h)
 
-    sMgr.releaseStream(stream);
+    bknd.releaseStream(stream);
 }
 

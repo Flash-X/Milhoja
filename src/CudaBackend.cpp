@@ -26,6 +26,20 @@ CudaBackend::CudaBackend(const unsigned int nStreams,
 /**
  *
  */
+int  CudaBackend::maxNumberStreams(void) const {
+    return CudaStreamManager::instance().maxNumberStreams();
+}
+
+/**
+ *
+ */
+int  CudaBackend::numberFreeStreams(void) {
+    return CudaStreamManager::instance().numberFreeStreams();
+}
+
+/**
+ *
+ */
 Stream    CudaBackend::requestStream(const bool block) {
     return CudaStreamManager::instance().requestStream(block);
 }

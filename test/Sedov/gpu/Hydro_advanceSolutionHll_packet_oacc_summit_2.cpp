@@ -3,7 +3,7 @@
 #endif
 
 #include "DataPacket.h"
-#include "StreamManager.h"
+#include "Backend.h"
 
 #include "Eos.h"
 #include "Hydro.h"
@@ -39,23 +39,23 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
     // packets take a parameter at instantiation that specifies how many streams
     // it should acquire eagerly?
     // Acquire extra stream
-    StreamManager& sMgr = StreamManager::instance();
+    Backend& bknd = Backend::instance();
 
-    Stream         stream2 = sMgr.requestStream(false);
+    Stream         stream2 = bknd.requestStream(false);
     const int      queue2_h = stream2.accAsyncQueue;
     if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
         throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
                                  "Unable to acquire second asynchronous queue");
     }
 
-    Stream         stream3 = sMgr.requestStream(false);
+    Stream         stream3 = bknd.requestStream(false);
     const int      queue3_h = stream3.accAsyncQueue;
     if (queue3_h == NULL_ACC_ASYNC_QUEUE) {
         throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
                                  "Unable to acquire third asynchronous queue");
     }
 
-    Stream         stream4 = sMgr.requestStream(false);
+    Stream         stream4 = bknd.requestStream(false);
     const int      queue4_h = stream4.accAsyncQueue;
     if (queue4_h == NULL_ACC_ASYNC_QUEUE) {
         throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
@@ -250,9 +250,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
             #pragma acc wait(queue_h,queue2_h,queue3_h,queue4_h)
 
             // Release streams as early as possible
-            sMgr.releaseStream(stream2);
-            sMgr.releaseStream(stream3);
-            sMgr.releaseStream(stream4);
+            bknd.releaseStream(stream2);
+            bknd.releaseStream(stream3);
+            bknd.releaseStream(stream4);
 
 #ifdef EINT_VAR_C
             #pragma acc parallel loop gang default(none) async(queue_h)

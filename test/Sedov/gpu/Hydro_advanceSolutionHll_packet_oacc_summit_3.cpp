@@ -3,7 +3,7 @@
 #endif
 
 #include "DataPacket.h"
-#include "StreamManager.h"
+#include "Backend.h"
 
 #include "Eos.h"
 #include "Hydro.h"
@@ -82,14 +82,14 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
             }
 #elif NDIM == 3
             // Acquire extra streams
-            StreamManager& sMgr = StreamManager::instance();
-            Stream         stream2 = sMgr.requestStream(false);
+            Backend& bknd = Backend::instance();
+            Stream         stream2 = bknd.requestStream(false);
             const int      queue2_h = stream2.accAsyncQueue;
             if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
                 throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
                                          "Unable to acquire second asynchronous queue");
             }
-            Stream         stream3 = sMgr.requestStream(false);
+            Stream         stream3 = bknd.requestStream(false);
             const int      queue3_h = stream3.accAsyncQueue;
             if (queue3_h == NULL_ACC_ASYNC_QUEUE) {
                 throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
@@ -136,8 +136,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
             // BARRIER - fluxes must all be computed before updated the solution
             #pragma acc wait(queue_h,queue2_h,queue3_h)
 
-            sMgr.releaseStream(stream2);
-            sMgr.releaseStream(stream3);
+            bknd.releaseStream(stream2);
+            bknd.releaseStream(stream3);
 #endif
 
             //----- UPDATE SOLUTIONS IN PLACE

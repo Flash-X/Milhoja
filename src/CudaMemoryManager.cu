@@ -24,7 +24,7 @@ void CudaMemoryManager::instantiate(const std::size_t nBytesInMemoryPools) {
 
     if (instantiated_) {
         throw std::logic_error("[CudaMemoryManager::instantiate] "
-                               "StreamManager already instantiated");
+                               "Memory manager already instantiated");
     } else if (nBytesInMemoryPools == 0) {
         throw std::invalid_argument("[CudaMemoryManager::instantiate] "
                                     "Buffers must be non-empty");

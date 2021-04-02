@@ -7,6 +7,11 @@
  * call a stream manager to request a stream and threads responsible for freeing
  * CudaDataPacket resources will call the manager to release streams.
  *
+ * The streams are a resource and as such all stream objects that are acquired
+ * from a StreamManager must be released to the manager and without having been
+ * modified (See documentation for Stream).  In addition, calling code must
+ * not release Stream objects that were not acquired from the manager.
+ *
  * \todo Determine what the best data structure is for streams_.  Since this
  * queue isn't used directly by the threads in a ThreadTeam nor a thread that
  * could temporarily block the threads in a ThreadTeam, it may not be so
@@ -20,24 +25,28 @@
 #include <deque>
 #include <pthread.h>
 
-#include "StreamManager.h"
+#include "Stream.h"
 
 namespace orchestration {
 
-class CudaStreamManager : public StreamManager {
+class CudaStreamManager {
 public:
     ~CudaStreamManager();
 
-    int      numberFreeStreams(void) override;
+    static void                 instantiate(const int nMaxStreams);
+    static CudaStreamManager&   instance(void);
 
-    Stream   requestStream(const bool block) override;
-    void     releaseStream(Stream& stream) override;
+    int      maxNumberStreams(void) const  { return nMaxStreams_; };
+    int      numberFreeStreams(void);
+
+    Stream   requestStream(const bool block);
+    void     releaseStream(Stream& stream);
 
 private:
     CudaStreamManager();
 
-    // Needed for polymorphic singleton
-    friend StreamManager& StreamManager::instance();
+    static bool   instantiated_;
+    static int    nMaxStreams_;
 
     std::deque<Stream>   streams_;
 

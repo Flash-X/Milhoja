@@ -8,7 +8,7 @@
 
 #include "OrchestrationLogger.h"
 
-#include "CudaStreamManager.h"
+#include "Backend.h"
 
 #include "cudaTestConstants.h"
 
@@ -29,10 +29,10 @@ TEST(TestCudaStreamManager, TestManager) {
 
     Logger::instance().log("[googletest] Start TestManager test");
 
-    StreamManager&   sm = StreamManager::instance();
-    int  maxNumStreams = sm.maxNumberStreams();
+    Backend&   bknd = Backend::instance();
+    int  maxNumStreams = bknd.maxNumberStreams();
     ASSERT_EQ(3, maxNumStreams);
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
 
     // Confirm that streams are null streams by default
     Stream   streams[maxNumStreams];
@@ -42,10 +42,10 @@ TEST(TestCudaStreamManager, TestManager) {
     }
 
     // Check out all available streams and confirm that they are valid streams
-    streams[0] = sm.requestStream(true); 
-    streams[1] = sm.requestStream(true); 
-    streams[2] = sm.requestStream(true); 
-    ASSERT_EQ(0, sm.numberFreeStreams());
+    streams[0] = bknd.requestStream(true); 
+    streams[1] = bknd.requestStream(true); 
+    streams[2] = bknd.requestStream(true); 
+    ASSERT_EQ(0, bknd.numberFreeStreams());
     EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
     EXPECT_NE(nullptr,              streams[0].cudaStream);
     EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[1].accAsyncQueue);
@@ -56,29 +56,29 @@ TEST(TestCudaStreamManager, TestManager) {
     // TODO: Get start time, call request, wait for a given amount of time,
     //       have another thread
     //       free a stream, and them confirm that time blocked is >= given time.
-//    Stream    blockedStream = sm.requestStream(true);
+//    Stream    blockedStream = bknd.requestStream(true);
     
     // If there are no free streams and we don't want to be blocked, then the
     // returned stream should be a null stream.
-    Stream    nullStream = sm.requestStream(false);
+    Stream    nullStream = bknd.requestStream(false);
     EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, nullStream.accAsyncQueue);
     EXPECT_EQ(nullptr,              nullStream.cudaStream);
 
     // Confirm that releasing a stream nullifies my stream.
-    sm.releaseStream(streams[0]);
-    ASSERT_EQ(1, sm.numberFreeStreams());
+    bknd.releaseStream(streams[0]);
+    ASSERT_EQ(1, bknd.numberFreeStreams());
     EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
     EXPECT_EQ(nullptr,              streams[0].cudaStream);
 
-    streams[0] = sm.requestStream(true); 
-    ASSERT_EQ(0, sm.numberFreeStreams());
+    streams[0] = bknd.requestStream(true); 
+    ASSERT_EQ(0, bknd.numberFreeStreams());
     EXPECT_NE(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
     EXPECT_NE(nullptr,              streams[0].cudaStream);
 
-    sm.releaseStream(streams[0]); 
-    sm.releaseStream(streams[2]); 
-    sm.releaseStream(streams[1]); 
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+    bknd.releaseStream(streams[0]); 
+    bknd.releaseStream(streams[2]); 
+    bknd.releaseStream(streams[1]); 
+    ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
     EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[0].accAsyncQueue);
     EXPECT_EQ(nullptr,              streams[0].cudaStream);
     EXPECT_EQ(NULL_ACC_ASYNC_QUEUE, streams[1].accAsyncQueue);
@@ -90,7 +90,7 @@ TEST(TestCudaStreamManager, TestManager) {
     // Run the tests when there is still one stream to return
     // so that we cannot mistake the desired error with the error of releasing
     // more streams than the manager owns.
-    streams[0] = sm.requestStream(true);
+    streams[0] = bknd.requestStream(true);
     Stream   goodStream;
     Stream   goodStream2;
     goodStream.accAsyncQueue  = streams[0].accAsyncQueue;
@@ -103,7 +103,7 @@ TEST(TestCudaStreamManager, TestManager) {
     try {
         badStream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
         badStream.cudaStream    = goodStream.cudaStream;
-        sm.releaseStream(badStream);
+        bknd.releaseStream(badStream);
         EXPECT_TRUE(false);
     } catch(const std::invalid_argument&) {
         EXPECT_TRUE(true);
@@ -113,7 +113,7 @@ TEST(TestCudaStreamManager, TestManager) {
     try {
         badStream.accAsyncQueue = goodStream.accAsyncQueue;
         badStream.cudaStream    = nullptr;
-        sm.releaseStream(badStream);
+        bknd.releaseStream(badStream);
         EXPECT_TRUE(false);
     } catch(const std::invalid_argument&) {
         EXPECT_TRUE(true);
@@ -121,10 +121,10 @@ TEST(TestCudaStreamManager, TestManager) {
 
     // Return the final stream and try pushing a "valid" stream (i.e. ID and
     // object not null) when the manager has all its streams accounted for.
-    sm.releaseStream(goodStream);
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+    bknd.releaseStream(goodStream);
+    ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
     try {
-        sm.releaseStream(goodStream2);
+        bknd.releaseStream(goodStream2);
         EXPECT_TRUE(false);
     } catch (const std::invalid_argument&) {
         EXPECT_TRUE(true);
@@ -147,18 +147,18 @@ TEST(TestCudaStreamManager, TestStreams) {
     // into smaller equal-sized chunks for computation with GPU.
     constexpr  std::size_t  N_DATA_PER_PACKET = 1024;
 
-    StreamManager&   sm = StreamManager::instance();
-    int  maxNumStreams = sm.maxNumberStreams();
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+    Backend&   bknd = Backend::instance();
+    int  maxNumStreams = bknd.maxNumberStreams();
+    ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
 
     int  nPackets = maxNumStreams;
     int  nData = nPackets * N_DATA_PER_PACKET;
 
     Stream   streams[maxNumStreams];
     for (unsigned int i=0; i<maxNumStreams; ++i) {
-        streams[i] = sm.requestStream(true); 
+        streams[i] = bknd.requestStream(true); 
     }
-    ASSERT_EQ(0, sm.numberFreeStreams());
+    ASSERT_EQ(0, bknd.numberFreeStreams());
 
     double*        data_p = nullptr;
     double*        data_d = nullptr;
@@ -204,9 +204,9 @@ TEST(TestCudaStreamManager, TestStreams) {
     data_p = nullptr;
 
     for (unsigned int i=0; i<maxNumStreams; ++i ) {
-        sm.releaseStream(streams[i]); 
+        bknd.releaseStream(streams[i]); 
     }
-    ASSERT_EQ(maxNumStreams, sm.numberFreeStreams());
+    ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
 
     Logger::instance().log("[googletest] End TestStreams test");
 }
