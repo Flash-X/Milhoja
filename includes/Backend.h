@@ -2,7 +2,9 @@
 #define BACKEND_H__
 
 #include <cstddef>
+#ifdef USE_CUDA_BACKEND
 #include <cuda_runtime.h>
+#endif
 
 #include "Stream.h"
 #include "DataPacket.h"
@@ -30,10 +32,12 @@ public:
     virtual void      releaseStream(Stream& stream) = 0;
 
     // TODO: Hide cudaHostFn_t behind a typedef
+#ifdef USE_CUDA_BACKEND
     virtual void      initiateHostToGpuTransfer(DataPacket& packet) = 0;
     virtual void      initiateGpuToHostTransfer(DataPacket& packet,
                                                 cudaHostFn_t callback,
                                                 void* callbackData) = 0;
+#endif
 
     virtual void      requestGpuMemory(const std::size_t bytes,
                                        void** hostPtr, void** gpuPtr) = 0;
