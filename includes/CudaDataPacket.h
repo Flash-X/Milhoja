@@ -56,14 +56,16 @@ public:
     std::shared_ptr<Tile>  popTile(void) override;
     const PacketContents*  tilePointers(void) const override { return contents_d_; };
 
-    void                   initiateHostToDeviceTransfer(void) override;
-    void                   initiateDeviceToHostTransfer(cudaHostFn_t callback,
-                                                        void* callbackData) override;
+    void                   pack(void) override;
+    void*                  pointerToStart_host(void) override { return packet_p_; }
+    void*                  pointerToStart_gpu(void) override  { return packet_d_; }
+    std::size_t            sizeInBytes(void) const override   { return nBytesPerPacket_; }
     void                   unpack(void) override;
+
 #ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
 #endif
-#ifdef ENABLE_CUDA_OFFLOAD
+#if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
     cudaStream_t           stream(void) override { return stream_.cudaStream; };
 #endif
 
@@ -80,8 +82,6 @@ protected:
 
     void         nullify(void);
     std::string  isNull(void) const;
-
-    void         pack(void);
 
 private:
     PacketDataLocation                     location_;

@@ -2,8 +2,10 @@
 #define BACKEND_H__
 
 #include <cstddef>
+#include <cuda_runtime.h>
 
 #include "Stream.h"
+#include "DataPacket.h"
 
 namespace orchestration {
 
@@ -26,9 +28,16 @@ public:
     virtual int       numberFreeStreams(void) = 0;
     virtual Stream    requestStream(const bool block) = 0;
     virtual void      releaseStream(Stream& stream) = 0;
-    virtual void      requestMemory(const std::size_t bytes,
-                                    void** hostPtr, void** gpuPtr) = 0;
-    virtual void      releaseMemory(void** hostPtr, void** gpuPtr) = 0;
+
+    // TODO: Hide cudaHostFn_t behind a typedef
+    virtual void      initiateHostToGpuTransfer(DataPacket& packet) = 0;
+    virtual void      initiateGpuToHostTransfer(DataPacket& packet,
+                                                cudaHostFn_t callback,
+                                                void* callbackData) = 0;
+
+    virtual void      requestGpuMemory(const std::size_t bytes,
+                                       void** hostPtr, void** gpuPtr) = 0;
+    virtual void      releaseGpuMemory(void** hostPtr, void** gpuPtr) = 0;
     virtual void      reset(void) = 0;
     // FIXME: This is temprorary since this manager is so rudimentary
 

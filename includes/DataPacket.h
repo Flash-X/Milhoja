@@ -60,16 +60,16 @@ public:
     virtual std::shared_ptr<Tile>  popTile(void) = 0;
     virtual const PacketContents*  tilePointers(void) const = 0;
 
-    virtual void                   initiateHostToDeviceTransfer(void) = 0;
-#ifdef USE_CUDA_BACKEND
-    virtual void                   initiateDeviceToHostTransfer(cudaHostFn_t callback,
-                                                                void* callbackData) = 0;
-#endif
+    virtual void                   pack(void) = 0;
+    virtual void*                  pointerToStart_host(void) = 0;
+    virtual void*                  pointerToStart_gpu(void) = 0;
+    virtual std::size_t            sizeInBytes(void) const = 0;
     virtual void                   unpack(void) = 0;
+
 #ifdef ENABLE_OPENACC_OFFLOAD
     virtual int                    asynchronousQueue(void) = 0;
 #endif
-#ifdef ENABLE_CUDA_OFFLOAD
+#if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
     virtual cudaStream_t           stream(void) = 0;
 #endif
 

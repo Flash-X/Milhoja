@@ -26,6 +26,14 @@ public:
         { throw std::logic_error("[NullBackend::requestStream] Not implemented"); };
     void      releaseStream(Stream& stream) override
         { throw std::logic_error("[NullBackend::releaseStream] Not implemented"); };
+
+    void      initiateHostToGpuTransfer(DataPacket& packet) override
+        { throw std::logic_error("[NullBackend::initiateHostToGpuTransfer] Not implemented"); };
+    void      initiateGpuToHostTransfer(DataPacket& packet,
+                                        cudaHostFn_t callback,
+                                        void* callbackData) override
+        { throw std::logic_error("[NullBackend::initiateGpuToHostTransfer] Not implemented"); };
+
     void      requestMemory(const std::size_t bytes,
                             void** hostPtr, void** gpuPtr) override
         { throw std::logic_error("[NullBackend::requestMemory] Not implemented"); };

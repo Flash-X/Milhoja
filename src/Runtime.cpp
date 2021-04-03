@@ -253,6 +253,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                  level = 0;
     Grid&                         grid = Grid::instance();
+    Backend&                      backend = Backend::instance();
     std::shared_ptr<DataPacket>   packet_gpu = DataPacket::createPacket();
     if ((packet_gpu == nullptr) || (packet_gpu.use_count() != 1)) {
         throw std::logic_error("[Runtime::executeGpuTasks] Bad packet at creation");
@@ -260,7 +261,8 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         packet_gpu->addTile( ti->buildCurrentTile() );
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
-            packet_gpu->initiateHostToDeviceTransfer();
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
             gpuTeam->enqueue( std::move(packet_gpu) );
             if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
@@ -272,7 +274,8 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     }
 
     if (packet_gpu->nTiles() > 0) {
-        packet_gpu->initiateHostToDeviceTransfer();
+        packet_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();
@@ -360,6 +363,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
     std::shared_ptr<Tile>             tile_cpu{};
     std::shared_ptr<Tile>             tile_gpu{};
     std::shared_ptr<DataPacket>       packet_gpu = DataPacket::createPacket();
@@ -391,7 +395,8 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
         // GPU action parallel pipeline
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
-            packet_gpu->initiateHostToDeviceTransfer();
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
             gpuTeam->enqueue( std::move(packet_gpu) );
             if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
@@ -403,7 +408,8 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     }
 
     if (packet_gpu->nTiles() > 0) {
-        packet_gpu->initiateHostToDeviceTransfer();
+        packet_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();
@@ -506,9 +512,10 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
-                     shared(grid, level, gpuTeam, gpuAction) \
+                     shared(grid, backend, level, gpuTeam, gpuAction) \
                      num_threads(nDistThreads)
 #endif
     {
@@ -517,7 +524,8 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
             packet_gpu->addTile( ti->buildCurrentTile() );
 
             if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
-                packet_gpu->initiateHostToDeviceTransfer();
+                packet_gpu->pack();
+                backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
                 gpuTeam->enqueue( std::move(packet_gpu) );
 
@@ -526,7 +534,8 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
         }
 
         if (packet_gpu->nTiles() > 0) {
-            packet_gpu->initiateHostToDeviceTransfer();
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
             gpuTeam->enqueue( std::move(packet_gpu) );
         } else {
             packet_gpu.reset();
@@ -625,6 +634,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
     std::shared_ptr<Tile>             tileDesc{};
     std::shared_ptr<DataPacket>       packet_gpu = DataPacket::createPacket();
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
@@ -651,7 +661,8 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
             }
 
             if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
-                packet_gpu->initiateHostToDeviceTransfer();
+                packet_gpu->pack();
+                backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
                 gpuTeam->enqueue( std::move(packet_gpu) );
                 if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
@@ -665,7 +676,8 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     }
 
     if (packet_gpu->nTiles() > 0) {
-        packet_gpu->initiateHostToDeviceTransfer();
+        packet_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();
@@ -796,11 +808,12 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
-    unsigned int                      level = 0;
-    Grid&                             grid = Grid::instance();
+    unsigned int  level = 0;
+    Grid&         grid = Grid::instance();
+    Backend&      backend = Backend::instance();
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
-                     shared(grid, level, teamA_cpu, teamA_gpu, actionA_gpu, nTilesPerCpuTurn) \
+                     shared(grid, backend, level, teamA_cpu, teamA_gpu, actionA_gpu, nTilesPerCpuTurn) \
                      num_threads(nDistThreads)
 #endif
     {
@@ -829,7 +842,8 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                 packet_gpu->addTile( std::move(tileDesc) );
 
                 if (packet_gpu->nTiles() >= actionA_gpu.nTilesPerPacket) {
-                    packet_gpu->initiateHostToDeviceTransfer();
+                    packet_gpu->pack();
+                    backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
                     teamA_gpu->enqueue( std::move(packet_gpu) );
 
@@ -840,7 +854,8 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
         }
 
         if (packet_gpu->nTiles() > 0) {
-            packet_gpu->initiateHostToDeviceTransfer();
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
             teamA_gpu->enqueue( std::move(packet_gpu) );
         } else {
             packet_gpu.reset();
@@ -956,6 +971,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
     std::shared_ptr<Tile>             tileA{};
     std::shared_ptr<Tile>             tileB{};
     std::shared_ptr<DataPacket>       packetA_gpu = DataPacket::createPacket();
@@ -967,7 +983,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
         // GPU action parallel pipeline
         if (packetB_gpu->nTiles() >= actionB_gpu.nTilesPerPacket) {
-            packetB_gpu->initiateHostToDeviceTransfer();
+            packetB_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packetB_gpu.get()));
 
             teamB_gpu->enqueue( std::move(packetB_gpu) );
             packetB_gpu = DataPacket::createPacket();
@@ -986,7 +1003,8 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
             packetA_gpu->addTile( std::move(tileA) );
 
             if (packetA_gpu->nTiles() >= actionA_gpu.nTilesPerPacket) {
-                packetA_gpu->initiateHostToDeviceTransfer();
+                packetA_gpu->pack();
+                backend.initiateHostToGpuTransfer(*(packetA_gpu.get()));
 
                 teamA_gpu->enqueue( std::move(packetA_gpu) );
 
@@ -997,14 +1015,16 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     }
 
     if (packetA_gpu->nTiles() > 0) {
-        packetA_gpu->initiateHostToDeviceTransfer();
+        packetA_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packetA_gpu.get()));
         teamA_gpu->enqueue( std::move(packetA_gpu) );
     } else {
         packetA_gpu.reset();
     }
 
     if (packetB_gpu->nTiles() > 0) {
-        packetB_gpu->initiateHostToDeviceTransfer();
+        packetB_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packetB_gpu.get()));
         teamB_gpu->enqueue( std::move(packetB_gpu) );
     } else {
         packetB_gpu.reset();
@@ -1108,6 +1128,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
     std::shared_ptr<Tile>             tile_cpu{};
     std::shared_ptr<Tile>             tile_gpu{};
     std::shared_ptr<DataPacket>       packet_gpu = DataPacket::createPacket();
@@ -1139,7 +1160,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
         // GPU/Post-GPU action parallel pipeline
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
-            packet_gpu->initiateHostToDeviceTransfer();
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
 
             gpuTeam->enqueue( std::move(packet_gpu) );
             if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
@@ -1151,7 +1173,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     }
 
     if (packet_gpu->nTiles() > 0) {
-        packet_gpu->initiateHostToDeviceTransfer();
+        packet_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
         gpuTeam->enqueue( std::move(packet_gpu) );
     } else {
         packet_gpu.reset();

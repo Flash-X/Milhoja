@@ -20,9 +20,15 @@ public:
     int       numberFreeStreams(void) override;
     Stream    requestStream(const bool block) override;
     void      releaseStream(Stream& stream) override;
-    void      requestMemory(const std::size_t bytes,
-                                   void** hostPtr, void** gpuPtr) override;
-    void      releaseMemory(void** hostPtr, void** gpuPtr) override;
+
+    void      initiateHostToGpuTransfer(DataPacket& packet) override;
+    void      initiateGpuToHostTransfer(DataPacket& packet,
+                                        cudaHostFn_t callback,
+                                        void* callbackData) override;
+
+    void      requestGpuMemory(const std::size_t bytes,
+                               void** hostPtr, void** gpuPtr) override;
+    void      releaseGpuMemory(void** hostPtr, void** gpuPtr) override;
     void      reset(void) override;
 
 private:
