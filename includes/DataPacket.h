@@ -11,6 +11,7 @@
 #include "FArray4D.h"
 #include "Tile.h"
 #include "DataItem.h"
+#include "Stream.h"
 
 namespace orchestration {
 
@@ -45,7 +46,7 @@ class DataPacket : public DataItem {
 public:
     static std::unique_ptr<DataPacket>   createPacket(void);
 
-    virtual ~DataPacket(void)  { };
+    virtual ~DataPacket(void);
 
     DataPacket(DataPacket&)                  = delete;
     DataPacket(const DataPacket&)            = delete;
@@ -54,29 +55,30 @@ public:
     DataPacket& operator=(const DataPacket&) = delete;
     DataPacket& operator=(DataPacket&&)      = delete;
 
-    virtual std::size_t            nTiles(void) const = 0;
-    virtual const std::size_t*     nTilesGpu(void) const = 0;
-    virtual void                   addTile(std::shared_ptr<Tile>&& tileDesc) = 0;
-    virtual std::shared_ptr<Tile>  popTile(void) = 0;
-    virtual const PacketContents*  tilePointers(void) const = 0;
+    std::size_t            nTiles(void) const        { return tiles_.size(); }
+    const std::size_t*     nTilesGpu(void) const     { return nTiles_d_; }
+    void                   addTile(std::shared_ptr<Tile>&& tileDesc);
+    std::shared_ptr<Tile>  popTile(void);
+    const PacketContents*  tilePointers(void) const  { return contents_d_; };
 
-    virtual void                   pack(void) = 0;
-    virtual void*                  pointerToStart_host(void) = 0;
-    virtual void*                  pointerToStart_gpu(void) = 0;
-    virtual std::size_t            sizeInBytes(void) const = 0;
-    virtual void                   unpack(void) = 0;
+    void*                  pointerToStart_host(void) { return packet_p_; };
+    void*                  pointerToStart_gpu(void)  { return packet_d_; };
+    std::size_t            sizeInBytes(void) const   { return nBytesPerPacket_; }
+
+    virtual void           pack(void) = 0;
+    virtual void           unpack(void) = 0;
 
 #ifdef ENABLE_OPENACC_OFFLOAD
-    virtual int                    asynchronousQueue(void) = 0;
+    int                    asynchronousQueue(void) { return stream_.accAsyncQueue; }
 #endif
 #if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
-    virtual cudaStream_t           stream(void) = 0;
+    cudaStream_t           stream(void)            { return stream_.cudaStream; };
 #endif
 
-    virtual PacketDataLocation    getDataLocation(void) const = 0;
-    virtual void                  setDataLocation(const PacketDataLocation location) = 0;
-    virtual void                  setVariableMask(const int startVariable, 
-                                                  const int endVariable) = 0;
+    PacketDataLocation    getDataLocation(void) const;
+    void                  setDataLocation(const PacketDataLocation location);
+    void                  setVariableMask(const int startVariable, 
+                                          const int endVariable);
 
     // FIXME:  This is a temporary solution as it seems like the easiest way to
     // get dt in to the GPU memory.  There is no reason for dt to be included in
@@ -85,7 +87,22 @@ public:
     virtual Real*                 timeStepGpu(void) const = 0;
 
 protected:
-    DataPacket(void)   { };
+    DataPacket(void);
+
+    void         nullify(void);
+    std::string  isNull(void) const;
+
+    PacketDataLocation                     location_;
+    int                                    startVariable_;
+    int                                    endVariable_;
+    void*                                  packet_p_;
+    void*                                  packet_d_;
+    std::deque<std::shared_ptr<Tile>>      tiles_;
+    std::size_t*                           nTiles_d_;
+    PacketContents*                        contents_p_;
+    PacketContents*                        contents_d_;
+    Stream                                 stream_;
+    std::size_t                            nBytesPerPacket_;
 
     static constexpr std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
                                                                      * (NYB + 2 * NGUARD * K2D)

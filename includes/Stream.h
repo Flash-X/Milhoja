@@ -75,6 +75,23 @@ struct Stream {
     Stream(const Stream&)            = delete;
     Stream& operator=(Stream&)       = delete;
     Stream& operator=(const Stream&) = delete;
+
+    bool   isValid(void) const {
+#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+        if (cudaStream == nullptr) {
+            return false;
+        }
+#endif
+#if defined(ENABLE_OPENACC_OFFLOAD)
+        if (accAsyncQueue == NULL_ACC_ASYNC_QUEUE) {
+            return false;
+        }
+#endif
+        // This specifies that a Stream object used in a simulation that does
+        // not use Streams will alway be valid.  This might be incorrect in the
+        // future.
+        return true;
+    }
 };
 
 }

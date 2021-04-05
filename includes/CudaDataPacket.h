@@ -50,53 +50,16 @@ public:
     CudaDataPacket& operator=(CudaDataPacket&& rhs)  = delete;
 
     // Overrides of DataPacket member functions
-    std::size_t            nTiles(void) const override;
-    const std::size_t*     nTilesGpu(void) const override { return nTiles_d_; };
-    void                   addTile(std::shared_ptr<Tile>&& tileDesc) override;
-    std::shared_ptr<Tile>  popTile(void) override;
-    const PacketContents*  tilePointers(void) const override { return contents_d_; };
-
     void                   pack(void) override;
-    void*                  pointerToStart_host(void) override { return packet_p_; }
-    void*                  pointerToStart_gpu(void) override  { return packet_d_; }
-    std::size_t            sizeInBytes(void) const override   { return nBytesPerPacket_; }
     void                   unpack(void) override;
-
-#ifdef ENABLE_OPENACC_OFFLOAD
-    int                    asynchronousQueue(void) override { return stream_.accAsyncQueue; }
-#endif
-#if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
-    cudaStream_t           stream(void) override { return stream_.cudaStream; };
-#endif
-
-    PacketDataLocation     getDataLocation(void) const override;
-    void                   setDataLocation(const PacketDataLocation location) override;
-    void                   setVariableMask(const int startVariable, 
-                                           const int endVariable) override;
-
     Real*                  timeStepGpu(void) const override  { return dt_d_; }
 
 protected:
     // Fix to one block per data packet as first step but with a scratch block
     static constexpr std::size_t    N_BLOCKS = 2; 
 
-    void         nullify(void);
-    std::string  isNull(void) const;
-
 private:
-    PacketDataLocation                     location_;
-    int                                    startVariable_;
-    int                                    endVariable_;
-    void*                                  packet_p_;
-    void*                                  packet_d_;
-    std::deque<std::shared_ptr<Tile>>      tiles_;
-    std::size_t*                           nTiles_d_;
-    PacketContents*                        contents_p_;
-    PacketContents*                        contents_d_;
-    Stream                                 stream_;
-    std::size_t                            nBytesPerPacket_;
-
-    Real*                                  dt_d_;
+    Real*                           dt_d_;
 };
 
 }
