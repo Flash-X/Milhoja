@@ -20,8 +20,6 @@ enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
 struct PacketContents {
     unsigned int            level      = 0;
     std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
-    Real*                   CC1_data_p = nullptr;
-    Real*                   CC2_data_p = nullptr;
     RealVect*               deltas_d   = nullptr;
     IntVect*                lo_d       = nullptr;
     IntVect*                hi_d       = nullptr;
@@ -83,13 +81,18 @@ public:
     // get dt in to the GPU memory.  There is no reason for dt to be included in
     // each data packet.  It is a "global" value that is valid for all blocks
     // and all operations applied during a solution advance phase.
-    virtual Real*                 timeStepGpu(void) const = 0;
+    virtual Real*         timeStepGpu(void) const = 0;
 
 protected:
     DataPacket(void);
 
     void         nullify(void);
     std::string  isNull(void) const;
+
+    struct BlockPointersPinned {
+        Real*    CC1_data = nullptr;
+        Real*    CC2_data = nullptr;
+    };
 
     PacketDataLocation                     location_;
     void*                                  packet_p_;
@@ -98,6 +101,7 @@ protected:
     std::size_t*                           nTiles_d_;
     PacketContents*                        contents_p_;
     PacketContents*                        contents_d_;
+    BlockPointersPinned*                   pinnedPtrs_;
     Stream                                 stream_;
     std::size_t                            nBytesPerPacket_;
 
@@ -136,9 +140,8 @@ protected:
                                                                   * sizeof(Real);
 
 private:
-    int    startVariable_;
-    int    endVariable_;
-
+    int   startVariable_;
+    int   endVariable_;
 };
 
 }

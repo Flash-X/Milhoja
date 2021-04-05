@@ -82,6 +82,13 @@ void  CudaDataPacket::pack(void) {
                                          &packet_p_,
                                          &packet_d_);
 
+    // Store for later unpacking the location in pinned memory of the different
+    // blocks.
+    if (pinnedPtrs_) {
+        throw std::logic_error("[CudaDataPacket::pack] Pinned pointers already exist");
+    }
+    pinnedPtrs_ = new BlockPointersPinned[nTiles];
+
     // Pointer to the next free byte in the current data packets
     // Should be true by C++ standard
     static_assert(sizeof(char) == 1, "Invalid char size");
@@ -171,13 +178,13 @@ void  CudaDataPacket::pack(void) {
         ptr_d += POINT_SIZE_BYTES;
 
         location_ = PacketDataLocation::CC1;
-        tilePtrs_p->CC1_data_p = static_cast<Real*>((void*)ptr_p);
+        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)ptr_p);
         CC1_data_d  = static_cast<Real*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
         ptr_p += CC_BLOCK_SIZE_BYTES;
         ptr_d += CC_BLOCK_SIZE_BYTES;
 
-        tilePtrs_p->CC2_data_p = static_cast<Real*>((void*)ptr_p);
+        pinnedPtrs_[n].CC2_data = static_cast<Real*>((void*)ptr_p);
         CC2_data_d  = static_cast<Real*>((void*)ptr_d);
         ptr_p += CC_BLOCK_SIZE_BYTES;
         ptr_d += CC_BLOCK_SIZE_BYTES;

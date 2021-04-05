@@ -29,6 +29,7 @@ DataPacket::DataPacket(void)
         nTiles_d_{nullptr},
         contents_p_{nullptr},
         contents_d_{nullptr},
+        pinnedPtrs_{nullptr},
         stream_{},
         nBytesPerPacket_{0},
         startVariable_{UNK_VARS_BEGIN_C - 1},
@@ -56,6 +57,11 @@ void  DataPacket::nullify(void) {
         Backend::instance().releaseStream(stream_);
     }
     Backend::instance().releaseGpuMemory(&packet_p_, &packet_d_);
+
+    if (pinnedPtrs_) {
+        delete [] pinnedPtrs_;
+        pinnedPtrs_ = nullptr;
+    }
 
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
@@ -94,6 +100,8 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned contents exist";
     } else if (contents_d_ != nullptr) {
         return "GPU contents exist";
+    } else if (pinnedPtrs_ != nullptr) {
+        return "Pinned pointers exist";
     }
 
     return "";
@@ -172,18 +180,12 @@ void  DataPacket::unpack(void) {
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket::unpack] "
                                "Empty data packet");
-    } else if (packet_p_ == nullptr) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "No pointer to start of packet in pinned memory");
-    } else if (packet_d_ == nullptr) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "No pointer to start of packet in GPU memory");
     } else if (!stream_.isValid()) {
         throw std::logic_error("[DataPacket::unpack] "
                                "Stream not acquired");
-    } else if (contents_p_ == nullptr) {
+    } else if (pinnedPtrs_ == nullptr) {
         throw std::logic_error("[DataPacket::unpack] "
-                               "No pinned packet contents");
+                               "No pinned pointers set");
     } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
                || (startVariable_ > UNK_VARS_END_C )
                || (endVariable_   < UNK_VARS_BEGIN_C )
@@ -196,18 +198,17 @@ void  DataPacket::unpack(void) {
     Backend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
-    PacketContents*   tilePtrs_p = contents_p_;
-    for (std::size_t n=0; n<tiles_.size(); ++n, ++tilePtrs_p) {
+    for (std::size_t n=0; n<tiles_.size(); ++n) {
         Tile*   tileDesc_h = tiles_[n].get();
 
         Real*         data_h = tileDesc_h->dataPtr();
         const Real*   data_p = nullptr;
         switch (location_) {
             case PacketDataLocation::CC1:
-                data_p = tilePtrs_p->CC1_data_p;
+                data_p = pinnedPtrs_[n].CC1_data;
                 break;
             case PacketDataLocation::CC2:
-                data_p = tilePtrs_p->CC2_data_p;
+                data_p = pinnedPtrs_[n].CC2_data;
                 break;
             default:
                 throw std::logic_error("[DataPacket::unpack] Data not in CC1 or CC2");
