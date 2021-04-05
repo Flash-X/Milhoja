@@ -61,12 +61,11 @@ public:
     std::shared_ptr<Tile>  popTile(void);
     const PacketContents*  tilePointers(void) const  { return contents_d_; };
 
+    virtual void           pack(void) = 0;
     void*                  pointerToStart_host(void) { return packet_p_; };
     void*                  pointerToStart_gpu(void)  { return packet_d_; };
     std::size_t            sizeInBytes(void) const   { return nBytesPerPacket_; }
-
-    virtual void           pack(void) = 0;
-    virtual void           unpack(void) = 0;
+    void                   unpack(void);
 
 #ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) { return stream_.accAsyncQueue; }
@@ -93,8 +92,6 @@ protected:
     std::string  isNull(void) const;
 
     PacketDataLocation                     location_;
-    int                                    startVariable_;
-    int                                    endVariable_;
     void*                                  packet_p_;
     void*                                  packet_d_;
     std::deque<std::shared_ptr<Tile>>      tiles_;
@@ -137,6 +134,11 @@ protected:
                                                                   * sizeof(Real);
     static constexpr std::size_t    COORDS_Z_SIZE_BYTES  = (NZB + 2 * NGUARD * K3D)
                                                                   * sizeof(Real);
+
+private:
+    int    startVariable_;
+    int    endVariable_;
+
 };
 
 }
