@@ -1,3 +1,4 @@
+##FlashxRecipeLang V 1:2021-04-05
 #####################
 # Recipe Instructions
 #####################
@@ -5,14 +6,14 @@
 @BEGIN_RECIPEINSTRUCTIONS NAME My_Sedov_Instructions
 
 @DATASOURCE           NAME it              ITERATE ALL LEAVES
-@BEGIN_CONCURRENTDATA NAME dIn  AFTER it   INDATA  (DENS, VELX, VELY, VELZ, PRES, ENER),
-                                           SCRATCH (flX, flY, flZ, auxC)
-@RecipeInstruction    NAME hySp AFTER dIn  INVOKE hy_computeSoundSpeedHll (lo, hi, U, auxC)
-@RecipeInstruction    NAME hyFl AFTER hySp INVOKE hy_computeFluxesHll     (dt, lo, hi, deltas, U, flX, flY, flZ, auxC)
-@RecipeInstruction    NAME hyUp AFTER hyFl INVOKE hy_updateSolutionHll    (lo, hi, U, flX, flY, flZ)
-@RecipeInstruction    NAME eosG AFTER hyUp INVOKE eos_idealGammaDensIe    (lo, hi, U)
-@RecipeInstruction    NAME ioIq AFTER eosG INVOKE io_computeIntegralQuantitiesByBlock (tId, lo, hi, volumes, U)
-@END_CONCURRENTDATA   NAME dOut AFTER ioIq OUTDATA (DENS, VELX, VELY, VELZ, PRES, ENER)
+@BEGIN_CONCURRENTDATA NAME dIn  AFTER it                                  INDATA (DENS, VELX, VELY, VELZ, PRES, ENER)                SCRATCH (flX, flY, flZ, auxC)
+@RecipeInstruction    NAME hySp AFTER dIn  INVOKE hy_computeSoundSpeedHll INDATA (DENS,                   PRES      )                OUTDATA (               auxC)
+@RecipeInstruction    NAME hyFl AFTER hySp INVOKE hy_computeFluxesHll     INDATA (DENS, VELX, VELY, VELZ, PRES, ENER, auxC)          OUTDATA (flX, flY, flZ      )
+@RecipeInstruction    NAME hyUp AFTER hyFl INVOKE hy_updateSolutionHll    INDATA (DENS, VELX, VELY, VELZ,       ENER, flX, flY, flZ) OUTDATA (                     DENS, VELX, VELY, VELZ,       ENER)
+@RecipeInstruction    NAME eosG AFTER hyUp INVOKE eos_idealGammaDensIe    INDATA (DENS, VELX, VELY, VELZ,       ENER)                OUTDATA (                                             PRES, ENER)
+@RecipeInstruction    NAME ioIq AFTER eosG INVOKE io_computeIntegralQuantitiesByBlock ,
+                                                                          INDATA (DENS, VELX, VELY, VELZ,       ENER)
+@END_CONCURRENTDATA   NAME dOut AFTER ioIq                                                                                           OUTDATA (                     DENS, VELX, VELY, VELZ, PRES, ENER)
 
 @END_RECIPEINSTRUCTIONS   NAME My_Sedov_Instructions
 
