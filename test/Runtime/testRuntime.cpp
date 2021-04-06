@@ -14,6 +14,10 @@
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
 
+#if defined(USE_CUDA_BACKEND)
+#include "DataPacket_gpu_1.h"
+#endif
+
 #include "gtest/gtest.h"
 
 using namespace orchestration;
@@ -136,9 +140,11 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+    
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity);
-    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy);
+    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity, packetPrototype);
+    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -167,10 +173,13 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
     computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+    
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuTasks("ConcurrentCpuGpu",
                                            computeLaplacianDensity,
-                                           computeLaplacianEnergy);
+                                           computeLaplacianEnergy,
+                                           packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -199,10 +208,13 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     computeLaplacian_gpu.nTilesPerPacket = 30;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
+                                                packetPrototype,
                                                 30);
 
     computeLaplacian_cpu.name    = "LaplacianEnergy_cpu";
@@ -214,6 +226,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelEnergy",
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
+                                                packetPrototype,
                                                 30);
     double tWalltime = MPI_Wtime() - tStart; 
 
@@ -250,11 +263,15 @@ TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     computeLaplacianEnergy_gpu.nTilesPerPacket = 20;
     computeLaplacianEnergy_gpu.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuWowzaTasks("CPU/GPU Wowza",
                                                 computeLaplacianDensity_cpu,
                                                 computeLaplacianDensity_gpu,
                                                 computeLaplacianEnergy_gpu,
+                                                packetPrototype,
+                                                packetPrototype,
                                                 20);
     double tWalltime = MPI_Wtime() - tStart; 
 
@@ -277,8 +294,10 @@ TEST_F(TestRuntime, TestFusedActions) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Actions GPU", computeLaplacianFused_gpu);
+    Runtime::instance().executeGpuTasks("Fused Actions GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -300,8 +319,10 @@ TEST_F(TestRuntime, TestFusedKernelsStrong) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", computeLaplacianFused_gpu);
+    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -323,8 +344,10 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{}; 
+
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", computeLaplacianFused_gpu);
+    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -353,10 +376,13 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
     computeLaplacian_gpu.nTilesPerPacket = 20;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
+                                                packetPrototype,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
 
@@ -386,10 +412,13 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     computeLaplacian_gpu.nTilesPerPacket = 20;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
+    const DataPacket_gpu_1&   packetPrototype{};
+
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
+                                                packetPrototype,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
 

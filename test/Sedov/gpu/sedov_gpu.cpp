@@ -8,15 +8,14 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
+#include "DataPacket_Hydro_gpu_1.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
 #include "Timer.h"
 #include "Runtime.h"
+#include "Backend.h"
 #include "OrchestrationLogger.h"
-#ifdef USE_CUDA_BACKEND
-#include "CudaMemoryManager.h"
-#endif
 
 #include "errorEstBlank.h"
 
@@ -106,6 +105,8 @@ int main(int argc, char* argv[]) {
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
+
+    const DataPacket_Hydro_gpu_1    packetPrototype;
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -138,6 +139,7 @@ int main(int argc, char* argv[]) {
                                                 hydroAdvance_cpu,
                                                 hydroAdvance_gpu,
                                                 computeIntQuantitiesByBlk,
+                                                packetPrototype,
                                                 rp_Bundle_2::N_TILES_PER_CPU_TURN);
         double   wtime_sec = MPI_Wtime() - tStart;
 
@@ -175,11 +177,9 @@ int main(int argc, char* argv[]) {
         // results.
         Driver::dt = rp_Driver::DT_AFTER;
 
-#ifdef USE_CUDA_BACKEND
         // FIXME: This is a cheap hack necessitated by the fact that the runtime
         // does not yet have a real memory manager.
-        orchestration::CudaMemoryManager::instance().reset();
-#endif
+        orchestration::Backend::instance().reset();
 
         ++nStep;
     }

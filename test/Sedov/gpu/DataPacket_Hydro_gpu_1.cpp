@@ -1,14 +1,9 @@
-#ifndef USE_CUDA_BACKEND
-#error "This file need not be compiled if the CUDA backend isn't used"
-#endif
-
-#include "CudaDataPacket.h"
+#include "DataPacket_Hydro_gpu_1.h"
 
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 
-#include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "Grid_Axis.h"
@@ -27,7 +22,7 @@ namespace orchestration {
 /**
  *
  */
-CudaDataPacket::CudaDataPacket(void)
+DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
     : DataPacket{},
       dt_d_{nullptr}
 {
@@ -36,18 +31,25 @@ CudaDataPacket::CudaDataPacket(void)
 /**
  *
  */
-CudaDataPacket::~CudaDataPacket(void) {
+DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
 }
 
 /**
  *
  */
-void  CudaDataPacket::pack(void) {
+std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const {
+    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_1{}};
+}
+
+/**
+ *
+ */
+void  DataPacket_Hydro_gpu_1::pack(void) {
     std::string   errMsg = isNull();
     if (errMsg != "") {
-        throw std::logic_error("[CudaDataPacket::pack] " + errMsg);
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] " + errMsg);
     } else if (tiles_.size() == 0) {
-        throw std::logic_error("[CudaDataPacket::pack] No tiles added");
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] No tiles added");
     }
 
     Grid&   grid = Grid::instance();
@@ -73,8 +75,8 @@ void  CudaDataPacket::pack(void) {
                                    +        3 * ARRAY1_SIZE_BYTES);
 
     stream_ = Backend::instance().requestStream(true);
-    if (stream_.cudaStream == nullptr) {
-        throw std::runtime_error("[CudaDataPacket::pack] Unable to acquire stream");
+    if (!stream_.isValid()) {
+        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire stream");
     }
 
     // Allocate memory in pinned and device memory on demand for now
@@ -85,7 +87,7 @@ void  CudaDataPacket::pack(void) {
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
     if (pinnedPtrs_) {
-        throw std::logic_error("[CudaDataPacket::pack] Pinned pointers already exist");
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] Pinned pointers already exist");
     }
     pinnedPtrs_ = new BlockPointersPinned[nTiles];
 
@@ -99,7 +101,7 @@ void  CudaDataPacket::pack(void) {
     std::memcpy((void*)ptr_p, (void*)&nTiles, sizeof(std::size_t));
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);
-    
+
     dt_d_ = static_cast<Real*>((void*)ptr_d); 
     std::memcpy((void*)ptr_p, (void*)&Driver::dt, DRIVER_DT_SIZE_BYTES);
     ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
@@ -114,7 +116,7 @@ void  CudaDataPacket::pack(void) {
     for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
         Tile*   tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) {
-            throw std::runtime_error("[CudaDataPacket::pack] Bad tileDesc");
+            throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc");
         }
  
         const unsigned int  level  = tileDesc_h->level();
@@ -144,7 +146,7 @@ void  CudaDataPacket::pack(void) {
         Real*               FCZ_data_d = nullptr;
 #endif
         if (data_h == nullptr) {
-            throw std::logic_error("[CudaDataPacket::pack] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] "
                                    "Invalid pointer to data in host memory");
         }
 

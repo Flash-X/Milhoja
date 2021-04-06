@@ -7,8 +7,8 @@ TESTDIR             = $(RUNTIMEDIR)/cuda
 TESTBASEDIR         = $(BASEDIR)/test/Base
 
 # Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST_DEBUG = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CXXFLAGS_TEST_PROD  = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS_TEST_DEBUG = -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS_TEST_PROD  = -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CUFLAGS_TEST        = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CUFLAGS_GTEST)                -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 LDFLAGS_TEST        = $(LIB_GTEST) $(OACC_FLAGS)
 
@@ -16,7 +16,6 @@ LDFLAGS_TEST        = $(LIB_GTEST) $(OACC_FLAGS)
 SRCS_TEST = \
     $(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
-	$(SRCDIR)/CudaBackend.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
@@ -35,12 +34,13 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
+    $(TESTDIR)/DataPacket_gpu_1.cpp \
     $(RUNTIMEDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp
 
 CU_SRCS = \
+	$(SRCDIR)/CudaBackend.cu \
     $(SRCDIR)/CudaGpuEnvironment.cu \
-    $(SRCDIR)/CudaDataPacket.cu \
     $(SRCDIR)/CudaStreamManager.cu \
     $(SRCDIR)/CudaMemoryManager.cu
 
