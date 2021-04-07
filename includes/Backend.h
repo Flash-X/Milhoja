@@ -39,9 +39,11 @@ public:
                                                 void* callbackData) = 0;
 #endif
 
-    virtual void      requestGpuMemory(const std::size_t bytes,
-                                       void** hostPtr, void** gpuPtr) = 0;
-    virtual void      releaseGpuMemory(void** hostPtr, void** gpuPtr) = 0;
+    virtual void      requestGpuMemory(const std::size_t pinnedBytes,
+                                       void** pinnedPtr,
+                                       const std::size_t gpuBytes,
+                                       void** gpuPtr) = 0;
+    virtual void      releaseGpuMemory(void** pinnedPtr, void** gpuPtr) = 0;
     virtual void      reset(void) = 0;
     // FIXME: This is temprorary since this manager is so rudimentary
 

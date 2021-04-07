@@ -26,9 +26,11 @@ public:
                                         cudaHostFn_t callback,
                                         void* callbackData) override;
 
-    void      requestGpuMemory(const std::size_t bytes,
-                               void** hostPtr, void** gpuPtr) override;
-    void      releaseGpuMemory(void** hostPtr, void** gpuPtr) override;
+    void      requestGpuMemory(const std::size_t pinnedBytes,
+                               void** pinnedPtr,
+                               const std::size_t gpuBytes,
+                               void** gpuPtr);
+    void      releaseGpuMemory(void** pinnedPtr, void** gpuPtr) override;
     void      reset(void) override;
 
 private:

@@ -114,16 +114,19 @@ void  CudaBackend::initiateGpuToHostTransfer(DataPacket& packet,
 /**
  *
  */
-void      CudaBackend::requestGpuMemory(const std::size_t bytes,
-                                     void** hostPtr, void** gpuPtr) {
-    CudaMemoryManager::instance().requestMemory(bytes, hostPtr, gpuPtr);
+void      CudaBackend::requestGpuMemory(const std::size_t pinnedBytes,
+                                        void** pinnedPtr,
+                                        const std::size_t gpuBytes,
+                                        void** gpuPtr) {
+    CudaMemoryManager::instance().requestMemory(pinnedBytes, pinnedPtr,
+                                                gpuBytes, gpuPtr);
 }
 
 /**
  *
  */
-void      CudaBackend::releaseGpuMemory(void** hostPtr, void** gpuPtr) {
-    CudaMemoryManager::instance().releaseMemory(hostPtr, gpuPtr);
+void      CudaBackend::releaseGpuMemory(void** pinnedPtr, void** gpuPtr) {
+    CudaMemoryManager::instance().releaseMemory(pinnedPtr, gpuPtr);
 }
 
 /**

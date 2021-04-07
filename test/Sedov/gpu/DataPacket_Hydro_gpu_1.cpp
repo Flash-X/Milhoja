@@ -100,19 +100,15 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     }
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
-    Backend::instance().requestGpuMemory(nBytesPerPacket,
-                                         &packet_p_,
-                                         &packet_d_);
+    // Scratch only needed on GPU side
+    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
+                                         &packet_p_, nBytesPerPacket, &packet_d_);
 
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
 
-    // TODO: There is no need to ask for nor leave space for scratch data in
-    // pinned memory.  Update memory request and scratchStart_p here.
-    char*  scratchStart_p    = static_cast<char*>(packet_p_);
     char*  scratchStart_d    = static_cast<char*>(packet_d_);
-    copyInStart_p_           =            scratchStart_p
-                               + nTiles * nScratchPerTileBytes;
+    copyInStart_p_           = static_cast<char*>(packet_p_);
     copyInStart_d_           =            scratchStart_d
                                + nTiles * nScratchPerTileBytes;
     copyInOutStart_p_        =            copyInStart_p_

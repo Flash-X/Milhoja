@@ -28,9 +28,11 @@ public:
     static void                 instantiate(const std::size_t nBytesInMemoryPools);
     static CudaMemoryManager&   instance(void);
 
-    void   requestMemory(const std::size_t bytes,
-                         void** hostPtr, void** gpuPtr);
-    void   releaseMemory(void** hostPtr, void** gpuPtr);
+    void   requestMemory(const std::size_t pinnedBytes,
+                         void** pinnedPtr,
+                         const std::size_t gpuBytes,
+                         void** gpuPtr);
+    void   releaseMemory(void** pinnedPtr, void** gpuPtr);
 
     // FIXME: This is temprorary since this manager is so rudimentary
     void   reset(void);
@@ -46,7 +48,8 @@ private:
 
     char*         pinnedBuffer_;
     char*         gpuBuffer_;
-    std::size_t   offset_;
+    std::size_t   pinnedOffset_;
+    std::size_t   gpuOffset_;
 };
 
 }
