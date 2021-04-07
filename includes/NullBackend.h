@@ -36,11 +36,13 @@ public:
         { throw std::logic_error("[NullBackend::initiateGpuToHostTransfer] Not implemented"); };
 #endif
 
-    void      requestGpuMemory(const std::size_t bytes,
-                               void** hostPtr, void** gpuPtr) override
-        { throw std::logic_error("[NullBackend::requestMemory] Not implemented"); };
+    void      requestGpuMemory(const std::size_t pinnedBytes,
+                               void** pinnedPtr,
+                               const std::size_t gpuBytes,
+                               void** gpuPtr) override
+        { throw std::logic_error("[NullBackend::requestGpuMemory] Not implemented"); };
     void      releaseGpuMemory(void** hostPtr, void** gpuPtr) override
-        { throw std::logic_error("[NullBackend::releaseMemory] Not implemented"); };
+        { throw std::logic_error("[NullBackend::releaseGpuMemory] Not implemented"); };
     void      reset(void) override
         { throw std::logic_error("[NullBackend::reset] Not implemented"); };
 

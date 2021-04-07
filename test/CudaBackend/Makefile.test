@@ -14,12 +14,11 @@ LDFLAGS_TEST        = $(LIB_GTEST) $(OACC_FLAGS)
 SRCS_TEST = \
 	$(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
-	$(SRCDIR)/CudaBackend.cpp \
 	$(TESTDIR)/runCudaBackendTests.cpp
 
 CU_SRCS = \
+	$(SRCDIR)/CudaBackend.cu \
 	$(SRCDIR)/CudaGpuEnvironment.cu \
-	$(SRCDIR)/CudaDataPacket.cu \
 	$(SRCDIR)/CudaStreamManager.cu \
 	$(SRCDIR)/CudaMemoryManager.cu \
 	$(TESTDIR)/testCudaStreamManager.cu
