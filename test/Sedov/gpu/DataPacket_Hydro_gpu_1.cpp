@@ -85,11 +85,14 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
     //----- COPY OUT SECTION
     // No copy-out data
-
-    nBytesPerPacket_ =   nTiles * nScratchPerTileBytes
-                       +          nCopyInBytes
+    nCopyToGpuBytes_ =            nCopyInBytes
                        + nTiles * nBlockMetadataPerTileBytes
                        + nTiles * nCopyInOutDataPerTileBytes;
+    nReturnToHostBytes_ = nTiles * nCopyInOutDataPerTileBytes;
+    std::size_t  nBytesPerPacket =   nTiles * nScratchPerTileBytes
+                                   +          nCopyInBytes
+                                   + nTiles * nBlockMetadataPerTileBytes
+                                   + nTiles * nCopyInOutDataPerTileBytes;
 
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {
@@ -97,7 +100,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     }
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
-    Backend::instance().requestGpuMemory(nBytesPerPacket_,
+    Backend::instance().requestGpuMemory(nBytesPerPacket,
                                          &packet_p_,
                                          &packet_d_);
 
@@ -106,19 +109,18 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
     // TODO: There is no need to ask for nor leave space for scratch data in
     // pinned memory.  Update memory request and scratchStart_p here.
-    char*  scratchStart_p   = static_cast<char*>(packet_p_);
-    char*  copyInStart_p    =            scratchStart_p
-                              + nTiles * nScratchPerTileBytes;
-    char*  copyInOutStart_p =            copyInStart_p
-                              +          nCopyInBytes
-                              + nTiles * nBlockMetadataPerTileBytes;
-
-    char*  scratchStart_d   = static_cast<char*>(packet_d_);
-    char*  copyInStart_d    =            scratchStart_d
-                              + nTiles * nScratchPerTileBytes;
-    char*  copyInOutStart_d =            copyInStart_d
-                              +          nCopyInBytes
-                              + nTiles * nBlockMetadataPerTileBytes;
+    char*  scratchStart_p    = static_cast<char*>(packet_p_);
+    char*  scratchStart_d    = static_cast<char*>(packet_d_);
+    copyInStart_p_           =            scratchStart_p
+                               + nTiles * nScratchPerTileBytes;
+    copyInStart_d_           =            scratchStart_d
+                               + nTiles * nScratchPerTileBytes;
+    copyInOutStart_p_        =            copyInStart_p_
+                               +          nCopyInBytes
+                               + nTiles * nBlockMetadataPerTileBytes;
+    copyInOutStart_d_        =            copyInStart_d_
+                               +          nCopyInBytes
+                               + nTiles * nBlockMetadataPerTileBytes;
 
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
@@ -134,8 +136,8 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     // Pointer to the next free byte in the current data packets
     // Should be true by C++ standard
     static_assert(sizeof(char) == 1, "Invalid char size");
-    char*   ptr_p = copyInStart_p;
-    char*   ptr_d = copyInStart_d;
+    char*   ptr_p = copyInStart_p_;
+    char*   ptr_d = copyInStart_d_;
 
     // Non-tile-specific data
     nTiles_d_ = static_cast<std::size_t*>((void*)ptr_d); 
@@ -166,9 +168,9 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
             throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc");
         }
  
-        void* CC1_data_p    = static_cast<void*>(    copyInOutStart_p
+        void* CC1_data_p    = static_cast<void*>(    copyInOutStart_p_
                                                  + n*CC_BLOCK_SIZE_BYTES);
-        void* CC1_data_d    = static_cast<void*>(    copyInOutStart_d
+        void* CC1_data_d    = static_cast<void*>(    copyInOutStart_d_
                                                  + n*CC_BLOCK_SIZE_BYTES);
         void* CC2_scratch_d = static_cast<void*>(    scratchStart_d
                                                  + n*nScratchPerTileBytes);

@@ -10,13 +10,18 @@ DataPacket::DataPacket(void)
       : location_{PacketDataLocation::NOT_ASSIGNED},
         packet_p_{nullptr},
         packet_d_{nullptr},
+        copyInStart_p_{nullptr},
+        copyInStart_d_{nullptr},
+        copyInOutStart_p_{nullptr},
+        copyInOutStart_d_{nullptr},
         tiles_{},
         nTiles_d_{nullptr},
         contents_p_{nullptr},
         contents_d_{nullptr},
         pinnedPtrs_{nullptr},
         stream_{},
-        nBytesPerPacket_{0},
+        nCopyToGpuBytes_{0},
+        nReturnToHostBytes_{0},
         startVariable_{UNK_VARS_BEGIN_C - 1},
         endVariable_{UNK_VARS_BEGIN_C - 1}
 {
@@ -53,11 +58,16 @@ void  DataPacket::nullify(void) {
     startVariable_ = UNK_VARS_BEGIN_C - 1;
     endVariable_   = UNK_VARS_BEGIN_C - 1;
 
-    nBytesPerPacket_ = 0;
+    nCopyToGpuBytes_    = 0;
+    nReturnToHostBytes_ = 0;
 
-    nTiles_d_   = nullptr;
-    contents_p_ = nullptr;
-    contents_d_ = nullptr;
+    nTiles_d_         = nullptr;
+    contents_p_       = nullptr;
+    contents_d_       = nullptr;
+    copyInStart_p_    = nullptr;
+    copyInStart_d_    = nullptr;
+    copyInOutStart_p_ = nullptr;
+    copyInOutStart_d_ = nullptr;
 }
 
 /**
@@ -77,7 +87,9 @@ std::string  DataPacket::isNull(void) const {
         return "Start variable already set";
     } else if (endVariable_ >= UNK_VARS_BEGIN_C) {
         return "End variable already set";
-    } else if (nBytesPerPacket_ > 0) {
+    } else if (nCopyToGpuBytes_ > 0) {
+        return "Non-zero packet size";
+    } else if (nReturnToHostBytes_ > 0) {
         return "Non-zero packet size";
     } else if (nTiles_d_ != nullptr) {
         return "N tiles exist in GPU";
@@ -85,6 +97,14 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned contents exist";
     } else if (contents_d_ != nullptr) {
         return "GPU contents exist";
+    } else if (copyInStart_p_ != nullptr) {
+        return "Pinned copy in buffer exists";
+    } else if (copyInStart_d_ != nullptr) {
+        return "GPU copy in buffer exists";
+    } else if (copyInOutStart_p_ != nullptr) {
+        return "Pinned copy back buffer exists";
+    } else if (copyInOutStart_d_ != nullptr) {
+        return "GPU copy back buffer exists";
     } else if (pinnedPtrs_ != nullptr) {
         return "Pinned pointers exist";
     }

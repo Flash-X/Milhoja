@@ -88,9 +88,12 @@ public:
     const PacketContents*  tilePointers(void) const  { return contents_d_; };
 
     virtual void           pack(void) = 0;
-    void*                  pointerToStart_host(void) { return packet_p_; };
-    void*                  pointerToStart_gpu(void)  { return packet_d_; };
-    std::size_t            sizeInBytes(void) const   { return nBytesPerPacket_; }
+    void*                  copyToGpuStart_host(void)           { return (void*)copyInStart_p_; };
+    void*                  copyToGpuStart_gpu(void)            { return (void*)copyInStart_d_; };
+    std::size_t            copyToGpuSizeInBytes(void) const    { return nCopyToGpuBytes_; }
+    void*                  returnToHostStart_host(void)        { return (void*)copyInOutStart_p_; };
+    void*                  returnToHostStart_gpu(void)         { return (void*)copyInOutStart_d_; };
+    std::size_t            returnToHostSizeInBytes(void) const { return nReturnToHostBytes_; }
     void                   unpack(void);
 
 #ifdef ENABLE_OPENACC_OFFLOAD
@@ -125,13 +128,18 @@ protected:
     PacketDataLocation                     location_;
     void*                                  packet_p_;
     void*                                  packet_d_;
+    char*                                  copyInStart_p_;
+    char*                                  copyInStart_d_;
+    char*                                  copyInOutStart_p_;
+    char*                                  copyInOutStart_d_;
     std::deque<std::shared_ptr<Tile>>      tiles_;
     std::size_t*                           nTiles_d_;
     PacketContents*                        contents_p_;
     PacketContents*                        contents_d_;
     BlockPointersPinned*                   pinnedPtrs_;
     Stream                                 stream_;
-    std::size_t                            nBytesPerPacket_;
+    std::size_t                            nCopyToGpuBytes_;
+    std::size_t                            nReturnToHostBytes_;
 
     static constexpr std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
                                                                      * (NYB + 2 * NGUARD * K2D)

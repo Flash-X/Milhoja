@@ -55,9 +55,9 @@ void      CudaBackend::releaseStream(Stream& stream) {
  *
  */
 void  CudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
-    cudaError_t cErr = cudaMemcpyAsync(packet.pointerToStart_gpu(),
-                                       packet.pointerToStart_host(),
-                                       packet.sizeInBytes(),
+    cudaError_t cErr = cudaMemcpyAsync(packet.copyToGpuStart_gpu(),
+                                       packet.copyToGpuStart_host(),
+                                       packet.copyToGpuSizeInBytes(),
                                        cudaMemcpyHostToDevice,
                                        packet.stream());
     if (cErr != cudaSuccess) {
@@ -88,9 +88,9 @@ void  CudaBackend::initiateGpuToHostTransfer(DataPacket& packet,
                                              void* callbackData) {
     cudaStream_t  stream = packet.stream();
 
-    cudaError_t   cErr = cudaMemcpyAsync(packet.pointerToStart_host(),
-                                         packet.pointerToStart_gpu(),
-                                         packet.sizeInBytes(),
+    cudaError_t   cErr = cudaMemcpyAsync(packet.returnToHostStart_host(),
+                                         packet.returnToHostStart_gpu(),
+                                         packet.returnToHostSizeInBytes(),
                                          cudaMemcpyDeviceToHost,
                                          stream);
     if (cErr != cudaSuccess) {
