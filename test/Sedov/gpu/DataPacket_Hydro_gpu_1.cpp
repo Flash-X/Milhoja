@@ -17,6 +17,10 @@
 
 #include "Flash.h"
 
+#if NFLUXES <= 0
+#error "Sedov problem should include fluxes"
+#endif
+
 namespace orchestration {
 
 /**
@@ -56,19 +60,38 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
     // TODO: Deltas should just be placed into the packet once.
     std::size_t    nTiles = tiles_.size();
-    nBytesPerPacket_ =            sizeof(std::size_t) 
-                       +                        DRIVER_DT_SIZE_BYTES
-                       + nTiles * sizeof(PacketContents)
-                       + nTiles * (         1 * DELTA_SIZE_BYTES
-                                   +        4 * POINT_SIZE_BYTES
-                                   + N_BLOCKS * CC_BLOCK_SIZE_BYTES
-                                   + N_BLOCKS * ARRAY4_SIZE_BYTES);
-#if NFLUXES > 0
-    nBytesPerPacket_ += nTiles * (      FCX_BLOCK_SIZE_BYTES
-                                  +     FCY_BLOCK_SIZE_BYTES
-                                  +     FCZ_BLOCK_SIZE_BYTES
-                                  + 3 * ARRAY4_SIZE_BYTES);
-#endif
+
+    //----- SCRATCH SECTION
+    // First block of data should be allocated as acratch space
+    // for use by GPU.  No need for this to be transferred at all.
+    std::size_t  nScratchPerTileBytes  =   CC_BLOCK_SIZE_BYTES
+                                        + FCX_BLOCK_SIZE_BYTES
+                                        + FCY_BLOCK_SIZE_BYTES
+                                        + FCZ_BLOCK_SIZE_BYTES;
+
+    //----- COPY IN SECTION
+    // Data needed in GPU that is not tile-specific
+    std::size_t  nCopyInBytes =            sizeof(std::size_t)
+                                +          DRIVER_DT_SIZE_BYTES
+                                + nTiles * sizeof(PacketContents);
+    // Tile metadata including array objects that wrap the scratch
+    // blocks for use by the GPU.
+    std::size_t  nBlockMetadataPerTileBytes  =   1 * DELTA_SIZE_BYTES
+                                               + 4 * POINT_SIZE_BYTES
+                                               + 5 * ARRAY4_SIZE_BYTES;
+    // No copy-in block data
+
+    //----- COPY IN/OUT SECTION
+    // All computation on CC data effectively done in place
+    std::size_t  nCopyInOutDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
+
+    //----- COPY OUT SECTION
+    // No copy-out data
+
+    nBytesPerPacket_ =   nTiles * nScratchPerTileBytes
+                       +          nCopyInBytes
+                       + nTiles * nBlockMetadataPerTileBytes
+                       + nTiles * nCopyInOutDataPerTileBytes;
 
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {

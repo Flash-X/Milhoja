@@ -24,10 +24,6 @@ public:
     void    pack(void) override;
     Real*   timeStepGpu(void) const override  { return dt_d_; }
 
-protected:
-    // Fix to one block per data packet as first step but with a scratch block
-    static constexpr std::size_t    N_BLOCKS = 2; 
-
 private:
     Real*   dt_d_;
 };
