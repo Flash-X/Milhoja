@@ -39,23 +39,23 @@ void  DataPacket_gpu_1::pack(void) {
     Grid&   grid = Grid::instance();
 
     // TODO: Deltas should just be placed into the packet once.
-    std::size_t    nTiles = tiles_.size();
-    nBytesPerPacket_ =            sizeof(std::size_t) 
-                       + nTiles * sizeof(PacketContents)
-                       + nTiles * (         1 * DELTA_SIZE_BYTES
-                                   +        4 * POINT_SIZE_BYTES
-                                   + N_BLOCKS * CC_BLOCK_SIZE_BYTES
-                                   + N_BLOCKS * ARRAY4_SIZE_BYTES
+    std::size_t  nTiles = tiles_.size();
+    std::size_t  nBytesPerPacket =            sizeof(std::size_t) 
+                                   + nTiles * sizeof(PacketContents)
+                                   + nTiles * (         1 * DELTA_SIZE_BYTES
+                                               +        4 * POINT_SIZE_BYTES
+                                               + N_BLOCKS * CC_BLOCK_SIZE_BYTES
+                                               + N_BLOCKS * ARRAY4_SIZE_BYTES
 #if NFLUXES > 0
-                                   +            FCX_BLOCK_SIZE_BYTES
-                                   +            FCY_BLOCK_SIZE_BYTES
-                                   +            FCZ_BLOCK_SIZE_BYTES
-                                   +        3 * ARRAY4_SIZE_BYTES
+                                               +            FCX_BLOCK_SIZE_BYTES
+                                               +            FCY_BLOCK_SIZE_BYTES
+                                               +            FCZ_BLOCK_SIZE_BYTES
+                                               +        3 * ARRAY4_SIZE_BYTES
 #endif
-                                   +        1 * COORDS_X_SIZE_BYTES
-                                   +        1 * COORDS_Y_SIZE_BYTES
-                                   +        1 * COORDS_Z_SIZE_BYTES
-                                   +        3 * ARRAY1_SIZE_BYTES);
+                                               +        1 * COORDS_X_SIZE_BYTES
+                                               +        1 * COORDS_Y_SIZE_BYTES
+                                               +        1 * COORDS_Z_SIZE_BYTES
+                                               +        3 * ARRAY1_SIZE_BYTES);
 
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {
@@ -63,9 +63,8 @@ void  DataPacket_gpu_1::pack(void) {
     }
 
     // Allocate memory in pinned and device memory on demand for now
-    Backend::instance().requestGpuMemory(nBytesPerPacket_,
-                                         &packet_p_,
-                                         &packet_d_);
+    Backend::instance().requestGpuMemory(nBytesPerPacket, &packet_p_,
+                                         nBytesPerPacket, &packet_d_);
 
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
@@ -73,6 +72,19 @@ void  DataPacket_gpu_1::pack(void) {
         throw std::logic_error("[DataPacket_gpu_1::pack] Pinned pointers already exist");
     }
     pinnedPtrs_ = new BlockPointersPinned[nTiles];
+
+    // TODO: The test that uses this packet is not yet used for timing purposes.
+    // Therefore, we can get away with a suboptimal packet design.
+    //
+    // This presently ships over more than what is needed and moves all data
+    // both back and forth.  Optimiza when there is time.  Use Sedov packet as
+    // an example.
+    nCopyToGpuBytes_    = nBytesPerPacket;
+    nReturnToHostBytes_ = nBytesPerPacket;
+    copyInStart_p_    = static_cast<char*>(packet_p_);
+    copyInStart_d_    = static_cast<char*>(packet_d_);
+    copyInOutStart_p_ = static_cast<char*>(packet_p_);
+    copyInOutStart_d_ = static_cast<char*>(packet_d_);
 
     // Pointer to the next free byte in the current data packets
     // Should be true by C++ standard
