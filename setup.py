@@ -65,12 +65,13 @@ def main():
     if not os.path.isdir(testDir):
         raise ValueError("Test directory not found")
 
-    # Get test makefile
-    print("Linking Makefile.test from test: "+args.test)
-    testMakefile = os.path.join(testDir,'Makefile.test')
-    if not os.path.isfile(testMakefile):
-        raise ValueError("Test Makefile not found in test dir")
-    os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
+    if (args.test != 'library'):
+        # Get test makefile
+        print("Linking Makefile.test from test: "+args.test)
+        testMakefile = os.path.join(testDir,'Makefile.test')
+        if not os.path.isfile(testMakefile):
+            raise ValueError("Test Makefile not found in test dir")
+        os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
 
     # Write Makefile.setup in builddir
     print("Writing Makefile.setup")
@@ -97,14 +98,19 @@ def main():
             f.write("THREADED_DISTRIBUTOR = false\n")
 
         f.write("\n")
-        if args.library is not None:
-            f.write("LINKLIB = True\n")
-            f.write("LIB_RUNTIME = {}\n".format(args.library))
+        if args.test == 'library':
+            f.write("LIBONLY = True\n")
         else:
-            f.write("# Leave blank if not linking a prebuilt library!\n")
-            f.write("LINKLIB = \n")
-            f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
-            f.write("LIB_RUNTIME = .")
+            f.write("# Leave blank if building a test\n")
+            f.write("LIBONLY = \n")
+            if args.library is not None:
+                f.write("LINKLIB = True\n")
+                f.write("LIB_RUNTIME = {}\n".format(args.library))
+            else:
+                f.write("# Leave blank if not linking a prebuilt library!\n")
+                f.write("LINKLIB = \n")
+                f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
+                f.write("LIB_RUNTIME = .")
 
 
     # Copy par file into build dir
@@ -141,7 +147,8 @@ def main():
         f.write('Makefile --> {}\n'.format(os.path.abspath(mainMakefile)))
         f.write('Makefile.base --> {}\n'.format(os.path.abspath(srcMakefile)))
         f.write('Makefile.site --> {}\n'.format(os.path.abspath(siteMakefile)))
-        f.write('Makefile.test --> {}\n'.format(os.path.abspath(testMakefile)))
+        if(args.test != 'library'):
+            f.write('Makefile.test --> {}\n'.format(os.path.abspath(testMakefile)))
         f.write('\n')
 
         f.write('Path to copied files:\n')

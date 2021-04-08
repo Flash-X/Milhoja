@@ -5,12 +5,15 @@ SHELL=/bin/sh
 # Makefile flags and defintions
 
 MAKEFILE     = Makefile
-MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base Makefile.test
+MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base $(if $(LIBONLY),,Makefile.test)
 
 include Makefile.site
 include Makefile.base
-include Makefile.test
 include Makefile.setup
+ifdef LIBONLY
+else
+include Makefile.test
+endif
 
 # Default shell commands
 RM ?= /bin/rm
@@ -86,10 +89,13 @@ vpath %.cu  $(sort $(dir $(CU_SRCS)))
 # Makefile commands:
 
 .PHONY: default all clean test
-default: $(BINARYNAME)
-all:     $(BINARYNAME)
+default: $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
+all:     $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
 test:
+ifdef LIBONLY
+else
 	./$(BINARYNAME)
+endif
 
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
