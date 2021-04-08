@@ -72,6 +72,9 @@ CU_OBJS   = $(addsuffix .o, $(basename $(notdir $(CU_SRCS))))
 OBJS      = $(C_OBJS) $(CU_OBJS)
 DEPS      = $(OBJS:.o=.d)
 
+OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST))))
+OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
+
 # Use vpath as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
 # This allows all targets to be put a single directory (the build directory) and directs the Makefile to
 # search the source tree for the prerequisites.
@@ -90,11 +93,11 @@ test:
 
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS) $(MAKEFILES)
+$(BINARYNAME): $(OBJS_TEST) libruntime.a $(MAKEFILES)
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS) -L. -lruntime
 
 %.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
@@ -103,11 +106,18 @@ endif
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
+# Commands for just compiling the Runtime into a library
+runtime: libruntime.a
+
+libruntime.a: $(OBJS_BASE) $(MAKEFILES)
+	ar -rcs $@ $(OBJS_BASE)
+
 
 # Clean removes all intermediate files
 clean:
 	$(RM) -f *.o
 	$(RM) -f *.d
+	$(RM) -f *.a
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcno
 	$(RM) -f *.gcda
