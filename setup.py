@@ -25,6 +25,7 @@ def main():
     parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
     parser.add_argument('--multithreaded',action="store_true",help='Enable multithreaded distributor.')
+    parser.add_argument('--prefix',type=str,help='Where to install Runtime library')
     args = parser.parse_args()
 
     print("Orchestration Runtime setup")
@@ -65,7 +66,10 @@ def main():
     if not os.path.isdir(testDir):
         raise ValueError("Test directory not found")
 
-    if (args.test != 'library'):
+    if (args.test == 'library'):
+        if not args.prefix:
+            raise ValueError("Need to supply prefix if building library!")
+    else:
         # Get test makefile
         print("Linking Makefile.test from test: "+args.test)
         testMakefile = os.path.join(testDir,'Makefile.test')
@@ -100,6 +104,7 @@ def main():
         f.write("\n")
         if args.test == 'library':
             f.write("LIBONLY = True\n")
+            f.write("LIB_RUNTIME_PREFIX = {}\n".format(args.prefix))
         else:
             f.write("# Leave blank if building a test\n")
             f.write("LIBONLY = \n")

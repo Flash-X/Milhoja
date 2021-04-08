@@ -88,7 +88,7 @@ vpath %.cu  $(sort $(dir $(CU_SRCS)))
 ##########################################################
 # Makefile commands:
 
-.PHONY: default all clean test
+.PHONY: default all clean test install
 default: $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
 all:     $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
 test:
@@ -117,6 +117,12 @@ runtime: libruntime.a
 
 libruntime.a: $(OBJS_BASE) $(MAKEFILES)
 	ar -rcs $@ $(OBJS_BASE)
+
+install:
+ifdef LIBONLY
+	mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
+	cp libruntime.a $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/
+endif
 
 
 # Clean removes all intermediate files
