@@ -61,10 +61,14 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     unsigned int nScratchArrays = 2;
     std::size_t  nScratchPerTileBytes  =   CC_BLOCK_SIZE_BYTES
                                         + FCX_BLOCK_SIZE_BYTES;
+#if NDIM >= 2
     nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
+#endif
+#if NDIM == 3
     nScratchPerTileBytes += FCZ_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
+#endif
 
     //----- COPY IN SECTION
     // Data needed in GPU that is not tile-specific
@@ -156,13 +160,16 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     ptr_p += nTiles * sizeof(PacketContents);
     ptr_d += nTiles * sizeof(PacketContents);
 
- 
     char* CC1_data_p    = copyInOutStart_p_;
     char* CC1_data_d    = copyInOutStart_d_;
     char* CC2_scratch_d = scratchStart_d;
     char* FCX_scratch_d = CC2_scratch_d +  CC_BLOCK_SIZE_BYTES;
+#if NDIM >= 2
     char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
+#endif
+#if NDIM == 3
     char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
+#endif
 
     // Tile-specific metadata
     PacketContents*   tilePtrs_p = contents_p_;
@@ -234,6 +241,12 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
+        CC1_data_p    += CC_BLOCK_SIZE_BYTES;
+        CC1_data_d    += CC_BLOCK_SIZE_BYTES;
+        CC2_scratch_d += nScratchPerTileBytes;
+        FCX_scratch_d += nScratchPerTileBytes;
+
+#if NDIM >= 2
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
         FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
@@ -242,20 +255,25 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
+        FCY_scratch_d += nScratchPerTileBytes;
+#else
+        tilePtrs_p->FCY_d = nullptr;
+#endif
+
+#if NDIM == 3
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
         FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),
                          lo, fHi, NFLUXES};
+
         std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        CC1_data_p    += CC_BLOCK_SIZE_BYTES;
-        CC1_data_d    += CC_BLOCK_SIZE_BYTES;
-        CC2_scratch_d += nScratchPerTileBytes;
-        FCX_scratch_d += nScratchPerTileBytes;
-        FCY_scratch_d += nScratchPerTileBytes;
         FCZ_scratch_d += nScratchPerTileBytes;
+#else
+        tilePtrs_p->FCZ_d = nullptr;
+#endif
     }
 }
 

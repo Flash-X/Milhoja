@@ -153,6 +153,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
             const FArray4D*        flY_d = ptrs->FCY_d;
             const FArray4D*        flZ_d = ptrs->FCZ_d;
 
+            // NOTE: If NDIM < 3, then some of the FC[YZ]_d will be garbage.
+            //       We therefore assume that this routine will not use
+            //       those fluxes associated with axes "above" NDIM.
             hy::updateSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
                                               U_d, flX_d, flY_d, flZ_d);
         }
