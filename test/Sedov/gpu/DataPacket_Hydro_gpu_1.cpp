@@ -58,10 +58,13 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     //----- SCRATCH SECTION
     // First block of memory should be allocated as acratch space
     // for use by GPU.  No need for this to be transferred at all.
+    unsigned int nScratchArrays = 2;
     std::size_t  nScratchPerTileBytes  =   CC_BLOCK_SIZE_BYTES
-                                        + FCX_BLOCK_SIZE_BYTES
-                                        + FCY_BLOCK_SIZE_BYTES
-                                        + FCZ_BLOCK_SIZE_BYTES;
+                                        + FCX_BLOCK_SIZE_BYTES;
+    nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
+    ++nScratchArrays;
+    nScratchPerTileBytes += FCZ_BLOCK_SIZE_BYTES;
+    ++nScratchArrays;
 
     //----- COPY IN SECTION
     // Data needed in GPU that is not tile-specific
@@ -71,9 +74,9 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
                                 + nTiles * sizeof(PacketContents);
     // Tile metadata including array objects that wrap the scratch
     // blocks for use by the GPU.
-    std::size_t  nBlockMetadataPerTileBytes  =   1 * DELTA_SIZE_BYTES
-                                               + 2 * POINT_SIZE_BYTES
-                                               + 5 * ARRAY4_SIZE_BYTES;
+    std::size_t  nBlockMetadataPerTileBytes  =                     1  * DELTA_SIZE_BYTES
+                                               +                   2  * POINT_SIZE_BYTES
+                                               + (nScratchArrays + 1) * ARRAY4_SIZE_BYTES;
     // No copy-in block data
 
     //----- COPY IN/OUT SECTION
@@ -153,6 +156,14 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     ptr_p += nTiles * sizeof(PacketContents);
     ptr_d += nTiles * sizeof(PacketContents);
 
+ 
+    char* CC1_data_p    = copyInOutStart_p_;
+    char* CC1_data_d    = copyInOutStart_d_;
+    char* CC2_scratch_d = scratchStart_d;
+    char* FCX_scratch_d = CC2_scratch_d +  CC_BLOCK_SIZE_BYTES;
+    char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
+    char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
+
     // Tile-specific metadata
     PacketContents*   tilePtrs_p = contents_p_;
     for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
@@ -160,25 +171,6 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         if (tileDesc_h == nullptr) {
             throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc");
         }
- 
-        void* CC1_data_p    = static_cast<void*>(    copyInOutStart_p_
-                                                 + n*CC_BLOCK_SIZE_BYTES);
-        void* CC1_data_d    = static_cast<void*>(    copyInOutStart_d_
-                                                 + n*CC_BLOCK_SIZE_BYTES);
-        void* CC2_scratch_d = static_cast<void*>(    scratchStart_d
-                                                 + n*nScratchPerTileBytes);
-        void* FCX_scratch_d = static_cast<void*>(    scratchStart_d
-                                                 +   CC_BLOCK_SIZE_BYTES
-                                                 + n*nScratchPerTileBytes);
-        void* FCY_scratch_d = static_cast<void*>(    scratchStart_d
-                                                 +   CC_BLOCK_SIZE_BYTES
-                                                 +   FCX_BLOCK_SIZE_BYTES
-                                                 + n*nScratchPerTileBytes);
-        void* FCZ_scratch_d = static_cast<void*>(    scratchStart_d
-                                                 +   CC_BLOCK_SIZE_BYTES
-                                                 +   FCX_BLOCK_SIZE_BYTES
-                                                 +   FCY_BLOCK_SIZE_BYTES
-                                                 + n*nScratchPerTileBytes);
 
         const RealVect      deltas = tileDesc_h->deltas();
         const IntVect       lo     = tileDesc_h->lo();
@@ -194,7 +186,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         // Put data in copy in/out section
         // TODO: Can we transfer over all CC1 data in a single memcpy call?
         std::memcpy((void*)CC1_data_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
-        pinnedPtrs_[n].CC1_data = static_cast<Real*>(CC1_data_p);
+        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC1_data_p);
         // Data will always be copied back from CC1
         pinnedPtrs_[n].CC2_data = nullptr;
 
@@ -221,14 +213,14 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         // IMPORTANT: When this local object is destroyed, we don't want it to
         // affect the use of the copies (e.g. release memory).
         tilePtrs_p->CC1_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   CC1_d{static_cast<Real*>(CC1_data_d),
+        FArray4D   CC1_d{static_cast<Real*>((void*)CC1_data_d),
                          loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC1_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->CC2_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   CC2_d{static_cast<Real*>(CC2_scratch_d),
+        FArray4D   CC2_d{static_cast<Real*>((void*)CC2_scratch_d),
                          loGC, hiGC, NUNKVAR};
         std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
@@ -236,7 +228,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
         tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
         IntVect    fHi = IntVect{LIST_NDIM(hi.I()+1, hi.J(), hi.K())};
-        FArray4D   FCX_d{static_cast<Real*>(FCX_scratch_d),
+        FArray4D   FCX_d{static_cast<Real*>((void*)FCX_scratch_d),
                          lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCX_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
@@ -244,21 +236,26 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
-        FArray4D   FCY_d{static_cast<Real*>(FCY_scratch_d),
+        FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
                          lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCY_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        // TODO: I don't believe that Z is needed for 2D.  Eventually
-        //       handle this correctly.
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
-        FArray4D   FCZ_d{static_cast<Real*>(FCZ_scratch_d),
+        FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),
                          lo, fHi, NFLUXES};
         std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
+
+        CC1_data_p    += CC_BLOCK_SIZE_BYTES;
+        CC1_data_d    += CC_BLOCK_SIZE_BYTES;
+        CC2_scratch_d += nScratchPerTileBytes;
+        FCX_scratch_d += nScratchPerTileBytes;
+        FCY_scratch_d += nScratchPerTileBytes;
+        FCZ_scratch_d += nScratchPerTileBytes;
     }
 }
 
