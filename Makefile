@@ -45,7 +45,7 @@ CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
 	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
-LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
+LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST) -L$(LIB_RUNTIME) -lruntime
 
 
 # Add code coverage flags
@@ -93,11 +93,11 @@ test:
 
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS_TEST) libruntime.a $(MAKEFILES)
+$(BINARYNAME): $(OBJS_TEST) $(MAKEFILES) $(if $(LINKLIB), ,libruntime.a)
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS) -L. -lruntime
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS)
 
 %.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<

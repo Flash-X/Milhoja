@@ -16,6 +16,7 @@ def main():
     # Parse command line args
     parser = argparse.ArgumentParser(description='Runtime Setup Tool')
     parser.add_argument('--site','-s',type=str,help='site name')
+    parser.add_argument('--library','-l',type=str,help='Path to prebuilt Runtime library')
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
     parser.add_argument('test',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
@@ -94,6 +95,16 @@ def main():
             f.write("THREADED_DISTRIBUTOR = true\n")
         else:
             f.write("THREADED_DISTRIBUTOR = false\n")
+
+        f.write("\n")
+        if args.library is not None:
+            f.write("LINKLIB = True\n")
+            f.write("LIB_RUNTIME = {}\n".format(args.library))
+        else:
+            f.write("# Leave blank if not linking a prebuilt library!\n")
+            f.write("LINKLIB = \n")
+            f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
+            f.write("LIB_RUNTIME = .")
 
 
     # Copy par file into build dir
