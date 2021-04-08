@@ -14,7 +14,7 @@ If the user has a site directory configured as specified in the Build System Req
 - python setup.py -t CudaBackend -d 2 -p par\_cudabackend.h
 - python setup.py -t Runtime/null -d 2 -p par\_runtime.h
 - python setup.py -t Runtime/cpu -d 2 -p par\_runtime.h
-- python setup.py -t Runtime/cuda -d 2 -p par\_runtime.h
+- python setup.py -t Runtime/gpu -d 2 -p par\_runtime.h
 - python setup.py -t ThreadTeam -d 2 -p par\_threadteam.h
 - python setup.py -t Sedov/mpi -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
 - python setup.py -t Sedov/cpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
