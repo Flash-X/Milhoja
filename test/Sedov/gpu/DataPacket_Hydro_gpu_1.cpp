@@ -6,10 +6,7 @@
 
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
-#include "Grid_Axis.h"
-#include "Grid_Edge.h"
 #include "Grid.h"
-#include "FArray1D.h"
 #include "FArray4D.h"
 #include "Backend.h"
 
@@ -183,7 +180,6 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
                                                  +   FCY_BLOCK_SIZE_BYTES
                                                  + n*nScratchPerTileBytes);
 
-        const unsigned int  level  = tileDesc_h->level();
         const RealVect      deltas = tileDesc_h->deltas();
         const IntVect       lo     = tileDesc_h->lo();
         const IntVect       hi     = tileDesc_h->hi();
@@ -202,7 +198,6 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         // Data will always be copied back from CC1
         pinnedPtrs_[n].CC2_data = nullptr;
 
-        tilePtrs_p->level = level;
         tilePtrs_p->deltas_d = static_cast<RealVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
         ptr_p += DELTA_SIZE_BYTES;

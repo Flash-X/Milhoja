@@ -45,7 +45,6 @@ enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
 // would have to include every possible tile-specific element that could ever be
 // included in a data packet, which is somewhat out of control of this library.
 struct PacketContents {
-    unsigned int            level      = 0;
     std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
     RealVect*               deltas_d   = nullptr;
     IntVect*                lo_d       = nullptr;
