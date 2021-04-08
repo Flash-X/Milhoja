@@ -17,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runtime Setup Tool')
     parser.add_argument('--site','-s',type=str,help='site name')
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
-    parser.add_argument('--test','-t',type=str,help='Name of test')
+    parser.add_argument('test',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
     parser.add_argument('--makefile','-M',type=str,help='Name of Makefile (in site dir)')
     parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
