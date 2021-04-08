@@ -33,6 +33,16 @@ namespace rp_Runtime {
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 12884901888;
 }
 
+namespace rp_HeatADItem {
+    // advanceSolution run in CPU-only thread team
+    // configuration using blocks
+    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 2;
+}
+
+namespace rp_HeatAD {
+    constexpr orchestration::Real   ALPHA        = 0.5;
+}
+
 namespace rp_Simulation {
     const std::string               NAME                         = "diffusion";
     const std::string               LOG_FILENAME                 = NAME + ".log";

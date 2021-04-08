@@ -1,0 +1,21 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME          = heatdiffusion_mpi.x
+
+# Define relevant paths
+HEATDIFFUSIONDIR            = $(BASEDIR)/test/HeatDiffusion
+TESTDIR                     = $(BASEDIR)/test/HeatDiffusion/mpi
+
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(HEATDIFFUSIONDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(HEATDIFFUSIONDIR) -I$(TESTDIR)
+LDFLAGS_TEST        =
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST = \
+	$(HEATDIFFUSIONDIR)/Driver.cpp \
+	$(HEATDIFFUSIONDIR)/ProcessTimer.cpp \
+	$(HEATDIFFUSIONDIR)/errorEstBlank.cpp \
+	$(HEATDIFFUSIONDIR)/HeatAD.cpp \
+	$(HEATDIFFUSIONDIR)/HeatADItem.cpp \
+	$(HEATDIFFUSIONDIR)/Simulation.cpp \
+	$(TESTDIR)/heatdiffusion_mpi.cpp

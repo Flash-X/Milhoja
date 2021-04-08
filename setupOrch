@@ -1,3 +1,0 @@
-#!/bin/bash
-
-python3 setup.py -t Diffusion/mpi -s akash.macbook -d 2 -p diffusion\_2D\_cartesian\_cpu.par

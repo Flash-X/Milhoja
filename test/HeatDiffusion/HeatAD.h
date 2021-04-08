@@ -9,6 +9,7 @@
 #include "DataItem.h"
 
 namespace HeatAD {
+    extern orchestration::Real alpha;
 
     void diffusion(orchestration::FArray4D& solnData,
                    const orchestration::RealVect& deltas,

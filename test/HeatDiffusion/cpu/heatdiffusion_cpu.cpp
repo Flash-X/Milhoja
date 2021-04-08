@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 
+#include "HeatADItem.h"
 #include "HeatAD.h"
 #include "Driver.h"
 #include "Simulation.h"
@@ -11,14 +12,14 @@
 #include "Grid_REAL.h"
 #include "Grid.h"
 #include "Timer.h"
+#include "Runtime.h"
 #include "OrchestrationLogger.h"
 
 #include "errorEstBlank.h"
 
 #include "Flash_par.h"
 
-constexpr  unsigned int N_DIST_THREADS      = 0;
-constexpr  unsigned int N_CPU_THREADS       = 1;
+constexpr  unsigned int N_DIST_THREADS      = 1;
 constexpr  unsigned int N_GPU_THREADS       = 0;
 constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
 constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
@@ -30,22 +31,26 @@ int main(int argc, char* argv[]) {
     // Analogous to calling Log_init
     orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
 
+    // Analogous to calling Orchestration_init
+    orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
+                                        rp_Runtime::N_THREADS_PER_TEAM,
+                                        rp_Runtime::N_STREAMS,
+                                        rp_Runtime::MEMORY_POOL_SIZE_BYTES);
+
     // Analogous to calling Grid_init
     orchestration::Grid::instantiate();
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
-    ProcessTimer  diffusion{rp_Simulation::NAME + "_timings.dat", "MPI",
-                            N_DIST_THREADS, N_CPU_THREADS, N_GPU_THREADS,
-                            N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
-
     //----- MIMIC Grid_initDomain
     orchestration::Grid&     grid    = orchestration::Grid::instance();
     orchestration::Logger&   logger  = orchestration::Logger::instance();
+    orchestration::Runtime&  runtime = orchestration::Runtime::instance();
 
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
+    HeatAD::alpha   = rp_HeatAD::ALPHA;
 
     orchestration::Timer::start("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
@@ -55,11 +60,22 @@ int main(int argc, char* argv[]) {
     orchestration::Timer::stop("Set initial conditions");
 
     //----- MIMIC Driver_evolveFlash
+    RuntimeAction     heatAdvance;
+    heatAdvance.name            = "Advance HeatAD Solution";
+    heatAdvance.nInitialThreads = rp_HeatADItem::N_THREADS_FOR_ADV_SOLN;
+    heatAdvance.teamType        = ThreadTeamDataType::BLOCK;
+    heatAdvance.nTilesPerPacket = 0;
+    heatAdvance.routine         = HeatADItem::advanceSolution_tile_cpu;
+
+    ProcessTimer  heatdiffusion{rp_Simulation::NAME + "_timings_heatdiffusion.dat", "CPU",
+                                N_DIST_THREADS,
+                                heatAdvance.nInitialThreads,
+                                N_GPU_THREADS,
+                                N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
+
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
-    unsigned int            level{0};
-    std::shared_ptr<Tile>   tileDesc{};
-    unsigned int            nStep{1};
+    unsigned int   nStep   = 1;
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -86,32 +102,14 @@ int main(int argc, char* argv[]) {
             orchestration::Timer::stop("GC Fill");
         }
 
-        //----- ADVANCE SOLUTION
-        // Update unk data on interiors only
         double   tStart = MPI_Wtime();
-        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            tileDesc = ti->buildCurrentTile();
-
-            const IntVect       lo        = tileDesc->lo();
-            const IntVect       hi        = tileDesc->hi();
-            FArray4D            solnData  = tileDesc->data();
-
-            HeatAD::diffusion(solnData,
-                              tileDesc->deltas(),
-                              1.0,
-                              lo,hi);
-
-            HeatAD::solve(solnData,Driver::dt,lo,hi);
-
-        }
-        double       wtime_sec = MPI_Wtime() - tStart;
-
+        runtime.executeCpuTasks("Advance HeatAD Solution", heatAdvance);
+        double   wtime_sec = MPI_Wtime() - tStart;
         orchestration::Timer::start("Gather/Write");
-        diffusion.logTimestep(nStep, wtime_sec);
+        heatdiffusion.logTimestep(nStep, wtime_sec);
         orchestration::Timer::stop("Gather/Write");
 
         //----- OUTPUT RESULTS TO FILES
-        orchestration::Timer::start("Reduce/Write");
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
