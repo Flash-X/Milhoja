@@ -3,9 +3,9 @@ The contents of this file document the requirements and specifications of the Bu
 Build System reqs
 -----------------
 [x] The Build Tool shall be a subsystem of the Runtime that provides users the necessary facilities to build the Runtime and run tests on it. A primary function of the Build Tool shall be to build tests of the Runtime that are provided in the repository as part of its continuous integration test suite. It shall support the following build modes:
-    [x] Building an entire test into one executable.
-    [ ] Building the Runtime as a library first, then linking it into a test executable.
-    [ ] Linking a prebuilt Runtime library into a test executable.
+    [ ] Building an entire test into one executable.
+    [x] Building the Runtime as a library first, then linking it into a test executable.
+    [x] Linking a prebuilt Runtime library into a test executable.
 
 [ ] The build tool shall determine the following flags based on command line input:
     [x] Test name
@@ -15,7 +15,7 @@ Build System reqs
     [x] Runtime parameter file ("par file")
     [ ] Backend libraries
     [ ] Debug levels
-    [ ] Multithreaded distributor
+    [x] Multithreaded distributor
 
 [x] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
 
@@ -38,6 +38,15 @@ Build System reqs
 
 [ ] The Build Tool shall only require backend-specific information if the user is trying to build a test or a library configuration that requires that specific backend. Thus the tool shall not require site managers to support a backend they cannot or do not intend to use.
 
+Library Requirements
+--------------------
+[x] If the build system is given the special test name `library`, the build directory is configured to build the Runtime into a library.
+
+[x] The Runtime library can be installed into a directory specified at setup time with the command line argument `--prefix`. The given prefix will be a subdirectory of the OrchestrationRuntime repo root directory.
+
+[x] Using the command line flag `--library`, a test can be configured to link an existing prebuilt Runtime library.
+
+[ ] If linking a prebuilt library that used an incompatible set of Runtime parameters, the Makefile shall return an appropriate and informative error.
 
 File Name Requirements
 ----------------------
