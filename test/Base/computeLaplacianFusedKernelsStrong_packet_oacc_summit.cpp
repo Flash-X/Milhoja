@@ -21,39 +21,25 @@ void ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit(const
 
     packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
 
+    if (location != PacketDataLocation::CC1) {
+        throw std::logic_error("[computeLaplacianFusedKernelsStrong_packet_oacc_summit] "
+                               "Input data not in CC1");
+    }
+    // Data will be written to Uout
+    packet_h->setDataLocation(PacketDataLocation::CC2);
+
     #pragma acc data deviceptr(nTiles_d, contents_d)
     {
-        // Data will be written to Uout
-        if        (location == PacketDataLocation::CC1) {
-            packet_h->setDataLocation(PacketDataLocation::CC2);
-
-            #pragma acc parallel loop gang default(none) async(queue_h)
-            for (std::size_t n=0; n<*nTiles_d; ++n) {
-                const PacketContents*  ptrs = contents_d + n;
-                const FArray4D*        Uin_d  = ptrs->CC1_d;
-                FArray4D*              Uout_d = ptrs->CC2_d;
-                StaticPhysicsRoutines::computeLaplacianFusedKernels_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                                                Uin_d, Uout_d,
-                                                                                ptrs->deltas_d);
-            }
-        } else if (location == PacketDataLocation::CC2) {
-            packet_h->setDataLocation(PacketDataLocation::CC1);
-
-            #pragma acc parallel loop gang default(none) async(queue_h)
-            for (std::size_t n=0; n<*nTiles_d; ++n) {
-                const PacketContents*  ptrs = contents_d + n;
-                const FArray4D*        Uin_d  = ptrs->CC2_d;
-                FArray4D*              Uout_d = ptrs->CC1_d;
-                StaticPhysicsRoutines::computeLaplacianFusedKernels_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                                                Uin_d, Uout_d,
-                                                                                ptrs->deltas_d);
-            }
-        } else {
-            throw std::logic_error("[computeLaplacianFusedKernelsStrong_packet_oacc_summit] "
-                                   "Data not in CC1 or CC2");
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        Uin_d  = ptrs->CC1_d;
+            FArray4D*              Uout_d = ptrs->CC2_d;
+            StaticPhysicsRoutines::computeLaplacianFusedKernels_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+                                                                            Uin_d, Uout_d,
+                                                                            ptrs->deltas_d);
         }
     }
-
     #pragma acc wait(queue_h)
 }
 
