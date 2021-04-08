@@ -75,7 +75,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     // Tile metadata including array objects that wrap the scratch
     // blocks for use by the GPU.
     std::size_t  nBlockMetadataPerTileBytes  =   1 * DELTA_SIZE_BYTES
-                                               + 4 * POINT_SIZE_BYTES
+                                               + 2 * POINT_SIZE_BYTES
                                                + 5 * ARRAY4_SIZE_BYTES;
     // No copy-in block data
 
@@ -219,16 +219,6 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         ptr_p += POINT_SIZE_BYTES;
         ptr_d += POINT_SIZE_BYTES;
 
-        tilePtrs_p->loGC_d = static_cast<IntVect*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)&loGC, POINT_SIZE_BYTES);
-        ptr_p += POINT_SIZE_BYTES;
-        ptr_d += POINT_SIZE_BYTES;
-
-        tilePtrs_p->hiGC_d = static_cast<IntVect*>((void*)ptr_d);
-        std::memcpy((void*)ptr_p, (void*)&hiGC, POINT_SIZE_BYTES);
-        ptr_p += POINT_SIZE_BYTES;
-        ptr_d += POINT_SIZE_BYTES;
- 
         // Create an FArray4D object in host memory but that already points
         // to where its data will be in device memory (i.e. the device object
         // will already be attached to its data in device memory).

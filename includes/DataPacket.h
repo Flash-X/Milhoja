@@ -13,19 +13,11 @@
 #include "DataItem.h"
 #include "Stream.h"
 
-// TODO: Will the offline toolchain write this?  If so, could we have templates that
-// just need tweaking?
 // TODO: What if we have a DataPacket that starts at the host, is transferred to
 // the GPU, then to the FPGA, and finally back to the host?  In this sense,
 // no single ThreadTeam would be associated with this class.  Therefore, it
 // appears that there should just be a single DataPacket of blocks and we should
 // be able to populate it with the pointers that it needs for its full trip.
-// TODO:  The packet should have pointers to the different sections of
-//        data within the packet.
-//        For host->device, send across only the Input and IO section
-//        (single continguous block).
-//        For device->host, send across only the IO and output section
-//        (single contiguous block).
 // TODO: I don't think that the DataPackets need to be thread-safe.  Rather the
 // full system design should be such that at any point in time at most one
 // thread can have exclusive access to the packet.  In other words, the design
@@ -45,17 +37,19 @@ namespace orchestration {
 
 enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
 
+// TODO: This structure makes unpacking of the data packet trivial in the patch
+// code.  This was necessary since a humble human was writing and maintaining
+// the code.  The code generator, however, will hopefully be able to write the
+// low-level unpacking code directly in the patch code.  Therefore, this
+// structure, should disappear.  This makes sense as otherwise, this struct
+// would have to include every possible tile-specific element that could ever be
+// included in a data packet, which is somewhat out of control of this library.
 struct PacketContents {
     unsigned int            level      = 0;
     std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
     RealVect*               deltas_d   = nullptr;
     IntVect*                lo_d       = nullptr;
     IntVect*                hi_d       = nullptr;
-    IntVect*                loGC_d     = nullptr;
-    IntVect*                hiGC_d     = nullptr;
-    FArray1D*               xCoords_d  = nullptr;  //!< From loGC to hiGC
-    FArray1D*               yCoords_d  = nullptr;  //!< From loGC to hiGC
-    FArray1D*               zCoords_d  = nullptr;  //!< From loGC to hiGC
     FArray4D*               CC1_d      = nullptr;  //!< From loGC to hiGC
     FArray4D*               CC2_d      = nullptr;  //!< From loGC to hiGC   
     FArray4D*               FCX_d      = nullptr;  //!< From lo to hi 
