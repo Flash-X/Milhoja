@@ -1,0 +1,22 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME          = diffusion_mpi.x
+
+# Define relevant paths
+DIFFUSIONDIR            = $(BASEDIR)/test/Diffusion
+TESTDIR                 = $(BASEDIR)/test/Diffusion/mpi
+
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(DIFFUSIONDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(DIFFUSIONDIR) -I$(TESTDIR)
+LDFLAGS_TEST        =
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST = \
+	$(DIFFUSIONDIR)/Driver_data.cpp \
+	$(DIFFUSIONDIR)/ProcessTimer.cpp \
+	$(DIFFUSIONDIR)/errorEstBlank.cpp \
+	$(DIFFUSIONDIR)/HeatAD_diffusion.cpp \
+	$(DIFFUSIONDIR)/HeatAD_solve.cpp \
+	$(DIFFUSIONDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(DIFFUSIONDIR)/sim_setInitialConditions.cpp \
+	$(TESTDIR)/diffusion_mpi.cpp

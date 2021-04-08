@@ -1,0 +1,28 @@
+#ifndef SIMULATION_H__
+#define SIMULATION_H__
+
+#include "Grid_IntVect.h"
+#include "Grid_RealVect.h"
+#include "FArray1D.h"
+#include "FArray4D.h"
+#include "DataItem.h"
+
+namespace Simulation {
+    //----- ORCHESTRATION RUNTIME ACTION ROUTINES
+    void setInitialConditions_tile_cpu(const int tId,
+                                       orchestration::DataItem* dataItem);
+}
+
+namespace sim {
+    void setInitialConditions(const orchestration::IntVect& lo,
+                              const orchestration::IntVect& hi,
+                              const unsigned int level,
+                              const orchestration::FArray1D& xCoords,
+                              const orchestration::FArray1D& yCoords,
+                              const orchestration::FArray1D& zCoords,
+                              const orchestration::RealVect& deltas,
+                              orchestration::FArray4D& solnData);
+}
+
+#endif
+
