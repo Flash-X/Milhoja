@@ -141,7 +141,6 @@ void  DataPacket_gpu_2_stream::pack(void) {
     char*   ptr_d = copyInStart_d_;
 
     // Non-tile-specific data
-    nTiles_d_ = static_cast<std::size_t*>((void*)ptr_d); 
     std::memcpy((void*)ptr_p, (void*)&nTiles, sizeof(std::size_t));
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);

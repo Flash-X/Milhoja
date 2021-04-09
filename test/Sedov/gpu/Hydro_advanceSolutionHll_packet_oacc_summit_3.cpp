@@ -22,9 +22,12 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     const int                  queue3_h   = packet_h->extraAsynchronousQueue(3);
 #endif
     const PacketDataLocation   location   = packet_h->getDataLocation();
-    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
-    const Real*                dt_d       = packet_h->timeStepGpu();
+
+    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
+    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
+    ptr_d += sizeof(std::size_t);
+    const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
 
     packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);
 

@@ -20,8 +20,10 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
     const int                  queue_h    = packet_h->asynchronousQueue();
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
     const PacketDataLocation   location   = packet_h->getDataLocation();
-    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
+
+    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
+    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
 
     packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
 

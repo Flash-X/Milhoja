@@ -77,7 +77,6 @@ public:
     DataPacket& operator=(DataPacket&&)      = delete;
 
     std::size_t            nTiles(void) const        { return tiles_.size(); }
-    const std::size_t*     nTilesGpu(void) const     { return nTiles_d_; }
     void                   addTile(std::shared_ptr<Tile>&& tileDesc);
     std::shared_ptr<Tile>  popTile(void);
     const PacketContents*  tilePointers(void) const  { return contents_d_; };
@@ -107,12 +106,6 @@ public:
     void                  setVariableMask(const int startVariable, 
                                           const int endVariable);
 
-    // FIXME:  This is a temporary solution as it seems like the easiest way to
-    // get dt in to the GPU memory.  There is no reason for dt to be included in
-    // each data packet.  It is a "global" value that is valid for all blocks
-    // and all operations applied during a solution advance phase.
-    virtual Real*         timeStepGpu(void) const = 0;
-
 protected:
     DataPacket(void);
 
@@ -132,7 +125,6 @@ protected:
     char*                                  copyInOutStart_p_;
     char*                                  copyInOutStart_d_;
     std::deque<std::shared_ptr<Tile>>      tiles_;
-    std::size_t*                           nTiles_d_;
     PacketContents*                        contents_p_;
     PacketContents*                        contents_d_;
     BlockPointersPinned*                   pinnedPtrs_;

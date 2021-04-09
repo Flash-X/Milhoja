@@ -22,13 +22,7 @@ public:
     DataPacket_gpu_1_stream& operator=(const DataPacket_gpu_1_stream&) = delete;
     DataPacket_gpu_1_stream& operator=(DataPacket_gpu_1_stream&& rhs)  = delete;
 
-    // Overrides of DataPacket member functions
     void    pack(void) override;
-    Real*   timeStepGpu(void) const override  { throw std::logic_error("Not implemented"); }
-
-protected:
-    // Fix to one block per data packet as first step but with a scratch block
-    static constexpr std::size_t    N_BLOCKS = 2; 
 };
 
 }

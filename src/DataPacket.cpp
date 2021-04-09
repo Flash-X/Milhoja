@@ -15,7 +15,6 @@ DataPacket::DataPacket(void)
         copyInOutStart_p_{nullptr},
         copyInOutStart_d_{nullptr},
         tiles_{},
-        nTiles_d_{nullptr},
         contents_p_{nullptr},
         contents_d_{nullptr},
         pinnedPtrs_{nullptr},
@@ -61,7 +60,6 @@ void  DataPacket::nullify(void) {
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
 
-    nTiles_d_         = nullptr;
     contents_p_       = nullptr;
     contents_d_       = nullptr;
     copyInStart_p_    = nullptr;
@@ -91,8 +89,6 @@ std::string  DataPacket::isNull(void) const {
         return "Non-zero packet size";
     } else if (nReturnToHostBytes_ > 0) {
         return "Non-zero packet size";
-    } else if (nTiles_d_ != nullptr) {
-        return "N tiles exist in GPU";
     } else if (contents_p_ != nullptr) {
         return "Pinned contents exist";
     } else if (contents_d_ != nullptr) {

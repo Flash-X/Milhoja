@@ -24,7 +24,6 @@ public:
 
     // Overrides of DataPacket member functions
     void    pack(void) override;
-    Real*   timeStepGpu(void) const override  { throw std::logic_error("Not implemented"); }
 
 #ifdef ENABLE_OPENACC_OFFLOAD
     int     extraAsynchronousQueue(const unsigned int id) override;

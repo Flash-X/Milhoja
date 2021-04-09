@@ -20,9 +20,7 @@ public:
     DataPacket_Hydro_gpu_1& operator=(const DataPacket_Hydro_gpu_1&) = delete;
     DataPacket_Hydro_gpu_1& operator=(DataPacket_Hydro_gpu_1&& rhs)  = delete;
 
-    // Overrides of DataPacket member functions
     void    pack(void) override;
-    Real*   timeStepGpu(void) const override  { return dt_d_; }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
     int     extraAsynchronousQueue(const unsigned int id) override;

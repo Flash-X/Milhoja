@@ -18,9 +18,12 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
 
     const int                  queue_h    = packet_h->asynchronousQueue();
     const PacketDataLocation   location   = packet_h->getDataLocation();
-    const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
-    const Real*                dt_d       = packet_h->timeStepGpu();
+
+    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
+    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
+    ptr_d += sizeof(std::size_t);
+    const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
 
     // This action routine writes the new result to CC2 without setting
     // GAME/GAMC.  Therefore, whatever data was originally in CC2 is used to
