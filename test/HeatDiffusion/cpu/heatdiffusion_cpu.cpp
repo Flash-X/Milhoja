@@ -3,7 +3,7 @@
 
 #include <mpi.h>
 
-#include "HeatADItem.h"
+#include "HeatADAction.h"
 #include "HeatAD.h"
 #include "Driver.h"
 #include "Simulation.h"
@@ -62,10 +62,10 @@ int main(int argc, char* argv[]) {
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     heatAdvance;
     heatAdvance.name            = "Advance HeatAD Solution";
-    heatAdvance.nInitialThreads = rp_HeatADItem::N_THREADS_FOR_ADV_SOLN;
+    heatAdvance.nInitialThreads = rp_HeatADAction::N_THREADS_FOR_ADV_SOLN;
     heatAdvance.teamType        = ThreadTeamDataType::BLOCK;
     heatAdvance.nTilesPerPacket = 0;
-    heatAdvance.routine         = HeatADItem::advanceSolution_tile_cpu;
+    heatAdvance.routine         = HeatADAction::advanceSolution_tile_cpu;
 
     ProcessTimer  heatdiffusion{rp_Simulation::NAME + "_timings_heatdiffusion.dat", "CPU",
                                 N_DIST_THREADS,

@@ -16,6 +16,6 @@ SRCS_TEST = \
 	$(HEATDIFFUSIONDIR)/ProcessTimer.cpp \
 	$(HEATDIFFUSIONDIR)/errorEstBlank.cpp \
 	$(HEATDIFFUSIONDIR)/HeatAD.cpp \
-	$(HEATDIFFUSIONDIR)/HeatADItem.cpp \
+	$(HEATDIFFUSIONDIR)/HeatADAction.cpp \
 	$(HEATDIFFUSIONDIR)/Simulation.cpp \
 	$(TESTDIR)/heatdiffusion_cpu.cpp

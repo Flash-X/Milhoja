@@ -21,8 +21,8 @@ namespace rp_Grid {
 
     constexpr unsigned int          LREFINE_MAX = 1;
 
-    constexpr unsigned int          N_BLOCKS_X  = 32;
-    constexpr unsigned int          N_BLOCKS_Y  = 32;
+    constexpr unsigned int          N_BLOCKS_X  = 2;
+    constexpr unsigned int          N_BLOCKS_Y  = 2;
     constexpr unsigned int          N_BLOCKS_Z  = 1;
 }
 
@@ -33,14 +33,14 @@ namespace rp_Runtime {
     constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 12884901888;
 }
 
-namespace rp_HeatADItem {
+namespace rp_HeatADAction {
     // advanceSolution run in CPU-only thread team
     // configuration using blocks
     constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = 2;
 }
 
 namespace rp_HeatAD {
-    constexpr orchestration::Real   ALPHA        = 0.5;
+    constexpr orchestration::Real   ALPHA        = 0.1;
 }
 
 namespace rp_Simulation {

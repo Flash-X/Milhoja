@@ -1,4 +1,4 @@
-#include "HeatADItem.h"
+#include "HeatADAction.h"
 #include "HeatAD.h"
 
 #include <cmath>
@@ -8,8 +8,8 @@
 #include "Driver.h"
 #include "Flash.h"
 
-void HeatADItem::advanceSolution_tile_cpu(const int tId,
-                                          orchestration::DataItem* dataItem) {
+void HeatADAction::advanceSolution_tile_cpu(const int tId,
+                                            orchestration::DataItem* dataItem) {
 
     using namespace orchestration;
 

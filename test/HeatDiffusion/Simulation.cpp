@@ -65,7 +65,7 @@ void  sim::setInitialConditions(const orchestration::IntVect& lo,
      for (int i=lo.I(); i<=hi.I(); ++i) {
 
          solnData(i,j,k,RHST_VAR_C) = 0.0;
-         solnData(i,j,k,TEMP_VAR_C) = 0.0;
+         solnData(i,j,k,TEMP_VAR_C) = sin(2*rp_Simulation::PI*xCoords(i))*sin(2*rp_Simulation::PI*yCoords(j));
 
       }
      }
