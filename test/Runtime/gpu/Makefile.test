@@ -34,7 +34,8 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/DataPacket_gpu_1.cpp \
+    $(TESTDIR)/DataPacket_gpu_1_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_2_stream.cpp \
     $(RUNTIMEDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp
 

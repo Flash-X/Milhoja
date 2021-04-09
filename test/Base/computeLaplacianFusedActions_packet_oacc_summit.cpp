@@ -6,7 +6,6 @@
 
 #include "DataItem.h"
 #include "DataPacket.h"
-#include "Backend.h"
 
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
@@ -19,19 +18,10 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
 
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();
+    const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
     const PacketDataLocation   location   = packet_h->getDataLocation();
     const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
-
-    // FIXME: If we allow this request to block, the code could deadlock.  We
-    // therefore, do not block in favor of aborting execution.
-    Backend& bknd = Backend::instance();
-    Stream         stream = bknd.requestStream(false);
-    const int      queue2_h = stream.accAsyncQueue;
-    if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
-        throw std::runtime_error("[computeLaplacianFusedActions_packet_oacc_summit] "
-                                 "Unable to acquire an extra asynchronous queue");
-    }
 
     packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
 
@@ -69,6 +59,6 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
     }
     #pragma acc wait(queue_h,queue2_h)
 
-    bknd.releaseStream(stream);
+    packet_h->releaseExtraQueue(2);
 }
 

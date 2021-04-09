@@ -1,4 +1,4 @@
-#include "DataPacket_gpu_1.h"
+#include "DataPacket_gpu_2_stream.h"
 
 #include <cassert>
 #include <cstring>
@@ -16,19 +16,46 @@ namespace orchestration {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_gpu_1::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_gpu_1{}};
+std::unique_ptr<DataPacket>   DataPacket_gpu_2_stream::clone(void) const {
+    return std::unique_ptr<DataPacket>{new DataPacket_gpu_2_stream{}};
+}
+
+/**
+ * Do not call this member function before calling pack() or more than once.
+ */
+void  DataPacket_gpu_2_stream::releaseExtraQueue(const unsigned int id) {
+    if (id != 2) {
+        throw std::invalid_argument("[DataPacket_gpu_2_stream::releaseExtraQueue] Invalid id");
+    } else if (!stream2_.isValid()) {
+        throw std::logic_error("[DataPacket_gpu_2_stream::releaseExtraQueue] No stream");
+    }
+
+    Backend::instance().releaseStream(stream2_);
+}
+
+/**
+ * Pack must be called before calling this member function.  It cannot be called
+ * after calling releaseExtraStream on the same ID.
+ */
+int  DataPacket_gpu_2_stream::extraAsynchronousQueue(const unsigned int id) {
+    if (id != 2) {
+        throw std::invalid_argument("[DataPacket_gpu_2_stream::extraAsynchronousQueue] Invalid id");
+    } else if (!stream2_.isValid()) {
+        throw std::logic_error("[DataPacket_gpu_2_stream::extraAsynchronousQueue] No stream");
+    }
+
+    return stream2_.accAsyncQueue;
 }
 
 /**
  *
  */
-void  DataPacket_gpu_1::pack(void) {
+void  DataPacket_gpu_2_stream::pack(void) {
     std::string   errMsg = isNull();
     if (errMsg != "") {
-        throw std::logic_error("[DataPacket_gpu_1::pack] " + errMsg);
+        throw std::logic_error("[DataPacket_gpu_2_stream::pack] " + errMsg);
     } else if (tiles_.size() == 0) {
-        throw std::logic_error("[DataPacket_gpu_1::pack] No tiles added");
+        throw std::logic_error("[DataPacket_gpu_2_stream::pack] No tiles added");
     }
 
     Grid&   grid = Grid::instance();
@@ -63,9 +90,15 @@ void  DataPacket_gpu_1::pack(void) {
                                    + nTiles * nCopyInDataPerTileBytes
                                    + nTiles * nCopyOutDataPerTileBytes;
 
-    stream_ = Backend::instance().requestStream(true);
-    if (!stream_.isValid()) {
-        throw std::runtime_error("[DataPacket_gpu_1::pack] Unable to acquire stream");
+    // DEV: The DataPacket will free stream_, but not stream2_.  In addition,
+    // stream2_ is not included in the nullify/isNull routines.  As part of
+    // this, it is assumed that the patch code will free stream2_ immediately
+    // after it is finished with it as stream2_ is acquired here on behalf of
+    // the patch code for the purpose of computation only.
+    stream_  = Backend::instance().requestStream(true);
+    stream2_ = Backend::instance().requestStream(true);
+    if ((!stream_.isValid()) || (!stream2_.isValid())) {
+        throw std::runtime_error("[DataPacket_gpu_2_stream::pack] Unable to acquire streams");
     }
 
     // Allocate memory in pinned and device memory on demand for now
@@ -83,7 +116,7 @@ void  DataPacket_gpu_1::pack(void) {
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
     if (pinnedPtrs_) {
-        throw std::logic_error("[DataPacket_gpu_1::pack] Pinned pointers already exist");
+        throw std::logic_error("[DataPacket_gpu_2_stream::pack] Pinned pointers already exist");
     }
     pinnedPtrs_ = new BlockPointersPinned[nTiles];
 
@@ -117,7 +150,7 @@ void  DataPacket_gpu_1::pack(void) {
     for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
         Tile*   tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) {
-            throw std::runtime_error("[DataPacket_gpu_1::pack] Bad tileDesc");
+            throw std::runtime_error("[DataPacket_gpu_2_stream::pack] Bad tileDesc");
         }
  
         const RealVect      deltas = tileDesc_h->deltas();
@@ -127,7 +160,7 @@ void  DataPacket_gpu_1::pack(void) {
         const IntVect       hiGC   = tileDesc_h->hiGC();
         Real*               data_h = tileDesc_h->dataPtr();
         if (data_h == nullptr) {
-            throw std::logic_error("[DataPacket_gpu_1::pack] "
+            throw std::logic_error("[DataPacket_gpu_2_stream::pack] "
                                    "Invalid pointer to data in host memory");
         }
 

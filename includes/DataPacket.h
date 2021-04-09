@@ -1,6 +1,8 @@
 #ifndef DATA_PACKET_H__
 #define DATA_PACKET_H__
 
+#include <stdexcept>
+
 #if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
 #include <cuda_runtime.h>
 #endif
@@ -91,6 +93,10 @@ public:
 
 #ifdef ENABLE_OPENACC_OFFLOAD
     int                    asynchronousQueue(void) { return stream_.accAsyncQueue; }
+    virtual int            extraAsynchronousQueue(const unsigned int id)
+        { throw std::logic_error("[DataPacket::extraAsynchronousQueue] no extra queues"); }
+    virtual void           releaseExtraQueue(const unsigned int id)
+        { throw std::logic_error("[DataPacket::releaseExtraQueue] no extra queue"); }
 #endif
 #if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
     cudaStream_t           stream(void)            { return stream_.cudaStream; };
