@@ -13,7 +13,7 @@ public:
     std::unique_ptr<DataPacket>  clone(void) const override;
 
     DataPacket_gpu_2_stream(void) : stream2_() { };
-    ~DataPacket_gpu_2_stream(void)             { };
+    ~DataPacket_gpu_2_stream(void);
 
     DataPacket_gpu_2_stream(DataPacket_gpu_2_stream&)                  = delete;
     DataPacket_gpu_2_stream(const DataPacket_gpu_2_stream&)            = delete;

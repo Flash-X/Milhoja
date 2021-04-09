@@ -16,6 +16,16 @@ namespace orchestration {
 /**
  *
  */
+DataPacket_gpu_2_stream::~DataPacket_gpu_2_stream(void) {
+    if (stream2_.isValid()) {
+        throw std::logic_error("[DataPacket_gpu_2_stream::~DataPacket_gpu_2_stream] "
+                               "Extra stream not released");
+    }
+}
+
+/**
+ *
+ */
 std::unique_ptr<DataPacket>   DataPacket_gpu_2_stream::clone(void) const {
     return std::unique_ptr<DataPacket>{new DataPacket_gpu_2_stream{}};
 }

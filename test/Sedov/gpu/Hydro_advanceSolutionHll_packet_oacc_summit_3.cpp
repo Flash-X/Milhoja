@@ -17,6 +17,10 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
     const int                  queue_h    = packet_h->asynchronousQueue();
+#if NDIM == 3
+    const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
+    const int                  queue3_h   = packet_h->extraAsynchronousQueue(3);
+#endif
     const PacketDataLocation   location   = packet_h->getDataLocation();
     const std::size_t*         nTiles_d   = packet_h->nTilesGpu();
     const PacketContents*      contents_d = packet_h->tilePointers();
@@ -85,21 +89,6 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                U_d, flY_d, auxC_d);
         }
 #elif NDIM == 3
-        // Acquire extra streams
-        Backend& bknd = Backend::instance();
-        Stream         stream2 = bknd.requestStream(false);
-        const int      queue2_h = stream2.accAsyncQueue;
-        if (queue2_h == NULL_ACC_ASYNC_QUEUE) {
-            throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
-                                     "Unable to acquire second asynchronous queue");
-        }
-        Stream         stream3 = bknd.requestStream(false);
-        const int      queue3_h = stream3.accAsyncQueue;
-        if (queue3_h == NULL_ACC_ASYNC_QUEUE) {
-            throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "
-                                     "Unable to acquire third asynchronous queue");
-        }
-
         // Wait for data to arrive and then launch these three for concurrent
         // execution
         #pragma acc wait(queue_h)
@@ -139,9 +128,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
         }
         // BARRIER - fluxes must all be computed before updated the solution
         #pragma acc wait(queue_h,queue2_h,queue3_h)
-
-        bknd.releaseStream(stream2);
-        bknd.releaseStream(stream3);
+        packet_h->releaseExtraQueue(2);
+        packet_h->releaseExtraQueue(3);
 #endif
 
         //----- UPDATE SOLUTIONS IN PLACE

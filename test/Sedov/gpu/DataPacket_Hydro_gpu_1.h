@@ -24,7 +24,16 @@ public:
     void    pack(void) override;
     Real*   timeStepGpu(void) const override  { return dt_d_; }
 
+#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
+    int     extraAsynchronousQueue(const unsigned int id) override;
+    void    releaseExtraQueue(const unsigned int id) override;
+#endif
+
 private:
+#if NDIM == 3
+    Stream  stream2_;
+    Stream  stream3_;
+#endif
     Real*   dt_d_;
 };
 

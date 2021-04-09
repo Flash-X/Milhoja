@@ -25,6 +25,10 @@ namespace orchestration {
  */
 DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
     : DataPacket{},
+#if NDIM == 3
+      stream2_{},
+      stream3_{},
+#endif
       dt_d_{nullptr}
 {
 }
@@ -33,6 +37,12 @@ DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
  *
  */
 DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
+#if NDIM == 3
+    if (stream2_.isValid() || stream3_.isValid()) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] "
+                               "One or more extra streams not released");
+    }
+#endif
 }
 
 /**
@@ -41,6 +51,62 @@ DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
 std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const {
     return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_1{}};
 }
+
+#if NDIM == 3
+/**
+ * Do not call this member function before calling pack() or more than once on
+ * the same queue.
+ */
+void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
+    if        (id == 2) {
+        if (!stream2_.isValid()) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+                                   "Second queue invalid or already released");
+        } else {
+            Backend::instance().releaseStream(stream2_);
+        }
+    } else if (id == 3) {
+        if (!stream3_.isValid()) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+                                   "Third queue invalid or already released");
+        } else {
+            Backend::instance().releaseStream(stream3_);
+        }
+    } else {
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+                                    "Invalid id");
+    }
+}
+#endif
+
+#if NDIM == 3
+/**
+ * Pack must be called before calling this member function.  It cannot be called
+ * after calling releaseExtraStream on the same ID.
+ *
+ * Calling code is allowed to acquire the same queue as many times as desired.
+ * It is the calling code's responsibility to use the queues correctly.
+ */
+int  DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
+    if        (id == 2) {
+        if (!stream2_.isValid()) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
+                                   "Second queue invalid");
+        } else {
+            return stream2_.accAsyncQueue;
+        }
+    } else if (id == 3) {
+        if (!stream3_.isValid()) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
+                                   "Third queue invalid");
+        } else {
+            return stream3_.accAsyncQueue;
+        }
+    } else {
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] Invalid id");
+    }
+}
+#endif
 
 /**
  *
@@ -102,6 +168,13 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire stream");
     }
+#if NDIM == 3
+    stream2_ = Backend::instance().requestStream(true);
+    stream3_ = Backend::instance().requestStream(true);
+    if (!stream2_.isValid() || !stream3_.isValid()) {
+        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire extra streams");
+    }
+#endif
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
