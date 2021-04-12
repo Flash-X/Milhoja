@@ -2,13 +2,13 @@
 
 #include <stdexcept>
 
-#include "OrchestrationLogger.h"
-
 #ifdef USE_CUDA_BACKEND
 #include "CudaBackend.h"
 #else
 #include "NullBackend.h"
 #endif
+
+#include "OrchestrationLogger.h"
 
 namespace orchestration {
 
@@ -17,9 +17,16 @@ unsigned int   Backend::nStreams_ = 0;
 std::size_t    Backend::nBytesInMemoryPools_ = 0;
 
 /**
- * 
+ * Provide the Singleton design pattern with the runtime parameters needed to
+ * appropriately instantiate and initialize the desired concrete Backend class.
+ * This function must be called before using instance() to gain access to the
+ * Singleton object.
  *
- * \return 
+ * @param nStreams - the maximum number of streams that the runtime is allowed
+ * to use at any point in time.
+ * @param nBytesInMemoryPools - the amount of memory to allocate in memory
+ * pools.  Refer to the documentation for each backend to determine what memory
+ * pools will be allocated.
  */
 void   Backend::instantiate(const unsigned int nStreams,
                             const std::size_t  nBytesInMemoryPools) {
@@ -43,10 +50,9 @@ void   Backend::instantiate(const unsigned int nStreams,
 }
 
 /**
- * instace gets a reference to the singleton Backend object.
+ * Obtain access to the Backend Singleton object.
  *
- * @return A reference to the singleton object, which has been downcast
- *         to a Backend type
+ * @return A reference to the object
  */
 Backend&   Backend::instance(void) {
     if(!instantiated_) {

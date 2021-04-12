@@ -6,6 +6,10 @@
 
 namespace orchestration {
 
+/**
+ * Construct a DataPacket containing no Tile objects and with no resources
+ * assigned to it.
+ */
 DataPacket::DataPacket(void)
       : location_{PacketDataLocation::NOT_ASSIGNED},
         packet_p_{nullptr},
@@ -34,12 +38,19 @@ DataPacket::DataPacket(void)
     }
 }
 
+/**
+ * Destroy object.  Under normal operations, this object should have been
+ * consumed prior to the execution of the destructor and therefore it should
+ * not own resources.  However, resources are released upon abnormal
+ * termination.
+ */
 DataPacket::~DataPacket(void) {
     nullify();
 }
 
 /**
- *
+ * Set the DataPacket into a null/empty state.  This includes releasing any
+ * resources owned by the object and setting data members to ridiculous values.
  */
 void  DataPacket::nullify(void) {
     if (stream_.isValid()) {
@@ -69,6 +80,11 @@ void  DataPacket::nullify(void) {
 }
 
 /**
+ * Determine if the packet is in the null/empty state.
+ *
+ * @return An empty string is yes; otherwise, an explanation of why it is not
+ * null.
+ *
  * @todo This could eventually disappear once the data packets are written by
  * code generator.
  */
@@ -109,7 +125,10 @@ std::string  DataPacket::isNull(void) const {
 }
 
 /**
+ * Add the given Tile to the DataPacket.  As part of this, the packet assumes
+ * ownership of the Tile and the calling code's pointer is nullified.
  *
+ * @todo The checks should be asserts.  Figure out how to get that working.
  */
 void   DataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
     tiles_.push_front( std::move(tileDesc) );
@@ -119,7 +138,10 @@ void   DataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
 }
 
 /**
+ * Obtain one of the Tiles included in the packet.  As part of this, the Tile is
+ * removed from the packet and ownership of the Tile passes to the calling code.
  *
+ * @todo The checks should be asserts.  Figure out how to get that working.
  */
 std::shared_ptr<Tile>  DataPacket::popTile(void) {
     if (tiles_.size() == 0) {
@@ -131,7 +153,7 @@ std::shared_ptr<Tile>  DataPacket::popTile(void) {
         || (tiles_.front().use_count() != 0)) {
         throw std::runtime_error("[DataPacket::popTile] Ownership of tileDesc not transferred");
     } 
-    
+
     tiles_.pop_front();
     if ((tileDesc == nullptr) || (tileDesc.use_count() == 0)) {
         throw std::runtime_error("[DataPacket::popTile] Bad tileDesc");
@@ -141,21 +163,25 @@ std::shared_ptr<Tile>  DataPacket::popTile(void) {
 }
 
 /**
- *
+ * Obtain the location of the correct cell-centered data.
  */
 PacketDataLocation    DataPacket::getDataLocation(void) const {
     return location_;
 }
 
 /**
- *
+ * Specify the location of the correct cell-centered data so that the next
+ * runtime element to use the packet knows where to look.
  */
 void   DataPacket::setDataLocation(const PacketDataLocation location) {
     location_ = location;
 }
 
 /**
- *
+ * @todo The present interface allows task functions to specify the variable
+ * mask.  Since concrete DataPackets are now coupled to task functions, it seems
+ * like this should be known when the concrete classes are designed.  Remove the
+ * setVariableMask from the public interface.
  */
 void   DataPacket::setVariableMask(const int startVariable,
                                    const int endVariable) {
@@ -175,7 +201,20 @@ void   DataPacket::setVariableMask(const int startVariable,
 }
 
 /**
+ * The runtime calls this member function automatically once a DataPacket
+ * has arrived in the host memory again.  It is responsible for unpacking
+ * the contents and in particular for copying cell-centered data back to the
+ * host-side Grid data structures that hold solution data.  The data is copied
+ * back in accord with the variable masks set in the DataPacket to avoid
+ * inadvertently overwriting variables that were updated in parallel by other
+ * actions.
  *
+ * All memory and stream resources are released.
+ *
+ * While the packet is consumed once the function finishes, the list of Tiles
+ * that were included in the packet is preserved.  This is necessary so that
+ * runtime elements such as MoverUnpacker can enqueue the Tiles with its data
+ * subscriber.
  */
 void  DataPacket::unpack(void) {
     if (tiles_.size() <= 0) {
@@ -238,9 +277,7 @@ void  DataPacket::unpack(void) {
         std::memcpy((void*)start_h, (void*)start_p, nBytes);
     }
 
-    // The packet is consumed upon unpacking.  However, we still keep the
-    // contents intact so that runtime elements such as MoverUnpacker can 
-    // enqueue the tiles with its data subscriber.
+    // The packet is consumed upon unpacking.
     nullify();
 }
 

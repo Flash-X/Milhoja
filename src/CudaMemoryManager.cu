@@ -177,9 +177,10 @@ void   CudaMemoryManager::reset(void) {
 }
 
 /**
- * 
+ * Refer to the documentation of the requestGpuMemory function of Backend for
+ * more information.
  *
- * \return 
+ * @todo Confirm that the request is inline with byte alignment?
  */
 void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
                                        void** pinnedPtr,
@@ -193,7 +194,6 @@ void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
 
     pthread_mutex_lock(&mutex_);
 
-    // TODO: Something like this should block.
     if ((pinnedOffset_ + pinnedBytes) > nBytes_) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";
@@ -213,7 +213,6 @@ void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
         errMsg += " bytes requested";
         throw std::overflow_error(errMsg);
     }
-    // TODO: Confirm that the request is inline with byte alignment?
 
     *pinnedPtr = static_cast<void*>(pinnedBuffer_ + pinnedOffset_);
     *gpuPtr    = static_cast<void*>(gpuBuffer_    + gpuOffset_);
@@ -224,9 +223,8 @@ void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
 }
 
 /**
- * 
- *
- * \return 
+ * Refer to the documentation of the releaseGpuMemory function of Backend for
+ * more information.
  */
 void  CudaMemoryManager::releaseMemory(void** pinnedPtr, void** gpuPtr) {
     // Null so that we don't have dangling pointers.  This is inline with

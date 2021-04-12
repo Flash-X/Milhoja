@@ -21,7 +21,8 @@
 namespace orchestration {
 
 /**
- *
+ * Construct a DataPacket containing no Tile objects and with no resources
+ * assigned to it.
  */
 DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
     : DataPacket{},
@@ -34,7 +35,8 @@ DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
 }
 
 /**
- *
+ * Destroy DataPacket.  Under normal circumstances, the DataPacket should have
+ * been consumed and therefore own no resources.
  */
 DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
 #if NDIM == 3
@@ -54,8 +56,7 @@ std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const {
 
 #if NDIM == 3
 /**
- * Do not call this member function before calling pack() or more than once on
- * the same queue.
+ * Refer to the documentation of this member function for DataPacket.
  */
 void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
     if        (id == 2) {
@@ -81,11 +82,7 @@ void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
 
 #if NDIM == 3
 /**
- * Pack must be called before calling this member function.  It cannot be called
- * after calling releaseExtraStream on the same ID.
- *
- * Calling code is allowed to acquire the same queue as many times as desired.
- * It is the calling code's responsibility to use the queues correctly.
+ * Refer to the documentation of this member function for DataPacket.
  */
 int  DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
     if        (id == 2) {
