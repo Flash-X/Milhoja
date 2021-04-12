@@ -50,7 +50,9 @@ namespace orchestration {
 #ifdef USE_CUDA_BACKEND
 using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
 #else
-#error "Choose a backend that can use a GPU-to-host callback routine"
+// No notion of callback function otherwise.
+// Specify simplest function pointer.
+using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void);
 #endif
 
 class Backend {
@@ -142,7 +144,7 @@ public:
      * insufficient memory resources.  Block?  Should we have a flag like
      * requestStream has?
      *
-     * @param pinnnedBytes - the number of contiguous bytes to be acquired in
+     * @param pinnedBytes - the number of contiguous bytes to be acquired in
      * pinned memory
      * @param pinnedPtr - the location of the start of the contiguous pinned
      * memory block obtained

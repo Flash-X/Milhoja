@@ -27,14 +27,12 @@ public:
     void      releaseStream(Stream& stream) override
         { throw std::logic_error("[NullBackend::releaseStream] Not implemented"); };
 
-#ifdef USE_CUDA_BACKEND
     void      initiateHostToGpuTransfer(DataPacket& packet) override
         { throw std::logic_error("[NullBackend::initiateHostToGpuTransfer] Not implemented"); };
     void      initiateGpuToHostTransfer(DataPacket& packet,
-                                        cudaHostFn_t callback,
+                                        GPU_TO_HOST_CALLBACK_FCN callback,
                                         void* callbackData) override
         { throw std::logic_error("[NullBackend::initiateGpuToHostTransfer] Not implemented"); };
-#endif
 
     void      requestGpuMemory(const std::size_t pinnedBytes,
                                void** pinnedPtr,
