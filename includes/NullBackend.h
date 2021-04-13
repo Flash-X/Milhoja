@@ -7,6 +7,12 @@
 
 namespace orchestration {
 
+/**
+ * \class NullBackend NullBackend.h
+ *
+ * Provide a base, concrete implementation of the Backend class that fails if
+ * used.  The most likely use of this class is for testing of the runtime.
+ */
 class NullBackend : public Backend {
 public:
     ~NullBackend(void)       {};

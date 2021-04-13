@@ -5,6 +5,12 @@
 
 namespace orchestration {
 
+/**
+ * \class CudaBackend CudaBackend.h
+ *
+ * Provide a CUDA-based concrete implementation of the Backend class.  Please
+ * refer to the documentation for Backend class for more information.
+ */
 class CudaBackend : public Backend {
 public:
     ~CudaBackend(void)       {};
@@ -23,7 +29,7 @@ public:
 
     void      initiateHostToGpuTransfer(DataPacket& packet) override;
     void      initiateGpuToHostTransfer(DataPacket& packet,
-                                        cudaHostFn_t callback,
+                                        GPU_TO_HOST_CALLBACK_FCN callback,
                                         void* callbackData) override;
 
     void      requestGpuMemory(const std::size_t pinnedBytes,

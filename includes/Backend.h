@@ -1,38 +1,3 @@
-/**
- * \file   Backend.h
- *
- * A class that declares the generic interface for all runtime functionality
- * that must be implemented on a per-platform, per-vendor, or per-device basis.
- * Each concrete implementation of this functionality is to be implemented in a
- * class derived from this class.
- *
- * Some backend functionality is related to acquiring and releasing shared
- * resoures such as streams and memory.  So that the backends can effectively
- * manage these resources, it is important that all code that uses the runtime
- * aquire all such resources through the backend rather than doing so directly
- * on their own.  In particular, physics codes run by the runtime should *not*
- * allocate their own memory directly, but rather request that the runtime
- * acquire memory on its behalf and pass it as an argument to the physics code.
- *
- * This class is designed using a adaption of the the Singleton design
- * pattern presented in CITATION NEEDED HERE.  This means that the runtime
- * accesses the desired functionality using polymorphism.  As such, there is
- * little sense in concrete backends extending the public Backend interface.
- *
- * The choice of which particular version of the backend will implement this
- * interface is given at setup time and propagated to this class via a
- * compilation flag.  All code that needs backend functionality should acquire
- * the backend instance through the instance function in this class and should
- * never use directly one of the derived classes.
- *
- * Member functions of this class make reference to streams, which is a term
- * often associated with CUDA.  The runtime implements its own Stream class,
- * which is a more generic representation of a CUDA stream.  The word stream in
- * this interface refers to this custom class.
- *
- * @todo Figure out how to use Doxygen's cite keyword here.
- */
-
 #ifndef BACKEND_H__
 #define BACKEND_H__
 
@@ -55,9 +20,46 @@ using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
 using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void);
 #endif
 
+/**
+ * \class Backend Backend.h
+ *
+ * A class that declares the generic interface for all runtime functionality
+ * that must be implemented on a per-platform, per-vendor, or per-device basis.
+ * Each concrete implementation of this functionality is to be implemented in a
+ * class derived from this class.  The concrete implementations of all member
+ * functions of this class must be thread-safe.
+ *
+ * Some backend functionality is related to acquiring and releasing shared
+ * resources such as streams and memory.  So that the backends can effectively
+ * manage these resources, it is important that all code that uses the runtime
+ * aquire all such resources through the backend rather than doing so directly
+ * on their own.  In particular, physics codes run by the runtime should *not*
+ * allocate their own memory directly, but rather request that the runtime
+ * acquire memory on its behalf and pass it as an argument to the physics code.
+ *
+ * This class is designed using a adaption of the the Singleton design
+ * pattern presented in CITATION NEEDED HERE.  This means that the runtime
+ * accesses the desired functionality using polymorphism.  As such, there is
+ * little sense in concrete backends extending the public Backend interface.
+ *
+ * At build time, at most one of the USE_*_BACKEND compilation flags can be set
+ * to specify to this class which concrete implementation it should instantiate
+ * and wrap.  If no such flag is set, then the NullBackend class is used.  All
+ * code that needs backend functionality should acquire the backend instance
+ * through the instance function in this class and should never use directly one
+ * of the derived classes.  Similarly, derived classes should limit the ability
+ * of code to instantiate the class.
+ *
+ * Member functions of this class make reference to streams, which is a term
+ * often associated with CUDA.  The runtime implements its own Stream class,
+ * which is a more generic representation of a CUDA stream.  The word stream in
+ * this interface refers to this custom class.
+ *
+ * @todo Figure out how to use Doxygen's cite keyword here.
+ */
 class Backend {
 public:
-    virtual ~Backend(void)     { instantiated_ = false; };
+    virtual ~Backend(void);
 
     Backend(Backend&)                  = delete;
     Backend(const Backend&)            = delete;
@@ -74,15 +76,11 @@ public:
     /**
      * Obtain the maximum number of streams that the runtime is allowed to use
      * at any given point in time.
-     *
-     * @return The number of streams
      */
     virtual int       maxNumberStreams(void) const = 0; 
 
     /**
      * Obtain the number of streams presently available for distribution.
-     *
-     * @return The number of streams
      */
     virtual int       numberFreeStreams(void) = 0;
 
@@ -91,7 +89,7 @@ public:
      * Stream object must eventually be released by calling releaseStream().
      *
      * @param block - If true, then this function will block execution of the
-     * calling thread until a stream becomes availble.  If false, then the
+     * calling thread until a stream becomes available.  If false, then the
      * function is not blocked.
      * @return The requested Stream object.  If block is False and no streams
      * are available, then a null Stream object is returned.
@@ -127,7 +125,7 @@ public:
      * @param callback - the callback rountine that will be called
      * automatically once the transfer completes.
      * @param callbackData - a pointer to the data needed by the callback
-     * routine to finalize the transer.
+     * routine to finalize the transfer.
      */
     virtual void      initiateGpuToHostTransfer(DataPacket& packet,
                                                 GPU_TO_HOST_CALLBACK_FCN callback,

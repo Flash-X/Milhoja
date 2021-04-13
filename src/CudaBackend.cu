@@ -11,50 +11,54 @@
 namespace orchestration {
 
 /**
- *
+ * Instantiate a CudaBackend object and all the helpers that it relies on.  It
+ * is intended that this only ever be called by the Backend's instantiate
+ * member function.  In this way, the instatiated object should be a singleton.
  */
 CudaBackend::CudaBackend(const unsigned int nStreams,
                          const std::size_t  nBytesInMemoryPools) {
     // Since Backend calls instance() inside instantiate() and this constructor
     // should only be called once, these lines effectively carry out the 
-    // instantiation work of this derived class.
+    // instantiate() work of this derived class.
     CudaGpuEnvironment::instantiate();
     CudaStreamManager::instantiate(nStreams);
     CudaMemoryManager::instantiate(nBytesInMemoryPools);
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 int  CudaBackend::maxNumberStreams(void) const {
     return CudaStreamManager::instance().maxNumberStreams();
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 int  CudaBackend::numberFreeStreams(void) {
     return CudaStreamManager::instance().numberFreeStreams();
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 Stream    CudaBackend::requestStream(const bool block) {
     return CudaStreamManager::instance().requestStream(block);
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 void      CudaBackend::releaseStream(Stream& stream) {
     CudaStreamManager::instance().releaseStream(stream);
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 void  CudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
+    // One and only one thread should own this packet at any given time.
+    // Therefore, it has exclusive access and this code is thread-safe.
     cudaError_t cErr = cudaMemcpyAsync(packet.copyToGpuStart_gpu(),
                                        packet.copyToGpuStart_host(),
                                        packet.copyToGpuSizeInBytes(),
@@ -70,6 +74,8 @@ void  CudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
 }
 
 /**
+ *  Refer to the Backend documentation for general information.
+ *
  *  Initiate an asychronous transfer of the packet from the device to the host
  *  on the packet's stream.  As part of this, launch on the same stream the given
  *  callback for handling the unpacking and other auxiliary work that must occur
@@ -84,8 +90,10 @@ void  CudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
  *                        responsibility in managing the resources.
  */
 void  CudaBackend::initiateGpuToHostTransfer(DataPacket& packet,
-                                             cudaHostFn_t callback,
+                                             GPU_TO_HOST_CALLBACK_FCN callback,
                                              void* callbackData) {
+    // One and only one thread should own this packet at any given time.
+    // Therefore, it has exclusive access and this code is thread-safe.
     cudaStream_t  stream = packet.stream();
 
     cudaError_t   cErr = cudaMemcpyAsync(packet.returnToHostStart_host(),
@@ -112,7 +120,7 @@ void  CudaBackend::initiateGpuToHostTransfer(DataPacket& packet,
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 void      CudaBackend::requestGpuMemory(const std::size_t pinnedBytes,
                                         void** pinnedPtr,
@@ -123,13 +131,14 @@ void      CudaBackend::requestGpuMemory(const std::size_t pinnedBytes,
 }
 
 /**
- *
+ * Refer to the Backend documentation for more information.
  */
 void      CudaBackend::releaseGpuMemory(void** pinnedPtr, void** gpuPtr) {
     CudaMemoryManager::instance().releaseMemory(pinnedPtr, gpuPtr);
 }
 
 /**
+ * Refer to the Backend documentation for more information.
  *
  */
 void      CudaBackend::reset(void) {

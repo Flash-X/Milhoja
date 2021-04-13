@@ -51,8 +51,6 @@ void   Backend::instantiate(const unsigned int nStreams,
 
 /**
  * Obtain access to the Backend Singleton object.
- *
- * @return A reference to the object
  */
 Backend&   Backend::instance(void) {
     if(!instantiated_) {
@@ -68,6 +66,12 @@ Backend&   Backend::instance(void) {
 
     return singleton;
 }
+
+Backend::~Backend(void) {
+    instantiated_ = false;
+    nStreams_ = 0;
+    nBytesInMemoryPools_ = 0;
+};
 
 }
 

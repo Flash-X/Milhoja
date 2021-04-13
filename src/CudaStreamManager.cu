@@ -20,7 +20,7 @@ bool   CudaStreamManager::instantiated_ = false;
 int    CudaStreamManager::nMaxStreams_ = -1;
 
 /**
- * Instantiate and initalize the application's singleton stream manager object.
+ * Instantiate and initialize the application's singleton stream manager object.
  *
  * \param nMaxStreams - the maximum number of streams to be made available.  The
  *                      given value must be a positive integer.
@@ -44,10 +44,8 @@ void   CudaStreamManager::instantiate(const int nMaxStreams) {
 }
 
 /**
- * Before calling this routine, client code must first instantiate the manager.
- *
- * \return A reference to the stream manager for the associated
- *         runtime backend.
+ * Request access to the singleton stream manager.  Before calling this routine,
+ * calling code must first instantiate the manager.
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
     if (!instantiated_) {
