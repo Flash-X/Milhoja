@@ -16,14 +16,16 @@ def main():
     # Parse command line args
     parser = argparse.ArgumentParser(description='Runtime Setup Tool')
     parser.add_argument('--site','-s',type=str,help='site name')
+    parser.add_argument('--library','-l',type=str,help='Path to prebuilt Runtime library')
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
-    parser.add_argument('--test','-t',type=str,help='Name of test')
+    parser.add_argument('test',type=str,help='Name of test')
     parser.add_argument('--par','-p',type=str,help='Name of par file (in site dir)')
     parser.add_argument('--makefile','-M',type=str,help='Name of Makefile (in site dir)')
     parser.add_argument('--dim','-d',type=int,help='Dimensionality of test.')
     parser.add_argument('--debug',action="store_true",help='Set up in debug mode.')
     parser.add_argument('--coverage','-c',action="store_true",help='Enable code coverage.')
     parser.add_argument('--multithreaded',action="store_true",help='Enable multithreaded distributor.')
+    parser.add_argument('--prefix',type=str,help='Where to install Runtime library')
     args = parser.parse_args()
 
     print("Orchestration Runtime setup")
@@ -64,12 +66,16 @@ def main():
     if not os.path.isdir(testDir):
         raise ValueError("Test directory not found")
 
-    # Get test makefile
-    print("Linking Makefile.test from test: "+args.test)
-    testMakefile = os.path.join(testDir,'Makefile.test')
-    if not os.path.isfile(testMakefile):
-        raise ValueError("Test Makefile not found in test dir")
-    os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
+    if (args.test == 'library'):
+        if not args.prefix:
+            raise ValueError("Need to supply prefix if building library!")
+    else:
+        # Get test makefile
+        print("Linking Makefile.test from test: "+args.test)
+        testMakefile = os.path.join(testDir,'Makefile.test')
+        if not os.path.isfile(testMakefile):
+            raise ValueError("Test Makefile not found in test dir")
+        os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
 
     # Write Makefile.setup in builddir
     print("Writing Makefile.setup")
@@ -94,6 +100,22 @@ def main():
             f.write("THREADED_DISTRIBUTOR = true\n")
         else:
             f.write("THREADED_DISTRIBUTOR = false\n")
+
+        f.write("\n")
+        if args.test == 'library':
+            f.write("LIBONLY = True\n")
+            f.write("LIB_RUNTIME_PREFIX = {}\n".format(args.prefix))
+        else:
+            f.write("# Leave blank if building a test\n")
+            f.write("LIBONLY = \n")
+            if args.library is not None:
+                f.write("LINKLIB = True\n")
+                f.write("LIB_RUNTIME = {}\n".format(args.library))
+            else:
+                f.write("# Leave blank if not linking a prebuilt library!\n")
+                f.write("LINKLIB = \n")
+                f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
+                f.write("LIB_RUNTIME = .")
 
 
     # Copy par file into build dir
@@ -130,7 +152,8 @@ def main():
         f.write('Makefile --> {}\n'.format(os.path.abspath(mainMakefile)))
         f.write('Makefile.base --> {}\n'.format(os.path.abspath(srcMakefile)))
         f.write('Makefile.site --> {}\n'.format(os.path.abspath(siteMakefile)))
-        f.write('Makefile.test --> {}\n'.format(os.path.abspath(testMakefile)))
+        if(args.test != 'library'):
+            f.write('Makefile.test --> {}\n'.format(os.path.abspath(testMakefile)))
         f.write('\n')
 
         f.write('Path to copied files:\n')

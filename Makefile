@@ -5,12 +5,15 @@ SHELL=/bin/sh
 # Makefile flags and defintions
 
 MAKEFILE     = Makefile
-MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base Makefile.test
+MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base $(if $(LIBONLY),,Makefile.test)
 
 include Makefile.site
 include Makefile.base
-include Makefile.test
 include Makefile.setup
+ifdef LIBONLY
+else
+include Makefile.test
+endif
 
 # Default shell commands
 RM ?= /bin/rm
@@ -45,7 +48,7 @@ CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
 	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
-LDFLAGS  = $(LDFLAGS_STD) $(LIB_AMREX) $(LDFLAGS_TEST)
+LDFLAGS  = -L$(LIB_RUNTIME) -lruntime $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_STD)
 
 
 # Add code coverage flags
@@ -72,6 +75,9 @@ CU_OBJS   = $(addsuffix .o, $(basename $(notdir $(CU_SRCS))))
 OBJS      = $(C_OBJS) $(CU_OBJS)
 DEPS      = $(OBJS:.o=.d)
 
+OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST))))
+OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
+
 # Use vpath as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
 # This allows all targets to be put a single directory (the build directory) and directs the Makefile to
 # search the source tree for the prerequisites.
@@ -82,19 +88,22 @@ vpath %.cu  $(sort $(dir $(CU_SRCS)))
 ##########################################################
 # Makefile commands:
 
-.PHONY: default all clean test
-default: $(BINARYNAME)
-all:     $(BINARYNAME)
+.PHONY: default all clean test install
+default: $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
+all:     $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
 test:
+ifdef LIBONLY
+else
 	./$(BINARYNAME)
+endif
 
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS) $(MAKEFILES)
+$(BINARYNAME): $(OBJS_TEST) $(MAKEFILES) $(if $(LINKLIB), ,libruntime.a)
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS) $(LDFLAGS)
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS)
 
 %.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
@@ -103,11 +112,24 @@ endif
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
+# Commands for just compiling the Runtime into a library
+runtime: libruntime.a
+
+libruntime.a: $(OBJS_BASE) $(MAKEFILES)
+	ar -rcs $@ $(OBJS_BASE)
+
+install:
+ifdef LIBONLY
+	mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
+	cp libruntime.a $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/
+endif
+
 
 # Clean removes all intermediate files
 clean:
 	$(RM) -f *.o
 	$(RM) -f *.d
+	$(RM) -f *.a
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcno
 	$(RM) -f *.gcda
