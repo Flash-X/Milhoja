@@ -30,6 +30,7 @@ std::unique_ptr<DataPacket>   DataPacket_gpu_2_stream::clone(void) const {
     return std::unique_ptr<DataPacket>{new DataPacket_gpu_2_stream{}};
 }
 
+#ifdef ENABLE_OPENACC_OFFLOAD
 /**
  * Do not call this member function before calling pack() or more than once.
  */
@@ -42,7 +43,9 @@ void  DataPacket_gpu_2_stream::releaseExtraQueue(const unsigned int id) {
 
     Backend::instance().releaseStream(stream2_);
 }
+#endif
 
+#ifdef ENABLE_OPENACC_OFFLOAD
 /**
  * Pack must be called before calling this member function.  It cannot be called
  * after calling releaseExtraStream on the same ID.
@@ -56,6 +59,7 @@ int  DataPacket_gpu_2_stream::extraAsynchronousQueue(const unsigned int id) {
 
     return stream2_.accAsyncQueue;
 }
+#endif
 
 /**
  *

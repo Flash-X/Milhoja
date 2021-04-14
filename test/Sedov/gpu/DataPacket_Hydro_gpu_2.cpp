@@ -1,4 +1,4 @@
-#include "DataPacket_Hydro_gpu_1.h"
+#include "DataPacket_Hydro_gpu_2.h"
 
 #include <cassert>
 #include <cstring>
@@ -24,14 +24,8 @@ namespace orchestration {
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
-DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
+DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(void)
     : DataPacket{},
-#if NDIM >= 2
-      stream2_{},
-#endif
-#if NDIM == 3
-      stream3_{},
-#endif
       dt_d_{nullptr}
 {
 }
@@ -40,92 +34,65 @@ DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
  * Destroy DataPacket.  Under normal circumstances, the DataPacket should have
  * been consumed and therefore own no resources.
  */
-DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
-#if NDIM >= 2
-    if (stream2_.isValid()) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] "
-                               "Second extra stream not released");
+DataPacket_Hydro_gpu_2::~DataPacket_Hydro_gpu_2(void) {
+    for (unsigned int i=0; i<N_STREAMS; ++i) {
+        if (streams_[i].isValid()) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_2::~DataPacket_Hydro_gpu_2] "
+                                   "One or more extra streams not released");
+        }
     }
-#endif
-#if NDIM == 3
-    if (stream3_.isValid()) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] "
-                               "Third extra stream not released");
-    }
-#endif
 }
 
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_1{}};
+std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_2::clone(void) const {
+    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_2{}};
 }
 
-#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
+#ifdef ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
-void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
-    if        (id == 2) {
-        if (!stream2_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
-                                   "Second queue invalid or already released");
-        } else {
-            Backend::instance().releaseStream(stream2_);
-        }
-#if NDIM == 3
-    } else if (id == 3) {
-        if (!stream3_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
-                                   "Third queue invalid or already released");
-        } else {
-            Backend::instance().releaseStream(stream3_);
-        }
-#endif
-    } else {
-        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+void  DataPacket_Hydro_gpu_2::releaseExtraQueue(const unsigned int id) {
+    if ((id < 2) || (id > N_STREAMS + 1)) {
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_2::releaseExtraQueue] "
                                     "Invalid id");
+    } else if (!streams_[id-2].isValid()) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_2::releaseExtraQueue] "
+                               "Extra queue invalid or already released");
     }
+
+    Backend::instance().releaseStream(streams_[id-2]);
 }
 #endif
 
-#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
+#ifdef ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
-int  DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
-    if        (id == 2) {
-        if (!stream2_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
-                                   "Second queue invalid");
-        } else {
-            return stream2_.accAsyncQueue;
-        }
-#if NDIM == 3
-    } else if (id == 3) {
-        if (!stream3_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
-                                   "Third queue invalid");
-        } else {
-            return stream3_.accAsyncQueue;
-        }
-#endif
-    } else {
-        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] Invalid id");
+int  DataPacket_Hydro_gpu_2::extraAsynchronousQueue(const unsigned int id) {
+    if ((id < 2) || (id > N_STREAMS + 1)) {
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] "
+                                    "Invalid id");
+    } else if (!streams_[id-2].isValid()) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] "
+                               "Second queue invalid");
     }
+
+    return streams_[id-2].accAsyncQueue;
 }
 #endif
 
 /**
  *
  */
-void  DataPacket_Hydro_gpu_1::pack(void) {
+void  DataPacket_Hydro_gpu_2::pack(void) {
     std::string   errMsg = isNull();
     if (errMsg != "") {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] " + errMsg);
+        throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] " + errMsg);
     } else if (tiles_.size() == 0) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] No tiles added");
+        throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] No tiles added");
     }
 
     Grid&   grid = Grid::instance();
@@ -133,9 +100,8 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     //----- SCRATCH SECTION
     // First block of memory should be allocated as acratch space
     // for use by GPU.  No need for this to be transferred at all.
-    unsigned int nScratchArrays = 2;
-    std::size_t  nScratchPerTileBytes  =   CC_BLOCK_SIZE_BYTES
-                                        + FCX_BLOCK_SIZE_BYTES;
+    std::size_t  nScratchPerTileBytes = FCX_BLOCK_SIZE_BYTES;
+    unsigned int nScratchArrays = 1;
 #if NDIM >= 2
     nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
@@ -155,40 +121,35 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     // blocks for use by the GPU.
     std::size_t  nBlockMetadataPerTileBytes  =                     1  * DELTA_SIZE_BYTES
                                                +                   2  * POINT_SIZE_BYTES
-                                               + (nScratchArrays + 1) * ARRAY4_SIZE_BYTES;
-    // No copy-in block data
+                                               + (nScratchArrays + 2) * ARRAY4_SIZE_BYTES;
+    std::size_t  nCopyInDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
 
     //----- COPY IN/OUT SECTION
-    // All computation on CC data effectively done in place
-    std::size_t  nCopyInOutDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
+    // No copy-in/out data
 
     //----- COPY OUT SECTION
-    // No copy-out data
+    std::size_t  nCopyOutDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
+
     nCopyToGpuBytes_ =            nCopyInBytes
                        + nTiles * nBlockMetadataPerTileBytes
-                       + nTiles * nCopyInOutDataPerTileBytes;
-    nReturnToHostBytes_ = nTiles * nCopyInOutDataPerTileBytes;
+                       + nTiles * nCopyInDataPerTileBytes;
+    nReturnToHostBytes_ = nTiles * nCopyOutDataPerTileBytes;
     std::size_t  nBytesPerPacket =   nTiles * nScratchPerTileBytes
                                    +          nCopyInBytes
                                    + nTiles * nBlockMetadataPerTileBytes
-                                   + nTiles * nCopyInOutDataPerTileBytes;
+                                   + nTiles * nCopyInDataPerTileBytes
+                                   + nTiles * nCopyOutDataPerTileBytes;
 
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire stream");
+        throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire stream");
     }
-#if NDIM >= 2
-    stream2_ = Backend::instance().requestStream(true);
-    if (!stream2_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire second stream");
+    for (unsigned int i=0; i<N_STREAMS; ++i) {
+        streams_[i] = Backend::instance().requestStream(true);
+        if (!streams_[i].isValid()) {
+            throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire extra stream");
+        }
     }
-#endif
-#if NDIM == 3
-    stream3_ = Backend::instance().requestStream(true);
-    if (!stream3_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire third stream");
-    }
-#endif
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
@@ -204,15 +165,19 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
                                + nTiles * nScratchPerTileBytes;
     copyInOutStart_p_        =            copyInStart_p_
                                +          nCopyInBytes
-                               + nTiles * nBlockMetadataPerTileBytes;
+                               + nTiles * nBlockMetadataPerTileBytes
+                               + nTiles * nCopyInDataPerTileBytes;
     copyInOutStart_d_        =            copyInStart_d_
                                +          nCopyInBytes
-                               + nTiles * nBlockMetadataPerTileBytes;
+                               + nTiles * nBlockMetadataPerTileBytes
+                               + nTiles * nCopyInDataPerTileBytes;
+    char* copyOutStart_p = copyInOutStart_p_;
+    char* copyOutStart_d = copyInOutStart_d_;
 
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
     if (pinnedPtrs_) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] Pinned pointers already exist");
+        throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] Pinned pointers already exist");
     }
     pinnedPtrs_ = new BlockPointersPinned[nTiles];
 
@@ -246,10 +211,15 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     ptr_p += nTiles * sizeof(PacketContents);
     ptr_d += nTiles * sizeof(PacketContents);
 
-    char* CC_data_p     = copyInOutStart_p_;
-    char* CC_data_d     = copyInOutStart_d_;
-    char* CC_scratch_d  = scratchStart_d;
-    char* FCX_scratch_d = CC_scratch_d +  CC_BLOCK_SIZE_BYTES;
+    char* CC1_data_p    =            copyInStart_p_
+                          +          nCopyInBytes
+                          + nTiles * nBlockMetadataPerTileBytes;
+    char* CC1_data_d    =            copyInStart_d_
+                          +          nCopyInBytes
+                          + nTiles * nBlockMetadataPerTileBytes;
+    char* CC2_data_p    = copyOutStart_p;
+    char* CC2_data_d    = copyOutStart_d;
+    char* FCX_scratch_d = scratchStart_d;
 #if NDIM >= 2
     char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
 #endif
@@ -262,7 +232,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
         Tile*   tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) {
-            throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc");
+            throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Bad tileDesc");
         }
 
         const RealVect      deltas = tileDesc_h->deltas();
@@ -272,16 +242,15 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         const IntVect       hiGC   = tileDesc_h->hiGC();
         Real*               data_h = tileDesc_h->dataPtr();
         if (data_h == nullptr) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] "
                                    "Invalid pointer to data in host memory");
         }
 
         // Put data in copy in/out section
         // TODO: Can we transfer over all CC1 data in a single memcpy call?
-        std::memcpy((void*)CC_data_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
-        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC_data_p);
-        // Data will always be copied back from CC1
-        pinnedPtrs_[n].CC2_data = nullptr;
+        std::memcpy((void*)CC1_data_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
+        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC1_data_p);
+        pinnedPtrs_[n].CC2_data = static_cast<Real*>((void*)CC2_data_p);
 
         tilePtrs_p->deltas_d = static_cast<RealVect*>((void*)ptr_d);
         std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
@@ -306,16 +275,16 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         // IMPORTANT: When this local object is destroyed, we don't want it to
         // affect the use of the copies (e.g. release memory).
         tilePtrs_p->CC1_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   CC_d{static_cast<Real*>((void*)CC_data_d),
-                        loGC, hiGC, NUNKVAR};
-        std::memcpy((void*)ptr_p, (void*)&CC_d, ARRAY4_SIZE_BYTES);
+        FArray4D   CC1_d{static_cast<Real*>((void*)CC1_data_d),
+                         loGC, hiGC, NUNKVAR};
+        std::memcpy((void*)ptr_p, (void*)&CC1_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->CC2_d = static_cast<FArray4D*>((void*)ptr_d);
-        FArray4D   CC_sc_d{static_cast<Real*>((void*)CC_scratch_d),
-                           loGC, hiGC, NUNKVAR};
-        std::memcpy((void*)ptr_p, (void*)&CC_sc_d, ARRAY4_SIZE_BYTES);
+        FArray4D   CC2_d{static_cast<Real*>((void*)CC2_data_d),
+                         loGC, hiGC, NUNKVAR};
+        std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
@@ -327,9 +296,10 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        CC_data_p     += CC_BLOCK_SIZE_BYTES;
-        CC_data_d     += CC_BLOCK_SIZE_BYTES;
-        CC_scratch_d  += nScratchPerTileBytes;
+        CC1_data_p    += CC_BLOCK_SIZE_BYTES;
+        CC1_data_d    += CC_BLOCK_SIZE_BYTES;
+        CC2_data_p    += CC_BLOCK_SIZE_BYTES;
+        CC2_data_d    += CC_BLOCK_SIZE_BYTES;
         FCX_scratch_d += nScratchPerTileBytes;
 
 #if NDIM >= 2

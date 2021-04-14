@@ -1,4 +1,4 @@
-#include "DataPacket_Hydro_gpu_1.h"
+#include "DataPacket_Hydro_gpu_3.h"
 
 #include <cassert>
 #include <cstring>
@@ -24,12 +24,10 @@ namespace orchestration {
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
-DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
+DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
     : DataPacket{},
-#if NDIM >= 2
-      stream2_{},
-#endif
 #if NDIM == 3
+      stream2_{},
       stream3_{},
 #endif
       dt_d_{nullptr}
@@ -40,17 +38,11 @@ DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(void)
  * Destroy DataPacket.  Under normal circumstances, the DataPacket should have
  * been consumed and therefore own no resources.
  */
-DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
-#if NDIM >= 2
-    if (stream2_.isValid()) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] "
-                               "Second extra stream not released");
-    }
-#endif
+DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
 #if NDIM == 3
-    if (stream3_.isValid()) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] "
-                               "Third extra stream not released");
+    if (stream2_.isValid() || stream3_.isValid()) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] "
+                               "One or more extra streams not released");
     }
 #endif
 }
@@ -58,61 +50,57 @@ DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_1{}};
+std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
+    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_3{}};
 }
 
-#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
+#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
-void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
+void  DataPacket_Hydro_gpu_3::releaseExtraQueue(const unsigned int id) {
     if        (id == 2) {
         if (!stream2_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Second queue invalid or already released");
         } else {
             Backend::instance().releaseStream(stream2_);
         }
-#if NDIM == 3
     } else if (id == 3) {
         if (!stream3_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Third queue invalid or already released");
         } else {
             Backend::instance().releaseStream(stream3_);
         }
-#endif
     } else {
-        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::releaseExtraQueue] "
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                     "Invalid id");
     }
 }
 #endif
 
-#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
+#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
-int  DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
+int  DataPacket_Hydro_gpu_3::extraAsynchronousQueue(const unsigned int id) {
     if        (id == 2) {
         if (!stream2_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::extraAsynchronousQueue] "
                                    "Second queue invalid");
         } else {
             return stream2_.accAsyncQueue;
         }
-#if NDIM == 3
     } else if (id == 3) {
         if (!stream3_.isValid()) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::extraAsynchronousQueue] "
                                    "Third queue invalid");
         } else {
             return stream3_.accAsyncQueue;
         }
-#endif
     } else {
-        throw std::invalid_argument("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] Invalid id");
+        throw std::invalid_argument("[DataPacket_Hydro_gpu_3::extraAsynchronousQueue] Invalid id");
     }
 }
 #endif
@@ -120,12 +108,12 @@ int  DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
 /**
  *
  */
-void  DataPacket_Hydro_gpu_1::pack(void) {
+void  DataPacket_Hydro_gpu_3::pack(void) {
     std::string   errMsg = isNull();
     if (errMsg != "") {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] " + errMsg);
+        throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] " + errMsg);
     } else if (tiles_.size() == 0) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] No tiles added");
+        throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] No tiles added");
     }
 
     Grid&   grid = Grid::instance();
@@ -175,18 +163,13 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
 
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire stream");
+        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
     }
-#if NDIM >= 2
-    stream2_ = Backend::instance().requestStream(true);
-    if (!stream2_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire second stream");
-    }
-#endif
 #if NDIM == 3
+    stream2_ = Backend::instance().requestStream(true);
     stream3_ = Backend::instance().requestStream(true);
-    if (!stream3_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire third stream");
+    if (!stream2_.isValid() || !stream3_.isValid()) {
+        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
     }
 #endif
 
@@ -212,7 +195,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     // Store for later unpacking the location in pinned memory of the different
     // blocks.
     if (pinnedPtrs_) {
-        throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] Pinned pointers already exist");
+        throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] Pinned pointers already exist");
     }
     pinnedPtrs_ = new BlockPointersPinned[nTiles];
 
@@ -262,7 +245,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
     for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
         Tile*   tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) {
-            throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc");
+            throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Bad tileDesc");
         }
 
         const RealVect      deltas = tileDesc_h->deltas();
@@ -272,7 +255,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         const IntVect       hiGC   = tileDesc_h->hiGC();
         Real*               data_h = tileDesc_h->dataPtr();
         if (data_h == nullptr) {
-            throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] "
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] "
                                    "Invalid pointer to data in host memory");
         }
 

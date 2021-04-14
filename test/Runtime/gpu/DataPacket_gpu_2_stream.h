@@ -1,9 +1,6 @@
 #ifndef DATA_PACKET_GPU_2_STREAM_H__
 #define DATA_PACKET_GPU_2_STREAM_H__
 
-#include <stdexcept>
-
-#include "Grid_REAL.h"
 #include "DataPacket.h"
 
 namespace orchestration {

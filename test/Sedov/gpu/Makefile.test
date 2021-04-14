@@ -22,6 +22,8 @@ SRCS_TEST = \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
     $(SEDOVDIR)/hy_updateSolutionHll.cpp \
 	$(TESTDIR)/DataPacket_Hydro_gpu_1.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_2.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \

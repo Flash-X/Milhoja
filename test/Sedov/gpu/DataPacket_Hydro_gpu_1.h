@@ -22,14 +22,16 @@ public:
 
     void    pack(void) override;
 
-#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
+#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
     int     extraAsynchronousQueue(const unsigned int id) override;
     void    releaseExtraQueue(const unsigned int id) override;
 #endif
 
 private:
-#if NDIM == 3
+#if NDIM >= 2
     Stream  stream2_;
+#endif
+#if NDIM == 3
     Stream  stream3_;
 #endif
     Real*   dt_d_;

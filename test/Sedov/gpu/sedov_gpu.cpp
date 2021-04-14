@@ -8,7 +8,9 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "DataPacket_Hydro_gpu_1.h"
+//#include "DataPacket_Hydro_gpu_1.h"
+//#include "DataPacket_Hydro_gpu_2.h"
+#include "DataPacket_Hydro_gpu_3.h"
 
 #include "Grid_REAL.h"
 #include "Grid.h"
@@ -91,6 +93,9 @@ int main(int argc, char* argv[]) {
     hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
     hydroAdvance_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
     hydroAdvance_gpu.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
+    // Use packet X with Task Function X
+//    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_1;
+//    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_2;
     hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
 
     computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST;
@@ -106,7 +111,9 @@ int main(int argc, char* argv[]) {
 
     unsigned int   nStep   = 1;
 
-    const DataPacket_Hydro_gpu_1    packetPrototype;
+//    const DataPacket_Hydro_gpu_1    packetPrototype;
+//    const DataPacket_Hydro_gpu_2    packetPrototype;
+    const DataPacket_Hydro_gpu_3    packetPrototype;
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time

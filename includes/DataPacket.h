@@ -18,7 +18,7 @@
  * DataPacket.  The Grid unit defines the Tile interface and concrete Grid
  * implementations include concrete implementations of the Tile interface.  The
  * runtime's distributors use the Grid's iterator to access Tile objects and can
- * subsquently push each of these to the appropriate pipelines in its associated
+ * subsequently push each of these to the appropriate pipelines in its associated
  * configuration.  The threads in ThreadTeams couple these objects with actions
  * to form tasks.  In this sense, Tile is the fundamental DataItem for the
  * runtime.  Note that when a thread forms and executes a task, it passes the
@@ -33,10 +33,10 @@
  * Once a DataPacket is full, the distributor asks the DataPacket to prepare
  * itself for transfer (i.e. pack itself), initiates data movements, and pushes
  * it to the appropriate pipelines so that threads will decompose it into Tiles
- * that are then used to construct tasks.  This implies that the distrubutor
+ * that are then used to construct tasks.  This implies that the distributor
  * must have the ability to create DataPacket objects as needed.
  *
- * To satisify the aforementioned function interface requirement and to minimize
+ * To satisfy the aforementioned function interface requirement and to minimize
  * data movements, non-tile-specific data needed by an action routine (e.g. dt)
  * can also be included in each DataPacket object.  This, however, implies that
  * each action that works with DataPackets could require different content and that
@@ -63,7 +63,7 @@
  *
  * The interface allows for some optimization of data transfers by allowing
  * DataPackets to be structured such that there is a contiguous copy-in block, a
- * continguous copy-in/out block, and a contigous copy-out block.  Ideally, the
+ * continguous copy-in/out block, and a contiguous copy-out block.  Ideally, the
  * copy-in and copy-in/out blocks will be adjacent so that only these two blocks
  * can be sent to a device and done so in a single transfer.  Similarly, the
  * copy in/out and copy-out blocks should be adjacent so that only these
@@ -104,7 +104,7 @@
  * the original data will be transferred to the device and only the location
  * storing the result will be transferred back to host.  The DataPacket allows
  * for setting and accessing the current location and this must always be
- * maintained up-to-date.  For instance, the upack() member function needs knows
+ * maintained up-to-date.  For instance, the unpack() member function needs knows
  * where to find the data.
  *
  * Each packet is configured to only manage a single contiguous group of
@@ -120,7 +120,7 @@
  * to the FPGA, and then back to the host.  What about packets that needn't
  * start or end on the host?  Note that such a data packet would not be
  * associated with a single thread team or a single action.
- * @todo Make sure that ACTION_ROUTINE above links to the actual documenation
+ * @todo Make sure that ACTION_ROUTINE above links to the actual documentation
  *       in doxygen.
  * @todo Add in citation to Gang of Four book.
  */
@@ -191,7 +191,7 @@ public:
      *
      * @return The pointer.  For the main use cases in the runtime, this should
      * be cast to a shared_ptr.  We return a unique_ptr based on the discussion
-     * in Item 19 (Pp 113) of Effective Moden C++.
+     * in Item 19 (Pp 113) of Effective Modern C++.
      *
      * @todo Add in citation.
      */
@@ -267,8 +267,9 @@ public:
 
 #ifdef ENABLE_OPENACC_OFFLOAD
     /**
-     * Obtain the main OpenACC asychronous queue assigned to the packet.  This can be
-     * called after pack() is called and before unpack() is called.
+     * Obtain the main OpenACC asynchronous queue assigned to the packet, on
+     * which communications are scheduled and computation can also be scheduled.
+     * This can be called after pack() is called and before unpack() is called.
      */
     int                    asynchronousQueue(void) { return stream_.accAsyncQueue; }
 
@@ -288,7 +289,7 @@ public:
      * data on the packet's main queue.
      *
      * @param id - the index of the queue to obtain.  If the packet has acquired
-     * N total queues, valid values are 2 to N.
+     * N total queues, valid values are 2 to N inclusive.
      */
     virtual int            extraAsynchronousQueue(const unsigned int id)
         { throw std::logic_error("[DataPacket::extraAsynchronousQueue] no extra queues"); }
@@ -296,7 +297,7 @@ public:
     /**
      * Release the indicated extra OpenACC asynchronous queue.  This must be 
      * called after calling pack() and before calling unpack().  It is a logical
-     * error to call this more than once for any given id.
+     * error to call this more than once for any given id or on the main queue.
      * 
      * @param id - the index of the queue to release.
      */

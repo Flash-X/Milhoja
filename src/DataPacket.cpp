@@ -9,6 +9,8 @@ namespace orchestration {
 /**
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
+ *
+ * @todo The error checks below should be asserts.
  */
 DataPacket::DataPacket(void)
       : location_{PacketDataLocation::NOT_ASSIGNED},
@@ -82,7 +84,7 @@ void  DataPacket::nullify(void) {
 /**
  * Determine if the packet is in the null/empty state.
  *
- * @return An empty string is yes; otherwise, an explanation of why it is not
+ * @return An empty string if yes; otherwise, an explanation of why it is not
  * null.
  *
  * @todo This could eventually disappear once the data packets are written by
