@@ -49,8 +49,8 @@ test/*/buildInfo.h
 test/*/buildInfo.inc
 test/*/*.o
 test/*.mod
-simulations/*/*.o
-test/*.mod
+test/Runtime/gpu/*.graffle
+test/Sedov/gpu/*.graffle
 studies/Summit_2020-04-15/gatherDataCpp_*
 studies/Summit_2020-04-15/gatherDataF2003_*
 studies/Summit_2020-04-15/testRuntimeCpp_*
