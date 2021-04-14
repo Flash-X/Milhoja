@@ -21,6 +21,9 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
     $(SEDOVDIR)/hy_updateSolutionHll.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_1.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_2.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
 	$(TESTDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
@@ -50,7 +53,7 @@ SRCS_TEST = \
 	$(TESTDIR)/sedov_gpu.cpp
 
 CU_SRCS = \
+	$(SRCDIR)/CudaBackend.cu \
 	$(SRCDIR)/CudaGpuEnvironment.cu \
-	$(SRCDIR)/CudaDataPacket.cu \
 	$(SRCDIR)/CudaStreamManager.cu \
 	$(SRCDIR)/CudaMemoryManager.cu

@@ -16,6 +16,47 @@
 
 namespace orchestration {
 
+bool   CudaStreamManager::instantiated_ = false;
+int    CudaStreamManager::nMaxStreams_ = -1;
+
+/**
+ * Instantiate and initialize the application's singleton stream manager object.
+ *
+ * \param nMaxStreams - the maximum number of streams to be made available.  The
+ *                      given value must be a positive integer.
+ */
+void   CudaStreamManager::instantiate(const int nMaxStreams) {
+    if (instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instantiate] "
+                               "Already instantiated");
+    } else if (nMaxStreams <= 0) {
+        // We need at least one stream to avoid deadlocking in requestStream
+        // when there are no free streams.
+        throw std::invalid_argument("[CudaStreamManager::instantiate] "
+                                    "Need at least one stream");
+    }
+
+    // Create/initialize
+    nMaxStreams_ = nMaxStreams;
+    instantiated_ = true;
+
+    instance();
+}
+
+/**
+ * Request access to the singleton stream manager.  Before calling this routine,
+ * calling code must first instantiate the manager.
+ */
+CudaStreamManager&   CudaStreamManager::instance(void) {
+    if (!instantiated_) {
+        throw std::logic_error("[CudaStreamManager::instance] "
+                               "CudaStreamManager must be instantiated first");
+    }
+
+    static CudaStreamManager   manager;
+    return manager;
+}
+
 /**
  * 
  *
@@ -114,6 +155,9 @@ CudaStreamManager::~CudaStreamManager(void) {
     pthread_cond_destroy(&streamReleased_);
     pthread_mutex_destroy(&idxMutex_);
 
+    nMaxStreams_ = -1;
+    instantiated_ = false;
+
     Logger::instance().log("[CudaStreamManager] Destroyed");
 }
 
@@ -139,8 +183,8 @@ int  CudaStreamManager::numberFreeStreams(void) {
 /**
  * This should be by move only!
  *
- * If block is true and there are no free streams, this member function will
- * block the calling thread until a stream becomes free.
+ * Refer to the documentation of the requestStream member function of the
+ * Backend class.
  *
  * \todo   If, as is the case for CUDA, the streams are relatively cheap
  *         objects, then should we allow this routine to allocate more streams
@@ -150,17 +194,7 @@ int  CudaStreamManager::numberFreeStreams(void) {
  *         concept unless we know that all stream managers can dynamically grow
  *         their reserve.  This, presently, cannot be implemented as
  *         OpenACC+CUDA with PGI on Summit has an upper limit of 32 streams.
- * \todo   It appears (see below) that deadlocking can presently occur.  Alter
- *         design so that this is an impossibility.  Should a data packet
- *         request all possible streams at creation?  Can we enforce the
- *         rule that streams cannot be obtained outside of this?  Would this
- *         be wasting stream resources if the extra streams are only needed
- *         briefly once upfront for an action that will otherwise run for a long time?
  * \todo   Add in logging of release if verbosity level is high enough.
- *
- * \return The free stream that has been given to the calling code for exclusive
- * use.  If block is set to false and there are no free streams, then a null
- * stream object is returned.
  */
 Stream    CudaStreamManager::requestStream(const bool block) {
     // Get exclusive access to the free stream queue so that we can safely get
@@ -210,9 +244,8 @@ Stream    CudaStreamManager::requestStream(const bool block) {
 }
 
 /**
- * 
- *
- * \return 
+ * Refer to the documentation of the releaseStream member function of the
+ * Backend class.
  */
 void   CudaStreamManager::releaseStream(Stream& stream) {
     if (stream.cudaStream == nullptr) {

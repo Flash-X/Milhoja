@@ -3,6 +3,7 @@
 
 #include "MoverUnpacker.h"
 
+#include "Backend.h"
 #include "DataPacket.h"
 
 namespace orchestration {
@@ -131,7 +132,9 @@ void MoverUnpacker::enqueue(std::shared_ptr<DataItem>&& dataItem) {
     }
 
     // This registers the callback and transfers ownership.
-    packet->initiateDeviceToHostTransfer(handleTransferFinished, userData);
+    Backend::instance().initiateGpuToHostTransfer(*packet,
+                                                  handleTransferFinished,
+                                                  userData);
     userData = nullptr;
 }
 

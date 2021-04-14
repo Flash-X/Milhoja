@@ -11,6 +11,7 @@
 #include <string>
 
 #include "ThreadTeam.h"
+#include "DataPacket.h"
 #include "ActionBundle.h"
 #include "RuntimeAction.h"
 
@@ -37,39 +38,45 @@ public:
                                      const std::size_t nBytesInMemoryPools);
     static Runtime&      instance(void);
 
-    void executeTasks(const ActionBundle& bundle);
-
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
-                         const RuntimeAction& gpuAction);
+                         const RuntimeAction& gpuAction,
+                         const DataPacket& packetPrototype);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
-                            const RuntimeAction& gpuAction);
+                            const RuntimeAction& gpuAction,
+                            const DataPacket& packetPrototype);
     void executeExtendedGpuTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const RuntimeAction& gpuAction,
-                                 const RuntimeAction& postGpuAction);
+                                 const RuntimeAction& postGpuAction,
+                                 const DataPacket& packetPrototype);
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
+                                 const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,
                                          const RuntimeAction& actionA_gpu,
                                          const RuntimeAction& postActionB_cpu,
+                                         const DataPacket& packetPrototype,
                                          const unsigned int nTilesPerCpuTurn);
     void executeCpuGpuWowzaTasks(const std::string& bundleName,
                                  const RuntimeAction& actionA_cpu,
                                  const RuntimeAction& actionA_gpu,
                                  const RuntimeAction& actionB_gpu,
+                                 const DataPacket& packetPrototypeA,
+                                 const DataPacket& packetPrototypeB,
                                  const unsigned int nTilesPerCpuTurn);
     void executeTasks_FullPacket(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
-                                 const RuntimeAction& postGpuAction);
+                                 const RuntimeAction& postGpuAction,
+                                 const DataPacket& packetPrototype);
 #endif
 
 private:

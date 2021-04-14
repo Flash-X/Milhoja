@@ -13,7 +13,7 @@ namespace orchestration {
 
 class CudaGpuEnvironment {
 public:
-    ~CudaGpuEnvironment(void)   { };
+    ~CudaGpuEnvironment(void)   { instantiated_ = false; };
 
     CudaGpuEnvironment(CudaGpuEnvironment&)                  = delete;
     CudaGpuEnvironment(const CudaGpuEnvironment&)            = delete;
@@ -22,6 +22,7 @@ public:
     CudaGpuEnvironment& operator=(const CudaGpuEnvironment&) = delete;
     CudaGpuEnvironment& operator=(CudaGpuEnvironment&&)      = delete;
 
+    static void                 instantiate(void);
     static CudaGpuEnvironment&  instance(void);
 
     std::size_t   nGpuDevices(void) const         { return nDevices_; }
@@ -31,6 +32,8 @@ public:
 
 private:
     CudaGpuEnvironment(void);
+
+    static bool   instantiated_;
 
     int           nDevices_;
     std::string   gpuDeviceName_;

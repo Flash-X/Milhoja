@@ -17,8 +17,8 @@ SRCS_TEST = \
 	$(TESTDIR)/runCudaBackendTests.cpp
 
 CU_SRCS = \
+	$(SRCDIR)/CudaBackend.cu \
 	$(SRCDIR)/CudaGpuEnvironment.cu \
-	$(SRCDIR)/CudaDataPacket.cu \
 	$(SRCDIR)/CudaStreamManager.cu \
 	$(SRCDIR)/CudaMemoryManager.cu \
 	$(TESTDIR)/testCudaStreamManager.cu
