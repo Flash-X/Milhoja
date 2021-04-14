@@ -3,7 +3,6 @@
 #endif
 
 #include "DataPacket.h"
-#include "Backend.h"
 
 #include "Eos.h"
 #include "Hydro.h"
