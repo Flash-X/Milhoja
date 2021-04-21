@@ -1,0 +1,68 @@
+##FlashxRecipeLang V 1:2021-04-21
+#####################
+# Recipe Instructions
+#####################
+
+@BEGIN_RECIPEINSTRUCTIONS NAME Uhd_NoGrav_Instructions
+
+@GCFILL               NAME com1                                             INDATA (ALL_UNK)              OUTDATA (ALL_UNK)                      OPTIONS (doEos,makeMaskConsistent,eosMode=hy_eosModeGc)
+
+@DATASOURCE           NAME it   AFTER com1 ITERATE ALL LEAVES
+@BEGIN_CONCURRENTDATA NAME dIn  AFTER it                                    INDATA (DENS,Vels,PRES,ENER)                               SCRATCH ( tempPres,presStar)
+@IF (finestLevel(it) .AND. (.NOT. useTiling))
+@   RecipeInstruction NAME hyFl   AFTER dIn  INVOKE hy_computeFluxes_updALL INDATA (DENS,Vels,PRES,ENER)                               OUTDATA (flX,flY,flZ,DENS,Vels,PRES,ENER) SUSE(tempPres,presStar)
+@ELSE
+@   RecipeInstruction NAME hyFl   AFTER dIn  INVOKE hy_computeFluxes        INDATA (DENS,Vels,PRES,ENER)                               OUTDATA (flX,flY,flZ,                    SCRATCH_CTR      )
+@END_IF
+@END_CONCURRENTDATA   NAME dOut AFTER hyFl                                                                                             OUTDATA (flX,flY,flZ,DENS,Vels,PRES,ENER,SCRATCH_CTR      )
+
+
+@DATASOURCE           NAME it2  AFTER dOut ITERATE ALL LEAVES NO_TILING
+@BEGIN_CONCURRENTDATA NAME dIn2 AFTER it2                                   INDATA (                                      flX,flY,flZ)
+@RecipeInstruction    NAME flToSP AFTER din2 INVOKE Grid_putFluxData        INDATA (                                      flX,flY,flZ) OUTDATA (                                                  SPFS)
+@END_CONCURRENTDATA   NAME dOut2 AFTER flToSP                                                                                          OUTDATA (                                                  SPFS)
+
+@FLUXCOMM             NAME comF AFTER dOut2                                 INDATA (SPFS   )                OUTDATA (SPFS)
+@DATASOURCE           NAME it3  AFTER comF ITERATE ALL LEAVES NO_TILING
+@BEGIN_CONCURRENTDATA NAME dIn3 AFTER it3                                   INDATA (                                      flX,flY,flZ)
+@RecipeInstruction    NAME SPtoFl AFTER din3 INVOKE Grid_getFluxData        INDATA (SPFS ,                                flX,flY,flZ) OUTDATA (flX,flY,flZ)
+@END_CONCURRENTDATA   NAME dOut3 AFTER SPtoFl                                                                                          OUTDATA (flX,flY,flZ)
+
+
+@DATASOURCE           NAME it4   AFTER dOut3 ITERATE ALL LEAVES
+@BEGIN_CONCURRENTDATA NAME dIn4 AFTER it4                                   INDATA (DENS,Vels,PRES,ENER,SCRATCH_CTR      ,flX,flY,flZ)
+@IF (not (finestLevel(it4) .AND. (.NOT. useTiling)))
+@   RecipeInstruction NAME hyUp4 AFTER dIn4  INVOKE hy_updateSolution       INDATA (DENS,Vels,     ENER,SCRATCH_CTR      ,flX,flY,flZ) OUTDATA (            DENS,Vels,PRES,ENER)
+@END_IF
+@END_CONCURRENTDATA   NAME dOut AFTER hyUp4                                                                                            OUTDATA (            DENS,Vels,PRES,ENER)
+
+
+@END_RECIPEINSTRUCTIONS   NAME Uhd_NoGrav_Instructions
+
+##########################
+# Recipe Hardware Mappings
+##########################
+
+@BEGIN_RECIPELOCATIONS NAME Uhd_NoGrav_Locations INSTRUCTIONS Uhd_NoGrav_Instructions
+@USE Uhd_NoGrav_Instructions
+@USE My_Machine_Hints
+
+@BEGIN_CONCURRENTHW
+@HwType NAME CPU  RUNS_INSTRUCTIONS ioIq
+@HwType NAME GPU  RUNS_INSTRUCTIONS hySp, hyFl, hyUp, eosG
+@END_CONCURRENTHW
+
+@END_RECIPELOCATIONS   NAME Uhd_NoGrav_Locations
+
+#######################
+# Recipe Hardware Hints
+#######################
+
+@BEGIN_RECIPEHINTS NAME My_Machine_Hints
+
+@BEGIN_CONCURRENTHW
+@HwType NAME CPU   PARAMETERS {nInitialThreads:  4, nTilesPerPacket:  0}
+@HwType NAME GPU   PARAMETERS {nInitialThreads: 16, nTilesPerPacket: 64}
+@END_CONCURRENTHW
+
+@END_RECIPEHINTS   NAME My_Machine_Hints
