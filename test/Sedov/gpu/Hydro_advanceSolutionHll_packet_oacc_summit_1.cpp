@@ -30,7 +30,23 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
     ptr_d += sizeof(std::size_t);
     const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
 
-    packet_h->setVariableMask(UNK_VARS_BEGIN_C, UNK_VARS_END_C);
+    // This task function neither reads from nor writes to GAME.  While it does
+    // read from GAMC, this variable is not written to as part of the task
+    // function's work.  Therefore, GAME need not be included in the packet and
+    // GAMC need not be copied back to Grid data structures as part of
+    // host-side unpacking.
+    //
+    // Note that this optimization requires that GAMC be adjacent in memory to
+    // all other variables in the packet and GAME outside of this grouping.  For
+    // this test, these two variables were declared in Flash.h as the last two
+    // UNK variables to accomplish this goal.
+    //
+    // TODO: How to do the masking?  Does the setup tool/offline toolchain have
+    // to determine how to assign indices to the variables so that this can
+    // happen for all task actions that must filter?  Selecting the order of
+    // variables in memory sounds like part of the larger optimization problem
+    // as it affects all data packets.
+    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
 
     if (location != PacketDataLocation::CC1) {
         throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_1] "
