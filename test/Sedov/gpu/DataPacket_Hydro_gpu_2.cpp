@@ -100,6 +100,22 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
     //----- SCRATCH SECTION
     // First block of memory should be allocated as acratch space
     // for use by GPU.  No need for this to be transferred at all.
+    // 
+    // GAMC is read from, but not written to by the task function that uses this
+    // packet.  In addition, GAME is neither read from nor written to.
+    // Therefore, GAME need not be included in the packet at all.  GAMC should
+    // be included in the copyInOut section (i.e. CC1), but not in the copyOut
+    // section (i.e. CC2).  As part of this, the variable order in memory was
+    // setup so that GAME is the last variable; GAMC, the penultimate.
+    std::size_t  nCc1Variables = NUNKVAR - 1;
+    std::size_t  nCc2Variables = NUNKVAR - 2;
+    std::size_t  cc1BlockSizeBytes =   nCc1Variables
+                                     * N_ELEMENTS_PER_CC_PER_VARIABLE
+                                     * sizeof(Real);
+    std::size_t  cc2BlockSizeBytes =   nCc2Variables
+                                     * N_ELEMENTS_PER_CC_PER_VARIABLE
+                                     * sizeof(Real);
+
     std::size_t  nScratchPerTileBytes = FCX_BLOCK_SIZE_BYTES;
     unsigned int nScratchArrays = 1;
 #if NDIM >= 2
@@ -122,13 +138,13 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
     std::size_t  nBlockMetadataPerTileBytes  =                     1  * DELTA_SIZE_BYTES
                                                +                   2  * POINT_SIZE_BYTES
                                                + (nScratchArrays + 2) * ARRAY4_SIZE_BYTES;
-    std::size_t  nCopyInDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
+    std::size_t  nCopyInDataPerTileBytes = cc1BlockSizeBytes;
 
     //----- COPY IN/OUT SECTION
     // No copy-in/out data
 
     //----- COPY OUT SECTION
-    std::size_t  nCopyOutDataPerTileBytes = CC_BLOCK_SIZE_BYTES;
+    std::size_t  nCopyOutDataPerTileBytes = cc2BlockSizeBytes;
 
     nCopyToGpuBytes_ =            nCopyInBytes
                        + nTiles * nBlockMetadataPerTileBytes
@@ -248,7 +264,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
 
         // Put data in copy in/out section
         // TODO: Can we transfer over all CC1 data in a single memcpy call?
-        std::memcpy((void*)CC1_data_p, (void*)data_h, CC_BLOCK_SIZE_BYTES);
+        std::memcpy((void*)CC1_data_p, (void*)data_h, cc1BlockSizeBytes);
         pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC1_data_p);
         pinnedPtrs_[n].CC2_data = static_cast<Real*>((void*)CC2_data_p);
 
@@ -276,14 +292,14 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         // affect the use of the copies (e.g. release memory).
         tilePtrs_p->CC1_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC1_d{static_cast<Real*>((void*)CC1_data_d),
-                         loGC, hiGC, NUNKVAR};
+                         loGC, hiGC, nCc1Variables};
         std::memcpy((void*)ptr_p, (void*)&CC1_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
         tilePtrs_p->CC2_d = static_cast<FArray4D*>((void*)ptr_d);
         FArray4D   CC2_d{static_cast<Real*>((void*)CC2_data_d),
-                         loGC, hiGC, NUNKVAR};
+                         loGC, hiGC, nCc2Variables};
         std::memcpy((void*)ptr_p, (void*)&CC2_d, ARRAY4_SIZE_BYTES);
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
@@ -296,10 +312,10 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         ptr_p += ARRAY4_SIZE_BYTES;
         ptr_d += ARRAY4_SIZE_BYTES;
 
-        CC1_data_p    += CC_BLOCK_SIZE_BYTES;
-        CC1_data_d    += CC_BLOCK_SIZE_BYTES;
-        CC2_data_p    += CC_BLOCK_SIZE_BYTES;
-        CC2_data_d    += CC_BLOCK_SIZE_BYTES;
+        CC1_data_p    += cc1BlockSizeBytes;
+        CC1_data_d    += cc1BlockSizeBytes;
+        CC2_data_p    += cc2BlockSizeBytes;
+        CC2_data_d    += cc2BlockSizeBytes;
         FCX_scratch_d += nScratchPerTileBytes;
 
 #if NDIM >= 2

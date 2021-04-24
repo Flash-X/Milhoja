@@ -217,6 +217,10 @@ void   DataPacket::setVariableMask(const int startVariable,
  * that were included in the packet is preserved.  This is necessary so that
  * runtime elements such as MoverUnpacker can enqueue the Tiles with its data
  * subscriber.
+ *
+ * @todo Should unpacking be made more generic so that the CC blocks need not 
+ *       start always with the first data variable.  What if the packet just
+ *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket::unpack(void) {
     if (tiles_.size() <= 0) {
