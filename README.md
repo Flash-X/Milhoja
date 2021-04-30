@@ -18,8 +18,7 @@ If the user has a site directory configured as specified in the Build System Req
 - python setup.py -t ThreadTeam -d 2 -p par\_threadteam.h
 - python setup.py -t Sedov/mpi -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
 - python setup.py -t Sedov/cpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
-- python setup.py -t Sedov/gpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_gpu.par
-
+- python setup.py -t Sedov/gpu/variant{1,2,3} -d {2,3} -p sedov\_{2,3}D\_cartesian\_gpu.par
 
 Building the Runtime as a library
 =================================
