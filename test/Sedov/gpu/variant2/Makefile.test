@@ -1,0 +1,49 @@
+# Define the desired binary name with BINARYNAME
+BINARYNAME          = sedov_gpu.x
+
+# Define relevant paths
+SEDOVDIR            = $(BASEDIR)/test/Sedov
+SEDOVGPUDIR         = $(BASEDIR)/test/Sedov/gpu
+TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant2
+
+# Define compiler flags in CXXFLAGS_TEST_*
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+CUFLAGS_TEST        = -I$(SEDOVDIR)                                             -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+LDFLAGS_TEST        = $(OACC_FLAGS)
+
+# Define list of sources in SRCS_TEST
+SRCS_TEST = \
+	$(SRCDIR)/DataPacket.cpp \
+	$(SRCDIR)/MoverUnpacker.cpp \
+	$(SEDOVDIR)/errorEstBlank.cpp \
+	$(SEDOVDIR)/ProcessTimer.cpp \
+	$(SEDOVDIR)/sim_setInitialConditions.cpp \
+	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
+    $(SEDOVDIR)/hy_computeFluxesHll.cpp \
+    $(SEDOVDIR)/hy_updateSolutionHll.cpp \
+    $(SEDOVDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
+	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc_summit.cpp \
+	$(TESTDIR)/hy_updateDensityHll_oacc_summit.cpp \
+	$(TESTDIR)/hy_updateVelxHll_oacc_summit.cpp \
+	$(TESTDIR)/hy_updateVelyHll_oacc_summit.cpp \
+	$(TESTDIR)/hy_updateVelzHll_oacc_summit.cpp \
+	$(TESTDIR)/hy_updateEnergyHll_oacc_summit.cpp \
+	$(SEDOVGPUDIR)/hy_computeEintHll_oacc_summit.cpp \
+	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
+	$(SEDOVDIR)/Io.cpp \
+	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
+	$(SEDOVDIR)/Driver_data.cpp \
+	$(TESTDIR)/DataPacket_Hydro_gpu_2.cpp \
+	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
+	$(TESTDIR)/sedov_gpu_2.cpp
+
+CU_SRCS = \
+	$(SRCDIR)/CudaBackend.cu \
+	$(SRCDIR)/CudaGpuEnvironment.cu \
+	$(SRCDIR)/CudaStreamManager.cu \
+	$(SRCDIR)/CudaMemoryManager.cu

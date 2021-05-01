@@ -9,16 +9,19 @@
 
 #include "Flash.h"
 
-void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
+void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
     const int                  queue_h    = packet_h->asynchronousQueue();
+#if NDIM >= 2
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
+#endif
+#if NDIM == 3
     const int                  queue3_h   = packet_h->extraAsynchronousQueue(3);
-    const int                  queue4_h   = packet_h->extraAsynchronousQueue(4);
+#endif
     const PacketDataLocation   location   = packet_h->getDataLocation();
     const PacketContents*      contents_d = packet_h->tilePointers();
 
@@ -27,34 +30,44 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
     ptr_d += sizeof(std::size_t);
     const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
 
-    // This action routine writes the new result to CC2 without setting
-    // GAME/GAMC.  Therefore, whatever data was originally in CC2 is used to
-    // overwrite the true values for this variable once the packet returns to
-    // the host.  Therefore, these two variables were declared in Flash.h as the
-    // last two UNK variables.  By doing so, we can use the rudimentary runtime
-    // variable filtering to avoid this unintended overwriting.
-    // TODO: How to do the masking?  Does the setup tool/offline toolchain have
-    // to determine how to assign indices to the variables so that this can
-    // happen for all action routines that must filter?
-    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
-
     if (location != PacketDataLocation::CC1) {
-        throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_2] "
+        throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_1] "
                                  "Input data must be in CC1");
     }
 
+    // This task function neither reads from nor writes to GAME.  While it does
+    // read from GAMC, this variable is not written to as part of the task
+    // function's work.  Therefore, GAME need not be included in the packet and
+    // GAMC need not be copied back to Grid data structures as part of
+    // host-side unpacking.
+    //
+    // Note that this optimization requires that GAMC be adjacent in memory to
+    // all other variables in the packet and GAME outside of this grouping.  For
+    // this test, these two variables were declared in Flash.h as the last two
+    // UNK variables to accomplish this goal.
+    //
+    // GAMC is sent to the GPU, but does not need to be returned to the host.
+    // To accomplish this, the CC1 blocks in the copy-in section are packed with
+    // one more variable than the CC2 blocks packed in the copy-out section.
+    // Note that the CC2 blocks are used first as "3D" scratch arrays for auxC.
+    //
+    // TODO: How to do the masking?  Does the setup tool/offline toolchain have
+    // to determine how to assign indices to the variables so that this can
+    // happen for all task actions that must filter?  Selecting the order of
+    // variables in memory sounds like part of the larger optimization problem
+    // as it affects all data packets.
+    packet_h->setDataLocation(PacketDataLocation::CC2);
+    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
+
     //----- ADVANCE SOLUTION
     // Update unk data on interiors only
-    //   * It is assumed that the GC are filled already.
-    // We require two CC data blocks since the velocities and energies use both
-    // the old and new density.
-    packet_h->setDataLocation(PacketDataLocation::CC2);
-
+    //   * It is assumed that the GC are filled already
+    //   * No tiling for now means that computing fluxes and updating the
+    //     solution can be fused and the full advance run independently on each
+    //     block and in place.
     #pragma acc data deviceptr(nTiles_d, contents_d, dt_d)
     {
         //----- COMPUTE FLUXES
-        // NOTE: CC2 is used solely by auxC during this stage.  It is then
-        // used for computing the updated solutions in the next phase.
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;
@@ -110,6 +123,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
         }
         // BARRIER - fluxes must all be computed before updating the solution
         #pragma acc wait(queue_h,queue2_h)
+        packet_h->releaseExtraQueue(2);
 #elif NDIM == 3
         // Wait for data to arrive and then launch these three for concurrent
         // execution
@@ -150,97 +164,63 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
         }
         // BARRIER - fluxes must all be computed before updated the solution
         #pragma acc wait(queue_h,queue2_h,queue3_h)
-#endif
-
-        //----- UPDATE SOLUTIONS
-        // Update solutions using separate U data blocks so that different
-        // variables can be updated simultaneously
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              Unew_d = ptrs->CC2_d;
-            const FArray4D*        flX_d  = ptrs->FCX_d;
-            const FArray4D*        flY_d  = ptrs->FCY_d;
-            const FArray4D*        flZ_d  = ptrs->FCZ_d;
-    
-            hy::updateDensityHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                             U_d, Unew_d,
-                                             flX_d, flY_d, flZ_d);
-        }
-
-        // The velocities and energy depend on density, but can be updated
-        // independently and therefore concurrently.
-        #pragma acc wait(queue_h)
-
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              Unew_d = ptrs->CC2_d;
-            const FArray4D*        flX_d  = ptrs->FCX_d;
-            const FArray4D*        flY_d  = ptrs->FCY_d;
-            const FArray4D*        flZ_d  = ptrs->FCZ_d;
-
-            hy::updateVelxHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                          U_d, Unew_d,
-                                          flX_d, flY_d, flZ_d);
-        }
-        #pragma acc parallel loop gang default(none) async(queue2_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              Unew_d = ptrs->CC2_d;
-            const FArray4D*        flX_d  = ptrs->FCX_d;
-            const FArray4D*        flY_d  = ptrs->FCY_d;
-            const FArray4D*        flZ_d  = ptrs->FCZ_d;
-
-            hy::updateVelyHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                          U_d, Unew_d,
-                                          flX_d, flY_d, flZ_d);
-        }
-        #pragma acc parallel loop gang default(none) async(queue3_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              Unew_d = ptrs->CC2_d;
-            const FArray4D*        flX_d  = ptrs->FCX_d;
-            const FArray4D*        flY_d  = ptrs->FCY_d;
-            const FArray4D*        flZ_d  = ptrs->FCZ_d;
-
-            hy::updateVelzHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                          U_d, Unew_d,
-                                          flX_d, flY_d, flZ_d);
-        }
-        #pragma acc parallel loop gang default(none) async(queue4_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              Unew_d = ptrs->CC2_d;
-            const FArray4D*        flX_d  = ptrs->FCX_d;
-            const FArray4D*        flY_d  = ptrs->FCY_d;
-            const FArray4D*        flZ_d  = ptrs->FCZ_d;
-
-            hy::updateEnergyHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                            U_d, Unew_d,
-                                            flX_d, flY_d, flZ_d);
-        }
-
-        // BARRIER - Remaining computations depend on updated solutions
-        #pragma acc wait(queue_h,queue2_h,queue3_h,queue4_h)
-
-        // Release streams as early as possible
         packet_h->releaseExtraQueue(2);
         packet_h->releaseExtraQueue(3);
-        packet_h->releaseExtraQueue(4);
+#endif
 
+        //----- UPDATE SOLUTIONS IN PLACE
+        // U is a shared resource for all of these kernels and therefore
+        // they must be launched serially.
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              Uin_d   = ptrs->CC1_d;
+            FArray4D*              Uout_d  = ptrs->CC2_d;
+
+            hy::scaleSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, Uin_d, Uout_d);
+        }
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flX_d = ptrs->FCX_d;
+
+            hy::updateSolutionHll_FlX_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flX_d);
+        }
+#if NDIM >= 2
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flY_d = ptrs->FCY_d;
+
+            hy::updateSolutionHll_FlY_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flY_d);
+        }
+#endif
+#if NDIM == 3
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flZ_d = ptrs->FCZ_d;
+
+            hy::updateSolutionHll_FlZ_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flZ_d);
+        }
+#endif
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+
+            hy::rescaleSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
+        }
 #ifdef EINT_VAR_C
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs   = contents_d + n;
-            FArray4D*              Unew_d = ptrs->CC2_d;
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
 
-            hy::computeEintHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, Unew_d);
+            hy::computeEintHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
         }
 #endif
 
@@ -248,13 +228,12 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;
-            FArray4D*              Unew_d = ptrs->CC2_d;
+            FArray4D*              U_d = ptrs->CC2_d;
 
-            Eos::idealGammaDensIe_oacc_summit(ptrs->lo_d, ptrs->hi_d, Unew_d);
+            Eos::idealGammaDensIe_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
         }
     } // OpenACC data block
 
     #pragma acc wait(queue_h)
-
 }
 

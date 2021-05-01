@@ -4,8 +4,8 @@
 #define NGUARD 1
 
 #if 0
-GAMC and GAME intentionally set as last two UNK variables.  See
-Hydro_advanceSolutionHll_packet_oacc_summit_2 for more info.
+GAMC and GAME intentionally set as last two UNK variables.  In fact, GAME must
+be last.  See Hydro_advanceSolutionHll_packet_oacc_summit_* for more info.
 #endif
 #define DENS_VAR_C 0
 #define VELX_VAR_C 1
@@ -35,11 +35,11 @@ Hydro_advanceSolutionHll_packet_oacc_summit_2 for more info.
 #define ORCH_REAL    MPI_DOUBLE_PRECISION
 
 #if 0
-Assuming 2D only for now
+Assuming 3D
 #endif
 #define K1D        1
 #define K2D        1
-#define K3D        0
+#define K3D        1
 
 #endif
 
