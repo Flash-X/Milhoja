@@ -58,8 +58,11 @@ int main(int argc, char* argv[]) {
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    io.computeLocalIntegralQuantities();
     orchestration::Timer::stop("Set initial conditions");
+
+    orchestration::Timer::start("computeLocalIQ");
+    io.computeLocalIntegralQuantities();
+    orchestration::Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
@@ -144,12 +147,14 @@ int main(int argc, char* argv[]) {
             hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
             Eos::idealGammaDensIe(lo, hi, U);
         }
-        io.computeLocalIntegralQuantities();
         double       wtime_sec = MPI_Wtime() - tStart;
-
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
         orchestration::Timer::stop("Gather/Write");
+
+        orchestration::Timer::start("computeLocalIQ");
+        io.computeLocalIntegralQuantities();
+        orchestration::Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
         orchestration::Timer::start("Reduce/Write");

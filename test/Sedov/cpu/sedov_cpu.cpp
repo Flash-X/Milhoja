@@ -69,9 +69,11 @@ int main(int argc, char* argv[]) {
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    // Compute local integral quantities
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
     orchestration::Timer::stop("Set initial conditions");
+
+    orchestration::Timer::start("computeLocalIQ");
+    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    orchestration::Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
@@ -94,12 +96,6 @@ int main(int argc, char* argv[]) {
                         hydroAdvance.nInitialThreads,
                         N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
-
-    ProcessTimer  intQ{rp_Simulation::NAME + "_timings_iq.dat", "CPU",
-                       N_DIST_THREADS,
-                       computeIntQuantitiesByBlk.nInitialThreads,
-                       N_GPU_THREADS,
-                       N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
 
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
@@ -137,12 +133,9 @@ int main(int argc, char* argv[]) {
         hydro.logTimestep(nStep, wtime_sec);
         orchestration::Timer::stop("Gather/Write");
 
-        tStart = MPI_Wtime();
+        orchestration::Timer::start("computeLocalIQ");
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-        wtime_sec = MPI_Wtime() - tStart;
-        orchestration::Timer::start("Gather/Write");
-        intQ.logTimestep(nStep, wtime_sec);
-        orchestration::Timer::stop("Gather/Write");
+        orchestration::Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
         // Compute local integral quantities
