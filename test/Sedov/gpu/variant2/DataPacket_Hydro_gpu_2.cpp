@@ -263,7 +263,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         }
 
         // Put data in copy in/out section
-        // TODO: Can we transfer over all CC1 data in a single memcpy call?
+        // We are not including GAME, which is the last variable in each block
         std::memcpy((void*)CC1_data_p, (void*)data_h, cc1BlockSizeBytes);
         pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC1_data_p);
         pinnedPtrs_[n].CC2_data = static_cast<Real*>((void*)CC2_data_p);
