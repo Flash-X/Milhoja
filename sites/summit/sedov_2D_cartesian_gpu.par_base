@@ -13,11 +13,11 @@ namespace rp_Bundle_1 {
 namespace rp_Bundle_2 {
     // A Data Parallel Cpu/Gpu pipeline
     //   - CPU & GPU apply Hydro solution advance
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS =  4;
-    constexpr unsigned int          N_TILES_PER_CPU_TURN  = 20;
-    constexpr unsigned int          N_THREADS_CPU         =  3;
-    constexpr unsigned int          N_THREADS_GPU         =  4;
-    constexpr unsigned int          N_BLOCKS_PER_PACKET   = 80;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS = REPLACE_NDT;
+    constexpr unsigned int          N_TILES_PER_CPU_TURN  = REPLACE_NTPCT;
+    constexpr unsigned int          N_THREADS_CPU         = REPLACE_NCT;
+    constexpr unsigned int          N_THREADS_GPU         = REPLACE_NGT;
+    constexpr unsigned int          N_BLOCKS_PER_PACKET   = REPLACE_NBPP;
 }
 
 //----- UNIT RUNTIME PARAMETERS
@@ -60,7 +60,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 1000;
+    constexpr  unsigned int         MAX_STEPS = REPLACE_MAX_STEPS;
     // When FLASH-X runs Sedov/2D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.

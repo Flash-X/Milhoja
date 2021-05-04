@@ -32,6 +32,7 @@ sites/summit/gatherDataF2003.*
 sites/summit/sedovCpuCpp.*
 sites/summit/sedovGpuCpp.*
 sites/summit/sedovBaselineCpp.*
+sites/summit/sedov_[23]D_cartesian_gpu.par
 sites/bebop/build/build_*.log
 sites/bebop/test_threadteam_cpp_bebop.[oe]*
 sites/bebop/test_runtime_cpp_bebop.[oe]*
