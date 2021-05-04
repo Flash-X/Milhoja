@@ -176,7 +176,7 @@ int main(int argc, char* argv[]) {
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_final");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_final");
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 
