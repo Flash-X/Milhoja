@@ -192,6 +192,8 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
 
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
+    constexpr unsigned int   N_DIST_THREADS = 2;
+
     Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu");
 
     RuntimeAction    computeLaplacian_cpu;
@@ -213,6 +215,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
+                                                N_DIST_THREADS,
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
@@ -225,6 +228,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     computeLaplacian_gpu.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelEnergy",
+                                                N_DIST_THREADS,
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
@@ -360,6 +364,8 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
 
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
+    constexpr unsigned int   N_DIST_THREADS = 2;
+
     Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu Fused Actions");
 
     RuntimeAction    computeLaplacian_cpu;
@@ -381,6 +387,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
+                                                N_DIST_THREADS,
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
@@ -396,6 +403,8 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
 
 #if defined(USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
+    constexpr unsigned int   N_DIST_THREADS = 2;
+
     Logger::instance().log("[googletest] Start Data Parallel Cpu/Gpu Fused Kernels");
 
     RuntimeAction    computeLaplacian_cpu;
@@ -417,6 +426,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
+                                                N_DIST_THREADS,
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
