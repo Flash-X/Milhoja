@@ -1354,6 +1354,8 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 std::string  msg = team->printState_NotThreadsafe(
                         "threadRoutine", tId, "dataItem is unexpectedly NULLed");
                 std::cerr << msg << std::endl;
+                // TODO: This will unlock a mutex that the thread no longer has.
+                //       Remove this line.
                 pthread_mutex_unlock(&(team->teamMutex_));
                 throw std::logic_error(msg);
             }
@@ -1364,6 +1366,17 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // limit the likelihood of serialization of the threads in the team
             // when the team is shipping data back to the host or splitting the
             // data items up.
+            //
+            // dataItem is thread-private and its contents are owned by the
+            // thread once the contents are popped off the shared queue.
+            // dataReceiver_ is a shared resource.  However, if we can prove
+            // that dataReciever_ will not be altered by the following enqueue
+            // command and that no other thread can change dataRecevier_ (e.g.
+            // set it to nullptr), then we might be able to move the mutex lock
+            // command after it.  This is contingent on the guarantee that the
+            // data receiver's enqueue commmand is thread safe so that it is
+            // safe for multiple threads in this team to call the enqueue method
+            // of the next team.  Other considerations?
 
             // This is where computationFinished is "emitted"
             pthread_mutex_lock(&(team->teamMutex_));

@@ -66,9 +66,11 @@ int main(int argc, char* argv[]) {
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    // Compute local integral quantities
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
     orchestration::Timer::stop("Set initial conditions");
+
+    orchestration::Timer::start("computeLocalIQ");
+    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    orchestration::Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
@@ -92,8 +94,6 @@ int main(int argc, char* argv[]) {
     hydroAdvance_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
     hydroAdvance_gpu.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
     hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_2;
-
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_2::N_THREADS_POST;
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
                         rp_Bundle_2::N_DISTRIBUTOR_THREADS,
@@ -134,18 +134,20 @@ int main(int argc, char* argv[]) {
         }
 
         double   tStart = MPI_Wtime();
-        runtime.executeExtendedCpuGpuSplitTasks("Advance Hydro Solution",
-                                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                                hydroAdvance_cpu,
-                                                hydroAdvance_gpu,
-                                                computeIntQuantitiesByBlk,
-                                                packetPrototype,
-                                                rp_Bundle_2::N_TILES_PER_CPU_TURN);
+        runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
+                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                        hydroAdvance_cpu,
+                                        hydroAdvance_gpu,
+                                        packetPrototype,
+                                        rp_Bundle_2::N_TILES_PER_CPU_TURN);
         double   wtime_sec = MPI_Wtime() - tStart;
-
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
         orchestration::Timer::stop("Gather/Write");
+
+        orchestration::Timer::start("computeLocalIQ");
+        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        orchestration::Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
         //  local integral quantities computed as part of previous bundle

@@ -54,6 +54,7 @@ public:
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype);
     void executeCpuGpuSplitTasks(const std::string& bundleName,
+                                 const unsigned int nDistributorThreads,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,

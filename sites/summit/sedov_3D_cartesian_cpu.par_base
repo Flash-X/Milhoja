@@ -5,28 +5,16 @@
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 
-//----- ACTION ROUTINE BUNDLE RUNTIME PARAMETERS
-namespace rp_Bundle_1 {
-    constexpr unsigned int          N_THREADS_CPU = 6;
-}
-
-namespace rp_Bundle_2 {
-    // An Extended Cpu/Gpu pipeline
-    //   - CPU & GPU apply Hydro solution advance
-    //   - Post computes the local integral quantities
-    constexpr unsigned int          N_DISTRIBUTOR_THREADS = 4;
-    constexpr unsigned int          N_TILES_PER_CPU_TURN = 20;
-    constexpr unsigned int          N_THREADS_CPU = 3;
-    constexpr unsigned int          N_THREADS_GPU = 4;
-    constexpr unsigned int          N_BLOCKS_PER_PACKET = 80;
-    constexpr unsigned int          N_THREADS_POST = 0;
-}
-
-//----- UNIT RUNTIME PARAMETERS
 namespace rp_Driver {
     // This is how I fake a Driver_computeDt
     constexpr orchestration::Real   DT_AFTER            = 1.1e-4_wp;
     constexpr unsigned int          WRITE_EVERY_N_STEPS = 10000;
+}
+
+namespace rp_Io {
+    // computeIntegralQuantitiesByBlock run in CPU-only thread team
+    // configuration using blocks
+    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = REPLACE_NCT;
 }
 
 namespace rp_Grid {
@@ -45,14 +33,20 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 14;
-    constexpr unsigned int          N_THREAD_TEAMS         = 3;
-    constexpr int                   N_STREAMS              = 32;
-    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 15032385536;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 7;
+    constexpr unsigned int          N_THREAD_TEAMS         = 1;
+    constexpr int                   N_STREAMS              = 1; 
+    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 0;
 }
 
 namespace rp_Eos {
     constexpr orchestration::Real   GAMMA = 1.4_wp;
+}
+
+namespace rp_Hydro {
+    // advanceSolution run in CPU-only thread team
+    // configuration using blocks
+    constexpr unsigned int          N_THREADS_FOR_ADV_SOLN = REPLACE_NCT;
 }
 
 namespace rp_Simulation {
@@ -62,7 +56,7 @@ namespace rp_Simulation {
 
     constexpr  orchestration::Real  T_0       = 0.0_wp;
     constexpr  orchestration::Real  T_MAX     = 0.5_wp;
-    constexpr  unsigned int         MAX_STEPS = 250;
+    constexpr  unsigned int         MAX_STEPS = REPLACE_MAX_STEPS;
     // When FLASH-X runs Sedov/3D with a dtInit that is too small, it sets
     // dtInit to one-tenth the CFL-limited dt value for Hydro, which is this
     // value.
