@@ -81,13 +81,6 @@ int main(int argc, char* argv[]) {
     orchestration::Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    RuntimeAction     hydroAdvance_cpu;
-    hydroAdvance_cpu.name            = "Advance Hydro Solution - CPU";
-    hydroAdvance_cpu.nInitialThreads = rp_Bundle_2::N_THREADS_CPU;
-    hydroAdvance_cpu.teamType        = ThreadTeamDataType::BLOCK;
-    hydroAdvance_cpu.nTilesPerPacket = 0;
-    hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
-
     RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
     hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
@@ -96,11 +89,11 @@ int main(int argc, char* argv[]) {
     hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
-                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                        hydroAdvance_cpu.nInitialThreads,
+                        1,
+                        0,
                         hydroAdvance_gpu.nInitialThreads,
                         hydroAdvance_gpu.nTilesPerPacket,
-                        rp_Bundle_2::N_TILES_PER_CPU_TURN};
+                        0};
 
     orchestration::Timer::start(rp_Simulation::NAME + " simulation");
 
@@ -134,12 +127,9 @@ int main(int argc, char* argv[]) {
         }
 
         double   tStart = MPI_Wtime();
-        runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
-                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                        hydroAdvance_cpu,
-                                        hydroAdvance_gpu,
-                                        packetPrototype,
-                                        rp_Bundle_2::N_TILES_PER_CPU_TURN);
+        runtime.executeGpuTasks("Advance Hydro Solution",
+                                hydroAdvance_gpu,
+                                packetPrototype);
         double   wtime_sec = MPI_Wtime() - tStart;
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
