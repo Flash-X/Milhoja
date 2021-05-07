@@ -43,7 +43,8 @@ public:
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
                          const RuntimeAction& gpuAction,
-                         const DataPacket& packetPrototype);
+                         const DataPacket& packetPrototype,
+                         const unsigned int stepNumber);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const RuntimeAction& gpuAction,

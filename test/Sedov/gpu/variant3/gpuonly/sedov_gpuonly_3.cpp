@@ -129,7 +129,8 @@ int main(int argc, char* argv[]) {
         double   tStart = MPI_Wtime();
         runtime.executeGpuTasks("Advance Hydro Solution",
                                 hydroAdvance_gpu,
-                                packetPrototype);
+                                packetPrototype,
+                                nStep);
         double   wtime_sec = MPI_Wtime() - tStart;
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
