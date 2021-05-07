@@ -139,7 +139,8 @@ int main(int argc, char* argv[]) {
                                         hydroAdvance_cpu,
                                         hydroAdvance_gpu,
                                         packetPrototype,
-                                        rp_Bundle_2::N_TILES_PER_CPU_TURN);
+                                        rp_Bundle_2::N_TILES_PER_CPU_TURN,
+                                        nStep);
         double   wtime_sec = MPI_Wtime() - tStart;
         orchestration::Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
