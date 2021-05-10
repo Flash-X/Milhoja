@@ -799,10 +799,10 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                   / (double)gpuAction.nTilesPerPacket);
 
     unsigned int  pCounts[nDistThreads];
-    unsigned int  bCounts[nPackets][nDistThreads];
-    double        wtimesPack_sec[nPackets][nDistThreads];
-    double        wtimesAsync_sec[nPackets][nDistThreads];
-    double        wtimesPacket_sec[nPackets][nDistThreads];
+    unsigned int  bCounts[nDistThreads][nPackets];
+    double        wtimesPack_sec[nDistThreads][nPackets];
+    double        wtimesAsync_sec[nDistThreads][nPackets];
+    double        wtimesPacket_sec[nDistThreads][nPackets];
 
     std::string   filename("timings_packet_step");
     filename += std::to_string(stepNumber);
@@ -865,9 +865,6 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 
     //***** ACTION PARALLEL DISTRIBUTOR
     unsigned int   level = 0;
-    // TODO:  A first look at this with NSight makes it look like the OMP
-    // threads are busy-waiting (aka spin cycling) at the implied barrier.
-    // Investigate this.
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
                      shared(grid, backend, level, packetPrototype, \
@@ -879,19 +876,17 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 #endif
     {
 #ifdef USE_THREADED_DISTRIBUTOR
-        int         tId = omp_get_thread_num();
+        int         tIdx = omp_get_thread_num();
 #else
-        int         tId = 0;
+        int         tIdx = 0;
 #endif
-        bool        isCpuTurn = ((tId % 2) == 0);
+        bool        isCpuTurn = true;
         int         nInCpuTurn = 0;
 
         unsigned int  pIdx         = 0;
         double        tStartPacket = 0.0;
         double        tStartPack   = 0.0;
         double        tStartAsync  = 0.0;
-
-        pCounts[tId] = 0;
 
         std::shared_ptr<Tile>             tileDesc{};
 
@@ -914,16 +909,16 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                 if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
                     tStartPack = MPI_Wtime();
                     packet_gpu->pack();
-                    wtimesPack_sec[pIdx][tId] = MPI_Wtime() - tStartPack;
+                    wtimesPack_sec[tIdx][pIdx] = MPI_Wtime() - tStartPack;
 
                     tStartAsync = MPI_Wtime();
                     backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
-                    wtimesAsync_sec[pIdx][tId] = MPI_Wtime() - tStartAsync;
+                    wtimesAsync_sec[tIdx][pIdx] = MPI_Wtime() - tStartAsync;
 
-                    bCounts[pIdx][tId] = packet_gpu->nTiles();
+                    bCounts[tIdx][pIdx] = packet_gpu->nTiles();
                     gpuTeam->enqueue( std::move(packet_gpu) );
 
-                    wtimesPacket_sec[pIdx][tId] = MPI_Wtime() - tStartPacket;
+                    wtimesPacket_sec[tIdx][pIdx] = MPI_Wtime() - tStartPacket;
 
                     ++pIdx;
                     isCpuTurn = true;
@@ -937,22 +932,22 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
         if (packet_gpu->nTiles() > 0) {
             tStartPack = MPI_Wtime();
             packet_gpu->pack();
-            wtimesPack_sec[pIdx][tId] = MPI_Wtime() - tStartPack;
+            wtimesPack_sec[tIdx][pIdx] = MPI_Wtime() - tStartPack;
 
             tStartAsync = MPI_Wtime();
             backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
-            wtimesAsync_sec[pIdx][tId] = MPI_Wtime() - tStartAsync;
+            wtimesAsync_sec[tIdx][pIdx] = MPI_Wtime() - tStartAsync;
 
-            bCounts[pIdx][tId] = packet_gpu->nTiles();
+            bCounts[tIdx][pIdx] = packet_gpu->nTiles();
             gpuTeam->enqueue( std::move(packet_gpu) );
 
-            wtimesPacket_sec[pIdx][tId] = MPI_Wtime() - tStartPacket;
+            wtimesPacket_sec[tIdx][pIdx] = MPI_Wtime() - tStartPacket;
 
             ++pIdx;
         } else {
             packet_gpu.reset();
         }
-        pCounts[tId] = pIdx;
+        pCounts[tIdx] = pIdx;
 
         cpuTeam->increaseThreadCount(1);
     } // implied barrier
@@ -963,10 +958,10 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     for     (unsigned int tIdx=0; tIdx<nDistThreads;  ++tIdx) {
         for (unsigned int pIdx=0; pIdx<pCounts[tIdx]; ++pIdx) {
             fptr << tIdx << ',' << pIdx << ','
-                 << bCounts[pIdx][tIdx] << ','
-                 << wtimesPack_sec[pIdx][tIdx] << ','
-                 << wtimesAsync_sec[pIdx][tIdx] << ','
-                 << wtimesPacket_sec[pIdx][tIdx] << "\n";
+                 << bCounts[tIdx][pIdx] << ','
+                 << wtimesPack_sec[tIdx][pIdx] << ','
+                 << wtimesAsync_sec[tIdx][pIdx] << ','
+                 << wtimesPacket_sec[tIdx][pIdx] << "\n";
         }
     }
     fptr.close();
