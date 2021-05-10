@@ -214,11 +214,17 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     std::ofstream   fptr;
     fptr.open(filename, std::ios::out);
     fptr << "# Testname = GPU-Only\n";
+    fptr << "# Step = " << stepNumber << "\n";
+    fptr << "# MPI rank = " << rank << "\n";
     fptr << "# Dimension = " << NDIM << "\n";
     fptr << "# NXB = " << NXB << "\n";
     fptr << "# NYB = " << NYB << "\n";
     fptr << "# NZB = " << NZB << "\n";
+    fptr << "# n_distributor_threads = 1\n";
+    fptr << "# n_cpu_threads = 0\n";
+    fptr << "# n_gpu_threads = " << gpuAction.nInitialThreads << "\n";
     fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
+    fptr << "# n_blocks_per_cpu_turn = 0\n";
     fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
     fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
 
@@ -296,7 +302,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     fptr << std::setprecision(15);
     for (pIdx=0; pIdx<nPackets; ++pIdx) {
-        fptr << '0,' << pIdx << ','
+        fptr << 0 << ',' << pIdx << ','
              << bCounts[pIdx] << ','
              << wtimesPack_sec[pIdx] << ','
              << wtimesAsync_sec[pIdx] << ','
@@ -807,11 +813,17 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     std::ofstream   fptr;
     fptr.open(filename, std::ios::out);
     fptr << "# Testname = Data Parallel CPU/GPU\n";
+    fptr << "# Step = " << stepNumber << "\n";
+    fptr << "# MPI rank = " << rank << "\n";
     fptr << "# Dimension = " << NDIM << "\n";
     fptr << "# NXB = " << NXB << "\n";
     fptr << "# NYB = " << NYB << "\n";
     fptr << "# NZB = " << NZB << "\n";
+    fptr << "# n_distributor_threads = " << nDistThreads << "\n";
+    fptr << "# n_cpu_threads = " << cpuAction.nInitialThreads << "\n";
+    fptr << "# n_gpu_threads = " << gpuAction.nInitialThreads << "\n";
     fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
+    fptr << "# n_blocks_per_cpu_turn = " << nTilesPerCpuTurn << "\n";
     fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
     fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
 
