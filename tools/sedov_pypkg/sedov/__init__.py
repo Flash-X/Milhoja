@@ -16,6 +16,8 @@ from sedov.compare_integral_quantities import compare_integral_quantities
 
 # classes
 from sedov.Result import Result
+from sedov.PacketTimingsSingleFile import PacketTimingsSingleFile
+from sedov.PacketTimings import PacketTimings
 
 # visualizations
 from sedov.MplConservedQuantities import MplConservedQuantities

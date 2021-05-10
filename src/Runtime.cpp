@@ -1,10 +1,13 @@
 #include "Runtime.h"
 
+#include <mpi.h>
 #ifdef USE_THREADED_DISTRIBUTOR
 #include <omp.h>
 #endif
 
 #include <cassert>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
 
@@ -14,6 +17,7 @@
 #include "OrchestrationLogger.h"
 
 #include "Flash.h"
+#include "constants.h"
 
 namespace orchestration {
 
@@ -166,7 +170,8 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const RuntimeAction& gpuAction,
-                              const DataPacket& packetPrototype) {
+                              const DataPacket& packetPrototype,
+                              const unsigned int stepNumber) {
     Logger::instance().log("[Runtime] Start single GPU action");
 
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
@@ -180,6 +185,48 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
         throw std::logic_error("[Runtime::executeGpuTasks] "
                                "Need at least one ThreadTeam in runtime");
     }
+
+    Grid&         grid = Grid::instance();
+    Backend&      backend = Backend::instance();
+
+    //***** SETUP TIMING
+    int rank = -1;
+    MPI_Comm_rank(GLOBAL_COMM, &rank);
+
+    unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
+                                  / (double)gpuAction.nTilesPerPacket);
+
+    unsigned int  pIdx         = 0;
+    double        tStartPacket = 0.0;
+    double        tStartPack   = 0.0;
+    double        tStartAsync  = 0.0;
+    unsigned int  bCounts[nPackets];
+    double        wtimesPack_sec[nPackets];
+    double        wtimesAsync_sec[nPackets];
+    double        wtimesPacket_sec[nPackets];
+
+    std::string   filename("timings_packet_step");
+    filename += std::to_string(stepNumber);
+    filename += "_rank";
+    filename += std::to_string(rank);
+    filename += ".dat";
+
+    std::ofstream   fptr;
+    fptr.open(filename, std::ios::out);
+    fptr << "# Testname = GPU-Only\n";
+    fptr << "# Step = " << stepNumber << "\n";
+    fptr << "# MPI rank = " << rank << "\n";
+    fptr << "# Dimension = " << NDIM << "\n";
+    fptr << "# NXB = " << NXB << "\n";
+    fptr << "# NYB = " << NYB << "\n";
+    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# n_distributor_threads = 1\n";
+    fptr << "# n_cpu_threads = 0\n";
+    fptr << "# n_gpu_threads = " << gpuAction.nInitialThreads << "\n";
+    fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
+    fptr << "# n_blocks_per_cpu_turn = 0\n";
+    fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
+    fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
 
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
     // GPU action parallel pipeline
@@ -204,37 +251,47 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     gpuToHost1_.startCycle();
 
     //***** ACTION PARALLEL DISTRIBUTOR
-    unsigned int                  level = 0;
-    Grid&                         grid = Grid::instance();
-    Backend&                      backend = Backend::instance();
+    unsigned int  level = 0;
+
+    tStartPacket = MPI_Wtime();
     std::shared_ptr<DataPacket>   packet_gpu = packetPrototype.clone();
-    if ((packet_gpu == nullptr) || (packet_gpu.use_count() != 1)) {
-        throw std::logic_error("[Runtime::executeGpuTasks] Bad packet at creation");
-    }
     for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
         packet_gpu->addTile( ti->buildCurrentTile() );
         if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+            tStartPack = MPI_Wtime();
             packet_gpu->pack();
+            wtimesPack_sec[pIdx] = MPI_Wtime() - tStartPack;
+
+            tStartAsync = MPI_Wtime();
             backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+            wtimesAsync_sec[pIdx] = MPI_Wtime() - tStartAsync;
 
+            bCounts[pIdx] = packet_gpu->nTiles();
             gpuTeam->enqueue( std::move(packet_gpu) );
-            if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
-                throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (in loop)");
-            }
 
+            wtimesPacket_sec[pIdx] = MPI_Wtime() - tStartPacket;
+            ++pIdx;
+
+            tStartPacket = MPI_Wtime();
             packet_gpu = packetPrototype.clone();
         }
     }
 
     if (packet_gpu->nTiles() > 0) {
+        tStartPack = MPI_Wtime();
         packet_gpu->pack();
+        wtimesPack_sec[pIdx] = MPI_Wtime() - tStartPack;
+
+        tStartAsync = MPI_Wtime();
         backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+        wtimesAsync_sec[pIdx] = MPI_Wtime() - tStartAsync;
+
+        bCounts[pIdx] = packet_gpu->nTiles();
         gpuTeam->enqueue( std::move(packet_gpu) );
+
+        wtimesPacket_sec[pIdx] = MPI_Wtime() - tStartPacket;
     } else {
         packet_gpu.reset();
-    }
-    if ((packet_gpu != nullptr) || (packet_gpu.use_count() != 0)) {
-        throw std::logic_error("[Runtime::executeGpuTasks] Ownership not transferred (after)");
     }
 
     gpuTeam->closeQueue(nullptr);
@@ -242,6 +299,17 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     // host thread blocks until cycle ends, so activate another thread 
     // in team first
     gpuTeam->increaseThreadCount(1);
+
+    fptr << std::setprecision(15);
+    for (pIdx=0; pIdx<nPackets; ++pIdx) {
+        fptr << 0 << ',' << pIdx << ','
+             << bCounts[pIdx] << ','
+             << wtimesPack_sec[pIdx] << ','
+             << wtimesAsync_sec[pIdx] << ','
+             << wtimesPacket_sec[pIdx] << "\n";
+    }
+    fptr.close();
+
     gpuToHost1_.wait();
 
     //***** BREAK APART THREAD TEAM CONFIGURATION
@@ -603,9 +671,6 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     unsigned int                      level = 0;
     Grid&                             grid = Grid::instance();
     Backend&                          backend = Backend::instance();
-    // TODO:  A first look at this with NSight makes it look like the OMP
-    // threads are busy-waiting (aka spin cycling) at the implied barrier.
-    // Investigate this.
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
                      shared(grid, backend, level, packetPrototype, cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn) \
@@ -667,6 +732,247 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     gpuTeam->detachDataReceiver();
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action");
+}
+#endif
+
+
+/**
+ * 
+ *
+ * \return 
+ */
+#if defined(USE_CUDA_BACKEND)
+void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
+                                            const unsigned int nDistributorThreads,
+                                            const RuntimeAction& cpuAction,
+                                            const RuntimeAction& gpuAction,
+                                            const DataPacket& packetPrototype,
+                                            const unsigned int nTilesPerCpuTurn,
+                                            const unsigned int stepNumber) {
+#ifdef USE_THREADED_DISTRIBUTOR
+    const unsigned int  nDistThreads = nDistributorThreads;
+#else
+    const unsigned int  nDistThreads = 1;
+#endif
+    Logger::instance().log("[Runtime] Start CPU/GPU shared action (Timed)");
+    std::string   msg =   "[Runtime] "
+                        + std::to_string(nDistThreads)
+                        + " distributor threads";
+    Logger::instance().log(msg);
+    msg = "[Runtime] "
+         + std::to_string(nTilesPerCpuTurn)
+         + " tiles sent to CPU for every packet of "
+         + std::to_string(gpuAction.nTilesPerPacket)
+         + " tiles sent to GPU";
+    Logger::instance().log(msg);
+
+    if        (nDistThreads <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "nDistributorThreads must be positive");
+    } else if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
+    } else if (cpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "Need at least one tile per GPU packet");
+    } else if (nTeams_ < 2) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                               "Need at least two ThreadTeams in runtime");
+    }
+
+    Grid&      grid = Grid::instance();
+    Backend&   backend = Backend::instance();
+
+    //***** SETUP TIMING
+    int rank = -1;
+    MPI_Comm_rank(GLOBAL_COMM, &rank);
+
+    unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
+                                  / (double)gpuAction.nTilesPerPacket);
+
+    unsigned int  pCounts[nDistThreads];
+    unsigned int  bCounts[nDistThreads][nPackets];
+    double        wtimesPack_sec[nDistThreads][nPackets];
+    double        wtimesAsync_sec[nDistThreads][nPackets];
+    double        wtimesPacket_sec[nDistThreads][nPackets];
+
+    std::string   filename("timings_packet_step");
+    filename += std::to_string(stepNumber);
+    filename += "_rank";
+    filename += std::to_string(rank);
+    filename += ".dat";
+
+    std::ofstream   fptr;
+    fptr.open(filename, std::ios::out);
+    fptr << "# Testname = Data Parallel CPU/GPU\n";
+    fptr << "# Step = " << stepNumber << "\n";
+    fptr << "# MPI rank = " << rank << "\n";
+    fptr << "# Dimension = " << NDIM << "\n";
+    fptr << "# NXB = " << NXB << "\n";
+    fptr << "# NYB = " << NYB << "\n";
+    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# n_distributor_threads = " << nDistThreads << "\n";
+    fptr << "# n_cpu_threads = " << cpuAction.nInitialThreads << "\n";
+    fptr << "# n_gpu_threads = " << gpuAction.nInitialThreads << "\n";
+    fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
+    fptr << "# n_blocks_per_cpu_turn = " << nTilesPerCpuTurn << "\n";
+    fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
+    fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU/GPU action parallel pipeline
+    // 1) Action Parallel Distributor will send one fraction of data items
+    //    to CPU for computation
+    // 2) For the remaining data items,
+    //    a) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    //    b) GPU action applied to blocks in packet by GPU team
+    //    c) Mover/Unpacker transfers packet back to CPU and
+    //       copies results to Grid data structures
+    ThreadTeam*        cpuTeam = teams_[0];
+    ThreadTeam*        gpuTeam = teams_[1];
+
+    // Assume that the GPU task function is heavy enough that the GPU team's
+    // threads will usually sleep and therefore not battle the host-side
+    // computation threads for resources.  Based on this, we concentrate on
+    // getting the CPU teams as many threads as possible (i.e. by setting a high
+    // initial thread number and by giving distributor threads to the team) and
+    // will let the GPU threads go to sleep once the GPU work is done.  Simpler
+    // and more predictable host-side thread balancing.
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads =   cpuAction.nInitialThreads
+                                 + nDistThreads;
+    if (nTotalThreads > cpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                "CPU could receive too many thread "
+                                "activation calls");
+    }
+
+    //***** START EXECUTION CYCLE
+    cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "ActionSharing_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
+
+    //***** ACTION PARALLEL DISTRIBUTOR
+    unsigned int   level = 0;
+#ifdef USE_THREADED_DISTRIBUTOR
+#pragma omp parallel default(none) \
+                     shared(grid, backend, level, packetPrototype, \
+                            cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn, \
+                            rank, \
+                            wtimesPack_sec, wtimesAsync_sec, wtimesPacket_sec, \
+                            pCounts, bCounts) \
+                     num_threads(nDistThreads)
+#endif
+    {
+#ifdef USE_THREADED_DISTRIBUTOR
+        int         tIdx = omp_get_thread_num();
+#else
+        int         tIdx = 0;
+#endif
+        bool        isCpuTurn = true;
+        int         nInCpuTurn = 0;
+
+        unsigned int  pIdx         = 0;
+        double        tStartPacket = 0.0;
+        double        tStartPack   = 0.0;
+        double        tStartAsync  = 0.0;
+
+        std::shared_ptr<Tile>             tileDesc{};
+
+        tStartPacket = MPI_Wtime();
+        std::shared_ptr<DataPacket>       packet_gpu = packetPrototype.clone();
+        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+            tileDesc = ti->buildCurrentTile();
+
+            if (isCpuTurn) {
+                cpuTeam->enqueue( std::move(tileDesc) );
+
+                ++nInCpuTurn;
+                if (nInCpuTurn >= nTilesPerCpuTurn) {
+                    isCpuTurn = false;
+                    nInCpuTurn = 0;
+                }
+            } else {
+                packet_gpu->addTile( std::move(tileDesc) );
+
+                if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+                    tStartPack = MPI_Wtime();
+                    packet_gpu->pack();
+                    wtimesPack_sec[tIdx][pIdx] = MPI_Wtime() - tStartPack;
+
+                    tStartAsync = MPI_Wtime();
+                    backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+                    wtimesAsync_sec[tIdx][pIdx] = MPI_Wtime() - tStartAsync;
+
+                    bCounts[tIdx][pIdx] = packet_gpu->nTiles();
+                    gpuTeam->enqueue( std::move(packet_gpu) );
+
+                    wtimesPacket_sec[tIdx][pIdx] = MPI_Wtime() - tStartPacket;
+
+                    ++pIdx;
+                    isCpuTurn = true;
+
+                    tStartPacket = MPI_Wtime();
+                    packet_gpu = packetPrototype.clone();
+                }
+            }
+        }
+
+        if (packet_gpu->nTiles() > 0) {
+            tStartPack = MPI_Wtime();
+            packet_gpu->pack();
+            wtimesPack_sec[tIdx][pIdx] = MPI_Wtime() - tStartPack;
+
+            tStartAsync = MPI_Wtime();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+            wtimesAsync_sec[tIdx][pIdx] = MPI_Wtime() - tStartAsync;
+
+            bCounts[tIdx][pIdx] = packet_gpu->nTiles();
+            gpuTeam->enqueue( std::move(packet_gpu) );
+
+            wtimesPacket_sec[tIdx][pIdx] = MPI_Wtime() - tStartPacket;
+
+            ++pIdx;
+        } else {
+            packet_gpu.reset();
+        }
+        pCounts[tIdx] = pIdx;
+
+        cpuTeam->increaseThreadCount(1);
+    } // implied barrier
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
+
+    fptr << std::setprecision(15);
+    for     (unsigned int tIdx=0; tIdx<nDistThreads;  ++tIdx) {
+        for (unsigned int pIdx=0; pIdx<pCounts[tIdx]; ++pIdx) {
+            fptr << tIdx << ',' << pIdx << ','
+                 << bCounts[tIdx][pIdx] << ','
+                 << wtimesPack_sec[tIdx][pIdx] << ','
+                 << wtimesAsync_sec[tIdx][pIdx] << ','
+                 << wtimesPacket_sec[tIdx][pIdx] << "\n";
+        }
+    }
+    fptr.close();
+
+    cpuTeam->wait();
+    gpuToHost1_.wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    gpuTeam->detachDataReceiver();
+
+    Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
 }
 #endif
 
