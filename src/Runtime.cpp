@@ -585,8 +585,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
-                                      const unsigned int nTilesPerCpuTurn,
-                                      const unsigned int stepNumber) {
+                                      const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
@@ -623,6 +622,163 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                     "Need at least one tile per GPU packet");
     } else if (nTeams_ < 2) {
         throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
+                               "Need at least two ThreadTeams in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU/GPU action parallel pipeline
+    // 1) Action Parallel Distributor will send one fraction of data items
+    //    to CPU for computation
+    // 2) For the remaining data items,
+    //    a) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    //    b) GPU action applied to blocks in packet by GPU team
+    //    c) Mover/Unpacker transfers packet back to CPU and
+    //       copies results to Grid data structures
+    ThreadTeam*        cpuTeam = teams_[0];
+    ThreadTeam*        gpuTeam = teams_[1];
+
+    // Assume that the GPU task function is heavy enough that the GPU team's
+    // threads will usually sleep and therefore not battle the host-side
+    // computation threads for resources.  Based on this, we concentrate on
+    // getting the CPU teams as many threads as possible (i.e. by setting a high
+    // initial thread number and by giving distributor threads to the team) and
+    // will let the GPU threads go to sleep once the GPU work is done.  Simpler
+    // and more predictable host-side thread balancing.
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads =   cpuAction.nInitialThreads
+                                 + nDistThreads;
+    if (nTotalThreads > cpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
+                                "CPU could receive too many thread "
+                                "activation calls");
+    }
+
+    //***** START EXECUTION CYCLE
+    cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");
+    gpuTeam->startCycle(gpuAction, "ActionSharing_GPU_Packet_Team");
+    gpuToHost1_.startCycle();
+
+    //***** ACTION PARALLEL DISTRIBUTOR
+    unsigned int                      level = 0;
+    Grid&                             grid = Grid::instance();
+    Backend&                          backend = Backend::instance();
+#ifdef USE_THREADED_DISTRIBUTOR
+#pragma omp parallel default(none) \
+                     shared(grid, backend, level, packetPrototype, cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn) \
+                     num_threads(nDistThreads)
+#endif
+    {
+#ifdef USE_THREADED_DISTRIBUTOR
+        int         tId = omp_get_thread_num();
+#else
+        int         tId = 0;
+#endif
+        bool        isCpuTurn = ((tId % 2) == 0);
+        int         nInCpuTurn = 0;
+
+        std::shared_ptr<Tile>             tileDesc{};
+        std::shared_ptr<DataPacket>       packet_gpu = packetPrototype.clone();
+        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+            tileDesc = ti->buildCurrentTile();
+
+            if (isCpuTurn) {
+                cpuTeam->enqueue( std::move(tileDesc) );
+
+                ++nInCpuTurn;
+                if (nInCpuTurn >= nTilesPerCpuTurn) {
+                    isCpuTurn = false;
+                    nInCpuTurn = 0;
+                }
+            } else {
+                packet_gpu->addTile( std::move(tileDesc) );
+
+                if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+                    packet_gpu->pack();
+                    backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+                    gpuTeam->enqueue( std::move(packet_gpu) );
+
+                    packet_gpu = packetPrototype.clone();
+                    isCpuTurn = true;
+                }
+            }
+        }
+
+        if (packet_gpu->nTiles() > 0) {
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+            gpuTeam->enqueue( std::move(packet_gpu) );
+        } else {
+            packet_gpu.reset();
+        }
+
+        cpuTeam->increaseThreadCount(1);
+    } // implied barrier
+    gpuTeam->closeQueue(nullptr);
+    cpuTeam->closeQueue(nullptr);
+
+    cpuTeam->wait();
+    gpuToHost1_.wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    gpuTeam->detachDataReceiver();
+
+    Logger::instance().log("[Runtime] End CPU/GPU shared action");
+}
+#endif
+
+
+/**
+ * 
+ *
+ * \return 
+ */
+#if defined(USE_CUDA_BACKEND)
+void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
+                                            const unsigned int nDistributorThreads,
+                                            const RuntimeAction& cpuAction,
+                                            const RuntimeAction& gpuAction,
+                                            const DataPacket& packetPrototype,
+                                            const unsigned int nTilesPerCpuTurn,
+                                            const unsigned int stepNumber) {
+#ifdef USE_THREADED_DISTRIBUTOR
+    const unsigned int  nDistThreads = nDistributorThreads;
+#else
+    const unsigned int  nDistThreads = 1;
+#endif
+    Logger::instance().log("[Runtime] Start CPU/GPU shared action (Timed)");
+    std::string   msg =   "[Runtime] "
+                        + std::to_string(nDistThreads)
+                        + " distributor threads";
+    Logger::instance().log(msg);
+    msg = "[Runtime] "
+         + std::to_string(nTilesPerCpuTurn)
+         + " tiles sent to CPU for every packet of "
+         + std::to_string(gpuAction.nTilesPerPacket)
+         + " tiles sent to GPU";
+    Logger::instance().log(msg);
+
+    if        (nDistThreads <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "nDistributorThreads must be positive");
+    } else if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
+    } else if (cpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
+                                    "Need at least one tile per GPU packet");
+    } else if (nTeams_ < 2) {
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
                                "Need at least two ThreadTeams in runtime");
     }
 
@@ -685,7 +841,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     unsigned int nTotalThreads =   cpuAction.nInitialThreads
                                  + nDistThreads;
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks] "
+        throw std::logic_error("[Runtime::executeCpuGpuSplitTasks_timed] "
                                 "CPU could receive too many thread "
                                 "activation calls");
     }
@@ -809,7 +965,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU shared action");
+    Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
 }
 #endif
 
