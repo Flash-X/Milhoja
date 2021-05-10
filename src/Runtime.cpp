@@ -220,7 +220,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     fptr << "# NZB = " << NZB << "\n";
     fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
     fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
-    fptr << "# packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
+    fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
 
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
     // GPU action parallel pipeline
@@ -296,7 +296,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     fptr << std::setprecision(15);
     for (pIdx=0; pIdx<nPackets; ++pIdx) {
-        fptr << pIdx << ','
+        fptr << '0,' << pIdx << ','
              << bCounts[pIdx] << ','
              << wtimesPack_sec[pIdx] << ','
              << wtimesAsync_sec[pIdx] << ','
@@ -657,7 +657,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     fptr << "# NZB = " << NZB << "\n";
     fptr << "# n_blocks_per_packet = " << gpuAction.nTilesPerPacket << "\n";
     fptr << "# MPI_Wtick_sec = " << MPI_Wtick() << "\n";
-    fptr << "# packet,tId,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
+    fptr << "# thread,packet,nblocks,walltime_pack_sec,walltime_async_sec,walltime_packet_sec\n";
 
     //***** ASSEMBLE THREAD TEAM CONFIGURATION
     // CPU/GPU action parallel pipeline
@@ -794,7 +794,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     fptr << std::setprecision(15);
     for     (unsigned int tIdx=0; tIdx<nDistThreads;  ++tIdx) {
         for (unsigned int pIdx=0; pIdx<pCounts[tIdx]; ++pIdx) {
-            fptr << pIdx << ',' << tIdx << ','
+            fptr << tIdx << ',' << pIdx << ','
                  << bCounts[pIdx][tIdx] << ','
                  << wtimesPack_sec[pIdx][tIdx] << ','
                  << wtimesAsync_sec[pIdx][tIdx] << ','
