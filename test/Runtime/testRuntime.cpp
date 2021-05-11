@@ -144,8 +144,8 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     const DataPacket_gpu_1_stream&   packetPrototype{};
     
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity, packetPrototype, 1);
-    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy, packetPrototype, 1);
+    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity, packetPrototype);
+    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -302,7 +302,7 @@ TEST_F(TestRuntime, TestFusedActions) {
     const DataPacket_gpu_2_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Actions GPU", computeLaplacianFused_gpu, packetPrototype, 1);
+    Runtime::instance().executeGpuTasks("Fused Actions GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -327,7 +327,7 @@ TEST_F(TestRuntime, TestFusedKernelsStrong) {
     const DataPacket_gpu_1_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", computeLaplacianFused_gpu, packetPrototype, 1);
+    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -352,7 +352,7 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
     const DataPacket_gpu_1_stream&   packetPrototype{}; 
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", computeLaplacianFused_gpu, packetPrototype, 1);
+    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", computeLaplacianFused_gpu, packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();

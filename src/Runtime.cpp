@@ -170,8 +170,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const RuntimeAction& gpuAction,
-                              const DataPacket& packetPrototype,
-                              const unsigned int stepNumber) {
+                              const DataPacket& packetPrototype) {
     Logger::instance().log("[Runtime] Start single GPU action");
 
     if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
@@ -183,6 +182,91 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
                                     "Need at least one block per packet");
     } else if (nTeams_ < 1) {
         throw std::logic_error("[Runtime::executeGpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*       gpuTeam   = teams_[0];
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads = gpuAction.nInitialThreads + 1;
+    if (nTotalThreads > gpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeGpuTasks] "
+                               "GPU team could receive too many thread "
+                               "activation calls from distributor");
+    }
+
+    //***** START EXECUTION CYCLE
+    gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
+    gpuToHost1_.startCycle();
+
+    //***** ACTION PARALLEL DISTRIBUTOR
+    unsigned int                  level = 0;
+    Grid&                         grid = Grid::instance();
+    Backend&                      backend = Backend::instance();
+    std::shared_ptr<DataPacket>   packet_gpu = packetPrototype.clone();
+    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        packet_gpu->addTile( ti->buildCurrentTile() );
+        if (packet_gpu->nTiles() >= gpuAction.nTilesPerPacket) {
+            packet_gpu->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+
+            gpuTeam->enqueue( std::move(packet_gpu) );
+
+            packet_gpu = packetPrototype.clone();
+        }
+    }
+
+    if (packet_gpu->nTiles() > 0) {
+        packet_gpu->pack();
+        backend.initiateHostToGpuTransfer(*(packet_gpu.get()));
+        gpuTeam->enqueue( std::move(packet_gpu) );
+    } else {
+        packet_gpu.reset();
+    }
+
+    gpuTeam->closeQueue(nullptr);
+
+    // host thread blocks until cycle ends, so activate another thread 
+    // in team first
+    gpuTeam->increaseThreadCount(1);
+    gpuToHost1_.wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    gpuTeam->detachDataReceiver();
+
+    Logger::instance().log("[Runtime] End single GPU action");
+}
+#endif
+
+/**
+ * 
+ *
+ * \return 
+ */
+#if defined(USE_CUDA_BACKEND)
+void Runtime::executeGpuTasks_timed(const std::string& bundleName,
+                                    const RuntimeAction& gpuAction,
+                                    const DataPacket& packetPrototype,
+                                    const unsigned int stepNumber) {
+    Logger::instance().log("[Runtime] Start single GPU action (Timed)");
+
+    if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::executeGpuTasks_timed] "
+                               "Given GPU action should run on "
+                               "data packets of blocks");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::executeGpuTasks_timed] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[Runtime::executeGpuTasks_timed] "
                                "Need at least one ThreadTeam in runtime");
     }
 
@@ -241,7 +325,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     // once the distributor starts to wait
     unsigned int nTotalThreads = gpuAction.nInitialThreads + 1;
     if (nTotalThreads > gpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[Runtime::executeGpuTasks] "
+        throw std::logic_error("[Runtime::executeGpuTasks_timed] "
                                "GPU team could receive too many thread "
                                "activation calls from distributor");
     }
@@ -315,7 +399,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End single GPU action");
+    Logger::instance().log("[Runtime] End single GPU action (Timed)");
 }
 #endif
 
