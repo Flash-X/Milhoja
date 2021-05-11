@@ -1343,7 +1343,12 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 pthread_cond_broadcast(&(team->transitionThread_));
             }
 
-            // Do work!  No need to keep mutex.
+            // Do work!
+            //
+            // The transition to computing is completed here as the computing
+            // thread effectively "sleeps" in the sense that it is not playing
+            // an active role in the ThreadTeam at this point. Rather it is
+            // effectively waiting to receive the computationFinished event.
             pthread_mutex_unlock(&(team->teamMutex_));
 
             // The shared-ness of dataItem stays here, which means that the 
@@ -1354,36 +1359,116 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 std::string  msg = team->printState_NotThreadsafe(
                         "threadRoutine", tId, "dataItem is unexpectedly NULLed");
                 std::cerr << msg << std::endl;
-                // TODO: This will unlock a mutex that the thread no longer has.
-                //       Remove this line.
-                pthread_mutex_unlock(&(team->teamMutex_));
                 throw std::logic_error(msg);
             }
             team->actionRoutine_(tId, dataItem.get());
 
-            // TODO: Can we move the data publshing/dataItem management code to
-            // before the mutex acquisition?  If possible, this should seriously
-            // limit the likelihood of serialization of the threads in the team
-            // when the team is shipping data back to the host or splitting the
-            // data items up.
+            // This is where computationFinished is "emitted" and the thread's
+            // next transition begins.  A simple run-to-completion design would
+            // acquire the mutex here before proceeding to transition or perform
+            // outputs associated with the transition.  Indeed, this was how the
+            // ThreadTeam was originally implemented.  See Technical
+            // Specification 7.1.
             //
-            // dataItem is thread-private and its contents are owned by the
-            // thread once the contents are popped off the shared queue.
-            // dataReceiver_ is a shared resource.  However, if we can prove
-            // that dataReciever_ will not be altered by the following enqueue
-            // command and that no other thread can change dataRecevier_ (e.g.
-            // set it to nullptr), then we might be able to move the mutex lock
-            // command after it.  This is contingent on the guarantee that the
-            // data receiver's enqueue commmand is thread safe so that it is
-            // safe for multiple threads in this team to call the enqueue method
-            // of the next team.  Other considerations?
-
-            // This is where computationFinished is "emitted"
-            pthread_mutex_lock(&(team->teamMutex_));
+            // However, acquiring the mutex here can seriously impact
+            // performance if this thread's team has a data subscriber.  In
+            // particular, if the thread acquired the mutex here and enqueued
+            // the data item with the subscriber, then it blocks until the
+            // enqueue finishes all other threads in its team that are waiting
+            // on the mutex.  Therefore, if the thread is blocked on the enqueue
+            // call because the subscriber's mutex is not available or because
+            // the enqueue takes a large amount of time, then the thread team
+            // grinds to a halt.
+            //
+            // I have seen this happen when profiling the 3D Sedov/GPU problem
+            // on Summit with NSight.  The issue was that the asynchronous
+            // device-to-host and subsequent registering of a callback function
+            // executed as part of the DataMover's enqueue method were slowed
+            // down tremendously.  This occurred because the CUDA runtime
+            // (10.1.243) appears to use pthreads and each CUDA runtime call
+            // made by our runtime appears to acquire the same mutex before
+            // carrying out the associated actions regardless of which CUDA
+            // runtime function was called or with which stream the action
+            // should be associated.  As a result, when these enqueue calls to
+            // our runtime get stuck because the CUDA runtime mutex cannot be
+            // accessed, the whole thread team can stall.
+            //
+            // The next block of code executes an output associated with the
+            // thread's next transition.  Specifically, it
+            // 1. enqueues the dataItem with the team's data subscriber if it
+            // exists.
+            // 2. Either passes the ownership of the data item to the data
+            // subscriber or decrements the count of users of the shared_ptr.
+            // Either way, the thread-private dataItem variable should be
+            // nullified.
+            //
+            // CLAIM: Even though the computing thread's next transition begins
+            // here and enqueuing the dataItem with the team's data subscriber
+            // is an output associated with the transition, the code can do so
+            // without acquiring the mutex and without violating Technical
+            // Specification 7.1.  In other words, the eFSM will still function
+            // correctly if this single aspect of the transition is run in
+            // parallel with any number of possible transition of the eFSM.
+            // While transitions are no longer atomic due to this change, only a
+            // single thread is allowed to change the state at any time.
+            //
+            // Proof:
+            // The pointer dataReceiver_ is a shared resource.  Note, however,
+            // that Technical Specification 7.6 specifies that data
+            // publisher/subscriber relationships can only change when the team
+            // is in the Idle state.  However, the fact that this thread is
+            // transitioning from computing implies that the team cannot be in
+            // the Idle state.  Hence, no internal nor external code will change
+            // dataReceiver_ and we are justified in using it without acquiring
+            // the mutex.
+            //
+            // The data subscriber's enqueue method is thread-safe and its
+            // successful execution does not depend on the state of this
+            // thread's team.  Therefore, if two or more threads from this team
+            // were to call enqueue at roughly the same time, the subscriber
+            // will serialize access to the subscriber's resources.  In
+            // addition, correct execution of computation by the calling thread
+            // team will not be affected by the order in which enqueueing occurs
+            // due to the fact that the task functions to be applied by the
+            // team's pipeline will still be applied to each data item in the
+            // correct order.  Therefore, protection of the shared resource is
+            // managed by the resource itself and there is no possibility of a
+            // race condition on calling enqueue.
+            //
+            // TODO: Do the technical specs or requirements require th addition
+            // of a req/spec that states that the enqueue method of all runtime
+            // elements must be thread safe and therefore manage access to
+            // internal shared resources by external calls?
+            //
+            // dataItem is a thread-private variable.  This thread obtained the
+            // shared_ptr stored in dataItem by removing it from the team's
+            // shared queue.  In addition, N_Q was decremented and the mode
+            // transitioned to RunningNoMoreWork if N_Q=0.  Therefore, this
+            // thread is the only thread in the team that can interact with both
+            // the shared_ptr and the resource that it points to (Spec 7.2) --- the
+            // shared_ptr and its resource no longer exist at the level of the
+            // team.  In other words, once the task function has been applied to
+            // the data item by this thread, the thread can transfer the data
+            // item to another runtime element and nullify its dataItem variable
+            // with no possibility of a race condition on dataItem or the
+            // resource that it points to.
+            //
+            // Note that the output performed here without acquiring the mutex
+            // does not update the eFSM state.  In addition, correct execution
+            // of the output does not depend on the team's state nor require
+            // updating the state of the eFSM.  Therefore, any threads in
+            // possession of the mutex at the time of executing this output are
+            // still in control of the state.  Also, if one of these threads
+            // transitions the state, correct execution of this output will not
+            // be affected.  Hence all such threads and this computation thread
+            // will execute correctly.
 
 #ifdef DEBUG_RUNTIME
+            // Since this is debug, allow for woefully poor performance.
+            pthread_mutex_lock(&(team->teamMutex_));
             Logger::instance().log(team->printState_NotThreadsafe("threadRoutine", tId,
                                                                   "Finished computing"));
+            pthread_mutex_unlock(&(team->teamMutex_));
 #endif
 
             if (team->dataReceiver_) {
@@ -1399,9 +1484,14 @@ void* ThreadTeam::threadRoutine(void* varg) {
                 std::string  msg = team->printState_NotThreadsafe(
                         "threadRoutine", tId, "dataItem is not NULLed after computation");
                 std::cerr << msg << std::endl;
-                pthread_mutex_unlock(&(team->teamMutex_));
+                // NOTE: This must be commented out if the mutex acquisition
+                // occurs directly after this code block.  Uncomment if the
+                // mutex acquisition is moved above.
+//                pthread_mutex_unlock(&(team->teamMutex_));
                 throw std::logic_error(msg);
             }
+
+            pthread_mutex_lock(&(team->teamMutex_));
 
             if (team->N_comp_ <= 0) {
                 std::string  msg = team->printState_NotThreadsafe(
