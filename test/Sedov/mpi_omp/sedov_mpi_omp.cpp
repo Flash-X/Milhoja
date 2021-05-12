@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI+OpenMP",
-                        N_DIST_THREADS, N_CPU_THREADS, N_GPU_THREADS,
+                        N_DIST_THREADS, 0, N_CPU_THREADS, N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
 
     //----- MIMIC Grid_initDomain
