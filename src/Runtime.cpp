@@ -213,15 +213,6 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     ThreadTeam*       gpuTeam   = teams_[0];
     gpuTeam->attachDataReceiver(&gpuToHost1_);
 
-    // The action parallel distributor's thread resource is used
-    // once the distributor starts to wait
-    unsigned int nTotalThreads = gpuAction.nInitialThreads + nDistThreads;
-    if (nTotalThreads > gpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[Runtime::executeGpuTasks] "
-                               "GPU team could receive too many thread "
-                               "activation calls from distributor");
-    }
-
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
     gpuToHost1_.startCycle();
@@ -266,8 +257,6 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
         } else {
             packet_gpu.reset();
         }
-
-        gpuTeam->increaseThreadCount(1);
     } // implied barrier
     gpuTeam->closeQueue(nullptr);
     gpuToHost1_.wait();
@@ -369,15 +358,6 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     ThreadTeam*       gpuTeam   = teams_[0];
     gpuTeam->attachDataReceiver(&gpuToHost1_);
 
-    // The action parallel distributor's thread resource is used
-    // once the distributor starts to wait
-    unsigned int nTotalThreads = gpuAction.nInitialThreads + nDistThreads;
-    if (nTotalThreads > gpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[Runtime::executeGpuTasks_timed] "
-                               "GPU team could receive too many thread "
-                               "activation calls from distributor");
-    }
-
     //***** START EXECUTION CYCLE
     gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
     gpuToHost1_.startCycle();
@@ -449,8 +429,6 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
         }
 
         pCounts[tIdx] = pIdx;
-
-        gpuTeam->increaseThreadCount(1);
     } // implied barrier
     gpuTeam->closeQueue(nullptr);
 
