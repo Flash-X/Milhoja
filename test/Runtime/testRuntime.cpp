@@ -219,6 +219,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
+                                                0.0,
                                                 30);
 
     computeLaplacian_cpu.name    = "LaplacianEnergy_cpu";
@@ -232,6 +233,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
+                                                0.0,
                                                 30);
     double tWalltime = MPI_Wtime() - tStart; 
 
@@ -391,6 +393,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
+                                                0.0,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
 
@@ -430,6 +433,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
                                                 computeLaplacian_cpu,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
+                                                0.0,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
 

@@ -62,12 +62,14 @@ public:
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
+                                 const double stagger_usec,
                                  const unsigned int nTilesPerCpuTurn);
     void executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                        const unsigned int nDistributorThreads,
                                        const RuntimeAction& cpuAction,
                                        const RuntimeAction& gpuAction,
                                        const DataPacket& packetPrototype,
+                                       const double stagger_usec,
                                        const unsigned int nTilesPerCpuTurn,
                                        const unsigned int stepNumber);
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,

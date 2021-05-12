@@ -5,6 +5,8 @@
 #include <omp.h>
 #endif
 
+#include <chrono>
+#include <thread>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -675,6 +677,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
+                                      const double stagger_usec,
                                       const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -766,8 +769,10 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 #else
         int         tId = 0;
 #endif
-        bool        isCpuTurn = ((tId % 2) == 0);
+        bool        isCpuTurn = true;
         int         nInCpuTurn = 0;
+
+        std::this_thread::sleep_for(std::chrono::microseconds(tId * stagger_usec));
 
         std::shared_ptr<Tile>             tileDesc{};
         std::shared_ptr<DataPacket>       packet_gpu = packetPrototype.clone();
@@ -831,6 +836,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const RuntimeAction& cpuAction,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
+                                            const double stagger_usec,
                                             const unsigned int nTilesPerCpuTurn,
                                             const unsigned int stepNumber) {
 #ifdef USE_THREADED_DISTRIBUTOR
@@ -973,6 +979,8 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
         double        tStartAsync  = 0.0;
 
         std::shared_ptr<Tile>             tileDesc{};
+
+        std::this_thread::sleep_for(std::chrono::microseconds(tIdx * stagger_usec));
 
         tStartPacket = MPI_Wtime();
         std::shared_ptr<DataPacket>       packet_gpu = packetPrototype.clone();
