@@ -89,7 +89,8 @@ int main(int argc, char* argv[]) {
     hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
-                        1,
+                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                        rp_Bundle_2::STAGGER_USEC,
                         0,
                         hydroAdvance_gpu.nInitialThreads,
                         hydroAdvance_gpu.nTilesPerPacket,
@@ -128,9 +129,13 @@ int main(int argc, char* argv[]) {
 
         double   tStart = MPI_Wtime();
 //        runtime.executeGpuTasks("Advance Hydro Solution",
+//                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+//                                rp_Bundle_2::STAGGER_USEC,
 //                                hydroAdvance_gpu,
 //                                packetPrototype);
         runtime.executeGpuTasks_timed("Advance Hydro Solution",
+                                      rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                      rp_Bundle_2::STAGGER_USEC,
                                       hydroAdvance_gpu,
                                       packetPrototype,
                                       nStep);

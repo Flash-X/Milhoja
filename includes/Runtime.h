@@ -42,9 +42,13 @@ public:
                          const RuntimeAction& cpuAction);
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
+                         const unsigned int nDistributorThreads,
+                         const unsigned int stagger_usec,
                          const RuntimeAction& gpuAction,
                          const DataPacket& packetPrototype);
     void executeGpuTasks_timed(const std::string& actionName,
+                               const unsigned int nDistributorThreads,
+                               const unsigned int stagger_usec,
                                const RuntimeAction& gpuAction,
                                const DataPacket& packetPrototype,
                                const unsigned int stepNumber);
@@ -59,12 +63,14 @@ public:
                                  const DataPacket& packetPrototype);
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
+                                 const unsigned int stagger_usec,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
     void executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                        const unsigned int nDistributorThreads,
+                                       const unsigned int stagger_usec,
                                        const RuntimeAction& cpuAction,
                                        const RuntimeAction& gpuAction,
                                        const DataPacket& packetPrototype,

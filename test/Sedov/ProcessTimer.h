@@ -9,6 +9,7 @@ public:
     ProcessTimer(const std::string& filename,
                  const std::string& testname,
                  const unsigned int nDistributorThreads,
+                 const unsigned int stagger_usec,
                  const unsigned int nCpuThreads,
                  const unsigned int nGpuThreads,
                  const unsigned int nBlocksPerPacket,

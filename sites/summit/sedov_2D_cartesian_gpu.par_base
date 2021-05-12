@@ -14,6 +14,7 @@ namespace rp_Bundle_2 {
     // A Data Parallel Cpu/Gpu pipeline
     //   - CPU & GPU apply Hydro solution advance
     constexpr unsigned int          N_DISTRIBUTOR_THREADS = REPLACE_NDT;
+    constexpr unsigned int          STAGGER_USEC          = REPLACE_STAGGER_USEC;
     constexpr unsigned int          N_TILES_PER_CPU_TURN  = REPLACE_NTPCT;
     constexpr unsigned int          N_THREADS_CPU         = REPLACE_NCT;
     constexpr unsigned int          N_THREADS_GPU         = REPLACE_NGT;
