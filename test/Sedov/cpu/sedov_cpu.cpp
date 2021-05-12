@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
-                        N_DIST_THREADS,
+                        N_DIST_THREADS, 0,
                         hydroAdvance.nInitialThreads,
                         N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
