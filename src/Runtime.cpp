@@ -677,7 +677,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
-                                      const double stagger_usec,
+                                      const unsigned int stagger_usec,
                                       const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -760,7 +760,9 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     Backend&                          backend = Backend::instance();
 #ifdef USE_THREADED_DISTRIBUTOR
 #pragma omp parallel default(none) \
-                     shared(grid, backend, level, packetPrototype, cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn) \
+                     shared(grid, backend, level, packetPrototype, \
+                     cpuTeam, gpuTeam, gpuAction, \
+                     stagger_usec, nTilesPerCpuTurn) \
                      num_threads(nDistThreads)
 #endif
     {
@@ -836,7 +838,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const RuntimeAction& cpuAction,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
-                                            const double stagger_usec,
+                                            const unsigned int stagger_usec,
                                             const unsigned int nTilesPerCpuTurn,
                                             const unsigned int stepNumber) {
 #ifdef USE_THREADED_DISTRIBUTOR
@@ -959,7 +961,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 #pragma omp parallel default(none) \
                      shared(grid, backend, level, packetPrototype, \
                             cpuTeam, gpuTeam, gpuAction, nTilesPerCpuTurn, \
-                            rank, \
+                            stagger_usec, rank, \
                             wtimesPack_sec, wtimesAsync_sec, wtimesPacket_sec, \
                             pCounts, bCounts) \
                      num_threads(nDistThreads)
