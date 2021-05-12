@@ -172,9 +172,9 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const unsigned int nDistributorThreads,
+                              const unsigned int stagger_usec,
                               const RuntimeAction& gpuAction,
-                              const DataPacket& packetPrototype,
-                              const unsigned int stagger_usec) {
+                              const DataPacket& packetPrototype) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
@@ -184,7 +184,9 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     Logger::instance().log("[Runtime] Start single GPU action");
     std::string   msg =   "[Runtime] "
                         + std::to_string(nDistThreads)
-                        + " distributor threads";
+                        + " distributor threads / stagger of " 
+                        + std::to_string(stagger_usec)
+                        + " us";
     Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
@@ -285,9 +287,9 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks_timed(const std::string& bundleName,
                                     const unsigned int nDistributorThreads,
+                                    const unsigned int stagger_usec,
                                     const RuntimeAction& gpuAction,
                                     const DataPacket& packetPrototype,
-                                    const unsigned int stagger_usec,
                                     const unsigned int stepNumber) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -298,7 +300,9 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     Logger::instance().log("[Runtime] Start single GPU action (Timed)");
     std::string   msg =   "[Runtime] "
                         + std::to_string(nDistThreads)
-                        + " distributor threads";
+                        + " distributor threads / stagger of " 
+                        + std::to_string(stagger_usec)
+                        + " us";
     Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
@@ -740,10 +744,10 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
+                                      const unsigned int stagger_usec,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
-                                      const unsigned int stagger_usec,
                                       const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -753,7 +757,9 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     Logger::instance().log("[Runtime] Start CPU/GPU shared action");
     std::string   msg =   "[Runtime] "
                         + std::to_string(nDistThreads)
-                        + " distributor threads";
+                        + " distributor threads / stagger of " 
+                        + std::to_string(stagger_usec)
+                        + " us";
     Logger::instance().log(msg);
     msg = "[Runtime] "
          + std::to_string(nTilesPerCpuTurn)
@@ -901,10 +907,10 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 #if defined(USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
+                                            const unsigned int stagger_usec,
                                             const RuntimeAction& cpuAction,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
-                                            const unsigned int stagger_usec,
                                             const unsigned int nTilesPerCpuTurn,
                                             const unsigned int stepNumber) {
 #ifdef USE_THREADED_DISTRIBUTOR
@@ -915,7 +921,9 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     Logger::instance().log("[Runtime] Start CPU/GPU shared action (Timed)");
     std::string   msg =   "[Runtime] "
                         + std::to_string(nDistThreads)
-                        + " distributor threads";
+                        + " distributor threads / stagger of " 
+                        + std::to_string(stagger_usec)
+                        + " us";
     Logger::instance().log(msg);
     msg = "[Runtime] "
          + std::to_string(nTilesPerCpuTurn)

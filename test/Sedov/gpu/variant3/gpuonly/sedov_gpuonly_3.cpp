@@ -130,14 +130,14 @@ int main(int argc, char* argv[]) {
         double   tStart = MPI_Wtime();
 //        runtime.executeGpuTasks("Advance Hydro Solution",
 //                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+//                                rp_Bundle_2::STAGGER_USEC,
 //                                hydroAdvance_gpu,
-//                                packetPrototype,
-//                                rp_Bundle_2::STAGGER_USEC);
+//                                packetPrototype);
         runtime.executeGpuTasks_timed("Advance Hydro Solution",
                                       rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                      rp_Bundle_2::STAGGER_USEC,
                                       hydroAdvance_gpu,
                                       packetPrototype,
-                                      rp_Bundle_2::STAGGER_USEC,
                                       nStep);
         double   wtime_sec = MPI_Wtime() - tStart;
         orchestration::Timer::start("Gather/Write");
