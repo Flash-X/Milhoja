@@ -173,7 +173,7 @@ void   CudaMemoryManager::reset(void) {
     gpuOffset_ = 0;
     pthread_mutex_unlock(&mutex_);
 
-    Logger::instance().log("[CudaMemoryManager] Reset memory resources");
+//    Logger::instance().log("[CudaMemoryManager] Reset memory resources");
 }
 
 /**
