@@ -550,11 +550,11 @@ void ThreadTeam::startCycle(const RuntimeAction& action,
         nItems = std::to_string(action.nTilesPerPacket);
         break;
     };
-    logMsg =   "[" + hdr_ + "] Assigned action " + action.name + "\n";
-    logMsg += "\t\t\t\tData type        " + dataType + "\n";
-    logMsg += "\t\t\t\tN Items/Packet   " + nItems + "\n";
-    logMsg += "\t\t\t\tN Threads        " + std::to_string(action.nInitialThreads);
-    Logger::instance().log(logMsg);
+//    logMsg =   "[" + hdr_ + "] Assigned action " + action.name + "\n";
+//    logMsg += "\t\t\t\tData type        " + dataType + "\n";
+//    logMsg += "\t\t\t\tN Items/Packet   " + nItems + "\n";
+//    logMsg += "\t\t\t\tN Threads        " + std::to_string(action.nInitialThreads);
+//    Logger::instance().log(logMsg);
 
     pthread_mutex_lock(&teamMutex_);
 

@@ -115,7 +115,7 @@ Runtime::~Runtime(void) {
  */
 void Runtime::executeCpuTasks(const std::string& actionName,
                               const RuntimeAction& cpuAction) {
-    Logger::instance().log("[Runtime] Start single CPU action");
+//    Logger::instance().log("[Runtime] Start single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuTasks] "
@@ -161,7 +161,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     // No need to break apart the thread team configuration
 
-    Logger::instance().log("[Runtime] End single CPU action");
+//    Logger::instance().log("[Runtime] End single CPU action");
 }
 
 /**
@@ -181,13 +181,13 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     const unsigned int  nDistThreads = 1;
 #endif
 
-    Logger::instance().log("[Runtime] Start single GPU action");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads / stagger of " 
-                        + std::to_string(stagger_usec)
-                        + " us";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start single GPU action");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads / stagger of " 
+//                        + std::to_string(stagger_usec)
+//                        + " us";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executedGpuTasks] "
@@ -264,7 +264,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End single GPU action");
+//    Logger::instance().log("[Runtime] End single GPU action");
 }
 #endif
 
@@ -286,13 +286,13 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     const unsigned int  nDistThreads = 1;
 #endif
 
-    Logger::instance().log("[Runtime] Start single GPU action (Timed)");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads / stagger of " 
-                        + std::to_string(stagger_usec)
-                        + " us";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start single GPU action (Timed)");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads / stagger of " 
+//                        + std::to_string(stagger_usec)
+//                        + " us";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executedGpuTasks_timed] "
@@ -449,7 +449,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End single GPU action (Timed)");
+//    Logger::instance().log("[Runtime] End single GPU action (Timed)");
 }
 #endif
 
@@ -463,7 +463,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype) {
-    Logger::instance().log("[Runtime] Start CPU/GPU action bundle");
+//    Logger::instance().log("[Runtime] Start CPU/GPU action bundle");
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuGpuTasks] "
@@ -588,7 +588,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
     gpuTeam->detachThreadReceiver();
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU action");
+//    Logger::instance().log("[Runtime] End CPU/GPU action");
 }
 #endif
 
@@ -608,11 +608,11 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
 #else
     const unsigned int  nDistThreads = 1;
 #endif
-    Logger::instance().log("[Runtime] Start GPU/Post-GPU action bundle");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start GPU/Post-GPU action bundle");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeExtendedGpuTasks] "
@@ -710,7 +710,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     gpuTeam->detachDataReceiver();
     gpuToHost1_.detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End GPU/Post-GPU action bundle");
+//    Logger::instance().log("[Runtime] End GPU/Post-GPU action bundle");
 }
 #endif
 
@@ -732,19 +732,19 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 #else
     const unsigned int  nDistThreads = 1;
 #endif
-    Logger::instance().log("[Runtime] Start CPU/GPU shared action");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads / stagger of " 
-                        + std::to_string(stagger_usec)
-                        + " us";
-    Logger::instance().log(msg);
-    msg = "[Runtime] "
-         + std::to_string(nTilesPerCpuTurn)
-         + " tiles sent to CPU for every packet of "
-         + std::to_string(gpuAction.nTilesPerPacket)
-         + " tiles sent to GPU";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start CPU/GPU shared action");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads / stagger of " 
+//                        + std::to_string(stagger_usec)
+//                        + " us";
+//    Logger::instance().log(msg);
+//    msg = "[Runtime] "
+//         + std::to_string(nTilesPerCpuTurn)
+//         + " tiles sent to CPU for every packet of "
+//         + std::to_string(gpuAction.nTilesPerPacket)
+//         + " tiles sent to GPU";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks] "
@@ -872,7 +872,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU shared action");
+//    Logger::instance().log("[Runtime] End CPU/GPU shared action");
 }
 #endif
 
@@ -896,19 +896,19 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 #else
     const unsigned int  nDistThreads = 1;
 #endif
-    Logger::instance().log("[Runtime] Start CPU/GPU shared action (Timed)");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads / stagger of " 
-                        + std::to_string(stagger_usec)
-                        + " us";
-    Logger::instance().log(msg);
-    msg = "[Runtime] "
-         + std::to_string(nTilesPerCpuTurn)
-         + " tiles sent to CPU for every packet of "
-         + std::to_string(gpuAction.nTilesPerPacket)
-         + " tiles sent to GPU";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start CPU/GPU shared action (Timed)");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads / stagger of " 
+//                        + std::to_string(stagger_usec)
+//                        + " us";
+//    Logger::instance().log(msg);
+//    msg = "[Runtime] "
+//         + std::to_string(nTilesPerCpuTurn)
+//         + " tiles sent to CPU for every packet of "
+//         + std::to_string(gpuAction.nTilesPerPacket)
+//         + " tiles sent to GPU";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeCpuGpuSplitTasks_timed] "
@@ -1119,7 +1119,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     //***** BREAK APART THREAD TEAM CONFIGURATION
     gpuTeam->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
+//    Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
 }
 #endif
 
@@ -1141,17 +1141,17 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 #else
     const unsigned int  nDistThreads = 1;
 #endif
-    Logger::instance().log("[Runtime] Start extended CPU/GPU shared action");
-    std::string   msg =   "[Runtime] "
-                        + std::to_string(nDistThreads)
-                        + " distributor threads";
-    Logger::instance().log(msg);
-    msg =   "[Runtime] "
-          + std::to_string(nTilesPerCpuTurn)
-          + " tiles sent to CPU for every packet of "
-          + std::to_string(actionA_gpu.nTilesPerPacket)
-          + " tiles sent to GPU";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start extended CPU/GPU shared action");
+//    std::string   msg =   "[Runtime] "
+//                        + std::to_string(nDistThreads)
+//                        + " distributor threads";
+//    Logger::instance().log(msg);
+//    msg =   "[Runtime] "
+//          + std::to_string(nTilesPerCpuTurn)
+//          + " tiles sent to CPU for every packet of "
+//          + std::to_string(actionA_gpu.nTilesPerPacket)
+//          + " tiles sent to GPU";
+//    Logger::instance().log(msg);
 
     if        (nDistThreads <= 0) {
         throw std::invalid_argument("[Runtime::executeExtendedCpuGpuSplitTasks] "
@@ -1295,7 +1295,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     teamA_gpu->detachDataReceiver();
     gpuToHost1_.detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
+//    Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
 }
 #endif
 
@@ -1312,13 +1312,13 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const DataPacket& packetPrototypeA,
                                       const DataPacket& packetPrototypeB,
                                       const unsigned int nTilesPerCpuTurn) {
-    Logger::instance().log("[Runtime] Start CPU/GPU shared & GPU configuration");
-    std::string   msg = "[Runtime] "
-                        + std::to_string(nTilesPerCpuTurn)
-                        + " tiles sent to action A CPU team for every packet of "
-                        + std::to_string(actionA_gpu.nTilesPerPacket)
-                        + " tiles sent to action A GPU team";
-    Logger::instance().log(msg);
+//    Logger::instance().log("[Runtime] Start CPU/GPU shared & GPU configuration");
+//    std::string   msg = "[Runtime] "
+//                        + std::to_string(nTilesPerCpuTurn)
+//                        + " tiles sent to action A CPU team for every packet of "
+//                        + std::to_string(actionA_gpu.nTilesPerPacket)
+//                        + " tiles sent to action A GPU team";
+//    Logger::instance().log(msg);
 
     if        (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeCpuGpuWowzaTasks] "
@@ -1468,7 +1468,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
     teamA_gpu->detachDataReceiver();
     teamB_gpu->detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU shared & GPU configuration");
+//    Logger::instance().log("[Runtime] End CPU/GPU shared & GPU configuration");
 }
 #endif
 
@@ -1483,7 +1483,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                       const RuntimeAction& gpuAction,
                                       const RuntimeAction& postGpuAction,
                                       const DataPacket& packetPrototype) {
-    Logger::instance().log("[Runtime] Start CPU/GPU/Post-GPU action bundle");
+//    Logger::instance().log("[Runtime] Start CPU/GPU/Post-GPU action bundle");
 
     if        (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
         throw std::logic_error("[Runtime::executeTasks_FullPacket] "
@@ -1622,7 +1622,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     gpuTeam->detachDataReceiver();
     gpuToHost1_.detachDataReceiver();
 
-    Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
+//    Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
 }
 #endif
 
