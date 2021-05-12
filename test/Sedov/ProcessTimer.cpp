@@ -14,6 +14,7 @@
 ProcessTimer::ProcessTimer(const std::string& filename,
                            const std::string& testname,
                            const unsigned int nDistributorThreads,
+                           const unsigned int stagger_usec,
                            const unsigned int nCpuThreads,
                            const unsigned int nGpuThreads,
                            const unsigned int nBlocksPerPacket,
@@ -42,6 +43,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
         fptr_ << "# N_BLOCKS_Y = " << rp_Grid::N_BLOCKS_Y << "\n";
         fptr_ << "# N_BLOCKS_Z = " << rp_Grid::N_BLOCKS_Z << "\n";
         fptr_ << "# n_distributor_threads = " << nDistributorThreads << "\n";
+        fptr_ << "# stagger_usec = " << stagger_usec << "\n";
         fptr_ << "# n_cpu_threads = " << nCpuThreads << "\n";
         fptr_ << "# n_gpu_threads = " << nGpuThreads << "\n";
         fptr_ << "# n_blocks_per_packet = " << nBlocksPerPacket << "\n";

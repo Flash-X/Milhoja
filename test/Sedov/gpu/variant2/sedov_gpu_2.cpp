@@ -97,6 +97,7 @@ int main(int argc, char* argv[]) {
 
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
                         rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                        rp_Bundle_2::STAGGER_USEC,
                         hydroAdvance_cpu.nInitialThreads,
                         hydroAdvance_gpu.nInitialThreads,
                         hydroAdvance_gpu.nTilesPerPacket,
@@ -139,12 +140,14 @@ int main(int argc, char* argv[]) {
 //                                        hydroAdvance_cpu,
 //                                        hydroAdvance_gpu,
 //                                        packetPrototype,
+//                                        rp_Bundle_2::STAGGER_USEC,
 //                                        rp_Bundle_2::N_TILES_PER_CPU_TURN);
         runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
                                               rp_Bundle_2::N_DISTRIBUTOR_THREADS,
                                               hydroAdvance_cpu,
                                               hydroAdvance_gpu,
                                               packetPrototype,
+                                              rp_Bundle_2::STAGGER_USEC,
                                               rp_Bundle_2::N_TILES_PER_CPU_TURN,
                                               nStep);
         double   wtime_sec = MPI_Wtime() - tStart;

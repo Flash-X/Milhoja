@@ -42,11 +42,15 @@ public:
                          const RuntimeAction& cpuAction);
 #if defined(USE_CUDA_BACKEND)
     void executeGpuTasks(const std::string& actionName,
+                         const unsigned int nDistributorThreads,
                          const RuntimeAction& gpuAction,
-                         const DataPacket& packetPrototype);
+                         const DataPacket& packetPrototype,
+                         const unsigned int stagger_usec);
     void executeGpuTasks_timed(const std::string& actionName,
+                               const unsigned int nDistributorThreads,
                                const RuntimeAction& gpuAction,
                                const DataPacket& packetPrototype,
+                               const unsigned int stagger_usec,
                                const unsigned int stepNumber);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,

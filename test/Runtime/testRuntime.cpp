@@ -144,8 +144,10 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     const DataPacket_gpu_1_stream&   packetPrototype{};
     
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("LapDens", computeLaplacianDensity, packetPrototype);
-    Runtime::instance().executeGpuTasks("LapEner", computeLaplacianEnergy, packetPrototype);
+    Runtime::instance().executeGpuTasks("LapDens", 1, computeLaplacianDensity,
+                                        packetPrototype, 0);
+    Runtime::instance().executeGpuTasks("LapEner", 1, computeLaplacianEnergy,
+                                        packetPrototype, 0);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -302,7 +304,8 @@ TEST_F(TestRuntime, TestFusedActions) {
     const DataPacket_gpu_2_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Actions GPU", computeLaplacianFused_gpu, packetPrototype);
+    Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, computeLaplacianFused_gpu,
+                                        packetPrototype, 0);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -327,7 +330,8 @@ TEST_F(TestRuntime, TestFusedKernelsStrong) {
     const DataPacket_gpu_1_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", computeLaplacianFused_gpu, packetPrototype);
+    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", 1, computeLaplacianFused_gpu,
+                                        packetPrototype, 0);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -352,7 +356,8 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
     const DataPacket_gpu_1_stream&   packetPrototype{}; 
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", computeLaplacianFused_gpu, packetPrototype);
+    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", 1, computeLaplacianFused_gpu,
+                                        packetPrototype, 0);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
