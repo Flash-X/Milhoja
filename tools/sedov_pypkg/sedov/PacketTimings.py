@@ -20,15 +20,20 @@ class PacketTimings(object):
             rank = int(info[1].replace('rank', ''))
             idx.append( (step, rank) )
 
-        # TODO: Confirm that all have the same setup
-        dfs = []
-        for step, rank in sorted(idx):
-            fname = self.__path.joinpath(f'timings_packet_step{step}_rank{rank}.dat')
-            result = PacketTimingsSingleFile(fname)
-            dfs.append( result.timings )
+        # Not all runs will use packets
+        if len(idx) > 0:
+            # TODO: Confirm that all have the same setup
+            dfs = []
+            for step, rank in sorted(idx):
+                fname = self.__path.joinpath(f'timings_packet_step{step}_rank{rank}.dat')
+                result = PacketTimingsSingleFile(fname)
+                dfs.append( result.timings )
 
-        self.__df = pd.concat(dfs)
-        self.__hdr = result
+            self.__df = pd.concat(dfs)
+            self.__hdr = result
+        else:
+            self.__hdr = {}
+            self.__df = []
 
     @property
     def filename(self):
@@ -52,6 +57,8 @@ class PacketTimings(object):
     
     @property
     def n_blocks(self):
+        if len(self.__df) == 0:
+            return 0
         return self.__df.nblocks.sum()
 
     @property

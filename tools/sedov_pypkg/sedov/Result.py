@@ -6,24 +6,14 @@ import itertools as it
 
 from pathlib import Path
 
-from sedov import IQ_XMOM_IDX
-from sedov import IQ_YMOM_IDX
-from sedov import IQ_ZMOM_IDX
-from sedov import IQ_MASS_IDX
-from sedov import IQ_ETOT_IDX
-from sedov import IQ_THRESHOLD_VEL
-from sedov import IQ_THRESHOLD_MASS
-from sedov import IQ_THRESHOLD_ETOT
-from sedov import YT_XAXIS
-from sedov import YT_YAXIS
-from sedov import YT_ZAXIS
+import sedov
 
 class Result(object):
     """
     A class for accessing the results of a single Sedov test run and that
     automatically applies some sanity checks to the results.
     """
-    def __init__(self, fname_plot, fname_data, fname_log, fname_timing):
+    def __init__(self, filename):
         """
         Create an instance of the class for accessing the results associated
         with the given individual result files.  It is generally intended that
@@ -43,17 +33,18 @@ class Result(object):
         Returns
             The object
         """
-        # TODO: Should we pass in the IQ timing file when acquired as well?
-        self.__fname_plot   = Path(fname_plot)
-        self.__fname_data   = Path(fname_data)
-        self.__fname_log    = Path(fname_log)
-        self.__fname_timing = Path(fname_timing)
+        self.__path         = filename
+        self.__fname_plot   = filename.joinpath('sedov_plt_final')
+        self.__fname_data   = filename.joinpath('sedov.dat')
+        self.__fname_log    = filename.joinpath('sedov.log')
+        self.__fname_hydro  = filename.joinpath('sedov_timings.dat')
+
         if   not self.__fname_data.is_file():
             raise ValueError(f'{self.__fname_data} does not exist')
         elif not self.__fname_log.is_file():
             raise ValueError(f'{self.__fname_log} does not exist')
-        elif not self.__fname_timing.is_file():
-            raise ValueError(f'{self.__fname_timing} does not exist')
+        elif not self.__fname_hydro.is_file():
+            raise ValueError(f'{self.__fname_hydro} does not exist')
 
         self.__dataset = None
         if not self.__fname_plot.is_dir():
@@ -61,11 +52,11 @@ class Result(object):
         else:
             self.__dataset = yt.load(str(self.__fname_plot))
 
-        assert(self.__dataset.coordinates.axis_id['x'] == YT_XAXIS)
-        assert(self.__dataset.coordinates.axis_id['y'] == YT_YAXIS)
-        assert(self.__dataset.coordinates.axis_id['z'] == YT_ZAXIS)
+        assert(self.__dataset.coordinates.axis_id['x'] == sedov.YT_XAXIS)
+        assert(self.__dataset.coordinates.axis_id['y'] == sedov.YT_YAXIS)
+        assert(self.__dataset.coordinates.axis_id['z'] == sedov.YT_ZAXIS)
 
-        with open(self.__fname_timing, 'r') as fptr:
+        with open(self.__fname_hydro, 'r') as fptr:
             comments = (each.lstrip().lstrip('#') for each in fptr.readlines() \
                                                   if each.lstrip()[0] == '#')
             comments = (each.split() for each in comments \
@@ -76,6 +67,9 @@ class Result(object):
 
         # Create structure for caching 2D z-slices
         self.__frbs = {}
+
+        # Combine all packet timing results into a single DataFrame
+        self.__packet_timings = sedov.PacketTimings(self.__path)
 
         super().__init__()
 
@@ -101,13 +95,13 @@ class Result(object):
 
     @property
     def n_mpi_processes(self):
-        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+        raw_data = np.loadtxt(self.__fname_hydro, delimiter=',')
         assert(raw_data.shape[1] % 2 == 1)
         return int(0.5 * (raw_data.shape[1] - 1))
 
     @property
     def n_steps(self):
-        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+        raw_data = np.loadtxt(self.__fname_hydro, delimiter=',')
         n_rows = raw_data.shape[0]
         assert(all(raw_data[:, 0] == range(1, n_rows+1)))
         return raw_data.shape[0]
@@ -140,7 +134,7 @@ class Result(object):
     def raw_timings(self):
         n_procs = self.n_mpi_processes
 
-        raw_data = np.loadtxt(self.__fname_timing, delimiter=',')
+        raw_data = np.loadtxt(self.__fname_hydro, delimiter=',')
 
         steps = raw_data[:, 0].astype(int)
         procs = range(1, n_procs+1)
@@ -175,6 +169,12 @@ class Result(object):
         return pd.DataFrame(data=max_wtime_sec, index=steps, columns=columns)
 
     @property
+    def packet_timings(self):
+        """
+        """
+        return self.__packet_timings.timings
+
+    @property
     def z_coordinates(self):
         """
         """
@@ -198,7 +198,7 @@ class Result(object):
         extent = (xmin, xmax, ymin, ymax)
 
         if z_flt not in self.__frbs:
-            sl = self.__dataset.slice(YT_ZAXIS, z)
+            sl = self.__dataset.slice(sedov.YT_ZAXIS, z)
             n_cells_x, n_cells_y, n_cells_z = self.__dataset.domain_dimensions
             self.__frbs[z_flt] = yt.FixedResolutionBuffer(sl, extent, (n_cells_x, n_cells_y))
 
@@ -226,26 +226,28 @@ class Result(object):
 
         # Conserved quantities
         # TODO: These should all be put under test
-        checks = [('x', IQ_XMOM_IDX), ('y', IQ_YMOM_IDX), ('z', IQ_ZMOM_IDX)]
+        checks = [('x', sedov.IQ_XMOM_IDX), \
+                  ('y', sedov.IQ_YMOM_IDX), \
+                  ('z', sedov.IQ_ZMOM_IDX)]
         for axis, idx in checks:
             max_mom_abserr = np.max(np.abs(data[:, idx]))
             if data[0, idx] != 0.0:
                 raise ValueError(f'Initial {axis}-momentum is non-zero')
-            elif max_mom_abserr > IQ_THRESHOLD_VEL:
+            elif max_mom_abserr > sedov.IQ_THRESHOLD_VEL:
                 msg = '{}-momentum conservation absolute error {} exceeds threshold {}'
-                raise ValueError(msg.format(axis, max_mom_abserr, IQ_THRESHOLD_VEL))
+                raise ValueError(msg.format(axis, max_mom_abserr, sedov.IQ_THRESHOLD_VEL))
 
-        mass_err = data[1:, IQ_MASS_IDX] - data[0, IQ_MASS_IDX]
+        mass_err = data[1:, sedov.IQ_MASS_IDX] - data[0, sedov.IQ_MASS_IDX]
         max_mass_abserr = np.max(np.abs(mass_err))
-        if max_mass_abserr > IQ_THRESHOLD_MASS:
+        if max_mass_abserr > sedov.IQ_THRESHOLD_MASS:
             msg = 'Mass conservation absolute error {} exceeds threshold {}'
-            raise ValueError(msg.format(max_mass_abserr, IQ_THRESHOLD_MASS))
+            raise ValueError(msg.format(max_mass_abserr, sedov.IQ_THRESHOLD_MASS))
 
-        etot_err = data[1:, IQ_ETOT_IDX] - data[0, IQ_ETOT_IDX]
+        etot_err = data[1:, sedov.IQ_ETOT_IDX] - data[0, sedov.IQ_ETOT_IDX]
         max_etot_abserr = np.max(np.abs(etot_err))
-        if max_etot_abserr > IQ_THRESHOLD_ETOT:
+        if max_etot_abserr > sedov.IQ_THRESHOLD_ETOT:
             msg = 'Total energy conservation absolute error {} exceeds threshold {}'
-            raise ValueError(msg.format(max_etot_abserr, IQ_THRESHOLD_ETOT))
+            raise ValueError(msg.format(max_etot_abserr, sedov.IQ_THRESHOLD_ETOT))
 
         df = pd.DataFrame(data=data, columns=columns)
         df.index = df.index.rename('step')
@@ -275,15 +277,15 @@ class Result(object):
         with open(self.__fname_data, 'r') as fptr:
             data = np.loadtxt(fptr)
 
-        mass_err = data[1:, IQ_MASS_IDX] - data[0, IQ_MASS_IDX]
-        etot_err = data[1:, IQ_ETOT_IDX] - data[0, IQ_ETOT_IDX]
+        mass_err = data[1:, sedov.IQ_MASS_IDX] - data[0, sedov.IQ_MASS_IDX]
+        etot_err = data[1:, sedov.IQ_ETOT_IDX] - data[0, sedov.IQ_ETOT_IDX]
 
-        intQuantities[0] = data[0, IQ_MASS_IDX]
+        intQuantities[0] = data[0, sedov.IQ_MASS_IDX]
         intQuantities[1] = np.mean(mass_err)
         intQuantities[2] = np.std(mass_err)
         intQuantities[3] = np.max(np.abs(mass_err))
 
-        intQuantities[4] = data[0, IQ_ETOT_IDX]
+        intQuantities[4] = data[0, sedov.IQ_ETOT_IDX]
         intQuantities[5] = np.mean(etot_err)
         intQuantities[6] = np.std(etot_err)
         intQuantities[7] = np.max(np.abs(etot_err))
@@ -299,6 +301,7 @@ class Result(object):
         n_blocks_per_proc = np.ceil(n_blocks / float(n_proc))
 
         timers = ['Set initial conditions',
+                  'computeLocalIQ',
                   'Reduce/Write',
                   'Gather/Write',
                   'sedov simulation',
@@ -343,6 +346,8 @@ class Result(object):
         wtime_gc_sec       = wtimes_sec['GC Fill']
         wtime_finalize_sec = wtime_total_sec - times_sec['sedov simulation']['end'][0]
         wtime_comp_sec     = self.timings_per_step.max_wtime_sec.sum()
+        wtime_iq_sec       = wtimes_sec['computeLocalIQ']
+        wtime_gather_sec   = wtimes_sec['Gather/Write']
         wtime_reduce_sec   = wtimes_sec['Reduce/Write']
 
         msg  = f'Total walltime\t\t\t\t\t{wtime_total_sec} s\n'
@@ -354,6 +359,8 @@ class Result(object):
         msg += f'\t\tGC fill walltime\t\t\t\t{wtime_gc_sec} s\n'
         msg += f'\t\tComputation walltime\t\t\t\t{wtime_comp_sec} s\n'
         msg += f'\t\tComputation walltime/block\t\t\t{wtime_comp_sec / float(n_blocks_per_proc*n_steps)} s\n'
+        msg += f'\t\tCompute Local IQ walltime\t\t\t{wtime_iq_sec} s\n'
+        msg += f'\t\tGather walltime\t\t\t\t\t{wtime_gather_sec} s\n'
         msg += f'\t\tReduction walltime\t\t\t\t{wtime_reduce_sec} s\n'
         msg += f'\tFinalization walltime\t\t\t\t{wtime_finalize_sec} s\n'
 
@@ -362,6 +369,9 @@ class Result(object):
     def __str__(self):
         """
         """
+        MSEC_TO_SEC = 1.0e3
+        USEC_TO_SEC = 1.0e6
+
         nxb, nyb, nzb = self.blocks_shape
         n_blocks_x, n_blocks_y, n_blocks_z = self.domain_shape
 
@@ -375,17 +385,14 @@ class Result(object):
         E_std  = iq_df.loc['Std_Energy_Err', 'summary_stats']
         E_max  = iq_df.loc['Max_Energy_Err', 'summary_stats']
 
-        msg  = f'Log  Filename\t\t\t{self.__fname_log.name}\n'
-        msg += f'Log  Filename Path\t\t{self.__fname_log.parent}\n'
+        msg  = f'Filename\t\t\t\t{self.__path}\n'
+        msg += f'Log  Filename\t\t\t{self.__fname_log.name}\n'
         msg += f'Data Filename\t\t\t{self.__fname_data.name}\n'
-        msg += f'Data Filename Path\t\t{self.__fname_data.parent}\n'
         if self.__fname_plot == '':
             msg += 'Plofile Name\t\t\tNot Given\n'
         else:
             msg += f'Plotfile Name\t\t\t{self.__fname_plot.name}\n'
-            msg += f'Plotfile Name Path\t\t{self.__fname_plot.parent}\n'
-        msg  = f'Filename\t\t\t{self.__fname_timing.name}\n'
-        msg += f'Data Repo\t\t\t{self.__fname_timing.parent}\n'
+        msg += f'Hydro Filename\t\t\t{self.__fname_hydro.name}\n'
         msg += f'Study name\t\t\t{self.study_name}\n'
         msg += f'N MPI Processes\t\t\t{self.n_mpi_processes}\n'
         msg += f'N Steps\t\t\t\t{self.n_steps}\n'
@@ -402,6 +409,32 @@ class Result(object):
         msg += f'N Blocks/Packet\t\t\t{self.n_blocks_per_packet}\n'
         msg += f'N Blocks/CPU Turn\t\t{self.n_blocks_per_cpu_turn}\n'
         msg += f'Timer Resolution\t\t{self.timer_resolution_sec} sec\n'
+
+        if self.__packet_timings.n_packets > 0:
+            packet_df = self.__packet_timings.timings
+
+            n_blocks_all = sorted(packet_df.nblocks.unique())
+            msg += '\n'
+            msg += f'N Packets\t\t\t{self.__packet_timings.n_packets}\n'
+            msg += f'N Blocks\t\t\t{self.__packet_timings.n_blocks}\n'
+            msg += f'Packet Sizes\t\t\t{n_blocks_all} Blocks/Packet\n'
+
+            todo = [('wtime_pack_sec',   'Pack'), \
+                    ('wtime_async_sec',  'Async'), \
+                    ('wtime_packet_sec', 'Packet')]
+            for col, name in todo:
+                data_sec = packet_df[col] / packet_df.nblocks
+                min_wtime_us    = data_sec.min()    * USEC_TO_SEC
+                mean_wtime_us   = data_sec.mean()   * USEC_TO_SEC
+                median_wtime_us = data_sec.median() * USEC_TO_SEC
+                max_wtime_us    = data_sec.max()    * USEC_TO_SEC
+                std_wtime_us    = data_sec.std()    * USEC_TO_SEC
+                msg += '\n'
+                msg += f'Min    {name} Walltime/Block\t{min_wtime_us} us\n'
+                msg += f'Mean   {name} Walltime/Block\t{mean_wtime_us} us\n'
+                msg += f'Median {name} Walltime/Block\t{median_wtime_us} us\n'
+                msg += f'Max    {name} Walltime/Block\t{max_wtime_us} us\n'
+                msg += f'StdDev {name} Walltime/Block\t{std_wtime_us} us\n'
 
         msg += '\n'
         msg += f'Initial Mass\t\t\t{M0}\n'
