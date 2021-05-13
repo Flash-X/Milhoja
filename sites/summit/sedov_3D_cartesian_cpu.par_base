@@ -14,7 +14,7 @@ namespace rp_Driver {
 namespace rp_Io {
     // computeIntegralQuantitiesByBlock run in CPU-only thread team
     // configuration using blocks
-    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = REPLACE_NCT;
+    constexpr unsigned int          N_THREADS_FOR_INT_QUANTITIES = 6;
 }
 
 namespace rp_Grid {
@@ -33,10 +33,10 @@ namespace rp_Grid {
 }
 
 namespace rp_Runtime {
-    constexpr unsigned int          N_THREADS_PER_TEAM     = 7;
-    constexpr unsigned int          N_THREAD_TEAMS         = 1;
-    constexpr int                   N_STREAMS              = 1; 
-    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 0;
+    constexpr unsigned int          N_THREADS_PER_TEAM     = 14;
+    constexpr unsigned int          N_THREAD_TEAMS         =  1;
+    constexpr int                   N_STREAMS              =  1; 
+    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES =  0;
 }
 
 namespace rp_Eos {
