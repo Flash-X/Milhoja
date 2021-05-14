@@ -33,11 +33,11 @@ class Result(object):
         Returns
             The object
         """
-        self.__path         = filename
-        self.__fname_plot   = filename.joinpath('sedov_plt_final')
-        self.__fname_data   = filename.joinpath('sedov.dat')
-        self.__fname_log    = filename.joinpath('sedov.log')
-        self.__fname_hydro  = filename.joinpath('sedov_timings.dat')
+        self.__path         = Path(filename)
+        self.__fname_plot   = self.__path.joinpath('sedov_plt_final')
+        self.__fname_data   = self.__path.joinpath('sedov.dat')
+        self.__fname_log    = self.__path.joinpath('sedov.log')
+        self.__fname_hydro  = self.__path.joinpath('sedov_timings.dat')
 
         if   not self.__fname_data.is_file():
             raise ValueError(f'{self.__fname_data} does not exist')
@@ -51,10 +51,9 @@ class Result(object):
             self.__fname_plot = ''
         else:
             self.__dataset = yt.load(str(self.__fname_plot))
-
-        assert(self.__dataset.coordinates.axis_id['x'] == sedov.YT_XAXIS)
-        assert(self.__dataset.coordinates.axis_id['y'] == sedov.YT_YAXIS)
-        assert(self.__dataset.coordinates.axis_id['z'] == sedov.YT_ZAXIS)
+            assert(self.__dataset.coordinates.axis_id['x'] == sedov.YT_XAXIS)
+            assert(self.__dataset.coordinates.axis_id['y'] == sedov.YT_YAXIS)
+            assert(self.__dataset.coordinates.axis_id['z'] == sedov.YT_ZAXIS)
 
         with open(self.__fname_hydro, 'r') as fptr:
             comments = (each.lstrip().lstrip('#') for each in fptr.readlines() \
@@ -72,6 +71,10 @@ class Result(object):
         self.__packet_timings = sedov.PacketTimings(self.__path)
 
         super().__init__()
+
+    @property
+    def filename(self):
+        return self.__path
 
     @property
     def study_name(self):
@@ -109,6 +112,10 @@ class Result(object):
     @property
     def n_distributor_threads(self):
         return int(self.__hdr['n_distributor_threads'])
+
+    @property
+    def stagger_usec(self):
+        return int(self.__hdr['stagger_usec'])
 
     @property
     def n_cpu_threads(self):
