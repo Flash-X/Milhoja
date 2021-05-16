@@ -67,8 +67,8 @@ class Result(object):
         # Create structure for caching 2D z-slices
         self.__frbs = {}
 
-        # Combine all packet timing results into a single DataFrame
-        self.__packet_timings = sedov.PacketTimings(self.__path)
+        # Don't eagerly acquire packet timings.  But cache once loaded.
+        self.__packet_timings = None
 
         super().__init__()
 
@@ -166,19 +166,39 @@ class Result(object):
         For each timestep, obtain the maximum walltime per timestep across all
         MPI processes.
         """
-        raw_df = self.raw_timings
-        steps = raw_df.index.get_level_values('step').unique().values
-        max_wtime_sec = np.zeros(len(steps))
-        for j, n in enumerate(steps):
-            max_wtime_sec[j] = raw_df.xs(n, level='step').wtime_sec.max()
+        columns = ['n_procs', 'mean_wtime_sec', 'std_wtime_sec', \
+                   'min_wtime_sec', \
+                   'p25_wtime_sec', 'median_wtime_sec', 'p75_wtime_sec', \
+                   'max_wtime_sec']
+        n_cols = len(columns)
 
-        columns = ['max_wtime_sec']
-        return pd.DataFrame(data=max_wtime_sec, index=steps, columns=columns)
+        raw_df = self.raw_timings
+        steps = sorted(raw_df.index.get_level_values('step').unique().values)
+        data_sec = np.full([len(steps), n_cols], 0.0, float)
+        for j, n in enumerate(steps):
+            df = raw_df.xs(n, level='step').describe()
+            data_sec[j, 0] = df.loc['count', 'wtime_sec']
+            data_sec[j, 1] = df.loc['mean',  'wtime_sec']
+            data_sec[j, 2] = df.loc['std',   'wtime_sec']
+            data_sec[j, 3] = df.loc['min',   'wtime_sec']
+            data_sec[j, 4] = df.loc['25%',   'wtime_sec']
+            data_sec[j, 5] = df.loc['50%',   'wtime_sec']
+            data_sec[j, 6] = df.loc['75%',   'wtime_sec']
+            data_sec[j, 7] = df.loc['max',   'wtime_sec']
+
+        df = pd.DataFrame(data=data_sec, index=steps, columns=columns)
+        df['n_procs'] = df.n_procs.astype(int)
+        df.index.rename('step', inplace=True)
+        return df
 
     @property
     def packet_timings(self):
         """
         """
+        # If not already loaded, load and cache
+        if self.__packet_timings == None:
+            self.__packet_timings = sedov.PacketTimings(self.__path)
+
         return self.__packet_timings.timings
 
     @property
@@ -376,6 +396,10 @@ class Result(object):
     def __str__(self):
         """
         """
+        # If not already loaded, load and cache
+        if self.__packet_timings == None:
+            self.__packet_timings = sedov.PacketTimings(self.__path)
+
         MSEC_TO_SEC = 1.0e3
         USEC_TO_SEC = 1.0e6
 
