@@ -94,8 +94,29 @@ int main(int argc, char* argv[]) {
             grid.fillGuardCells();
         }
 
-        //----- EXECUTE ACTIONS
+        //----- EXECUTE ACTIONS, single block
         /* _link:execute */
+
+        //----- EXECUTE ACTIONS, interleaved with bookkeeping
+        /* _HIDE_link:execute_recipe_1 */
+        //[
+        //  {'_HIDE_code': hydro}
+        //  {'_HIDE_code': hypre}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //]
+        /* driver bookkeeping */
+        /* _HIDE_link:execute_recipe_2 */
+        //[
+        //  {'_HIDE_code': hydro}
+        //  {'_HIDE_code': hypre}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //  {'_HIDE_code': ...}
+        //]
 
         //----- OUTPUT RESULTS TO FILES
         io.reduceToGlobalIntegralQuantities();
