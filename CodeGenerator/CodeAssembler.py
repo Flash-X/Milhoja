@@ -81,9 +81,11 @@ class CodeAssembler():
                         assert 2 == len(s)
                         params[s[0]] = s[1]
                 if '_link:' in line:
-                    linkName = re.search(r'\b_link:\w+\b', line).group()
-                    assert linkName in ['_link:setup', '_link:execute']
-                    code[i] = { '_param:indent': indent, linkName: [] }
+                    linkName = re.search(r'\b_link:\w+\b', line)
+                    if linkName:
+                        linkName = linkName.group()
+                        assert linkName in ['_link:setup', '_link:execute'], linkName
+                        code[i] = { '_param:indent': indent, linkName: [] }
             # assemble code tree
             if isTopLayer:
                 tree = { '_code': code }
@@ -104,7 +106,7 @@ class CodeAssembler():
         fileType = path.suffix
         with open(path, 'w') as f:
             if '.json' == fileType:
-                json.dump(tree, f, indent=4)
+                json.dump(tree, f, indent=2)
             else:
                 raise NotImplementedError('File type "{}" is not supported'.format(fileType))
 
