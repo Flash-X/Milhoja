@@ -9,9 +9,9 @@ import matplotlib.pyplot
 
 _PREFIX = '[CodeGenerator]'
 
-_PLOTID_GRAPH            = 131
-_PLOTID_H_GRAPH          = 132
-_PLOTID_THREADTEAM_GRAPH = 133
+_PLOTID_GRAPH            = 311
+_PLOTID_H_GRAPH          = 312
+_PLOTID_THREADTEAM_GRAPH = 313
 
 ##################
 # Global Variables
@@ -34,28 +34,29 @@ def initialize(codeAssembler):
 def finalize():
     print(_PREFIX, 'Finalize')
     # plot
-    print(_PREFIX, 'Plot TaskGraph ({})'.format(_graph is not None),
-          'Coarse TaskGraph ({})'.format(_h_graph is not None),
-          'Thread Team TaskGraph ({})'.format(_threadteam_graph is not None))
+    print(_PREFIX, 'Control Flow Graph ({})'.format(_graph is not None),
+          'Coarse Control Flow Graph ({})'.format(_h_graph is not None),
+          'Thread Team Control Flow Graph ({})'.format(_threadteam_graph is not None))
     fig = matplotlib.pyplot.figure(figsize=(16,6))
     if _graph is not None:
         ax = matplotlib.pyplot.subplot(_PLOTID_GRAPH)
-        ax.set_title('TaskGraph')
+        ax.set_title('Control Flow Graph')
         _graph.plot(nodeLabels=True)
     if _h_graph is not None:
         ax = matplotlib.pyplot.subplot(_PLOTID_H_GRAPH)
-        ax.set_title('Coarse TaskGraph')
+        ax.set_title('Coarse Control Flow Graph')
         _h_graph.plot(nodeLabels=True)
     if _threadteam_graph is not None:
         ax = matplotlib.pyplot.subplot(_PLOTID_THREADTEAM_GRAPH)
-        ax.set_title('Thread Team TaskGraph')
-        pos_nodes = networkx.circular_layout(_threadteam_graph)
+        ax.set_title('Thread Team Control Flow Graph')
+        pos_nodes  = src.graph.AbstractGraph.linear_layout(_threadteam_graph)
         networkx.draw_networkx_nodes(_threadteam_graph, pos_nodes, node_size=600)
         networkx.draw_networkx_edges(_threadteam_graph, pos_nodes,
                                      min_source_margin=15,
                                      min_target_margin=15)
         networkx.draw_networkx_labels(_threadteam_graph, pos_nodes, font_size=10)
     fig.set_tight_layout({'pad': 0.5})
+    fig.savefig('_graphs.pdf')
     matplotlib.pyplot.show()
     return
 

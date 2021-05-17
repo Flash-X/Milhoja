@@ -1,5 +1,6 @@
 from src.node import *  #TODO remove dependency
 import networkx, copy, sys
+import numpy
 
 ################
 # Abstract Graph
@@ -272,14 +273,28 @@ class AbstractGraph():
     # Plotting
     #---------
 
+    @staticmethod
+    def linear_layout(nxGraph, node=0, posx=0.0, posy=0.0, pos_nodes=dict()):
+        pos_nodes[node] = numpy.array([posx, posy])
+        count = 0
+        for nbr in list(nxGraph.successors(node)):  # loop over all neighbors
+            AbstractGraph.linear_layout(nxGraph, nbr, posx+1.0, float(count), pos_nodes)
+            count += 1
+        return pos_nodes
+
     def plot(self, nodeLabels=False, edgeLabels=False):
-        pos_nodes  = networkx.circular_layout(self.G)
+        pos_nodes     = self.linear_layout(self.G)
         pos_sublabels = copy.deepcopy(pos_nodes)
-        magn = 0.0
-        for pos in pos_sublabels.values():
-            magn = max(magn, abs(pos[1]))
-        for key in pos_sublabels.keys():
-            pos_sublabels[key][1] -= 0.2*magn
+        pos_suplabels = copy.deepcopy(pos_nodes)
+        for node in pos_sublabels.keys():
+            pos_sublabels[node][1] -= 6.0e-3  #TODO not sure why this is the right amount of shifting
+        for node in pos_suplabels.keys():
+            pos_suplabels[node][1] += 6.0e-3  #TODO not sure why this is the right amount of shifting
+#       magn = 0.0
+#       for pos in pos_sublabels.values():
+#           magn = max(magn, abs(pos[1]))
+#       for key in pos_sublabels.keys():
+#           pos_sublabels[key][1] -= 0.2*magn
 #       plot_options = {
 #           'with_labels': True,
 #           'node_size': 600,
@@ -294,11 +309,18 @@ class AbstractGraph():
                                      min_source_margin=15,
                                      min_target_margin=15)
         networkx.draw_networkx_labels(self.G, pos_nodes, font_size=10)
-        labels_device = networkx.get_node_attributes(self.G, 'device')
         if nodeLabels:
-            networkx.draw_networkx_labels(self.G, pos_sublabels, labels=labels_device, font_size=8)
+            labels_device = networkx.get_node_attributes(self.G, 'device')
+            labels_action = copy.deepcopy(labels_device)
+            for node in labels_action.keys():
+                if isinstance(self.G.nodes[node]['obj'], ActionNode):
+                    labels_action[node] = self.G.nodes[node]['obj'].name
+                else:
+                    labels_action[node] = ''
+            networkx.draw_networkx_labels(self.G, pos_sublabels, labels=labels_device, font_size=6)
+            networkx.draw_networkx_labels(self.G, pos_suplabels, labels=labels_action, font_size=6)
         if edgeLabels:
-            networkx.draw_networkx_edge_labels(self.G, pos_nodes, font_size=8)
+            networkx.draw_networkx_edge_labels(self.G, pos_nodes, font_size=6)
 
 ############
 # Task Graph
@@ -353,6 +375,10 @@ class TaskGraph(AbstractGraph):
         assert device in self.deviceList, device
         return self.addNodeAttribute(node, self.deviceName, device)
 
+    def setUp(self):
+        self._setUpEdgesRecurively(node=self.rootid, memoryCopy=list(), memoryScratch=list())
+        return
+
     def _setUpEdgesRecurively(self, node : int, memoryCopy : list, memoryScratch : list):
         '''
             node            Current node
@@ -384,10 +410,6 @@ class TaskGraph(AbstractGraph):
                 self.G[node][nbr][self.memoryScratch]    = memoryScratch
             # recurse into neighboring node
             self._setUpEdgesRecurively(nbr, memoryCopy, memoryScratch)
-        return
-
-    def setUp(self):
-        self._setUpEdgesRecurively(node=self.rootid, memoryCopy=list(), memoryScratch=list())
         return
 
     def toPrunedGraph(self):
