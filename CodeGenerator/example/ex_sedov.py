@@ -5,8 +5,8 @@
 import pathlib, sys
 
 sys.path.append('..')
-from CodeGenerator import *
-from CodeAssembler import *
+from codeflow.CodeGenerator import *
+from codeflow.CodeAssembler import *
 
 BASENAME: str = 'ex_sedov'
 

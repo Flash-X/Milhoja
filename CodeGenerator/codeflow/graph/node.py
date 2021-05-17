@@ -1,7 +1,4 @@
-import pathlib, sys
-
-sys.path.append('..')
-from CodeAssembler import *
+from ..CodeAssembler import *
 
 #####################
 # Nodes of Task Graph
@@ -40,7 +37,8 @@ class ConcurrentDataEndNode(AbstractNode):
 
 class ActionNode(AbstractNode):
 ####DEV
-    _codePath = pathlib.Path('../example')
+    import pathlib
+    _codePath = pathlib.Path('.')
     _codeData = CodeAssembler.load(_codePath / 'ex_sedov_data_Default.json')
 ####DEV
 

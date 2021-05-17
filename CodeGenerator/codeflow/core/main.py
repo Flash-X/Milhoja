@@ -1,5 +1,5 @@
-import src.graph
-import src.runtime_specific
+from ..graph import graph
+from ..runtime import runtime_specific
 import networkx, copy, sys
 import matplotlib.pyplot
 
@@ -28,7 +28,7 @@ _threadteam_graph = None
 def initialize(codeAssembler):
     print(_PREFIX, 'Initialize')
     global _graph
-    _graph = src.graph.TaskGraph(codeAssembler=codeAssembler, verbose=True)
+    _graph = graph.TaskGraph(codeAssembler=codeAssembler, verbose=True)
     return _graph
 
 def finalize():
@@ -49,7 +49,7 @@ def finalize():
     if _threadteam_graph is not None:
         ax = matplotlib.pyplot.subplot(_PLOTID_THREADTEAM_GRAPH)
         ax.set_title('Thread Team Control Flow Graph')
-        pos_nodes  = src.graph.AbstractGraph.linear_layout(_threadteam_graph)
+        pos_nodes  = graph.AbstractGraph.linear_layout(_threadteam_graph)
         networkx.draw_networkx_nodes(_threadteam_graph, pos_nodes, node_size=600)
         networkx.draw_networkx_edges(_threadteam_graph, pos_nodes,
                                      min_source_margin=15,
@@ -113,7 +113,7 @@ def _createThreadTeamGraph():
 
 def _createThreadTeamGraphList():
     ttGraphList = []
-    for fn in src.runtime_specific.threadTeamGraphFunctions:
+    for fn in runtime_specific.threadTeamGraphFunctions:
         ttGraphList.append(fn())
     return ttGraphList
 

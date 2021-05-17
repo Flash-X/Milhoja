@@ -1,5 +1,5 @@
-from src.node import *  #TODO remove dependency
-import networkx, copy, sys
+from .node import *  #TODO remove dependency
+import networkx, copy
 import numpy
 
 ################
@@ -334,6 +334,7 @@ class RootNode():
         return str(self.__class__) + ': ' + str(self.__dict__)
 
 
+#TODO rename TaskGraph to ControlFlowGraph
 class TaskGraph(AbstractGraph):
     deviceDefault = 'Default'
 
@@ -422,12 +423,12 @@ class TaskGraph(AbstractGraph):
         assert 'CodeModelClass' in self.G.graph
         self.codeAssembler.initializeDriver()
         codeModel      = self.G.graph['CodeModelClass'](self.codeAssembler)
-        subroutineCode = TaskGraph._parseCodeRecurively_nxGraph(self.G, self.rootid, codeModel)
+        subroutineCode = TaskGraph._parseCodeRecursively_nxGraph(self.G, self.rootid, codeModel)
         driverCode     = self.codeAssembler.parse()
         return driverCode, subroutineCode
 
     @staticmethod
-    def _parseCodeRecurively_nxGraph(nxGraph, node : int, codeModel, isFirst=True, action=list(), subroutine=dict()):
+    def _parseCodeRecursively_nxGraph(nxGraph, node : int, codeModel, isFirst=True, action=list(), subroutine=dict()):
         assert isinstance(node, int), type(node)
         assert isinstance(subroutine, dict), type(subroutine)
         # set unique id
@@ -447,7 +448,7 @@ class TaskGraph(AbstractGraph):
                 action.append(actionName)
         # go to the node's neighbors
         for nbr in list(nxGraph.successors(node)):  # loop over all neighbors
-            TaskGraph._parseCodeRecurively_nxGraph(nxGraph, nbr, codeModel, isFirst=False, action=action, subroutine=subroutine)
+            TaskGraph._parseCodeRecursively_nxGraph(nxGraph, nbr, codeModel, isFirst=False, action=action, subroutine=subroutine)
         # finalize and return
         if isFirst:
             codeModel.assembleCode_execute('uniqueIdDEV', 'name DEV', action=action)
