@@ -1,5 +1,5 @@
 from ..graph import graph
-from ..runtime import runtime_specific
+from ..model import runtime
 import networkx, copy, sys
 import matplotlib.pyplot
 
@@ -113,7 +113,7 @@ def _createThreadTeamGraph():
 
 def _createThreadTeamGraphList():
     ttGraphList = []
-    for fn in runtime_specific.threadTeamGraphFunctions:
+    for fn in runtime.threadTeamGraphFunctions:
         ttGraphList.append(fn())
     return ttGraphList
 
