@@ -1,0 +1,20 @@
+{
+    "_connector:setup": {
+        "_code": [
+            "#include \"Tile.h\""
+        ]
+    },
+    "_connector:execute": {
+        "_param:dt":     "Driver::dt",
+        "_param:lo":     "tileDesc->lo()",
+        "_param:hi":     "tileDesc->hi()",
+        "_param:deltas": "tileDesc->deltas()",
+        "_param:level":  "tileDesc->level()",
+        "_param:U":      "tileDesc->data()",
+        "_code": [
+            "Tile*  tileDesc = dynamic_cast<Tile*>(_param:dataItem);",
+            { "_link:setup": [] },
+            { "_link:execute": [] }
+        ]
+    }
+}

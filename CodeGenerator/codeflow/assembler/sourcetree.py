@@ -1,118 +1,25 @@
+'''
+TODO
+- create variables to replace _connector, _link, _param
+  such that users can choose their own prefix & postfix strings (`lstr` and `rstr`)
+- simplify linking of trees; eg, if only unique id's for links & connectors are used
+  -> when linking trees, check if added keys are unique
+- when linking trees check if added parameters are declared
+- rename internally used parameters to be like __file__, so indent should be __indent__
+
+QUESTIONS
+- can template code look simpler than parsed code?
+- why not use #ifdef's?
+  -> need examples that are too complex for #ifdef's
+- why not use C++ templates?
+  -> fine-grain control over code/optimizations at granularity of lines
+- when can we justify to use these templates/boilerplates?
+  what are complex enough examples that demonstrate the usage of this?
+- how to find and track bugs?
+'''
+
+
 import copy, json, pathlib, re
-
-
-def _load_from_json(path):
-    assert isinstance(path, pathlib.Path), type(path)
-    with open(path, 'r') as f:
-        return json.load(f)
-    return dict()
-
-
-def _load_from_source(path):
-    assert isinstance(path, pathlib.Path), type(path)
-    lines = path.read_text().splitlines()
-    tree  = dict()
-    # split up sections of source code
-    split_indices = list()
-    for i, line in enumerate(lines):
-        if '_connector' in line:
-            split_indices.append(i)
-    split_indices.append(len(lines))
-    if 0 != split_indices[0]:
-        split_indices = [0] + split_indices
-    # generate tree from source code
-    for split_idx in range(len(split_indices) - 1):
-        lines_split = lines[split_indices[split_idx]:split_indices[split_idx+1]]
-        lineno_remove = list()
-        if '_connector' in lines_split[0]:
-            connector = re.search(r'\b_connector[:\w]*\b', lines_split[0])
-            if connector:
-                connector = connector.group()
-                lineno_remove.append(0)
-        else:
-            connector = None
-        indent = 0
-        params = dict()
-        for i, line in enumerate(lines_split):
-            if '{' in line:
-                indent += 1
-            if '}' in line:
-                indent -= 1
-            #if '_param:' in line:
-            if re.search(r'[/\*]{2}\s*_param', line):
-                matches = re.findall(r'\b_param:\w+\b[=\s]+\b\w+\b', line)
-                for m in matches:
-                    s = re.split(r'[=\s]+', m)
-                    assert 2 == len(s)
-                    params[s[0]] = s[1]
-                if matches:
-                    lineno_remove.append(i)
-            if '_link' in line:
-                linkName = re.search(r'\b_link[:\w]*\b', line)
-                if linkName:
-                    linkName = linkName.group()
-                    lines_split[i] = { '_param:indent': indent, linkName: [] }
-        # remove lines
-        lineno_remove.reverse()
-        for i in lineno_remove:
-            lines_split.pop(i)
-        # add items to tree
-        if connector:
-            assert isinstance(connector, str), type(connector)
-            tree[connector] = {'_code': lines_split}
-            tree[connector].update(params)
-        else:
-            tree.update({'_code': lines_split})
-            tree.update(params)
-    # return tree
-    return tree
-
-
-def load(path):
-    ''' TODO '''
-    if not isinstance(path, pathlib.Path):
-        path = pathlib.Path(path)
-    fileType = path.suffix
-    if fileType.lower() == '.json':  # if load JSON
-        tree = _load_from_json(path)
-    elif fileType.lower() in ['.c', '.cc', '.cpp']:  # if load C/C++ source
-        tree = _load_from_source(path)
-    else:  # otherwise file is unknown
-        raise NotImplementedError('File type "{}" is not supported'.format(fileType))
-    # remove connectors from top layer
-    #TODO there is probably no need for this top layer stuff
-#   if isTopLayer:
-#       items = dict()
-#       for treekey in tree.keys():
-#           if '_connector' in treekey.lower():
-#               popped = tree.pop(treekey, None)
-#               for key, value in popped.items():
-#                   if '_code' == key:
-#                       try:
-#                           items[key].extend(value)
-#                       except KeyError:
-#                           items[key] = value
-#                       except:
-#                           raise
-#                   else:
-#                       items[key] = value
-#       tree.update(items)
-    # add file name as parameter
-    tree['_param:__file__'] = path.name
-    return tree
-
-
-def dump(tree, path, indent=2):
-    ''' TODO '''
-    assert isinstance(tree, dict), type(tree)
-    if not isinstance(path, pathlib.Path):
-        path = pathlib.Path(path)
-    fileType = path.suffix
-    with open(path, 'w') as f:
-        if '.json' == fileType.lower():
-            json.dump(tree, f, indent=indent)
-        else:
-            raise NotImplementedError('File type "{}" is not supported'.format(fileType))
 
 
 class SourceTree():
@@ -311,3 +218,120 @@ class SourceTree():
         for key, value in parameters.items():
             line = re.sub(r'\b'+str(key)+r'\b', str(value), line)
         return line
+
+#########################
+# Load and Dump Functions
+#########################
+
+def _load_from_json(path):
+    assert isinstance(path, pathlib.Path), type(path)
+    with open(path, 'r') as f:
+        return json.load(f)
+    return dict()
+
+
+def _load_from_source(path):
+    assert isinstance(path, pathlib.Path), type(path)
+    lines = path.read_text().splitlines()
+    tree  = dict()
+    # split up sections of source code
+    split_indices = list()
+    for i, line in enumerate(lines):
+        if '_connector' in line:
+            split_indices.append(i)
+    split_indices.append(len(lines))
+    if 0 != split_indices[0]:
+        split_indices = [0] + split_indices
+    # generate tree from source code
+    for split_idx in range(len(split_indices) - 1):
+        lines_split = lines[split_indices[split_idx]:split_indices[split_idx+1]]
+        lineno_remove = list()
+        if '_connector' in lines_split[0]:
+            connector = re.search(r'\b_connector[:\w]*\b', lines_split[0])
+            if connector:
+                connector = connector.group()
+                lineno_remove.append(0)
+        else:
+            connector = None
+        indent = 0
+        params = dict()
+        for i, line in enumerate(lines_split):
+            if '{' in line:
+                indent += 1
+            if '}' in line:
+                indent -= 1
+            #if '_param:' in line:
+            if re.search(r'[/\*]{2}\s*_param', line):
+                matches = re.findall(r'\b_param:\w+\b[=\s]+\b\w+\b', line)
+                for m in matches:
+                    s = re.split(r'[=\s]+', m)
+                    assert 2 == len(s)
+                    params[s[0]] = s[1]
+                if matches:
+                    lineno_remove.append(i)
+            if '_link' in line:
+                linkName = re.search(r'\b_link[:\w]*\b', line)
+                if linkName:
+                    linkName = linkName.group()
+                    lines_split[i] = { '_param:indent': indent, linkName: [] }
+        # remove lines
+        lineno_remove.reverse()
+        for i in lineno_remove:
+            lines_split.pop(i)
+        # add items to tree
+        if connector:
+            assert isinstance(connector, str), type(connector)
+            tree[connector] = {'_code': lines_split}
+            tree[connector].update(params)
+        else:
+            tree.update({'_code': lines_split})
+            tree.update(params)
+    # return tree
+    return tree
+
+
+def load(path):
+    ''' TODO '''
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    fileType = path.suffix
+    if fileType.lower() == '.json':  # if load JSON
+        tree = _load_from_json(path)
+    elif fileType.lower() in ['.c', '.cc', '.cpp']:  # if load C/C++ source
+        tree = _load_from_source(path)
+    else:  # otherwise file is unknown
+        raise NotImplementedError('File type "{}" is not supported'.format(fileType))
+    # remove connectors from top layer
+    #TODO there is probably no need for this top layer stuff
+#   if isTopLayer:
+#       items = dict()
+#       for treekey in tree.keys():
+#           if '_connector' in treekey.lower():
+#               popped = tree.pop(treekey, None)
+#               for key, value in popped.items():
+#                   if '_code' == key:
+#                       try:
+#                           items[key].extend(value)
+#                       except KeyError:
+#                           items[key] = value
+#                       except:
+#                           raise
+#                   else:
+#                       items[key] = value
+#       tree.update(items)
+    # add file name as parameter
+    tree['_param:__file__'] = path.name
+    return tree
+
+
+def dump(tree, path, indent=2):
+    ''' TODO '''
+    assert isinstance(tree, dict), type(tree)
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    fileType = path.suffix
+    with open(path, 'w') as f:
+        if '.json' == fileType.lower():
+            json.dump(tree, f, indent=indent)
+        else:
+            raise NotImplementedError('File type "{}" is not supported'.format(fileType))
