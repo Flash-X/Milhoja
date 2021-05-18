@@ -1,0 +1,25 @@
+{
+  "_connector:main": {
+    "_param:axyFunction": "saxpy",
+    "_param:axyType": "float",
+    "_param:size": 3200000,
+    "_param:a": "a",
+    "_param:x": "x",
+    "_param:y": "y",
+    "_code": [
+      {
+        "_param:indent": 0,
+        "_link:setup": []
+      },
+      "int main(void)",
+      "{",
+      "  /* ... initialize ... */",
+      {
+        "_param:indent": 1,
+        "_link:execute": []
+      },
+      "  /* ... finalize ... */",
+      "}"
+    ]
+  }
+}
