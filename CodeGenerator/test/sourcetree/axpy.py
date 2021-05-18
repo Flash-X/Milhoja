@@ -4,14 +4,13 @@ from codeflow.assembler.sourcetree import SourceTree
 
 SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
-    'linkConnectorKeys': ['main', 'setup', 'execute', 'kernel'],
     'indentSpace': ' '*2,
     'verbose': True
 }
 
 LINES_REF_MAIN = \
 '''
-/* <_connector:main> */
+/* <_connector:main file=axpy_main.suffix> */
 /* <_link:setup> */
 /* </_link:setup> */
 int main(void)
@@ -26,7 +25,7 @@ int main(void)
 
 LINES_REF_GPU = \
 '''
-/* <_connector:setup> */
+/* <_connector:setup file=axpy_gpu.suffix> */
 __global__
 void _param:axyFunction(_param:axyType _param:a, _param:axyType *_param:x, _param:axyType *_param:y)
 {
@@ -35,14 +34,14 @@ void _param:axyFunction(_param:axyType _param:a, _param:axyType *_param:x, _para
   /* </_link:kernel> */
 }
 /* </_connector:setup> */
-/* <_connector:execute> */
+/* <_connector:execute file=axpy_gpu.suffix> */
 _param:axyFunction<<<_param:size/320, 320>>>(_param:a, _param:x, _param:y);
 /* </_connector:execute> */
 '''
 
 LINES_REF_CPU = \
 '''
-/* <_connector:execute> */
+/* <_connector:execute file=axpy_cpu.suffix> */
 for (int i=0; i<_param:size; i++) {
   /* <_link:kernel> */
   /* </_link:kernel> */
@@ -52,14 +51,14 @@ for (int i=0; i<_param:size; i++) {
 
 LINES_REF_KERNEL = \
 '''
-/* <_connector:kernel> */
+/* <_connector:kernel file=axpy_kernel.suffix> */
 _param:y[_param:idx] = _param:a*_param:x[_param:idx] + _param:y[_param:idx];
 /* </_connector:kernel> */
 '''
 
 LINES_REF_ASSEMBLED_GPU = \
 '''
-/* <_connector:main> */
+/* <_connector:main file=axpy_main.suffix> */
 /* <_link:setup> */
 /* <axpy_gpu.suffix> */
 __global__
@@ -89,7 +88,7 @@ int main(void)
 
 LINES_REF_ASSEMBLED_CPU = \
 '''
-/* <_connector:main> */
+/* <_connector:main file=axpy_main.suffix> */
 /* <_link:setup> */
 /* </_link:setup> */
 int main(void)
@@ -117,15 +116,14 @@ def perform_check_on_file(file_chk, lines_ref, printLines=False):
     lines_chk = assembler.parse()
     if printLines:
         print(lines_chk)
+    lines_ref = lines_ref.replace('.suffix', pathlib.Path(file_chk).suffix)
     print('Check "parse {}" \t {}'.format(file_chk, lines_ref.strip() == lines_chk.strip()))
 
 def perform_check_on_assembled_gpu(suffix, printLines=False):
     assembler = SourceTree(**SOURCETREE_OPTIONS)
     assembler.initialize('axpy_main'+suffix)
-    linkLoc = ('_connector:main', )
-    loc     = assembler.link('axpy_gpu'+suffix, linkLoc)
-    linkLoc = tuple([*linkLoc, *loc[0]])
-    loc     = assembler.link('axpy_kernel'+suffix, linkLoc)
+    loc = assembler.link('axpy_gpu'+suffix, ('_connector:main',))
+    loc = assembler.link('axpy_kernel'+suffix, loc[0])
     lines_chk = assembler.parse()
     if printLines:
         print(lines_chk)
@@ -135,10 +133,8 @@ def perform_check_on_assembled_gpu(suffix, printLines=False):
 def perform_check_on_assembled_cpu(suffix, printLines=False):
     assembler = SourceTree(**SOURCETREE_OPTIONS)
     assembler.initialize('axpy_main'+suffix)
-    linkLoc = ('_connector:main', )
-    loc     = assembler.link('axpy_cpu'+suffix, linkLoc)
-    linkLoc = tuple([*linkLoc, *loc[0]])
-    loc     = assembler.link('axpy_kernel'+suffix, linkLoc)
+    loc = assembler.link('axpy_cpu'+suffix, ('_connector:main',))
+    loc = assembler.link('axpy_kernel'+suffix, loc[0])
     lines_chk = assembler.parse()
     if printLines:
         print(lines_chk)

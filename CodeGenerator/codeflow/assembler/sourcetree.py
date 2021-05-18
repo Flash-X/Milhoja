@@ -116,31 +116,37 @@ def dump(tree, path, indent=2):
 
 
 class SourceTree():
-    def __init__(self, codePath=None, linkConnectorKeys=['setup', 'execute'],
-                 indentSpace=' '*4, verbose=True, debug=False):
-        self.linkConnectorKeys = linkConnectorKeys
-        self.indentSpace       = indentSpace
-        self.verbose           = verbose
-        self.debug             = debug
+    def __init__(self, codePath=None, indentSpace=' '*4, verbose=True, debug=False):
         if codePath is not None:
             self.codePath = codePath
         else:
             self.codePath = pathlib.Path('.')
+        self.indentSpace = indentSpace
+        self.verbose     = verbose
+        self.debug       = debug
+        self.tree        = None
 
     def copy(self):
         ''' TODO '''
-        return SourceTree(codePath=self.codePath, linkConnectorKeys=self.linkConnectorKeys,
-                          indentSpace=self.indentSpace, verbose=self.verbose, debug=self.debug)
+        return SourceTree(codePath=self.codePath, indentSpace=self.indentSpace,
+                          verbose=self.verbose, debug=self.debug)
 
-    def initialize(self, filename):
+    def initialize(self, filename, parameters=dict()):
         ''' TODO '''
         path = self.codePath / filename
         self.tree         = load(path)
-        self.linkLocation = tuple()
+        for key, value in parameters.items():
+            assert '_param' in key
+            self.tree[key] = value
 
-    def link(self, treeLink, linkLocation=tuple()):
+    def dump(self, path, indent=2):
+        assert self.tree, 'Tree does not exist, call initialize() first.'
+        return dump(self.tree, path, indent)
+
+    def link(self, treeLink, linkLocation=tuple(), parameters=dict()):
         ''' TODO '''
         assert isinstance(linkLocation, tuple), type(linkLocation)
+        assert self.tree, 'Tree does not exist, call initialize() first.'
         # set connector
         c = self.tree
         for loc in linkLocation:
@@ -151,35 +157,49 @@ class SourceTree():
         elif isinstance(treeLink, str) or isinstance(treeLink, pathlib.Path):
             l = load(treeLink)
         else:
-            raise TypeError('Expected dict or path, but got {}'.format(type(treeLink)))
+            raise TypeError('Expected dict or filepath, but got {}'.format(treeLink))
         # perform linking
-        return SourceTree.link_trees(c, l, self.linkConnectorKeys)
+        locations = SourceTree.link_trees(c, l, copy.deepcopy(parameters))
+        for i, loc in enumerate(locations):
+            locations[i] = tuple(list(linkLocation) + list(loc))
+        return locations
 
     @staticmethod
-    def link_trees(tree, treeLink, linkConnectorKeys):
+    def link_trees(tree, treeLink, parameters=dict()):
         assert isinstance(tree, dict), type(tree)
         assert isinstance(treeLink, dict), type(treeLink)
-        topLevelParams = dict()
-        SourceTree._gather_parameters(treeLink, topLevelParams)
-        locations = list()
-        for label in linkConnectorKeys:
-            connLabel = '_connector:' + label
-            linkLabel = '_link:' + label
-            if connLabel in treeLink:
-                c = copy.deepcopy(treeLink[connLabel])
-                for key, value in topLevelParams.items():
-                    if not key in c:
-                        c[key] = value
-                if '_code' in tree:
-                    for i in range(len(tree['_code'])):  # loop over all code entries
-                        if isinstance(tree['_code'][i], dict) and (linkLabel in tree['_code'][i]):
-                            tree['_code'][i][linkLabel].append(c)
-                            j = len(tree['_code'][i][linkLabel]) - 1
-                            locations.append( ('_code', i, linkLabel, j) )
-        return locations
+        assert isinstance(parameters, dict), type(parameters)
+        # get top-level parameters of to-be-linked tree
+        SourceTree._gather_parameters(treeLink, parameters)
+        # link trees
+        linkLocations = list()
+        for connKey in SourceTree._gather_connectors(treeLink):
+            # set link key
+            s = re.split(r'[:]{1}', connKey)
+            if 1 == len(s):
+                linkKey = '_link'
+            elif 2 == len(s):
+                linkKey = '_link:' + s[1]
+            else:
+                raise NotImplementedError('Connector key "{}" is not supported'.format(connKey))
+            # init connector dict
+            c = copy.deepcopy(treeLink[connKey])
+            for key, value in parameters.items():
+                assert '_param' in key
+                if not key in c:
+                    c[key] = value
+            # attach connector to link
+            if '_code' in tree:
+                for i in range(len(tree['_code'])):  # loop over all code lines
+                    if isinstance(tree['_code'][i], dict) and (linkKey in tree['_code'][i]):
+                        tree['_code'][i][linkKey].append(c)
+                        j = len(tree['_code'][i][linkKey]) - 1
+                        linkLocations.append(('_code', i, linkKey, j))
+        return linkLocations
 
     def parse(self):
         ''' TODO '''
+        assert self.tree, 'Tree does not exist, call initialize() first.'
         # write debug file
         if self.debug:
             try:
@@ -193,20 +213,24 @@ class SourceTree():
                 raise
             dump(self.tree, '_debug_{}.json'.format(name))
         # parse tree
-        lines  = list()
-        params = dict()
-        SourceTree.parse_tree(self.tree, lines, params, self.indentSpace, 0, self.verbose, self.debug)
+        lines      = list()
+        parameters = dict()
+        SourceTree.parse_tree(self.tree, lines, parameters, self.indentSpace, 0, self.verbose, self.debug)
         # parse lines
         return '\n'.join(lines)
 
     @staticmethod
-    def parse_tree(tree, lines, params, indentSpace, indentCount, verbose, debug):
+    def parse_tree(tree, lines, parameters, indentSpace, indentCount, verbose, debug):
         assert isinstance(tree, dict), type(tree)
         assert isinstance(lines, list), type(lines)
-        assert isinstance(params, dict), type(params)
+        assert isinstance(parameters, dict), type(parameters)
         # gather parameters
-        indentCount += SourceTree._gather_parameters(tree, params)
+        indentCount += SourceTree._gather_parameters(tree, parameters)
         indent       = indentSpace * indentCount
+        try:
+            whichFile = tree['_param:__file__']
+        except KeyError:
+            whichFile = None
         # process tree
         hasConn = False
         hasCode = False
@@ -216,31 +240,34 @@ class SourceTree():
                 hasConn = True
                 # skip over connector
                 if verbose:
-                    lines.append(indent + SourceTree._verbose_begin(key))
-                SourceTree.parse_tree(tree[key], lines, copy.deepcopy(params), indentSpace, indentCount, verbose, debug)
+                    if whichFile:
+                        lines.append(indent + SourceTree._verbose_begin(key+' file='+whichFile))
+                    else:
+                        lines.append(indent + SourceTree._verbose_begin(key))
+                SourceTree.parse_tree(tree[key], lines, copy.deepcopy(parameters), indentSpace, indentCount, verbose, debug)
                 if verbose:
                     lines.append(indent + SourceTree._verbose_end(key))
             elif '_code' in key:
                 hasCode = True
                 # process code
-                if verbose and '_param:__file__' in tree:
-                    lines.append(indent + SourceTree._verbose_begin(tree['_param:__file__']))
+                if verbose and whichFile:
+                    lines.append(indent + SourceTree._verbose_begin(whichFile))
                 for c in tree['_code']:
                     if isinstance(c, str):
-                        lines.append(indent + SourceTree._substitute_parameters(c, params))
+                        lines.append(indent + SourceTree._substitute_parameters(c, parameters))
                     elif isinstance(c, dict):
-                        SourceTree.parse_tree(c, lines, copy.deepcopy(params), indentSpace, indentCount, verbose, debug)
+                        SourceTree.parse_tree(c, lines, copy.deepcopy(parameters), indentSpace, indentCount, verbose, debug)
                     else:
                         raise TypeError('Expected str or dict, but got {}'.format(type(c)))
-                if verbose and '_param:__file__' in tree:
-                    lines.append(indent + SourceTree._verbose_end(tree['_param:__file__']))
+                if verbose and whichFile:
+                    lines.append(indent + SourceTree._verbose_end(whichFile))
             elif '_link' in key:
                 hasLink = True
                 # recurse into links
                 if verbose:
                     lines.append(indent + SourceTree._verbose_begin(key))
                 for lt in tree[key]:
-                    SourceTree.parse_tree(lt, lines, copy.deepcopy(params), indentSpace, indentCount, verbose, debug)
+                    SourceTree.parse_tree(lt, lines, copy.deepcopy(parameters), indentSpace, indentCount, verbose, debug)
                 if verbose:
                     lines.append(indent + SourceTree._verbose_end(key))
             else:
@@ -257,22 +284,30 @@ class SourceTree():
         return r'/* </' + tag + '> */'
 
     @staticmethod
-    def _gather_parameters(tree, params):
+    def _gather_connectors(tree):
+        connectors=list()
+        for key in tree.keys():
+            if key.startswith('_connector'):
+                connectors.append(key)
+        return connectors
+
+    @staticmethod
+    def _gather_parameters(tree, parameters):
         indentCount = 0
         for key, value in tree.items():
             if key.startswith('_param:'):
                 if '_param:indent' == key:
                     indentCount += value
                 else:
-                    params[key] = value
+                    parameters[key] = value
         return indentCount
 
     @staticmethod
-    def _substitute_parameters(line, params):
+    def _substitute_parameters(line, parameters):
         assert isinstance(line, str), type(line)
-        assert isinstance(params, dict), type(params)
+        assert isinstance(parameters, dict), type(parameters)
         if not ('_param:' in line):
             return line
-        for key, value in params.items():
+        for key, value in parameters.items():
             line = re.sub(r'\b'+str(key)+r'\b', str(value), line)
         return line
