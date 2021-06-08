@@ -1,0 +1,77 @@
+PROTECTIVE_PREAMBLE='''
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+'''
+
+KERNELCORE_ROUTINE_PREFIX='subroutine'
+NS_PREFIX='hy_'
+IMPL_SUFFIX='_oacc_summit'
+ARGUMENT_SIGNATURE_buUfff=' lo_d,hi_d, Uin_d, Uout_d, flX_d, flY_d, flZ_d '
+ARGUMENT_SIGNATURE_tbduFa=' dt, lo_d,hi_d, deltas_d, U_d, flX_d, auxC_d '
+
+BEGIN_KERNELROUTINE=''' 
+      implicit none
+'''
+
+DUMMY_ARGUMENT_DECLS_buUfff='''
+      integer,        intent(IN),dimension(MDIM)    :: lo_d, hi_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: Uin_d
+      integer,pointer,           dimension(:,:,:,:) :: Uout_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: flX_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: flY_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: flZ_d
+'''
+
+DUMMY_ARGUMENT_DECLS_tbduFa='''
+      real,           intent(IN)                    :: dt_d
+      integer,        intent(IN),dimension(MDIM)    :: lo_d, hi_d
+      real,           intent(IN),dimension(MDIM)    :: deltas_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: U_d
+      integer,pointer,           dimension(:,:,:,:) :: flX_d
+      integer,pointer,intent(IN),dimension(:,:,:,:) :: auxC_d
+'''
+
+KERNELROUTINE_BOILERPLATE='''
+    integer :: is, js, ks
+    integer :: ie, je, ke
+    integer :: i, j, k
+
+    is = lo_d(IAXIS)
+    js = lo_d(JAXIS)
+    ks = lo_d(KAXIS)
+
+    ie = hi_d(IAXIS)
+    je = hi_d(JAXIS)
+    ke = hi_d(KAXIS)
+'''
+
+DO_FOR_INTERIOR_CELLS='''
+    !$ acc loop vector collapse(3)
+    do         k = ks, ke
+        do     j = js, je
+            do i = is, ie
+'''
+
+DO_FOR_INTERIOR_XFACES='''
+    !$ acc loop vector collapse(3)
+    do         k = ks, ke
+        do     j = js, je
+            do i = is, ie+K1D
+'''
+
+'&'='&'
+
+END_DO_FOR_INTERIOR_CELLS='''
+            end do
+        end do
+    end do
+'''
+END_KERNELROUTINE='''
+   end subroutine
+'''
+
+then = "THEN"
+elseif = "ELSE IF"
+else = "ELSE"
+endif = "END IF"
