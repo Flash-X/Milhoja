@@ -1,0 +1,228 @@
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+
+#include "DataPacket.h"
+
+#include "Eos.h"
+#include "Hydro.h"
+
+#include "Flash.h"
+
+void Hydro::advanceSolutionHll_packet_omp_v4p5_1(const int tId,
+                                                    orchestration::DataItem* dataItem_h) {
+    using namespace orchestration;
+
+    DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
+
+    const PacketDataLocation   location   = packet_h->getDataLocation();
+    const PacketContents*      contents_d = packet_h->tilePointers();
+
+    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
+    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
+    ptr_d += sizeof(std::size_t);
+    const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
+
+    if (location != PacketDataLocation::CC1) {
+        throw std::runtime_error("[Hydro::advanceSolutionHll_packet_omp_v4p5_1] "
+                                 "Input data must be in CC1");
+    }
+
+    // This task function neither reads from nor writes to GAME.  While it does
+    // read from GAMC, this variable is not written to as part of the task
+    // function's work.  Therefore, GAME need not be included in the packet and
+    // GAMC need not be copied back to Grid data structures as part of
+    // host-side unpacking.
+    //
+    // Note that this optimization requires that GAMC be adjacent in memory to
+    // all other variables in the packet and GAME outside of this grouping.  For
+    // this test, these two variables were declared in Flash.h as the last two
+    // UNK variables to accomplish this goal.
+    //
+    // GAMC is sent to the GPU, but does not need to be returned to the host.
+    // To accomplish this, the CC1 blocks in the copy-in section are packed with
+    // one more variable than the CC2 blocks packed in the copy-out section.
+    // Note that the CC2 blocks are used first as "3D" scratch arrays for auxC.
+    //
+    // TODO: How to do the masking?  Does the setup tool/offline toolchain have
+    // to determine how to assign indices to the variables so that this can
+    // happen for all task actions that must filter?  Selecting the order of
+    // variables in memory sounds like part of the larger optimization problem
+    // as it affects all data packets.
+    packet_h->setDataLocation(PacketDataLocation::CC2);
+    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
+
+    // Shortcuts for representative elements of data arrays to express data dependencies:
+#define CC1_dens111 contents_d->CC1_d->at(1,1,1,DENS_VAR)
+#define FLX_111 contents_d->FCX_d->at(1,1,1,1)
+#define FLY_111 contents_d->FCY_d->at(1,1,1,1)
+#define FLZ_111 contents_d->FCZ_d->at(1,1,1,1)
+
+    //----- ADVANCE SOLUTION
+    // Update unk data on interiors only
+    //   * It is assumed that the GC are filled already
+    //   * No tiling for now means that computing fluxes and updating the
+    //     solution can be fused and the full advance run independently on each
+    //     block and in place.
+#       pragma omp target data use_device_ptr(nTiles_d, contents_d, dt_d)
+    {
+        //----- COMPUTE FLUXES
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            FArray4D*              auxC_d = ptrs->CC2_d;
+
+            hy::computeSoundSpeedHll_omp_v4p5(ptrs->lo_d, ptrs->hi_d,
+                                                 U_d, auxC_d);
+        }
+
+        // The X, Y, and Z fluxes each depend on the speed of sound, but can
+        // be computed independently and therefore concurrently.
+#if   NDIM == 1
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLX_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flX_d  = ptrs->FCX_d;
+
+            hy::computeFluxesHll_X_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flX_d, auxC_d);
+        }
+#elif NDIM == 2
+        // Wait for data to arrive and then launch these two for concurrent
+        // execution
+
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLX_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flX_d  = ptrs->FCX_d;
+
+            hy::computeFluxesHll_X_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flX_d, auxC_d);
+        }
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLY_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flY_d  = ptrs->FCY_d;
+
+            hy::computeFluxesHll_Y_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flY_d, auxC_d);
+        }
+        // depend clauses on next construct act like BARRIER - fluxes must all be computed before updating the solution
+#elif NDIM == 3
+        // Wait for data to arrive and then launch these three for concurrent
+        // execution
+
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLX_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flX_d  = ptrs->FCX_d;
+
+            hy::computeFluxesHll_X_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flX_d, auxC_d);
+        }
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLY_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flY_d  = ptrs->FCY_d;
+
+            hy::computeFluxesHll_Y_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flY_d, auxC_d);
+        }
+#       pragma omp target teams distribute nowait depend(inout:CC1_dens111) depend(out:FLZ_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC1_d;
+            const FArray4D*        auxC_d = ptrs->CC2_d;
+            FArray4D*              flZ_d  = ptrs->FCZ_d;
+
+            hy::computeFluxesHll_Z_omp_v4p5(dt_d, ptrs->lo_d, ptrs->hi_d,
+                                               ptrs->deltas_d,
+                                               U_d, flZ_d, auxC_d);
+        }
+        // depend clauses on next construct act like BARRIER - fluxes must all be computed before updated the solution
+#endif
+
+        //----- UPDATE SOLUTIONS IN PLACE
+        // U is a shared resource for all of these kernels and therefore
+        // they must be launched serially.
+#       pragma omp target teams distribute depend(in:FLX_111) depend(in:FLY_111) depend(in:FLZ_111) default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              Uin_d   = ptrs->CC1_d;
+            FArray4D*              Uout_d  = ptrs->CC2_d;
+
+            hy::scaleSolutionHll_omp_v4p5(ptrs->lo_d, ptrs->hi_d, Uin_d, Uout_d);
+        }
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flX_d = ptrs->FCX_d;
+
+            hy::updateSolutionHll_FlX_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d, flX_d);
+        }
+#if NDIM >= 2
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flY_d = ptrs->FCY_d;
+
+            hy::updateSolutionHll_FlY_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d, flY_d);
+        }
+#endif
+#if NDIM == 3
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+            const FArray4D*        flZ_d = ptrs->FCZ_d;
+
+            hy::updateSolutionHll_FlZ_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d, flZ_d);
+        }
+#endif
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+
+            hy::rescaleSolutionHll_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d);
+        }
+#ifdef EINT_VAR_C
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d   = ptrs->CC2_d;
+
+            hy::computeEintHll_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d);
+        }
+#endif
+
+        // Apply EoS on interior
+#       pragma omp target teams distribute default(none)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            FArray4D*              U_d = ptrs->CC2_d;
+
+            Eos::idealGammaDensIe_omp_v4p5(ptrs->lo_d, ptrs->hi_d, U_d);
+        }
+    } // OpenMP target data block
+
+}
+
