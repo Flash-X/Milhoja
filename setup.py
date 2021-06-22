@@ -2,7 +2,7 @@
 
 # This script is the main workhorse of the build system. Users should invoke this script with a setup line
 # similar to the following, which will set up a build directory with the necessary files for making a test.
-# `python setup.py -s Thomass-MBP -d 2 -p grid_2D.par -t Grid`
+# `python setup.py GridTest -s Thomass-MBP -d 2 -p grid_2D.par`
 #
 # To make the test, cd into the build directory and run `make` or `make all`. Then, the test can be run with
 # `make test` and the code coverage report can be generated with `make coverage`.
@@ -115,24 +115,44 @@ def main():
                 f.write("# Leave blank if not linking a prebuilt library!\n")
                 f.write("LINKLIB = \n")
                 f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
-                f.write("LIB_RUNTIME = .")
+                f.write("LIB_RUNTIME = .\n")
+
+    # Write Orchestration_constants.h in builddir
+    print("Writing Orchestration_constants.h")
+    constantsFile = os.path.join(buildDir,'Orchestration_constants.h')
+    with open(constantsFile,'w') as f:
+        f.write("#ifndef ORCH_CONSTANTS_H__\n#define ORCH_CONSTANTS_H__\n\n")
+
+        f.write("#define REAL_IS_DOUBLE\n")
+        f.write("#define GRID_AMREX\n")
+        f.write("\n")
+        f.write("#define NDIM        {}\n".format(args.dim))
+        f.write("#define K1D         {}\n".format(int(args.dim>=1)))
+        f.write("#define K2D         {}\n".format(int(args.dim>=2)))
+        f.write("#define K3D         {}\n".format(int(args.dim>=3)))
+        f.write("\n")
+        f.write("#define MDIM        3\n")
+        f.write("#define LOW         1\n")
+        f.write("#define HIGH        2\n")
+        f.write("#define IAXIS       1\n")
+        f.write("#define JAXIS       2\n")
+        f.write("#define KAXIS       3\n")
+        f.write("#define IAXIS_C     0\n")
+        f.write("#define JAXIS_C     1\n")
+        f.write("#define KAXIS_C     2\n")
+        f.write("\n")
+        f.write("#define MASTER_PE   0\n")
+        f.write("#define GLOBAL_COMM MPI_COMM_WORLD\n")
+
+        f.write("#endif\n")
 
 
-    # Copy par file into build dir
-    if args.par is not None:
-        print("Copying par file "+args.par+" as Flash_par.h")
-        parFile = os.path.join(siteDir,args.par)
-        shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
-
-    # Copy Flash_ND.h and constants_ND.h to build dir as Flash.h and constants.h
-    flashH = os.path.join(testDir,'Flash_{}D.h'.format(args.dim))
-    constantsH = os.path.join(testDir,'constants_{}D.h'.format(args.dim))
-    if os.path.isfile(flashH):
-        print("Copying Flash_{}D.h as Flash.h".format(args.dim))
-        shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
-    if os.path.isfile(constantsH):
-        print("Copying constants_{}D.h as constants.h".format(args.dim))
-        shutil.copy(constantsH,os.path.join(buildDir,'constants.h'))
+    # Copy {TestName}.h to build dir as Test.h
+    if (args.test != "library"):
+        testH = os.path.join(testDir,'{}.h'.format(args.test))
+        if os.path.isfile(testH):
+            print("Copying {}.h as Test.h".format(args.test))
+            shutil.copy(testH,os.path.join(buildDir,'Test.h'))
 
     # Write the setup logfile
     print("Writing setup.log")
@@ -157,20 +177,21 @@ def main():
         f.write('\n')
 
         f.write('Path to copied files:\n')
-        if args.par is not None:
-            f.write('Flash_par.h copied from: {}\n'.format(
-                    os.path.abspath(parFile)) )
-        if os.path.isfile(flashH):
-            f.write('Flash.h copied from: {}\n'.format(
-                    os.path.abspath(flashH)) )
-        if os.path.isfile(constantsH):
-            f.write('constants.h copied from: {}\n'.format(
-                    os.path.abspath(constantsH)) )
-        f.write('\n')
+        if os.path.isfile(testH):
+            f.write('Test.h copied from: {}\n'.format(
+                    os.path.abspath(testH)) )
+        f.write("\n")
 
         f.write('Contents of Makefile.setup:\n')
         f.write('----------------------------\n')
         with open(setupMakefile,'r') as fread:
+            for line in fread:
+                f.write(line)
+        f.write('----------------------------\n\n')
+
+        f.write('Contents of Orchestration_constants.h:\n')
+        f.write('----------------------------\n')
+        with open(constantsFile,'r') as fread:
             for line in fread:
                 f.write(line)
         f.write('----------------------------\n\n')

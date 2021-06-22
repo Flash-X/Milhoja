@@ -9,7 +9,7 @@
 #include <mpi.h>
 #endif
 
-#include "constants.h"
+#include "Orchestration_constants.h"
 
 namespace orchestration {
 

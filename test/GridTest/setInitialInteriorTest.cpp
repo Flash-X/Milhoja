@@ -6,8 +6,8 @@
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
 
-#include "Flash.h"
-#include "constants.h"
+#include "Orchestration_constants.h"
+#include "Test.h"
 
 void Simulation::setInitialInteriorTest(const int tId, orchestration::DataItem* dataItem) {
     using namespace orchestration;

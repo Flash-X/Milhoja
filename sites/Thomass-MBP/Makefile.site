@@ -3,8 +3,8 @@
 #  - AMREXDIR: Path to the appropriate AMReX build directory
 #              (can use the variable NDIM from Makefile.setup)
 #  - GTESTDIR: Path to the Googletest build directory
-BASEDIR      = $(HOME)/Documents/newrepo/OrchestrationRuntime
-AMREXDIR     = $(HOME)/Documents/amrex/$(NDIM)d_gnu
+BASEDIR      = $(HOME)/Documents/OrchestrationRuntime
+AMREXDIR     = $(HOME)/Documents/amrex/$(NDIM)d_gnu_2101
 GTESTDIR     = $(HOME)/Documents/googletest/googletest
 
 # Define the following compiler-related flags
@@ -19,7 +19,7 @@ CXXCOMP      = mpicxx
 CXXFLAGS_PROD    = -g -O0 -DGRID_LOG
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
 
-LDFLAGS_STD = -lpthread -lstdc++
+LDFLAGS_STD = -lpthread -lstdc++ -lgfortran -L/usr/local/Cellar/gcc/11.1.0_1/lib/gcc/11
 
 # Define the following backend-related flags:
 #  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)

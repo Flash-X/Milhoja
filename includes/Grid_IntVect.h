@@ -1,7 +1,6 @@
 #ifndef GRID_INTVECT_H__
 #define GRID_INTVECT_H__
 
-#include "constants.h"
 #include "Grid_Macros.h"
 #include "Grid_Axis.h"
 #include <vector>

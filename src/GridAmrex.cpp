@@ -12,9 +12,8 @@
 #include "Grid_Edge.h"
 #include "OrchestrationLogger.h"
 
-#include "Flash.h"
-#include "Flash_par.h"
-#include "constants.h"
+#include "Orchestration_constants.h"
+#include "Test.h"
 
 namespace orchestration {
 

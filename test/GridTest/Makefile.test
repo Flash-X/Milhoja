@@ -2,7 +2,7 @@
 BINARYNAME          = test_grid_cpp.x
 
 # Define relevant paths
-TESTDIR             = $(BASEDIR)/test/Grid
+TESTDIR             = $(BASEDIR)/test/GridTest
 TESTBASEDIR         = $(BASEDIR)/test/Base
 
 # Define compiler flags in CXXFLAGS_TEST_*

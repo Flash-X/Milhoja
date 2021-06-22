@@ -12,8 +12,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include "Flash.h"
-#include "Flash_par.h"
+#include "Orchestration_constants.h"
+#include "Test.h"
 
 namespace orchestration {
 

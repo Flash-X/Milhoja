@@ -10,15 +10,15 @@ Building Tests
 ==============
 If the user has a site directory configured as specified in the Build System Requirements document (build-system-reqs.txt), they should be able to run a number of unit tests, as follows:
 
-- python setup.py -t Grid -d {1,2,3} -p grid\_{1,2,3}D.par
-- python setup.py -t CudaBackend -d 2 -p par\_cudabackend.h
-- python setup.py -t Runtime/null -d 2 -p par\_runtime.h
-- python setup.py -t Runtime/cpu -d 2 -p par\_runtime.h
-- python setup.py -t Runtime/gpu -d 2 -p par\_runtime.h
-- python setup.py -t ThreadTeam -d 2 -p par\_threadteam.h
-- python setup.py -t Sedov/mpi -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
-- python setup.py -t Sedov/cpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
-- python setup.py -t Sedov/gpu/variant{1,2,3} -d {2,3} -p sedov\_{2,3}D\_cartesian\_gpu.par
+- python setup.py GridTest -d {1,2,3} -p grid\_{1,2,3}D.par
+- python setup.py CudaBackend -d 2 -p par\_cudabackend.h
+- python setup.py Runtime/null -d 2 -p par\_runtime.h
+- python setup.py Runtime/cpu -d 2 -p par\_runtime.h
+- python setup.py Runtime/gpu -d 2 -p par\_runtime.h
+- python setup.py ThreadTeam -d 2 -p par\_threadteam.h
+- python setup.py Sedov/mpi -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par
+- python setup.py Sedov/cpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par
+- python setup.py Sedov/gpu/variant{1,2,3} -d {2,3} -p sedov\_{2,3}D\_cartesian\_gpu.par
 
 Building the Runtime as a library
 =================================

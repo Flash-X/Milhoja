@@ -2,8 +2,6 @@
 
 #include "Grid.h"
 #include "Tile.h"
-#include "Flash.h"
-#include "constants.h"
 
 #include "Grid_AmrCoreFlash.h"
 

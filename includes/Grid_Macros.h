@@ -1,7 +1,7 @@
 #ifndef GRID_MACROS_H__
 #define GRID_MACROS_H__
 
-#include "constants.h"
+#include "Orchestration_constants.h"
 
 #ifndef NDIM
 #error NDIM needs to be defined
