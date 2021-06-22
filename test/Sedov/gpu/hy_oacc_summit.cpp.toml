@@ -20,6 +20,13 @@ ARGUMENT_SIGNATURE_buUfff='''      const orchestration::IntVect* lo_d,
                                    const orchestration::FArray4D* flY_d,
                                    const orchestration::FArray4D* flZ_d
 '''
+ARGUMENT_SIGNATURE_bUfff='''       const orchestration::IntVect* lo_d,
+                                   const orchestration::IntVect* hi_d,
+                                   orchestration::FArray4D* U_d,
+                                   const orchestration::FArray4D* flX_d,
+                                   const orchestration::FArray4D* flY_d,
+                                   const orchestration::FArray4D* flZ_d
+'''
 
 ARGUMENT_SIGNATURE_tbduFa='''      const orchestration::Real* dt_d,
                                    const orchestration::IntVect* lo_d,
@@ -33,9 +40,30 @@ ARGUMENT_SIGNATURE_tbduFa='''      const orchestration::Real* dt_d,
 BEGIN_KERNELROUTINE='{'
 
 DUMMY_ARGUMENT_DECLS_buUfff='''
+
+#define Uin Uin_d->at
+#define Uout Uout_d->at
+#define flX flX_d->at
+#define flY flY_d->at
+#define flZ flZ_d->at
+
 '''
 
 DUMMY_ARGUMENT_DECLS_tbduFa='''
+
+#define U U_d->at
+#define flX flX_d->at
+#define auxC auxC_d->at
+
+'''
+
+DUMMY_ARGUMENT_DECLS_bUfff='''
+
+#define U U_d->at
+#define flX flX_d->at
+#define flY flY_d->at
+#define flZ flZ_d->at
+
 '''
 
 KERNELROUTINE_BOILERPLATE='''
@@ -49,6 +77,9 @@ KERNELROUTINE_BOILERPLATE='''
     int     j_e = hi_d->J();
     int     k_e = hi_d->K();
 '''
+
+INIT_LOCALVAR_GRATUITOUS_REALZERO='= 0.0_wp'
+INIT_LOCALVAR_GRATUITOUS_INTZERO='= 0'
 
 DO_FOR_INTERIOR_CELLS='''
     #pragma acc loop vector collapse(3)

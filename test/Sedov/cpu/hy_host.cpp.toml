@@ -1,0 +1,92 @@
+PROTECTIVE_PREAMBLE='''
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+'''
+
+INCLUDE_ALGORITHM_HEADERS=''' 
+#include <algorithm>
+
+'''
+
+KERNELCORE_ROUTINE_PREFIX='void'
+NS_PREFIX='hy::'
+IMPL_SUFFIX=''
+ARGUMENT_SIGNATURE_buUfff='''      const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   const orchestration::FArray4D& Uin,
+                                   orchestration::FArray4D& Uout,
+                                   const orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& flY,
+                                   const orchestration::FArray4D& flZ
+'''
+ARGUMENT_SIGNATURE_bUfff='''       const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   orchestration::FArray4D& U,
+                                   const orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& flY,
+                                   const orchestration::FArray4D& flZ
+'''
+
+ARGUMENT_SIGNATURE_tbduFa='''      const orchestration::Real& dt,
+                                   const orchestration::IntVect& lo,
+                                   const orchestration::IntVect& hi,
+                                   const orchestration::RealVect& deltas,
+                                   const orchestration::FArray4D& U,
+                                   orchestration::FArray4D& flX,
+                                   const orchestration::FArray4D& auxC
+
+'''
+BEGIN_KERNELROUTINE='{'
+
+DUMMY_ARGUMENT_DECLS_buUfff='''
+'''
+
+DUMMY_ARGUMENT_DECLS_tbduFa='''
+'''
+
+DUMMY_ARGUMENT_DECLS_bUfff='''
+'''
+
+KERNELROUTINE_BOILERPLATE='''
+    using namespace orchestration;
+
+    int     i_s = lo.I();
+    int     j_s = lo.J();
+    int     k_s = lo.K();
+
+    int     i_e = hi.I();
+    int     j_e = hi.J();
+    int     k_e = hi.K();
+'''
+
+INIT_LOCALVAR_GRATUITOUS_REALZERO='= 0.0_wp'
+INIT_LOCALVAR_GRATUITOUS_INTZERO='= 0'
+
+DO_FOR_INTERIOR_CELLS='''
+    for         (int k=k_s; k<=k_e; ++k) {
+        for     (int j=j_s; j<=j_e; ++j) {
+            for (int i=i_s; i<=i_e; ++i) {
+'''
+
+DO_FOR_INTERIOR_XFACES='''
+    for         (int k=k_s; k<=k_e;     ++k) {
+        for     (int j=j_s; j<=j_e;     ++j) {
+            for (int i=i_s; i<=i_e+K1D; ++i) {
+'''
+
+'&'=''
+
+END_DO_FOR_INTERIOR_CELLS='''
+            }
+        }
+    }
+'''
+END_KERNELROUTINE='''
+}
+'''
+
+then = "{"
+elseif = "} else if"
+else = "} else {"
+endif = "}"

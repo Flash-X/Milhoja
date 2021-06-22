@@ -10,29 +10,29 @@ ${KERNELCORE_ROUTINE_PREFIX} ${NS_PREFIX}updateVelxHll${IMPL_SUFFIX}( $&
 ${DUMMY_ARGUMENT_DECLS_buUfff}
 ${KERNELROUTINE_BOILERPLATE}
 
-    Real    invNewDens = 0.0_wp;
+    Real    invNewDens ${INIT_LOCALVAR_GRATUITOUS_REALZERO};
 
 ${DO_FOR_INTERIOR_CELLS}
-                invNewDens = 1.0_wp / Uout_d(i, j, k, DENS_VAR_C);
+                invNewDens = 1.0_wp / Uout(i, j, k, DENS_VAR_C);
 
 #if NDIM == 1
-                Uout_d(i, j, k, VELX_VAR_C) = (  Uin_d(i,   j, k, VELX_VAR_C) * Uin_d(i, j, k, DENS_VAR_C)  $&
-                                               + flX_d(i,   j, k, HY_XMOM_FLUX_C)                           $&
-                                               - flX_d(i+1, j, k, HY_XMOM_FLUX_C) ) * invNewDens;
+                Uout(i, j, k, VELX_VAR_C) = (  Uin(i,   j, k, VELX_VAR_C) * Uin(i, j, k, DENS_VAR_C)  $&
+                                               + flX(i,   j, k, HY_XMOM_FLUX_C)                           $&
+                                               - flX(i+1, j, k, HY_XMOM_FLUX_C) ) * invNewDens;
 #elif NDIM == 2
-                Uout_d(i, j, k, VELX_VAR_C) = (  Uin_d(i,   j,   k, VELX_VAR_C) * Uin_d(i, j, k, DENS_VAR_C)  $&
-                                               + flX_d(i,   j,   k, HY_XMOM_FLUX_C)                           $&
-                                               - flX_d(i+1, j,   k, HY_XMOM_FLUX_C)                           $&
-                                               + flY_d(i,   j,   k, HY_XMOM_FLUX_C)                           $&
-                                               - flY_d(i,   j+1, k, HY_XMOM_FLUX_C) ) * invNewDens;
+                Uout(i, j, k, VELX_VAR_C) = (  Uin(i,   j,   k, VELX_VAR_C) * Uin(i, j, k, DENS_VAR_C)  $&
+                                               + flX(i,   j,   k, HY_XMOM_FLUX_C)                           $&
+                                               - flX(i+1, j,   k, HY_XMOM_FLUX_C)                           $&
+                                               + flY(i,   j,   k, HY_XMOM_FLUX_C)                           $&
+                                               - flY(i,   j+1, k, HY_XMOM_FLUX_C) ) * invNewDens;
 #elif NDIM == 3
-                Uout_d(i, j, k, VELX_VAR_C) = (  Uin_d(i,   j,   k, VELX_VAR_C) * Uin_d(i, j, k, DENS_VAR_C)  $&
-                                               + flX_d(i,   j,   k,   HY_XMOM_FLUX_C)                         $&
-                                               - flX_d(i+1, j,   k,   HY_XMOM_FLUX_C)                         $&
-                                               + flY_d(i,   j,   k,   HY_XMOM_FLUX_C)                         $&
-                                               - flY_d(i,   j+1, k,   HY_XMOM_FLUX_C)                         $&
-                                               + flZ_d(i,   j,   k,   HY_XMOM_FLUX_C)                         ${&}
-                                               - flZ_d(i,   j,   k+1, HY_XMOM_FLUX_C) ) * invNewDens;
+                Uout(i, j, k, VELX_VAR_C) = (  Uin(i,   j,   k, VELX_VAR_C) * Uin(i, j, k, DENS_VAR_C)  $&
+                                               + flX(i,   j,   k,   HY_XMOM_FLUX_C)                         $&
+                                               - flX(i+1, j,   k,   HY_XMOM_FLUX_C)                         $&
+                                               + flY(i,   j,   k,   HY_XMOM_FLUX_C)                         $&
+                                               - flY(i,   j+1, k,   HY_XMOM_FLUX_C)                         $&
+                                               + flZ(i,   j,   k,   HY_XMOM_FLUX_C)                         ${&}
+                                               - flZ(i,   j,   k+1, HY_XMOM_FLUX_C) ) * invNewDens;
 #endif
 ${END_DO_FOR_INTERIOR_CELLS}
 ${END_KERNELROUTINE}

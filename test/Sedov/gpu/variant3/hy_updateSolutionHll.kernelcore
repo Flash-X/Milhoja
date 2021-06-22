@@ -1,0 +1,131 @@
+${PROTECTIVE_PREAMBLE}
+
+#include "Hydro.h"
+
+#include "Flash.h"
+
+${KERNELCORE_ROUTINE_PREFIX} ${NS_PREFIX}updateSolutionHll${IMPL_SUFFIX}( $&
+                                   ${ARGUMENT_SIGNATURE_bUfff}       $&
+				                                    ) ${BEGIN_KERNELROUTINE}
+${DUMMY_ARGUMENT_DECLS_bUfff}
+${KERNELROUTINE_BOILERPLATE}
+
+#ifdef EINT_VAR_C
+    Real    norm2_sqr ${INIT_LOCALVAR_GRATUITOUS_REALZERO};
+#endif
+    Real    densOld ${INIT_LOCALVAR_GRATUITOUS_REALZERO};
+    Real    densNew ${INIT_LOCALVAR_GRATUITOUS_REALZERO};
+    Real    densNew_inv ${INIT_LOCALVAR_GRATUITOUS_REALZERO};
+
+${DO_FOR_INTERIOR_CELLS}
+                // Update density first
+                densOld = U(i, j, k, DENS_VAR_C);
+#if NDIM == 1
+                densNew =   densOld
+                          + flX(i,   j, k, HY_DENS_FLUX_C)  $&
+                          - flX(i+1, j, k, HY_DENS_FLUX_C);
+#elif NDIM == 2
+                densNew =   densOld  $&
+                          + flX(i,   j,   k, HY_DENS_FLUX_C)  $&
+                          - flX(i+1, j,   k, HY_DENS_FLUX_C)  $&
+                          + flY(i,   j,   k, HY_DENS_FLUX_C)  $&
+                          - flY(i,   j+1, k, HY_DENS_FLUX_C);
+#elif NDIM == 3
+                densNew =   densOld  $&
+                          + flX(i,   j,   k,   HY_DENS_FLUX_C)  $&
+                          - flX(i+1, j,   k,   HY_DENS_FLUX_C)  $&
+                          + flY(i,   j,   k,   HY_DENS_FLUX_C)  $&
+                          - flY(i,   j+1, k,   HY_DENS_FLUX_C)  $&
+                          + flZ(i,   j,   k,   HY_DENS_FLUX_C)  $&
+                          - flZ(i,   j,   k+1, HY_DENS_FLUX_C);
+#endif
+                U(i, j, k, DENS_VAR_C) = densNew;
+                densNew_inv = 1.0_wp / densNew;
+
+                // velocities and total energy can be updated independently
+                // using density result
+#if NDIM == 1
+                U(i, j, k, VELX_VAR_C) = (    U(i,   j, k, VELX_VAR_C) * densOld  $&
+                                                + flX(i,   j, k, HY_XMOM_FLUX_C)  $&
+                                                - flX(i+1, j, k, HY_XMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELY_VAR_C) = (    U(i,   j, k, VELY_VAR_C) * densOld  $&
+                                                + flX(i,   j, k, HY_YMOM_FLUX_C)  $&
+                                                - flX(i+1, j, k, HY_YMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELZ_VAR_C) = (    U(i,   j, k, VELZ_VAR_C) * densOld  $&
+                                                + flX(i,   j, k, HY_ZMOM_FLUX_C)  $&
+                                                - flX(i+1, j, k, HY_ZMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, ENER_VAR_C) = (    U(i,   j, k, ENER_VAR_C) * densOld  $&
+                                                + flX(i,   j, k, HY_ENER_FLUX_C)  $&
+                                                - flX(i+1, j, k, HY_ENER_FLUX_C) ) * densNew_inv;
+#elif NDIM == 2
+                U(i, j, k, VELX_VAR_C) = (    U(i,   j,   k, VELX_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k, HY_XMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k, HY_XMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k, HY_XMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k, HY_XMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELY_VAR_C) = (    U(i,   j,   k, VELY_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k, HY_YMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k, HY_YMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k, HY_YMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k, HY_YMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELZ_VAR_C) = (    U(i,   j,   k, VELZ_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k, HY_ZMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k, HY_ZMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k, HY_ZMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k, HY_ZMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, ENER_VAR_C) = (    U(i,   j,   k, ENER_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k, HY_ENER_FLUX_C)  $&
+                                                - flX(i+1, j,   k, HY_ENER_FLUX_C)  $&
+                                                + flY(i,   j,   k, HY_ENER_FLUX_C)  $&
+                                                - flY(i,   j+1, k, HY_ENER_FLUX_C) ) * densNew_inv;
+#elif NDIM == 3
+                U(i, j, k, VELX_VAR_C) = (    U(i,   j,   k,   VELX_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k,   HY_XMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k,   HY_XMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k,   HY_XMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k,   HY_XMOM_FLUX_C)  $&
+                                                + flZ(i,   j,   k,   HY_XMOM_FLUX_C)  $&
+                                                - flZ(i,   j,   k+1, HY_XMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELY_VAR_C) = (    U(i,   j,   k,   VELY_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k,   HY_YMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k,   HY_YMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k,   HY_YMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k,   HY_YMOM_FLUX_C)  $&
+                                                + flZ(i,   j,   k,   HY_YMOM_FLUX_C)  $&
+                                                - flZ(i,   j,   k+1, HY_YMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, VELZ_VAR_C) = (    U(i,   j,   k,   VELZ_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k,   HY_ZMOM_FLUX_C)  $&
+                                                - flX(i+1, j,   k,   HY_ZMOM_FLUX_C)  $&
+                                                + flY(i,   j,   k,   HY_ZMOM_FLUX_C)  $&
+                                                - flY(i,   j+1, k,   HY_ZMOM_FLUX_C)  $&
+                                                + flZ(i,   j,   k,   HY_ZMOM_FLUX_C)  $&
+                                                - flZ(i,   j,   k+1, HY_ZMOM_FLUX_C) ) * densNew_inv;
+
+                U(i, j, k, ENER_VAR_C) = (    U(i,   j,   k,   ENER_VAR_C) * densOld  $&
+                                                + flX(i,   j,   k,   HY_ENER_FLUX_C)  $&
+                                                - flX(i+1, j,   k,   HY_ENER_FLUX_C)  $&
+                                                + flY(i,   j,   k,   HY_ENER_FLUX_C)  $&
+                                                - flY(i,   j+1, k,   HY_ENER_FLUX_C)  $&
+                                                + flZ(i,   j,   k,   HY_ENER_FLUX_C)  $&
+                                                - flZ(i,   j,   k+1, HY_ENER_FLUX_C) ) * densNew_inv;
+#endif
+
+#ifdef EINT_VAR_C
+                // Compute energy correction from new velocities and energy
+                norm2_sqr =   U(i, j, k, VELX_VAR_C) * U(i, j, k, VELX_VAR_C)  $&
+                            + U(i, j, k, VELY_VAR_C) * U(i, j, k, VELY_VAR_C)  $&
+                            + U(i, j, k, VELZ_VAR_C) * U(i, j, k, VELZ_VAR_C);
+                U(i, j, k, EINT_VAR_C) =    U(i, j, k, ENER_VAR_C)  $&
+                                               - (0.5_wp * norm2_sqr);
+#endif
+${END_DO_FOR_INTERIOR_CELLS}
+${END_KERNELROUTINE}
+

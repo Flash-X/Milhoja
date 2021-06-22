@@ -6,7 +6,7 @@ PROTECTIVE_PREAMBLE='''
 
 KERNELCORE_ROUTINE_PREFIX='subroutine'
 NS_PREFIX='hy_'
-IMPL_SUFFIX='_oacc_summit'
+IMPL_SUFFIX=''
 ARGUMENT_SIGNATURE_buUfff=' lo,hi, Uin, Uout, flX, flY, flZ '
 ARGUMENT_SIGNATURE_bUfff=' lo,hi, U, flX, flY, flZ '
 ARGUMENT_SIGNATURE_tbduFa=' dt, lo,hi, deltas, U, flX, auxC '
@@ -60,14 +60,12 @@ INIT_LOCALVAR_GRATUITOUS_REALZERO=''
 INIT_LOCALVAR_GRATUITOUS_INTZERO=''
 
 DO_FOR_INTERIOR_CELLS='''
-    !$ acc loop vector collapse(3)
     do         k = ks, ke
         do     j = js, je
             do i = is, ie
 '''
 
 DO_FOR_INTERIOR_XFACES='''
-    !$ acc loop vector collapse(3)
     do         k = ks, ke
         do     j = js, je
             do i = is, ie+K1D
