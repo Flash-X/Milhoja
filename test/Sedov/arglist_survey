@@ -1,0 +1,38 @@
+
+
+NAME*                   Variants     GPU Kernel Argument Signature**    Generalized Kernelcore
+
+computeSoundSpeedHll    1,2,3        buA
+computeFluxesHll_X      1,2,3        tbduFa                             X
+computeFluxesHll_Y      1,2,3        tbduFa
+computeFluxesHll_Z      1,2,3        tbduFa
+scaleSolutionHll        1            buU
+updateSolutionHll_FlX   1            bUf
+updateSolutionHll_FlY   1            bUf
+updateSolutionHll_FlZ   1            bUf
+rescaleSolutionHll      1            bU
+computeEintHll          1,2          bU
+updateDensityHll        2            buUfff
+updateVelxHll           2            buUfff                             X
+updateVelyHll           2            buUfff
+updateVelzHll           2            buUfff
+updateEnergyHll         2            buUfff
+updateSolutionHll       3,tile       bUfff                              X
+computeFluxesHll        tile         tbduFFFa
+idealGammaDensIe        1,2,3,tile   bU
+
+UNION ARG USE                        tbduUFFFfffAa  
+
+
+* The <NAME> in hy::<NAME>_oacc_summit  (or, for tile, just hy::<NAME>)
+  or in Eos::<NAME>_oacc_summit         (or Eos::<NAME>)
+**
+ t - dt
+ b - box (as lo and hi)
+ d - delta(.DIM)
+ u - UNK r/o  (U_d, Uin_d)
+ U - UNK r/w or w (U_d, Unew_d, Uout_d)
+ A - aux w        (auxC_d)
+ a - aux r        (auxC_d)
+ F - flux w or r/w (flX_d,flY_d,flZ_d)
+ F - flux r        (flX_d,flY_d,flZ_d)
