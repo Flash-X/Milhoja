@@ -17,7 +17,7 @@ using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
 #else
 // No notion of callback function otherwise.
 // Specify simplest function pointer.
-using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void);
+using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void*);
 #endif
 
 /**
@@ -77,7 +77,7 @@ public:
      * Obtain the maximum number of streams that the runtime is allowed to use
      * at any given point in time.
      */
-    virtual int       maxNumberStreams(void) const = 0; 
+    virtual int       maxNumberStreams(void) const = 0;
 
     /**
      * Obtain the number of streams presently available for distribution.
