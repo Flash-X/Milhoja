@@ -1,130 +1,3 @@
-/**
- * \file DataPacket.h
- *
- * It is important that the runtime be decoupled fully from the content of the
- * computations that it helps execute.  In particular, this means that it should
- * function properly without having any knowledge of what computations it is
- * helping execute nor what data/information such computations require to
- * execute correctly.  This implies that all actions that the runtime calls must
- * have the same simple function interface.  As each action routine could
- * potentially require a different set of input arguments, this common interface
- * must hide away this variability and does so by insisting that all inputs to
- * the action routine being called must be encapsulated as a single object that,
- * for the purpose of polymorphism, is inherited from DataItem.  Please refer to
- * the documentation for ACTION_ROUTINE for more information regarding this
- * interface.
- *
- * As part of this, a DataItem can be classified as either a Tile or a
- * DataPacket.  The Grid unit defines the Tile interface and concrete Grid
- * implementations include concrete implementations of the Tile interface.  The
- * runtime's distributors use the Grid's iterator to access Tile objects and can
- * subsequently push each of these to the appropriate pipelines in its associated
- * configuration.  The threads in ThreadTeams couple these objects with actions
- * to form tasks.  In this sense, Tile is the fundamental DataItem for the
- * runtime.  Note that when a thread forms and executes a task, it passes the
- * task's DataItem to the task's function and this function must know that the
- * object is a Tile so that it can correctly pull the associated action's input
- * from the object using the runtime's Tile interface.
- *
- * The DataPacket class defined here exists to package up one or more tiles so
- * that these can be transferred together with the intent of decreasing the
- * impact on performance associated with such data movements.  As the
- * distributor accesses Tile objects, it adds these to a DataPacket object.
- * Once a DataPacket is full, the distributor asks the DataPacket to prepare
- * itself for transfer (i.e. pack itself), initiates data movements, and pushes
- * it to the appropriate pipelines so that threads will decompose it into Tiles
- * that are then used to construct tasks.  This implies that the distributor
- * must have the ability to create DataPacket objects as needed.
- *
- * To satisfy the aforementioned function interface requirement and to minimize
- * data movements, non-tile-specific data needed by an action routine (e.g. dt)
- * can also be included in each DataPacket object.  This, however, implies that
- * each action that works with DataPackets could require different content and that
- * only the application that defines a particular action knows what this content
- * should be.  Hence, concrete DataPackets, unlike concrete Tiles, must be
- * specified outside the runtime library.  Sensibly, these are derived from
- * DataPacket and must implement the packing of each DataPacket object.  The
- * associated function that receives DataPacket objects must be written in
- * tandem to unpack the contents and therefore gain access to the input
- * arguments it needs for executing its action.
- *
- * This class was designed using the Prototype design pattern (Citation XXX) so
- * that given a prototype DataPacket object of an unknown concrete type, the
- * runtime can clone this and therefore create new DataPacket objects of the
- * appropriate concrete type.  Note that the runtime is therefore decoupled from
- * the fine details of each DataPacket --- it is effectively a conduit.  Given a
- * prototype, the runtime blindly creates DataPacket objects that know how to
- * pack themselves and passes the objects to a task function that knows how
- * to unpack and use them.
- *
- * Designers that would like to derive from this class should refer to the
- * documentation of the protected data members to understand which of these must
- * be set by a derived class's pack() member function.
- *
- * The interface allows for some optimization of data transfers by allowing
- * DataPackets to be structured such that there is a contiguous copy-in block, a
- * continguous copy-in/out block, and a contiguous copy-out block.  Ideally, the
- * copy-in and copy-in/out blocks will be adjacent so that only these two blocks
- * can be sent to a device and done so in a single transfer.  Similarly, the
- * copy in/out and copy-out blocks should be adjacent so that only these
- * sections are transferred back to host and in a single transfer.
- *
- * As part of packing, a DataPacket object should be assigned a single Stream
- * object with the expectation that all host-to-GPU transfers of the packet
- * occur on the Stream and that GPU computations also be launched on the same
- * Stream to ensure that computation only begins once the data is in GPU memory.
- * Additionally, the packet can acquire at packing extra Streams.  These should
- * not be used for data transfers, but only for allowing concurrent execution of
- * kernels on the GPU.  While the main Stream will be released automatically by
- * the runtime once the packet has arrived back at the host, it is the task
- * function's responsiblity to release the extra Streams once they are no longer
- * needed for concurrent computations.
- *
- * A DataPacket is effectively consumed once it arrives back at the host memory
- * and is automatically unpacked (Refer to the documentation for unpack() to
- * understand how host-side unpacking is different from the device-side
- * unpacking carried out by the packet's task function).  For instance, all
- * resources assigned to the packet are released and no code should try to
- * access data previously managed by the packet.  It is not intended that a
- * DataPacket object be reused once it is consumed.  Rather this resource should
- * be released as well.
- *
- * While the DataPacket objects are created dynamically by distributors, the
- * ownership of these objects flows with them as they move through a thread team
- * configuration.  As part of the DataItem resource management scheme designed
- * in accord with this notion of flowing ownership, it is assumed that at any
- * point in time at most one thread can have access to a given DataPacket
- * object, which implies exclusive ownership.  In particular, this class is not
- * thread safe.  Refer to the system-level documentation for a discussion of how
- * the overall design should ensure that this assumption is not violated.
- *
- * DataPackets have two CC buffers so that computations can use data stored in
- * one and write results to the other.  This is important for computations whose
- * results cannot be written in place.  Ideally, only the location that contains
- * the original data will be transferred to the device and only the location
- * storing the result will be transferred back to host.  The DataPacket allows
- * for setting and accessing the current location and this must always be
- * maintained up-to-date.  For instance, the unpack() member function needs knows
- * where to find the data.
- *
- * Each packet is configured to only manage a single contiguous group of
- * variables.  This includes the possiblity of mananging all variables.  In
- * particular, the unpack() function will only copy to host memory results in
- * the packet associated with this group of variables.  If this weren't the case
- * and two or more data-indepedent actions were executed concurrently, the copy
- * back could overwrite results computed by another action.
- *
- * @todo This DataPacket is designed assuming that the packet starts in the
- * host, is transferred to the GPU, and then transferred back.  What about the
- * case of a packet that starts at a the host, is transferred to the GPU, then
- * to the FPGA, and then back to the host.  What about packets that needn't
- * start or end on the host?  Note that such a data packet would not be
- * associated with a single thread team or a single action.
- * @todo Make sure that ACTION_ROUTINE above links to the actual documentation
- *       in doxygen.
- * @todo Add in citation to Gang of Four book.
- */
-
 #ifndef DATA_PACKET_H__
 #define DATA_PACKET_H__
 
@@ -134,47 +7,13 @@
 #include <cuda_runtime.h>
 #endif
 
-#include "Grid_IntVect.h"
-#include "Grid_RealVect.h"
-#include "FArray1D.h"
-#include "FArray4D.h"
-#include "Tile.h"
 #include "DataItem.h"
+#include "DataShape.h"
 #include "Stream.h"
+#include "Tile.h"
+#include <deque>
 
 namespace orchestration {
-
-/**
- * Store and communicate the location of the current values of the cell-centered
- * data managed by a DataPacket.
- */
-enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
-
-/**
- * @struct PacketContents
- * @brief Keep track of the location in device memory of different tile-specific
- * data.
- *
- * @todo The PacketContents struct was implemented to make unpacking of the data
- * packet trivial in the patch code.  This was necessary since a humble human
- * was writing and maintaining the code.  The code generator, however, will
- * hopefully be able to write the low-level unpacking code directly in the patch
- * code.  Therefore, this structure, should disappear.  This makes sense as
- * otherwise, this struct would have to include every possible tile-specific
- * element that could ever be included in a data packet, which is somewhat out
- * of the control of this library.
- */
-struct PacketContents {
-    std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
-    RealVect*               deltas_d   = nullptr;
-    IntVect*                lo_d       = nullptr;
-    IntVect*                hi_d       = nullptr;
-    FArray4D*               CC1_d      = nullptr;  //!< From loGC to hiGC
-    FArray4D*               CC2_d      = nullptr;  //!< From loGC to hiGC   
-    FArray4D*               FCX_d      = nullptr;  //!< From lo to hi 
-    FArray4D*               FCY_d      = nullptr;  //!< From lo to hi  
-    FArray4D*               FCZ_d      = nullptr;  //!< From lo to hi  
-};
 
 /**
  * @class DataPacket DataPacket.h
@@ -184,19 +23,23 @@ struct PacketContents {
  *       such as constants.h.
  */
 class DataPacket : public DataItem {
-public:
-    /**
-     * Obtain a pointer to a new, empty DataPacket of the same concrete type as
-     * the calling object.  The main workhorse of the Prototype design pattern.
-     *
-     * @return The pointer.  For the main use cases in the runtime, this should
-     * be cast to a shared_ptr.  We return a unique_ptr based on the discussion
-     * in Item 19 (Pp 113) of Effective Modern C++.
-     *
-     * @todo Add in citation.
-     */
-    virtual std::unique_ptr<DataPacket>  clone(void) const = 0;
+protected:
+    /****** STREAMS/QUEUES ******/
+    Stream                            mainStream_;    //!< Main stream for communication
+    std::deque<Stream>                extraStreams_;  //!< Additional streams for computation
 
+    /****** ITEMS ******/
+    std::deque<std::shared_ptr<Tile>> items_;         //!< Items included in packet
+    std::deque<DataShape>             itemShapes_;    //!< Shapes corresponding to individual items
+
+    /****** MEMORY ******/
+    enum MemoryPartition {SHARED, IN, INOUT, OUT, SCRATCH, _N};
+private:
+    std::size_t memorySize_[MemoryPartition::_N];     //!< Bytes of memory for each partition
+    void*       memoryPtr_src_;                       //!< Location of source memory
+    void*       memoryPtr_trg_;                       //!< Location in destination memory
+
+public:
     virtual ~DataPacket(void);
 
     DataPacket(DataPacket&)                  = delete;
@@ -207,16 +50,16 @@ public:
     DataPacket& operator=(DataPacket&&)      = delete;
 
     /**
-     * Obtain the number of Tiles presently included in the packet.
+     * Obtain a pointer to a new, empty DataPacket of the same concrete type as
+     * the calling object.  The main workhorse of the Prototype design pattern.
+     *
+     * @return The pointer.  For the main use cases in the runtime, this should
+     * be cast to a shared_ptr.  We return a unique_ptr based on the discussion
+     * in Item 19 (Pp 113) of Effective Modern C++.
+     *
+     * @todo Add in citation.
      */
-    std::size_t            nTiles(void) const        { return tiles_.size(); }
-    void                   addTile(std::shared_ptr<Tile>&& tileDesc);
-    std::shared_ptr<Tile>  popTile(void);
-
-    /**
-     * Obtain the pointer to the packet contents in GPU memory.
-     */
-    const PacketContents*  tilePointers(void) const  { return contents_d_; };
+    virtual std::unique_ptr<DataPacket> clone(void) const = 0;
 
     /**
      * The runtime calls this member function automatically once all tiles to be
@@ -227,51 +70,19 @@ public:
      * implementations determine in what type of memory packing occurs and to
      * what type of memory the data is sent.
      */
-    virtual void           pack(void) = 0;
+    virtual void  pack(void) = 0;
 
-    /**
-     * Obtain a pointer to the start of the contiguous block of memory on the
-     * host side that will be transferred to GPU memory.
-     */
-    void*                  copyToGpuStart_host(void)           { return (void*)copyInStart_p_; };
+    virtual void  unpack(void) = 0;
 
-    /**
-     * Obtain a pointer to the start of the contiguous block of memory in GPU
-     * device memory that will receive the packet's data from the host.
-     */
-    void*                  copyToGpuStart_gpu(void)            { return (void*)copyInStart_d_; };
+    /****** STREAMS/QUEUES ******/
 
-    /**
-     * Obtain the number of bytes to be sent from the host to the GPU.
-     */
-    std::size_t            copyToGpuSizeInBytes(void) const    { return nCopyToGpuBytes_; };
-
-    /**
-     * Obtain a pointer to the start of the contiguous block of memory in host
-     * memory that will receive the packet's data upon transfer back to the
-     * host.
-     */
-    void*                  returnToHostStart_host(void)        { return (void*)copyInOutStart_p_; };
-
-    /**
-     * Obtain a pointer to the start of the contiguous block of memory on the
-     * GPU side that will be transferred back to host memory.
-     */
-    void*                  returnToHostStart_gpu(void)         { return (void*)copyInOutStart_d_; };
-
-    /**
-     * Obtain the number of bytes to be sent from the GPU back to the host.
-     */
-    std::size_t            returnToHostSizeInBytes(void) const { return nReturnToHostBytes_; };
-    void                   unpack(void);
-
-#ifdef ENABLE_OPENACC_OFFLOAD
+#if defined(ENABLE_OPENACC_OFFLOAD)
     /**
      * Obtain the main OpenACC asynchronous queue assigned to the packet, on
      * which communications are scheduled and computation can also be scheduled.
      * This can be called after pack() is called and before unpack() is called.
      */
-    int                    asynchronousQueue(void) { return stream_.accAsyncQueue; }
+    int           mainAsyncQueue(void) const { return mainStream_.accAsyncQueue; }
 
     /**
      * Obtain the indicated extra OpenACC asynchronous queue assigned to the
@@ -291,19 +102,10 @@ public:
      * @param id - the index of the queue to obtain.  If the packet has acquired
      * N total queues, valid values are 2 to N inclusive.
      */
-    virtual int            extraAsynchronousQueue(const unsigned int id)
-        { throw std::logic_error("[DataPacket::extraAsynchronousQueue] no extra queues"); }
+    int           extraAsyncQueue(unsigned int id) { return extraStreams_.at(id).accAsyncQueue; }
 
-    /**
-     * Release the indicated extra OpenACC asynchronous queue.  This must be 
-     * called after calling pack() and before calling unpack().  It is a logical
-     * error to call this more than once for any given id or on the main queue.
-     * 
-     * @param id - the index of the queue to release.
-     */
-    virtual void           releaseExtraQueue(const unsigned int id)
-        { throw std::logic_error("[DataPacket::releaseExtraQueue] no extra queue"); }
-#endif
+    unsigned int  nExtraAsyncQueues(void) { return extraStreams_.size(); }
+#endif /* defined(ENABLE_OPENACC_OFFLOAD) */
 #if defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND)
     /**
      * Obtain the main CUDA stream assigned to the DataPacket for transferring the
@@ -311,88 +113,159 @@ public:
      * and before unpack() is called.  Calling code can call this as many times
      * as desired.
      */
-    cudaStream_t           stream(void)            { return stream_.cudaStream; };
-#endif
+    cudaStream_t  mainStream(void) const { return mainStream_.cudaStream; };
 
-    PacketDataLocation    getDataLocation(void) const;
-    void                  setDataLocation(const PacketDataLocation location);
-    void                  setVariableMask(const int startVariable, 
-                                          const int endVariable);
+    cudaStream_t  extraStream(unsigned int id) { return extraStreams_.at(id).cudaStream; }
 
-protected:
-    DataPacket(void);
+    unsigned int  nExtraStreams(void) { return extraStreams_.size(); }
+#endif /* defined(ENABLE_CUDA_OFFLOAD) || defined(USE_CUDA_BACKEND) */
 
-    void         nullify(void);
-    std::string  isNull(void) const;
+    /****** ITEMS ******/
 
     /**
-     * Used to store for each tile added to the DataPacket the starting location
-     * in pinned memory of the cell-centered 1 and 2 data blocks.
+     * Add new item to the data packet. Use default data shape or specify a shape.
      */
-    struct BlockPointersPinned {
-        Real*    CC1_data = nullptr;
-        Real*    CC2_data = nullptr;
-    };
+    void                      addTile(std::shared_ptr<Tile>&& item);
 
-    PacketDataLocation                     location_;           //!< The current location of cell-centered data
-    void*                                  packet_p_;           /*!< The starting location in pinned memory
-                                                                 *   of the memory allocated to the packet */ 
-    void*                                  packet_d_;           /*!< The starting location in GPU memory
-                                                                 *   of the memory allocated to the packet */ 
-    char*                                  copyInStart_p_;      /*!< The starting location in pinned memory
-                                                                 *   of the copy-in block*/ 
-    char*                                  copyInStart_d_;      /*!< The starting location in GPU memory 
-                                                                 *   of the copy-in block*/ 
-    char*                                  copyInOutStart_p_;   /*!< The starting location in pinned memory 
-                                                                 *   of the copy-in/out block*/ 
-    char*                                  copyInOutStart_d_;   /*!< The starting location in GPU memory
-                                                                 *   of the copy-in/out block*/ 
-    std::deque<std::shared_ptr<Tile>>      tiles_;              /*!< Tiles included in packet.  Derived
-                                                                 * classes need only read from this. */
-    PacketContents*                        contents_p_;
-    PacketContents*                        contents_d_;
-    BlockPointersPinned*                   pinnedPtrs_;         //!< Location of CC data blocks
-    Stream                                 stream_;             //!< Main stream for communication
-    std::size_t                            nCopyToGpuBytes_;    //!< Number of bytes in copy in and copy in/out
-    std::size_t                            nReturnToHostBytes_; //!< Number of bytes in copy in/out and copy out
+    /**
+     * Get next item from the data packet.
+     */
+    std::shared_ptr<Tile>     popTile(void);
 
-    static constexpr std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
-                                                                     * (NYB + 2 * NGUARD * K2D)
-                                                                     * (NZB + 2 * NGUARD * K3D);
-    static constexpr std::size_t    N_ELEMENTS_PER_CC  = N_ELEMENTS_PER_CC_PER_VARIABLE * NUNKVAR;
+    /**
+     * Obtain the number of items presently included in the packet.
+     */
+    unsigned int              nTiles(void) const { return items_.size(); }
 
-    static constexpr std::size_t    N_ELEMENTS_PER_FCX_PER_VARIABLE = (NXB + 1) * NYB * NZB;
-    static constexpr std::size_t    N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
+    /****** MEMORY ******/
 
-    static constexpr std::size_t    N_ELEMENTS_PER_FCY_PER_VARIABLE = NXB * (NYB + 1) * NZB;
-    static constexpr std::size_t    N_ELEMENTS_PER_FCY = N_ELEMENTS_PER_FCY_PER_VARIABLE * NFLUXES;
+    std::size_t               getInSize(void) const {
+        assert(hasValidMemorySizes());
+        return memorySize_[MemoryPartition::SHARED] +
+               memorySize_[MemoryPartition::IN] +
+               memorySize_[MemoryPartition::INOUT];
+    }
 
-    static constexpr std::size_t    N_ELEMENTS_PER_FCZ_PER_VARIABLE = NXB * NYB * (NZB + 1);
-    static constexpr std::size_t    N_ELEMENTS_PER_FCZ = N_ELEMENTS_PER_FCZ_PER_VARIABLE * NFLUXES;
+    std::size_t               getOutSize(void) const {
+        assert(hasValidMemorySizes());
+        return memorySize_[MemoryPartition::INOUT] +
+               memorySize_[MemoryPartition::OUT];
+    }
 
-    static constexpr std::size_t    DRIVER_DT_SIZE_BYTES =          sizeof(Real);
-    static constexpr std::size_t    DELTA_SIZE_BYTES     =          sizeof(RealVect);
-    static constexpr std::size_t    CC_BLOCK_SIZE_BYTES  = N_ELEMENTS_PER_CC
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCX_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCX
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCY_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCY
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCZ_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCZ
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    POINT_SIZE_BYTES     =          sizeof(IntVect);
-    static constexpr std::size_t    ARRAY1_SIZE_BYTES    =          sizeof(FArray1D);
-    static constexpr std::size_t    ARRAY4_SIZE_BYTES    =          sizeof(FArray4D);
-    static constexpr std::size_t    COORDS_X_SIZE_BYTES  = (NXB + 2 * NGUARD * K1D)
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    COORDS_Y_SIZE_BYTES  = (NYB + 2 * NGUARD * K2D)
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    COORDS_Z_SIZE_BYTES  = (NZB + 2 * NGUARD * K3D)
-                                                                  * sizeof(Real);
+    /**
+     * Obtain a pointer to the start of the contiguous block of memory on the
+     * host side that will be transferred to GPU memory.
+     */
+    void*                     getInPointer_src(void)  const { return memoryPtr_src_; }
+
+    /**
+     * Obtain a pointer to the start of the contiguous block of memory in GPU
+     * device memory that will receive the packet's data from the host.
+     */
+    void*                     getInPointer_trg(void)  const { return memoryPtr_trg_; }
+
+    /**
+     * Obtain a pointer to the start of the contiguous block of memory in host
+     * memory that will receive the packet's data upon transfer back to the
+     * host.
+     */
+    void*                     getOutPointer_src(void) const { return memoryPtr_src_; }
+
+    /**
+     * Obtain a pointer to the start of the contiguous block of memory on the
+     * GPU side that will be transferred back to host memory.
+     */
+    void*                     getOutPointer_trg(void) const {
+        std::size_t offset = memorySize_[MemoryPartition::SHARED] + memorySize_[MemoryPartition::IN];
+
+        assert(hasValidMemorySizes());
+        static_assert(sizeof(char) == 1, "Invalid char size");
+        return (void*)( ((char*)memoryPtr_trg_) + offset );
+    }
+
+protected:
+    /**
+     * Constructor
+     */
+    DataPacket(void);
+
+    /**
+     *
+     */
+    void          pack_initialize(void);
+    void          pack_finalize(void);
+    void          pack_finalize(unsigned int);
+
+    /**
+     *
+     */
+    void          unpack_initialize(void);
+    void          unpack_finalize(void);
+
+    /**
+     *
+     */
+    void          extraStreams_request(unsigned int);
+
+    /**
+     * Release the indicated extra OpenACC asynchronous queue.  This must be
+     * called after calling pack() and before calling unpack().  It is a logical
+     * error to call this more than once for any given id or on the main queue.
+     *
+     * @param id - the index of the queue to release.
+     */
+    void          extraStreams_release(void);
+
+    /**
+     *
+     */
+    void          extraStreams_releaseId(unsigned int);
+
+    /**
+     *
+     */
+    virtual void  setupItemShapes(void) = 0;
+
+    /**
+     *
+     */
+    virtual void  clearItemShapes(void) = 0;
+
+    bool          isUniformItemShape(void) const {
+        return (1 != items_.size() && 1 == itemShapes_.size());
+    }
+
+    const DataShape&    getItemShape(unsigned int itemId) const {
+        assert(0 < itemShapes_.size());
+        if (isUniformItemShape()) {
+            return itemShapes_.at(0);
+        } else {
+            return itemShapes_.at(itemId);
+        }
+    }
+
+    /**
+     *
+     */
+    void*         getInPointerToPartItemVar_src(MemoryPartition, unsigned int, unsigned int) const;
+    void*         getOutPointerToPartItemVar_src(MemoryPartition, unsigned int, unsigned int) const;
+    void*         getPointerToPartItemVar_trg(MemoryPartition, unsigned int, unsigned int) const;
 
 private:
-    int   startVariable_;
-    int   endVariable_;
+    void          nullify(void);
+    std::string   isNull(void) const;
+    void          checkErrorNull(const std::string) const;
+
+    void          mainStream_request(void);
+    void          mainStream_release(void);
+
+    void          setupMemorySizes(void);
+    void          clearMemorySizes(void);
+    bool          hasValidMemorySizes() const;
+
+    std::size_t   getSize_src(void) const;
+    std::size_t   getSize_trg(void) const;
+    std::size_t   getOffsetToPartItemVar(MemoryPartition, unsigned int, unsigned int) const;
 };
 
 }

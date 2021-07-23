@@ -1,53 +1,35 @@
 #include "DataPacket.h"
-
 #include "Backend.h"
-
-#include "Flash.h"
 
 namespace orchestration {
 
 /**
- * Construct a DataPacket containing no Tile objects and with no resources
- * assigned to it.
+ * Constructs a DataPacket object containing no data items and with no
+ * resources assigned to it.
  *
  * @todo The error checks below should be asserts.
  */
 DataPacket::DataPacket(void)
-      : location_{PacketDataLocation::NOT_ASSIGNED},
-        packet_p_{nullptr},
-        packet_d_{nullptr},
-        copyInStart_p_{nullptr},
-        copyInStart_d_{nullptr},
-        copyInOutStart_p_{nullptr},
-        copyInOutStart_d_{nullptr},
-        tiles_{},
-        contents_p_{nullptr},
-        contents_d_{nullptr},
-        pinnedPtrs_{nullptr},
-        stream_{},
-        nCopyToGpuBytes_{0},
-        nReturnToHostBytes_{0},
-        startVariable_{UNK_VARS_BEGIN_C - 1},
-        endVariable_{UNK_VARS_BEGIN_C - 1}
+      : mainStream_{},
+        extraStreams_{},
+        items_{},
+        itemShapes_{},
+        memoryPtr_src_{nullptr},
+        memoryPtr_trg_{nullptr}
 {
-    std::string   errMsg = isNull();
-    if (errMsg != "") {
-        throw std::logic_error("[DataPacket::DataPacket] " + errMsg);
-    }
-
-    if (tiles_.size() != 0) {
-        throw std::runtime_error("[DataPacket::DataPacket] tiles_ not empty");
-    }
+    clearMemorySizes();
+    checkErrorNull(__func__);
 }
 
 /**
- * Destroy object.  Under normal operations, this object should have been
+ * Destroys object.  Under normal operations, this object should have been
  * consumed prior to the execution of the destructor and therefore it should
  * not own resources.  However, resources are released upon abnormal
  * termination.
  */
 DataPacket::~DataPacket(void) {
     nullify();
+    checkErrorNull(__func__);
 }
 
 /**
@@ -55,30 +37,26 @@ DataPacket::~DataPacket(void) {
  * resources owned by the object and setting data members to ridiculous values.
  */
 void  DataPacket::nullify(void) {
-    if (stream_.isValid()) {
-        Backend::instance().releaseStream(stream_);
-    }
-    Backend::instance().releaseGpuMemory(&packet_p_, &packet_d_);
+    // release streams
+    mainStream_release();
+    extraStreams_release();
 
-    if (pinnedPtrs_) {
-        delete [] pinnedPtrs_;
-        pinnedPtrs_ = nullptr;
-    }
+    // release memory
+    Backend::instance().releaseGpuMemory(&memoryPtr_src_, &memoryPtr_trg_);
+    memoryPtr_src_ = nullptr;
+    memoryPtr_trg_ = nullptr;
 
-    location_ = PacketDataLocation::NOT_ASSIGNED;
+    // clear memory sizes
+    clearMemorySizes();
 
-    startVariable_ = UNK_VARS_BEGIN_C - 1;
-    endVariable_   = UNK_VARS_BEGIN_C - 1;
+    // clear item shapes
+    clearItemShapes();
 
-    nCopyToGpuBytes_    = 0;
-    nReturnToHostBytes_ = 0;
+    // check items
+    assert(0 == items_.size());
 
-    contents_p_       = nullptr;
-    contents_d_       = nullptr;
-    copyInStart_p_    = nullptr;
-    copyInStart_d_    = nullptr;
-    copyInOutStart_p_ = nullptr;
-    copyInOutStart_d_ = nullptr;
+    // check self
+    checkErrorNull(__func__);
 }
 
 /**
@@ -86,45 +64,119 @@ void  DataPacket::nullify(void) {
  *
  * @return An empty string if yes; otherwise, an explanation of why it is not
  * null.
- *
- * @todo This could eventually disappear once the data packets are written by
- * code generator.
  */
 std::string  DataPacket::isNull(void) const {
-    if (stream_.isValid()) {
-        return "Stream already acquired";
-    } else if (packet_p_ != nullptr) {
-        return "Pinned memory buffer has already been allocated";
-    } else if (packet_d_ != nullptr) {
-        return "Device memory buffer has already been allocated";
-    } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
-        return "Data location already assigned";
-    } else if (startVariable_ >= UNK_VARS_BEGIN_C) {
-        return "Start variable already set";
-    } else if (endVariable_ >= UNK_VARS_BEGIN_C) {
-        return "End variable already set";
-    } else if (nCopyToGpuBytes_ > 0) {
-        return "Non-zero packet size";
-    } else if (nReturnToHostBytes_ > 0) {
-        return "Non-zero packet size";
-    } else if (contents_p_ != nullptr) {
-        return "Pinned contents exist";
-    } else if (contents_d_ != nullptr) {
-        return "GPU contents exist";
-    } else if (copyInStart_p_ != nullptr) {
-        return "Pinned copy in buffer exists";
-    } else if (copyInStart_d_ != nullptr) {
-        return "GPU copy in buffer exists";
-    } else if (copyInOutStart_p_ != nullptr) {
-        return "Pinned copy back buffer exists";
-    } else if (copyInOutStart_d_ != nullptr) {
-        return "GPU copy back buffer exists";
-    } else if (pinnedPtrs_ != nullptr) {
-        return "Pinned pointers exist";
+    // return error string if not null
+    if (mainStream_.isValid()) {
+        return "Main stream already acquired";
+    } else if (0 < extraStreams_.size()) {
+        return "Extra streams already acquired";
+    } else if (memoryPtr_src_ != nullptr) {
+        return "Source memory (pinned memory) already allocated";
+    } else if (memoryPtr_trg_ != nullptr) {
+        return "Target memory (device memory) already allocated";
+    } else if (0 < items_.size()) {
+        return "Items already added";
+    } else if (0 < itemShapes_.size()) {
+        return "Item shapes already added";
+    } else if (hasValidMemorySizes()) {
+        return "Memory sizes already set up";
     }
 
+    // return empty string if null
     return "";
 }
+
+void  DataPacket::checkErrorNull(const std::string functionName) const {
+    std::string   errMsg = isNull();
+
+    if (!errMsg.empty()) {
+        if (functionName.empty()) {
+            throw std::logic_error("[DataPacket] " + errMsg);
+        } else {
+            throw std::logic_error("[DataPacket::" + functionName + "] " + errMsg);
+        }
+    }
+}
+
+void  DataPacket::pack_initialize(void) {
+    // setup shapes of items
+    setupItemShapes();
+
+    // calculate memory sizes
+    setupMemorySizes();
+    assert(0 < getSize_src());
+    assert(0 < getSize_trg());
+
+    // allocate memory (pinned memory on host and memory on GPU)
+    Backend::instance().requestGpuMemory(getSize_src(), &memoryPtr_src_,
+                                         getSize_trg(), &memoryPtr_trg_);
+    assert(nullptr != memoryPtr_src_);
+    assert(nullptr != memoryPtr_trg_);
+}
+
+void  DataPacket::pack_finalize(void) {
+    // request stream
+    mainStream_request();
+}
+
+void  DataPacket::pack_finalize(unsigned int nExtraStreams) {
+    // request streams
+    mainStream_request();
+    extraStreams_request(nExtraStreams);
+}
+
+void  DataPacket::unpack_initialize(void) {
+    // release streams
+    extraStreams_release();
+    mainStream_release();
+}
+
+void  DataPacket::unpack_finalize(void) {
+    // clear packet, since it is consumed upon unpacking
+    nullify();
+}
+
+/****** STREAMS/QUEUES ******/
+
+void  DataPacket::mainStream_request(void) {
+    mainStream_ = Backend::instance().requestStream(true);
+    if (!mainStream_.isValid()) {
+        throw std::runtime_error("[DataPacket::mainStream_request] Unable to acquire main stream");
+    }
+}
+
+void  DataPacket::mainStream_release(void) {
+    Backend::instance().releaseStream(mainStream_);
+    assert(!mainStream_.isValid());
+}
+
+void  DataPacket::extraStreams_request(unsigned int nExtraStreams) {
+    for (unsigned int i=0; i<nExtraStreams; ++i) {
+        extraStreams_.push_back( Backend::instance().requestStream(true) );
+        if (!extraStreams_.back().isValid()) {
+            throw std::runtime_error("[DataPacket::extraStreams_request] Unable to acquire extra stream");
+        }
+    }
+}
+
+void  DataPacket::extraStreams_releaseId(unsigned int id) {
+    Stream& s = extraStreams_.at(id);
+
+    if (s.isValid()) {
+        Backend::instance().releaseStream(s);
+        assert(!s.isValid());
+    }
+}
+
+void  DataPacket::extraStreams_release(void) {
+    for (unsigned int i=0; i<extraStreams_.size(); ++i) {
+        extraStreams_releaseId(i);
+    }
+    extraStreams_.clear();
+}
+
+/****** ITEMS ******/
 
 /**
  * Add the given Tile to the DataPacket.  As part of this, the packet assumes
@@ -132,10 +184,10 @@ std::string  DataPacket::isNull(void) const {
  *
  * @todo The checks should be asserts.  Figure out how to get that working.
  */
-void   DataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
-    tiles_.push_front( std::move(tileDesc) );
-    if ((tileDesc != nullptr) || (tileDesc.use_count() != 0)) {
-        throw std::runtime_error("[DataPacket::addTile] Ownership of tileDesc not transferred");
+void   DataPacket::addTile(std::shared_ptr<Tile>&& item) {
+    items_.push_front( std::move(item) );
+    if ((item != nullptr) || (item.use_count() != 0)) {
+        throw std::runtime_error("[DataPacket::addTile] Ownership of item not transferred");
     }
 }
 
@@ -146,145 +198,203 @@ void   DataPacket::addTile(std::shared_ptr<Tile>&& tileDesc) {
  * @todo The checks should be asserts.  Figure out how to get that working.
  */
 std::shared_ptr<Tile>  DataPacket::popTile(void) {
-    if (tiles_.size() == 0) {
+    if (items_.size() == 0) {
         throw std::invalid_argument("[DataPacket::popTile] No tiles to pop");
     }
 
-    std::shared_ptr<Tile>   tileDesc{ std::move(tiles_.front()) };
-    if (   (tiles_.front() != nullptr)
-        || (tiles_.front().use_count() != 0)) {
-        throw std::runtime_error("[DataPacket::popTile] Ownership of tileDesc not transferred");
-    } 
-
-    tiles_.pop_front();
-    if ((tileDesc == nullptr) || (tileDesc.use_count() == 0)) {
-        throw std::runtime_error("[DataPacket::popTile] Bad tileDesc");
+    std::shared_ptr<Tile> item{ std::move(items_.front()) };
+    if ((items_.front() != nullptr) || (items_.front().use_count() != 0)) {
+        throw std::runtime_error("[DataPacket::popTile] Ownership of item not transferred");
     }
 
-    return tileDesc;
-}
-
-/**
- * Obtain the location of the correct cell-centered data.
- */
-PacketDataLocation    DataPacket::getDataLocation(void) const {
-    return location_;
-}
-
-/**
- * Specify the location of the correct cell-centered data so that the next
- * runtime element to use the packet knows where to look.
- */
-void   DataPacket::setDataLocation(const PacketDataLocation location) {
-    location_ = location;
-}
-
-/**
- * @todo The present interface allows task functions to specify the variable
- * mask.  Since concrete DataPackets are now coupled to task functions, it seems
- * like this should be known when the concrete classes are designed.  Remove the
- * setVariableMask from the public interface.
- */
-void   DataPacket::setVariableMask(const int startVariable,
-                                   const int endVariable) {
-    if        (startVariable < UNK_VARS_BEGIN_C) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable is invalid");
-    } else if (endVariable > UNK_VARS_END_C) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Ending variable is invalid");
-    } else if (startVariable > endVariable) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable > ending variable");
+    items_.pop_front();
+    if ((item == nullptr) || (item.use_count() == 0)) {
+        throw std::runtime_error("[DataPacket::popTile] Bad item");
     }
 
-    startVariable_ = startVariable;
-    endVariable_ = endVariable;
+    return item;
 }
 
-/**
- * The runtime calls this member function automatically once a DataPacket
- * has arrived in the host memory again.  It is responsible for unpacking
- * the contents and in particular for copying cell-centered data back to the
- * host-side Grid data structures that hold solution data.  The data is copied
- * back in accord with the variable masks set in the DataPacket to avoid
- * inadvertently overwriting variables that were updated in parallel by other
- * actions.
- *
- * All memory and stream resources are released.
- *
- * While the packet is consumed once the function finishes, the list of Tiles
- * that were included in the packet is preserved.  This is necessary so that
- * runtime elements such as MoverUnpacker can enqueue the Tiles with its data
- * subscriber.
- *
- * @todo Should unpacking be made more generic so that the CC blocks need not 
- *       start always with the first data variable.  What if the packet just
- *       needs to include variables 3-5 (out of 10 for example)?
- */
-void  DataPacket::unpack(void) {
-    if (tiles_.size() <= 0) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Empty data packet");
-    } else if (!stream_.isValid()) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Stream not acquired");
-    } else if (pinnedPtrs_ == nullptr) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "No pinned pointers set");
-    } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
-               || (startVariable_ > UNK_VARS_END_C )
-               || (endVariable_   < UNK_VARS_BEGIN_C )
-               || (endVariable_   > UNK_VARS_END_C)) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Invalid variable mask");
+/****** MEMORY ******/
+
+std::size_t DataPacket::getOffsetToPartItemVar(MemoryPartition part,
+                                               unsigned int itemId,
+                                               unsigned int varId) const {
+    // check self
+    if (items_.size() <= 0) {
+        throw std::logic_error("[DataPacket::getOffsetToPartItemVar] No items in data packet");
+    } else if (1 != itemShapes_.size() || items_.size() != itemShapes_.size()) {
+        throw std::logic_error("[DataPacket::getOffsetToPartItemVar] Size mismatch of items and shapes");
+    } else if (!hasValidMemorySizes()) {
+        throw std::logic_error("[DataPacket::getOffsetToPartItemVar] Memory sizes not set up");
     }
 
-    // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
-    assert(!stream_.isValid());
+    // check input
+    if (MemoryPartition::_N <= part) {
+        throw std::out_of_range("[DataPacket::getOffsetToPartItemVar] Memory partition is out of bounds");
+    } else if (0 == memorySize_[part]) {
+        throw std::invalid_argument("[DataPacket::getOffsetToPartItemVar] Memory partition is empty");
+    } else if (items_.size() <= itemId) {
+        throw std::out_of_range("[DataPacket::getOffsetToPartItemVar] Item is out of bounds");
+    }
 
-    for (std::size_t n=0; n<tiles_.size(); ++n) {
-        Tile*   tileDesc_h = tiles_[n].get();
+    // init offset
+    std::size_t offset = 0;
+    std::size_t siz;
 
-        Real*         data_h = tileDesc_h->dataPtr();
-        const Real*   data_p = nullptr;
-        switch (location_) {
-            case PacketDataLocation::CC1:
-                data_p = pinnedPtrs_[n].CC1_data;
-                break;
-            case PacketDataLocation::CC2:
-                data_p = pinnedPtrs_[n].CC2_data;
-                break;
-            default:
-                throw std::logic_error("[DataPacket::unpack] Data not in CC1 or CC2");
+    // find offset to partition
+    for (unsigned int i=0; i<part; ++i) {
+        offset += memorySize_[i];
+    }
+
+    // find offset to item (inside partition)
+    if (part != MemoryPartition::SHARED) {
+        if (isUniformItemShape()) {
+            siz = itemShapes_.at(0).sizePartition(part);
+            assert(siz != 0);
+            offset += itemId * siz;
+        } else {
+            for (unsigned int n=0; n<itemId; ++n) {
+                siz = itemShapes_.at(n).sizePartition(part);
+                assert(siz != 0);
+                offset += siz;
+            }
         }
-
-        if (data_h == nullptr) {
-            throw std::logic_error("[DataPacket::unpack] "
-                                   "Invalid pointer to data in host memory");
-        } else if (data_p == nullptr) {
-            throw std::runtime_error("[DataPacket::unpack] "
-                                     "Invalid pointer to data in pinned memory");
-        }
-
-        // The code here imposes requirements on the variable indices.  See Flash.h
-        // for more information.  If this code is changed, please make sure to
-        // adjust Flash.h appropriately.
-        assert(UNK_VARS_BEGIN_C == 0);
-        assert(UNK_VARS_END_C == (NUNKVAR - 1));
-        std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
-                              * static_cast<std::size_t>(startVariable_);
-        Real*        start_h = data_h + offset;
-        const Real*  start_p = data_p + offset;
-        std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
-                              * N_ELEMENTS_PER_CC_PER_VARIABLE
-                              * sizeof(Real);
-        std::memcpy((void*)start_h, (void*)start_p, nBytes);
     }
 
-    // The packet is consumed upon unpacking.
-    nullify();
+    // find offset to variable (inside partition, inside item)
+    const DataShape&  shape = getItemShape(itemId);
+    if (shape.getN() <= varId) {
+        throw std::invalid_argument("[DataPacket::getOffsetToPartItemVar] Variable ID is out of bounds");
+    } else if (shape.atPart(varId) != part) {
+        throw std::invalid_argument("[DataPacket::getOffsetToPartItemVar] Variable is not in memory partition");
+    }
+    for (unsigned int i=0; i<varId; ++i) {
+        if (shape.atPart(i) != part) {
+            // skip variables that are not in partition
+            continue;
+        } else {
+            // add variable size to offset
+            siz = shape.sizeVariable(i);
+            assert(siz != 0);
+            offset += siz;
+        }
+    }
+
+    // return offset: partition > item > variable
+    return offset;
+}
+
+void* DataPacket::getInPointerToPartItemVar_src(MemoryPartition part,
+                                                unsigned int itemId,
+                                                unsigned int varId) const {
+    // check input
+    if (MemoryPartition::INOUT < part) {
+        throw std::invalid_argument("[DataPacket::getInPointerToPartItemVar_src] Memory partition is out of bounds");
+    }
+
+    // calculate offset
+    std::size_t offset = getOffsetToPartItemVar(part, itemId, varId);
+
+    // return pointer to memory
+    return (void*)( ((char*)memoryPtr_trg_) + offset );
+}
+
+void* DataPacket::getOutPointerToPartItemVar_src(MemoryPartition part,
+                                                 unsigned int itemId,
+                                                 unsigned int varId) const {
+    // check input
+    if (part < MemoryPartition::INOUT) {
+        throw std::invalid_argument("[DataPacket::getOutPointerToPartItemVar_src] Memory partition is out of bounds");
+    }
+
+    // calculate offset
+    std::size_t offset = getOffsetToPartItemVar(part, itemId, varId);
+    offset -= (memorySize_[MemoryPartition::SHARED] + memorySize_[MemoryPartition::IN]);
+
+    // return pointer to memory
+    return (void*)( ((char*)memoryPtr_trg_) + offset );
+}
+
+void* DataPacket::getPointerToPartItemVar_trg(MemoryPartition part,
+                                              unsigned int itemId,
+                                              unsigned int varId) const {
+    // calculate offset
+    std::size_t offset = getOffsetToPartItemVar(part, itemId, varId);
+
+    // return pointer to memory
+    return (void*)( ((char*)memoryPtr_trg_) + offset );
+}
+
+void  DataPacket::setupMemorySizes(void) {
+    // check self
+    if (items_.size() <= 0) {
+        throw std::logic_error("[DataPacket::setupMemorySizes] No items in data packet");
+    } else if (!isUniformItemShape() || items_.size() != itemShapes_.size()) {
+        throw std::logic_error("[DataPacket::setupMemorySizes] Size mismatch of items and shapes");
+    }
+
+    // calculate memory sizes
+    if (isUniformItemShape()) { /* if shapes are uniform across items */
+        unsigned int      nItems = items_.size();
+        const DataShape&  shape  = itemShapes_.at(0);
+
+        memorySize_[MemoryPartition::SHARED]  =          shape.sizePartition(MemoryPartition::SHARED);
+        memorySize_[MemoryPartition::IN]      = nItems * shape.sizePartition(MemoryPartition::IN);
+        memorySize_[MemoryPartition::INOUT]   = nItems * shape.sizePartition(MemoryPartition::INOUT);
+        memorySize_[MemoryPartition::OUT]     = nItems * shape.sizePartition(MemoryPartition::OUT);
+        memorySize_[MemoryPartition::SCRATCH] = nItems * shape.sizePartition(MemoryPartition::SCRATCH);
+    } else { /* otherwise each item has its own shape */
+        memorySize_[MemoryPartition::SHARED]  = itemShapes_.at(0).sizePartition(MemoryPartition::SHARED);
+        memorySize_[MemoryPartition::IN]      = 0;
+        memorySize_[MemoryPartition::INOUT]   = 0;
+        memorySize_[MemoryPartition::OUT]     = 0;
+        memorySize_[MemoryPartition::SCRATCH] = 0;
+
+        for (unsigned int n=0; n<itemShapes_.size(); ++n) {
+            const DataShape&  shape = itemShapes_[n];
+
+            if (memorySize_[MemoryPartition::SHARED] != shape.sizePartition(MemoryPartition::SHARED)) {
+                throw std::logic_error("[DataPacket::setupMemorySizes] Memory size of share partition is not uniform");
+            }
+            memorySize_[MemoryPartition::IN]      += shape.sizePartition(MemoryPartition::IN);
+            memorySize_[MemoryPartition::INOUT]   += shape.sizePartition(MemoryPartition::INOUT);
+            memorySize_[MemoryPartition::OUT]     += shape.sizePartition(MemoryPartition::OUT);
+            memorySize_[MemoryPartition::SCRATCH] += shape.sizePartition(MemoryPartition::SCRATCH);
+        }
+    }
+}
+
+void  DataPacket::clearMemorySizes(void) {
+    for (unsigned int i=0; i<MemoryPartition::_N; ++i) {
+        memorySize_[i] = 0;
+    }
+}
+
+bool  DataPacket::hasValidMemorySizes(void) const {
+    for (unsigned int i=0; i<MemoryPartition::_N; ++i) {
+        if (0 < memorySize_[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::size_t   DataPacket::getSize_src(void) const {
+    if (getOutSize() < getInSize()) {
+        return getInSize();
+    } else {
+        return getOutSize();
+    }
+}
+
+std::size_t   DataPacket::getSize_trg(void) const {
+    std::size_t s=0;
+
+    for (unsigned int i=0; i<MemoryPartition::_N; ++i) {
+        s += memorySize_[i];
+    }
+    return s;
 }
 
 }
