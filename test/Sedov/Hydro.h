@@ -18,6 +18,8 @@ namespace Hydro {
                                                  orchestration::DataItem* dataItem_h);
     void advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                  orchestration::DataItem* dataItem_h);
+    void advanceSolutionHll_packet_oacc_summit_4(const int tId,
+                                                 orchestration::DataItem* dataItem_h);
 };
 
 namespace hy {
