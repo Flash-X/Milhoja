@@ -16,6 +16,7 @@ SRCS_BASE       = \
     $(SRCDIR)/FArray3D.cpp \
     $(SRCDIR)/FArray2D.cpp \
     $(SRCDIR)/FArray1D.cpp \
+    $(SRCDIR)/DataShape.cpp \
     $(SRCDIR)/Tile.cpp \
     $(SRCDIR)/TileAmrex.cpp \
     $(SRCDIR)/Runtime.cpp \
