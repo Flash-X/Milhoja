@@ -177,6 +177,7 @@ TEST_F(GridUnitTest,FArrayClasses){
 }
 
 TEST_F(GridUnitTest,ProbConfigGetters){
+    orchestration::grid_rp rp = Grid::instance().getRPs();
     Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                                 rp_Simulation::N_THREADS_FOR_IC,
@@ -185,22 +186,22 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     int count;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp.x_min,
+                                  rp.y_min,
+                                  rp.z_min)};
+    RealVect actual_max{LIST_NDIM(rp.x_max,
+                                  rp.y_max,
+                                  rp.z_max)};
+    IntVect nBlocks{LIST_NDIM(rp.nblockx,
+                              rp.nblocky,
+                              rp.nblockz)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
     // Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_EQ(grid.getMaxRefinement() , rp_Grid::LREFINE_MAX-1);
-    EXPECT_EQ(grid.getMaxLevel()      , rp_Grid::LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxRefinement() , rp.lrefine_max-1);
+    EXPECT_EQ(grid.getMaxLevel()      , rp.lrefine_max-1);
 
     // Testing Grid::getProb{Lo,Hi}
     RealVect probLo   = grid.getProbLo();
@@ -237,6 +238,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
 }
 
 TEST_F(GridUnitTest,PerTileGetters){
+    orchestration::grid_rp rp = Grid::instance().getRPs();
     Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                                 rp_Simulation::N_THREADS_FOR_IC,
@@ -245,15 +247,15 @@ TEST_F(GridUnitTest,PerTileGetters){
     int count;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp.x_min,
+                                  rp.y_min,
+                                  rp.z_min)};
+    RealVect actual_max{LIST_NDIM(rp.x_max,
+                                  rp.y_max,
+                                  rp.z_max)};
+    IntVect nBlocks{LIST_NDIM(rp.nblockx,
+                              rp.nblocky,
+                              rp.nblockz)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
@@ -303,6 +305,7 @@ TEST_F(GridUnitTest,PerTileGetters){
 }
 
 TEST_F(GridUnitTest,MultiCellGetters){
+    orchestration::grid_rp rp = Grid::instance().getRPs();
     Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                                 rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                                 rp_Simulation::N_THREADS_FOR_IC,
@@ -310,15 +313,15 @@ TEST_F(GridUnitTest,MultiCellGetters){
     float eps = 1.0e-14;
 
     Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
+    RealVect actual_min{LIST_NDIM(rp.x_min,
+                                  rp.y_min,
+                                  rp.z_min)};
+    RealVect actual_max{LIST_NDIM(rp.x_max,
+                                  rp.y_max,
+                                  rp.z_max)};
+    IntVect nBlocks{LIST_NDIM(rp.nblockx,
+                              rp.nblocky,
+                              rp.nblockz)};
     IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
@@ -515,8 +518,9 @@ TEST_F(GridUnitTest,MultipleLevels){
 TEST_F(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
+    grid_rp rp_blank;
     try {
-        Grid::instantiate();
+        Grid::instantiate(rp_blank);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }

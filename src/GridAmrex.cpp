@@ -17,7 +17,7 @@
 
 namespace orchestration {
 
-void passRPToAmrex() {
+void passRPToAmrex(const grid_rp& rp_in) {
 #ifdef GRID_LOG
     Logger::instance().log("[GridAmrex] Passing runtime parameters"
                            " to amrex...");
@@ -26,26 +26,26 @@ void passRPToAmrex() {
         amrex::ParmParse pp("geometry");
         pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
         pp.add("coord_sys", 0); //cartesian
-        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_Grid::X_MIN,
-                                                         rp_Grid::Y_MIN,
-                                                         rp_Grid::Z_MIN)});
-        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_Grid::X_MAX,
-                                                         rp_Grid::Y_MAX,
-                                                         rp_Grid::Z_MAX)});
+        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_in.x_min,
+                                                         rp_in.y_min,
+                                                         rp_in.z_min)});
+        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_in.x_max,
+                                                         rp_in.y_max,
+                                                         rp_in.z_max)});
     }
 
     {
         amrex::ParmParse pp("amr");
 
         // TODO: Check for overflow
-        int  lrefineMax = static_cast<int>(rp_Grid::LREFINE_MAX);
+        int  lrefineMax = static_cast<int>(rp_in.lrefine_max);
 
         pp.add("v", 0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
         pp.add("max_level", lrefineMax - 1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_Grid::N_BLOCKS_X,
-                                                      NYB * rp_Grid::N_BLOCKS_Y,
-                                                      NZB * rp_Grid::N_BLOCKS_Z)});
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_in.nblockx,
+                                                      NYB * rp_in.nblocky,
+                                                      NZB * rp_in.nblockz)});
 
         //octree mode:
         pp.add("max_grid_size_x", NXB);
@@ -58,7 +58,7 @@ void passRPToAmrex() {
         pp.add("grid_eff", 1.0);
         pp.add("n_proper", 1);
         pp.add("n_error_buf", 0);
-        pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
+        pp.addarr("ref_ratio",std::vector<int>(rp_in.lrefine_max, 2));
     }
 }
 
@@ -79,8 +79,7 @@ GridAmrex::GridAmrex(void)
       throw std::logic_error("amrex::Dim3 and orchestration::IntVect do not "
                              "have matching default values.");
     }
-
-    passRPToAmrex();
+    passRPToAmrex(rp_);
     amrex::Initialize(MPI_COMM_WORLD);
 
     // Tell Logger to get its rank once AMReX has initialized MPI, but

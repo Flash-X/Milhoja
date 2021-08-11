@@ -16,6 +16,7 @@ namespace orchestration {
 
 namespace orchestration {
 
+grid_rp Grid::rp_;
 bool Grid::instantiated_ = false;
 
 /**
@@ -38,11 +39,12 @@ Grid&   Grid::instance(void) {
  * instance, which calls the Grid constructor, from all subsequent calls.
  * It must be called exactly once in the program, before all calls to instance.
  */
-void   Grid::instantiate(void) {
+void   Grid::instantiate(const grid_rp& rp_in) {
     if(instantiated_) {
         throw std::logic_error("Cannot call Grid::instantiate after Grid has already been initialized.");
     }
     instantiated_ = true;
+    rp_ = rp_in;
     Grid::instance();
 }
 

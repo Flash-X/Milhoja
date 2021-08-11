@@ -20,6 +20,18 @@
 #include "actionRoutine.h"
 
 namespace orchestration {
+struct grid_rp {
+    orchestration::Real   x_min;
+    orchestration::Real   x_max;
+    orchestration::Real   y_min;
+    orchestration::Real   y_max;
+    orchestration::Real   z_min;
+    orchestration::Real   z_max;
+    int          lrefine_max;
+    int          nblockx;
+    int          nblocky;
+    int          nblockz;
+};
 
 /**
   * Grid is an abstract base class designed with the singleton pattern.
@@ -38,7 +50,8 @@ public:
     Grid& operator=(Grid&&) = delete;
 
     static Grid& instance(void);
-    static void  instantiate(void);
+    static void  instantiate(const grid_rp& rp_in);
+    static grid_rp getRPs() {return rp_;}
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
@@ -98,6 +111,7 @@ public:
 
 protected:
     Grid(void) {}
+    static grid_rp rp_;
     static bool instantiated_; //!< Track if singleton has been instantiated.
 
 };
