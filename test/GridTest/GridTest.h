@@ -1,10 +1,6 @@
 #ifndef GRIDTEST_H__
 #define GRIDTEST_H__
 
-#define NXB (1+7*K1D)
-#define NYB (1+7*K2D)
-#define NZB (1+7*K3D)
-
 #define NGUARD 1
 
 #if 0
@@ -38,23 +34,6 @@ NOTE: The data packet variable masking presently requires that
 #define NMASS_SCALARS   0
 
 
-#include "Grid_REAL.h"
-#include "Grid_IntVect.h"
-
-namespace rp_Grid {
-    constexpr orchestration::Real   X_MIN       = 0.0_wp;
-    constexpr orchestration::Real   X_MAX       = 1.0_wp;
-    constexpr orchestration::Real   Y_MIN       = 0.0_wp;
-    constexpr orchestration::Real   Y_MAX       = 1.0_wp;
-    constexpr orchestration::Real   Z_MIN       = 0.0_wp;
-    constexpr orchestration::Real   Z_MAX       = 1.0_wp;
-
-    constexpr unsigned int          LREFINE_MAX = 3;
-
-    constexpr unsigned int          N_BLOCKS_X  = 1+3*K1D;
-    constexpr unsigned int          N_BLOCKS_Y  = 1+3*K2D;
-    constexpr unsigned int          N_BLOCKS_Z  = 1+3*K3D;
-}
 namespace rp_Simulation {
     constexpr  unsigned int         N_THREADS_FOR_IC = 6;
     constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 1;

@@ -17,6 +17,9 @@ int main(int argc, char* argv[]) {
         rp.nblockx     = 1+3*K1D;
         rp.nblocky     = 1+3*K2D;
         rp.nblockz     = 1+3*K3D;
+        rp.nxb         = 1+7*K1D;
+        rp.nyb         = 1+7*K2D;
+        rp.nzb         = 1+7*K3D;
 
         orchestration::Logger::instantiate("GridUnitTest.log");
 

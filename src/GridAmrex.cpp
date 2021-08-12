@@ -43,17 +43,17 @@ void passRPToAmrex(const grid_rp& rp_in) {
         pp.add("v", 0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
         pp.add("max_level", lrefineMax - 1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_in.nblockx,
-                                                      NYB * rp_in.nblocky,
-                                                      NZB * rp_in.nblockz)});
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(rp_in.nxb * rp_in.nblockx,
+                                                      rp_in.nyb * rp_in.nblocky,
+                                                      rp_in.nzb * rp_in.nblockz)});
 
         //octree mode:
-        pp.add("max_grid_size_x", NXB);
-        pp.add("max_grid_size_y", NYB);
-        pp.add("max_grid_size_z", NZB);
-        pp.add("blocking_factor_x", NXB*2);
-        pp.add("blocking_factor_y", NYB*2);
-        pp.add("blocking_factor_z", NZB*2);
+        pp.add("max_grid_size_x", rp_in.nxb);
+        pp.add("max_grid_size_y", rp_in.nyb);
+        pp.add("max_grid_size_z", rp_in.nzb);
+        pp.add("blocking_factor_x", rp_in.nxb*2);
+        pp.add("blocking_factor_y", rp_in.nyb*2);
+        pp.add("blocking_factor_z", rp_in.nzb*2);
         pp.add("refine_grid_layout", 0);
         pp.add("grid_eff", 1.0);
         pp.add("n_proper", 1);

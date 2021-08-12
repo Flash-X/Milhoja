@@ -143,6 +143,9 @@
 #include "Stream.h"
 
 #include "Test.h"
+#define NXB (1+7*K1D)
+#define NYB (1+7*K2D)
+#define NZB (1+7*K3D)
 
 namespace orchestration {
 

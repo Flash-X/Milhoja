@@ -21,16 +21,19 @@
 
 namespace orchestration {
 struct grid_rp {
-    orchestration::Real   x_min;
-    orchestration::Real   x_max;
-    orchestration::Real   y_min;
-    orchestration::Real   y_max;
-    orchestration::Real   z_min;
-    orchestration::Real   z_max;
-    int          lrefine_max;
-    int          nblockx;
-    int          nblocky;
-    int          nblockz;
+    Real   x_min;
+    Real   x_max;
+    Real   y_min;
+    Real   y_max;
+    Real   z_min;
+    Real   z_max;
+    int    lrefine_max;
+    int    nblockx;
+    int    nblocky;
+    int    nblockz;
+    int    nxb;
+    int    nyb;
+    int    nzb;
 };
 
 /**

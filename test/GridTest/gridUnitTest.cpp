@@ -195,7 +195,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     IntVect nBlocks{LIST_NDIM(rp.nblockx,
                               rp.nblocky,
                               rp.nblockz)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp.nxb, rp.nyb, rp.nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
@@ -256,7 +256,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     IntVect nBlocks{LIST_NDIM(rp.nblockx,
                               rp.nblocky,
                               rp.nblockz)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp.nxb, rp.nyb, rp.nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
@@ -322,7 +322,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
     IntVect nBlocks{LIST_NDIM(rp.nblockx,
                               rp.nblocky,
                               rp.nblockz)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp.nxb, rp.nyb, rp.nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
