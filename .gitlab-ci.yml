@@ -24,12 +24,12 @@ test_gnu:
  - module load gcc/7.5.0-7sxdzdq
  - module load mpich/3.3.2-gnu
  - module load anaconda3/2020.02
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 3 -p grid_3d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 3 -p grid_3d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest     --debug -d 1  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest             -d 1  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest     --debug -d 2  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest             -d 2  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest     --debug -d 3  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
+ - cd $HOME/$CI_PROJECT_DIR && ./setup.py GridTest             -d 3  -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py ThreadTeam   --debug -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py ThreadTeam           -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
  - cd $HOME/$CI_PROJECT_DIR && ./setup.py Runtime/null --debug -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
