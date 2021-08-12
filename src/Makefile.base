@@ -4,7 +4,53 @@ INCDIR       = $(BASEDIR)/includes
 CXXFLAGS_BASE    = -I$(INCDIR)
 CUFLAGS_BASE    = -I$(INCDIR)
 
-#TODO: Header files? express dependencies
+HEADERS_BASE = \
+    $(INCDIR)/Grid.h \
+    $(INCDIR)/ActionBundle.h \
+    $(INCDIR)/Backend.h \
+    $(INCDIR)/CudaBackend.h \
+    $(INCDIR)/CudaGpuEnvironment.h \
+    $(INCDIR)/CudaMemoryManager.h \
+    $(INCDIR)/CudaStreamManager.h \
+    $(INCDIR)/DataItem.h \
+    $(INCDIR)/DataPacket.h \
+    $(INCDIR)/FArray1D.h \
+    $(INCDIR)/FArray2D.h \
+    $(INCDIR)/FArray3D.h \
+    $(INCDIR)/FArray4D.h \
+    $(INCDIR)/Grid.h \
+    $(INCDIR)/GridAmrex.h \
+    $(INCDIR)/Grid_AmrCoreFlash.h \
+    $(INCDIR)/Grid_Axis.h \
+    $(INCDIR)/Grid_Edge.h \
+    $(INCDIR)/Grid_IntVect.h \
+    $(INCDIR)/Grid_Macros.h \
+    $(INCDIR)/Grid_REAL.h \
+    $(INCDIR)/Grid_RealVect.h \
+    $(INCDIR)/Grid_Vector.h \
+    $(INCDIR)/MoverUnpacker.h \
+    $(INCDIR)/NullBackend.h \
+    $(INCDIR)/OrchestrationLogger.h \
+    $(INCDIR)/Runtime.h \
+    $(INCDIR)/RuntimeAction.h \
+    $(INCDIR)/RuntimeElement.h \
+    $(INCDIR)/Stream.h \
+    $(INCDIR)/ThreadTeam.h \
+    $(INCDIR)/ThreadTeamDataType.h \
+    $(INCDIR)/ThreadTeamIdle.h \
+    $(INCDIR)/ThreadTeamMode.h \
+    $(INCDIR)/ThreadTeamRunningClosed.h \
+    $(INCDIR)/ThreadTeamRunningNoMoreWork.h \
+    $(INCDIR)/ThreadTeamRunningOpen.h \
+    $(INCDIR)/ThreadTeamState.h \
+    $(INCDIR)/ThreadTeamTerminating.h \
+    $(INCDIR)/Tile.h \
+    $(INCDIR)/TileAmrex.h \
+    $(INCDIR)/TileIter.h \
+    $(INCDIR)/TileIterAmrex.h \
+    $(INCDIR)/Timer.h \
+    $(INCDIR)/actionRoutine.h \
+
 
 SRCS_BASE       = \
     $(SRCDIR)/Grid.cpp \

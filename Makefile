@@ -120,8 +120,22 @@ libruntime.a: $(OBJS_BASE) $(MAKEFILES)
 
 install:
 ifdef LIBONLY
-	mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
-	cp libruntime.a $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/
+	$(info Creating prefix: $(LIB_RUNTIME_PREFIX))
+	@mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
+	@mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/include
+	@mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/lib
+
+	$(info Installing library...)
+	@cp libruntime.a $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/lib
+
+	$(info Installing headers...)
+	@cp setup.log $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
+	@cp Orchestration_constants.h $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/include
+	@cp Test.h $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/include
+	@for filename in $(HEADERS_BASE); do \
+		cp $$filename $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/include; \
+		done
+	$(info Success!)
 endif
 
 
