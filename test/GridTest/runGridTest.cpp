@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
         rp.nxb         = 1+7*K1D;
         rp.nyb         = 1+7*K2D;
         rp.nzb         = 1+7*K3D;
+        rp.nguard      = 1;
 
         orchestration::Logger::instantiate("GridUnitTest.log");
 

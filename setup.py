@@ -148,11 +148,11 @@ def main():
 
 
     # Copy {TestName}.h to build dir as Test.h
-    if (args.test != "library"):
-        testH = os.path.join(testDir,'{}.h'.format(args.test))
-        if os.path.isfile(testH):
-            print("Copying {}.h as Test.h".format(args.test))
-            shutil.copy(testH,os.path.join(buildDir,'Test.h'))
+    #if (args.test != "library"):
+    testH = os.path.join(testDir,'{}.h'.format(args.test))
+    if os.path.isfile(testH):
+        print("Copying {}.h as Test.h".format(args.test))
+        shutil.copy(testH,os.path.join(buildDir,'Test.h'))
 
     # Write the setup logfile
     print("Writing setup.log")

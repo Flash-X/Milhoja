@@ -1,6 +1,12 @@
-#ifndef FLASH_H__
-#define FLASH_H__
+#ifndef LIBRARY_H__
+#define LIBRARY_H__
 
+#if 0
+Currently needed by DataPacket.h. Will be fixed after consultation with Jared.
+#endif
+#define NXB (1+7*K1D)
+#define NYB (1+7*K2D)
+#define NZB (1+7*K3D)
 #define NGUARD 1
 
 #if 0
@@ -32,16 +38,6 @@ NOTE: The data packet variable masking presently requires that
 #define HY_ENER_FLUX_C  4
 
 #define NMASS_SCALARS   0
-
-
-#define REAL_IS_DOUBLE
-
-#if 0
-Assuming 2D only for now
-#endif
-#define K1D        1
-#define K2D        1
-#define K3D        1
 
 #endif
 

@@ -137,9 +137,10 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
 #endif
 
     Grid& grid = Grid::instance();
+    grid_rp rp = grid.getRPs();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, NUNKVAR, rp.nguard);
 
     fillFromCoarse(unk_[lev], lev);
 }
@@ -159,8 +160,10 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
 #endif
+    Grid& grid = Grid::instance();
+    grid_rp rp = grid.getRPs();
 
-    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, NGUARD};
+    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, rp.nguard};
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
@@ -202,9 +205,10 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 #endif
 
     Grid& grid = Grid::instance();
+    grid_rp rp = grid.getRPs();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, NUNKVAR, rp.nguard);
 
     // Initialize data in unk_[lev] to 0.0.
     unk_[lev].setVal(0.0_wp);

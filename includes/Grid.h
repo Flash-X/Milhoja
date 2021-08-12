@@ -31,9 +31,13 @@ struct grid_rp {
     int    nblockx;
     int    nblocky;
     int    nblockz;
+
+    // NOTE: changing these from their values in Test.h will result in issues with DataPacket.
+    // TODO fix this
     int    nxb;
     int    nyb;
     int    nzb;
+    int    nguard;
 };
 
 /**
