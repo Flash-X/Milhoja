@@ -5,8 +5,8 @@
 #  - GTESTDIR: Path to the Googletest build directory
 #  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(HOME)/orchestrationruntime
-AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d
-GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_19.9/googletest
+AMREXDIR     = $(RUNTIME_DEP_PATH)/pgi_20.9/AMReX_$(NDIM)d
+GTESTDIR     = $(RUNTIME_DEP_PATH)/pgi_20.9/googletest
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Define the following compiler-related flags
@@ -52,8 +52,8 @@ CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
 LDFLAGS_COV  = --coverage
 
 # Define flags for OpenMP
-AMREXDIR_OMP  = $(RUNTIME_DEP_PATH)/pgi_19.9/AMReX_$(NDIM)d_OMP
+AMREXDIR_OMP  = $(RUNTIME_DEP_PATH)/pgi_20.9/AMReX_$(NDIM)d_OMP
 OMP_FLAGS     = -mp
 CU_OMP_FLAGS  = -Xcompiler -mp
-OACC_FLAGS    = -acc -ta=tesla:cc70,cuda10.1,ptxinfo -Minfo=accel
+OACC_FLAGS    = -acc -ta=tesla:cc70,cuda11.0,ptxinfo -Minfo=accel
 

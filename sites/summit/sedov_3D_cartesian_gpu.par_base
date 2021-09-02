@@ -47,7 +47,7 @@ namespace rp_Runtime {
     constexpr unsigned int          N_THREADS_PER_TEAM     =  7;
     constexpr unsigned int          N_THREAD_TEAMS         =  2;
     constexpr int                   N_STREAMS              = 32;
-    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 1073741824;
+    constexpr std::size_t           MEMORY_POOL_SIZE_BYTES = 8589934592;
 }
 
 namespace rp_Eos {
