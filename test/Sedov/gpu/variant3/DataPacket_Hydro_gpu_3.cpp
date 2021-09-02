@@ -31,6 +31,7 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       stream3_{},
 #endif
       nTiles_h_{0},
+      dt_h_{-1.0},
       nTiles_d_{nullptr},
       dt_d_{nullptr}
 {
@@ -68,6 +69,20 @@ std::size_t   DataPacket_Hydro_gpu_3::nTiles_host(void) const {
  */
 std::size_t*  DataPacket_Hydro_gpu_3::nTiles_devptr(void) const {
     return nTiles_d_;
+}
+
+/**
+ *
+ */
+Real   DataPacket_Hydro_gpu_3::dt_host(void) const {
+    return dt_h_;
+}
+
+/**
+ *
+ */
+Real*  DataPacket_Hydro_gpu_3::dt_devptr(void) const {
+    return dt_d_;
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -174,7 +189,8 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     //----- COPY IN SECTION
     // Data needed in GPU that is not tile-specific
     nTiles_h_ = tiles_.size();
-    std::size_t  nCopyInBytes = sizeof(std::size_t);
+    std::size_t  nCopyInBytes =            sizeof(std::size_t)
+                                +          DRIVER_DT_SIZE_BYTES;
 //    std::size_t  nCopyInBytes =            sizeof(std::size_t)
 //                                +          DRIVER_DT_SIZE_BYTES
 //                                + nTiles * sizeof(PacketContents);
@@ -262,11 +278,12 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);
 
-//    dt_d_ = static_cast<Real*>((void*)ptr_d); 
-//    std::memcpy((void*)ptr_p, (void*)&Driver::dt, DRIVER_DT_SIZE_BYTES);
-//    ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
-//    ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
-//
+    dt_h_ = Driver::dt;
+    dt_d_ = static_cast<Real*>((void*)ptr_d); 
+    std::memcpy((void*)ptr_p, (void*)&dt_h_, DRIVER_DT_SIZE_BYTES);
+    ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
+    ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
+
 //    // TODO: The PacketContents are a means to avoid putting related, ugly unpacking
 //    //       code in the patch code.  This certainly aids in developing and
 //    //       maintaining that code.  However, once the patch code is written

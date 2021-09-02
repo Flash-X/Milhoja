@@ -28,7 +28,10 @@ public:
 #endif
 
     std::size_t   nTiles_host(void) const;
+    Real          dt_host(void) const;
+
     std::size_t*  nTiles_devptr(void) const;
+    Real*         dt_devptr(void) const;
 
 private:
 #if NDIM == 3
@@ -37,6 +40,7 @@ private:
 #endif
 
     std::size_t   nTiles_h_;
+    Real          dt_h_;
 
     std::size_t*  nTiles_d_;
     Real*         dt_d_;
