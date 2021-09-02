@@ -18,6 +18,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 
     DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
     const std::size_t          nTiles_h = packet_h->nTiles_host();
+    const int                  dataQ_h  = packet_h->asynchronousQueue();
+
+    std::size_t*               nTiles_d = packet_h->nTiles_devptr();
 
     // This task function neither reads from nor writes to GAME.  While it does
     // read from GAMC, this variable is not written to as part of the task
@@ -42,11 +45,18 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     // as it affects all data packets.
     packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
 
+    #pragma acc data deviceptr(nTiles_d)
+    {
+        #pragma acc parallel async(dataQ_h)
+        {
+            *nTiles_d = 2;
+        }
+    }
+
     std::string   msg("[Hydro TF] Hello, Task Function!\n");
     msg            += "           nTiles = ";
     msg            += std::to_string(nTiles_h);
     msg            += "\n";
-
     Logger::instance().log(msg);
 }
 

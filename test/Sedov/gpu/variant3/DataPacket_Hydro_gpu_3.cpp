@@ -31,6 +31,7 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       stream3_{},
 #endif
       nTiles_h_{0},
+      nTiles_d_{nullptr},
       dt_d_{nullptr}
 {
 }
@@ -60,6 +61,13 @@ std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
  */
 std::size_t   DataPacket_Hydro_gpu_3::nTiles_host(void) const {
     return nTiles_h_;
+}
+
+/**
+ *
+ */
+std::size_t*  DataPacket_Hydro_gpu_3::nTiles_devptr(void) const {
+    return nTiles_d_;
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -249,6 +257,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     char*   ptr_d = copyInStart_d_;
 
     // Non-tile-specific data
+    nTiles_d_ = static_cast<std::size_t*>((void*)ptr_d);
     std::memcpy((void*)ptr_p, (void*)&nTiles_h_, sizeof(std::size_t));
     ptr_p += sizeof(std::size_t);
     ptr_d += sizeof(std::size_t);
