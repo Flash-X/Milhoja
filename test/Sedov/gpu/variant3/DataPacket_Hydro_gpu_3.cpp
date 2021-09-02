@@ -187,13 +187,13 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
     }
-#if NDIM == 3
-    stream2_ = Backend::instance().requestStream(true);
-    stream3_ = Backend::instance().requestStream(true);
-    if (!stream2_.isValid() || !stream3_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
-    }
-#endif
+//#if NDIM == 3
+//    stream2_ = Backend::instance().requestStream(true);
+//    stream3_ = Backend::instance().requestStream(true);
+//    if (!stream2_.isValid() || !stream3_.isValid()) {
+//        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
+//    }
+//#endif
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side

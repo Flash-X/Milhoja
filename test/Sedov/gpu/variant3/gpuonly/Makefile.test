@@ -25,18 +25,18 @@ SRCS_TEST = \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
     $(SEDOVDIR)/hy_updateSolutionHll.cpp \
     $(SEDOVDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
-	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
-	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
-	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
-	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc_summit.cpp \
-	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc_summit.cpp \
-	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(SEDOVGPUV3DIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
 	$(TESTDIR)/sedov_gpuonly_3.cpp
+#	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
+#	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
+#	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
+#	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc_summit.cpp \
+#	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc_summit.cpp \
+#	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
 CU_SRCS = \
 	$(SRCDIR)/CudaBackend.cu \
