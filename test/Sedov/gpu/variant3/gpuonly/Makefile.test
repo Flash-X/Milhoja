@@ -39,6 +39,7 @@ SRCS_TEST = \
 #	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
 FSRCS_TEST = \
+	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc_C2F.F03
 
 CU_SRCS = \
 	$(SRCDIR)/CudaBackend.cu \

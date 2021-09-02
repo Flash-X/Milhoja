@@ -2,8 +2,6 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include <string>
-
 #include "DataPacket_Hydro_gpu_3.h"
 #include "OrchestrationLogger.h"
 
@@ -12,17 +10,31 @@
 
 #include "Flash.h"
 
+//----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
 extern "C" {
+    void   hydro_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
+                                                      const int nTiles_h, const double dt_h,
+                                                      const int* nTiles_d,
+                                                      const double* dt_d);
+}
+
+//----- C TASK FUNCTION TO BE CALLED BY RUNTIME
+extern "C" {
+    // TODO: For the sake of C++/Fortran interoperability, this must be a
+    // C-compatible interface.  Make void*?  Are const keywords part of C?
     void Hydro_advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                        orchestration::DataItem* dataItem_h) {
         using namespace orchestration;
     
         DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
         const int                  dataQ_h  = packet_h->asynchronousQueue();
-        const std::size_t          nTiles_h = packet_h->nTiles_host();
+        const int                  nTiles_h = packet_h->nTiles_host();
+        // TODO: Within this layer the dt_* variables should be double since
+        //       they are sent to a Fortran routine that assumes C_DOUBLE.  How to
+        //       manage this?
         Real                       dt_h     = packet_h->dt_host();
     
-        std::size_t*               nTiles_d = packet_h->nTiles_devptr();
+        int*                       nTiles_d = packet_h->nTiles_devptr();
         Real*                      dt_d     = packet_h->dt_devptr();
     
         // This task function neither reads from nor writes to GAME.  While it does
@@ -47,24 +59,12 @@ extern "C" {
         // variables in memory sounds like part of the larger optimization problem
         // as it affects all data packets.
         packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
-    
-        #pragma acc data deviceptr(nTiles_d, dt_d)
-        {
-            #pragma acc parallel async(dataQ_h)
-            {
-                *dt_d *= (*nTiles_d);
-                *nTiles_d = 2;
-            }
-        }
-    
-        std::string   msg("");
-        msg  = "[Hydro TF] nTiles = ";
-        msg += std::to_string(nTiles_h);
-        Logger::instance().log(msg);
-    
-        msg  = "[Hydro TF] dt = ";
-        msg += std::to_string(dt_h);
-        Logger::instance().log(msg);
+   
+        // Pass data packet info to C-to-Fortran Reinterpretation Layer
+        hydro_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
+                                                   nTiles_h, dt_h,
+                                                   nTiles_d, dt_d);
     }
+
 }
 
