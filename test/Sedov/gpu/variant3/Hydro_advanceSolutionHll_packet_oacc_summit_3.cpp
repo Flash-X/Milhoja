@@ -2,7 +2,9 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "DataPacket.h"
+#include <string>
+
+#include "DataPacket_Hydro_gpu_3.h"
 #include "OrchestrationLogger.h"
 
 #include "Eos.h"
@@ -14,7 +16,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
     using namespace orchestration;
 
-    DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
+    DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
+    const std::size_t          nTiles_h = packet_h->nTiles_host();
 
     // This task function neither reads from nor writes to GAME.  While it does
     // read from GAMC, this variable is not written to as part of the task
@@ -39,6 +42,11 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     // as it affects all data packets.
     packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
 
-    Logger::instance().log("[Hydro TF] Hello, Task Function!");
+    std::string   msg("[Hydro TF] Hello, Task Function!\n");
+    msg            += "           nTiles = ";
+    msg            += std::to_string(nTiles_h);
+    msg            += "\n";
+
+    Logger::instance().log(msg);
 }
 

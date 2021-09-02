@@ -27,12 +27,17 @@ public:
     void    releaseExtraQueue(const unsigned int id) override;
 #endif
 
+    std::size_t   nTiles_host(void) const;
+
 private:
 #if NDIM == 3
     Stream  stream2_;
     Stream  stream3_;
 #endif
-    Real*   dt_d_;
+
+    std::size_t   nTiles_h_;
+
+    Real*         dt_d_;
 };
 
 }
