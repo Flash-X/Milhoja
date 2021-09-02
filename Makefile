@@ -42,9 +42,11 @@ CUFLAGS_STD  = -std=c++11
 ifeq ($(DEBUG),true)
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
            $(CXXFLAGS_TEST_DEBUG) $(CXXFLAGS_AMREX)
+F03FLAGS = $(F03FLAGS_TEST_DEBUG)
 else
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
            $(CXXFLAGS_TEST_PROD) $(CXXFLAGS_AMREX)
+F03FLAGS = $(F03FLAGS_TEST_PROD)
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
 	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
@@ -68,14 +70,16 @@ endif
 
 # List of sources, objects, and dependencies
 C_SRCS    = $(SRCS_BASE) $(SRCS_TEST)
+F_SRCS    = $(FSRCS_TEST)
 SRCS      = $(C_SRCS) $(CU_SRCS)
 
 C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
+F_OBJS    = $(addsuffix .o, $(basename $(notdir $(F_SRCS))))
 CU_OBJS   = $(addsuffix .o, $(basename $(notdir $(CU_SRCS))))
 OBJS      = $(C_OBJS) $(CU_OBJS)
 DEPS      = $(OBJS:.o=.d)
 
-OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST))))
+OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST)))) $(addsuffix .o, $(basename $(notdir $(FSRCS_TEST))))
 OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
 
 # Use vpath as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
@@ -83,6 +87,7 @@ OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
 # search the source tree for the prerequisites.
 vpath %.cpp $(sort $(dir $(C_SRCS)))
 vpath %.cu  $(sort $(dir $(CU_SRCS)))
+vpath %.F03 $(sort $(dir $(F_SRCS)))
 
 
 ##########################################################
@@ -107,6 +112,9 @@ endif
 
 %.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
+
+%.o: %.F03 $(MAKEFILES)
+	$(F30COMP) -c $(F03FLAGS) -o $@ $<
 
 %.o: %.cu $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<

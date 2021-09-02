@@ -38,6 +38,8 @@ SRCS_TEST = \
 #	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc_summit.cpp \
 #	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
+FSRCS_TEST = \
+
 CU_SRCS = \
 	$(SRCDIR)/CudaBackend.cu \
 	$(SRCDIR)/CudaGpuEnvironment.cu \

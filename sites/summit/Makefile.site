@@ -22,6 +22,10 @@ CXXCOMP      = mpicxx
 CXXFLAGS_PROD    = -O3 -m64
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 
+F03COMP          = mpif90
+F03FLAGS_PROD    = -O3 -m64
+F03FLAGS_DEBUG   = -g -O0 -m64
+
 CUCOMP       = nvcc
 CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 
