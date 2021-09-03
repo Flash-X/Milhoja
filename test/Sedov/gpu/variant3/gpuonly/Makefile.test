@@ -10,6 +10,8 @@ TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant3/gpuonly
 # Define compiler flags in CXXFLAGS_TEST_*
 CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
+F03FLAGS_TEST_DEBUG = $(OACC_FLAGS)
+F03FLAGS_TEST_PROD  = $(OACC_FLAGS)
 CUFLAGS_TEST        = -I$(SEDOVDIR)                                                                -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 LDFLAGS_TEST        = $(OACC_FLAGS)
 
@@ -39,7 +41,9 @@ SRCS_TEST = \
 #	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
 FSRCS_TEST = \
-	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc_C2F.F03
+	$(SEDOVGPUV3DIR)/Hydro_interface.F03 \
+	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc_C2F.F03 \
+	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc.F03
 
 CU_SRCS = \
 	$(SRCDIR)/CudaBackend.cu \

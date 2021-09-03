@@ -13,9 +13,8 @@
 //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
 extern "C" {
     void   hydro_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
-                                                      const int nTiles_h, const double dt_h,
-                                                      const int* nTiles_d,
-                                                      const double* dt_d);
+                                                      const int nTiles_h,
+                                                      const int* nTiles_d, const double* dt_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
@@ -29,12 +28,11 @@ extern "C" {
         DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
         const int                  dataQ_h  = packet_h->asynchronousQueue();
         const int                  nTiles_h = packet_h->nTiles_host();
+    
+        int*                       nTiles_d = packet_h->nTiles_devptr();
         // TODO: Within this layer the dt_* variables should be double since
         //       they are sent to a Fortran routine that assumes C_DOUBLE.  How to
         //       manage this?
-        Real                       dt_h     = packet_h->dt_host();
-    
-        int*                       nTiles_d = packet_h->nTiles_devptr();
         Real*                      dt_d     = packet_h->dt_devptr();
     
         // This task function neither reads from nor writes to GAME.  While it does
@@ -62,7 +60,7 @@ extern "C" {
    
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
         hydro_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
-                                                   nTiles_h, dt_h,
+                                                   nTiles_h,
                                                    nTiles_d, dt_d);
     }
 
