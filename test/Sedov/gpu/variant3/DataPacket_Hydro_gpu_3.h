@@ -36,6 +36,8 @@ public:
     Real*   deltas_devptr(void) const;
     int*    lo_devptr(void) const;
     int*    hi_devptr(void) const;
+    int*    loGC_devptr(void) const;
+    int*    hiGC_devptr(void) const;
 
 private:
 #if NDIM == 3
@@ -58,6 +60,11 @@ private:
     void*   lo_start_d_;
     void*   hi_start_p_;
     void*   hi_start_d_;
+
+    void*   loGC_start_p_;
+    void*   loGC_start_d_;
+    void*   hiGC_start_p_;
+    void*   hiGC_start_d_;
 };
 
 }

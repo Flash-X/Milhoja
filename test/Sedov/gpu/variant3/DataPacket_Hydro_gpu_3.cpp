@@ -41,7 +41,11 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       lo_start_p_{nullptr},
       lo_start_d_{nullptr},
       hi_start_p_{nullptr},
-      hi_start_d_{nullptr}
+      hi_start_d_{nullptr},
+      loGC_start_p_{nullptr},
+      loGC_start_d_{nullptr},
+      hiGC_start_p_{nullptr},
+      hiGC_start_d_{nullptr}
 {
 }
 
@@ -112,6 +116,20 @@ int*   DataPacket_Hydro_gpu_3::lo_devptr(void) const {
  */
 int*   DataPacket_Hydro_gpu_3::hi_devptr(void) const {
     return static_cast<int*>(hi_start_d_);
+}
+
+/**
+ *
+ */
+int*   DataPacket_Hydro_gpu_3::loGC_devptr(void) const {
+    return static_cast<int*>(loGC_start_d_);
+}
+
+/**
+ *
+ */
+int*   DataPacket_Hydro_gpu_3::hiGC_devptr(void) const {
+    return static_cast<int*>(hiGC_start_d_);
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -228,13 +246,15 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     std::size_t    sz_deltas = MDIM * sizeof(Real);
     std::size_t    sz_lo     = MDIM * sizeof(int);
     std::size_t    sz_hi     = MDIM * sizeof(int);
+    std::size_t    sz_loGC   = MDIM * sizeof(int);
+    std::size_t    sz_hiGC   = MDIM * sizeof(int);
  
     std::size_t    nCopyInBytes =   sz_nTiles
                                   + sz_dt
                                   + nTiles_h_
                                     * (  sz_deltas
-                                       + sz_lo
-                                       + sz_hi);
+                                       + sz_lo   + sz_hi
+                                       + sz_loGC + sz_hiGC);
 
     nCopyToGpuBytes_    = nCopyInBytes;
     nReturnToHostBytes_ = 0;
@@ -290,6 +310,16 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     hi_start_d_ = static_cast<void*>(ptr_d);
     ptr_p += nTiles_h_ * sz_hi;
     ptr_d += nTiles_h_ * sz_hi;
+
+    loGC_start_p_ = static_cast<void*>(ptr_p);
+    loGC_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_loGC;
+    ptr_d += nTiles_h_ * sz_loGC;
+
+    hiGC_start_p_ = static_cast<void*>(ptr_p);
+    hiGC_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_hiGC;
+    ptr_d += nTiles_h_ * sz_hiGC;
 
     // No copy in/out data
     copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes;
@@ -371,6 +401,22 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(hi_h),
                     sz_hi);
+
+        // Global index space is 0-based in runtime; 1-based in Fortran code.
+        // Translate here so that it is immediately ready for use with Fortran.
+        int     loGC_h[MDIM] = {loGC[0]+1, loGC[1]+1, loGC[2]+1};
+        char_ptr = static_cast<char*>(loGC_start_p_) + n * sz_loGC;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(loGC_h),
+                    sz_loGC);
+
+        // Global index space is 0-based in runtime; 1-based in Fortran code.
+        // Translate here so that it is immediately ready for use with Fortran.
+        int     hiGC_h[MDIM] = {hiGC[0]+1, hiGC[1]+1, hiGC[2]+1};
+        char_ptr = static_cast<char*>(hiGC_start_p_) + n * sz_hiGC;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(hiGC_h),
+                    sz_hiGC);
     }
 }
 

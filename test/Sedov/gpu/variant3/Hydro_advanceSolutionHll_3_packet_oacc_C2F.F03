@@ -3,7 +3,8 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
                     C_nTiles_h,                        &
                     C_nTiles_d, C_dt_d,                &
                     C_deltas_start_d,                  &
-                    C_lo_start_d, C_hi_start_d) bind(c)
+                    C_lo_start_d,   C_hi_start_d,      &
+                    C_loGC_start_d, C_hiGC_start_d) bind(c)
     use iso_c_binding,   ONLY : C_INT, &
                                 C_DOUBLE, &
                                 C_PTR, &
@@ -22,6 +23,8 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     type(C_PTR),    intent(IN), value :: C_deltas_start_d
     type(C_PTR),    intent(IN), value :: C_lo_start_d
     type(C_PTR),    intent(IN), value :: C_hi_start_d
+    type(C_PTR),    intent(IN), value :: C_loGC_start_d
+    type(C_PTR),    intent(IN), value :: C_hiGC_start_d
 
     integer(kind=acc_handle_kind) :: F_dataQ_h
     integer                       :: F_nTiles_h
@@ -31,6 +34,8 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     real,    pointer :: F_deltas_all_d(:, :)
     integer, pointer :: F_lo_all_d(:, :)
     integer, pointer :: F_hi_all_d(:, :)
+    integer, pointer :: F_loGC_all_d(:, :)
+    integer, pointer :: F_hiGC_all_d(:, :)
 
     !!!!!----- HOST-SODE DATA TYPE MANAGEMENT
     ! Explicitly cast to Fortran default kinds without checking correctness
@@ -49,11 +54,14 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     CALL C_F_POINTER(C_deltas_start_d, F_deltas_all_d, shape=[3, F_nTiles_h])
     CALL C_F_POINTER(C_lo_start_d,     F_lo_all_d,     shape=[3, F_nTiles_h])
     CALL C_F_POINTER(C_hi_start_d,     F_hi_all_d,     shape=[3, F_nTiles_h])
+    CALL C_F_POINTER(C_loGC_start_d,   F_loGC_all_d,   shape=[3, F_nTiles_h])
+    CALL C_F_POINTER(C_hiGC_start_d,   F_hiGC_all_d,   shape=[3, F_nTiles_h])
 
     !!!!!----- PASS DATA TO TARGET-SPECIFIC STATIC FORTRAN LAYER
-    CALL Hydro_advanceSolutionHll_3_packet_oacc(F_dataQ_h, &
-                                                F_nTiles_d, F_dt_d, &
-                                                F_deltas_all_d, &
-                                                F_lo_all_d, F_hi_all_d)
+    CALL Hydro_advanceSolutionHll_3_packet_oacc(F_dataQ_h,                  &
+                                                F_nTiles_d, F_dt_d,         &
+                                                F_deltas_all_d,             &
+                                                F_lo_all_d,   F_hi_all_d,   &
+                                                F_loGC_all_d, F_hiGC_all_d)
 end subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F
 

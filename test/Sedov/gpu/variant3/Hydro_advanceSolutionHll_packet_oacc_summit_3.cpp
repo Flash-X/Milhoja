@@ -13,7 +13,8 @@ extern "C" {
                                                       const int nTiles_h,
                                                       const int* nTiles_d, const double* dt_d,
                                                       const double* deltas_start_d,
-                                                      const int* lo_start_d, const int* hi_start_d);
+                                                      const int* lo_start_d,   const int* hi_start_d,
+                                                      const int* loGC_start_d, const int* hiGC_start_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
@@ -36,6 +37,8 @@ extern "C" {
         Real*                      deltas_start_d = packet_h->deltas_devptr();
         int*                       lo_start_d     = packet_h->lo_devptr();
         int*                       hi_start_d     = packet_h->hi_devptr();
+        int*                       loGC_start_d   = packet_h->loGC_devptr();
+        int*                       hiGC_start_d   = packet_h->hiGC_devptr();
     
         // This task function neither reads from nor writes to GAME.  While it does
         // read from GAMC, this variable is not written to as part of the task
@@ -65,7 +68,8 @@ extern "C" {
                                                    nTiles_h,
                                                    nTiles_d, dt_d,
                                                    deltas_start_d,
-                                                   lo_start_d, hi_start_d);
+                                                   lo_start_d,   hi_start_d,
+                                                   loGC_start_d, hiGC_start_d);
     }
 
 }
