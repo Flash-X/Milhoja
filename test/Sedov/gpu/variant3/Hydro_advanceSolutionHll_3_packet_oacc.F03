@@ -2,7 +2,8 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
                                                   nTiles_d, dt_d,         &
                                                   deltas_all_d,           &
                                                   lo_all_d,   hi_all_d,   &
-                                                  loGC_all_d, hiGC_all_d)
+                                                  loGC_all_d, hiGC_all_d, &
+                                                  U_all_d)
     use openacc
 
     implicit none
@@ -15,10 +16,13 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
     integer,                       intent(INOUT) :: hi_all_d(:, :)
     integer,                       intent(INOUT) :: loGC_all_d(:, :)
     integer,                       intent(INOUT) :: hiGC_all_d(:, :)
+    real,                          intent(INOUT) :: U_all_d(:,:,:,:,:)
 
     integer :: n
 
-!$acc data deviceptr(nTiles_d, deltas_all_d, lo_all_d, hi_all_d, loGC_all_d, hiGC_all_d)
+    write(*,*) "shape(U_all_d) = ", SHAPE(U_all_d)
+
+!$acc data deviceptr(nTiles_d, deltas_all_d, lo_all_d, hi_all_d, loGC_all_d, hiGC_all_d, U_all_d)
 
     !$acc  parallel loop gang default(none) &
     !$acc&                    async(dataQ_h)
@@ -43,6 +47,8 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
                     hiGC_all_d(1, n), ",", &
                     hiGC_all_d(2, n), ",", &
                     hiGC_all_d(3, n), ")"
+        write(*,*) "[Hydro_advanceSolutionHll_3_packet_oacc] U_d      = (", &
+                    U_all_d(1, 1, 1, 1, n)
     end do
     !$acc end parallel loop
     !$acc wait(dataQ_h)

@@ -11,10 +11,13 @@
 extern "C" {
     void   hydro_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
                                                       const int nTiles_h,
+                                                      const int nxb_h, const int nyb_h, const int nzb_h,
+                                                      const int nvar_h,
                                                       const int* nTiles_d, const double* dt_d,
                                                       const double* deltas_start_d,
                                                       const int* lo_start_d,   const int* hi_start_d,
-                                                      const int* loGC_start_d, const int* hiGC_start_d);
+                                                      const int* loGC_start_d, const int* hiGC_start_d,
+                                                      const double* U_start_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
@@ -24,11 +27,16 @@ extern "C" {
     void Hydro_advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                        orchestration::DataItem* dataItem_h) {
         using namespace orchestration;
-    
+
         DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
         const int                  dataQ_h  = packet_h->asynchronousQueue();
         const int                  nTiles_h = packet_h->nTiles_host();
-    
+        int   nxb_h  = -1;
+        int   nyb_h  = -1;
+        int   nzb_h  = -1;
+        int   nvar_h = -1;
+        packet_h->tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nvar_h);
+
         int*                       nTiles_d       = packet_h->nTiles_devptr();
         // TODO: Within this layer the dt_* variables should be double since
         //       they are sent to a Fortran routine that assumes C_DOUBLE.  How to
@@ -39,7 +47,8 @@ extern "C" {
         int*                       hi_start_d     = packet_h->hi_devptr();
         int*                       loGC_start_d   = packet_h->loGC_devptr();
         int*                       hiGC_start_d   = packet_h->hiGC_devptr();
-    
+        Real*                      U_start_d      = packet_h->U_devptr();
+
         // This task function neither reads from nor writes to GAME.  While it does
         // read from GAMC, this variable is not written to as part of the task
         // function's work.  Therefore, GAME need not be included in the packet and
@@ -66,10 +75,12 @@ extern "C" {
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
         hydro_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
                                                    nTiles_h,
+                                                   nxb_h, nyb_h, nzb_h, nvar_h,
                                                    nTiles_d, dt_d,
                                                    deltas_start_d,
                                                    lo_start_d,   hi_start_d,
-                                                   loGC_start_d, hiGC_start_d);
+                                                   loGC_start_d, hiGC_start_d,
+                                                   U_start_d);
     }
 
 }

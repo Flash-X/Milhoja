@@ -29,6 +29,8 @@ public:
 
     int     nTiles_host(void) const;
     Real    dt_host(void) const;
+    void    tileSize_host(int* nxb_h, int* nyb_h, int* nzb_h,
+                          int* nvar_h) const;
 
     int*    nTiles_devptr(void) const;
     Real*   dt_devptr(void) const;
@@ -38,6 +40,7 @@ public:
     int*    hi_devptr(void) const;
     int*    loGC_devptr(void) const;
     int*    hiGC_devptr(void) const;
+    Real*   U_devptr(void) const;
 
 private:
 #if NDIM == 3
@@ -65,6 +68,9 @@ private:
     void*   loGC_start_d_;
     void*   hiGC_start_p_;
     void*   hiGC_start_d_;
+
+    void*   U_start_p_;
+    void*   U_start_d_;
 };
 
 }

@@ -45,7 +45,9 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       loGC_start_p_{nullptr},
       loGC_start_d_{nullptr},
       hiGC_start_p_{nullptr},
-      hiGC_start_d_{nullptr}
+      hiGC_start_d_{nullptr},
+      U_start_p_{nullptr},
+      U_start_d_{nullptr}
 {
 }
 
@@ -74,6 +76,20 @@ std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
  */
 int   DataPacket_Hydro_gpu_3::nTiles_host(void) const {
     return nTiles_h_;
+}
+
+/**
+ *
+ */
+void  DataPacket_Hydro_gpu_3::tileSize_host(int* nxb,
+                                            int* nyb,
+                                            int* nzb,
+                                            int* nvar) const {
+    *nxb  = NXB + 2 * NGUARD * K1D;
+    *nyb  = NYB + 2 * NGUARD * K2D;
+    *nzb  = NZB + 2 * NGUARD * K3D;
+    // We are not including GAME in U, which is the last variable in each block
+    *nvar = NUNKVAR - 1;
 }
 
 /**
@@ -130,6 +146,13 @@ int*   DataPacket_Hydro_gpu_3::loGC_devptr(void) const {
  */
 int*   DataPacket_Hydro_gpu_3::hiGC_devptr(void) const {
     return static_cast<int*>(hiGC_start_d_);
+}
+
+/**
+ *
+ */
+Real*  DataPacket_Hydro_gpu_3::U_devptr(void) const {
+    return static_cast<Real*>(U_start_d_);
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -239,6 +262,12 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     nTiles_h_ = static_cast<int>(tiles_.size());
     dt_h_     = Driver::dt;
 
+    int   nxb_h  = -1;
+    int   nyb_h  = -1;
+    int   nzb_h  = -1;
+    int   nvar_h = -1;
+    tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nvar_h);
+
     //----- COMPUTE SIZES/OFFSETS & ACQUIRE MEMORY
     std::size_t    sz_nTiles = sizeof(int);
     std::size_t    sz_dt     = sizeof(Real);
@@ -248,13 +277,16 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     std::size_t    sz_hi     = MDIM * sizeof(int);
     std::size_t    sz_loGC   = MDIM * sizeof(int);
     std::size_t    sz_hiGC   = MDIM * sizeof(int);
+    std::size_t    sz_U      =   nxb_h * nyb_h * nzb_h * nvar_h
+                               * sizeof(Real);
  
     std::size_t    nCopyInBytes =   sz_nTiles
                                   + sz_dt
                                   + nTiles_h_
                                     * (  sz_deltas
                                        + sz_lo   + sz_hi
-                                       + sz_loGC + sz_hiGC);
+                                       + sz_loGC + sz_hiGC
+                                       + sz_U);
 
     nCopyToGpuBytes_    = nCopyInBytes;
     nReturnToHostBytes_ = 0;
@@ -292,6 +324,11 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     deltas_start_d_ = static_cast<void*>(ptr_d);
     ptr_p += nTiles_h_ * sz_deltas;
     ptr_d += nTiles_h_ * sz_deltas;
+
+    U_start_p_ = static_cast<void*>(ptr_p);
+    U_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_U;
+    ptr_d += nTiles_h_ * sz_U;
 
     //-- INTEGERS (4-byte)
     // non-tile-specific integers
@@ -373,13 +410,6 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                    "Invalid pointer to data in host memory");
         }
 
-//        // Put data in copy in/out section
-//        // We are not including GAME, which is the last variable in each block
-//        std::memcpy((void*)CC_data_p, (void*)data_h, cc1BlockSizeBytes);
-//        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC_data_p);
-//        // Data will always be copied back from CC1
-//        pinnedPtrs_[n].CC2_data = nullptr;
-
         Real    deltas_h[MDIM] = {deltas[0], deltas[1], deltas[2]};
         char_ptr = static_cast<char*>(deltas_start_p_) + n * sz_deltas;
         std::memcpy(static_cast<void*>(char_ptr),
@@ -417,6 +447,11 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(hiGC_h),
                     sz_hiGC);
+
+        char_ptr = static_cast<char*>(U_start_p_) + n * sz_U;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(data_h),
+                    sz_U);
     }
 }
 
