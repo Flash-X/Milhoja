@@ -31,9 +31,17 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       stream3_{},
 #endif
       nTiles_h_{0},
-      dt_h_{-1.0},
+      nTiles_p_{nullptr},
       nTiles_d_{nullptr},
-      dt_d_{nullptr}
+      dt_h_{-1.0},
+      dt_p_{nullptr},
+      dt_d_{nullptr},
+      deltas_start_p_{nullptr},
+      deltas_start_d_{nullptr},
+      lo_start_p_{nullptr},
+      lo_start_d_{nullptr},
+      hi_start_p_{nullptr},
+      hi_start_d_{nullptr}
 {
 }
 
@@ -68,7 +76,7 @@ int   DataPacket_Hydro_gpu_3::nTiles_host(void) const {
  *
  */
 int*  DataPacket_Hydro_gpu_3::nTiles_devptr(void) const {
-    return nTiles_d_;
+    return static_cast<int*>(nTiles_d_);
 }
 
 /**
@@ -82,7 +90,28 @@ Real   DataPacket_Hydro_gpu_3::dt_host(void) const {
  *
  */
 Real*  DataPacket_Hydro_gpu_3::dt_devptr(void) const {
-    return dt_d_;
+    return static_cast<Real*>(dt_d_);
+}
+
+/**
+ *
+ */
+Real*  DataPacket_Hydro_gpu_3::deltas_devptr(void) const {
+    return static_cast<Real*>(deltas_start_d_);
+}
+
+/**
+ *
+ */
+int*   DataPacket_Hydro_gpu_3::lo_devptr(void) const {
+    return static_cast<int*>(lo_start_d_);
+}
+
+/**
+ *
+ */
+int*   DataPacket_Hydro_gpu_3::hi_devptr(void) const {
+    return static_cast<int*>(hi_start_d_);
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -186,41 +215,92 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 //    ++nScratchArrays;
 //#endif
 
-    //----- COPY IN SECTION
-    // Data needed in GPU that is not tile-specific
+    //----- OBTAIN NON-TILE-SPECIFIC HOST-SIDE DATA
     // TODO: Check for correctness of cast here of elsewhere?
     // This cast is necessary since Fortran code consumes the packet.
     nTiles_h_ = static_cast<int>(tiles_.size());
-    std::size_t  nCopyInBytes =            sizeof(int)
-                                +          DRIVER_DT_SIZE_BYTES;
-//    std::size_t  nCopyInBytes =            sizeof(std::size_t)
-//                                +          DRIVER_DT_SIZE_BYTES
-//                                + nTiles * sizeof(PacketContents);
-    // Tile metadata including array objects that wrap the scratch
-    // blocks for use by the GPU.
-//    std::size_t  nBlockMetadataPerTileBytes  =                     1  * DELTA_SIZE_BYTES
-//                                               +                   2  * POINT_SIZE_BYTES
-//                                               + (nScratchArrays + 1) * ARRAY4_SIZE_BYTES;
-    // No copy-in block data
+    dt_h_     = Driver::dt;
 
-    //----- COPY IN/OUT SECTION
-    // All computation on CC data effectively done in place
-//    std::size_t  nCopyInOutDataPerTileBytes = cc1BlockSizeBytes;
+    //----- COMPUTE SIZES/OFFSETS & ACQUIRE MEMORY
+    std::size_t    sz_nTiles = sizeof(int);
+    std::size_t    sz_dt     = sizeof(Real);
 
-    //----- COPY OUT SECTION
-    // No copy-out data
-    nCopyToGpuBytes_ = nCopyInBytes;
-//    nCopyToGpuBytes_ =            nCopyInBytes
-//                       + nTiles * nBlockMetadataPerTileBytes
-//                       + nTiles * nCopyInOutDataPerTileBytes;
+    std::size_t    sz_deltas = MDIM * sizeof(Real);
+    std::size_t    sz_lo     = MDIM * sizeof(int);
+    std::size_t    sz_hi     = MDIM * sizeof(int);
+ 
+    std::size_t    nCopyInBytes =   sz_nTiles
+                                  + sz_dt
+                                  + nTiles_h_
+                                    * (  sz_deltas
+                                       + sz_lo
+                                       + sz_hi);
+
+    nCopyToGpuBytes_    = nCopyInBytes;
     nReturnToHostBytes_ = 0;
-//    nReturnToHostBytes_ = nTiles * nCopyInOutDataPerTileBytes;
     std::size_t  nBytesPerPacket = nCopyInBytes;
-//    std::size_t  nBytesPerPacket =   nTiles * nScratchPerTileBytes
-//                                   +          nCopyInBytes
-//                                   + nTiles * nBlockMetadataPerTileBytes
-//                                   + nTiles * nCopyInOutDataPerTileBytes;
 
+    // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
+    // Scratch only needed on GPU side
+    // At present, this call makes certain that each data packet is
+    // appropriately byte aligned.
+    Backend::instance().requestGpuMemory(nBytesPerPacket, &packet_p_,
+                                         nBytesPerPacket, &packet_d_);
+//    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
+//                                         &packet_p_, nBytesPerPacket, &packet_d_);
+
+    static_assert(sizeof(char) == 1, "Invalid char size");
+    char*   ptr_p = static_cast<char*>(packet_p_);
+    char*   ptr_d = static_cast<char*>(packet_d_);
+
+    // Copy in section
+    copyInStart_p_ = ptr_p;
+    copyInStart_d_ = ptr_d;
+
+    //----- BYTE-ALIGN COPY-IN SECTION
+    // Order from largest to smallest in data type size
+    // 
+    //-- REALS (8-byte)
+    // non-tile-specific reals
+    dt_p_ = static_cast<void*>(ptr_p);
+    dt_d_ = static_cast<void*>(ptr_d);
+    ptr_p += sz_dt;
+    ptr_d += sz_dt;
+
+    // tile-specific reals
+    deltas_start_p_ = static_cast<void*>(ptr_p);
+    deltas_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_deltas;
+    ptr_d += nTiles_h_ * sz_deltas;
+
+    //-- INTEGERS (4-byte)
+    // non-tile-specific integers
+    nTiles_p_ = static_cast<void*>(ptr_p);
+    nTiles_d_ = static_cast<void*>(ptr_d);
+    ptr_p += sz_nTiles;
+    ptr_d += sz_nTiles;
+
+    // tile-specific integers
+    lo_start_p_ = static_cast<void*>(ptr_p);
+    lo_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_lo;
+    ptr_d += nTiles_h_ * sz_lo;
+
+    hi_start_p_ = static_cast<void*>(ptr_p);
+    hi_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_hi;
+    ptr_d += nTiles_h_ * sz_hi;
+
+    // No copy in/out data
+    copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes;
+    copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes;
+
+    // No copy-out data
+
+    // TODO:  Acquire memory first and do copy to pinned buffer.   Only then
+    // acquire stream.  In this way, we can copy data even if there are no
+    // streams available.  Determine if a deadlock can occur due to acquiring
+    // streams and memory separately.
     stream_ = Backend::instance().requestStream(true);
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
@@ -233,184 +313,65 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 //    }
 //#endif
 
-    // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
-    // Scratch only needed on GPU side
-    Backend::instance().requestGpuMemory(nBytesPerPacket, &packet_p_,
-                                         nBytesPerPacket, &packet_d_);
-//    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
-//                                         &packet_p_, nBytesPerPacket, &packet_d_);
-
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
-
-//    char*  scratchStart_d    = static_cast<char*>(packet_d_);
-    copyInStart_p_           = static_cast<char*>(packet_p_);
-    copyInStart_d_           = static_cast<char*>(packet_d_);
-//    copyInStart_d_           =            scratchStart_d
-//                               + nTiles * nScratchPerTileBytes;
-    copyInOutStart_p_        = copyInStart_p_ + nCopyInBytes;
-    copyInOutStart_d_        = copyInStart_d_ + nCopyInBytes;
-//    copyInOutStart_p_        =            copyInStart_p_
-//                               +          nCopyInBytes
-//                               + nTiles * nBlockMetadataPerTileBytes;
-//    copyInOutStart_d_        =            copyInStart_d_
-//                               +          nCopyInBytes
-//                               + nTiles * nBlockMetadataPerTileBytes;
-
-    // Store for later unpacking the location in pinned memory of the different
-    // blocks.
-//    if (pinnedPtrs_) {
-//        throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] Pinned pointers already exist");
-//    }
-//    pinnedPtrs_ = new BlockPointersPinned[nTiles];
 
     //----- SCRATCH SECTION
     // Nothing to include nor record
 
     //----- COPY IN SECTION
-    // Pointer to the next free byte in the current data packets
-    // Should be true by C++ standard
-    static_assert(sizeof(char) == 1, "Invalid char size");
-    char*   ptr_p = copyInStart_p_;
-    char*   ptr_d = copyInStart_d_;
-
     // Non-tile-specific data
-    nTiles_d_ = static_cast<int*>((void*)ptr_d);
-    std::memcpy((void*)ptr_p, (void*)&nTiles_h_, sizeof(int));
-    ptr_p += sizeof(int);
-    ptr_d += sizeof(int);
+    std::memcpy(nTiles_p_, static_cast<void*>(&nTiles_h_), sz_nTiles);
+    std::memcpy(dt_p_,     static_cast<void*>(&dt_h_),     sz_dt);
 
-    dt_h_ = Driver::dt;
-    dt_d_ = static_cast<Real*>((void*)ptr_d); 
-    std::memcpy((void*)ptr_p, (void*)&dt_h_, DRIVER_DT_SIZE_BYTES);
-    ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
-    ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
+    // Tile-specific metadata
+    char*   char_ptr;
+    for (std::size_t n=0; n<nTiles_h_; ++n) {
+        Tile*   tileDesc_h = tiles_[n].get();
+        if (tileDesc_h == nullptr) {
+            throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Bad tileDesc");
+        }
 
-//    // TODO: The PacketContents are a means to avoid putting related, ugly unpacking
-//    //       code in the patch code.  This certainly aids in developing and
-//    //       maintaining that code.  However, once the patch code is written
-//    //       by a code generator, we need not manage the contents like this nor
-//    //       put it in the data packet.
-//    contents_p_ = static_cast<PacketContents*>((void*)ptr_p);
-//    contents_d_ = static_cast<PacketContents*>((void*)ptr_d);
-//    ptr_p += nTiles * sizeof(PacketContents);
-//    ptr_d += nTiles * sizeof(PacketContents);
-//
-//    char* CC_data_p     = copyInOutStart_p_;
-//    char* CC_data_d     = copyInOutStart_d_;
-//    char* CC_scratch_d  = scratchStart_d;
-//    char* FCX_scratch_d = CC_scratch_d + cc2BlockSizeBytes;
-//#if NDIM >= 2
-//    char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
-//#endif
-//#if NDIM == 3
-//    char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
-//#endif
-//
-//    // Tile-specific metadata
-//    PacketContents*   tilePtrs_p = contents_p_;
-//    for (std::size_t n=0; n<nTiles; ++n, ++tilePtrs_p) {
-//        Tile*   tileDesc_h = tiles_[n].get();
-//        if (tileDesc_h == nullptr) {
-//            throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Bad tileDesc");
-//        }
-//
-//        const RealVect      deltas = tileDesc_h->deltas();
-//        const IntVect       lo     = tileDesc_h->lo();
-//        const IntVect       hi     = tileDesc_h->hi();
-//        const IntVect       loGC   = tileDesc_h->loGC();
-//        const IntVect       hiGC   = tileDesc_h->hiGC();
-//        Real*               data_h = tileDesc_h->dataPtr();
-//        if (data_h == nullptr) {
-//            throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] "
-//                                   "Invalid pointer to data in host memory");
-//        }
-//
+        const RealVect      deltas = tileDesc_h->deltas();
+        const IntVect       lo     = tileDesc_h->lo();
+        const IntVect       hi     = tileDesc_h->hi();
+        const IntVect       loGC   = tileDesc_h->loGC();
+        const IntVect       hiGC   = tileDesc_h->hiGC();
+        Real*               data_h = tileDesc_h->dataPtr();
+        if (data_h == nullptr) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] "
+                                   "Invalid pointer to data in host memory");
+        }
+
 //        // Put data in copy in/out section
 //        // We are not including GAME, which is the last variable in each block
 //        std::memcpy((void*)CC_data_p, (void*)data_h, cc1BlockSizeBytes);
 //        pinnedPtrs_[n].CC1_data = static_cast<Real*>((void*)CC_data_p);
 //        // Data will always be copied back from CC1
 //        pinnedPtrs_[n].CC2_data = nullptr;
-//
-//        tilePtrs_p->deltas_d = static_cast<RealVect*>((void*)ptr_d);
-//        std::memcpy((void*)ptr_p, (void*)&deltas, DELTA_SIZE_BYTES);
-//        ptr_p += DELTA_SIZE_BYTES;
-//        ptr_d += DELTA_SIZE_BYTES;
-//
-//        // Pack data for single tile data packet
-//        tilePtrs_p->lo_d = static_cast<IntVect*>((void*)ptr_d);
-//        std::memcpy((void*)ptr_p, (void*)&lo, POINT_SIZE_BYTES);
-//        ptr_p += POINT_SIZE_BYTES;
-//        ptr_d += POINT_SIZE_BYTES;
-//
-//        tilePtrs_p->hi_d = static_cast<IntVect*>((void*)ptr_d);
-//        std::memcpy((void*)ptr_p, (void*)&hi, POINT_SIZE_BYTES);
-//        ptr_p += POINT_SIZE_BYTES;
-//        ptr_d += POINT_SIZE_BYTES;
-//
-//        // Create an FArray4D object in host memory but that already points
-//        // to where its data will be in device memory (i.e. the device object
-//        // will already be attached to its data in device memory).
-//        // The object in host memory should never be used then.
-//        // IMPORTANT: When this local object is destroyed, we don't want it to
-//        // affect the use of the copies (e.g. release memory).
-//        tilePtrs_p->CC1_d = static_cast<FArray4D*>((void*)ptr_d);
-//        FArray4D   CC_d{static_cast<Real*>((void*)CC_data_d),
-//                        loGC, hiGC, nCc1Variables};
-//        std::memcpy((void*)ptr_p, (void*)&CC_d, ARRAY4_SIZE_BYTES);
-//        ptr_p += ARRAY4_SIZE_BYTES;
-//        ptr_d += ARRAY4_SIZE_BYTES;
-//
-//        tilePtrs_p->CC2_d = static_cast<FArray4D*>((void*)ptr_d);
-//        FArray4D   CC_sc_d{static_cast<Real*>((void*)CC_scratch_d),
-//                           loGC, hiGC, nCc2Variables};
-//        std::memcpy((void*)ptr_p, (void*)&CC_sc_d, ARRAY4_SIZE_BYTES);
-//        ptr_p += ARRAY4_SIZE_BYTES;
-//        ptr_d += ARRAY4_SIZE_BYTES;
-//
-//        tilePtrs_p->FCX_d = static_cast<FArray4D*>((void*)ptr_d);
-//        IntVect    fHi = IntVect{LIST_NDIM(hi.I()+1, hi.J(), hi.K())};
-//        FArray4D   FCX_d{static_cast<Real*>((void*)FCX_scratch_d),
-//                         lo, fHi, NFLUXES};
-//        std::memcpy((void*)ptr_p, (void*)&FCX_d, ARRAY4_SIZE_BYTES);
-//        ptr_p += ARRAY4_SIZE_BYTES;
-//        ptr_d += ARRAY4_SIZE_BYTES;
-//
-//        CC_data_p     += cc1BlockSizeBytes;
-//        CC_data_d     += cc1BlockSizeBytes;
-//        CC_scratch_d  += nScratchPerTileBytes;
-//        FCX_scratch_d += nScratchPerTileBytes;
-//
-//#if NDIM >= 2
-//        tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
-//        fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
-//        FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
-//                         lo, fHi, NFLUXES};
-//        std::memcpy((void*)ptr_p, (void*)&FCY_d, ARRAY4_SIZE_BYTES);
-//        ptr_p += ARRAY4_SIZE_BYTES;
-//        ptr_d += ARRAY4_SIZE_BYTES;
-//
-//        FCY_scratch_d += nScratchPerTileBytes;
-//#else
-//        tilePtrs_p->FCY_d = nullptr;
-//#endif
-//
-//#if NDIM == 3
-//        tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
-//        fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
-//        FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),
-//                         lo, fHi, NFLUXES};
-//
-//        std::memcpy((void*)ptr_p, (void*)&FCZ_d, ARRAY4_SIZE_BYTES);
-//        ptr_p += ARRAY4_SIZE_BYTES;
-//        ptr_d += ARRAY4_SIZE_BYTES;
-//
-//        FCZ_scratch_d += nScratchPerTileBytes;
-//#else
-//        tilePtrs_p->FCZ_d = nullptr;
-//#endif
-//    }
+
+        Real    deltas_h[MDIM] = {deltas[0], deltas[1], deltas[2]};
+        char_ptr = static_cast<char*>(deltas_start_p_) + n * sz_deltas;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(deltas_h),
+                    sz_deltas);
+
+        // Global index space is 0-based in runtime; 1-based in Fortran code.
+        // Translate here so that it is immediately ready for use with Fortran.
+        int     lo_h[MDIM] = {lo[0]+1, lo[1]+1, lo[2]+1};
+        char_ptr = static_cast<char*>(lo_start_p_) + n * sz_lo;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(lo_h),
+                    sz_lo);
+
+        // Global index space is 0-based in runtime; 1-based in Fortran code.
+        // Translate here so that it is immediately ready for use with Fortran.
+        int     hi_h[MDIM] = {hi[0]+1, hi[1]+1, hi[2]+1};
+        char_ptr = static_cast<char*>(hi_start_p_) + n * sz_hi;
+        std::memcpy(static_cast<void*>(char_ptr),
+                    static_cast<void*>(hi_h),
+                    sz_hi);
+    }
 }
 
 }

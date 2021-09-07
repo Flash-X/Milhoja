@@ -4,6 +4,7 @@
 
 #include "CudaMemoryManager.h"
 
+#include <cmath>
 #include <stdexcept>
 #include <iostream>
 
@@ -180,44 +181,60 @@ void   CudaMemoryManager::reset(void) {
  * Refer to the documentation of the requestGpuMemory function of Backend for
  * more information.
  *
- * @todo Confirm that the request is inline with byte alignment?
+ * All memory requests are 8-byte aligned to ensure that there are no misaligned
+ * CUDA memory accesses.
+ *
+ * @todo What is the final, best solution for byte alignment?
  */
 void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
                                        void** pinnedPtr,
                                        const std::size_t gpuBytes,
                                        void** gpuPtr) {
+    // Specify byte alignment of each memory request
+    constexpr    std::size_t    ALIGN_SIZE    = 8;
+    constexpr    double         ALIGN_SIZE_FP = static_cast<double>(ALIGN_SIZE);
+
     if ((pinnedBytes == 0) || (gpuBytes == 0)) {
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";
         errMsg += "Requests of zero indicate logical error\n";
         throw std::invalid_argument(errMsg);
     }
 
+    // Assuming that the memory buffer acquired from CUDA was byte aligned, we
+    // can make certain that all memory requests are byte aligned to the size
+    // set above by automatically sizing each memory request to be a multiple of
+    // the byte alignment size.
+    std::size_t   pinnedBytes_padded =
+                    static_cast<std::size_t>(ceil(pinnedBytes / ALIGN_SIZE_FP)) * ALIGN_SIZE;
+    std::size_t   gpuBytes_padded    =
+                    static_cast<std::size_t>(ceil(gpuBytes    / ALIGN_SIZE_FP)) * ALIGN_SIZE;
+
     pthread_mutex_lock(&mutex_);
 
-    if ((pinnedOffset_ + pinnedBytes) > nBytes_) {
+    if ((pinnedOffset_ + pinnedBytes_padded) > nBytes_) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";
         errMsg += "Pinned buffer overflow\n";
         errMsg += std::to_string(nBytes_ - pinnedOffset_);
         errMsg += " bytes available and ";
-        errMsg += std::to_string(pinnedBytes);
+        errMsg += std::to_string(pinnedBytes_padded);
         errMsg += " bytes requested";
         throw std::overflow_error(errMsg);
-    } else if ((gpuOffset_ + gpuBytes) > nBytes_) {
+    } else if ((gpuOffset_ + gpuBytes_padded) > nBytes_) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";
         errMsg += "GPU buffer overflow\n";
         errMsg += std::to_string(nBytes_ - gpuOffset_);
         errMsg += " bytes available and ";
-        errMsg += std::to_string(gpuBytes);
+        errMsg += std::to_string(gpuBytes_padded);
         errMsg += " bytes requested";
         throw std::overflow_error(errMsg);
     }
 
     *pinnedPtr = static_cast<void*>(pinnedBuffer_ + pinnedOffset_);
     *gpuPtr    = static_cast<void*>(gpuBuffer_    + gpuOffset_);
-    pinnedOffset_ += pinnedBytes;
-    gpuOffset_    += gpuBytes;
+    pinnedOffset_ += pinnedBytes_padded;
+    gpuOffset_    += gpuBytes_padded;
 
     pthread_mutex_unlock(&mutex_);
 }

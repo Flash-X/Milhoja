@@ -33,6 +33,10 @@ public:
     int*    nTiles_devptr(void) const;
     Real*   dt_devptr(void) const;
 
+    Real*   deltas_devptr(void) const;
+    int*    lo_devptr(void) const;
+    int*    hi_devptr(void) const;
+
 private:
 #if NDIM == 3
     Stream  stream2_;
@@ -40,10 +44,20 @@ private:
 #endif
 
     int     nTiles_h_;
-    Real    dt_h_;
+    void*   nTiles_p_;
+    void*   nTiles_d_;
 
-    int*    nTiles_d_;
-    Real*   dt_d_;
+    Real    dt_h_;
+    void*   dt_p_;
+    void*   dt_d_;
+
+    void*   deltas_start_p_;
+    void*   deltas_start_d_;
+
+    void*   lo_start_p_;
+    void*   lo_start_d_;
+    void*   hi_start_p_;
+    void*   hi_start_d_;
 };
 
 }

@@ -2,19 +2,18 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "DataPacket_Hydro_gpu_3.h"
-#include "OrchestrationLogger.h"
-
-#include "Eos.h"
 #include "Hydro_advanceSolutionHll_packet_oacc_summit_3.h"
 
 #include "Flash.h"
+#include "DataPacket_Hydro_gpu_3.h"
 
 //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
 extern "C" {
     void   hydro_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
                                                       const int nTiles_h,
-                                                      const int* nTiles_d, const double* dt_d);
+                                                      const int* nTiles_d, const double* dt_d,
+                                                      const double* deltas_start_d,
+                                                      const int* lo_start_d, const int* hi_start_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
@@ -29,11 +28,14 @@ extern "C" {
         const int                  dataQ_h  = packet_h->asynchronousQueue();
         const int                  nTiles_h = packet_h->nTiles_host();
     
-        int*                       nTiles_d = packet_h->nTiles_devptr();
+        int*                       nTiles_d       = packet_h->nTiles_devptr();
         // TODO: Within this layer the dt_* variables should be double since
         //       they are sent to a Fortran routine that assumes C_DOUBLE.  How to
         //       manage this?
-        Real*                      dt_d     = packet_h->dt_devptr();
+        Real*                      dt_d           = packet_h->dt_devptr();
+        Real*                      deltas_start_d = packet_h->deltas_devptr();
+        int*                       lo_start_d     = packet_h->lo_devptr();
+        int*                       hi_start_d     = packet_h->hi_devptr();
     
         // This task function neither reads from nor writes to GAME.  While it does
         // read from GAMC, this variable is not written to as part of the task
@@ -61,7 +63,9 @@ extern "C" {
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
         hydro_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
                                                    nTiles_h,
-                                                   nTiles_d, dt_d);
+                                                   nTiles_d, dt_d,
+                                                   deltas_start_d,
+                                                   lo_start_d, hi_start_d);
     }
 
 }
