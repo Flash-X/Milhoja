@@ -281,6 +281,11 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nvar_h);
 
     //----- COMPUTE SIZES/OFFSETS & ACQUIRE MEMORY
+    // TODO: Johann would like to minimize the use of pinned memory.  Presently,
+    // we structure a packet in pinned memory, send the data to the device, and
+    // copy data back in accord with that same structure.  There is no need to
+    // do this.  Rather, we can copy back data to pinned host with its own
+    // structure and overwrite the previous structure.
     std::size_t    sz_nTiles = sizeof(int);
     std::size_t    sz_dt     = sizeof(Real);
 
@@ -425,22 +430,6 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
     // No copy-out data
 
-    // TODO:  Acquire memory first and do copy to pinned buffer.   Only then
-    // acquire stream.  In this way, we can copy data even if there are no
-    // streams available.  Determine if a deadlock can occur due to acquiring
-    // streams and memory separately.
-    stream_ = Backend::instance().requestStream(true);
-    if (!stream_.isValid()) {
-        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
-    }
-//#if NDIM == 3
-//    stream2_ = Backend::instance().requestStream(true);
-//    stream3_ = Backend::instance().requestStream(true);
-//    if (!stream2_.isValid() || !stream3_.isValid()) {
-//        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
-//    }
-//#endif
-
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
 
@@ -526,6 +515,24 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         // Data will always be copied back from CC1
         pinnedPtrs_[n].CC2_data_p = nullptr;
     }
+
+    // Request memory first and pack data in pinned memory *before* acquiring
+    // streams.  This is a useful optimization if stream resources are too
+    // little and the pack() routine gets blocked waiting for stream resources.
+    // With this ordering, we pack the memory, which can be slow and have the
+    // packet ready once a stream is available.  Indeed, in some cases a stream
+    // might not be ready before we pack, but will be ready after we pack.
+    stream_ = Backend::instance().requestStream(true);
+    if (!stream_.isValid()) {
+        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
+    }
+//#if NDIM == 3
+//    stream2_ = Backend::instance().requestStream(true);
+//    stream3_ = Backend::instance().requestStream(true);
+//    if (!stream2_.isValid() || !stream3_.isValid()) {
+//        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
+//    }
+//#endif
 }
 
 }
