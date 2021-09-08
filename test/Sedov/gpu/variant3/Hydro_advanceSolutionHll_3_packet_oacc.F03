@@ -3,7 +3,11 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
                                                   deltas_all_d,           &
                                                   lo_all_d,   hi_all_d,   &
                                                   loGC_all_d, hiGC_all_d, &
-                                                  U_all_d)
+                                                  U_all_d,                &
+                                                  auxC_all_d,             &
+                                                  faceX_all_d,            &
+                                                  faceY_all_d,            &
+                                                  faceZ_all_d)
     use openacc
 
     implicit none
@@ -17,13 +21,21 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
     integer,                       intent(INOUT) :: loGC_all_d(:, :)
     integer,                       intent(INOUT) :: hiGC_all_d(:, :)
     real,                          intent(INOUT) :: U_all_d(:, :, :, :, :)
+    real,                          intent(INOUT) :: auxC_all_d(:, :, :, :)
+    real,                          intent(INOUT) :: faceX_all_d(:, :, :, :, :)
+    real,                          intent(INOUT) :: faceY_all_d(:, :, :, :, :)
+    real,                          intent(INOUT) :: faceZ_all_d(:, :, :, :, :)
 
     integer :: lo_loc_n(1:3)
     integer :: hi_loc_n(1:3)
     integer :: i, j, k, var
     integer :: n
 
-    write(*,*) "shape(U_all_d) = ", SHAPE(U_all_d)
+    write(*,*) "shape(U_all_d)     = ", SHAPE(U_all_d)
+    write(*,*) "shape(auxC_all_d)  = ", SHAPE(auxC_all_d)
+    write(*,*) "shape(faceX_all_d) = ", SHAPE(faceX_all_d)
+    write(*,*) "shape(faceY_all_d) = ", SHAPE(faceY_all_d)
+    write(*,*) "shape(faceZ_all_d) = ", SHAPE(faceZ_all_d)
 
 !$acc  data create(lo_loc_n, hi_loc_n) &
 !$acc&      deviceptr(nTiles_d, deltas_all_d, lo_all_d, hi_all_d, loGC_all_d, hiGC_all_d, U_all_d)

@@ -41,6 +41,10 @@ public:
     int*    loGC_devptr(void) const;
     int*    hiGC_devptr(void) const;
     Real*   U_devptr(void) const;
+    Real*   scratchAuxC_devptr(void) const;
+    Real*   scratchFaceX_devptr(void) const;
+    Real*   scratchFaceY_devptr(void) const;
+    Real*   scratchFaceZ_devptr(void) const;
 
 private:
 #if NDIM == 3
@@ -71,6 +75,11 @@ private:
 
     void*   U_start_p_;
     void*   U_start_d_;
+
+    void*   auxC_start_d_;
+    void*   faceX_start_d_;
+    void*   faceY_start_d_;
+    void*   faceZ_start_d_;
 };
 
 }

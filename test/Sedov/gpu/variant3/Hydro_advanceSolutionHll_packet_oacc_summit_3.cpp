@@ -17,7 +17,11 @@ extern "C" {
                                                       const double* deltas_start_d,
                                                       const int* lo_start_d,   const int* hi_start_d,
                                                       const int* loGC_start_d, const int* hiGC_start_d,
-                                                      const double* U_start_d);
+                                                      const double* U_start_d,
+                                                      const double* auxC_start_d,
+                                                      const double* faceX_start_d,
+                                                      const double* faceY_start_d,
+                                                      const double* faceZ_start_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
@@ -37,17 +41,21 @@ extern "C" {
         int   nvar_h = -1;
         packet_h->tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nvar_h);
 
-        int*                       nTiles_d       = packet_h->nTiles_devptr();
+        int*     nTiles_d       = packet_h->nTiles_devptr();
         // TODO: Within this layer the dt_* variables should be double since
         //       they are sent to a Fortran routine that assumes C_DOUBLE.  How to
         //       manage this?
-        Real*                      dt_d           = packet_h->dt_devptr();
-        Real*                      deltas_start_d = packet_h->deltas_devptr();
-        int*                       lo_start_d     = packet_h->lo_devptr();
-        int*                       hi_start_d     = packet_h->hi_devptr();
-        int*                       loGC_start_d   = packet_h->loGC_devptr();
-        int*                       hiGC_start_d   = packet_h->hiGC_devptr();
-        Real*                      U_start_d      = packet_h->U_devptr();
+        Real*    dt_d           = packet_h->dt_devptr();
+        Real*    deltas_start_d = packet_h->deltas_devptr();
+        int*     lo_start_d     = packet_h->lo_devptr();
+        int*     hi_start_d     = packet_h->hi_devptr();
+        int*     loGC_start_d   = packet_h->loGC_devptr();
+        int*     hiGC_start_d   = packet_h->hiGC_devptr();
+        Real*    U_start_d      = packet_h->U_devptr();
+        Real*    auxC_start_d   = packet_h->scratchAuxC_devptr();
+        Real*    faceX_start_d  = packet_h->scratchFaceX_devptr();
+        Real*    faceY_start_d  = packet_h->scratchFaceY_devptr();
+        Real*    faceZ_start_d  = packet_h->scratchFaceZ_devptr();
 
         // This task function neither reads from nor writes to GAME.  While it does
         // read from GAMC, this variable is not written to as part of the task
@@ -80,7 +88,9 @@ extern "C" {
                                                    deltas_start_d,
                                                    lo_start_d,   hi_start_d,
                                                    loGC_start_d, hiGC_start_d,
-                                                   U_start_d);
+                                                   U_start_d,
+                                                   auxC_start_d,
+                                                   faceX_start_d, faceY_start_d, faceZ_start_d);
     }
 
 }

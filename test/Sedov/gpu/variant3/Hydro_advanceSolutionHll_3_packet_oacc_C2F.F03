@@ -7,7 +7,11 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
                     C_deltas_start_d,                  &
                     C_lo_start_d,   C_hi_start_d,      &
                     C_loGC_start_d, C_hiGC_start_d,    &
-                    C_U_start_d) bind(c)
+                    C_U_start_d,                       &
+                    C_auxC_start_d,                    &
+                    C_faceX_start_d,                   &
+                    C_faceY_start_d,                   &
+                    C_faceZ_start_d) bind(c)
     use iso_c_binding,   ONLY : C_INT, &
                                 C_DOUBLE, &
                                 C_PTR, &
@@ -33,6 +37,10 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     type(C_PTR),    intent(IN), value :: C_loGC_start_d
     type(C_PTR),    intent(IN), value :: C_hiGC_start_d
     type(C_PTR),    intent(IN), value :: C_U_start_d
+    type(C_PTR),    intent(IN), value :: C_auxC_start_d
+    type(C_PTR),    intent(IN), value :: C_faceX_start_d
+    type(C_PTR),    intent(IN), value :: C_faceY_start_d
+    type(C_PTR),    intent(IN), value :: C_faceZ_start_d
 
     integer(kind=acc_handle_kind) :: F_dataQ_h
     integer                       :: F_nTiles_h
@@ -47,6 +55,10 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     integer, pointer :: F_loGC_all_d(:,:)
     integer, pointer :: F_hiGC_all_d(:,:)
     real,    pointer :: F_U_all_d(:,:,:,:,:)
+    real,    pointer :: F_auxC_all_d(:,:,:,:)
+    real,    pointer :: F_faceX_all_d(:,:,:,:,:)
+    real,    pointer :: F_faceY_all_d(:,:,:,:,:)
+    real,    pointer :: F_faceZ_all_d(:,:,:,:,:)
 
     !!!!!----- HOST-SODE DATA TYPE MANAGEMENT
     ! Explicitly cast to Fortran default kinds without checking correctness
@@ -73,6 +85,17 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
     CALL C_F_POINTER(C_hiGC_start_d,   F_hiGC_all_d,   shape=[3, F_nTiles_h])
     CALL C_F_POINTER(C_U_start_d,      F_U_all_d,      shape=[F_nxb_h, F_nyb_h, F_nzb_h, &
                                                               F_nvar_h, F_nTiles_h])
+    CALL C_F_POINTER(C_auxC_start_d,   F_auxC_all_d,   shape=[F_nxb_h, F_nyb_h, F_nzb_h, &
+                                                              F_nTiles_h])
+    CALL C_F_POINTER(C_faceX_start_d,  F_faceX_all_d,  shape=[F_nxb_h+1, F_nyb_h, F_nzb_h, &
+                                                              F_nvar_h, F_nTiles_h])
+    ! TODO: What happens here when we have NDIM < 3?  Should the code generator
+    !       determine that these are needed and therefore never include them in the
+    !       subroutine interfaces?  If not, we are mapping a variable onto a nullptr.
+    CALL C_F_POINTER(C_faceY_start_d,  F_faceY_all_d,  shape=[F_nxb_h, F_nyb_h+1, F_nzb_h, &
+                                                              F_nvar_h, F_nTiles_h])
+    CALL C_F_POINTER(C_faceZ_start_d,  F_faceZ_all_d,  shape=[F_nxb_h, F_nyb_h, F_nzb_h+1, &
+                                                              F_nvar_h, F_nTiles_h])
 
     !!!!!----- PASS DATA TO TARGET-SPECIFIC STATIC FORTRAN LAYER
     CALL Hydro_advanceSolutionHll_3_packet_oacc(F_dataQ_h,                  &
@@ -80,6 +103,10 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
                                                 F_deltas_all_d,             &
                                                 F_lo_all_d,   F_hi_all_d,   &
                                                 F_loGC_all_d, F_hiGC_all_d, &
-                                                F_U_all_d)
+                                                F_U_all_d,                  &
+                                                F_auxC_all_d,               &
+                                                F_faceX_all_d,              &
+                                                F_faceY_all_d,              &
+                                                F_faceZ_all_d)
 end subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F
 

@@ -7,7 +7,11 @@ module Hydro_interface
                                                           deltas_all_d,           &
                                                           lo_all_d,   hi_all_d,   &
                                                           loGC_all_d, hiGC_all_d, &
-                                                          U_all_d)
+                                                          U_all_d,                &
+                                                          auxC_all_d,             &
+                                                          faceX_all_d,            &
+                                                          faceY_all_d,            &
+                                                          faceZ_all_d)
             use openacc, ONLY : acc_handle_kind
             implicit none
             integer(kind=acc_handle_kind), intent(IN)    :: dataQ_h
@@ -19,6 +23,10 @@ module Hydro_interface
             integer,                       intent(INOUT) :: loGC_all_d(:,:)
             integer,                       intent(INOUT) :: hiGC_all_d(:,:)
             real,                          intent(INOUT) :: U_all_d(:,:,:,:,:)
+            real,                          intent(INOUT) :: auxC_all_d(:,:,:,:)
+            real,                          intent(INOUT) :: faceX_all_d(:,:,:,:,:)
+            real,                          intent(INOUT) :: faceY_all_d(:,:,:,:,:)
+            real,                          intent(INOUT) :: faceZ_all_d(:,:,:,:,:)
         end subroutine Hydro_advanceSolutionHll_3_packet_oacc
     end interface
 end module Hydro_interface
