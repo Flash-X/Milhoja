@@ -229,9 +229,9 @@ void  DataPacket::unpack(void) {
     } else if (!stream_.isValid()) {
         throw std::logic_error("[DataPacket::unpack] "
                                "Stream not acquired");
-//    } else if (pinnedPtrs_ == nullptr) {
-//        throw std::logic_error("[DataPacket::unpack] "
-//                               "No pinned pointers set");
+    } else if (pinnedPtrs_ == nullptr) {
+        throw std::logic_error("[DataPacket::unpack] "
+                               "No pinned pointers set");
     } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
                || (startVariable_ > UNK_VARS_END_C )
                || (endVariable_   < UNK_VARS_BEGIN_C )
@@ -244,44 +244,47 @@ void  DataPacket::unpack(void) {
     Backend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
-//    for (std::size_t n=0; n<tiles_.size(); ++n) {
-//        Tile*   tileDesc_h = tiles_[n].get();
-//
-//        Real*         data_h = tileDesc_h->dataPtr();
-//        const Real*   data_p = nullptr;
-//        switch (location_) {
-//            case PacketDataLocation::CC1:
-//                data_p = pinnedPtrs_[n].CC1_data;
-//                break;
-//            case PacketDataLocation::CC2:
-//                data_p = pinnedPtrs_[n].CC2_data;
-//                break;
-//            default:
-//                throw std::logic_error("[DataPacket::unpack] Data not in CC1 or CC2");
-//        }
-//
-//        if (data_h == nullptr) {
-//            throw std::logic_error("[DataPacket::unpack] "
-//                                   "Invalid pointer to data in host memory");
-//        } else if (data_p == nullptr) {
-//            throw std::runtime_error("[DataPacket::unpack] "
-//                                     "Invalid pointer to data in pinned memory");
-//        }
-//
-//        // The code here imposes requirements on the variable indices.  See Flash.h
-//        // for more information.  If this code is changed, please make sure to
-//        // adjust Flash.h appropriately.
-//        assert(UNK_VARS_BEGIN_C == 0);
-//        assert(UNK_VARS_END_C == (NUNKVAR - 1));
-//        std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
-//                              * static_cast<std::size_t>(startVariable_);
-//        Real*        start_h = data_h + offset;
-//        const Real*  start_p = data_p + offset;
-//        std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
-//                              * N_ELEMENTS_PER_CC_PER_VARIABLE
-//                              * sizeof(Real);
-//        std::memcpy((void*)start_h, (void*)start_p, nBytes);
-//    }
+    int   nx = (NXB + 2 * NGUARD * K1D);
+    int   ny = (NYB + 2 * NGUARD * K2D);
+    int   nz = (NZB + 2 * NGUARD * K3D);
+    std::size_t   sz_U = nx * ny * nz;
+
+    for (std::size_t n=0; n<tiles_.size(); ++n) {
+        Real*   data_h = pinnedPtrs_[n].data_h;
+        Real*   data_p = nullptr;
+        switch (location_) {
+            case PacketDataLocation::CC1:
+                data_p = pinnedPtrs_[n].CC1_data_p;
+                break;
+            case PacketDataLocation::CC2:
+                data_p = pinnedPtrs_[n].CC2_data_p;
+                break;
+            default:
+                throw std::logic_error("[DataPacket::unpack] Data not in CC1 or CC2");
+        }
+
+        if (data_h == nullptr) {
+            throw std::logic_error("[DataPacket::unpack] "
+                                   "Invalid pointer to data in host memory");
+        } else if (data_p == nullptr) {
+            throw std::runtime_error("[DataPacket::unpack] "
+                                     "Invalid pointer to data in pinned memory");
+        }
+
+        // The code here imposes requirements on the variable indices.  See Flash.h
+        // for more information.  If this code is changed, please make sure to
+        // adjust Flash.h appropriately.
+        assert(UNK_VARS_BEGIN_C == 0);
+        assert(UNK_VARS_END_C == (NUNKVAR - 1));
+        std::size_t  offset = sz_U * static_cast<std::size_t>(startVariable_);
+        Real*  start_h = data_h + offset;
+        Real*  start_p = data_p + offset;
+        std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
+                              * sz_U * sizeof(Real);
+        std::memcpy(static_cast<void*>(start_h),
+                    static_cast<void*>(start_p),
+                    nBytes);
+    }
 
     // The packet is consumed upon unpacking.
     nullify();

@@ -330,8 +330,9 @@ protected:
      * in pinned memory of the cell-centered 1 and 2 data blocks.
      */
     struct BlockPointersPinned {
-        Real*    CC1_data = nullptr;
-        Real*    CC2_data = nullptr;
+        Real*    data_h     = nullptr;
+        Real*    CC1_data_p = nullptr;
+        Real*    CC2_data_p = nullptr;
     };
 
     PacketDataLocation                     location_;           //!< The current location of cell-centered data

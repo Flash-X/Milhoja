@@ -285,12 +285,21 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                   + nTiles_h_
                                     * (  sz_deltas
                                        + sz_lo   + sz_hi
-                                       + sz_loGC + sz_hiGC
-                                       + sz_U);
+                                       + sz_loGC + sz_hiGC);
+    std::size_t    nCopyInBytes_padded 
+                        = static_cast<std::size_t>(ceil(nCopyInBytes / 8.0)) * 8;
 
-    nCopyToGpuBytes_    = nCopyInBytes;
-    nReturnToHostBytes_ = 0;
-    std::size_t  nBytesPerPacket = nCopyInBytes;
+    std::size_t    nCopyInOutBytes = nTiles_h_ * sz_U;
+    std::size_t    nCopyInOutBytes_padded 
+                        = static_cast<std::size_t>(ceil(nCopyInOutBytes / 8.0)) * 8;
+
+    std::size_t    nCopyOutBytes   = 0;
+    std::size_t    nCopyOutBytes_padded 
+                        = static_cast<std::size_t>(ceil(nCopyOutBytes / 8.0)) * 8;
+
+    nCopyToGpuBytes_    = nCopyInBytes_padded    + nCopyInOutBytes;
+    nReturnToHostBytes_ = nCopyInOutBytes_padded + nCopyOutBytes;
+    std::size_t  nBytesPerPacket = nCopyInBytes_padded + nCopyInOutBytes_padded;
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
@@ -302,16 +311,15 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 //                                         &packet_p_, nBytesPerPacket, &packet_d_);
 
     static_assert(sizeof(char) == 1, "Invalid char size");
-    char*   ptr_p = static_cast<char*>(packet_p_);
-    char*   ptr_d = static_cast<char*>(packet_d_);
-
-    // Copy in section
-    copyInStart_p_ = ptr_p;
-    copyInStart_d_ = ptr_d;
-
     //----- BYTE-ALIGN COPY-IN SECTION
     // Order from largest to smallest in data type size
     // 
+    copyInStart_p_ = static_cast<char*>(packet_p_);
+    copyInStart_d_ = static_cast<char*>(packet_d_);
+
+    char*   ptr_p = copyInStart_p_;
+    char*   ptr_d = copyInStart_d_;
+
     //-- REALS (8-byte)
     // non-tile-specific reals
     dt_p_ = static_cast<void*>(ptr_p);
@@ -324,11 +332,6 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     deltas_start_d_ = static_cast<void*>(ptr_d);
     ptr_p += nTiles_h_ * sz_deltas;
     ptr_d += nTiles_h_ * sz_deltas;
-
-    U_start_p_ = static_cast<void*>(ptr_p);
-    U_start_d_ = static_cast<void*>(ptr_d);
-    ptr_p += nTiles_h_ * sz_U;
-    ptr_d += nTiles_h_ * sz_U;
 
     //-- INTEGERS (4-byte)
     // non-tile-specific integers
@@ -358,9 +361,20 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     ptr_p += nTiles_h_ * sz_hiGC;
     ptr_d += nTiles_h_ * sz_hiGC;
 
-    // No copy in/out data
-    copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes;
-    copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes;
+    //----- BYTE-ALIGN COPY-IN/-OUT SECTION
+    // Order from largest to smallest in data type size
+    // 
+    // Pad copy-in section if necessary to get correct byte alignment
+    copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes_padded;
+    copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes_padded;
+
+    ptr_p = static_cast<char*>(copyInOutStart_p_);
+    ptr_d = static_cast<char*>(copyInOutStart_d_);
+
+    U_start_p_ = static_cast<void*>(ptr_p);
+    U_start_d_ = static_cast<void*>(ptr_d);
+    ptr_p += nTiles_h_ * sz_U;
+    ptr_d += nTiles_h_ * sz_U;
 
     // No copy-out data
 
@@ -382,6 +396,14 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
+
+
+    // Store for later unpacking the location in pinned memory of the different
+    // blocks.
+    if (pinnedPtrs_) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] Pinned pointers already exist");
+    }
+    pinnedPtrs_ = new BlockPointersPinned[nTiles_h_];
 
     //----- SCRATCH SECTION
     // Nothing to include nor record
@@ -452,6 +474,10 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(data_h),
                     sz_U);
+        pinnedPtrs_[n].data_h     = data_h;
+        pinnedPtrs_[n].CC1_data_p = static_cast<Real*>((void*)char_ptr);
+        // Data will always be copied back from CC1
+        pinnedPtrs_[n].CC2_data_p = nullptr;
     }
 }
 
