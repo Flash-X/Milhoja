@@ -13,13 +13,13 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc(dataQ_h,                &
     implicit none
 
     integer(kind=acc_handle_kind), intent(IN)    :: dataQ_h
-    integer,                       intent(INOUT) :: nTiles_d
-    real,                          intent(INOUT) :: dt_d
-    real,                          intent(INOUT) :: deltas_all_d(:, :)
-    integer,                       intent(INOUT) :: lo_all_d(:, :)
-    integer,                       intent(INOUT) :: hi_all_d(:, :)
-    integer,                       intent(INOUT) :: loGC_all_d(:, :)
-    integer,                       intent(INOUT) :: hiGC_all_d(:, :)
+    integer,                       intent(IN)    :: nTiles_d
+    real,                          intent(IN)    :: dt_d
+    real,                          intent(IN)    :: deltas_all_d(:, :)
+    integer,                       intent(IN)    :: lo_all_d(:, :)
+    integer,                       intent(IN)    :: hi_all_d(:, :)
+    integer,                       intent(IN)    :: loGC_all_d(:, :)
+    integer,                       intent(IN)    :: hiGC_all_d(:, :)
     real,                          intent(INOUT) :: U_all_d(:, :, :, :, :)
     real,                          intent(INOUT) :: auxC_all_d(:, :, :, :)
     real,                          intent(INOUT) :: faceX_all_d(:, :, :, :, :)
