@@ -2,34 +2,34 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "Hydro_advanceSolutionHll_packet_oacc_summit_3.h"
+#include "hy_advance_solution_hll_3_packet_oacc_tf.h"
 
 #include "Flash.h"
 #include "DataPacket_Hydro_gpu_3.h"
 
 //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
 extern "C" {
-    void   hydro_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
-                                                      const int nTiles_h,
-                                                      const int nxb_h, const int nyb_h, const int nzb_h,
-                                                      const int nvar_h,
-                                                      const int* nTiles_d, const double* dt_d,
-                                                      const double* deltas_start_d,
-                                                      const int* lo_start_d,   const int* hi_start_d,
-                                                      const int* loGC_start_d, const int* hiGC_start_d,
-                                                      const double* U_start_d,
-                                                      const double* auxC_start_d,
-                                                      const double* faceX_start_d,
-                                                      const double* faceY_start_d,
-                                                      const double* faceZ_start_d);
+    void   hy_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
+                                                   const int nTiles_h,
+                                                   const int nxb_h, const int nyb_h, const int nzb_h,
+                                                   const int nvar_h,
+                                                   const int* nTiles_d, const double* dt_d,
+                                                   const double* deltas_start_d,
+                                                   const int* lo_start_d,   const int* hi_start_d,
+                                                   const int* loGC_start_d, const int* hiGC_start_d,
+                                                   const double* U_start_d,
+                                                   const double* auxC_start_d,
+                                                   const double* faceX_start_d,
+                                                   const double* faceY_start_d,
+                                                   const double* faceZ_start_d);
 }
 
 //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
 extern "C" {
     // TODO: For the sake of C++/Fortran interoperability, this must be a
     // C-compatible interface.  Make void*?  Are const keywords part of C?
-    void Hydro_advanceSolutionHll_packet_oacc_summit_3(const int tId,
-                                                       orchestration::DataItem* dataItem_h) {
+    void hy_advance_solution_hll_3_packet_oacc_tf(const int tId,
+                                                  orchestration::DataItem* dataItem_h) {
         using namespace orchestration;
 
         DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
@@ -81,16 +81,16 @@ extern "C" {
         packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
    
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
-        hydro_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
-                                                   nTiles_h,
-                                                   nxb_h, nyb_h, nzb_h, nvar_h,
-                                                   nTiles_d, dt_d,
-                                                   deltas_start_d,
-                                                   lo_start_d,   hi_start_d,
-                                                   loGC_start_d, hiGC_start_d,
-                                                   U_start_d,
-                                                   auxC_start_d,
-                                                   faceX_start_d, faceY_start_d, faceZ_start_d);
+        hy_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
+                                                nTiles_h,
+                                                nxb_h, nyb_h, nzb_h, nvar_h,
+                                                nTiles_d, dt_d,
+                                                deltas_start_d,
+                                                lo_start_d,   hi_start_d,
+                                                loGC_start_d, hiGC_start_d,
+                                                U_start_d,
+                                                auxC_start_d,
+                                                faceX_start_d, faceY_start_d, faceZ_start_d);
     }
 
 }

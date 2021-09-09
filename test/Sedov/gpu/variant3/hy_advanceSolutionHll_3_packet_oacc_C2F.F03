@@ -1,4 +1,4 @@
-subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
+subroutine hy_advanceSolutionHll_3_packet_oacc_C2F( &
                     C_dataQ_h,                         &
                     C_nTiles_h,                        &
                     C_nxb_h, C_nyb_h, C_nzb_h,         &
@@ -19,7 +19,7 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
 
     use openacc,         ONLY : acc_handle_kind
 
-    use Hydro_interface, ONLY : Hydro_advanceSolutionHll_3_packet_oacc
+    use hy_cg_interface, ONLY : hy_advanceSolutionHll_3_packet_oacc
 
     implicit none
 
@@ -98,15 +98,15 @@ subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F( &
                                                               F_nvar_h, F_nTiles_h])
 
     !!!!!----- PASS DATA TO TARGET-SPECIFIC STATIC FORTRAN LAYER
-    CALL Hydro_advanceSolutionHll_3_packet_oacc(F_dataQ_h,                  &
-                                                F_nTiles_d, F_dt_d,         &
-                                                F_deltas_all_d,             &
-                                                F_lo_all_d,   F_hi_all_d,   &
-                                                F_loGC_all_d, F_hiGC_all_d, &
-                                                F_U_all_d,                  &
-                                                F_auxC_all_d,               &
-                                                F_faceX_all_d,              &
-                                                F_faceY_all_d,              &
-                                                F_faceZ_all_d)
-end subroutine Hydro_advanceSolutionHll_3_packet_oacc_C2F
+    CALL hy_advanceSolutionHll_3_packet_oacc(F_dataQ_h,                  &
+                                             F_nTiles_d, F_dt_d,         &
+                                             F_deltas_all_d,             &
+                                             F_lo_all_d,   F_hi_all_d,   &
+                                             F_loGC_all_d, F_hiGC_all_d, &
+                                             F_U_all_d,                  &
+                                             F_auxC_all_d,               &
+                                             F_faceX_all_d,              &
+                                             F_faceY_all_d,              &
+                                             F_faceZ_all_d)
+end subroutine hy_advanceSolutionHll_3_packet_oacc_C2F
 

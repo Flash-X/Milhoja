@@ -31,7 +31,7 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(SEDOVGPUV3DIR)/DataPacket_Hydro_gpu_3.cpp \
-	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
+	$(SEDOVGPUV3DIR)/hy_advance_solution_hll_3_packet_oacc_tf.cpp \
 	$(TESTDIR)/sedov_gpuonly_3.cpp
 #	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
 #	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
@@ -41,9 +41,9 @@ SRCS_TEST = \
 #	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
 FSRCS_TEST = \
-	$(SEDOVGPUV3DIR)/Hydro_interface.F03 \
-	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc_C2F.F03 \
-	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_3_packet_oacc.F03 \
+	$(SEDOVGPUV3DIR)/hy_cg_interface.F03 \
+	$(SEDOVGPUV3DIR)/hy_advanceSolutionHll_3_packet_oacc_C2F.F03 \
+	$(SEDOVGPUV3DIR)/hy_advanceSolutionHll_3_packet_oacc.F03 \
 	$(SEDOVGPUV3DIR)/hy_kernel_3_packet_oacc.F03
 
 CU_SRCS = \
