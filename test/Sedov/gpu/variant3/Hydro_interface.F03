@@ -29,5 +29,15 @@ module Hydro_interface
             real,                          intent(INOUT) :: faceZ_all_d(:,:,:,:,:)
         end subroutine Hydro_advanceSolutionHll_3_packet_oacc
     end interface
+
+    interface
+        subroutine hy_kernel_3_packet_oacc(lo, hi, U)
+            implicit none
+            integer, intent(IN)    :: lo(:)
+            integer, intent(IN)    :: hi(:)
+            real,    intent(INOUT) :: U(:, :, :, :)
+        end subroutine hy_kernel_3_packet_oacc
+    end interface
+
 end module Hydro_interface
 
