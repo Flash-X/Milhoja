@@ -517,7 +517,7 @@ TEST_F(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
     try {
-        Grid::instantiate();
+        Grid::instantiate(MPI_COMM_WORLD);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
