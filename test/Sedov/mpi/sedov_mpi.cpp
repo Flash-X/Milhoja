@@ -28,20 +28,28 @@ constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
 
+    //----- APPLICATIONS MANAGE MPI
+    // The idea is to follow xSDK M3
+    MPI_Init(&argc, &argv);
+    MPI_Comm     MILHOJA_MPI_COMM = MPI_COMM_WORLD;
+
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
+    orchestration::Logger::instantiate(MILHOJA_MPI_COMM,
+                                       rp_Simulation::LOG_FILENAME);
 
     // Analogous to calling Grid_init
-    orchestration::Grid::instantiate();
+    orchestration::Grid::instantiate(MILHOJA_MPI_COMM);
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
+    orchestration::Io::instantiate(MILHOJA_MPI_COMM,
+                                   rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
-    MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_rank(MILHOJA_MPI_COMM, &rank);
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI",
+    ProcessTimer  hydro{MILHOJA_MPI_COMM,
+                        rp_Simulation::NAME + "_timings.dat", "MPI",
                         N_DIST_THREADS, 0, N_CPU_THREADS, N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
 
@@ -53,24 +61,24 @@ int main(int argc, char* argv[]) {
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
-    orchestration::Timer::start("Set initial conditions");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    orchestration::Timer::stop("Set initial conditions");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "Set initial conditions");
 
-    orchestration::Timer::start("computeLocalIQ");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "computeLocalIQ");
     io.computeLocalIntegralQuantities();
-    orchestration::Timer::stop("computeLocalIQ");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
-    orchestration::Timer::start("Reduce/Write");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
 //    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
-    orchestration::Timer::stop("Reduce/Write");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
     // Create scratch buffers.
@@ -91,7 +99,7 @@ int main(int argc, char* argv[]) {
                         IntVect{LIST_NDIM(1  -K1D, 1  -K2D, 1  -K3D)},
                         IntVect{LIST_NDIM(NXB+K1D, NYB+K2D, NZB+K3D)});
 
-    orchestration::Timer::start(rp_Simulation::NAME + " simulation");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, rp_Simulation::NAME + " simulation");
 
     unsigned int            level{0};
     std::shared_ptr<Tile>   tileDesc{};
@@ -117,9 +125,9 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
-            orchestration::Timer::start("GC Fill");
+            orchestration::Timer::start(MILHOJA_MPI_COMM, "GC Fill");
             grid.fillGuardCells();
-            orchestration::Timer::stop("GC Fill");
+            orchestration::Timer::stop(MILHOJA_MPI_COMM, "GC Fill");
         }
 
         //----- ADVANCE SOLUTION
@@ -148,23 +156,23 @@ int main(int argc, char* argv[]) {
             Eos::idealGammaDensIe(lo, hi, U);
         }
         double       wtime_sec = MPI_Wtime() - tStart;
-        orchestration::Timer::start("Gather/Write");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
-        orchestration::Timer::stop("Gather/Write");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "Gather/Write");
 
-        orchestration::Timer::start("computeLocalIQ");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "computeLocalIQ");
         io.computeLocalIntegralQuantities();
-        orchestration::Timer::stop("computeLocalIQ");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
-        orchestration::Timer::start("Reduce/Write");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
-        orchestration::Timer::stop("Reduce/Write");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -187,7 +195,7 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    orchestration::Timer::stop(rp_Simulation::NAME + " simulation");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, rp_Simulation::NAME + " simulation");
 
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
@@ -199,6 +207,9 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    grid.finalize();
+
+    MPI_Finalize();
 
     return 0;
 }

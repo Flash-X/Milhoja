@@ -15,7 +15,7 @@ CUFLAGS_PROD =
 LDFLAGS_STD = -lpthread -lstdc++ -lgfortran
 
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
-CXXFLAGS_GTEST   = -I$(GTESTDIR)/include -fPIC
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
 CUFLAGS_AMREX    =
 CUFLAGS_GTEST    =
 LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib
