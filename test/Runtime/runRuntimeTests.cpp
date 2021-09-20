@@ -2,6 +2,7 @@
 #include "Runtime.h"
 #include "OrchestrationLogger.h"
 
+#include <mpi.h>
 #include <gtest/gtest.h>
 
 // It appears that OpenACC on Summit with PGI has max 32 asynchronous
@@ -18,14 +19,19 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
 
+    MPI_Comm    MILHOJA_MPI_COMM = MPI_COMM_WORLD;
+
+    MPI_Init(&argc, &argv);
+
     // Grid initialized AMReX and MPI
-    orchestration::Logger::instantiate("RuntimeTest.log");
+    orchestration::Logger::instantiate(MILHOJA_MPI_COMM,
+                                       "RuntimeTest.log");
     orchestration::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
                                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
-    orchestration::Grid::instantiate();
+    orchestration::Grid::instantiate(MILHOJA_MPI_COMM);
 
     int  rank = -1;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(MILHOJA_MPI_COMM, &rank);
 
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();
@@ -33,7 +39,11 @@ int main(int argc, char* argv[]) {
         delete listeners.Release(listeners.default_result_printer());
     }
 
-    // Grid/AMReX/MPI will finalize when grid goes out of scope and is destroyed
-    return RUN_ALL_TESTS();
+    int   errCode = RUN_ALL_TESTS();
+
+    orchestration::Grid::instance().finalize();
+    MPI_Finalize();
+
+    return errCode;
 }
 
