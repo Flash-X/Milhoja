@@ -1,8 +1,10 @@
 #include "Grid.h"
 
 #include <stdexcept>
+
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
+#include "OrchestrationLogger.h"
 
 // TODO: move to a header?
 #ifdef GRID_AMREX
@@ -16,19 +18,24 @@ namespace orchestration {
 
 namespace orchestration {
 
-bool Grid::instantiated_ = false;
+bool       Grid::instantiated_ = false;
+bool       Grid::finalized_ = false;
+MPI_Comm   Grid::globalComm_ = MPI_COMM_NULL;
 
 /**
- * instace gets a reference to the singleton Grid object.
+ * instace gets a reference to the singleton Grid object.  This can only be used
+ * after calling instantiate, and should not be used after calling finalize.
  *
  * @return A reference to the singleton object, which has been downcast
  *         to Grid type.
  */
 Grid&   Grid::instance(void) {
-    if(!instantiated_) {
-        throw std::logic_error("Cannot call Grid::instance until after "
-                               "Grid::instantiate has been called.");
+    if (!instantiated_) {
+        throw std::logic_error("[Grid::instance] Singleton not instantiated yet");
+    } else if (finalized_) {
+        throw std::logic_error("[Grid::instance] Singleton already finalized");
     }
+
     static GridVersion gridSingleton;
     return gridSingleton;
 }
@@ -37,13 +44,51 @@ Grid&   Grid::instance(void) {
  * instantiate allows the user to easily distinguish the first call to
  * instance, which calls the Grid constructor, from all subsequent calls.
  * It must be called exactly once in the program, before all calls to instance.
+ * It should not be called after finalize has been called.
  */
-void   Grid::instantiate(void) {
-    if(instantiated_) {
-        throw std::logic_error("Cannot call Grid::instantiate after Grid has already been initialized.");
+void   Grid::instantiate(const MPI_Comm comm) {
+    Logger::instance().log("[Grid] Initializing...");
+
+    if (instantiated_) {
+        throw std::logic_error("[Grid::instantiate] Singleton already instantiated");
+    } else if (finalized_) {
+        throw std::logic_error("[Grid::instantiate] Singleton already finalized");
     }
+
+    globalComm_ = comm;
+
     instantiated_ = true;
     Grid::instance();
+
+    Logger::instance().log("[Grid] Created and ready for use");
+}
+
+/**
+ * We do not control when the Grid singleton is destroyed.  For instance, it
+ * could be destroyed when the program ends and, therefore, after the program
+ * calls MPI_Finalize.  If a Grid implementation needs to perform MPI-based
+ * clean-up, then finalizing upon destruction would lead to incorrect execution.
+ * Therefore, we allow for manually finalizing the Grid singleton.  This member
+ * function must be called if instantiate has been called and should never be
+ * called more than once.  Further, the Grid singleton should not be used once
+ * this member function has been called.
+ *
+ * Derived classes that overload this implementation should call this member
+ * function *after* performing its own clean-up.
+ */
+void   Grid::finalize(void) {
+    Logger::instance().log("[Grid] Finalizing ...");
+
+    if (!instantiated_) {
+        throw std::logic_error("[Grid::finalize] Singleton never instantiated");
+    } else if (finalized_) {
+        throw std::logic_error("[Grid::finalize] Singleton already finalized");
+    }
+
+    globalComm_ = MPI_COMM_NULL;
+    finalized_ = true;
+
+    Logger::instance().log("[Grid] Finalized");
 }
 
 /**

@@ -27,24 +27,53 @@ constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
 
+    //----- APPLICATIONS MANAGE MPI
+    // The idea is to follow xSDK M3
+    MPI_Init(&argc, &argv);
+    MPI_Comm     MILHOJA_MPI_COMM = MPI_COMM_WORLD;
+
+    // Test that Milhoja uses the communicator correctly
+//    int globalRank = -1;
+//    MPI_Comm_rank(MPI_COMM_WORLD, &globalRank);
+//
+//    // This results in the first ranks having no communicator
+////    int color = MPI_UNDEFINED;
+//    // Split into two communicators, each of which has its own 
+//    // dedicated AMReX setup
+//    int color = 0;
+//    if (globalRank >= 2) {
+//        color = 1;
+//    }
+//    MPI_Comm_split(MPI_COMM_WORLD, color, globalRank, &MILHOJA_MPI_COMM);
+
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
+    // TODO: If we use more than one communicator, each communicator should
+    // probably have its own log file.
+    orchestration::Logger::instantiate(MILHOJA_MPI_COMM,
+                                       rp_Simulation::LOG_FILENAME);
 
     // Analogous to calling Orchestration_init
+    // The runtime doesn't need the communicator.  Rather, this application
+    // should setup and call the runtime based on the communicator.
     orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
                                         rp_Runtime::N_THREADS_PER_TEAM,
                                         rp_Runtime::N_STREAMS,
                                         rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
-    orchestration::Grid::instantiate();
+    // Each communicator gets its own dedicated, independent copy of Grid (TBC)
+    orchestration::Grid::instantiate(MILHOJA_MPI_COMM);
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
+    // Since each communicator has its own copy of Grid, we want to compute the
+    // global IQ for each communicator.  Therefore, each communicator should
+    // have its own data file.
+    orchestration::Io::instantiate(MILHOJA_MPI_COMM,
+                                   rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
 
     int  rank = 0;
-    MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_rank(MILHOJA_MPI_COMM, &rank);
 
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();
@@ -64,24 +93,28 @@ int main(int argc, char* argv[]) {
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
-    orchestration::Timer::start("Set initial conditions");
+    // The Timer calls put in a barrier and then log the walltime.  Therefore,
+    // this allows us to time each communicator's use of the runtime
+    // independently.  If each communicator had a different filename, then this
+    // should work nicely.
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    orchestration::Timer::stop("Set initial conditions");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "Set initial conditions");
 
-    orchestration::Timer::start("computeLocalIQ");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "computeLocalIQ");
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-    orchestration::Timer::stop("computeLocalIQ");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
-    orchestration::Timer::start("Reduce/Write");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, "Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
 //    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
-    orchestration::Timer::stop("Reduce/Write");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, "Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance;
@@ -91,13 +124,19 @@ int main(int argc, char* argv[]) {
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
+    // The ProcessTimer gathers data from all MPI processes and then logs each
+    // result.  Therefore, this timing is associated to a particular use of the
+    // runtime and it makes sense to time each communicator independently.  Each
+    // communicator should have a different data file if using more than one
+    // communicator.
+    ProcessTimer  hydro{MILHOJA_MPI_COMM,
+                        rp_Simulation::NAME + "_timings.dat", "CPU",
                         N_DIST_THREADS, 0,
                         hydroAdvance.nInitialThreads,
                         N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN};
 
-    orchestration::Timer::start(rp_Simulation::NAME + " simulation");
+    orchestration::Timer::start(MILHOJA_MPI_COMM, rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
@@ -121,34 +160,34 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
-            orchestration::Timer::start("GC Fill");
+            orchestration::Timer::start(MILHOJA_MPI_COMM, "GC Fill");
             grid.fillGuardCells();
-            orchestration::Timer::stop("GC Fill");
+            orchestration::Timer::stop(MILHOJA_MPI_COMM, "GC Fill");
         }
 
         double   tStart = MPI_Wtime();
         runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
         double   wtime_sec = MPI_Wtime() - tStart;
-        orchestration::Timer::start("Gather/Write");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
-        orchestration::Timer::stop("Gather/Write");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "Gather/Write");
 
-        orchestration::Timer::start("computeLocalIQ");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "computeLocalIQ");
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-        orchestration::Timer::stop("computeLocalIQ");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
         // Compute local integral quantities
         // TODO: This should be run as a CPU-based pipeline extension
         //       to the physics action bundle.
-        orchestration::Timer::start("Reduce/Write");
+        orchestration::Timer::start(MILHOJA_MPI_COMM, "Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
             grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
         }
-        orchestration::Timer::stop("Reduce/Write");
+        orchestration::Timer::stop(MILHOJA_MPI_COMM, "Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -171,7 +210,7 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    orchestration::Timer::stop(rp_Simulation::NAME + " simulation");
+    orchestration::Timer::stop(MILHOJA_MPI_COMM, rp_Simulation::NAME + " simulation");
 
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
@@ -183,6 +222,10 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    grid.finalize();
+
+//    MPI_Comm_free(&MILHOJA_MPI_COMM);
+    MPI_Finalize();
 
     return 0;
 }

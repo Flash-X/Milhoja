@@ -19,10 +19,6 @@
 namespace orchestration {
 
 void passRPToAmrex() {
-#ifdef GRID_LOG
-    Logger::instance().log("[GridAmrex] Passing runtime parameters"
-                           " to amrex...");
-#endif
     {
         amrex::ParmParse pp("geometry");
         pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
@@ -61,6 +57,8 @@ void passRPToAmrex() {
         pp.add("n_error_buf", 0);
         pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
     }
+ 
+    Logger::instance().log("[GridAmrex] Runtime parameters set in AMReX");
 }
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
@@ -82,21 +80,40 @@ GridAmrex::GridAmrex(void)
     }
 
     passRPToAmrex();
-    amrex::Initialize(MPI_COMM_WORLD);
+    amrex::Initialize(globalComm_);
 
-    // Tell Logger to get its rank once AMReX has initialized MPI, but
-    // before we log anything
-    Logger::instance().acquireRank();
-    Logger::instance().log("[GridAmrex] Initialized Grid.");
+    int size = -1;
+    MPI_Comm_size(globalComm_, &size);
+
+    Logger::instance().log("[GridAmrex] Initialized Grid");
+    std::string   msg{};
+    msg  = "[GridAmrex] ";
+    msg += std::to_string(size);
+    msg += " MPI processes in given communicator";
+    Logger::instance().log(msg);
 }
 
 /** Detroy domain and then finalize AMReX.
   */
 GridAmrex::~GridAmrex(void) {
+    Logger::instance().log("[GridAmrex] Destroyed");
+}
+
+/**
+ *  Finalize the Grid unit by destroying the domain and letting AMReX finalize
+ *  as well.
+ */
+void  GridAmrex::finalize(void) {
+    Logger::instance().log("[GridAmrex] Finalizing ...");
+
+    // Let AMReX finalize completely before the base class wipes out 
+    // data such as the MPI Communicator.
     destroyDomain();
     amrex::Finalize();
 
-    Logger::instance().log("[GridAmrex] Finalized Grid.");
+    Grid::finalize();
+
+    Logger::instance().log("[GridAmrex] Finalized");
 }
 
 /** Destroy amrcore_. initDomain can be called again if desired.

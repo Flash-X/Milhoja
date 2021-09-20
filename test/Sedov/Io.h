@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include <mpi.h>
+
 #include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "DataItem.h"
@@ -32,7 +34,7 @@ public:
     Io& operator=(const Io&) = delete;
     Io& operator=(Io&&)      = delete;
 
-    static void  instantiate(const std::string filename);
+    static void  instantiate(const MPI_Comm comm, const std::string filename);
     static Io&   instance(void);
 
     //----- INTEGRAL QUANTITIES
@@ -56,6 +58,7 @@ private:
     Io(void);
 
     static bool             instantiated_;
+    static MPI_Comm         globalComm_;
     static std::string      intQuantitiesFile_;
 
     int    rank_;

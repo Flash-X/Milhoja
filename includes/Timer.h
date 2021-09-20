@@ -45,13 +45,13 @@
 
 namespace orchestration {
     namespace Timer {
-        inline void   start(const std::string& msg) {
-            MPI_Barrier(GLOBAL_COMM);
+        inline void   start(MPI_Comm comm, const std::string& msg) {
+            MPI_Barrier(comm);
             Logger::instance().log("[Timer] Start timing " + msg);
         }
     
-        inline void   stop(const std::string& msg) {
-            MPI_Barrier(GLOBAL_COMM);
+        inline void   stop(MPI_Comm comm, const std::string& msg) {
+            MPI_Barrier(comm);
             Logger::instance().log("[Timer] Stop timing " + msg);
         }
     }

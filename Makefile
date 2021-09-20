@@ -23,6 +23,12 @@ RM ?= /bin/rm
 ifeq ($(CXXCOMPNAME),gnu)
 CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD
+else ifeq ($(CXXCOMPNAME), intel)
+# With 20.2, I get lots of warnings related to AMReX if
+# I limit the code to c++11.  They are programming to a more
+# modern standard.
+CXXFLAGS_STD =
+DEPFLAG = -MMD
 else ifeq ($(CXXCOMPNAME), pgi)
 CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD

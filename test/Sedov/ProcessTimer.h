@@ -4,9 +4,12 @@
 #include <string>
 #include <fstream>
 
+#include <mpi.h>
+
 class ProcessTimer {
 public:
-    ProcessTimer(const std::string& filename,
+    ProcessTimer(const MPI_Comm comm, 
+                 const std::string& filename,
                  const std::string& testname,
                  const unsigned int nDistributorThreads,
                  const unsigned int stagger_usec,
@@ -19,6 +22,7 @@ public:
     void logTimestep(const unsigned int step, const double wtime_sec);
 
 private:
+    MPI_Comm            globalComm_;
     int                 rank_;
     int                 nProcs_;
     std::ofstream       fptr_;

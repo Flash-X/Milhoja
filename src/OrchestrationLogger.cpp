@@ -5,15 +5,14 @@
 #include <stdexcept>
 #include <iostream>
 
-#ifndef LOGGER_NO_MPI
-#include <mpi.h>
-#endif
-
 #include "constants.h"
 
 namespace orchestration {
 
 std::string     Logger::logFilename_ = "";
+#ifndef LOGGER_NO_MPI
+MPI_Comm        Logger::globalComm_ = MPI_COMM_NULL;
+#endif
 bool            Logger::instantiated_ = false;
 
 /**
@@ -39,12 +38,19 @@ void   Logger::setLogFilename(const std::string& filename) {
  * 
  *
  */
+#ifdef LOGGER_NO_MPI
 void   Logger::instantiate(const std::string& filename) {
+#else
+void   Logger::instantiate(const MPI_Comm comm, const std::string& filename) {
+#endif
     if (instantiated_) {
         throw std::logic_error("[Logger::instantiate] Already instantiated");
     }
 
     setLogFilename(filename);
+#ifndef LOGGER_NO_MPI
+    globalComm_ = comm;
+#endif
     instantiated_ = true;
 
     instance();
@@ -75,6 +81,10 @@ Logger::Logger(void)
 {
     using namespace std::chrono;
 
+#ifndef LOGGER_NO_MPI
+    MPI_Comm_rank(globalComm_, &rank_);
+#endif
+
     // Get time to be used for elapsed time
     auto         now   = system_clock::now();
     std::time_t  now_t = system_clock::to_time_t(now);
@@ -96,13 +106,8 @@ Logger::~Logger(void) {
     log("[Logger] Terminated at " + std::string(timestamp) + " UTC");
 
     instantiated_ = false;
+    rank_ = -1;
 }
-
-#ifndef LOGGER_NO_MPI
-void   Logger::acquireRank(void) {
-    MPI_Comm_rank(GLOBAL_COMM, &rank_);
-}
-#endif
 
 /**
  * 

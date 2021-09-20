@@ -3,6 +3,13 @@
  *
  * \brief 
  *
+ * It is assumed that MPI has been initialized properly by calling code before
+ * the Grid singleton is instantiated.  Calling code must pass in the global
+ * communicator that the runtime should use.
+ *
+ * Once calling code has called the instantiate member function, they are
+ * obliged to call finalize *before* finalizing MPI.  This ensures that concrete
+ * Grid implementations have the opportunity to perform MPI-based clean-up.
  */
 
 #ifndef GRID_H__
@@ -10,6 +17,8 @@
 
 #include <memory>
 #include <string>
+
+#include <mpi.h>
 
 #include "Grid_REAL.h"
 #include "Grid_RealVect.h"
@@ -37,8 +46,9 @@ public:
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
 
-    static Grid& instance(void);
-    static void  instantiate(void);
+    static  Grid& instance(void);
+    static  void  instantiate(const MPI_Comm comm);
+    virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
@@ -98,8 +108,9 @@ public:
 
 protected:
     Grid(void) {}
-    static bool instantiated_; //!< Track if singleton has been instantiated.
-
+    static bool instantiated_; //!< True if instantiate has been called
+    static bool finalized_;    //!< True if finalize has been called 
+    static MPI_Comm    globalComm_;
 };
 
 }

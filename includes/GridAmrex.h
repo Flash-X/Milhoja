@@ -51,6 +51,7 @@ public:
     void         writePlotfile(const std::string& filename) const override;
 
     // Other virtual function overrides.
+    void         finalize(void) override;
     RealVect     getDeltas(const unsigned int lev) const override;
 
     //Real        getCellCoord(const unsigned int axis, const unsigned int edge, const unsigned int lev, const IntVect& coord) const override;

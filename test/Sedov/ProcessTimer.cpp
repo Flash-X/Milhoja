@@ -1,6 +1,5 @@
 #include "ProcessTimer.h"
 
-#include <mpi.h>
 #include <iomanip>
 
 #include "Grid.h"
@@ -11,7 +10,8 @@
 /**
  *
  */
-ProcessTimer::ProcessTimer(const std::string& filename,
+ProcessTimer::ProcessTimer(const MPI_Comm comm,
+                           const std::string& filename,
                            const std::string& testname,
                            const unsigned int nDistributorThreads,
                            const unsigned int stagger_usec,
@@ -19,14 +19,15 @@ ProcessTimer::ProcessTimer(const std::string& filename,
                            const unsigned int nGpuThreads,
                            const unsigned int nBlocksPerPacket,
                            const unsigned int nBlocksPerCpuTurn)
-    : rank_{-1},
+    : globalComm_{comm},
+      rank_{-1},
       nProcs_{-1},
       fptr_{},
       wtimes_sec_{nullptr},
       blockCounts_{nullptr}
 {
-    MPI_Comm_rank(GLOBAL_COMM, &rank_);
-    MPI_Comm_size(GLOBAL_COMM, &nProcs_);
+    MPI_Comm_rank(globalComm_, &rank_);
+    MPI_Comm_size(globalComm_, &nProcs_);
 
     // Write header to file
     if (rank_ == MASTER_PE) {
@@ -79,10 +80,10 @@ void ProcessTimer::logTimestep(const unsigned int step, const double wtime_sec) 
     unsigned int nBlocks = orchestration::Grid::instance().getNumberLocalBlocks();
     MPI_Gather(&wtime_sec,  1, MPI_DOUBLE,
                wtimes_sec_, 1, MPI_DOUBLE, MASTER_PE,
-               GLOBAL_COMM);
+               globalComm_);
     MPI_Gather(&nBlocks,     1, MPI_UNSIGNED,
                blockCounts_, 1, MPI_UNSIGNED, MASTER_PE,
-               GLOBAL_COMM);
+               globalComm_);
 
     if (rank_ == MASTER_PE) {
         fptr_ << std::setprecision(15) 

@@ -15,12 +15,13 @@ using namespace orchestration;
 
 //----- STATIC MEMBER DEFINITIONS
 bool             Io::instantiated_ = false;
+MPI_Comm         Io::globalComm_ = MPI_COMM_NULL;
 std::string      Io::intQuantitiesFile_ = "";
 
 /**
  * Instantiate the IO unit singleton and allow it to initialize the unit.
  */
-void   Io::instantiate(const std::string filename) {
+void   Io::instantiate(const MPI_Comm comm, const std::string filename) {
     Logger::instance().log("[IO] Initializing...");
 
     if (instantiated_) {
@@ -28,6 +29,7 @@ void   Io::instantiate(const std::string filename) {
     } else if (filename == "") {
         throw std::invalid_argument("[Io::instantiate] Empty filename given");
     }
+    globalComm_ = comm;
     intQuantitiesFile_ = filename;
 
     instantiated_ = true;
@@ -75,7 +77,7 @@ Io::Io(void)
 {
     Logger&   logger = Logger::instance();
 
-    if (MPI_Comm_rank(GLOBAL_COMM, &rank_) != MPI_SUCCESS) {
+    if (MPI_Comm_rank(globalComm_, &rank_) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::Io] Unable to acquire MPI rank");
     }
 
@@ -240,6 +242,8 @@ Io::~Io(void) {
         delete [] globalIntQuantities_;
         globalIntQuantities_ = nullptr;
     }
+
+    globalComm_ = MPI_COMM_NULL;
 
     Logger::instance().log("[IO] Finalized");
 }
@@ -470,7 +474,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     if (MPI_Reduce((void*)localIntQuantities_,
                    (void*)globalIntQuantities_,
                    nIntQuantities_, ORCH_REAL, MPI_SUM,
-                   MASTER_PE, MPI_COMM_WORLD) != MPI_SUCCESS) {
+                   MASTER_PE, globalComm_) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::reduceToIntegralQuantities] Unable to reduce integral quantities");
     }
 }
