@@ -63,7 +63,16 @@ int main(int argc, char* argv[]) {
 
     // Analogous to calling Grid_init
     // Each communicator gets its own dedicated, independent copy of Grid (TBC)
-    orchestration::Grid::instantiate(MILHOJA_MPI_COMM);
+    orchestration::Grid::instantiate(MILHOJA_MPI_COMM,
+                                     rp_Grid::X_MIN, rp_Grid::X_MAX,
+                                     rp_Grid::Y_MIN, rp_Grid::Y_MAX,
+                                     rp_Grid::Z_MIN, rp_Grid::Z_MAX,
+                                     NXB, NYB, NZB,
+                                     rp_Grid::N_BLOCKS_X,
+                                     rp_Grid::N_BLOCKS_Y,
+                                     rp_Grid::N_BLOCKS_Z,
+                                     rp_Grid::LREFINE_MAX,
+                                     NGUARD);
 
     // Analogous to calling IO_init
     // Since each communicator has its own copy of Grid, we want to compute the

@@ -12,54 +12,7 @@
 #include "Grid_Edge.h"
 #include "OrchestrationLogger.h"
 
-#include "Flash.h"
-#include "Flash_par.h"
-#include "constants.h"
-
 namespace orchestration {
-
-void passRPToAmrex() {
-    {
-        amrex::ParmParse pp("geometry");
-        pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
-        pp.add("coord_sys", 0); //cartesian
-        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_Grid::X_MIN,
-                                                         rp_Grid::Y_MIN,
-                                                         rp_Grid::Z_MIN)});
-        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_Grid::X_MAX,
-                                                         rp_Grid::Y_MAX,
-                                                         rp_Grid::Z_MAX)});
-    }
-
-    {
-        amrex::ParmParse pp("amr");
-
-        // TODO: Check for overflow
-        int  lrefineMax = static_cast<int>(rp_Grid::LREFINE_MAX);
-
-        pp.add("v", 0); //verbosity
-        //pp.add("regrid_int",nrefs); //how often to refine
-        pp.add("max_level", lrefineMax - 1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_Grid::N_BLOCKS_X,
-                                                      NYB * rp_Grid::N_BLOCKS_Y,
-                                                      NZB * rp_Grid::N_BLOCKS_Z)});
-
-        //octree mode:
-        pp.add("max_grid_size_x", NXB);
-        pp.add("max_grid_size_y", NYB);
-        pp.add("max_grid_size_z", NZB);
-        pp.add("blocking_factor_x", NXB*2);
-        pp.add("blocking_factor_y", NYB*2);
-        pp.add("blocking_factor_z", NZB*2);
-        pp.add("refine_grid_layout", 0);
-        pp.add("grid_eff", 1.0);
-        pp.add("n_proper", 1);
-        pp.add("n_error_buf", 0);
-        pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
-    }
- 
-    Logger::instance().log("[GridAmrex] Runtime parameters set in AMReX");
-}
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
   */
@@ -79,7 +32,66 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    passRPToAmrex();
+    std::cout << "xMin       = " << xMin_       << "\n"
+              << "xMax       = " << xMax_       << "\n"
+              << "yMin       = " << yMin_       << "\n"
+              << "yMax       = " << yMax_       << "\n"
+              << "zMin       = " << zMin_       << "\n"
+              << "zMax       = " << zMax_       << "\n"
+              << "nxb        = " << nxb_        << "\n"
+              << "nyb        = " << nyb_        << "\n"
+              << "nzb        = " << nzb_        << "\n"
+              << "nBlocksX   = " << nBlocksX_   << "\n"
+              << "nBlocksY   = " << nBlocksY_   << "\n"
+              << "nBlocksZ   = " << nBlocksZ_   << "\n"
+              << "lRefineMax = " << lRefineMax_ << "\n"
+              << "nGuard     = " << nGuard_     << std::endl;
+
+    {
+        amrex::ParmParse pp("geometry");
+        pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
+        pp.add("coord_sys", 0); //cartesian
+        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(xMin_,
+                                                         yMin_,
+                                                         zMin_)});
+        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(xMax_,
+                                                         yMax_,
+                                                         zMax_)});
+    }
+    {
+        amrex::ParmParse pp("amr");
+
+        // TODO: Check for overflow
+        int  lrefineMax = static_cast<int>(lRefineMax_);
+
+        pp.add("v", 0); //verbosity
+        //pp.add("regrid_int",nrefs); //how often to refine
+        pp.add("max_level", lrefineMax - 1); //0-based
+
+        // TODO: Check for overflow
+        int  nCellsX = static_cast<int>(nxb_ * nBlocksX_);
+        int  nCellsY = static_cast<int>(nyb_ * nBlocksY_);
+        int  nCellsZ = static_cast<int>(nzb_ * nBlocksZ_);
+        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(nCellsX,
+                                                      nCellsY,
+                                                      nCellsZ)});
+
+        //octree mode:
+        pp.add("max_grid_size_x", static_cast<int>(nxb_));
+        pp.add("max_grid_size_y", static_cast<int>(nyb_));
+        pp.add("max_grid_size_z", static_cast<int>(nzb_));
+        pp.add("blocking_factor_x", static_cast<int>(nxb_*2));
+        pp.add("blocking_factor_y", static_cast<int>(nyb_*2));
+        pp.add("blocking_factor_z", static_cast<int>(nzb_*2));
+        pp.add("refine_grid_layout", 0);
+        pp.add("grid_eff", 1.0);
+        pp.add("n_proper", 1);
+        pp.add("n_error_buf", 0);
+        pp.addarr("ref_ratio",std::vector<int>(lRefineMax_, 2));
+    }
+ 
+    Logger::instance().log("[GridAmrex] Runtime parameters set in AMReX");
+
     amrex::Initialize(globalComm_);
 
     int size = -1;

@@ -47,7 +47,18 @@ public:
     Grid& operator=(Grid&&) = delete;
 
     static  Grid& instance(void);
-    static  void  instantiate(const MPI_Comm comm);
+    static  void  instantiate(const MPI_Comm comm,
+                              const Real xMin, const Real xMax,
+                              const Real yMin, const Real yMax,
+                              const Real zMin, const Real zMax,
+                              const unsigned int nxb,
+                              const unsigned int nyb,
+                              const unsigned int nzb,
+                              const unsigned int nBlocksX,
+                              const unsigned int nBlocksY,
+                              const unsigned int nBlocksZ,
+                              const unsigned int lRefineMax,
+                              const unsigned int nGuard);
     virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
@@ -110,7 +121,20 @@ protected:
     Grid(void) {}
     static bool instantiated_; //!< True if instantiate has been called
     static bool finalized_;    //!< True if finalize has been called 
-    static MPI_Comm    globalComm_;
+
+    static MPI_Comm       globalComm_;
+
+    // These are used just at instantiating to pass configuration data
+    // to the concrete Grid implementation so that it can configure
+    // itself correctly.  They should not be used otherwise.
+    // TODO: Is there a better way to accomplish this?
+    static Real           xMin_, xMax_;
+    static Real           yMin_, yMax_;
+    static Real           zMin_, zMax_;
+    static unsigned int   nxb_, nyb_, nzb_;
+    static unsigned int   nBlocksX_, nBlocksY_, nBlocksZ_;
+    static unsigned int   lRefineMax_;
+    static unsigned int   nGuard_;
 };
 
 }

@@ -18,9 +18,23 @@ namespace orchestration {
 
 namespace orchestration {
 
-bool       Grid::instantiated_ = false;
-bool       Grid::finalized_ = false;
-MPI_Comm   Grid::globalComm_ = MPI_COMM_NULL;
+bool           Grid::instantiated_ = false;
+bool           Grid::finalized_ = false;
+MPI_Comm       Grid::globalComm_ = MPI_COMM_NULL;
+Real           Grid::xMin_       =  0.0;
+Real           Grid::xMax_       = -1.0;
+Real           Grid::yMin_       =  0.0;
+Real           Grid::yMax_       = -1.0;
+Real           Grid::zMin_       =  0.0;
+Real           Grid::zMax_       = -1.0;
+unsigned int   Grid::nxb_        =  0;
+unsigned int   Grid::nyb_        =  0;
+unsigned int   Grid::nzb_        =  0;
+unsigned int   Grid::nBlocksX_   =  0;
+unsigned int   Grid::nBlocksY_   =  0;
+unsigned int   Grid::nBlocksZ_   =  0;
+unsigned int   Grid::lRefineMax_ =  0;
+unsigned int   Grid::nGuard_     =  0;
 
 /**
  * instace gets a reference to the singleton Grid object.  This can only be used
@@ -46,7 +60,18 @@ Grid&   Grid::instance(void) {
  * It must be called exactly once in the program, before all calls to instance.
  * It should not be called after finalize has been called.
  */
-void   Grid::instantiate(const MPI_Comm comm) {
+void   Grid::instantiate(const MPI_Comm comm,
+                         const Real xMin, const Real xMax,
+                         const Real yMin, const Real yMax,
+                         const Real zMin, const Real zMax,
+                         const unsigned int nxb,
+                         const unsigned int nyb,
+                         const unsigned int nzb,
+                         const unsigned int nBlocksX,
+                         const unsigned int nBlocksY,
+                         const unsigned int nBlocksZ,
+                         const unsigned int lRefineMax,
+                         const unsigned int nGuard) {
     Logger::instance().log("[Grid] Initializing...");
 
     if (instantiated_) {
@@ -57,8 +82,32 @@ void   Grid::instantiate(const MPI_Comm comm) {
 
     globalComm_ = comm;
 
+    // Set the internal static variables now as these communicate
+    // setup values to the Grid implementation when it is constructed.
+    xMin_ = xMin;    xMax_ = xMax;
+    yMin_ = yMin;    yMax_ = yMax;
+    zMin_ = zMin;    zMax_ = zMax;
+
+    nxb_      = nxb;        nyb_      = nyb;        nzb_      = nzb;
+    nBlocksX_ = nBlocksX;   nBlocksY_ = nBlocksY;   nBlocksZ_ = nBlocksZ;
+
+    lRefineMax_ = lRefineMax;
+    nGuard_     = nGuard;
+
     instantiated_ = true;
     Grid::instance();
+
+    // Since the setup values have been consumed and should never be used
+    // again, set them to nonsense values.
+    xMin_ = 0.0;    xMax_ = -1.0;
+    yMin_ = 0.0;    yMax_ = -1.0;
+    zMin_ = 0.0;    zMax_ = -1.0;
+
+    nxb_      = 0;   nyb_      = 0;   nzb_      = 0;
+    nBlocksX_ = 0;   nBlocksY_ = 0;   nBlocksZ_ = 0;
+
+    lRefineMax_ = 0;
+    nGuard_ = 0;
 
     Logger::instance().log("[Grid] Created and ready for use");
 }
