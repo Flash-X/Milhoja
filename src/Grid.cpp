@@ -35,6 +35,8 @@ unsigned int   Grid::nBlocksY_   =  0;
 unsigned int   Grid::nBlocksZ_   =  0;
 unsigned int   Grid::lRefineMax_ =  0;
 unsigned int   Grid::nGuard_     =  0;
+ACTION_ROUTINE Grid::initBlock_ = nullptr;
+ERROR_ROUTINE  Grid::errorEst_  = nullptr;
 
 /**
  * instace gets a reference to the singleton Grid object.  This can only be used
@@ -59,6 +61,10 @@ Grid&   Grid::instance(void) {
  * instance, which calls the Grid constructor, from all subsequent calls.
  * It must be called exactly once in the program, before all calls to instance.
  * It should not be called after finalize has been called.
+ *
+ * @param initBlock Function pointer to the simulation's initBlock routine.
+ * @param errorEst            the routine to use estimate errors as part
+ *                            of refining blocks
  */
 void   Grid::instantiate(const MPI_Comm comm,
                          const Real xMin, const Real xMax,
@@ -71,7 +77,9 @@ void   Grid::instantiate(const MPI_Comm comm,
                          const unsigned int nBlocksY,
                          const unsigned int nBlocksZ,
                          const unsigned int lRefineMax,
-                         const unsigned int nGuard) {
+                         const unsigned int nGuard,
+                         ACTION_ROUTINE initBlock,
+                         ERROR_ROUTINE errorEst) {
     Logger::instance().log("[Grid] Initializing...");
 
     if (instantiated_) {
@@ -94,6 +102,9 @@ void   Grid::instantiate(const MPI_Comm comm,
     lRefineMax_ = lRefineMax;
     nGuard_     = nGuard;
 
+    initBlock_ = initBlock;
+    errorEst_  = errorEst;
+
     instantiated_ = true;
     Grid::instance();
 
@@ -108,6 +119,9 @@ void   Grid::instantiate(const MPI_Comm comm,
 
     lRefineMax_ = 0;
     nGuard_ = 0;
+
+    initBlock_ = nullptr;
+    errorEst_  = nullptr;
 
     Logger::instance().log("[Grid] Created and ready for use");
 }

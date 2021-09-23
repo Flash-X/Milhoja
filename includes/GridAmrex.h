@@ -32,10 +32,8 @@ public:
     GridAmrex& operator=(GridAmrex&&) = delete;
 
     // Pure virtual function overrides.
-    void         initDomain(ACTION_ROUTINE initBlock,
-                            const unsigned int nDistributorThreads,
-                            const unsigned int nRuntimeThreads,
-                            ERROR_ROUTINE errorEst) override;
+    void         initDomain(const unsigned int nDistributorThreads,
+                            const unsigned int nRuntimeThreads) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;
     void         fillGuardCells() override;

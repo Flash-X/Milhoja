@@ -58,15 +58,15 @@ public:
                               const unsigned int nBlocksY,
                               const unsigned int nBlocksZ,
                               const unsigned int lRefineMax,
-                              const unsigned int nGuard);
+                              const unsigned int nGuard,
+                              ACTION_ROUTINE initBlock,
+                              ERROR_ROUTINE errorEst);
     virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
-    virtual void initDomain(ACTION_ROUTINE initBlock,
-                            const unsigned int nDistributorThreads,
-                            const unsigned int nRuntimeThreads,
-                            ERROR_ROUTINE errorEst) = 0;
+    virtual void initDomain(const unsigned int nDistributorThreads,
+                            const unsigned int nRuntimeThreads) = 0;
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
     virtual void regrid() = 0;
@@ -127,7 +127,8 @@ protected:
     // These are used just at instantiating to pass configuration data
     // to the concrete Grid implementation so that it can configure
     // itself correctly.  They should not be used otherwise.
-    // TODO: Is there a better way to accomplish this?
+    // TODO: Is there a better way to accomplish this?  If not, 
+    // prepend cache to each member name?
     static Real           xMin_, xMax_;
     static Real           yMin_, yMax_;
     static Real           zMin_, zMax_;
@@ -135,6 +136,8 @@ protected:
     static unsigned int   nBlocksX_, nBlocksY_, nBlocksZ_;
     static unsigned int   lRefineMax_;
     static unsigned int   nGuard_;
+    static ACTION_ROUTINE initBlock_;
+    static ERROR_ROUTINE  errorEst_;
 };
 
 }

@@ -32,21 +32,6 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    std::cout << "xMin       = " << xMin_       << "\n"
-              << "xMax       = " << xMax_       << "\n"
-              << "yMin       = " << yMin_       << "\n"
-              << "yMax       = " << yMax_       << "\n"
-              << "zMin       = " << zMin_       << "\n"
-              << "zMax       = " << zMax_       << "\n"
-              << "nxb        = " << nxb_        << "\n"
-              << "nyb        = " << nyb_        << "\n"
-              << "nzb        = " << nzb_        << "\n"
-              << "nBlocksX   = " << nBlocksX_   << "\n"
-              << "nBlocksY   = " << nBlocksY_   << "\n"
-              << "nBlocksZ   = " << nBlocksZ_   << "\n"
-              << "lRefineMax = " << lRefineMax_ << "\n"
-              << "nGuard     = " << nGuard_     << std::endl;
-
     {
         amrex::ParmParse pp("geometry");
         pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
@@ -92,7 +77,10 @@ GridAmrex::GridAmrex(void)
  
     Logger::instance().log("[GridAmrex] Runtime parameters set in AMReX");
 
+    assert(initBlock_);
+    assert(errorEst_);
     amrex::Initialize(globalComm_);
+    amrcore_ = new AmrCoreFlash(initBlock_, errorEst_);
 
     int size = -1;
     MPI_Comm_size(globalComm_, &size);
@@ -108,6 +96,12 @@ GridAmrex::GridAmrex(void)
 /** Detroy domain and then finalize AMReX.
   */
 GridAmrex::~GridAmrex(void) {
+    // Don't assume that calling code has called destroyDomain
+    if (amrcore_) {
+        delete amrcore_; // deletes unk
+        amrcore_ = nullptr;
+    }
+
     Logger::instance().log("[GridAmrex] Destroyed");
 }
 
@@ -143,27 +137,16 @@ void  GridAmrex::destroyDomain(void) {
  * initDomain creates the domain in AMReX. It creates amrcore_ and then
  * calls amrex::AmrCore::InitFromScratch.
  *
- * @param initBlock Function pointer to the simulation's initBlock routine.
  * @param nDistributorThreads number of threads to activate in distributor
  * @param nRuntimeThreads     number of threads to use to apply IC
- * @param errorEst            the routine to use estimate errors as part
- *                            of refining blocks
  */
-void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
-                           const unsigned int nDistributorThreads,
-                           const unsigned int nRuntimeThreads,
-                           ERROR_ROUTINE errorEst) {
-    if (amrcore_) {
-        throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
-                               " already called");
-    } else if (!initBlock) {
-        throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
-                               " pointer given");
-    }
+void GridAmrex::initDomain(const unsigned int nDistributorThreads,
+                           const unsigned int nRuntimeThreads) {
+    // TODO: Throw error if the domain is already setup.
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock, nDistributorThreads,
-                                nRuntimeThreads, errorEst);
+    amrcore_->setInitDomainConfiguration(nDistributorThreads,
+                                         nRuntimeThreads);
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +

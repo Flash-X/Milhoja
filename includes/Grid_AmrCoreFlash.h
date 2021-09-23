@@ -22,10 +22,11 @@ class AmrCoreFlash
 {
 public:
     AmrCoreFlash(ACTION_ROUTINE initBlock,
-                 const unsigned int nDistributorThreads,
-                 const unsigned int nRuntimeThreads,
                  ERROR_ROUTINE errorEst);
     ~AmrCoreFlash();
+
+    void setInitDomainConfiguration(const unsigned int nDistributorThreads,
+                                    const unsigned int nRuntimeThreads);
 
     // Overrides from AmrCore
     void MakeNewLevelFromCoarse (int lev, amrex::Real time,

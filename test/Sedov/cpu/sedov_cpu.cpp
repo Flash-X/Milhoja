@@ -71,8 +71,9 @@ int main(int argc, char* argv[]) {
                                      rp_Grid::N_BLOCKS_X,
                                      rp_Grid::N_BLOCKS_Y,
                                      rp_Grid::N_BLOCKS_Z,
-                                     rp_Grid::LREFINE_MAX,
-                                     NGUARD);
+                                     rp_Grid::LREFINE_MAX, NGUARD,
+                                     Simulation::setInitialConditions_tile_cpu,
+                                     Simulation::errorEstBlank);
 
     // Analogous to calling IO_init
     // Since each communicator has its own copy of Grid, we want to compute the
@@ -107,10 +108,8 @@ int main(int argc, char* argv[]) {
     // independently.  If each communicator had a different filename, then this
     // should work nicely.
     orchestration::Timer::start(MILHOJA_MPI_COMM, "Set initial conditions");
-    grid.initDomain(Simulation::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstBlank);
+    grid.initDomain(rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                    rp_Simulation::N_THREADS_FOR_IC);
     orchestration::Timer::stop(MILHOJA_MPI_COMM, "Set initial conditions");
 
     orchestration::Timer::start(MILHOJA_MPI_COMM, "computeLocalIQ");

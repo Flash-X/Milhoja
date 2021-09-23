@@ -22,12 +22,10 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
-                           const unsigned int nDistributorThreads,
-                           const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst)
     : initBlock_{initBlock},
-      nThreads_initBlock_{nRuntimeThreads},
-      nDistributorThreads_initBlock_{nDistributorThreads},
+      nThreads_initBlock_{0},
+      nDistributorThreads_initBlock_{0},
       errorEst_{errorEst} {
 
 #ifndef USE_THREADED_DISTRIBUTOR
@@ -48,6 +46,18 @@ AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
 
 //! Default constructor
 AmrCoreFlash::~AmrCoreFlash() {
+}
+
+/**
+ *  Store runtime configuration values needed by the AmrCore callback functions.
+ *
+ *  This must be called before AmrCore is instructed to initialize the problem
+ *  (i.e. before InitFromScratch is called).
+ */ 
+void AmrCoreFlash::setInitDomainConfiguration(const unsigned int nDistributorThreads,
+                                              const unsigned int nRuntimeThreads) {
+    nDistributorThreads_initBlock_ = nDistributorThreads;
+    nThreads_initBlock_            = nRuntimeThreads;
 }
 
 //! Write all levels of unk_ to plotfile.
@@ -211,22 +221,24 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 
     // Initalize simulation block data in unk_[lev].
     // Must fill interiors, GC optional.
-    if (nThreads_initBlock_ <= 0) {
-        throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
-                                    "N computation threads must be positive");
-    } else if (nDistributorThreads_initBlock_ != 1) {
+    if (nDistributorThreads_initBlock_ != 1) {
         throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
                                     "Only one distributor thread presently allowed");
-    } else if (nDistributorThreads_initBlock_ > nThreads_initBlock_) {
-        throw std::invalid_argument("[AmrCoreFlash::AmrCoreFlash] "
-                                    "More distributor threads than computation threads");
     }
 
+    // TODO: This should use the Runtime, rather than create its own
+    // ThreadTeam.  Also, it should allow for running with any reasonable
+    // ThreadTeam configuration.
     RuntimeAction    action;
     action.name = "initBlock";
     action.nInitialThreads = nThreads_initBlock_ - nDistributorThreads_initBlock_;
     action.teamType = ThreadTeamDataType::BLOCK;
     action.routine = initBlock_;
+
+    assert(nDistributorThreads_initBlock_ > 0);
+    assert(nThreads_initBlock_ > 0);
+    assert(action.nInitialThreads > 0);
+
     ThreadTeam  team(nThreads_initBlock_, 1);
     team.startCycle(action, "Cpu");
 
