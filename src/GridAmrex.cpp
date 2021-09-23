@@ -51,6 +51,7 @@ GridAmrex::GridAmrex(void)
 
         pp.add("v", 0); //verbosity
         //pp.add("regrid_int",nrefs); //how often to refine
+        // TODO: Isn't lRefineMax_ 0-based as well?
         pp.add("max_level", lrefineMax - 1); //0-based
 
         // TODO: Check for overflow
@@ -91,6 +92,43 @@ GridAmrex::GridAmrex(void)
     msg += std::to_string(size);
     msg += " MPI processes in given communicator";
     Logger::instance().log(msg);
+
+    // TODO: Since AMReX owns this data, we should get it from AMReX so that we
+    //       log its contents rather than this intermediate data.
+    msg  = "[GridAmrex] N dimensions = ";
+    msg += std::to_string(NDIM);
+    Logger::instance().log(msg);
+
+    msg  = "[GridAmrex] Physical spatial domain specification";
+    Logger::instance().log(msg);
+    msg  = "[GridAmrex]    x in (";
+    msg += std::to_string(xMin_) + ", ";
+    msg += std::to_string(xMax_) + ")";
+    Logger::instance().log(msg);
+    msg  = "[GridAmrex]    y in (";
+    msg += std::to_string(yMin_) + ", ";
+    msg += std::to_string(yMax_) + ")";
+    Logger::instance().log(msg);
+    msg  = "[GridAmrex]    z in (";
+    msg += std::to_string(zMin_) + ", ";
+    msg += std::to_string(zMax_) + ")";
+    Logger::instance().log(msg);
+
+    msg  = "[GridAmrex] Block size = ";
+    msg += std::to_string(nxb_) + " x ";
+    msg += std::to_string(nyb_) + " x ";
+    msg += std::to_string(nzb_);
+    Logger::instance().log(msg);
+
+    msg  = "[GridAmrex] N Guardcells = ";
+    msg += std::to_string(nGuard_);
+    Logger::instance().log(msg);
+
+    msg  = "[GridAmrex] Maximum Finest Level = ";
+    msg += std::to_string(lRefineMax_);
+    Logger::instance().log(msg);
+
+    // TODO: Print deltas for all levels
 }
 
 /** Detroy domain and then finalize AMReX.
