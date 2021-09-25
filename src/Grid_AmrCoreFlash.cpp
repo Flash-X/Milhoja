@@ -22,9 +22,11 @@ namespace orchestration {
   * Creates blank multifabs on each level.
   */
 AmrCoreFlash::AmrCoreFlash(const unsigned int nGuard,
+                           const unsigned int nCcVars,
                            ACTION_ROUTINE initBlock,
                            ERROR_ROUTINE errorEst)
     : nGuard_{nGuard},
+      nCcVars_{nCcVars},
       initBlock_{initBlock},
       nThreads_initBlock_{0},
       nDistributorThreads_initBlock_{0},
@@ -154,7 +156,7 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, nGuard_);
+    unk_[lev].define(ba, dm, nCcVars_, nGuard_);
 
     fillFromCoarse(unk_[lev], lev);
 }
@@ -175,7 +177,7 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
     Logger::instance().log(msg);
 #endif
 
-    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, nGuard_};
+    amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
@@ -217,7 +219,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, nGuard_);
+    unk_[lev].define(ba, dm, nCcVars_, nGuard_);
 
     // Initialize data in unk_[lev] to 0.0.
     unk_[lev].setVal(0.0_wp);

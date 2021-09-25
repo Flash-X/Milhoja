@@ -71,7 +71,8 @@ int main(int argc, char* argv[]) {
                                      rp_Grid::N_BLOCKS_X,
                                      rp_Grid::N_BLOCKS_Y,
                                      rp_Grid::N_BLOCKS_Z,
-                                     rp_Grid::LREFINE_MAX, NGUARD,
+                                     rp_Grid::LREFINE_MAX,
+                                     NGUARD, NUNKVAR,
                                      Simulation::setInitialConditions_tile_cpu,
                                      Simulation::errorEstBlank);
 

@@ -35,6 +35,7 @@ unsigned int   Grid::nBlocksY_   =  0;
 unsigned int   Grid::nBlocksZ_   =  0;
 unsigned int   Grid::lRefineMax_ =  0;
 unsigned int   Grid::nGuard_     =  0;
+unsigned int   Grid::nCcVars_    =  0;
 ACTION_ROUTINE Grid::initBlock_ = nullptr;
 ERROR_ROUTINE  Grid::errorEst_  = nullptr;
 
@@ -78,6 +79,7 @@ void   Grid::instantiate(const MPI_Comm comm,
                          const unsigned int nBlocksZ,
                          const unsigned int lRefineMax,
                          const unsigned int nGuard,
+                         const unsigned int nCcVars,
                          ACTION_ROUTINE initBlock,
                          ERROR_ROUTINE errorEst) {
     Logger::instance().log("[Grid] Initializing...");
@@ -101,6 +103,7 @@ void   Grid::instantiate(const MPI_Comm comm,
 
     lRefineMax_ = lRefineMax;
     nGuard_     = nGuard;
+    nCcVars_    = nCcVars;
 
     initBlock_ = initBlock;
     errorEst_  = errorEst;
@@ -119,6 +122,7 @@ void   Grid::instantiate(const MPI_Comm comm,
 
     lRefineMax_ = 0;
     nGuard_ = 0;
+    nCcVars_ = 0;
 
     initBlock_ = nullptr;
     errorEst_  = nullptr;

@@ -59,6 +59,7 @@ public:
                               const unsigned int nBlocksZ,
                               const unsigned int lRefineMax,
                               const unsigned int nGuard,
+                              const unsigned int nCcVars,
                               ACTION_ROUTINE initBlock,
                               ERROR_ROUTINE errorEst);
     virtual void  finalize(void);
@@ -136,6 +137,7 @@ protected:
     static unsigned int   nBlocksX_, nBlocksY_, nBlocksZ_;
     static unsigned int   lRefineMax_;
     static unsigned int   nGuard_;
+    static unsigned int   nCcVars_;
     static ACTION_ROUTINE initBlock_;
     static ERROR_ROUTINE  errorEst_;
 };

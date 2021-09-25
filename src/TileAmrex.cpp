@@ -20,6 +20,7 @@ namespace orchestration {
  * \param unkRef A ref to the multifab being iterated over.
  * \param level Level of iterator.
  */
+// TODO: Add nCcVars somehow so that this class never uses NUNKVAR
 TileAmrex::TileAmrex(amrex::MFIter& itor, amrex::MultiFab& unkRef, const unsigned int level)
     : Tile{},
       unkRef_{unkRef},
