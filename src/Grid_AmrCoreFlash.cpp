@@ -21,9 +21,11 @@ namespace orchestration {
   *
   * Creates blank multifabs on each level.
   */
-AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+AmrCoreFlash::AmrCoreFlash(const unsigned int nGuard,
+                           ACTION_ROUTINE initBlock,
                            ERROR_ROUTINE errorEst)
-    : initBlock_{initBlock},
+    : nGuard_{nGuard},
+      initBlock_{initBlock},
       nThreads_initBlock_{0},
       nDistributorThreads_initBlock_{0},
       errorEst_{errorEst} {
@@ -70,49 +72,52 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
     if (names.size()==1) {
         names[0] = "phi";
     } else {
-#ifdef DENS_VAR_C
-    // FIXME: Temporarily use the same generic names that are used in FLASH-X
-    // AMREX-based plot files so that we can compare runtime vs. FLASH-X Sedov
-    // results for testing.
-//        names[DENS_VAR_C] = "dens";
-        names[DENS_VAR_C] = "var0001";
-#endif
-#ifdef VELX_VAR_C
-//        names[VELX_VAR_C] = "velx";
-        names[VELX_VAR_C] = "var0008";
-#endif
-#ifdef VELY_VAR_C
-//        names[VELY_VAR_C] = "vely";
-        names[VELY_VAR_C] = "var0009";
-#endif
-#ifdef VELZ_VAR_C
-//        names[VELZ_VAR_C] = "velz";
-        names[VELZ_VAR_C] = "var0010";
-#endif
-#ifdef PRES_VAR_C
-//        names[PRES_VAR_C] = "pres";
-        names[PRES_VAR_C] = "var0006";
-#endif
-#ifdef ENER_VAR_C
-//        names[ENER_VAR_C] = "ener";
-        names[ENER_VAR_C] = "var0003";
-#endif
-#ifdef GAMC_VAR_C
-//        names[GAMC_VAR_C] = "gamc";
-        names[GAMC_VAR_C] = "var0004";
-#endif
-#ifdef GAME_VAR_C
-//        names[GAME_VAR_C] = "game";
-        names[GAME_VAR_C] = "var0005";
-#endif
-#ifdef TEMP_VAR_C
-//        names[TEMP_VAR_C] = "temp";
-        names[TEMP_VAR_C] = "var0007";
-#endif
-#ifdef EINT_VAR_C
-//        names[EINT_VAR_C] = "eint";
-        names[EINT_VAR_C] = "var0002";
-#endif
+        for (long i=0; i<names.size(); ++i) {
+            names[i] = "var" + std::to_string(i);
+        }
+//#ifdef DENS_VAR_C
+//    // FIXME: Temporarily use the same generic names that are used in FLASH-X
+//    // AMREX-based plot files so that we can compare runtime vs. FLASH-X Sedov
+//    // results for testing.
+////        names[DENS_VAR_C] = "dens";
+//        names[DENS_VAR_C] = "var0001";
+//#endif
+//#ifdef VELX_VAR_C
+////        names[VELX_VAR_C] = "velx";
+//        names[VELX_VAR_C] = "var0008";
+//#endif
+//#ifdef VELY_VAR_C
+////        names[VELY_VAR_C] = "vely";
+//        names[VELY_VAR_C] = "var0009";
+//#endif
+//#ifdef VELZ_VAR_C
+////        names[VELZ_VAR_C] = "velz";
+//        names[VELZ_VAR_C] = "var0010";
+//#endif
+//#ifdef PRES_VAR_C
+////        names[PRES_VAR_C] = "pres";
+//        names[PRES_VAR_C] = "var0006";
+//#endif
+//#ifdef ENER_VAR_C
+////        names[ENER_VAR_C] = "ener";
+//        names[ENER_VAR_C] = "var0003";
+//#endif
+//#ifdef GAMC_VAR_C
+////        names[GAMC_VAR_C] = "gamc";
+//        names[GAMC_VAR_C] = "var0004";
+//#endif
+//#ifdef GAME_VAR_C
+////        names[GAME_VAR_C] = "game";
+//        names[GAME_VAR_C] = "var0005";
+//#endif
+//#ifdef TEMP_VAR_C
+////        names[TEMP_VAR_C] = "temp";
+//        names[TEMP_VAR_C] = "var0007";
+//#endif
+//#ifdef EINT_VAR_C
+////        names[EINT_VAR_C] = "eint";
+//        names[EINT_VAR_C] = "var0002";
+//#endif
     }
     amrex::Vector<const amrex::MultiFab*> mfs;
     for(int i=0; i<=finest_level; ++i) {
@@ -149,7 +154,7 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, NUNKVAR, nGuard_);
 
     fillFromCoarse(unk_[lev], lev);
 }
@@ -170,7 +175,7 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
     Logger::instance().log(msg);
 #endif
 
-    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, NGUARD};
+    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, nGuard_};
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
@@ -205,16 +210,14 @@ void AmrCoreFlash::ClearLevel (int lev) {
   */
 void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
             const amrex::BoxArray& ba, const amrex::DistributionMapping& dm) {
-#ifdef GRID_LOG
     std::string msg = "[AmrCoreFlash::MakeNewLevelFromScratch] Creating level " +
                       std::to_string(lev) + "...";
     Logger::instance().log(msg);
-#endif
 
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, NUNKVAR, nGuard_);
 
     // Initialize data in unk_[lev] to 0.0.
     unk_[lev].setVal(0.0_wp);
@@ -251,12 +254,10 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
 
     // DO A GC FILL HERE?
 
-#ifdef GRID_LOG
     std::string msg2 = "[AmrCoreFlash::MakeNewLevelFromScratch] Created level " +
                       std::to_string(lev) + " with " +
                       std::to_string(ba.size()) + " blocks.";
     Logger::instance().log(msg2);
-#endif
 }
 
 /**

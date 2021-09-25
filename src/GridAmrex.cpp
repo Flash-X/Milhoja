@@ -81,7 +81,7 @@ GridAmrex::GridAmrex(void)
     assert(initBlock_);
     assert(errorEst_);
     amrex::Initialize(globalComm_);
-    amrcore_ = new AmrCoreFlash(initBlock_, errorEst_);
+    amrcore_ = new AmrCoreFlash(nGuard_, initBlock_, errorEst_);
 
     int size = -1;
     MPI_Comm_size(globalComm_, &size);

@@ -21,7 +21,8 @@ class AmrCoreFlash
     : public amrex::AmrCore
 {
 public:
-    AmrCoreFlash(ACTION_ROUTINE initBlock,
+    AmrCoreFlash(const unsigned int nGuard,
+                 ACTION_ROUTINE initBlock,
                  ERROR_ROUTINE errorEst);
     ~AmrCoreFlash();
 
@@ -93,6 +94,8 @@ private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
 
     amrex::Vector<amrex::BCRec> bcs_; //!< Boundary conditions
+
+    unsigned int   nGuard_;
 
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.
