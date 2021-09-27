@@ -90,14 +90,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_tile_get_metadata_c] Unable to get limits\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_LIMITS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LIMITS;
         } catch (...) {
             std::cerr << "[milhoja_tile_get_metadata_c] Unable to get limits\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_LIMITS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LIMITS;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -118,14 +118,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_tile_get_data_ptr_c] Unable to get pointer\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_POINTER;
+            return MILHOJA_ERROR_UNABLE_TO_GET_POINTER;
         } catch (...) {
             std::cerr << "[milhoja_tile_get_data_ptr_c] Unable to get pointer\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_POINTER;
+            return MILHOJA_ERROR_UNABLE_TO_GET_POINTER;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 }
 

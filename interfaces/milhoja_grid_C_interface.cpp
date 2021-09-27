@@ -56,14 +56,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_init_c] Unable to initialize\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_INIT_GRID;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_GRID;
         } catch (...) {
             std::cerr << "[milhoja_grid_init_c] Unable to initialize\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_INIT_GRID;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_GRID;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -75,14 +75,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_finalize_c] Unable to finalize\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_FINALIZE_GRID;
+            return MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID;
         } catch (...) {
             std::cerr << "[milhoja_grid_finalize_c] Unable to finalize\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_FINALIZE_GRID;
+            return MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID;
         }
         
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -92,10 +92,10 @@ extern "C" {
                                       const int nTeamThreads) {
         if        (nDistributorThreads < 0) {
             std::cerr << "[milhoja_runtime_init_domain_c] nDistributorThreads is negative" << std::endl;
-            return ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE;
+            return MILHOJA_ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE;
         } else if (nTeamThreads < 0) {
             std::cerr << "[milhoja_runtime_init_domain_c] nTeamThreads is negative" << std::endl;
-            return ERROR_N_TEAM_THREADS_NEGATIVE;
+            return MILHOJA_ERROR_N_TEAM_THREADS_NEGATIVE;
         }
 
         unsigned int   nDistributorThreads_ui = static_cast<unsigned int>(nDistributorThreads);
@@ -107,14 +107,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_init_domain_c] Unable to initialize\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_INIT_DOMAIN;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;
         } catch (...) {
             std::cerr << "[milhoja_grid_init_domain_c] Unable to initialize\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_INIT_DOMAIN;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -135,14 +135,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_domain_bound_box_c] Unable to get bounds\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_BOUNDS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_BOUNDS;
         } catch (...) {
             std::cerr << "[milhoja_grid_domain_bound_box_c] Unable to get bounds\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_BOUNDS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_BOUNDS;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -155,7 +155,7 @@ extern "C" {
 
         if (level < 0) {
             std::cerr << "[milhoja_grid_deltas_c] level is negative" << std::endl;
-            return ERROR_LEVEL_NEGATIVE;
+            return MILHOJA_ERROR_LEVEL_NEGATIVE;
         }
         unsigned int  level_ui = static_cast<unsigned int>(level);
 
@@ -168,14 +168,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_deltas_c] Unable to get deltas\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_DELTAS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DELTAS;
         } catch (...) {
             std::cerr << "[milhoja_grid_deltas_c] Unable to get deltas\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_DELTAS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DELTAS;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -194,14 +194,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_max_finest_level_c] Unable to get level\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_LEVEL;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LEVEL;
         } catch (...) {
             std::cerr << "[milhoja_grid_max_finest_level_c] Unable to get level\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_LEVEL;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LEVEL;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -220,14 +220,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_current_finest_level_c] Unable to get level\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_GET_LEVEL;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LEVEL;
         } catch (...) {
             std::cerr << "[milhoja_grid_current_finest_level_c] Unable to get level\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_GET_LEVEL;
+            return MILHOJA_ERROR_UNABLE_TO_GET_LEVEL;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -237,7 +237,7 @@ extern "C" {
     int   milhoja_grid_write_plotfile_c(const int step) {
         if (step < 0) {
             std::cerr << "[milhoja_grid_write_plotfile_c] Step is negative" << std::endl;
-            return ERROR_STEP_NEGATIVE;
+            return MILHOJA_ERROR_STEP_NEGATIVE;
         }
 
         std::string   filename = "milhoja_plt_" + std::to_string(step);
@@ -247,14 +247,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_grid_write_plotfile_c] Unable to write plot\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_WRITE_PLOTFILE;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
         } catch (...) {
             std::cerr << "[milhoja_grid_write_plotfile_c] Unable to write plot\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_WRITE_PLOTFILE;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 }
 

@@ -106,13 +106,13 @@ extern "C" {
 
         if (nThreadTeams < 0) {
             std::cerr << "[milhoja_runtime_init_c] nThreadTeams is negative" << std::endl;
-            return ERROR_N_THREAD_TEAMS_NEGATIVE;
+            return MILHOJA_ERROR_N_THREAD_TEAMS_NEGATIVE;
         } else if (nThreadsPerTeam < 0) {
             std::cerr << "[milhoja_runtime_init_c] nThreadsPerTeam is negative" << std::endl;
-            return ERROR_N_THREADS_PER_TEAM_NEGATIVE;
+            return MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE;
         } else if (nStreams < 0) {
             std::cerr << "[milhoja_runtime_init_c] nStreams is negative" << std::endl;
-            return ERROR_N_STREAMS_NEGATIVE;
+            return MILHOJA_ERROR_N_STREAMS_NEGATIVE;
         }
 
         // No possibility of overflow with int->unsigned int
@@ -128,21 +128,21 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_runtime_init_c] Unable to initiate runtime\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_INIT_RUNTIME;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME;
         } catch (...) {
             std::cerr << "[milhoja_runtime_init_c] Unable to initiate runtime\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_INIT_RUNTIME;
+            return MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
      *
      */
     int    milhoja_runtime_finalize_c(void) {
-        return 0;
+        return MILHOJA_SUCCESS;
     }
 
     /**
@@ -154,7 +154,7 @@ extern "C" {
 
         if (nThreads < 0) {
             std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] nThreads is negative" << std::endl;
-            return ERROR_N_THREADS_NEGATIVE;
+            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
         }
         unsigned int nThreads_ui = static_cast<unsigned int>(nThreads);
 
@@ -170,14 +170,14 @@ extern "C" {
         } catch (const std::exception& exc) {
             std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] Unable to execute tasks\n" 
                       << exc.what() << std::endl;
-            return ERROR_UNABLE_TO_EXECUTE_TASKS;
+            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
         } catch (...) {
             std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] Unable to execute tasks\n" 
                       << "Unknown error caught" << std::endl;
-            return ERROR_UNABLE_TO_EXECUTE_TASKS;
+            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
         }
 
-        return 0;
+        return MILHOJA_SUCCESS;
      }
 }
 

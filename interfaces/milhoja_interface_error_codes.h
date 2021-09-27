@@ -22,39 +22,46 @@ TODO: The above should be in the developer's guide rather than here.
 
 #if 0
 --------------------------------------------------------------------------------
+Indicate to calling code that execution was successful
+--------------------------------------------------------------------------------
+#endif
+#define MILHOJA_SUCCESS                                0
+
+#if 0
+--------------------------------------------------------------------------------
 General-use error codes
 --------------------------------------------------------------------------------
 #endif
-#define ERROR_N_THREADS_NEGATIVE               1
-#define ERROR_LEVEL_NEGATIVE                   2
-#define ERROR_STEP_NEGATIVE                    3
-#define ERROR_UNABLE_TO_GET_LIMITS             4
-#define ERROR_UNABLE_TO_GET_POINTER            5
+#define MILHOJA_ERROR_N_THREADS_NEGATIVE               1
+#define MILHOJA_ERROR_LEVEL_NEGATIVE                   2
+#define MILHOJA_ERROR_STEP_NEGATIVE                    3
+#define MILHOJA_ERROR_UNABLE_TO_GET_LIMITS             4
+#define MILHOJA_ERROR_UNABLE_TO_GET_POINTER            5
 
 #if 0
 --------------------------------------------------------------------------------
 Runtime-specific error codes
 --------------------------------------------------------------------------------
 #endif
-#define ERROR_UNABLE_TO_INIT_RUNTIME         100
-#define ERROR_UNABLE_TO_FINALIZE_RUNTIME     101
-#define ERROR_N_THREAD_TEAMS_NEGATIVE        102
-#define ERROR_N_THREADS_PER_TEAM_NEGATIVE    103
-#define ERROR_N_STREAMS_NEGATIVE             104
-#define ERROR_UNABLE_TO_EXECUTE_TASKS        105
-#define ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE 106
-#define ERROR_N_TEAM_THREADS_NEGATIVE        107
+#define MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME         100
+#define MILHOJA_ERROR_UNABLE_TO_FINALIZE_RUNTIME     101
+#define MILHOJA_ERROR_N_THREAD_TEAMS_NEGATIVE        102
+#define MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE    103
+#define MILHOJA_ERROR_N_STREAMS_NEGATIVE             104
+#define MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS        105
+#define MILHOJA_ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE 106
+#define MILHOJA_ERROR_N_TEAM_THREADS_NEGATIVE        107
 
 #if 0
 --------------------------------------------------------------------------------
 Grid-specific error codes
 --------------------------------------------------------------------------------
 #endif
-#define ERROR_UNABLE_TO_INIT_GRID            200
-#define ERROR_UNABLE_TO_FINALIZE_GRID        201
-#define ERROR_UNABLE_TO_INIT_DOMAIN          202
-#define ERROR_UNABLE_TO_GET_BOUNDS           203
-#define ERROR_UNABLE_TO_GET_LEVEL            204
-#define ERROR_UNABLE_TO_GET_DELTAS           205
-#define ERROR_UNABLE_TO_WRITE_PLOTFILE       206
+#define MILHOJA_ERROR_UNABLE_TO_INIT_GRID            200
+#define MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID        201
+#define MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN          202
+#define MILHOJA_ERROR_UNABLE_TO_GET_BOUNDS           203
+#define MILHOJA_ERROR_UNABLE_TO_GET_LEVEL            204
+#define MILHOJA_ERROR_UNABLE_TO_GET_DELTAS           205
+#define MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE       206
 
