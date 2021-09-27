@@ -16,6 +16,7 @@ Build System reqs
     [ ] Backend libraries
     [ ] Debug levels
     [x] Multithreaded distributor
+    [ ] Include/exclude the C and Fortran interfaces in library builds
 
 [x] The build tool shall write a log file to the build directory that contains the setup information and all metadata to reproduce the source tree at the time of build (at minimum, commit number and a git diff). The log file can also include extra information, like date and time, username, list of relevant directories, etc.
 
@@ -47,6 +48,8 @@ Library Requirements
 [x] Using the command line flag `--library`, a test can be configured to link an existing prebuilt Runtime library.
 
 [ ] If linking a prebuilt library that used an incompatible set of Runtime parameters, the Makefile shall return an appropriate and informative error.
+
+[ ] TODO: Should libraries be built with -fPIC/-fpic?  What about -fPIE/-fpie?
 
 File Name Requirements
 ----------------------

@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <thread>
+#include <string>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -50,6 +51,12 @@ void   Runtime::instantiate(const unsigned int nTeams,
     nTeams_ = nTeams;
     maxThreadsPerTeam_ = nThreadsPerTeam;
     instantiated_ = true;
+
+    std::string    msg;
+    msg = "[Runtime] Create " + std::to_string(nTeams_) + " thread team(s) of "
+                + std::to_string(maxThreadsPerTeam_)
+                + " threads each";
+    Logger::instance().log(msg);
 
     orchestration::Backend::instantiate(nStreams, nBytesInMemoryPools);
 

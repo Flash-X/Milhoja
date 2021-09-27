@@ -1,8 +1,9 @@
 SRCDIR       = $(BASEDIR)/src
 INCDIR       = $(BASEDIR)/includes
+INTERFACEDIR = $(BASEDIR)/interfaces
 
-CXXFLAGS_BASE    = -I$(INCDIR)
-CUFLAGS_BASE    = -I$(INCDIR)
+CXXFLAGS_BASE = -I$(INCDIR)
+CUFLAGS_BASE  = -I$(INCDIR)
 
 #TODO: Header files? express dependencies
 
@@ -27,4 +28,7 @@ SRCS_BASE       = \
     $(SRCDIR)/ThreadTeamTerminating.cpp \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
-    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp
+    $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp \
+    $(INTERFACEDIR)/milhoja_runtime_C_interface.cpp \
+    $(INTERFACEDIR)/milhoja_grid_C_interface.cpp \
+    $(INTERFACEDIR)/milhoja_tile_C_interface.cpp
