@@ -66,10 +66,9 @@ void AmrCoreFlash::setInitDomainConfiguration(const unsigned int nDistributorThr
 
 //! Write all levels of unk_ to plotfile.
 void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex] Writing to plotfile: "+filename+"...";
+    std::string msg = "[GridAmrex] Writing to plotfile " + filename + " ...";
     Logger::instance().log(msg);
-#endif
+
     amrex::Vector<std::string>    names(unk_[0].nComp());
     if (names.size()==1) {
         names[0] = "phi";
@@ -135,6 +134,9 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
                                    0.0,
                                    lsteps,
                                    refRatio());
+
+    msg = "[GridAmrex] Wrote to plotfile " + filename;
+    Logger::instance().log(msg);
 }
 
 /**
