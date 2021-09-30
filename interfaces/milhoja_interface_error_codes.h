@@ -94,4 +94,5 @@ Grid-specific error codes
 Tile-specific error codes
 --------------------------------------------------------------------------------
 #endif
+#define MILHOJA_ERROR_UNABLE_TO_GET_METADATA         400
 

@@ -42,6 +42,7 @@ public:
     bool           isNull(void) const override;
     int            gridIndex(void) const override { return gridIdx_; }
     unsigned int   level(void) const override { return level_; }
+    unsigned int   nVariables(void) const override { return nCcVars_; }
 
     IntVect        lo(void) const override;
     IntVect        hi(void) const override;

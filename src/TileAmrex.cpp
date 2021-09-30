@@ -254,7 +254,7 @@ IntVect  TileAmrex::hiGC(void) const {
  *       with the pointer.  AMReX dictates what we point to and this is
  *       analogous to wrapping the data with FArray4D.
  *
- * \return Real* pointing to underlying data.
+ * \return Pointer to start of tile's data in host memory.
  */
 Real*   TileAmrex::dataPtr(void) {
 #ifdef DEBUG_RUNTIME

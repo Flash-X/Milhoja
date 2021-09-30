@@ -31,16 +31,18 @@ extern "C" {
      * \todo Does converting item to a void* help with the C linkage?  Would
      *       this prevent us from getting the runtime error checking of the
      *       dynamic_cast?
-     * \todo error check cast for overflow.
+     * \todo error check casts for overflow.
      * \todo error check given pointers.
      * \todo associate debug output with fortran/c layer verbosity level?
      * \todo The use of local variables to cache coordinates was done as part
      *       of developing this layer.  Is it possible to get rid of this
      *       and therefore directly connect the arguments to the data source?
+     * \todo Try to get all this data in one function call.
      */
     int   milhoja_tile_get_metadata_c(orchestration::DataItem* item,
                                       int* gId, int* level,
-                                      int* lo, int* hi, int* loGC, int* hiGC) {
+                                      int* lo, int* hi, int* loGC, int* hiGC,
+                                      int* nVars, orchestration::Real** data) {
         using namespace orchestration;
 
         try {
@@ -57,6 +59,11 @@ extern "C" {
             tileDesc->hi(&hi_i, &hi_j, &hi_k);
             tileDesc->loGC(&loGC_i, &loGC_j, &loGC_k);
             tileDesc->hiGC(&hiGC_i, &hiGC_j, &hiGC_k);
+
+            unsigned int nVars_ui = tileDesc->nVariables();
+            *nVars = static_cast<int>(nVars_ui);
+
+            *data = tileDesc->dataPtr();
 
             // spatial indices are 0-based in C++ code
             lo[0]   = lo_i   + 1;
@@ -77,7 +84,7 @@ extern "C" {
 #endif
 
 // This was useful for developing the Fortran/C interoperability layer
-//            printf("[milhoja_tile_get_metadata_c] Tile %d (%p)\n\tlo_ijk=(%d,%d,%d)\n\thi_ijk=(%d,%d,%d)\n\tloGC_ijk=(%d,%d,%d)\n\thiGC_ijk=(%d,%d,%d)\n\tlo (%p)=(%d,%d,%d)\n\thi (%p)=(%d,%d,%d)\n\tloGC (%p)=(%d,%d,%d)\n\thiGC (%p)=(%d,%d,%d)\n",
+//            printf("[milhoja_tile_get_metadata_c] Tile %d (%p)\n\tlo_ijk=(%d,%d,%d)\n\thi_ijk=(%d,%d,%d)\n\tloGC_ijk=(%d,%d,%d)\n\thiGC_ijk=(%d,%d,%d)\n\tlo (%p)=(%d,%d,%d)\n\thi (%p)=(%d,%d,%d)\n\tloGC (%p)=(%d,%d,%d)\n\thiGC (%p)=(%d,%d,%d)\n\tTile %p\n\tdataPtr=%p\n\tUptr=%p\n",
 //                   *gId, tileDesc, 
 //                   lo_i,   lo_j,   lo_k, 
 //                   hi_i,   hi_j,   hi_k, 
@@ -86,43 +93,16 @@ extern "C" {
 //                   lo,     lo[0],   lo[1],   lo[2],
 //                   hi,     hi[0],   hi[1],   hi[2],
 //                   loGC, loGC[0], loGC[1], loGC[2],
-//                   hiGC, hiGC[0], hiGC[1], hiGC[2]);
+//                   hiGC, hiGC[0], hiGC[1], hiGC[2],
+//                   tileDesc, *data, data);
         } catch (const std::exception& exc) {
-            std::cerr << "[milhoja_tile_get_metadata_c] Unable to get limits\n" 
+            std::cerr << "[milhoja_tile_get_metadata_c] Unable to get metadata\n" 
                       << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_LIMITS;
+            return MILHOJA_ERROR_UNABLE_TO_GET_METADATA;
         } catch (...) {
-            std::cerr << "[milhoja_tile_get_metadata_c] Unable to get limits\n" 
+            std::cerr << "[milhoja_tile_get_metadata_c] Unable to get metadata\n" 
                       << "Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_LIMITS;
-        }
-
-        return MILHOJA_SUCCESS;
-    }
-
-    /**
-     * \todo error check given pointers.
-     * \todo associate debug output with fortran/c layer verbosity level?
-     */
-    int   milhoja_tile_get_data_ptr_c(orchestration::DataItem* item,
-                                      orchestration::Real** data) {
-        using namespace orchestration;
-
-        try {
-            Tile*   tileDesc = dynamic_cast<Tile*>(item);
-            Real*   ptr = tileDesc->dataPtr();
-            *data = ptr;
-// This was useful for developing the Fortran/C interoperability layer
-//            printf("[milhoja_tile_get_data_ptr_c]\n\tTile %p\n\tdataPtr=%p\n\tUptr=%p\n",
-//                   tileDesc, ptr, data);
-        } catch (const std::exception& exc) {
-            std::cerr << "[milhoja_tile_get_data_ptr_c] Unable to get pointer\n" 
-                      << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_POINTER;
-        } catch (...) {
-            std::cerr << "[milhoja_tile_get_data_ptr_c] Unable to get pointer\n" 
-                      << "Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_POINTER;
+            return MILHOJA_ERROR_UNABLE_TO_GET_METADATA;
         }
 
         return MILHOJA_SUCCESS;

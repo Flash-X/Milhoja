@@ -33,6 +33,7 @@ public:
     virtual bool         isNull(void) const = 0;
     virtual int          gridIndex(void) const = 0;
     virtual unsigned int level(void) const = 0;
+    virtual unsigned int nVariables(void) const = 0;
     virtual IntVect      lo(void) const = 0;
     virtual IntVect      hi(void) const = 0;
     virtual IntVect      loGC(void) const = 0;
