@@ -79,56 +79,32 @@ contains
     !!
     !! @todo Does this unit or the grid unit need to be initialized
     !!       first?  If so, document here and in Grid.
-    !! @todo Should confirmation of correct types be logged?
     !!
-    !! @param F_globalCommF         The Fortran version of the MPI communicator
-    !!                              that Milhoja should use
-    !! @param F_nThreadTeams        The number of thread teams to create
-    !! @param F_nThreadsPerTeam     The number of threads to create in each team
-    !! @param F_nStreams            The number of streams to create
-    !! @param F_nBytesInMemoryPools The size of memory pools that should be
-    !!                              eagerly acquired in all memory spaces.  Note
-    !!                              the abnormal integer kind.
-    !! @param F_ierr                The milhoja error code
-    subroutine milhoja_runtime_init(F_globalCommF,                     &
-                                    F_nThreadTeams, F_nThreadsPerTeam, &
-                                    F_nStreams,                        &
-                                    C_nBytesInMemoryPools,             &
-                                    F_ierr)
-        use milhoja_types_mod, ONLY : milhoja_types_confirmMatchingTypes
+    !! @param globalCommF         The Fortran version of the MPI communicator
+    !!                            that Milhoja should use
+    !! @param nThreadTeams        The number of thread teams to create
+    !! @param nThreadsPerTeam     The number of threads to create in each team
+    !! @param nStreams            The number of streams to create
+    !! @param nBytesInMemoryPools The size of memory pools that should be
+    !!                            eagerly acquired in all memory spaces.  Note
+    !!                            the abnormal integer kind.
+    !! @param ierr                The milhoja error code
+    subroutine milhoja_runtime_init(globalCommF,                   &
+                                    nThreadTeams, nThreadsPerTeam, &
+                                    nStreams,                      &
+                                    nBytesInMemoryPools,           &
+                                    ierr)
+        integer(MILHOJA_INT),    intent(IN)  :: globalCommF
+        integer(MILHOJA_INT),    intent(IN)  :: nThreadTeams
+        integer(MILHOJA_INT),    intent(IN)  :: nThreadsPerTeam
+        integer(MILHOJA_INT),    intent(IN)  :: nStreams
+        integer(MILHOJA_SIZE_T), intent(IN)  :: nBytesInMemoryPools
+        integer(MILHOJA_INT),    intent(OUT) :: ierr
 
-        integer,                 intent(IN)  :: F_globalCommF
-        integer,                 intent(IN)  :: F_nThreadTeams
-        integer,                 intent(IN)  :: F_nThreadsPerTeam
-        integer,                 intent(IN)  :: F_nStreams
-        integer(MILHOJA_SIZE_T), intent(IN)  :: C_nBytesInMemoryPools
-        integer,                 intent(OUT) :: F_ierr
-
-        integer(MILHOJA_INT) :: C_globalCommF
-        integer(MILHOJA_INT) :: C_nThreadTeams
-        integer(MILHOJA_INT) :: C_nThreadsPerTeam
-        integer(MILHOJA_INT) :: C_nStreams
-        integer(MILHOJA_INT) :: C_ierr
-
-        ! If this module is used, then the corresponding Grid interface
-        ! module must also be used.  However, the Milhoja grid unit could be used
-        ! without this runtime.  Therefore both should confirm correct
-        ! types to be safe, but we have only the Grid module print type info.
-        CALL milhoja_types_confirmMatchingTypes(F_ierr)
-        if (F_ierr /= MILHOJA_SUCCESS) then
-            RETURN
-        end if
-
-        C_globalCommF     = INT(F_globalCommF,     kind=MILHOJA_INT)
-        C_nThreadTeams    = INT(F_nThreadTeams,    kind=MILHOJA_INT)
-        C_nThreadsPerTeam = INT(F_nThreadsPerTeam, kind=MILHOJA_INT)
-        C_nStreams        = INT(F_nStreams,        kind=MILHOJA_INT)
-
-        C_ierr = milhoja_runtime_init_c(C_globalCommF,                     &
-                                        C_nThreadTeams, C_nThreadsPerTeam, &
-                                        C_nStreams,                        &
-                                        C_nBytesInMemoryPools)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_runtime_init_c(globalCommF,                   &
+                                      nThreadTeams, nThreadsPerTeam, &
+                                      nStreams,                      &
+                                      nBytesInMemoryPools)
     end subroutine milhoja_runtime_init
 
     !> Finalize the runtime.  It is assumed that calling code is responsible for
