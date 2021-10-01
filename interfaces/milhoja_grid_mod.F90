@@ -261,29 +261,20 @@ contains
     !! @todo Allow for not using the runtime to set ICs or to use a different
     !!       TT config such as the GPU-only or CPU/GPU data parallel configs.
     !!
-    !! @param F_nDistributorThreads  The number of distributor threads to 
-    !!                               activate in the CPU-only thread team
-    !!                               configuration
-    !! @param F_nTeamThreads         The number of threads to activate in the
-    !!                               single thread team 
-    !! @param F_ierr                 The milhoja error code
-    subroutine milhoja_grid_initDomain(F_nDistributorThreads, &
-                                       F_nTeamThreads,        &
-                                       F_ierr)
-        integer, intent(IN)  :: F_nDistributorThreads
-        integer, intent(IN)  :: F_nTeamThreads
-        integer, intent(OUT) :: F_ierr
+    !! @param nDistributorThreads  The number of distributor threads to 
+    !!                             activate in the CPU-only thread team
+    !!                             configuration
+    !! @param nTeamThreads         The number of threads to activate in the
+    !!                             single thread team 
+    !! @param ierr                 The milhoja error code
+    subroutine milhoja_grid_initDomain(nDistributorThreads, &
+                                       nTeamThreads,        &
+                                       ierr)
+        integer(MILHOJA_INT), intent(IN)  :: nDistributorThreads
+        integer(MILHOJA_INT), intent(IN)  :: nTeamThreads
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
-        integer(MILHOJA_INT) :: C_nDistributorThreads
-        integer(MILHOJA_INT) :: C_nTeamThreads
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_nDistributorThreads = INT(F_nDistributorThreads, kind=MILHOJA_INT)
-        C_nTeamThreads        = INT(F_nTeamThreads,        kind=MILHOJA_INT)
-
-        C_ierr = milhoja_grid_init_domain_C(C_nDistributorThreads, &
-                                            C_nTeamThreads)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_grid_init_domain_C(nDistributorThreads, nTeamThreads)
     end subroutine milhoja_grid_initDomain
 
     !> Obtain the index of the finest mesh refinement level that could be
@@ -302,20 +293,14 @@ contains
     !> Obtain the index of the finest mesh refinement level that is currently
     !! in existence and use.
     !!
-    !! @param F_level    The 1-based index of the level where 1 is coarsest
-    !! @param F_ierr     The milhoja error code
-    subroutine milhoja_grid_getCurrentFinestLevel(F_level, F_ierr)
-        integer, intent(OUT) :: F_level
-        integer, intent(OUT) :: F_ierr
-
-        integer(MILHOJA_INT) :: C_level
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_ierr = milhoja_grid_current_finest_level_C(C_level)
-        F_ierr = INT(C_ierr)
+    !! @param level    The 1-based index of the level where 1 is coarsest
+    !! @param ierr     The milhoja error code
+    subroutine milhoja_grid_getCurrentFinestLevel(level, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: level
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
         ! Assuming C interface has 1-based level index set
-        F_level = INT(C_level)
+        ierr = milhoja_grid_current_finest_level_C(level)
     end subroutine milhoja_grid_getCurrentFinestLevel
 
     !> Obtain the low and high coordinates in physical space of the rectangular
@@ -352,28 +337,24 @@ contains
     !! for setting or ignoring such data.  This routine will not alter or
     !! overwrite such values in the given array.
     !!
-    !! @param F_level   The 1-based index of the level of interest with 1
-    !!                  being the coarsest level
-    !! @param F_deltas  The mesh resolution values
-    !! @param F_ierr    The milhoja error code
-    subroutine milhoja_grid_getDeltas(F_level, F_deltas, F_ierr)
+    !! @param level   The 1-based index of the level of interest with 1
+    !!                being the coarsest level
+    !! @param deltas  The mesh resolution values
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_grid_getDeltas(level, deltas, ierr)
         use iso_c_binding, ONLY : C_PTR, &
                                   C_LOC
 
-        integer, intent(IN)            :: F_level
-        real,    intent(INOUT), target :: F_deltas(1:MDIM)
-        integer, intent(OUT)           :: F_ierr
+        integer(MILHOJA_INT), intent(IN)            :: level
+        real(MILHOJA_REAL),   intent(INOUT), target :: deltas(1:MDIM)
+        integer(MILHOJA_INT), intent(OUT)           :: ierr
 
-        integer(MILHOJA_INT) :: C_level
-        type(C_PTR)          :: C_deltas
-        integer(MILHOJA_INT) :: C_ierr
+        type(C_PTR) :: deltas_CPTR
+
+        deltas_CPTR = C_LOC(deltas)
 
         ! Assuming C interface has 1-based level index set
-        C_level = INT(F_level, kind=MILHOJA_INT)
-
-        C_deltas = C_LOC(F_deltas)
-        C_ierr = milhoja_grid_deltas_C(C_level, C_deltas)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_grid_deltas_C(level, deltas_CPTR)
     end subroutine milhoja_grid_getDeltas
 
     !> Write the contents of the solution to file.  It is intended that this
@@ -385,19 +366,13 @@ contains
     !!
     !! @todo Calling code should pass in the full filename and not the step
     !! 
-    !! @param F_step   The number of the timestep associated with the data
-    !! @param F_ierr   The milhoja error code
-    subroutine milhoja_grid_writePlotfile(F_step, F_ierr)
-        integer, intent(IN)  :: F_step
-        integer, intent(OUT) :: F_ierr
+    !! @param step   The number of the timestep associated with the data
+    !! @param ierr   The milhoja error code
+    subroutine milhoja_grid_writePlotfile(step, ierr)
+        integer(MILHOJA_INT), intent(IN)  :: step
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
-        integer(MILHOJA_INT) :: C_step
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_step = INT(F_step, kind=MILHOJA_INT)
-
-        C_ierr = milhoja_grid_write_plotfile_C(C_step)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_grid_write_plotfile_C(step)
     end subroutine milhoja_grid_writePlotfile
 
 end module milhoja_grid_mod
