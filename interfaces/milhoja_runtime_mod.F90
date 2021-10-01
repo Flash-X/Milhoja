@@ -114,40 +114,32 @@ contains
     !!
     !! @todo Confirm that grid must be finalized first.
     !!
-    !! @param F_ierr    The milhoja error code
-    subroutine milhoja_runtime_finalize(F_ierr)
-        integer, intent(OUT) :: F_ierr
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_runtime_finalize(ierr)
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_ierr = milhoja_runtime_finalize_c()
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_runtime_finalize_c()
     end subroutine milhoja_runtime_finalize
 
     !> Execute the given task function using the CPU-only thread team
     !> configuration and with the given number of team threads activated.
     !!
-    !! @param F_taskFunction    The task function to execute
-    !! @param F_nThreads        The number of threads to activate in team
-    !! @param F_ierr            The milhoja error code
-    subroutine milhoja_runtime_executeTasks_Cpu(F_taskFunction, F_nThreads, &
-                                                F_ierr)
+    !! @param taskFunction    The task function to execute
+    !! @param nThreads        The number of threads to activate in team
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_runtime_executeTasks_Cpu(taskFunction, nThreads, ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
                                   C_FUNLOC
 
-        procedure(milhoja_runtime_taskFunction)             :: F_taskFunction
-        integer,                                intent(IN)  :: F_nThreads
-        integer,                                intent(OUT) :: F_ierr
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
-        type(C_FUNPTR)       :: C_taskFunction
-        integer(MILHOJA_INT) :: C_nThreads
-        integer(MILHOJA_INT) :: C_ierr
+        type(C_FUNPTR) :: taskFunction_CPTR
 
-        C_nThreads = INT(F_nThreads, kind=MILHOJA_INT)
-        C_taskFunction = C_FUNLOC(F_taskFunction)
+        taskFunction_CPTR = C_FUNLOC(taskFunction)
 
-        C_ierr = milhoja_runtime_execute_tasks_cpu_c(C_taskFunction, C_nThreads)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_runtime_execute_tasks_cpu_c(taskFunction_CPTR, nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
 
 end module milhoja_runtime_mod
