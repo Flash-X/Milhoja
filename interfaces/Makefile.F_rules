@@ -1,0 +1,14 @@
+# The build system does not have the facility to automatically discover
+# dependencies between Fortran source files.  Since the only Fortran
+# source files officially in the repo are in the high-level Fortran
+# interface and these are few, we can manually manage dependencies
+# and therefore write the build rules here.
+
+milhoja_types_mod.o: milhoja_types_mod.F90 $(MAKEFILES)
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+milhoja_grid_mod.o: milhoja_grid_mod.F90 milhoja_types_mod.o milhoja_runtime_mod.o milhoja_grid_C_interface.o $(MAKEFILES)
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+milhoja_tile_mod.o: milhoja_tile_mod.F90 milhoja_types_mod.o milhoja_tile_C_interface.o $(MAKEFILES)
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+milhoja_runtime_mod.o: milhoja_runtime_mod.F90 milhoja_types_mod.o milhoja_runtime_C_interface.o $(MAKEFILES)
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<

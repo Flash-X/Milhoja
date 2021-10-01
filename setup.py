@@ -51,6 +51,14 @@ def main():
     srcMakefile = os.path.join(homeDir,'src','Makefile.base')
     os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
 
+    print("Linking Makefile.F_interface")
+    interfaceMakefile = os.path.join(homeDir,'interfaces','Makefile.F_interface')
+    os.symlink(interfaceMakefile,os.path.join(buildDir,'Makefile.F_interface'))
+
+    print("Linking Makefile.F_rules")
+    fRulesMakefile = os.path.join(homeDir,'interfaces','Makefile.F_rules')
+    os.symlink(fRulesMakefile,os.path.join(buildDir,'Makefile.F_rules'))
+
     siteDir = os.path.join(homeDir,'sites',args.site)
     if args.makefile is None:
         siteMakefile = os.path.join(siteDir,'Makefile.site')

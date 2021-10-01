@@ -3,14 +3,27 @@ AMREXDIR     = $(MILHOJA_DEP_PATH)/intel_20.2/AMReX_$(NDIM)D
 GTESTDIR     = $(MILHOJA_DEP_PATH)/intel_20.2/googletest
 CUDADIR      =
 
+# TODO: The comp name shouldn't refer to a particular compiler,
+#       but rather to the compiler suite.  We will always use
+#       the intel C++ compiler with the intel Fortran compiler.
 CXXCOMPNAME  = intel
-CXXCOMP      = mpicxx
 
-CXXFLAGS_PROD    = -O3
-CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
+CXXCOMP        = mpicxx
+CXXFLAGS_PROD  = -O3
+CXXFLAGS_DEBUG = -g -O0 -DGRID_LOG
 
 CUCOMP       =
 CUFLAGS_PROD =
+
+F90COMP        = mpif90
+F90FLAGS_PROD  = \
+	-O3 -fpp -traceback -init=snan,arrays -fpe0 \
+	-fpconstant -integer-size 32 -double-size 64 -real-size 64
+F90FLAGS_DEBUG = \
+	-g -O0 -fpp -traceback -init=snan,arrays -fpe0 \
+	-fpconstant -integer-size 32 -double-size 64 -real-size 64 \
+	-check output_conversion -warn all,noexternal -warn error -check uninit \
+	-fp-stack-check -check pointers
 
 LDFLAGS_STD = -lpthread -lifcore
 

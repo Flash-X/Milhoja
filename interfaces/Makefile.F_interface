@@ -1,0 +1,24 @@
+INTERFACEDIR = $(BASEDIR)/interfaces
+
+# TODO: If -fexceptions if compiler-dependent, then it needs to be
+#       elsewhere.  But, it should only be included if the interfaces
+#       are to be built.
+F90FLAGS_INTERFACE = -fexceptions
+
+# TODO: Include list of headers that need to be copied to library
+#       installation folder?
+
+#####----- C interface
+# Files in C/C++ interoperability layer with C linkage
+C_SRCS_INTERFACE = \
+	$(INTERFACEDIR)/milhoja_grid_C_interface.cpp \
+	$(INTERFACEDIR)/milhoja_tile_C_interface.cpp \
+	$(INTERFACEDIR)/milhoja_runtime_C_interface.cpp
+
+#####----- Fortran interface
+# Files in Fortran/C interoperability layer that use C interface
+F_SRCS_INTERFACE = \
+	$(INTERFACEDIR)/milhoja_types_mod.o \
+	$(INTERFACEDIR)/milhoja_grid_mod.o \
+	$(INTERFACEDIR)/milhoja_tile_mod.o \
+	$(INTERFACEDIR)/milhoja_runtime_mod.o
