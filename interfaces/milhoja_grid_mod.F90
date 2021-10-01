@@ -161,135 +161,80 @@ contains
     !!
     !! @todo Does this unit or the runtime need to be initialized
     !!       first?  If so, document here and in runtime.
-    !! @todo Should confirmation of correct types be logged?
-    !! @todo This should not make the decision to print type info to stdout
-    !!       It should be logged internally or calling code should pass in
-    !!       a file unit.  Check with xSDK.
+    !! @todo Does it matter that we convert an MPI Comm from a default integer
+    !!       to a potentially different kind?  Does MPI have the flexibility 
+    !!       to deal with that?
     !!
-    !! @param F_globalCommF  The Fortran version of the MPI communicator that
-    !!                       Milhoja should use
-    !! @param F_xMin         Define the physical domain in X as [F_xMin, F_xMax]
-    !! @param F_xMax         Define the physical domain in X as [F_xMin, F_xMax]
-    !! @param F_yMin         Define the physical domain in Y as [F_yMin, F_yMax]
-    !! @param F_yMax         Define the physical domain in Y as [F_yMin, F_yMax]
-    !! @param F_zMin         Define the physical domain in Z as [F_zMin, F_zMax]
-    !! @param F_zMax         Define the physical domain in Z as [F_zMin, F_zMax]
-    !! @param F_nxb          The number of cells along X in each block in the
-    !!                       domain decomposition
-    !! @param F_nyb          The number of cells along Y in each block in the
-    !!                       domain decomposition
-    !! @param F_nzb          The number of cells along Z in each block in the
-    !!                       domain decomposition
-    !! @param F_nBlocksX     The number of blocks along X in the domain decomposition
-    !! @param F_nBlocksY     The number of blocks along Y in the domain decomposition
-    !! @param F_nBlocksZ     The number of blocks along Z in the domain decomposition
-    !! @param F_lRefineMax   The 1-based index of the finest refinement level
-    !!                       permitted at any time during the simulation
-    !! @param F_nGuard       The number of guardcells
-    !! @param F_nCcVars      The number of physical variables in the solution
-    !! @param F_initBlock    Procedure to use to compute and store the initial
-    !!                       conditions
-    !! @param F_errorEst     Procedure that is used to assess if a block should
-    !!                       be refined, derefined, or stay at the same
-    !!                       refinement
-    !! @param F_ierr         The milhoja error code
-    subroutine milhoja_grid_init(F_globalCommF,                      &
-                                 F_xMin, F_xMax,                     &
-                                 F_yMin, F_yMax,                     &
-                                 F_zMin, F_zMax,                     &
-                                 F_nxb, F_nyb, F_nzb,                &
-                                 F_nBlocksX, F_nBlocksY, F_nBlocksZ, &
-                                 F_lRefineMax,                       &
-                                 F_nGuard, F_nCcVars,                &
-                                 F_initBlock, F_errorEst,            &
-                                 F_ierr)
-        use mpi
+    !! @param globalCommF  The Fortran version of the MPI communicator that
+    !!                     Milhoja should use
+    !! @param xMin         Define the physical domain in X as [F_xMin, F_xMax]
+    !! @param xMax         Define the physical domain in X as [F_xMin, F_xMax]
+    !! @param yMin         Define the physical domain in Y as [F_yMin, F_yMax]
+    !! @param yMax         Define the physical domain in Y as [F_yMin, F_yMax]
+    !! @param zMin         Define the physical domain in Z as [F_zMin, F_zMax]
+    !! @param zMax         Define the physical domain in Z as [F_zMin, F_zMax]
+    !! @param nxb          The number of cells along X in each block in the
+    !!                     domain decomposition
+    !! @param nyb          The number of cells along Y in each block in the
+    !!                     domain decomposition
+    !! @param nzb          The number of cells along Z in each block in the
+    !!                     domain decomposition
+    !! @param nBlocksX     The number of blocks along X in the domain decomposition
+    !! @param nBlocksY     The number of blocks along Y in the domain decomposition
+    !! @param nBlocksZ     The number of blocks along Z in the domain decomposition
+    !! @param lRefineMax   The 1-based index of the finest refinement level
+    !!                     permitted at any time during the simulation
+    !! @param nGuard       The number of guardcells
+    !! @param nCcVars      The number of physical variables in the solution
+    !! @param initBlock    Procedure to use to compute and store the initial
+    !!                     conditions
+    !! @param errorEst     Procedure that is used to assess if a block should
+    !!                     be refined, derefined, or stay at the same
+    !!                     refinement
+    !! @param ierr         The milhoja error code
+    subroutine milhoja_grid_init(globalCommF,                  &
+                                 xMin, xMax,                   &
+                                 yMin, yMax,                   &
+                                 zMin, zMax,                   &
+                                 nxb, nyb, nzb,                &
+                                 nBlocksX, nBlocksY, nBlocksZ, &
+                                 lRefineMax,                   &
+                                 nGuard, nCcVars,              &
+                                 initBlock, errorEst,          &
+                                 ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
                                   C_FUNLOC
 
-
-        use milhoja_types_mod,   ONLY : milhoja_types_confirmMatchingTypes, &
-                                        milhoja_types_printTypesInformation
         use milhoja_runtime_mod, ONLY : milhoja_runtime_taskFunction
 
-        integer, parameter :: STDOUT = 6
+        integer(MILHOJA_INT),                    intent(IN) :: globalCommF
+        real(MILHOJA_REAL),                      intent(IN) :: xMin, xMax
+        real(MILHOJA_REAL),                      intent(IN) :: yMin, yMax
+        real(MILHOJA_REAL),                      intent(IN) :: zMin, zMax
+        integer(MILHOJA_INT),                    intent(IN) :: nxb, nyb, nzb
+        integer(MILHOJA_INT),                    intent(IN) :: nBlocksX, nBlocksY, nBlocksZ
+        integer(MILHOJA_INT),                    intent(IN) :: lRefineMax
+        integer(MILHOJA_INT),                    intent(IN) :: nGuard
+        integer(MILHOJA_INT),                    intent(IN) :: nCcVars
+        procedure(milhoja_runtime_taskFunction)             :: initBlock
+        procedure(milhoja_errorEstimateCallback)            :: errorEst
+        integer(MILHOJA_INT), intent(OUT)                   :: ierr
 
-        integer, intent(IN)                      :: F_globalCommF
-        real,    intent(IN)                      :: F_xMin, F_xMax
-        real,    intent(IN)                      :: F_yMin, F_yMax
-        real,    intent(IN)                      :: F_zMin, F_zMax
-        integer, intent(IN)                      :: F_nxb, F_nyb, F_nzb
-        integer, intent(IN)                      :: F_nBlocksX, F_nBlocksY, F_nBlocksZ
-        integer, intent(IN)                      :: F_lRefineMax
-        integer, intent(IN)                      :: F_nGuard
-        integer, intent(IN)                      :: F_nCcVars
-        procedure(milhoja_runtime_taskFunction)  :: F_initBlock
-        procedure(milhoja_errorEstimateCallback) :: F_errorEst
-        integer, intent(OUT)                     :: F_ierr
+        type(C_FUNPTR) :: initBlock_CPTR
+        type(C_FUNPTR) :: errorEst_CPTR
 
-        integer(MILHOJA_INT) :: C_globalCommF
-        real(MILHOJA_REAL)   :: C_xMin, C_xMax
-        real(MILHOJA_REAL)   :: C_yMin, C_yMax
-        real(MILHOJA_REAL)   :: C_zMin, C_zMax
-        integer(MILHOJA_INT) :: C_nxb, C_nyb, C_nzb
-        integer(MILHOJA_INT) :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
-        integer(MILHOJA_INT) :: C_lRefineMax
-        integer(MILHOJA_INT) :: C_nGuard
-        integer(MILHOJA_INT) :: C_nCcVars
-        type(C_FUNPTR)       :: C_initBlock
-        type(C_FUNPTR)       :: C_errorEst
-        integer(MILHOJA_INT) :: C_ierr
+        initBlock_CPTR = C_FUNLOC(initBlock)
+        errorEst_CPTR  = C_FUNLOC(errorEst)
 
-        integer :: rank
-        integer :: mpierr
-
-        ! If the runtime module is used, then this module must also be used.
-        ! However, the Milhoja grid unit could be used
-        ! without this runtime.  Therefore both should confirm correct
-        ! types to be safe, but we have only the grid module print type info.
-        CALL milhoja_types_confirmMatchingTypes(F_ierr)
-        if (F_ierr /= MILHOJA_SUCCESS) then
-            RETURN
-        end if
-
-        CALL MPI_Comm_rank(F_globalCommF, rank, mpierr)
-        if (rank == MASTER_PE) then
-            CALL milhoja_types_printTypesInformation(STDOUT, F_ierr)
-            if (F_ierr /= MILHOJA_SUCCESS) then
-                RETURN
-            end if
-        end if
-
-        C_globalCommF =  INT(F_globalCommF, kind=MILHOJA_INT)
-        C_xMin        = REAL(F_xMin,        kind=MILHOJA_REAL)
-        C_xMax        = REAL(F_xMax,        kind=MILHOJA_REAL)
-        C_yMin        = REAL(F_yMin,        kind=MILHOJA_REAL)
-        C_yMax        = REAL(F_yMax,        kind=MILHOJA_REAL)
-        C_zMin        = REAL(F_zMin,        kind=MILHOJA_REAL)
-        C_zMax        = REAL(F_zMax,        kind=MILHOJA_REAL)
-        C_nxb         =  INT(F_nxb,         kind=MILHOJA_INT)
-        C_nyb         =  INT(F_nyb,         kind=MILHOJA_INT)
-        C_nzb         =  INT(F_nzb,         kind=MILHOJA_INT)
-        C_nBlocksX    =  INT(F_nBlocksX,    kind=MILHOJA_INT)
-        C_nBlocksY    =  INT(F_nBlocksY,    kind=MILHOJA_INT)
-        C_nBlocksZ    =  INT(F_nBlocksZ,    kind=MILHOJA_INT)
-        C_lRefineMax  =  INT(F_lRefineMax,  kind=MILHOJA_INT)
-        C_nGuard      =  INT(F_nGuard,      kind=MILHOJA_INT)
-        C_nCcVars     =  INT(F_nCcVars,     kind=MILHOJA_INT)
-
-        C_initBlock   = C_FUNLOC(F_initBlock)
-        C_errorEst    = C_FUNLOC(F_errorEst)
-
-        C_ierr = milhoja_grid_init_C(C_globalCommF,                      &
-                                     C_xMin, C_xMax,                     &
-                                     C_yMin, C_yMax,                     &
-                                     C_zMin, C_zMax,                     &
-                                     C_nxb, C_nyb, C_nzb,                &
-                                     C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
-                                     C_lRefineMax,                       &
-                                     C_nGuard, C_nCcVars,                &
-                                     C_initBlock, C_errorEst)
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_grid_init_C(globalCommF,                  &
+                                   xMin, xMax,                   &
+                                   yMin, yMax,                   &
+                                   zMin, zMax,                   &
+                                   nxb, nyb, nzb,                &
+                                   nBlocksX, nBlocksY, nBlocksZ, &
+                                   lRefineMax,                   &
+                                   nGuard, nCcVars,              &
+                                   initBlock_CPTR, errorEst_CPTR)
     end subroutine milhoja_grid_init
 
     !> Finalize the grid infrastructure.  It is assumed that calling code is
@@ -299,14 +244,11 @@ contains
     !!
     !! @todo Confirm that grid must be finalized first.
     !!
-    !! @param F_ierr    The milhoja error code
-    subroutine milhoja_grid_finalize(F_ierr)
-        integer, intent(OUT) :: F_ierr
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_grid_finalize(ierr)
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_ierr = milhoja_grid_finalize_C()
-        F_ierr = INT(C_ierr)
+        ierr = milhoja_grid_finalize_C()
     end subroutine milhoja_grid_finalize
 
     !> Initialize the domain and set the initial conditions such that the mesh
@@ -347,20 +289,14 @@ contains
     !> Obtain the index of the finest mesh refinement level that could be
     !! used at any time during execution.
     !!
-    !! @param F_level    The 1-based index of the level where 1 is coarsest
-    !! @param F_ierr     The milhoja error code
-    subroutine milhoja_grid_getMaxFinestLevel(F_level, F_ierr)
-        integer, intent(OUT) :: F_level
-        integer, intent(OUT) :: F_ierr
-
-        integer(MILHOJA_INT) :: C_level
-        integer(MILHOJA_INT) :: C_ierr
-
-        C_ierr = milhoja_grid_max_finest_level_C(C_level)
-        F_ierr = INT(C_ierr)
+    !! @param level    The 1-based index of the level where 1 is coarsest
+    !! @param ierr     The milhoja error code
+    subroutine milhoja_grid_getMaxFinestLevel(level, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: level
+        integer(MILHOJA_INT), intent(OUT) :: ierr
 
         ! Assuming C interface has 1-based level index set
-        F_level = INT(C_level)
+        ierr = milhoja_grid_max_finest_level_C(level)
     end subroutine milhoja_grid_getMaxFinestLevel
 
     !> Obtain the index of the finest mesh refinement level that is currently
@@ -390,25 +326,23 @@ contains
     !! for setting or ignoring such data.  This routine will not alter or
     !! overwrite such values in the given arrays.
     !!
-    !! @param F_lo      The coordinates of the low point used to define the box
-    !! @param F_hi      The coordinates of the high point used to define the box
-    !! @param F_ierr    The milhoja error code
-    subroutine milhoja_grid_getDomainBoundBox(F_lo, F_hi, F_ierr)
+    !! @param lo      The coordinates of the low point used to define the box
+    !! @param hi      The coordinates of the high point used to define the box
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_grid_getDomainBoundBox(lo, hi, ierr)
         use iso_c_binding, ONLY : C_PTR, &
                                   C_LOC
 
-        real,    intent(INOUT), target :: F_lo(1:MDIM)
-        real,    intent(INOUT), target :: F_hi(1:MDIM)
-        integer, intent(OUT)           :: F_ierr
+        real(MILHOJA_REAL),   intent(INOUT), target :: lo(1:MDIM)
+        real(MILHOJA_REAL),   intent(INOUT), target :: hi(1:MDIM)
+        integer(MILHOJA_INT), intent(OUT)           :: ierr
 
-        type(C_PTR)          :: C_lo
-        type(C_PTR)          :: C_hi
-        integer(MILHOJA_INT) :: C_ierr
+        type(C_PTR) :: lo_CPTR
+        type(C_PTR) :: hi_CPTR
 
-        C_lo = C_LOC(F_lo)
-        C_hi = C_LOC(F_hi)
-        C_ierr = milhoja_grid_domain_bound_box_C(C_lo, C_hi)
-        F_ierr = INT(C_ierr)
+        lo_CPTR = C_LOC(lo)
+        hi_CPTR = C_LOC(hi)
+        ierr = milhoja_grid_domain_bound_box_C(lo_CPTR, hi_CPTR)
     end subroutine milhoja_grid_getDomainBoundBox
 
     !> Obtain the mesh refinement values for the given refinement level.
