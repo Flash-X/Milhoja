@@ -71,7 +71,7 @@ Backend::~Backend(void) {
     instantiated_ = false;
     nStreams_ = 0;
     nBytesInMemoryPools_ = 0;
-};
+}
 
 }
 

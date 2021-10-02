@@ -16,7 +16,7 @@ version of the sofware that was used during execution.
 TODO: Allow for macro renaming?  If the rename is propagated correctly to
 all functions that used the original name, then the change should be transparent
 to calling code.
-TODO: The above should be in the developer's guide rather than here.
+TODO: The above should be in the developers guide rather than here.
 --------------------------------------------------------------------------------
 #endif
 

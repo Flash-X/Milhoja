@@ -166,6 +166,8 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
 /**
   * \brief Remake Level
   *
+  * @todo Check for overflows with the casts
+  *
   * \param lev Level being made
   * \param time Simulation time
   * \param ba BoxArray of level being made
@@ -179,7 +181,9 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
     Logger::instance().log(msg);
 #endif
 
-    amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
+    int   nCcVars_amrex = static_cast<int>(nCcVars_);
+    int   nGuard_amrex  = static_cast<int>(nGuard_);
+    amrex::MultiFab unkTmp{ba, dm, nCcVars_amrex, nGuard_amrex};
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
