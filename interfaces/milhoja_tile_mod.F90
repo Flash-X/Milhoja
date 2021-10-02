@@ -94,92 +94,92 @@ contains
     !!       so that calling code can retrieve the message and use as desired.
     !!
     !! @param C_dataItemPtr   The pointer to the C++ dataItem (i.e. tile) object
-    !! @param F_gId           The grid index associated with the tile, which is
+    !! @param gId             The grid index associated with the tile, which is
     !!                        presumably meaningful to the grid backend
-    !! @param F_level         The 1-based index of the tile's refinement level
-    !! @param F_lo            The global indices (1-based) of the low point that
+    !! @param level           The 1-based index of the tile's refinement level
+    !! @param lo              The global indices (1-based) of the low point that
     !!                        defines the interior of the tile
-    !! @param F_hi            The global indices (1-based) of the high point that
+    !! @param hi              The global indices (1-based) of the high point that
     !!                        defines the interior of the tile
-    !! @param F_loGC          The global indices (1-based) of the low point that
+    !! @param loGC            The global indices (1-based) of the low point that
     !!                        defines the interior+GC of the tile
-    !! @param F_hiGC          The global indices (1-based) of the high point that
+    !! @param hiGC            The global indices (1-based) of the high point that
     !!                        defines the interior+GC of the tile
     !! @param C_dataPtr       The C data pointer reinterpreted as a C_PTR derived type
     !! @param F_dataPtr       The C data pointer reinterpreted as a Fortran array.
-    !! @param F_ierr          The milhoja error code
-    subroutine milhoja_tile_getMetadata(C_dataItemPtr,              &
-                                        F_gId, F_level,             &
-                                        F_lo, F_hi, F_loGC, F_hiGC, &
-                                        C_dataPtr, F_dataPtr,       &
-                                        F_ierr)
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_tile_getMetadata(C_dataItemPtr,        &
+                                        gId, level,           &
+                                        lo, hi, loGC, hiGC,   &
+                                        C_dataPtr, F_dataPtr, &
+                                        ierr)
         use iso_c_binding,      ONLY : C_PTR, &
                                        C_LOC, &
                                        C_ASSOCIATED, &
                                        C_F_POINTER
 
-        type(C_PTR), intent(IN)                    :: C_dataItemPtr
-        integer,     intent(OUT)                   :: F_gId
-        integer,     intent(OUT)                   :: F_level
-        integer,     intent(INOUT), target         :: F_lo(1:MDIM)
-        integer,     intent(INOUT), target         :: F_hi(1:MDIM)
-        integer,     intent(INOUT), target         :: F_loGC(1:MDIM)
-        integer,     intent(INOUT), target         :: F_hiGC(1:MDIM)
-        type(C_PTR), intent(OUT)                   :: C_dataPtr
-        real,                              pointer :: F_dataPtr(:, :, :, :) ! intent(INOUT)
-        integer,     intent(OUT)                   :: F_ierr
+        use milhoja_types_mod, ONLY : MILHOJA_REAL
 
-        integer(MILHOJA_INT) :: C_gId
-        integer(MILHOJA_INT) :: C_level
-        type(C_PTR)          :: C_lo
-        type(C_PTR)          :: C_hi
-        type(C_PTR)          :: C_loGC
-        type(C_PTR)          :: C_hiGC
-        integer(MILHOJA_INT) :: C_ierr
+        type(C_PTR),          intent(IN)                    :: C_dataItemPtr
+        integer(MILHOJA_INT), intent(OUT)                   :: gId
+        integer(MILHOJA_INT), intent(OUT)                   :: level
+        integer(MILHOJA_INT), intent(INOUT), target         :: lo(1:MDIM)
+        integer(MILHOJA_INT), intent(INOUT), target         :: hi(1:MDIM)
+        integer(MILHOJA_INT), intent(INOUT), target         :: loGC(1:MDIM)
+        integer(MILHOJA_INT), intent(INOUT), target         :: hiGC(1:MDIM)
+        type(C_PTR),          intent(INOUT)                 :: C_dataPtr
+        real(MILHOJA_REAL),                         pointer :: F_dataPtr(:, :, :, :) ! intent(INOUT)
+        integer(MILHOJA_INT), intent(OUT)                   :: ierr
 
-        integer(MILHOJA_INT) :: C_nVariables
-        integer              :: F_shape(1:MDIM+1)
+        type(C_PTR)          :: lo_CPTR
+        type(C_PTR)          :: hi_CPTR
+        type(C_PTR)          :: loGC_CPTR
+        type(C_PTR)          :: hiGC_CPTR
+        integer(MILHOJA_INT) :: nVariables
+
+        integer :: dataShape(1:MDIM+1)
+
+        gId = -1
+        level = -1
 
         ! Prevent possible memory leaks
         if      (C_ASSOCIATED(C_dataPtr)) then
             write(*,'(A)') "[milhoja_tile_getMetadata] C_dataPtr not NULL"
-            F_ierr = MILHOJA_ERROR_POINTER_NOT_NULL
+            ierr = MILHOJA_ERROR_POINTER_NOT_NULL
             RETURN
         else if (ASSOCIATED(F_dataPtr)) then
             write(*,'(A)') "[milhoja_tile_getMetadata] F_dataPtr not NULL"
-            F_ierr = MILHOJA_ERROR_POINTER_NOT_NULL
+            ierr = MILHOJA_ERROR_POINTER_NOT_NULL
             RETURN
         end if
 
         ! Assuming for C interface that points are defined w.r.t. a 1-based
         ! global index space.
-        C_lo   = C_LOC(F_lo)
-        C_hi   = C_LOC(F_hi)
-        C_loGC = C_LOC(F_loGC)
-        C_hiGC = C_LOC(F_hiGC)
-        C_ierr = milhoja_tile_get_metadata_c(C_dataItemPtr,              &
-                                             C_gId, C_level,             &
-                                             C_lo, C_hi, C_loGC, C_hiGC, &
-                                             C_nVariables, C_dataPtr)
-        F_ierr = INT(C_ierr)
+        lo_CPTR   = C_LOC(lo)
+        hi_CPTR   = C_LOC(hi)
+        loGC_CPTR = C_LOC(loGC)
+        hiGC_CPTR = C_LOC(hiGC)
 
-        if (F_ierr == MILHOJA_SUCCESS) then
-            F_gId   = INT(C_gId)
-            ! Assuming for C interface that level index set is 1-based
-            F_level = INT(C_level)
+        ! Assuming for C interface that level index set is 1-based
+        ierr = milhoja_tile_get_metadata_c(C_dataItemPtr,           &
+                                           gId, level,              &
+                                           lo_CPTR,   hi_CPTR,      &
+                                           loGC_CPTR, hiGC_CPTR,    &
+                                           nVariables, C_dataPtr)
 
+        if (ierr == MILHOJA_SUCCESS) then
             if (.NOT. C_ASSOCIATED(C_dataPtr)) then
                 write(*,'(A)') "[milhoja_tile_getMetaData] C_dataPtr is NULL"
-                F_ierr = MILHOJA_ERROR_POINTER_IS_NULL
+                ierr = MILHOJA_ERROR_POINTER_IS_NULL
                 RETURN
             end if
 
-            F_shape(1:MDIM) = F_hiGC(1:MDIM) - F_loGC(1:MDIM) + 1
-            F_shape(MDIM+1) = INT(C_nVariables)
-            CALL C_F_POINTER(C_dataPtr, F_dataPtr, shape=F_shape)
+            dataShape(1:MDIM) = hiGC(1:MDIM) - loGC(1:MDIM) + 1
+            dataShape(MDIM+1) = nVariables
+            CALL C_F_POINTER(C_dataPtr, F_dataPtr, shape=dataShape)
             if (.NOT. ASSOCIATED(F_dataPtr)) then
                 write(*,'(A)') "[milhoja_tile_getMetadata] F_dataPtr is NULL"
-                F_ierr = MILHOJA_ERROR_POINTER_IS_NULL
+                ierr = MILHOJA_ERROR_POINTER_IS_NULL
                 RETURN
             end if
         end if
