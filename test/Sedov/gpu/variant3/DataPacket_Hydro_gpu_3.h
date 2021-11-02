@@ -47,6 +47,11 @@ public:
     Real*   scratchFaceZ_devptr(void) const;
 
 private:
+    // Specify byte alignment of each memory request
+    static constexpr std::size_t    ALIGN_SIZE = 16;
+    static constexpr std::size_t    pad(const std::size_t sz) 
+        { return ((sz + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }
+
 #if NDIM == 3
     Stream  stream2_;
     Stream  stream3_;

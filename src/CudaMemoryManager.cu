@@ -190,10 +190,6 @@ void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
                                        void** pinnedPtr,
                                        const std::size_t gpuBytes,
                                        void** gpuPtr) {
-    // Specify byte alignment of each memory request
-    constexpr    std::size_t    ALIGN_SIZE    = 8;
-    constexpr    double         ALIGN_SIZE_FP = static_cast<double>(ALIGN_SIZE);
-
     if ((pinnedBytes == 0) || (gpuBytes == 0)) {
         std::string  errMsg = "[CudaMemoryManager::requestMemory] ";
         errMsg += "Requests of zero indicate logical error\n";
@@ -204,10 +200,14 @@ void  CudaMemoryManager::requestMemory(const std::size_t pinnedBytes,
     // can make certain that all memory requests are byte aligned to the size
     // set above by automatically sizing each memory request to be a multiple of
     // the byte alignment size.
-    std::size_t   pinnedBytes_padded =
-                    static_cast<std::size_t>(ceil(pinnedBytes / ALIGN_SIZE_FP)) * ALIGN_SIZE;
-    std::size_t   gpuBytes_padded    =
-                    static_cast<std::size_t>(ceil(gpuBytes    / ALIGN_SIZE_FP)) * ALIGN_SIZE;
+    std::size_t   pinnedBytes_padded = pad(pinnedBytes);
+    if ((pinnedBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[CudaMM] pinnedBytes padding failed");
+    }
+    std::size_t   gpuBytes_padded    = pad(gpuBytes);
+    if ((gpuBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[CudaMM] gpuBytes padding failed");
+    }
 
     pthread_mutex_lock(&mutex_);
 

@@ -13,6 +13,7 @@
 #include "Driver.h"
 
 #include "Flash.h"
+#include "constants.h"
 
 #if NFLUXES <= 0
 #error "Sedov problem should include fluxes"
@@ -294,22 +295,25 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     std::size_t    sz_hi     = MDIM * sizeof(int);
     std::size_t    sz_loGC   = MDIM * sizeof(int);
     std::size_t    sz_hiGC   = MDIM * sizeof(int);
-    std::size_t    sz_U      =   nxb_h * nyb_h * nzb_h * nvar_h * sizeof(Real);
-    std::size_t    sz_auxC   =   nxb_h + nyb_h + nzb_h *          sizeof(Real);
+    std::size_t    sz_U      =  nxb_h * nyb_h * nzb_h * nvar_h * sizeof(Real);
+    std::size_t    sz_auxC   =  nxb_h * nyb_h * nzb_h *          sizeof(Real);
     // TODO: Can't this be sized smaller for simpleUnsplit?
-    std::size_t    sz_FX     =   (nxb_h + 1) *  nyb_h      *  nzb_h      * sizeof(Real);
-    std::size_t    sz_FY     =    nxb_h      * (nyb_h + 1) *  nzb_h      * sizeof(Real);
-    std::size_t    sz_FZ     =    nxb_h      *  nyb_h      * (nzb_h + 1) * sizeof(Real);
+    // TODO: Temporarily fix to 2D case
+    std::size_t    sz_FX     = (nxb_h + K1D) *  nyb_h        *  nzb_h        * NFLUXES * sizeof(Real);
+    std::size_t    sz_FY     =  nxb_h        * (nyb_h + K2D) *  nzb_h        * NFLUXES * sizeof(Real);
+    // The update solution function is passed FZ regardless of the fact that it
+    // won't use it.  As part of this, we get FZ for the nth tile.  Therefore,
+    // we have a single element per tile so that indexing into FZ by tile still
+    // yields a valid array.  We could make this array a single element, but the
+    // code generator would need to write that code so that it only every
+    // indexed into FZ for the first tile.
+    std::size_t    sz_FZ     =  1            *  1            *  1            * 1       * sizeof(Real);
 
-    std::size_t    nScratchBytes = nTiles_h_ * (sz_auxC + sz_FX);
-#if NDIM >= 2
-    nScratchBytes += nTiles_h_ * sz_FY;
-#endif
-#if NDIM == 3
-    nScratchBytes += nTiles_h_ * sz_FZ;
-#endif
-    std::size_t    nScratchBytes_padded 
-                        = static_cast<std::size_t>(ceil(nScratchBytes / 8.0)) * 8;
+    std::size_t    nScratchBytes = nTiles_h_ * (sz_auxC + sz_FX + sz_FY + sz_FZ);
+    std::size_t    nScratchBytes_padded = pad(nScratchBytes);
+    if ((nScratchBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[Packet] nScratchBytes padding failed");
+    }
 
     std::size_t    nCopyInBytes =   sz_nTiles
                                   + sz_dt
@@ -317,16 +321,22 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                     * (  sz_deltas
                                        + sz_lo   + sz_hi
                                        + sz_loGC + sz_hiGC);
-    std::size_t    nCopyInBytes_padded 
-                        = static_cast<std::size_t>(ceil(nCopyInBytes / 8.0)) * 8;
+    std::size_t    nCopyInBytes_padded = pad(nCopyInBytes);
+    if ((nCopyInBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[Packet] nCopyInBytes padding failed");
+    }
 
     std::size_t    nCopyInOutBytes = nTiles_h_ * sz_U;
-    std::size_t    nCopyInOutBytes_padded 
-                        = static_cast<std::size_t>(ceil(nCopyInOutBytes / 8.0)) * 8;
+    std::size_t    nCopyInOutBytes_padded = pad(nCopyInOutBytes);
+    if ((nCopyInOutBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[Packet] nCopyInOutBytes padding failed");
+    }
 
     std::size_t    nCopyOutBytes   = 0;
-    std::size_t    nCopyOutBytes_padded 
-                        = static_cast<std::size_t>(ceil(nCopyOutBytes / 8.0)) * 8;
+    std::size_t    nCopyOutBytes_padded = pad(nCopyOutBytes);
+    if ((nCopyOutBytes_padded % ALIGN_SIZE) != 0) {
+        throw std::logic_error("[Packet] nCopyOutBytes padding failed");
+    }
 
     nCopyToGpuBytes_    = nCopyInBytes_padded    + nCopyInOutBytes;
     nReturnToHostBytes_ = nCopyInOutBytes_padded + nCopyOutBytes;
@@ -335,9 +345,32 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                    + nCopyInOutBytes_padded
                                    + nCopyOutBytes_padded;
 
+//    std::cout << "nTiles_h_              = " << nTiles_h_              << std::endl;
+//    std::cout << "sz_nTiles              = " << sz_nTiles              << std::endl;
+//    std::cout << "sz_dt                  = " << sz_dt                  << std::endl;
+//    std::cout << "sz_deltas              = " << sz_deltas              << std::endl;
+//    std::cout << "sz_lo                  = " << sz_lo                  << std::endl;
+//    std::cout << "sz_hi                  = " << sz_hi                  << std::endl;
+//    std::cout << "sz_loGC                = " << sz_loGC                << std::endl;
+//    std::cout << "sz_hiGC                = " << sz_hiGC                << std::endl;
+//    std::cout << "sz_U                   = " << sz_U                   << std::endl;
+//    std::cout << "sz_auxC                = " << sz_auxC                << std::endl;
+//    std::cout << "sz_FX                  = " << sz_FX                  << std::endl;
+//    std::cout << "sz_FY                  = " << sz_FY                  << std::endl;
+//    std::cout << "sz_FZ                  = " << sz_FZ                  << std::endl;
+//    std::cout << "nScratchBytes          = " << nScratchBytes          << std::endl;
+//    std::cout << "nScratchBytes_padded   = " << nScratchBytes_padded   << std::endl;
+//    std::cout << "nCopyInBytes           = " << nCopyInBytes           << std::endl;
+//    std::cout << "nCopyInBytes_padded    = " << nCopyInBytes_padded    << std::endl;
+//    std::cout << "nCopyInOutBytes        = " << nCopyInOutBytes        << std::endl;
+//    std::cout << "nCopyInOutBytes_padded = " << nCopyInOutBytes_padded << std::endl;
+//    std::cout << "nCopyOutBytes          = " << nCopyOutBytes          << std::endl;
+//    std::cout << "nCopyOutBytes_padded   = " << nCopyOutBytes_padded   << std::endl;
+//    std::cout << "nBytesPerPacket        = " << nBytesPerPacket        << std::endl;
+
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
-    // At present, this call makes certain that each data packet is
+    // At present, this call makes certain that each memory buffer acquires is
     // appropriately byte aligned.
     Backend::instance().requestGpuMemory(nBytesPerPacket - nScratchBytes_padded,
                                          &packet_p_, nBytesPerPacket, &packet_d_);
@@ -352,14 +385,10 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
     faceX_start_d_ = static_cast<void*>(ptr_d);
     ptr_d += nTiles_h_ * sz_FX;
-#if NDIM >= 2
     faceY_start_d_ = static_cast<void*>(ptr_d);
     ptr_d += nTiles_h_ * sz_FY;
-#endif
-#if NDIM == 3
     faceZ_start_d_ = static_cast<void*>(ptr_d);
     ptr_d += nTiles_h_ * sz_FZ;
-#endif
  
     //----- BYTE-ALIGN COPY-IN SECTION
     // Order from largest to smallest in data type size
@@ -468,7 +497,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                    "Invalid pointer to data in host memory");
         }
 
-        Real    deltas_h[MDIM] = {deltas[0], deltas[1], deltas[2]};
+        Real    deltas_h[MDIM] = {deltas.I(), deltas.J(), deltas.K()};
         char_ptr = static_cast<char*>(deltas_start_p_) + n * sz_deltas;
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(deltas_h),
@@ -476,7 +505,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
         // Global index space is 0-based in runtime; 1-based in Fortran code.
         // Translate here so that it is immediately ready for use with Fortran.
-        int     lo_h[MDIM] = {lo[0]+1, lo[1]+1, lo[2]+1};
+        int     lo_h[MDIM] = {lo.I()+1, lo.J()+1, lo.K()+1};
         char_ptr = static_cast<char*>(lo_start_p_) + n * sz_lo;
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(lo_h),
@@ -484,7 +513,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
         // Global index space is 0-based in runtime; 1-based in Fortran code.
         // Translate here so that it is immediately ready for use with Fortran.
-        int     hi_h[MDIM] = {hi[0]+1, hi[1]+1, hi[2]+1};
+        int     hi_h[MDIM] = {hi.I()+1, hi.J()+1, hi.K()+1};
         char_ptr = static_cast<char*>(hi_start_p_) + n * sz_hi;
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(hi_h),
@@ -492,7 +521,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
         // Global index space is 0-based in runtime; 1-based in Fortran code.
         // Translate here so that it is immediately ready for use with Fortran.
-        int     loGC_h[MDIM] = {loGC[0]+1, loGC[1]+1, loGC[2]+1};
+        int     loGC_h[MDIM] = {loGC.I()+1, loGC.J()+1, loGC.K()+1};
         char_ptr = static_cast<char*>(loGC_start_p_) + n * sz_loGC;
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(loGC_h),
@@ -500,7 +529,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
         // Global index space is 0-based in runtime; 1-based in Fortran code.
         // Translate here so that it is immediately ready for use with Fortran.
-        int     hiGC_h[MDIM] = {hiGC[0]+1, hiGC[1]+1, hiGC[2]+1};
+        int     hiGC_h[MDIM] = {hiGC.I()+1, hiGC.J()+1, hiGC.K()+1};
         char_ptr = static_cast<char*>(hiGC_start_p_) + n * sz_hiGC;
         std::memcpy(static_cast<void*>(char_ptr),
                     static_cast<void*>(hiGC_h),
@@ -526,13 +555,6 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
     }
-//#if NDIM == 3
-//    stream2_ = Backend::instance().requestStream(true);
-//    stream3_ = Backend::instance().requestStream(true);
-//    if (!stream2_.isValid() || !stream3_.isValid()) {
-//        throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
-//    }
-//#endif
 }
 
 }

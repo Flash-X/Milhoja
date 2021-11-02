@@ -5,6 +5,7 @@
 #include "hy_advance_solution_hll_3_packet_oacc_tf.h"
 
 #include "Flash.h"
+#include "constants.h"
 #include "DataPacket_Hydro_gpu_3.h"
 
 //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
@@ -12,7 +13,7 @@ extern "C" {
     void   hy_advancesolutionhll_3_packet_oacc_c2f(const int dataQ_h,
                                                    const int nTiles_h,
                                                    const int nxb_h, const int nyb_h, const int nzb_h,
-                                                   const int nvar_h,
+                                                   const int nCcVar_h, const int nFluxVar_h,
                                                    const int* nTiles_d, const double* dt_d,
                                                    const double* deltas_start_d,
                                                    const int* lo_start_d,   const int* hi_start_d,
@@ -33,13 +34,15 @@ extern "C" {
         using namespace orchestration;
 
         DataPacket_Hydro_gpu_3*    packet_h = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
-        const int                  dataQ_h  = packet_h->asynchronousQueue();
-        const int                  nTiles_h = packet_h->nTiles_host();
+        const PacketDataLocation   location  = packet_h->getDataLocation();
+        const int                  dataQ_h   = packet_h->asynchronousQueue();
+        const int                  nTiles_h  = packet_h->nTiles_host();
         int   nxb_h  = -1;
         int   nyb_h  = -1;
         int   nzb_h  = -1;
-        int   nvar_h = -1;
-        packet_h->tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nvar_h);
+        int   nCcVar_h = -1;
+        int   nFluxVar_h = NFLUXES;
+        packet_h->tileSize_host(&nxb_h, &nyb_h, &nzb_h, &nCcVar_h);
 
         int*     nTiles_d       = packet_h->nTiles_devptr();
         // TODO: Within this layer the dt_* variables should be double since
@@ -79,11 +82,17 @@ extern "C" {
         // variables in memory sounds like part of the larger optimization problem
         // as it affects all data packets.
         packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
+
+        if (location != PacketDataLocation::CC1) {
+            throw std::runtime_error("[hy_advance_solution_hll_3_packet_oacc_tf] "
+                                     "Input data must be in CC1");
+        }
    
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
         hy_advancesolutionhll_3_packet_oacc_c2f(dataQ_h,
                                                 nTiles_h,
-                                                nxb_h, nyb_h, nzb_h, nvar_h,
+                                                nxb_h, nyb_h, nzb_h,
+                                                nCcVar_h, nFluxVar_h,
                                                 nTiles_d, dt_d,
                                                 deltas_start_d,
                                                 lo_start_d,   hi_start_d,

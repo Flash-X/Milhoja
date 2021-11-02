@@ -10,8 +10,8 @@ TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant3/gpuonly
 # Define compiler flags in CXXFLAGS_TEST_*
 CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-F03FLAGS_TEST_DEBUG = $(OACC_FLAGS)
-F03FLAGS_TEST_PROD  = $(OACC_FLAGS)
+F03FLAGS_TEST_DEBUG = -Mpreprocess $(OACC_FLAGS)
+F03FLAGS_TEST_PROD  = -Mpreprocess $(OACC_FLAGS)
 CUFLAGS_TEST        = -I$(SEDOVDIR)                                                                -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
 LDFLAGS_TEST        = $(OACC_FLAGS)
 
@@ -33,18 +33,19 @@ SRCS_TEST = \
 	$(SEDOVGPUV3DIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(SEDOVGPUV3DIR)/hy_advance_solution_hll_3_packet_oacc_tf.cpp \
 	$(TESTDIR)/sedov_gpuonly_3.cpp
-#	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
-#	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
-#	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
-#	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc_summit.cpp \
-#	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc_summit.cpp \
-#	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 
 FSRCS_TEST = \
 	$(SEDOVGPUV3DIR)/hy_cg_interface.F03 \
+	$(SEDOVGPUDIR)/eos_cg_interface.F03 \
+	$(SEDOVGPUDIR)/Eos_data.F03 \
 	$(SEDOVGPUV3DIR)/hy_advanceSolutionHll_3_packet_oacc_C2F.F03 \
 	$(SEDOVGPUV3DIR)/hy_advanceSolutionHll_3_packet_oacc.F03 \
-	$(SEDOVGPUV3DIR)/hy_kernel_3_packet_oacc.F03
+	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc.F03 \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc.F03 \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc.F03 \
+	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc.F03 \
+	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc.F03 \
+	$(SEDOVGPUDIR)/eos_idealGammaDensIe_oacc.F03
 
 CU_SRCS = \
 	$(SRCDIR)/CudaBackend.cu \

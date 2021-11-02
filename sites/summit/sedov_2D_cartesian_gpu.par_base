@@ -25,7 +25,7 @@ namespace rp_Bundle_2 {
 namespace rp_Driver {
     // This is how I fake a Driver_computeDt
     constexpr orchestration::Real   DT_AFTER            = 2.0e-5_wp;
-    constexpr unsigned int          WRITE_EVERY_N_STEPS = 10000;
+    constexpr unsigned int          WRITE_EVERY_N_STEPS = 5;
 }
 
 namespace rp_Grid {

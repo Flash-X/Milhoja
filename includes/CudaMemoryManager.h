@@ -40,6 +40,11 @@ public:
 private:
     CudaMemoryManager(void);
 
+    // Specify byte alignment of each memory request
+    static constexpr std::size_t    ALIGN_SIZE = 256;
+    static constexpr std::size_t    pad(const std::size_t sz) 
+        { return ((sz + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }
+
     static std::size_t  nBytes_;
     static bool         instantiated_;
 

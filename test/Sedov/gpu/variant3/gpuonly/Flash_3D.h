@@ -18,6 +18,17 @@ be last.  See Hydro_advanceSolutionHll_packet_oacc_summit_* for more info.
 #define GAMC_VAR_C 8
 #define GAME_VAR_C 9
 
+#define DENS_VAR 1
+#define VELX_VAR 2
+#define VELY_VAR 3
+#define VELZ_VAR 4
+#define PRES_VAR 5
+#define ENER_VAR 6
+#define TEMP_VAR 7
+#define EINT_VAR 8
+#define GAMC_VAR 9
+#define GAME_VAR 10
+
 #define NUNKVAR    10
 #define UNK_VARS_BEGIN_C  DENS_VAR_C
 #define UNK_VARS_END_C    GAME_VAR_C
@@ -28,6 +39,12 @@ be last.  See Hydro_advanceSolutionHll_packet_oacc_summit_* for more info.
 #define HY_YMOM_FLUX_C  2
 #define HY_ZMOM_FLUX_C  3
 #define HY_ENER_FLUX_C  4
+
+#define HY_DENS_FLUX  1
+#define HY_XMOM_FLUX  2
+#define HY_YMOM_FLUX  3
+#define HY_ZMOM_FLUX  4
+#define HY_ENER_FLUX  5
 
 #define NMASS_SCALARS   0
 
