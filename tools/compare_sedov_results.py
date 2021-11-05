@@ -55,9 +55,9 @@ if __name__ == '__main__':
     result_A = Path(sys.argv[1])
     result_B = Path(sys.argv[2])
 
-    FCOMPARE_ENV_VAR = os.getenv('FCOMPARE_PATH')
-    if FCOMPARE_ENV_VAR == None:
-        print_usage('Please set FCOMPARE_PATH')
+    FCOMPARE_EXE = os.getenv('FCOMPARE_EXE')
+    if FCOMPARE_EXE == None:
+        print_usage('Please set FCOMPARE_EXE')
         exit(2)
 
     if   not result_A.is_dir():
@@ -94,6 +94,10 @@ if __name__ == '__main__':
         print()
         print(f'Integral Quantities A Check - SUCCESS')
         print()
+        print('Sedov A Result Summary')
+        print('-' * 80)
+        print(r_A)
+        print()
     except ValueError as err:
         print()
         print(f'Integral Quantities A Check - FAILED')
@@ -113,6 +117,10 @@ if __name__ == '__main__':
         print()
         print(f'Integral Quantities B Check - SUCCESS')
         print()
+        print('Sedov B Result Summary')
+        print('-' * 80)
+        print(r_B)
+        print()
     except ValueError as err:
         print()
         print(f'Integral Quantities B Check - FAILED')
@@ -124,16 +132,6 @@ if __name__ == '__main__':
         print('An unknown error was trapped on B')
         print()
         did_iq_fail = True
-
-    print()
-    print('Sedov A Result Summary')
-    print('-' * 80)
-    print(r_A)
-    print()
-    print('Sedov B Result Summary')
-    print('-' * 80)
-    print(r_B)
-    print()
 
     if did_iq_fail:
         print()
@@ -173,7 +171,7 @@ if __name__ == '__main__':
 
     did_fcompare_fail = False
     try:
-        cmd = [FCOMPARE_ENV_VAR, \
+        cmd = [FCOMPARE_EXE, \
                '--norm', str(sedov.FCOMPARE_NORM), \
                '--rel_tol', str(sedov.FCOMPARE_TOLERANCE_RELERR), \
                fname_plot_A, fname_plot_B]
