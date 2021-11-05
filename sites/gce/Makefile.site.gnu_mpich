@@ -1,6 +1,6 @@
-BASEDIR      = $(HOME)/Projects/OrchestrationRuntime
-AMREXDIR     = $(RUNTIME_DEP_PATH)/gnu_7.5.0/AMReX_$(NDIM)D
-GTESTDIR     = $(RUNTIME_DEP_PATH)/gnu_7.5.0/googletest
+BASEDIR      = $(MILHOJA_CODE_REPO)
+AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/AMReX_$(NDIM)D
+GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/googletest
 CUDADIR      =
 
 CXXCOMPNAME  = gnu
