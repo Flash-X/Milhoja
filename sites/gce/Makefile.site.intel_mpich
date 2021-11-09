@@ -1,0 +1,35 @@
+BASEDIR      = $(MILHOJA_CODE_REPO)
+AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/AMReX_$(NDIM)D
+GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/googletest
+CUDADIR      =
+
+CXXCOMPNAME  = intel
+CXXCOMP      = mpicxx
+
+CXXFLAGS_PROD    = -O3
+CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
+
+CUCOMP       =
+CUFLAGS_PROD =
+
+LDFLAGS_STD = -lpthread -lifcore
+
+CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
+CUFLAGS_AMREX    =
+CUFLAGS_GTEST    =
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib
+LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib
+
+LCOV =
+GENHTML =
+
+CXXFLAGS_COV =
+LDFLAGS_COV  =
+
+# Define flags for OpenMP
+AMREXDIR_OMP  =
+OMP_FLAGS     = -qopenmp
+CU_OMP_FLAGS  =
+OACC_FLAGS    =
+
