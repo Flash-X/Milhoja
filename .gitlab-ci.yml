@@ -84,7 +84,7 @@ test_gnu:
  # Unittests
  - ./buildTestGrid.sh                                             && ./testGrid.sh
  - ./buildTestThreadTeam.sh                                       && ./testThreadTeam.sh
- - ./buildTestRuntimeNull.sh && ./buildTestRuntimeNull.sh --debug && ./testRuntimeNull.sh
+ - ./buildTestRuntimeNull.sh                                      && ./testRuntimeNull.sh
  - ./buildTestRuntimeCpu.sh  && ./buildTestRuntimeCpu.sh --debug  && ./testRuntimeCpu.sh
  # Acquire Sedov results for regression testing
  # Run only in production since the debugs can run so long on sandy bridge that the
