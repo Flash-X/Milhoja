@@ -83,7 +83,7 @@ test_gnu:
  - cd $MILHOJA_WORK_REPO/gce
  # Unittests
  - ./buildTestGrid.sh                                             && ./testGrid.sh
- - ./buildTestThreadTeam.sh  && ./buildTestThreadTeam.sh --debug  && ./testThreadTeam.sh
+ - ./buildTestThreadTeam.sh                                       && ./testThreadTeam.sh
  - ./buildTestRuntimeNull.sh && ./buildTestRuntimeNull.sh --debug && ./testRuntimeNull.sh
  - ./buildTestRuntimeCpu.sh  && ./buildTestRuntimeCpu.sh --debug  && ./testRuntimeCpu.sh
  # Acquire Sedov results for regression testing
