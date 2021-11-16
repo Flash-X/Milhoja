@@ -41,7 +41,7 @@ test_gnu:
  - echo $PWD
  - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
- - export MILHOJA_CODE_REPO=$CI_BASE_PATH/Milhoja
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
  - . $MILHOJA_TEST_REPO/gce/available_gce_machines.sh
@@ -56,6 +56,7 @@ test_gnu:
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
  - pushd $CI_BASE_PATH
+ - ls
  - rm -rf $MILHOJA_WORK_REPO
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_REPO
