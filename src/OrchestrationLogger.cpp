@@ -5,15 +5,13 @@
 #include <stdexcept>
 #include <iostream>
 
-#ifndef LOGGER_NO_MPI
-#include <mpi.h>
-#endif
-
-#include "constants.h"
-
 namespace orchestration {
 
 std::string     Logger::logFilename_ = "";
+#ifndef LOGGER_NO_MPI
+MPI_Comm        Logger::comm_ = MPI_COMM_NULL;
+int             Logger::logRank_ = -1;
+#endif
 bool            Logger::instantiated_ = false;
 
 /**
@@ -29,22 +27,39 @@ bool            Logger::instantiated_ = false;
  */
 void   Logger::setLogFilename(const std::string& filename) {
     if (filename == "") {
-        throw std::logic_error("[Logger::setLogFilename] Empty filename given");
+        throw std::invalid_argument("[Logger::setLogFilename] Empty filename given");
     }
 
     logFilename_ = filename;
 }
 
 /**
- * 
+ * Instantiate the logging singleton, which persists until program termination.
+ * This should only be called once and must be called before any calling code
+ * attempts to access the singleton via the instance method.
  *
+ * \param filename - the name of the file to which log output should be written
+ * \param logRank - the rank of the single MPI process that should perform logging
  */
+#ifdef LOGGER_NO_MPI
 void   Logger::instantiate(const std::string& filename) {
+#else
+void   Logger::instantiate(const std::string& filename,
+                           const MPI_Comm comm, const int logRank) {
+#endif
     if (instantiated_) {
         throw std::logic_error("[Logger::instantiate] Already instantiated");
     }
-
     setLogFilename(filename);
+    
+#ifndef LOGGER_NO_MPI
+    if (logRank < 0) {
+        throw std::invalid_argument("[Logger::instantiate] Negative rank");
+    }
+    comm_ = comm;
+    logRank_ = logRank;
+#endif
+
     instantiated_ = true;
 
     instance();
@@ -95,12 +110,17 @@ Logger::~Logger(void) {
     std::strftime(timestamp, sizeof(timestamp), "%FT%T", std::gmtime(&now_t));
     log("[Logger] Terminated at " + std::string(timestamp) + " UTC");
 
+    logFilename_ = "";
+#ifndef LOGGER_NO_MPI
+    comm_ = MPI_COMM_NULL;
+    logRank_ = -1;
+#endif
     instantiated_ = false;
 }
 
 #ifndef LOGGER_NO_MPI
 void   Logger::acquireRank(void) {
-    MPI_Comm_rank(GLOBAL_COMM, &rank_);
+    MPI_Comm_rank(comm_, &rank_);
 }
 #endif
 
@@ -112,7 +132,7 @@ void   Logger::log(const std::string& msg) const {
     using seconds = std::chrono::duration<double>;
 
 #ifndef LOGGER_NO_MPI
-    if (rank_ == MASTER_PE) {
+    if (rank_ == logRank_) {
 #endif
         auto endTime = std::chrono::steady_clock::now();
         std::string   elapsedTime = std::to_string(seconds(endTime - startTime_).count());

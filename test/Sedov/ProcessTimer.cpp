@@ -1,6 +1,5 @@
 #include "ProcessTimer.h"
 
-#include <mpi.h>
 #include <iomanip>
 
 #include "Grid.h"
@@ -18,18 +17,26 @@ ProcessTimer::ProcessTimer(const std::string& filename,
                            const unsigned int nCpuThreads,
                            const unsigned int nGpuThreads,
                            const unsigned int nBlocksPerPacket,
-                           const unsigned int nBlocksPerCpuTurn)
-    : rank_{-1},
+                           const unsigned int nBlocksPerCpuTurn,
+                           const MPI_Comm comm,
+                           const int timerRank)
+    : comm_{comm},
+      timerRank_{timerRank},
+      rank_{-1},
       nProcs_{-1},
       fptr_{},
       wtimes_sec_{nullptr},
       blockCounts_{nullptr}
 {
-    MPI_Comm_rank(GLOBAL_COMM, &rank_);
-    MPI_Comm_size(GLOBAL_COMM, &nProcs_);
+    if (timerRank_ < 0) {
+        throw std::invalid_argument("[ProcessTimer::ProcessTimer] Negative MPI rank");
+    }
+
+    MPI_Comm_rank(comm_, &rank_);
+    MPI_Comm_size(comm_, &nProcs_);
 
     // Write header to file
-    if (rank_ == MASTER_PE) {
+    if (rank_ == timerRank_) {
         wtimes_sec_  = new double[nProcs_];
         blockCounts_ = new unsigned int[nProcs_];
 
@@ -57,7 +64,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
  *
  */
 ProcessTimer::~ProcessTimer(void) {
-    if (rank_ == MASTER_PE) {
+    if (rank_ == timerRank_) {
         fptr_.close();
     }
 
@@ -78,13 +85,13 @@ ProcessTimer::~ProcessTimer(void) {
 void ProcessTimer::logTimestep(const unsigned int step, const double wtime_sec) {
     unsigned int nBlocks = orchestration::Grid::instance().getNumberLocalBlocks();
     MPI_Gather(&wtime_sec,  1, MPI_DOUBLE,
-               wtimes_sec_, 1, MPI_DOUBLE, MASTER_PE,
-               GLOBAL_COMM);
+               wtimes_sec_, 1, MPI_DOUBLE, timerRank_,
+               comm_);
     MPI_Gather(&nBlocks,     1, MPI_UNSIGNED,
-               blockCounts_, 1, MPI_UNSIGNED, MASTER_PE,
-               GLOBAL_COMM);
+               blockCounts_, 1, MPI_UNSIGNED, timerRank_,
+               comm_);
 
-    if (rank_ == MASTER_PE) {
+    if (rank_ == timerRank_) {
         fptr_ << std::setprecision(15) 
               << step << ",";
         for (unsigned int proc=0; proc<nProcs_; ++proc) {

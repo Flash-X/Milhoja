@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include <mpi.h>
+
 #include "ThreadTeam.h"
 #include "DataPacket.h"
 #include "ActionBundle.h"
@@ -51,7 +53,8 @@ public:
                                const unsigned int stagger_usec,
                                const RuntimeAction& gpuAction,
                                const DataPacket& packetPrototype,
-                               const unsigned int stepNumber);
+                               const unsigned int stepNumber,
+                               const MPI_Comm comm);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const RuntimeAction& gpuAction,
@@ -75,7 +78,8 @@ public:
                                        const RuntimeAction& gpuAction,
                                        const DataPacket& packetPrototype,
                                        const unsigned int nTilesPerCpuTurn,
-                                       const unsigned int stepNumber);
+                                       const unsigned int stepNumber,
+                                       const MPI_Comm comm);
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,

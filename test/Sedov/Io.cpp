@@ -16,19 +16,26 @@ using namespace orchestration;
 //----- STATIC MEMBER DEFINITIONS
 bool             Io::instantiated_ = false;
 std::string      Io::intQuantitiesFile_ = "";
+MPI_Comm         Io::comm_ = MPI_COMM_NULL;
+int              Io::ioRank_ = -1;
 
 /**
  * Instantiate the IO unit singleton and allow it to initialize the unit.
  */
-void   Io::instantiate(const std::string filename) {
+void   Io::instantiate(const std::string filename,
+                       const MPI_Comm comm, const int ioRank) {
     Logger::instance().log("[IO] Initializing...");
 
     if (instantiated_) {
         throw std::logic_error("[Io::instantiate] Io is already instantiated");
     } else if (filename == "") {
         throw std::invalid_argument("[Io::instantiate] Empty filename given");
+    } else if (ioRank < 0) {
+        throw std::invalid_argument("[Io::instantiate] Negative MPI rank");
     }
     intQuantitiesFile_ = filename;
+    comm_ = comm;
+    ioRank_ = ioRank;
 
     instantiated_ = true;
     Io::instance();
@@ -60,7 +67,7 @@ Io&   Io::instance(void) {
  *       FLASH-X to see how they manange files like the integral quantities output.
  */
 Io::Io(void)
-    : rank_{MASTER_PE},
+    : rank_{-1},
       nIntQuantities_{N_GLOBAL_SUM_PROP},
       localIntQuantities_{new Real[nIntQuantities_]},
       globalIntQuantities_{nullptr},
@@ -75,12 +82,12 @@ Io::Io(void)
 {
     Logger&   logger = Logger::instance();
 
-    if (MPI_Comm_rank(GLOBAL_COMM, &rank_) != MPI_SUCCESS) {
+    if (MPI_Comm_rank(comm_, &rank_) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::Io] Unable to acquire MPI rank");
     }
 
     // Construct buffer that receives final integral quantity results
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         globalIntQuantities_ = new Real[nIntQuantities_];
     }
 
@@ -148,7 +155,7 @@ Io::Io(void)
 #endif
 
     // Append integral quantity header to file
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         FILE*   fptr = fopen(intQuantitiesFile_.c_str(), "a");
         if (!fptr) {
             std::string msg = "[Io::Io] Unable to open integral quantities output file "
@@ -242,6 +249,11 @@ Io::~Io(void) {
     }
 
     Logger::instance().log("[IO] Finalized");
+
+    intQuantitiesFile_ = "";
+    comm_ = MPI_COMM_NULL;
+    ioRank_ = -1;
+    instantiated_ = false;
 }
 
 void   Io::computeLocalIntegralQuantities(void) {
@@ -470,7 +482,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     if (MPI_Reduce((void*)localIntQuantities_,
                    (void*)globalIntQuantities_,
                    nIntQuantities_, ORCH_REAL, MPI_SUM,
-                   MASTER_PE, MPI_COMM_WORLD) != MPI_SUCCESS) {
+                   ioRank_, MPI_COMM_WORLD) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::reduceToIntegralQuantities] Unable to reduce integral quantities");
     }
 }
@@ -488,7 +500,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
  * \param simTime - the simulation time at which the quantities were computed.
  */
 void  Io::writeIntegralQuantities(const orchestration::Real simTime) {
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         FILE*   fptr = fopen(intQuantitiesFile_.c_str(), "a");
         if (!fptr) {
             std::string msg =   "[Io::writeIntegralQuantities] ";
