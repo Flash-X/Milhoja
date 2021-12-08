@@ -142,6 +142,8 @@
 #include "DataItem.h"
 #include "Stream.h"
 
+#include "Flash.h"
+
 namespace orchestration {
 
 /**

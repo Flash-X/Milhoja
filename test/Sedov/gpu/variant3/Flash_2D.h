@@ -31,9 +31,6 @@ be last.  See Hydro_advanceSolutionHll_packet_oacc_summit_* for more info.
 
 #define NMASS_SCALARS   0
 
-#define REAL_IS_DOUBLE
-#define ORCH_REAL    MPI_DOUBLE_PRECISION
-
 #if 0
 Assuming 2D only for now
 #endif

@@ -2,6 +2,8 @@
 
 #include "Tile.h"
 
+#include "Flash.h"
+
 void StaticPhysicsRoutines::computeLaplacianFusedKernels(const orchestration::IntVect& lo,
                                                          const orchestration::IntVect& hi,
                                                          orchestration::FArray4D& U,

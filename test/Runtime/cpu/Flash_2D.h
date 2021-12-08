@@ -20,8 +20,6 @@ NOTE: The data packet variable masking presently requires that
 
 #define NFLUXES    0
 
-#define REAL_IS_DOUBLE
-
 #if 0
 Assuming 2D only for now
 #endif

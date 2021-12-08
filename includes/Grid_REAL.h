@@ -1,6 +1,7 @@
 #ifndef GRID_REAL_H__
 #define GRID_REAL_H__
-#include "Flash.h"
+
+#include "milhoja.h"
 
 #ifdef REAL_IS_FLOAT
 #  ifdef REAL_IS_DOUBLE

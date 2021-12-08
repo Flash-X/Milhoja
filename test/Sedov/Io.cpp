@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 
+#include "milhoja.h"
 #include "Tile.h"
 #include "Grid.h"
 #include "OrchestrationLogger.h"
@@ -481,7 +482,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
 
     if (MPI_Reduce((void*)localIntQuantities_,
                    (void*)globalIntQuantities_,
-                   nIntQuantities_, ORCH_REAL, MPI_SUM,
+                   nIntQuantities_, MILHOJA_MPI_REAL, MPI_SUM,
                    ioRank_, MPI_COMM_WORLD) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::reduceToIntegralQuantities] Unable to reduce integral quantities");
     }
