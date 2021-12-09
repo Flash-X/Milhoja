@@ -27,8 +27,8 @@ DataPacket::DataPacket(void)
         stream_{},
         nCopyToGpuBytes_{0},
         nReturnToHostBytes_{0},
-        startVariable_{UNK_VARS_BEGIN - 1},
-        endVariable_{UNK_VARS_BEGIN - 1}
+        startVariable_{-1},
+        endVariable_{-1}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -67,8 +67,8 @@ void  DataPacket::nullify(void) {
 
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
-    startVariable_ = UNK_VARS_BEGIN - 1;
-    endVariable_   = UNK_VARS_BEGIN - 1;
+    startVariable_ = -1;
+    endVariable_   = -1;
 
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
@@ -99,9 +99,9 @@ std::string  DataPacket::isNull(void) const {
         return "Device memory buffer has already been allocated";
     } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
         return "Data location already assigned";
-    } else if (startVariable_ >= UNK_VARS_BEGIN) {
+    } else if (startVariable_ >= 0) {
         return "Start variable already set";
-    } else if (endVariable_ >= UNK_VARS_BEGIN) {
+    } else if (endVariable_ >= 0) {
         return "End variable already set";
     } else if (nCopyToGpuBytes_ > 0) {
         return "Non-zero packet size";
@@ -180,6 +180,10 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
 }
 
 /**
+ * We assume that all variable indices are non-negative and that the end index
+ * is greater than or equal to the start index.  Other than this, there is no
+ * error checking of the variables performed here.
+ *
  * @todo The present interface allows task functions to specify the variable
  * mask.  Since concrete DataPackets are now coupled to task functions, it seems
  * like this should be known when the concrete classes are designed.  Remove the
@@ -187,12 +191,12 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
  */
 void   DataPacket::setVariableMask(const int startVariable,
                                    const int endVariable) {
-    if        (startVariable < UNK_VARS_BEGIN) {
+    if        (startVariable <= 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable is invalid");
-    } else if (endVariable > UNK_VARS_END) {
+                               "Starting variable index is negative");
+    } else if (endVariable <= 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Ending variable is invalid");
+                               "Ending variable index is negative");
     } else if (startVariable > endVariable) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Starting variable > ending variable");
@@ -221,6 +225,8 @@ void   DataPacket::setVariableMask(const int startVariable,
  * @todo Should unpacking be made more generic so that the CC blocks need not 
  *       start always with the first data variable.  What if the packet just
  *       needs to include variables 3-5 (out of 10 for example)?
+ * @todo Johann has identified that unpack should be written for each concrete
+ *       Make this virtual and move out. 
  */
 void  DataPacket::unpack(void) {
     if (tiles_.size() <= 0) {
@@ -232,12 +238,14 @@ void  DataPacket::unpack(void) {
     } else if (pinnedPtrs_ == nullptr) {
         throw std::logic_error("[DataPacket::unpack] "
                                "No pinned pointers set");
-    } else if (   (startVariable_ < UNK_VARS_BEGIN )
-               || (startVariable_ > UNK_VARS_END )
-               || (endVariable_   < UNK_VARS_BEGIN )
-               || (endVariable_   > UNK_VARS_END)) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Invalid variable mask");
+    // TODO: This can be uncommented once this code is relocated to concrete
+    // DataPacket classes.
+//    } else if (   (startVariable_ < UNK_VARS_BEGIN )
+//               || (startVariable_ > UNK_VARS_END )
+//               || (endVariable_   < UNK_VARS_BEGIN )
+//               || (endVariable_   > UNK_VARS_END)) {
+//        throw std::logic_error("[DataPacket::unpack] "
+//                               "Invalid variable mask");
     }
 
     // Release stream as soon as possible
@@ -271,8 +279,8 @@ void  DataPacket::unpack(void) {
         // The code here imposes requirements on the variable indices.  See Flash.h
         // for more information.  If this code is changed, please make sure to
         // adjust Flash.h appropriately.
-        assert(UNK_VARS_BEGIN == 0);
-        assert(UNK_VARS_END == (NUNKVAR - 1));
+//        assert(UNK_VARS_BEGIN == 0);
+//        assert(UNK_VARS_END == (NUNKVAR - 1));
         std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
                               * static_cast<std::size_t>(startVariable_);
         Real*        start_h = data_h + offset;

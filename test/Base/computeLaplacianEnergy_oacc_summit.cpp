@@ -4,7 +4,7 @@
 
 #include "computeLaplacianEnergy.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestration::IntVect* lo_d,
                                                                const orchestration::IntVect* hi_d,

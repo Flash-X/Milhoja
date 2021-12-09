@@ -1,6 +1,6 @@
 #include "setInitialConditions.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void StaticPhysicsRoutines::setInitialConditions(const orchestration::IntVect& loGC,
                                                  const orchestration::IntVect& hiGC,

@@ -1,6 +1,6 @@
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void hy::updateSolutionHll(const orchestration::IntVect& lo,
                            const orchestration::IntVect& hi,

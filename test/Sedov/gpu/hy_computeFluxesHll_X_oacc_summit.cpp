@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "Flash.h"
+#include "Sedov.h"
 
 void hy::computeFluxesHll_X_oacc_summit(const orchestration::Real* dt_d,
                                         const orchestration::IntVect* lo_d,

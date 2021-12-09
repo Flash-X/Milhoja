@@ -10,7 +10,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit(const int tId,
                                                                          orchestration::DataItem* dataItem_h) {

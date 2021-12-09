@@ -4,7 +4,7 @@
 
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
                                        const orchestration::IntVect* hi_d,

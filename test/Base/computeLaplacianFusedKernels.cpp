@@ -2,7 +2,7 @@
 
 #include "Tile.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void StaticPhysicsRoutines::computeLaplacianFusedKernels(const orchestration::IntVect& lo,
                                                          const orchestration::IntVect& hi,

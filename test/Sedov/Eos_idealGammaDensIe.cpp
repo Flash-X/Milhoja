@@ -1,6 +1,6 @@
 #include "Eos.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 #include "Flash_par.h"
 
 namespace Eos {

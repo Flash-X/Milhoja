@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "Flash.h"
+#include "Sedov.h"
 
 void hy::computeFluxesHll(const orchestration::Real dt,
                           const orchestration::IntVect& lo,

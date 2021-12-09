@@ -7,7 +7,7 @@
 #include "DataItem.h"
 #include "DataPacket.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 orchestration::DataItem* dataItem_h) {

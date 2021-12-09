@@ -1,6 +1,6 @@
 #include "computeLaplacianEnergy.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void StaticPhysicsRoutines::computeLaplacianEnergy(const orchestration::IntVect& lo,
                                                    const orchestration::IntVect& hi,

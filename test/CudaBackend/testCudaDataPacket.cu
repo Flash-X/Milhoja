@@ -8,7 +8,7 @@
 #include "CudaDataPacket.h"
 #include "CudaStreamManager.h"
 
-#include "Flash.h"
+#include "Base.h"
 #include "Flash_par.h"
 #include "constants.h"
 
