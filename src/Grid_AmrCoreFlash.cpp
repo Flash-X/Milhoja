@@ -60,48 +60,48 @@ void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
     if (names.size()==1) {
         names[0] = "phi";
     } else {
-#ifdef DENS_VAR_C
+#ifdef DENS_VAR
     // FIXME: Temporarily use the same generic names that are used in FLASH-X
     // AMREX-based plot files so that we can compare runtime vs. FLASH-X Sedov
     // results for testing.
-//        names[DENS_VAR_C] = "dens";
-        names[DENS_VAR_C] = "var0001";
+//        names[DENS_VAR] = "dens";
+        names[DENS_VAR] = "var0001";
 #endif
-#ifdef VELX_VAR_C
-//        names[VELX_VAR_C] = "velx";
-        names[VELX_VAR_C] = "var0008";
+#ifdef VELX_VAR
+//        names[VELX_VAR] = "velx";
+        names[VELX_VAR] = "var0008";
 #endif
-#ifdef VELY_VAR_C
-//        names[VELY_VAR_C] = "vely";
-        names[VELY_VAR_C] = "var0009";
+#ifdef VELY_VAR
+//        names[VELY_VAR] = "vely";
+        names[VELY_VAR] = "var0009";
 #endif
-#ifdef VELZ_VAR_C
-//        names[VELZ_VAR_C] = "velz";
-        names[VELZ_VAR_C] = "var0010";
+#ifdef VELZ_VAR
+//        names[VELZ_VAR] = "velz";
+        names[VELZ_VAR] = "var0010";
 #endif
-#ifdef PRES_VAR_C
-//        names[PRES_VAR_C] = "pres";
-        names[PRES_VAR_C] = "var0006";
+#ifdef PRES_VAR
+//        names[PRES_VAR] = "pres";
+        names[PRES_VAR] = "var0006";
 #endif
-#ifdef ENER_VAR_C
-//        names[ENER_VAR_C] = "ener";
-        names[ENER_VAR_C] = "var0003";
+#ifdef ENER_VAR
+//        names[ENER_VAR] = "ener";
+        names[ENER_VAR] = "var0003";
 #endif
-#ifdef GAMC_VAR_C
-//        names[GAMC_VAR_C] = "gamc";
-        names[GAMC_VAR_C] = "var0004";
+#ifdef GAMC_VAR
+//        names[GAMC_VAR] = "gamc";
+        names[GAMC_VAR] = "var0004";
 #endif
-#ifdef GAME_VAR_C
-//        names[GAME_VAR_C] = "game";
-        names[GAME_VAR_C] = "var0005";
+#ifdef GAME_VAR
+//        names[GAME_VAR] = "game";
+        names[GAME_VAR] = "var0005";
 #endif
-#ifdef TEMP_VAR_C
-//        names[TEMP_VAR_C] = "temp";
-        names[TEMP_VAR_C] = "var0007";
+#ifdef TEMP_VAR
+//        names[TEMP_VAR] = "temp";
+        names[TEMP_VAR] = "var0007";
 #endif
-#ifdef EINT_VAR_C
-//        names[EINT_VAR_C] = "eint";
-        names[EINT_VAR_C] = "var0002";
+#ifdef EINT_VAR
+//        names[EINT_VAR] = "eint";
+        names[EINT_VAR] = "var0002";
 #endif
     }
     amrex::Vector<const amrex::MultiFab*> mfs;

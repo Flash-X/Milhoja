@@ -39,12 +39,12 @@ public:
     static Io&   instance(void);
 
     //----- INTEGRAL QUANTITIES
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
     static constexpr  int  N_GLOBAL_SUM_PROP = 8;
 #else
     static constexpr  int  N_GLOBAL_SUM_PROP = 7;
 #endif
-    static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP + NMASS_SCALARS;
+    static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP;
 
     void   computeIntegralQuantitiesByBlock(const int threadIndex,
                                             const orchestration::IntVect& lo,

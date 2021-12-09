@@ -98,56 +98,56 @@ Io::Io(void)
     // Leave the accumulators zeroed so that they are ready for use.
     logger.log("[IO] Integral quantities to be computed and output are");
     unsigned int   nThreads = rp_Runtime::N_THREADS_PER_TEAM;
-#ifdef DENS_VAR_C
+#ifdef DENS_VAR
     intQuantities_mass_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_mass_[i] = 0.0_wp;
     }
     logger.log("[IO]     Mass");
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR)
     intQuantities_xmom_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_xmom_[i] = 0.0_wp;
     }
     logger.log("[IO]     X-Momentum");
 #endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
+#if defined(DENS_VAR) && defined(VELY_VAR)
     intQuantities_ymom_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_ymom_[i] = 0.0_wp;
     }
     logger.log("[IO]     Y-Momentum");
 #endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELZ_VAR)
     intQuantities_zmom_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_zmom_[i] = 0.0_wp;
     }
     logger.log("[IO]     Z-Momentum");
 #endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
+#if defined(DENS_VAR) && defined(ENER_VAR)
     intQuantities_ener_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_ener_[i] = 0.0_wp;
     }
     logger.log("[IO]     Total Energy");
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR) && defined(VELY_VAR) && defined(VELZ_VAR)
     intQuantities_ke_   = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_ke_[i] = 0.0_wp;
     }
     logger.log("[IO]     Kinetic Energy");
 #endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
+#if defined(DENS_VAR) && defined(EINT_VAR)
     intQuantities_eint_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_eint_[i] = 0.0_wp;
     }
     logger.log("[IO]     Internal Energy");
 #endif
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
     intQuantities_magp_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
         intQuantities_magp_[i] = 0.0_wp;
@@ -164,7 +164,7 @@ Io::Io(void)
             throw std::runtime_error(msg);
         }
 
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
         fprintf(fptr, "#%24s %25s %25s %25s %25s %25s %25s %25s %25s\n",
                     "time", 
                     "mass",
@@ -318,29 +318,29 @@ void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
                                             const orchestration::FArray3D& cellVolumes,
                                             const orchestration::FArray4D& solnData) {
     Real    dvol = 0.0_wp;
-#if defined(DENS_VAR_C)
+#if defined(DENS_VAR)
     Real    mass = 0.0_wp;
     Real    massSum = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR)
     Real    xmomSum = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
+#if defined(DENS_VAR) && defined(VELY_VAR)
     Real    ymomSum = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELZ_VAR)
     Real    zmomSum = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
+#if defined(DENS_VAR) && defined(ENER_VAR)
     Real    enerSum = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR) && defined(VELY_VAR) && defined(VELZ_VAR)
     Real    keSum   = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
+#if defined(DENS_VAR) && defined(EINT_VAR)
     Real    eintSum = 0.0_wp;
 #endif
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
     Real    magpSum = 0.0_wp;
 #endif
 
@@ -349,75 +349,75 @@ void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
             for (int i=lo.I(); i<=hi.I(); ++i) {
                 dvol = cellVolumes(i, j, k);
 
-#if defined(DENS_VAR_C)
+#if defined(DENS_VAR)
                 // mass
-                mass = solnData(i, j, k, DENS_VAR_C) * dvol;
+                mass = solnData(i, j, k, DENS_VAR) * dvol;
                 massSum += mass;
 #endif
 
                 // momentum
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
-                xmomSum += mass * solnData(i, j, k, VELX_VAR_C);
+#if defined(DENS_VAR) && defined(VELX_VAR)
+                xmomSum += mass * solnData(i, j, k, VELX_VAR);
 #endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
-                ymomSum += mass * solnData(i, j, k, VELY_VAR_C);
+#if defined(DENS_VAR) && defined(VELY_VAR)
+                ymomSum += mass * solnData(i, j, k, VELY_VAR);
 #endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
-                zmomSum += mass * solnData(i, j, k, VELZ_VAR_C);
+#if defined(DENS_VAR) && defined(VELZ_VAR)
+                zmomSum += mass * solnData(i, j, k, VELZ_VAR);
 #endif
 
                 // total energy
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
-                enerSum += mass * solnData(i, j, k, ENER_VAR_C);
-#ifdef MAGP_VAR_C
+#if defined(DENS_VAR) && defined(ENER_VAR)
+                enerSum += mass * solnData(i, j, k, ENER_VAR);
+#ifdef MAGP_VAR
                 // total plasma energy
-                enerSum += solnData(i, j, k, MAGP_VAR_C) * dvol;
+                enerSum += solnData(i, j, k, MAGP_VAR) * dvol;
 #endif
 #endif
 
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR) && defined(VELY_VAR) && defined(VELZ_VAR)
                 // kinetic energy
                 keSum += 0.5_wp * mass
-                                * (  std::pow(solnData(i, j, k, VELX_VAR_C), 2)
-                                   + std::pow(solnData(i, j, k, VELY_VAR_C), 2)
-                                   + std::pow(solnData(i, j, k, VELZ_VAR_C), 2));
+                                * (  std::pow(solnData(i, j, k, VELX_VAR), 2)
+                                   + std::pow(solnData(i, j, k, VELY_VAR), 2)
+                                   + std::pow(solnData(i, j, k, VELZ_VAR), 2));
 #endif
 
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
+#if defined(DENS_VAR) && defined(EINT_VAR)
               // internal energy
-              eintSum += mass * solnData(i, j, k, EINT_VAR_C);
+              eintSum += mass * solnData(i, j, k, EINT_VAR);
 #endif
 
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
               // magnetic energy
-              magpSum += solnData(i, j, k, MAGP_VAR_C) * dvol;
+              magpSum += solnData(i, j, k, MAGP_VAR) * dvol;
 #endif
             }
         }
     }
 
-#ifdef DENS_VAR_C
+#ifdef DENS_VAR
     intQuantities_mass_[threadIdx] += massSum;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR)
     intQuantities_xmom_[threadIdx] += xmomSum;
 #endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
+#if defined(DENS_VAR) && defined(VELY_VAR)
     intQuantities_ymom_[threadIdx] += ymomSum;
 #endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELZ_VAR)
     intQuantities_zmom_[threadIdx] += zmomSum;
 #endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
+#if defined(DENS_VAR) && defined(ENER_VAR)
     intQuantities_ener_[threadIdx] += enerSum;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR) && defined(VELY_VAR) && defined(VELZ_VAR)
     intQuantities_ke_[threadIdx]   += keSum;
 #endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
+#if defined(DENS_VAR) && defined(EINT_VAR)
     intQuantities_eint_[threadIdx] += eintSum;
 #endif
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
     intQuantities_magp_[threadIdx] += magpSum;
 #endif
 }
@@ -446,35 +446,35 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     for (unsigned int i=0; i<rp_Runtime::N_THREADS_PER_TEAM; ++i) {
         // The order in which quantities are stored in the array must match the
         // order in which quantities are listed in the output file's header.
-#ifdef DENS_VAR_C
+#ifdef DENS_VAR
         localIntQuantities_[0] += intQuantities_mass_[i];
         intQuantities_mass_[i] = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR)
         localIntQuantities_[1] += intQuantities_xmom_[i];
         intQuantities_xmom_[i] = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
+#if defined(DENS_VAR) && defined(VELY_VAR)
         localIntQuantities_[2] += intQuantities_ymom_[i];
         intQuantities_ymom_[i] = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELZ_VAR)
         localIntQuantities_[3] += intQuantities_zmom_[i];
         intQuantities_zmom_[i] = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
+#if defined(DENS_VAR) && defined(ENER_VAR)
         localIntQuantities_[4] += intQuantities_ener_[i];
         intQuantities_ener_[i] = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
+#if defined(DENS_VAR) && defined(VELX_VAR) && defined(VELY_VAR) && defined(VELZ_VAR)
         localIntQuantities_[5] += intQuantities_ke_[i];
         intQuantities_ke_[i]   = 0.0_wp;
 #endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
+#if defined(DENS_VAR) && defined(EINT_VAR)
         localIntQuantities_[6] += intQuantities_eint_[i];
         intQuantities_eint_[i] = 0.0_wp;
 #endif
-#ifdef MAGP_VAR_C
+#ifdef MAGP_VAR
         localIntQuantities_[7] += intQuantities_magp_[i];
         intQuantities_magp_[i] = 0.0_wp;
 #endif

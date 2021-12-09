@@ -34,12 +34,12 @@ void idealGammaDensIe_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                U_d->at(i, j, k, PRES_VAR_C) =   U_d->at(i, j, k, DENS_VAR_C)
-                                               * U_d->at(i, j, k, EINT_VAR_C)
-                                               * GAMMA_M_1_INV;
-                U_d->at(i, j, k, TEMP_VAR_C) =   U_d->at(i, j, k, EINT_VAR_C)
-                                               * GGPROD_INV
-                                               * SINGLE_SPECIES_A;
+                U_d->at(i, j, k, PRES_VAR) =   U_d->at(i, j, k, DENS_VAR)
+                                             * U_d->at(i, j, k, EINT_VAR)
+                                             * GAMMA_M_1_INV;
+                U_d->at(i, j, k, TEMP_VAR) =   U_d->at(i, j, k, EINT_VAR)
+                                             * GGPROD_INV
+                                             * SINGLE_SPECIES_A;
             }
         }
     }

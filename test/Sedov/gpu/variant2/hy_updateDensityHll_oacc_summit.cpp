@@ -28,23 +28,23 @@ void hy::updateDensityHll_oacc_summit(const orchestration::IntVect* lo_d,
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
 #if NDIM == 1
-                Uout_d->at(i, j, k, DENS_VAR_C) =   Uin_d->at(i,   j, k, DENS_VAR_C)
-                                                  + flX_d->at(i,   j, k, HY_DENS_FLUX_C)
-                                                  - flX_d->at(i+1, j, k, HY_DENS_FLUX_C);
+                Uout_d->at(i, j, k, DENS_VAR) =   Uin_d->at(i,   j, k, DENS_VAR)
+                                                + flX_d->at(i,   j, k, HY_DENS_FLUX)
+                                                - flX_d->at(i+1, j, k, HY_DENS_FLUX);
 #elif NDIM == 2
-                Uout_d->at(i, j, k, DENS_VAR_C) =   Uin_d->at(i,   j,   k, DENS_VAR_C)
-                                                  + flX_d->at(i,   j,   k, HY_DENS_FLUX_C)
-                                                  - flX_d->at(i+1, j,   k, HY_DENS_FLUX_C)
-                                                  + flY_d->at(i,   j,   k, HY_DENS_FLUX_C)
-                                                  - flY_d->at(i,   j+1, k, HY_DENS_FLUX_C);
+                Uout_d->at(i, j, k, DENS_VAR) =   Uin_d->at(i,   j,   k, DENS_VAR)
+                                                + flX_d->at(i,   j,   k, HY_DENS_FLUX)
+                                                - flX_d->at(i+1, j,   k, HY_DENS_FLUX)
+                                                + flY_d->at(i,   j,   k, HY_DENS_FLUX)
+                                                - flY_d->at(i,   j+1, k, HY_DENS_FLUX);
 #elif NDIM == 3
-                Uout_d->at(i, j, k, DENS_VAR_C) =   Uin_d->at(i,   j,   k,   DENS_VAR_C)
-                                                  + flX_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                                                  - flX_d->at(i+1, j,   k,   HY_DENS_FLUX_C)
-                                                  + flY_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                                                  - flY_d->at(i,   j+1, k,   HY_DENS_FLUX_C)
-                                                  + flZ_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                                                  - flZ_d->at(i,   j,   k+1, HY_DENS_FLUX_C);
+                Uout_d->at(i, j, k, DENS_VAR) =   Uin_d->at(i,   j,   k,   DENS_VAR)
+                                                + flX_d->at(i,   j,   k,   HY_DENS_FLUX)
+                                                - flX_d->at(i+1, j,   k,   HY_DENS_FLUX)
+                                                + flY_d->at(i,   j,   k,   HY_DENS_FLUX)
+                                                - flY_d->at(i,   j+1, k,   HY_DENS_FLUX)
+                                                + flZ_d->at(i,   j,   k,   HY_DENS_FLUX)
+                                                - flZ_d->at(i,   j,   k+1, HY_DENS_FLUX);
 #endif
             }
         }

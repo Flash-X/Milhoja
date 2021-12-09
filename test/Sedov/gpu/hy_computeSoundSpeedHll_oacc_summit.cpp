@@ -26,9 +26,9 @@ void hy::computeSoundSpeedHll_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s-K3D; k<=k_e+K3D; ++k) {
         for     (int j=j_s-K2D; j<=j_e+K2D; ++j) {
             for (int i=i_s-K1D; i<=i_e+K1D; ++i) {
-                auxC_d->at(i, j, k, 0) = sqrt(  U_d->at(i, j, k, GAMC_VAR_C)
-                                              * U_d->at(i, j, k, PRES_VAR_C)
-                                              / U_d->at(i, j, k, DENS_VAR_C) );
+                auxC_d->at(i, j, k, 0) = sqrt(  U_d->at(i, j, k, GAMC_VAR)
+                                              * U_d->at(i, j, k, PRES_VAR)
+                                              / U_d->at(i, j, k, DENS_VAR) );
             }
         }
     }

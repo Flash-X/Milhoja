@@ -24,15 +24,15 @@ void hy::scaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                Uout_d->at(i, j, k, VELX_VAR_C) =   Uin_d->at(i, j, k, VELX_VAR_C)
-                                                  * Uin_d->at(i, j, k, DENS_VAR_C);
-                Uout_d->at(i, j, k, VELY_VAR_C) =   Uin_d->at(i, j, k, VELY_VAR_C)
-                                                  * Uin_d->at(i, j, k, DENS_VAR_C);
-                Uout_d->at(i, j, k, VELZ_VAR_C) =   Uin_d->at(i, j, k, VELZ_VAR_C)
-                                                  * Uin_d->at(i, j, k, DENS_VAR_C);
-                Uout_d->at(i, j, k, ENER_VAR_C) =   Uin_d->at(i, j, k, ENER_VAR_C)
-                                                  * Uin_d->at(i, j, k, DENS_VAR_C);
-                Uout_d->at(i, j, k, DENS_VAR_C) =   Uin_d->at(i, j, k, DENS_VAR_C);
+                Uout_d->at(i, j, k, VELX_VAR) =   Uin_d->at(i, j, k, VELX_VAR)
+                                                * Uin_d->at(i, j, k, DENS_VAR);
+                Uout_d->at(i, j, k, VELY_VAR) =   Uin_d->at(i, j, k, VELY_VAR)
+                                                * Uin_d->at(i, j, k, DENS_VAR);
+                Uout_d->at(i, j, k, VELZ_VAR) =   Uin_d->at(i, j, k, VELZ_VAR)
+                                                * Uin_d->at(i, j, k, DENS_VAR);
+                Uout_d->at(i, j, k, ENER_VAR) =   Uin_d->at(i, j, k, ENER_VAR)
+                                                * Uin_d->at(i, j, k, DENS_VAR);
+                Uout_d->at(i, j, k, DENS_VAR) =   Uin_d->at(i, j, k, DENS_VAR);
             }
         }
     }

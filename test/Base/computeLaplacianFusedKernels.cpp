@@ -18,28 +18,28 @@ void StaticPhysicsRoutines::computeLaplacianFusedKernels(const orchestration::In
     // and that it determined to fuse loop nests here and below
     for     (int j=lo.J(); j<=hi.J(); ++j) {
         for (int i=lo.I(); i<=hi.I(); ++i) {
-              scratch(i, j, 0, DENS_VAR_C) = 
-                       (     (  U(i-1, j,   0, DENS_VAR_C)
-                              + U(i+1, j,   0, DENS_VAR_C))
-                        - 2.0 * U(i,   j,   0, DENS_VAR_C) ) * dx_sqr_inv
-                     + (     (  U(i  , j-1, 0, DENS_VAR_C)
-                              + U(i  , j+1, 0, DENS_VAR_C))
-                        - 2.0 * U(i,   j,   0, DENS_VAR_C) ) * dy_sqr_inv;
+              scratch(i, j, 0, DENS_VAR) = 
+                       (     (  U(i-1, j,   0, DENS_VAR)
+                              + U(i+1, j,   0, DENS_VAR))
+                        - 2.0 * U(i,   j,   0, DENS_VAR) ) * dx_sqr_inv
+                     + (     (  U(i  , j-1, 0, DENS_VAR)
+                              + U(i  , j+1, 0, DENS_VAR))
+                        - 2.0 * U(i,   j,   0, DENS_VAR) ) * dy_sqr_inv;
 
-              scratch(i, j, 0, ENER_VAR_C) = 
-                       (     (  U(i-1, j,   0, ENER_VAR_C)
-                              + U(i+1, j,   0, ENER_VAR_C))
-                        - 2.0 * U(i,   j,   0, ENER_VAR_C) ) * dx_sqr_inv
-                     + (     (  U(i  , j-1, 0, ENER_VAR_C)
-                              + U(i  , j+1, 0, ENER_VAR_C))
-                        - 2.0 * U(i,   j,   0, ENER_VAR_C) ) * dy_sqr_inv;
+              scratch(i, j, 0, ENER_VAR) = 
+                       (     (  U(i-1, j,   0, ENER_VAR)
+                              + U(i+1, j,   0, ENER_VAR))
+                        - 2.0 * U(i,   j,   0, ENER_VAR) ) * dx_sqr_inv
+                     + (     (  U(i  , j-1, 0, ENER_VAR)
+                              + U(i  , j+1, 0, ENER_VAR))
+                        - 2.0 * U(i,   j,   0, ENER_VAR) ) * dy_sqr_inv;
          }
     }
 
     for     (int j=lo.J(); j<=hi.J(); ++j) {
         for (int i=lo.I(); i<=hi.I(); ++i) {
-            U(i, j, 0, DENS_VAR_C) = scratch(i, j, 0, DENS_VAR_C);
-            U(i, j, 0, ENER_VAR_C) = scratch(i, j, 0, ENER_VAR_C);
+            U(i, j, 0, DENS_VAR) = scratch(i, j, 0, DENS_VAR);
+            U(i, j, 0, ENER_VAR) = scratch(i, j, 0, ENER_VAR);
          }
     } 
 }

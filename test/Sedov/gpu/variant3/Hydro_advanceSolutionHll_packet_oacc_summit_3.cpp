@@ -49,7 +49,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     // happen for all task functions that must filter?  Selecting the order of
     // variables in memory sounds like part of the larger optimization problem
     // as it affects all data packets.
-    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
+    packet_h->setVariableMask(UNK_VARS_BEGIN, EINT_VAR);
 
     if (location != PacketDataLocation::CC1) {
         throw std::runtime_error("[Hydro::advanceSolutionHll_packet_oacc_summit_3] "

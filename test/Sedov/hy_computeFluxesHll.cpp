@@ -59,9 +59,9 @@ void hy::computeFluxesHll(const orchestration::Real dt,
     for         (int k=lo.K()-K3D; k<=hi.K()+K3D; ++k) {
         for     (int j=lo.J()-K2D; j<=hi.J()+K2D; ++j) {
             for (int i=lo.I()-K1D; i<=hi.I()+K1D; ++i) {
-                auxC(i, j, k) = sqrt(  Uin(i, j, k, GAMC_VAR_C)
-                                     * Uin(i, j, k, PRES_VAR_C)
-                                     / Uin(i, j, k, DENS_VAR_C) );
+                auxC(i, j, k) = sqrt(  Uin(i, j, k, GAMC_VAR)
+                                     * Uin(i, j, k, PRES_VAR)
+                                     / Uin(i, j, k, DENS_VAR) );
             }
         }
     }
@@ -82,24 +82,24 @@ void hy::computeFluxesHll(const orchestration::Real dt,
     for         (int k=lo.K(); k<=hi.K();     ++k) {
         for     (int j=lo.J(); j<=hi.J();     ++j) {
             for (int i=lo.I(); i<=hi.I()+K1D; ++i) {
-                sL = std::min(Uin(i-1, j, k, VELX_VAR_C) - auxC(i-1, j, k),
-                              Uin(i,   j, k, VELX_VAR_C) - auxC(i,   j, k));
-                sR = std::max(Uin(i-1, j, k, VELX_VAR_C) + auxC(i-1, j, k),
-                              Uin(i,   j, k, VELX_VAR_C) + auxC(i,   j, k));
+                sL = std::min(Uin(i-1, j, k, VELX_VAR) - auxC(i-1, j, k),
+                              Uin(i,   j, k, VELX_VAR) - auxC(i,   j, k));
+                sR = std::max(Uin(i-1, j, k, VELX_VAR) + auxC(i-1, j, k),
+                              Uin(i,   j, k, VELX_VAR) + auxC(i,   j, k));
                 sRsL = sR - sL;
                 if (sL > 0.0) {
-                    vn = Uin(i-1, j, k, VELX_VAR_C);
+                    vn = Uin(i-1, j, k, VELX_VAR);
                     is = i - 1;
                     iL = i - 1;
                     iR = i - 1;
                 } else if (sR < 0.0) {
-                    vn = Uin(i, j, k, VELX_VAR_C);
+                    vn = Uin(i, j, k, VELX_VAR);
                     is = i;
                     iL = i;
                     iR = i;
                 } else {
-                    vn = 0.5_wp * (  Uin(i-1, j, k, VELX_VAR_C)
-                                   + Uin(i,   j, k, VELX_VAR_C));
+                    vn = 0.5_wp * (  Uin(i-1, j, k, VELX_VAR)
+                                   + Uin(i,   j, k, VELX_VAR));
                     is = i;
                     iL = i-1;
                     iR = i;
@@ -108,52 +108,52 @@ void hy::computeFluxesHll(const orchestration::Real dt,
                     }
                 }
 
-                vL = Uin(iL, j, k, VELX_VAR_C);
-                vR = Uin(iR, j, k, VELX_VAR_C);
+                vL = Uin(iL, j, k, VELX_VAR);
+                vR = Uin(iR, j, k, VELX_VAR);
                 if (iL == iR) {
-                    flX(i, j, k, HY_DENS_FLUX_C) =   vn * Uin(is, j, k, DENS_VAR_C);
-                    flX(i, j, k, HY_XMOM_FLUX_C) =   vn * Uin(is, j, k, DENS_VAR_C)
-                                                        * Uin(is, j, k, VELX_VAR_C)
-                                                   +      Uin(is, j, k, PRES_VAR_C);
-                    flX(i, j, k, HY_YMOM_FLUX_C) =   vn * Uin(is, j, k, DENS_VAR_C)
-                                                        * Uin(is, j, k, VELY_VAR_C);
-                    flX(i, j, k, HY_ZMOM_FLUX_C) =   vn * Uin(is, j, k, DENS_VAR_C)
-                                                        * Uin(is, j, k, VELZ_VAR_C);
-                    flX(i, j, k, HY_ENER_FLUX_C) =   vn * Uin(is, j, k, DENS_VAR_C)
-                                                        * Uin(is, j, k, ENER_VAR_C)
-                                                   + vn * Uin(is, j, k, PRES_VAR_C);
+                    flX(i, j, k, HY_DENS_FLUX) =   vn * Uin(is, j, k, DENS_VAR);
+                    flX(i, j, k, HY_XMOM_FLUX) =   vn * Uin(is, j, k, DENS_VAR)
+                                                      * Uin(is, j, k, VELX_VAR)
+                                                 +      Uin(is, j, k, PRES_VAR);
+                    flX(i, j, k, HY_YMOM_FLUX) =   vn * Uin(is, j, k, DENS_VAR)
+                                                      * Uin(is, j, k, VELY_VAR);
+                    flX(i, j, k, HY_ZMOM_FLUX) =   vn * Uin(is, j, k, DENS_VAR)
+                                                      * Uin(is, j, k, VELZ_VAR);
+                    flX(i, j, k, HY_ENER_FLUX) =   vn * Uin(is, j, k, DENS_VAR)
+                                                      * Uin(is, j, k, ENER_VAR)
+                                                 + vn * Uin(is, j, k, PRES_VAR);
                 } else {
-                    flX(i, j, k, HY_DENS_FLUX_C) = (  sR * vL * Uin(iL, j, k, DENS_VAR_C)
-                                                    - sL * vR * Uin(iR, j, k, DENS_VAR_C)
-                                                    + sR*sL*(   Uin(iR, j, k, DENS_VAR_C)
-                                                              - Uin(iL, j, k, DENS_VAR_C)) ) / sRsL;
-                    flX(i, j, k, HY_XMOM_FLUX_C) = (  sR * vL * Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELX_VAR_C)
-                                                    - sL * vR * Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELX_VAR_C)
-                                                    + sR*sL*(   Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELX_VAR_C)
-                                                              - Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELX_VAR_C)) )/sRsL;
-                    flX(i, j, k, HY_XMOM_FLUX_C) += (  sR * Uin(iL, j, k, PRES_VAR_C)
-                                                     - sL * Uin(iR, j, k, PRES_VAR_C) ) /sRsL;
-                    flX(i, j, k, HY_YMOM_FLUX_C) = (  sR * vL * Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELY_VAR_C)
-                                                    - sL * vR * Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELY_VAR_C)
-                                                    + sR*sL*(   Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELY_VAR_C)
-                                                              - Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELY_VAR_C)) )/sRsL;
-                    flX(i, j, k, HY_ZMOM_FLUX_C) = (  sR * vL * Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELZ_VAR_C)
-                                                    - sL * vR * Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELZ_VAR_C)
-                                                    + sR*sL*(   Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, VELZ_VAR_C)
-                                                              - Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, VELZ_VAR_C)) )/sRsL;
-                    flX(i, j, k, HY_ENER_FLUX_C) = (  sR * vL * Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, ENER_VAR_C)
-                                                    - sL * vR * Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, ENER_VAR_C)
-                                                    + sR*sL*(   Uin(iR, j, k, DENS_VAR_C) * Uin(iR, j, k, ENER_VAR_C)
-                                                              - Uin(iL, j, k, DENS_VAR_C) * Uin(iL, j, k, ENER_VAR_C)) )/sRsL;
-                    flX(i, j, k, HY_ENER_FLUX_C) += (  sR * vL * Uin(iL, j, k, PRES_VAR_C)
-                                                     - sL * vR * Uin(iR, j, k, PRES_VAR_C)) / sRsL;
+                    flX(i, j, k, HY_DENS_FLUX) = (  sR * vL * Uin(iL, j, k, DENS_VAR)
+                                                  - sL * vR * Uin(iR, j, k, DENS_VAR)
+                                                  + sR*sL*(   Uin(iR, j, k, DENS_VAR)
+                                                            - Uin(iL, j, k, DENS_VAR)) ) / sRsL;
+                    flX(i, j, k, HY_XMOM_FLUX) = (  sR * vL * Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELX_VAR)
+                                                  - sL * vR * Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELX_VAR)
+                                                  + sR*sL*(   Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELX_VAR)
+                                                            - Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELX_VAR)) )/sRsL;
+                    flX(i, j, k, HY_XMOM_FLUX) += (  sR * Uin(iL, j, k, PRES_VAR)
+                                                   - sL * Uin(iR, j, k, PRES_VAR) ) /sRsL;
+                    flX(i, j, k, HY_YMOM_FLUX) = (  sR * vL * Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELY_VAR)
+                                                  - sL * vR * Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELY_VAR)
+                                                  + sR*sL*(   Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELY_VAR)
+                                                            - Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELY_VAR)) )/sRsL;
+                    flX(i, j, k, HY_ZMOM_FLUX) = (  sR * vL * Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELZ_VAR)
+                                                  - sL * vR * Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELZ_VAR)
+                                                  + sR*sL*(   Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, VELZ_VAR)
+                                                            - Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, VELZ_VAR)) )/sRsL;
+                    flX(i, j, k, HY_ENER_FLUX) = (  sR * vL * Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, ENER_VAR)
+                                                  - sL * vR * Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, ENER_VAR)
+                                                  + sR*sL*(   Uin(iR, j, k, DENS_VAR) * Uin(iR, j, k, ENER_VAR)
+                                                            - Uin(iL, j, k, DENS_VAR) * Uin(iL, j, k, ENER_VAR)) )/sRsL;
+                    flX(i, j, k, HY_ENER_FLUX) += (  sR * vL * Uin(iL, j, k, PRES_VAR)
+                                                   - sL * vR * Uin(iR, j, k, PRES_VAR)) / sRsL;
                 }
 
-                flX(i, j, k, HY_DENS_FLUX_C) *= dtdx;
-                flX(i, j, k, HY_XMOM_FLUX_C) *= dtdx;
-                flX(i, j, k, HY_YMOM_FLUX_C) *= dtdx;
-                flX(i, j, k, HY_ZMOM_FLUX_C) *= dtdx;
-                flX(i, j, k, HY_ENER_FLUX_C) *= dtdx;
+                flX(i, j, k, HY_DENS_FLUX) *= dtdx;
+                flX(i, j, k, HY_XMOM_FLUX) *= dtdx;
+                flX(i, j, k, HY_YMOM_FLUX) *= dtdx;
+                flX(i, j, k, HY_ZMOM_FLUX) *= dtdx;
+                flX(i, j, k, HY_ENER_FLUX) *= dtdx;
             }
         }
     }
@@ -166,23 +166,23 @@ void hy::computeFluxesHll(const orchestration::Real dt,
     for         (int k=lo.K(); k<=hi.K();     ++k) {
         for     (int j=lo.J(); j<=hi.J()+K2D; ++j) {
             for (int i=lo.I(); i<=hi.I();     ++i) {
-                sL = std::min(Uin(i, j-1, k, VELY_VAR_C) - auxC(i, j-1, k),
-                              Uin(i, j,   k, VELY_VAR_C) - auxC(i, j,   k));
-                sR = std::max(Uin(i, j-1, k, VELY_VAR_C) + auxC(i, j-1, k),
-                              Uin(i, j,   k, VELY_VAR_C) + auxC(i, j,   k));
+                sL = std::min(Uin(i, j-1, k, VELY_VAR) - auxC(i, j-1, k),
+                              Uin(i, j,   k, VELY_VAR) - auxC(i, j,   k));
+                sR = std::max(Uin(i, j-1, k, VELY_VAR) + auxC(i, j-1, k),
+                              Uin(i, j,   k, VELY_VAR) + auxC(i, j,   k));
                 sRsL = sR - sL;
                 if (sL > 0.0) {
-                    vn = Uin(i, j-1, k, VELY_VAR_C);
+                    vn = Uin(i, j-1, k, VELY_VAR);
                     js = j - 1;
                     jL = j - 1;
                     jR = j - 1;
                 } else if (sR < 0.0) {
-                    vn = Uin(i, j, k, VELY_VAR_C);
+                    vn = Uin(i, j, k, VELY_VAR);
                     js = j;
                     jL = j;
                     jR = j;
                 } else {
-                    vn = 0.5_wp * (Uin(i, j-1, k, VELY_VAR_C) + Uin(i, j, k, VELY_VAR_C));
+                    vn = 0.5_wp * (Uin(i, j-1, k, VELY_VAR) + Uin(i, j, k, VELY_VAR));
                     js = j;
                     jL = j - 1;
                     jR = j;
@@ -191,52 +191,52 @@ void hy::computeFluxesHll(const orchestration::Real dt,
                     }
                 }
 
-                vL = Uin(i, jL, k, VELY_VAR_C);
-                vR = Uin(i, jR, k, VELY_VAR_C);
+                vL = Uin(i, jL, k, VELY_VAR);
+                vR = Uin(i, jR, k, VELY_VAR);
                 if (jL == jR) {
-                    flY(i, j, k, HY_DENS_FLUX_C) =   vn * Uin(i, js, k, DENS_VAR_C);
-                    flY(i, j, k, HY_XMOM_FLUX_C) =   vn * Uin(i, js, k, DENS_VAR_C)
-                                                        * Uin(i, js, k, VELX_VAR_C);
-                    flY(i, j, k, HY_YMOM_FLUX_C) =   vn * Uin(i, js, k, DENS_VAR_C)
-                                                        * Uin(i, js, k, VELY_VAR_C)
-                                                   +      Uin(i, js, k, PRES_VAR_C);
-                    flY(i, j, k, HY_ZMOM_FLUX_C) =   vn * Uin(i, js, k, DENS_VAR_C)
-                                                        * Uin(i, js, k, VELZ_VAR_C);
-                    flY(i, j, k, HY_ENER_FLUX_C) =   vn * Uin(i, js, k, DENS_VAR_C)
-                                                        * Uin(i, js, k, ENER_VAR_C)
-                                                   + vn * Uin(i,js,k,PRES_VAR_C);
+                    flY(i, j, k, HY_DENS_FLUX) =   vn * Uin(i, js, k, DENS_VAR);
+                    flY(i, j, k, HY_XMOM_FLUX) =   vn * Uin(i, js, k, DENS_VAR)
+                                                      * Uin(i, js, k, VELX_VAR);
+                    flY(i, j, k, HY_YMOM_FLUX) =   vn * Uin(i, js, k, DENS_VAR)
+                                                      * Uin(i, js, k, VELY_VAR)
+                                                 +      Uin(i, js, k, PRES_VAR);
+                    flY(i, j, k, HY_ZMOM_FLUX) =   vn * Uin(i, js, k, DENS_VAR)
+                                                      * Uin(i, js, k, VELZ_VAR);
+                    flY(i, j, k, HY_ENER_FLUX) =   vn * Uin(i, js, k, DENS_VAR)
+                                                      * Uin(i, js, k, ENER_VAR)
+                                                 + vn * Uin(i,js,k,PRES_VAR);
                 } else {
-                    flY(i, j, k, HY_DENS_FLUX_C) = (  sR * vL * Uin(i, jL, k, DENS_VAR_C)
-                                                    - sL * vR * Uin(i, jR, k, DENS_VAR_C)
-                                                    + sR*sL*(   Uin(i, jR, k, DENS_VAR_C)
-                                                             -  Uin(i, jL, k, DENS_VAR_C))) /sRsL;
-                    flY(i, j, k, HY_XMOM_FLUX_C) = (  sR * vL * Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELX_VAR_C)
-                                                    - sL * vR * Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELX_VAR_C)
-                                                    + sR*sL*(   Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELX_VAR_C)
-                                                             -  Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELX_VAR_C)) ) /sRsL;
-                    flY(i, j, k, HY_YMOM_FLUX_C) = (  sR * vL * Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELY_VAR_C)
-                                                    - sL * vR * Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELY_VAR_C)
-                                                    + sR*sL*(   Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELY_VAR_C)
-                                                             -  Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELY_VAR_C)) ) /sRsL;
-                    flY(i, j, k, HY_YMOM_FLUX_C) +=  (  sR * Uin(i, jL, k, PRES_VAR_C)
-                                                      - sL * Uin(i, jR, k, PRES_VAR_C) ) / sRsL;
-                    flY(i, j, k, HY_ZMOM_FLUX_C) = (  sR * vL * Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELZ_VAR_C)
-                                                    - sL * vR * Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELZ_VAR_C)
-                                                    + sR*sL*(   Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, VELZ_VAR_C)
-                                                             -  Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, VELZ_VAR_C)) ) /sRsL;
-                    flY(i, j, k, HY_ENER_FLUX_C) = (  sR * vL * Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, ENER_VAR_C)
-                                                    - sL * vR * Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, ENER_VAR_C)
-                                                    + sR*sL*(   Uin(i, jR, k, DENS_VAR_C) * Uin(i, jR, k, ENER_VAR_C)
-                                                             -  Uin(i, jL, k, DENS_VAR_C) * Uin(i, jL, k, ENER_VAR_C)) ) /sRsL;
-                    flY(i, j, k, HY_ENER_FLUX_C) +=  (  sR * vL * Uin(i, jL, k, PRES_VAR_C)
-                                                      - sL * vR * Uin(i, jR, k, PRES_VAR_C) ) /sRsL;
+                    flY(i, j, k, HY_DENS_FLUX) = (  sR * vL * Uin(i, jL, k, DENS_VAR)
+                                                  - sL * vR * Uin(i, jR, k, DENS_VAR)
+                                                  + sR*sL*(   Uin(i, jR, k, DENS_VAR)
+                                                           -  Uin(i, jL, k, DENS_VAR))) /sRsL;
+                    flY(i, j, k, HY_XMOM_FLUX) = (  sR * vL * Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELX_VAR)
+                                                  - sL * vR * Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELX_VAR)
+                                                  + sR*sL*(   Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELX_VAR)
+                                                           -  Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELX_VAR)) ) /sRsL;
+                    flY(i, j, k, HY_YMOM_FLUX) = (  sR * vL * Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELY_VAR)
+                                                  - sL * vR * Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELY_VAR)
+                                                  + sR*sL*(   Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELY_VAR)
+                                                           -  Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELY_VAR)) ) /sRsL;
+                    flY(i, j, k, HY_YMOM_FLUX) +=  (  sR * Uin(i, jL, k, PRES_VAR)
+                                                    - sL * Uin(i, jR, k, PRES_VAR) ) / sRsL;
+                    flY(i, j, k, HY_ZMOM_FLUX) = (  sR * vL * Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELZ_VAR)
+                                                  - sL * vR * Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELZ_VAR)
+                                                  + sR*sL*(   Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, VELZ_VAR)
+                                                           -  Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, VELZ_VAR)) ) /sRsL;
+                    flY(i, j, k, HY_ENER_FLUX) = (  sR * vL * Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, ENER_VAR)
+                                                  - sL * vR * Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, ENER_VAR)
+                                                  + sR*sL*(   Uin(i, jR, k, DENS_VAR) * Uin(i, jR, k, ENER_VAR)
+                                                           -  Uin(i, jL, k, DENS_VAR) * Uin(i, jL, k, ENER_VAR)) ) /sRsL;
+                    flY(i, j, k, HY_ENER_FLUX) +=  (  sR * vL * Uin(i, jL, k, PRES_VAR)
+                                                    - sL * vR * Uin(i, jR, k, PRES_VAR) ) /sRsL;
                 }
 
-                flY(i, j, k, HY_DENS_FLUX_C) *= dtdy; 
-                flY(i, j, k, HY_XMOM_FLUX_C) *= dtdy;
-                flY(i, j, k, HY_YMOM_FLUX_C) *= dtdy;
-                flY(i, j, k, HY_ZMOM_FLUX_C) *= dtdy;
-                flY(i, j, k, HY_ENER_FLUX_C) *= dtdy;
+                flY(i, j, k, HY_DENS_FLUX) *= dtdy; 
+                flY(i, j, k, HY_XMOM_FLUX) *= dtdy;
+                flY(i, j, k, HY_YMOM_FLUX) *= dtdy;
+                flY(i, j, k, HY_ZMOM_FLUX) *= dtdy;
+                flY(i, j, k, HY_ENER_FLUX) *= dtdy;
             }
         }
     }
@@ -250,24 +250,24 @@ void hy::computeFluxesHll(const orchestration::Real dt,
     for         (int k=lo.K(); k<=hi.K()+K3D; ++k) {
         for     (int j=lo.J(); j<=hi.J();     ++j) {
             for (int i=lo.I(); i<=hi.I();     ++i) {
-                sL = std::min(Uin(i, j, k-1, VELZ_VAR_C) - auxC(i, j, k-1),
-                              Uin(i, j, k,   VELZ_VAR_C) - auxC(i, j, k));
-                sR = std::max(Uin(i, j, k-1, VELZ_VAR_C) + auxC(i, j, k-1),
-                              Uin(i, j, k,   VELZ_VAR_C) + auxC(i, j, k));
+                sL = std::min(Uin(i, j, k-1, VELZ_VAR) - auxC(i, j, k-1),
+                              Uin(i, j, k,   VELZ_VAR) - auxC(i, j, k));
+                sR = std::max(Uin(i, j, k-1, VELZ_VAR) + auxC(i, j, k-1),
+                              Uin(i, j, k,   VELZ_VAR) + auxC(i, j, k));
                 sRsL = sR - sL;
                 if (sL > 0.0) {
-                    vn = Uin(i, j, k-1, VELZ_VAR_C);
+                    vn = Uin(i, j, k-1, VELZ_VAR);
                     ks = k - 1;
                     kL = k - 1;
                     kR = k - 1;
                 } else if (sR < 0.0) {
-                    vn = Uin(i, j, k, VELZ_VAR_C);
+                    vn = Uin(i, j, k, VELZ_VAR);
                     ks = k;
                     kL = k;
                     kR = k;
                 } else {
-                    vn = 0.5_wp * (  Uin(i, j, k-1, VELZ_VAR_C)
-                                   + Uin(i, j, k,   VELZ_VAR_C));
+                    vn = 0.5_wp * (  Uin(i, j, k-1, VELZ_VAR)
+                                   + Uin(i, j, k,   VELZ_VAR));
                     ks = k;
                     kL = k-1;
                     kR = k;
@@ -276,52 +276,52 @@ void hy::computeFluxesHll(const orchestration::Real dt,
                     }
                 }
 
-                vL = Uin(i, j, kL, VELZ_VAR_C);
-                vR = Uin(i, j, kR, VELZ_VAR_C);
+                vL = Uin(i, j, kL, VELZ_VAR);
+                vR = Uin(i, j, kR, VELZ_VAR);
                 if (kL == kR) {
-                    flZ(i, j, k, HY_DENS_FLUX_C) =   vn * Uin(i, j, ks, DENS_VAR_C);
-                    flZ(i, j, k, HY_XMOM_FLUX_C) =   vn * Uin(i, j, ks, DENS_VAR_C)
-                                                        * Uin(i, j, ks, VELX_VAR_C);
-                    flZ(i, j, k, HY_YMOM_FLUX_C) =   vn * Uin(i, j, ks, DENS_VAR_C)
-                                                        * Uin(i, j, ks, VELY_VAR_C);
-                    flZ(i, j, k, HY_ZMOM_FLUX_C) =   vn * Uin(i, j, ks, DENS_VAR_C)
-                                                        * Uin(i, j, ks, VELZ_VAR_C)
-                                                   +      Uin(i, j, ks, PRES_VAR_C);
-                    flZ(i, j, k, HY_ENER_FLUX_C) =   vn * Uin(i, j, ks, DENS_VAR_C)
-                                                        * Uin(i, j, ks, ENER_VAR_C)
-                                                   + vn * Uin(i, j, ks, PRES_VAR_C);
+                    flZ(i, j, k, HY_DENS_FLUX) =   vn * Uin(i, j, ks, DENS_VAR);
+                    flZ(i, j, k, HY_XMOM_FLUX) =   vn * Uin(i, j, ks, DENS_VAR)
+                                                      * Uin(i, j, ks, VELX_VAR);
+                    flZ(i, j, k, HY_YMOM_FLUX) =   vn * Uin(i, j, ks, DENS_VAR)
+                                                      * Uin(i, j, ks, VELY_VAR);
+                    flZ(i, j, k, HY_ZMOM_FLUX) =   vn * Uin(i, j, ks, DENS_VAR)
+                                                      * Uin(i, j, ks, VELZ_VAR)
+                                                 +      Uin(i, j, ks, PRES_VAR);
+                    flZ(i, j, k, HY_ENER_FLUX) =   vn * Uin(i, j, ks, DENS_VAR)
+                                                      * Uin(i, j, ks, ENER_VAR)
+                                                 + vn * Uin(i, j, ks, PRES_VAR);
                 } else {
-                    flZ(i, j, k, HY_DENS_FLUX_C) = (  sR * vL * Uin(i, j, kL, DENS_VAR_C)
-                                                    - sL * vR * Uin(i, j, kR, DENS_VAR_C)
-                                                    + sR*sL*(   Uin(i, j, kR, DENS_VAR_C)
-                                                             -  Uin(i, j, kL, DENS_VAR_C))) /sRsL;
-                    flZ(i, j, k, HY_XMOM_FLUX_C) = (  sR * vL * Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELX_VAR_C)
-                                                    - sL * vR * Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELX_VAR_C)
-                                                    + sR*sL*(   Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELX_VAR_C)
-                                                             -  Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELX_VAR_C)) ) /sRsL;
-                    flZ(i, j, k, HY_YMOM_FLUX_C) = (  sR * vL * Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELY_VAR_C)
-                                                    - sL * vR * Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELY_VAR_C)
-                                                    + sR*sL*(   Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELY_VAR_C)
-                                                             -  Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELY_VAR_C)) ) /sRsL;
-                    flZ(i, j, k, HY_ZMOM_FLUX_C) = (  sR * vL * Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELZ_VAR_C)
-                                                    - sL * vR * Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELZ_VAR_C)
-                                                    + sR*sL*(   Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, VELZ_VAR_C)
-                                                             -  Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, VELZ_VAR_C)) ) /sRsL;
-                    flZ(i, j, k, HY_ZMOM_FLUX_C) += (  sR * Uin(i, j, kL, PRES_VAR_C)
-                                                     - sL * Uin(i, j, kR, PRES_VAR_C) ) /sRsL;
-                    flZ(i, j, k, HY_ENER_FLUX_C) = (  sR * vL * Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, ENER_VAR_C)
-                                                    - sL * vR * Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, ENER_VAR_C)
-                                                    + sR*sL*(   Uin(i, j, kR, DENS_VAR_C) * Uin(i, j, kR, ENER_VAR_C)
-                                                             -  Uin(i, j, kL, DENS_VAR_C) * Uin(i, j, kL, ENER_VAR_C))) /sRsL;
-                    flZ(i, j, k, HY_ENER_FLUX_C) += (  sR * vL * Uin(i, j, kL, PRES_VAR_C)
-                                                     - sL * vR * Uin(i, j, kR, PRES_VAR_C) ) /sRsL;
+                    flZ(i, j, k, HY_DENS_FLUX) = (  sR * vL * Uin(i, j, kL, DENS_VAR)
+                                                  - sL * vR * Uin(i, j, kR, DENS_VAR)
+                                                  + sR*sL*(   Uin(i, j, kR, DENS_VAR)
+                                                           -  Uin(i, j, kL, DENS_VAR))) /sRsL;
+                    flZ(i, j, k, HY_XMOM_FLUX) = (  sR * vL * Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELX_VAR)
+                                                  - sL * vR * Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELX_VAR)
+                                                  + sR*sL*(   Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELX_VAR)
+                                                           -  Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELX_VAR)) ) /sRsL;
+                    flZ(i, j, k, HY_YMOM_FLUX) = (  sR * vL * Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELY_VAR)
+                                                  - sL * vR * Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELY_VAR)
+                                                  + sR*sL*(   Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELY_VAR)
+                                                           -  Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELY_VAR)) ) /sRsL;
+                    flZ(i, j, k, HY_ZMOM_FLUX) = (  sR * vL * Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELZ_VAR)
+                                                  - sL * vR * Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELZ_VAR)
+                                                  + sR*sL*(   Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, VELZ_VAR)
+                                                           -  Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, VELZ_VAR)) ) /sRsL;
+                    flZ(i, j, k, HY_ZMOM_FLUX) += (  sR * Uin(i, j, kL, PRES_VAR)
+                                                   - sL * Uin(i, j, kR, PRES_VAR) ) /sRsL;
+                    flZ(i, j, k, HY_ENER_FLUX) = (  sR * vL * Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, ENER_VAR)
+                                                  - sL * vR * Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, ENER_VAR)
+                                                  + sR*sL*(   Uin(i, j, kR, DENS_VAR) * Uin(i, j, kR, ENER_VAR)
+                                                           -  Uin(i, j, kL, DENS_VAR) * Uin(i, j, kL, ENER_VAR))) /sRsL;
+                    flZ(i, j, k, HY_ENER_FLUX) += (  sR * vL * Uin(i, j, kL, PRES_VAR)
+                                                   - sL * vR * Uin(i, j, kR, PRES_VAR) ) /sRsL;
                 }
 
-                flZ(i, j, k, HY_DENS_FLUX_C) *= dtdz;
-                flZ(i, j, k, HY_XMOM_FLUX_C) *= dtdz;
-                flZ(i, j, k, HY_YMOM_FLUX_C) *= dtdz;
-                flZ(i, j, k, HY_ZMOM_FLUX_C) *= dtdz;
-                flZ(i, j, k, HY_ENER_FLUX_C) *= dtdz;
+                flZ(i, j, k, HY_DENS_FLUX) *= dtdz;
+                flZ(i, j, k, HY_XMOM_FLUX) *= dtdz;
+                flZ(i, j, k, HY_YMOM_FLUX) *= dtdz;
+                flZ(i, j, k, HY_ZMOM_FLUX) *= dtdz;
+                flZ(i, j, k, HY_ENER_FLUX) *= dtdz;
             }
         }
     }

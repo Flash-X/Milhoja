@@ -24,7 +24,7 @@ void ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit(const i
     const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
     const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
 
-    packet_h->setVariableMask(DENS_VAR_C, ENER_VAR_C);
+    packet_h->setVariableMask(DENS_VAR, ENER_VAR);
 
     if (location != PacketDataLocation::CC1) {
         throw std::logic_error("[computeLaplacianFusedKernelsWeak_packet_oacc_summit] "

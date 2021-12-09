@@ -27,8 +27,8 @@ DataPacket::DataPacket(void)
         stream_{},
         nCopyToGpuBytes_{0},
         nReturnToHostBytes_{0},
-        startVariable_{UNK_VARS_BEGIN_C - 1},
-        endVariable_{UNK_VARS_BEGIN_C - 1}
+        startVariable_{UNK_VARS_BEGIN - 1},
+        endVariable_{UNK_VARS_BEGIN - 1}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -67,8 +67,8 @@ void  DataPacket::nullify(void) {
 
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
-    startVariable_ = UNK_VARS_BEGIN_C - 1;
-    endVariable_   = UNK_VARS_BEGIN_C - 1;
+    startVariable_ = UNK_VARS_BEGIN - 1;
+    endVariable_   = UNK_VARS_BEGIN - 1;
 
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
@@ -99,9 +99,9 @@ std::string  DataPacket::isNull(void) const {
         return "Device memory buffer has already been allocated";
     } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
         return "Data location already assigned";
-    } else if (startVariable_ >= UNK_VARS_BEGIN_C) {
+    } else if (startVariable_ >= UNK_VARS_BEGIN) {
         return "Start variable already set";
-    } else if (endVariable_ >= UNK_VARS_BEGIN_C) {
+    } else if (endVariable_ >= UNK_VARS_BEGIN) {
         return "End variable already set";
     } else if (nCopyToGpuBytes_ > 0) {
         return "Non-zero packet size";
@@ -187,10 +187,10 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
  */
 void   DataPacket::setVariableMask(const int startVariable,
                                    const int endVariable) {
-    if        (startVariable < UNK_VARS_BEGIN_C) {
+    if        (startVariable < UNK_VARS_BEGIN) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Starting variable is invalid");
-    } else if (endVariable > UNK_VARS_END_C) {
+    } else if (endVariable > UNK_VARS_END) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Ending variable is invalid");
     } else if (startVariable > endVariable) {
@@ -232,10 +232,10 @@ void  DataPacket::unpack(void) {
     } else if (pinnedPtrs_ == nullptr) {
         throw std::logic_error("[DataPacket::unpack] "
                                "No pinned pointers set");
-    } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
-               || (startVariable_ > UNK_VARS_END_C )
-               || (endVariable_   < UNK_VARS_BEGIN_C )
-               || (endVariable_   > UNK_VARS_END_C)) {
+    } else if (   (startVariable_ < UNK_VARS_BEGIN )
+               || (startVariable_ > UNK_VARS_END )
+               || (endVariable_   < UNK_VARS_BEGIN )
+               || (endVariable_   > UNK_VARS_END)) {
         throw std::logic_error("[DataPacket::unpack] "
                                "Invalid variable mask");
     }
@@ -271,8 +271,8 @@ void  DataPacket::unpack(void) {
         // The code here imposes requirements on the variable indices.  See Flash.h
         // for more information.  If this code is changed, please make sure to
         // adjust Flash.h appropriately.
-        assert(UNK_VARS_BEGIN_C == 0);
-        assert(UNK_VARS_END_C == (NUNKVAR - 1));
+        assert(UNK_VARS_BEGIN == 0);
+        assert(UNK_VARS_END == (NUNKVAR - 1));
         std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
                               * static_cast<std::size_t>(startVariable_);
         Real*        start_h = data_h + offset;

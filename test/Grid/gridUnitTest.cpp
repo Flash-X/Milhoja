@@ -452,7 +452,7 @@ TEST_F(GridUnitTest,GCFill){
 
                     expected_val  = 1.0_wp;
 
-                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR_C), eps);
+                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR), eps);
                 }
             }
         }

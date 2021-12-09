@@ -18,12 +18,12 @@ void StaticPhysicsRoutines::computeLaplacianEnergy(const orchestration::IntVect&
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
                   scratch(i, j, k, 0) = 
-                           (     (  U(i-1, j,   k, ENER_VAR_C)
-                                  + U(i+1, j,   k, ENER_VAR_C))
-                            - 2.0 * U(i,   j,   k, ENER_VAR_C) ) * dx_sqr_inv
-                         + (     (  U(i  , j-1, k, ENER_VAR_C)
-                                  + U(i  , j+1, k, ENER_VAR_C))
-                            - 2.0 * U(i,   j,   k, ENER_VAR_C) ) * dy_sqr_inv;
+                           (     (  U(i-1, j,   k, ENER_VAR)
+                                  + U(i+1, j,   k, ENER_VAR))
+                            - 2.0 * U(i,   j,   k, ENER_VAR) ) * dx_sqr_inv
+                         + (     (  U(i  , j-1, k, ENER_VAR)
+                                  + U(i  , j+1, k, ENER_VAR))
+                            - 2.0 * U(i,   j,   k, ENER_VAR) ) * dy_sqr_inv;
              }
         }
     }
@@ -33,7 +33,7 @@ void StaticPhysicsRoutines::computeLaplacianEnergy(const orchestration::IntVect&
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
-                U(i, j, k, ENER_VAR_C) = scratch(i, j, k, 0);
+                U(i, j, k, ENER_VAR) = scratch(i, j, k, 0);
              }
         } 
     }

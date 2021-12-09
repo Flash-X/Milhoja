@@ -26,11 +26,11 @@ void hy::computeEintHll_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                norm2_sqr =   U_d->at(i, j, k, VELX_VAR_C) * U_d->at(i, j, k, VELX_VAR_C)
-                            + U_d->at(i, j, k, VELY_VAR_C) * U_d->at(i, j, k, VELY_VAR_C)
-                            + U_d->at(i, j, k, VELZ_VAR_C) * U_d->at(i, j, k, VELZ_VAR_C);
-                U_d->at(i, j, k, EINT_VAR_C) =    U_d->at(i, j, k, ENER_VAR_C)
-                                               - (0.5_wp * norm2_sqr);
+                norm2_sqr =   U_d->at(i, j, k, VELX_VAR) * U_d->at(i, j, k, VELX_VAR)
+                            + U_d->at(i, j, k, VELY_VAR) * U_d->at(i, j, k, VELY_VAR)
+                            + U_d->at(i, j, k, VELZ_VAR) * U_d->at(i, j, k, VELZ_VAR);
+                U_d->at(i, j, k, EINT_VAR) =    U_d->at(i, j, k, ENER_VAR)
+                                             - (0.5_wp * norm2_sqr);
             }
         }
     }

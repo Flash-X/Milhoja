@@ -21,12 +21,12 @@ void idealGammaDensIe(const orchestration::IntVect& lo,
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
-                U(i, j, k, PRES_VAR_C) =   U(i, j, k, DENS_VAR_C)
-                                         * U(i, j, k, EINT_VAR_C)
-                                         * GAMMA_M_1_INV;
-                U(i, j, k, TEMP_VAR_C) =   U(i, j, k, EINT_VAR_C)
-                                         * GGPROD_INV
-                                         * SINGLE_SPECIES_A;
+                U(i, j, k, PRES_VAR) =   U(i, j, k, DENS_VAR)
+                                       * U(i, j, k, EINT_VAR)
+                                       * GAMMA_M_1_INV;
+                U(i, j, k, TEMP_VAR) =   U(i, j, k, EINT_VAR)
+                                       * GGPROD_INV
+                                       * SINGLE_SPECIES_A;
             }
         }
     }

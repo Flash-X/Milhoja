@@ -27,13 +27,13 @@ void StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(const orchestrat
     #pragma acc loop vector collapse(2)
     for     (int j=j_s; j<=j_e; ++j) {
         for (int i=i_s; i<=i_e; ++i) {
-              Uout_d->at(i, j, 0, DENS_VAR_C) = 
-                       (     (  Uin_d->at(i-1, j,   0, DENS_VAR_C)
-                              + Uin_d->at(i+1, j,   0, DENS_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR_C) ) * dx_sqr_inv
-                     + (     (  Uin_d->at(i  , j-1, 0, DENS_VAR_C)
-                              + Uin_d->at(i  , j+1, 0, DENS_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR_C) ) * dy_sqr_inv;
+              Uout_d->at(i, j, 0, DENS_VAR) = 
+                       (     (  Uin_d->at(i-1, j,   0, DENS_VAR)
+                              + Uin_d->at(i+1, j,   0, DENS_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR) ) * dx_sqr_inv
+                     + (     (  Uin_d->at(i  , j-1, 0, DENS_VAR)
+                              + Uin_d->at(i  , j+1, 0, DENS_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR) ) * dy_sqr_inv;
          }
     }
     // The OFFLINE TOOLCHAIN should figure out that Uin/Uout can be used
