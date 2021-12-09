@@ -248,8 +248,15 @@ unsigned int GridAmrex::getNumberLocalBlocks() {
 /**
  *
  */
-void    GridAmrex::writePlotfile(const std::string& filename) const {
-    amrcore_->writeMultiPlotfile(filename);
+void    GridAmrex::writePlotfile(const std::string& filename,
+                                 const std::vector<std::string>& names) const {
+    amrex::Vector<std::string>  names_amrex{names.size()};
+
+    for (auto j=0; j<names.size(); ++j) {
+        names_amrex[j] = names[j];
+    }
+
+    amrcore_->writeMultiPlotfile(filename, names_amrex);
 }
 
 /**

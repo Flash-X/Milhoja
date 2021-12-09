@@ -14,6 +14,7 @@
 #include "Base.h"
 #include "constants.h"
 #include "Flash_par.h"
+#include "Simulation.h"
 #include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
@@ -549,13 +550,15 @@ TEST_F(GridUnitTest,LogicErrors){
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
+    std::vector<std::string>   names = sim::getVariableNames();
+
     Grid& grid = Grid::instance();
     grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMaximal);
 
-    grid.writePlotfile("test_plt_0000");
+    grid.writePlotfile("test_plt_0000", names);
 }
 
 }

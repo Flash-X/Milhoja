@@ -86,7 +86,8 @@ public:
     void fillFromCoarse(amrex::MultiFab& mf, const unsigned int lev);
 
 
-    void writeMultiPlotfile(const std::string& filename) const;
+    void writeMultiPlotfile(const std::string& filename,
+                            const amrex::Vector<std::string>& names) const;
 
 private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level

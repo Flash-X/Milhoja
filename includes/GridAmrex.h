@@ -48,7 +48,8 @@ public:
     unsigned int getMaxLevel() const override;
     unsigned int getNumberLocalBlocks() override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
-    void         writePlotfile(const std::string& filename) const override;
+    void         writePlotfile(const std::string& filename,
+                               const std::vector<std::string>& names) const override;
 
     // Other virtual function overrides.
     RealVect     getDeltas(const unsigned int lev) const override;

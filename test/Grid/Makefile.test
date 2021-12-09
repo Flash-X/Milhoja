@@ -14,6 +14,7 @@ LDFLAGS_TEST        = $(LIB_GTEST)
 SRCS_TEST = \
     $(TESTDIR)/runGridTest.cpp \
     $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTBASEDIR)/sim_getVariableNames.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTDIR)/setInitialInteriorTest.cpp \

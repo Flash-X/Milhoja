@@ -53,6 +53,9 @@ int main(int argc, char* argv[]) {
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
                         GLOBAL_COMM, TIMER_RANK};
 
+    // Analogous to calling sim_init
+    std::vector<std::string>  variableNames = sim::getVariableNames();
+
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();
     orchestration::Grid&     grid    = orchestration::Grid::instance();
@@ -77,7 +80,7 @@ int main(int argc, char* argv[]) {
     Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
@@ -170,7 +173,8 @@ int main(int argc, char* argv[]) {
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
+            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
+                               variableNames);
         }
         Timer::stop("Reduce/Write");
 
@@ -200,7 +204,7 @@ int main(int argc, char* argv[]) {
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 

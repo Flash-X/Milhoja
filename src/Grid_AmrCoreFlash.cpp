@@ -51,59 +51,12 @@ AmrCoreFlash::~AmrCoreFlash() {
 }
 
 //! Write all levels of unk_ to plotfile.
-void AmrCoreFlash::writeMultiPlotfile(const std::string& filename) const {
+void AmrCoreFlash::writeMultiPlotfile(const std::string& filename,
+                                      const amrex::Vector<std::string>& names) const {
 #ifdef GRID_LOG
     std::string msg = "[GridAmrex] Writing to plotfile: "+filename+"...";
     Logger::instance().log(msg);
 #endif
-    amrex::Vector<std::string>    names(unk_[0].nComp());
-    if (names.size()==1) {
-        names[0] = "phi";
-    } else {
-#ifdef DENS_VAR
-    // FIXME: Temporarily use the same generic names that are used in FLASH-X
-    // AMREX-based plot files so that we can compare runtime vs. FLASH-X Sedov
-    // results for testing.
-//        names[DENS_VAR] = "dens";
-        names[DENS_VAR] = "var0001";
-#endif
-#ifdef VELX_VAR
-//        names[VELX_VAR] = "velx";
-        names[VELX_VAR] = "var0008";
-#endif
-#ifdef VELY_VAR
-//        names[VELY_VAR] = "vely";
-        names[VELY_VAR] = "var0009";
-#endif
-#ifdef VELZ_VAR
-//        names[VELZ_VAR] = "velz";
-        names[VELZ_VAR] = "var0010";
-#endif
-#ifdef PRES_VAR
-//        names[PRES_VAR] = "pres";
-        names[PRES_VAR] = "var0006";
-#endif
-#ifdef ENER_VAR
-//        names[ENER_VAR] = "ener";
-        names[ENER_VAR] = "var0003";
-#endif
-#ifdef GAMC_VAR
-//        names[GAMC_VAR] = "gamc";
-        names[GAMC_VAR] = "var0004";
-#endif
-#ifdef GAME_VAR
-//        names[GAME_VAR] = "game";
-        names[GAME_VAR] = "var0005";
-#endif
-#ifdef TEMP_VAR
-//        names[TEMP_VAR] = "temp";
-        names[TEMP_VAR] = "var0007";
-#endif
-#ifdef EINT_VAR
-//        names[EINT_VAR] = "eint";
-        names[EINT_VAR] = "var0002";
-#endif
-    }
     amrex::Vector<const amrex::MultiFab*> mfs;
     for(int i=0; i<=finest_level; ++i) {
         mfs.push_back( &unk_[i] );
