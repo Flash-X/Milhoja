@@ -57,7 +57,7 @@ def main():
     else:
         siteMakefile = os.path.join(siteDir,args.makefile)
     if not os.path.isfile(siteMakefile):
-        raise ValueError("Site Makefile not found in site directory")
+        raise ValueError(f"Site Makefile {siteMakefile} not found in site directory")
     print("Linking Makefile.site from site: "+args.site)
     os.symlink(siteMakefile,os.path.join(buildDir,'Makefile.site'))
 

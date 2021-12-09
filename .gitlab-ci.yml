@@ -1,50 +1,110 @@
+# Jobs in a single pipeline can be distributed across multiple runners.  For CELS,
+# the runners are two different types of HW.  Therefore, we could be building 
+# binaries for one type of processor with one job and running tests on a different
+# processor.  This is not acceptable, so we put all work in a single job.
+#
+# GitLab is working on "Sticky Runners", which would force all jobs in a single
+# pipeline to run on the same runner.  This would be a step in the right 
+# direction.  I do not see that it is yet officially included in GitLab CI.
+#
+# NOTE: The main code here uses pushd/popd.  Careful about this when altering
+#       the code.
+
+# Use CELS's GCE-public runners, which use GCE general computing hardware
 default:
  tags:
  - public
  - shared_ssh
 
 stages:
-  - build
   - test
-  - after_success
 
+# Always use pristine installations of git repos to avoid subtle
+# difficulties that could arise from unintentionally or incorrectly
+# using files from a previous run.
+#
+# Note that the correct SW stack *must* be loaded when using fcompare.
+# Therefore, if FCOMPARE_EXE is changed here, check if the regression test
+# section needs updating as well.
 variables:
- DATAREPO_PATH:     /nfs/gce/projects/Milhoja
- RUNTIME_DEP_PATH:  $DATAREPO_PATH/deps
- FCOMPARE:          $DATAREPO_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
- FCOMPARE_NORM:     0
- FCOMPARE_RELTOL:   0
- SEDOV_BASELINE_2D: $DATAREPO_PATH/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_2D
- SEDOV_BASELINE_3D: $DATAREPO_PATH/OrchestrationRuntimeDataRepo/gce_c06/baselines/162a03d3/SedovMpi_3D
+ GIT_STRATEGY:           clone
+ MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
+ MILHOJA_TEST_REPO:      $MILHOJA_PROJECT_PATH/MilhojaTest
+ FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
+ SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
+ SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
 
 test_gnu:
  stage: test
  script:
- - module purge
- - module load gcc/7.5.0-7sxdzdq
- - module load mpich/3.3.2-gnu
- - module load anaconda3/2020.02
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 1 -p grid_1d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 2 -p grid_2d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid         --debug -d 3 -p grid_3d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Grid                 -d 3 -p grid_3d.par                -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py ThreadTeam   --debug -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py ThreadTeam           -d 2 -p par_threadteam.h           -s gce -M Makefile.site.ci && cd build && make -j4 all && ./test_threadteam.x 4
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Runtime/null --debug -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Runtime/null         -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Runtime/cpu  --debug -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Runtime/cpu          -d 2 -p par_runtime.h              -s gce -M Makefile.site.ci && cd build && make -j4 all && make test
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Sedov/mpi    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_mpi.x
- - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_2D/sedov_plt_final ./sedov_plt_final
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Sedov/cpu    --debug -d 2 -p sedov_2D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_cpu.x
- - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_2D/sedov_plt_final ./sedov_plt_final
- - cd $HOME/$CI_PROJECT_DIR && ./setup.py Sedov/cpu    --debug -d 3 -p sedov_3D_cartesian_cpu.par -s gce -M Makefile.site.ci && cd build && make -j4 all && time mpirun -np 8 ./sedov_cpu.x
- - $FCOMPARE --norm $FCOMPARE_NORM --rel_tol $FCOMPARE_RELTOL $SEDOV_BASELINE_3D/sedov_plt_final ./sedov_plt_final
+ ##-- Setup all environment variables
+ - echo $PWD
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
+ # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
+ - . $MILHOJA_TEST_REPO/gce/available_gce_machines.sh
+ - set_gce_machine_env_vars $HOSTNAME
+ ##-- Print metadata to trace env vars
+ - echo $HOSTNAME
+ - echo $HWFAMILY
+ - echo $MILHOJA_TEST_REPO
+ - echo $MILHOJA_CODE_REPO
+ - echo $MILHOJA_WORK_REPO
+ - echo $SEDOV_REGRESSION_TEST
+ - echo $FCOMPARE_EXE
+ ##-- Install pristine clone of external test repo
+ - pushd $CI_BASE_PATH
+ - ls
+ - rm -rf $MILHOJA_WORK_REPO
+ - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
+ - cd $MILHOJA_WORK_REPO
+ - git log -1 --oneline
+ ##-- Install Sedov python package for use throughout
+ # NOTE: I previously ran in this build script the command `pydoc sedov` and found that this
+ # installs to `/home/svccels.ci/.local`, which means that we are potentially using a python
+ # installation altered by other projects using the CI.  For instance another project might
+ # update a package like pandas to a version with a more modern interface that breaks our
+ # python code.  So far, we at least install with --upgrade to overwrite a pre-existing
+ # installation of the Sedov python package and therefore ensure that we have a clean install
+ # of that package.
+ # TODO: Use a python setup locally just for this project?
+ - module load anaconda3
+ - which python
+ - which pip
+ - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
+ - python setup.py test
+ - python setup.py sdist && cd dist
+ - pip install --user --upgrade $(ls Sedov-*.tar.gz)
+ - python -c 'import sedov ; sedov.print_versions()'
+ - module unload anaconda3
+ ##-- Build and run tests
+ # Build all variants of a single test first and then run all at once
+ - cd $MILHOJA_WORK_REPO/gce
+ # Unittests
+ - ./buildTestGrid.sh        && ./testGrid.sh
+ - ./buildTestThreadTeam.sh  && ./testThreadTeam.sh
+ - ./buildTestRuntimeNull.sh && ./testRuntimeNull.sh
+ - ./buildTestRuntimeCpu.sh  && ./testRuntimeCpu.sh
+ # Acquire Sedov results for regression testing
+ # Run only in production since the debugs can run so long on sandy bridge that the
+ # test suite times out.
+ - ./buildSedovMpi.sh && ./runSedovMpi.sh
+ - ./buildSedovCpu.sh && ./runSedovCpu.sh
+ # Execute regression tests
+ # Setup same SW stack used to build fcompare binary
+ - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
+ - module load anaconda3
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - module unload anaconda3
 
 test_doxygen:
  stage: test
  script:
  - pushd docs/doxygen && doxygen && popd
+
 

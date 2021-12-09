@@ -22,7 +22,7 @@ namespace rp_Simulation {
     // setInitialConditions run in CPU-only thread team
     // configuration using blocks
     constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 2;
-    constexpr  unsigned int         N_THREADS_FOR_IC = 4;
+    constexpr  unsigned int         N_THREADS_FOR_IC = 16;
 }
 
 #endif
