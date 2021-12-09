@@ -39,6 +39,8 @@ void   Logger::setLogFilename(const std::string& filename) {
  * attempts to access the singleton via the instance method.
  *
  * \param filename - the name of the file to which log output should be written
+ * \param comm - the MPI communicator to be used to identify the MPI logging
+ *               process
  * \param logRank - the rank of the single MPI process that should perform logging
  */
 #ifdef LOGGER_NO_MPI
