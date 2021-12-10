@@ -1,3 +1,7 @@
+#ifndef USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
+
 #include <AMReX_Dim3.H>
 #include <AMReX_Array4.H>
 #include <AMReX_MultiFab.H>

@@ -1,7 +1,7 @@
 SRCDIR       = $(BASEDIR)/src
 INCDIR       = $(BASEDIR)/includes
 
-CXXFLAGS_BASE    = -I$(INCDIR)
+CXXFLAGS_BASE   = -I$(INCDIR)
 CUFLAGS_BASE    = -I$(INCDIR)
 
 #TODO: Header files? express dependencies
@@ -28,3 +28,9 @@ SRCS_BASE       = \
     $(SRCDIR)/ThreadTeamRunningOpen.cpp \
     $(SRCDIR)/ThreadTeamRunningClosed.cpp \
     $(SRCDIR)/ThreadTeamRunningNoMoreWork.cpp
+
+CU_SRCS_BASE = \
+	$(SRCDIR)/CudaBackend.cu \
+	$(SRCDIR)/CudaGpuEnvironment.cu \
+	$(SRCDIR)/CudaStreamManager.cu \
+	$(SRCDIR)/CudaMemoryManager.cu

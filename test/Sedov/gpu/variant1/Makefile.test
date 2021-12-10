@@ -7,10 +7,9 @@ SEDOVGPUDIR         = $(BASEDIR)/test/Sedov/gpu
 TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant1
 
 # Define compiler flags in CXXFLAGS_TEST_*
-CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CUFLAGS_TEST        = -I$(SEDOVDIR)                                             -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-LDFLAGS_TEST        = $(OACC_FLAGS)
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CUFLAGS_TEST        = -I$(SEDOVDIR)
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
@@ -42,9 +41,3 @@ SRCS_TEST = \
 	$(TESTDIR)/DataPacket_Hydro_gpu_1.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_1.cpp \
 	$(TESTDIR)/sedov_gpu_1.cpp
-
-CU_SRCS = \
-	$(SRCDIR)/CudaBackend.cu \
-	$(SRCDIR)/CudaGpuEnvironment.cu \
-	$(SRCDIR)/CudaStreamManager.cu \
-	$(SRCDIR)/CudaMemoryManager.cu

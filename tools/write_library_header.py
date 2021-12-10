@@ -62,6 +62,11 @@ _OFFLOAD_HELP = \
    f'\tValid Values: {_VALID_OFFLOAD}\n' \
    f'\tDefault: {_DEFAULT_OFFLOAD}\n'
 
+#####----- ANSI TERMINAL COLORS
+_ERROR = '\033[0;91;1m' # Bright Red/bold
+#_ERROR = '\033[0;31;1m' # Red/bold
+_NC    = '\033[0m'      # No Color/Not bold
+
 if __name__ == '__main__':
     """
     Write the library header file in accord with the given command line
@@ -70,16 +75,16 @@ if __name__ == '__main__':
     #####----- SPECIFY COMMAND LINE USAGE
     parser = argparse.ArgumentParser(description=_DESCRIPTION, \
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('filename',  nargs=1, type=str, help=_FNAME_HELP)
-    parser.add_argument('--dim',     '-d',    type=int, help=_DIM_HELP)
-    parser.add_argument('--runtime', '-r',    type=str, help=_RUNTIME_HELP)
-    parser.add_argument('--grid',    '-g',    type=str, help=_GRID_HELP)
-    parser.add_argument('--fps',     '-fp',   type=str, help=_FPS_HELP)
-    parser.add_argument('--offload', '-o',    type=str, help=_OFFLOAD_HELP)
+    parser.add_argument('filename',  nargs=1, type=str,                           help=_FNAME_HELP)
+    parser.add_argument('--dim',     '-d',    type=int, default=_DEFAULT_DIM,     help=_DIM_HELP)
+    parser.add_argument('--runtime', '-r',    type=str, default=_DEFAULT_RUNTIME, help=_RUNTIME_HELP)
+    parser.add_argument('--grid',    '-g',    type=str, default=_DEFAULT_GRID,    help=_GRID_HELP)
+    parser.add_argument('--fps',     '-fp',   type=str, default=_DEFAULT_FPS,     help=_FPS_HELP)
+    parser.add_argument('--offload', '-o',    type=str, default=_DEFAULT_OFFLOAD, help=_OFFLOAD_HELP)
 
     def print_and_exit(msg, error_code):
         print(file=sys.stderr)
-        print('ERROR: ' + msg, file=sys.stderr)
+        print(f'{_ERROR}ERROR: {msg}{_NC}', file=sys.stderr)
         print(file=sys.stderr)
         parser.print_help(file=sys.stderr)
         exit(error_code)
@@ -91,34 +96,24 @@ if __name__ == '__main__':
     if filename.exists():
         print_and_exit(f'{filename} already exists', 1)
 
-    ndim = _DEFAULT_DIM
-    if args.dim != None:
-        ndim = args.dim
+    ndim = args.dim
     if ndim not in _VALID_DIM:
         print_and_exit(f'Invalid dimension ({ndim})', 2)
 
-    runtime_backend = _DEFAULT_RUNTIME
-    if args.runtime != None:
-        runtime_backend = args.runtime
+    runtime_backend = args.runtime
     if runtime_backend.lower() not in _VALID_RUNTIME:
         print_and_exit(f'Invalid runtime backend ({runtime_backend})', 3)
 
-    grid_backend = _DEFAULT_GRID
-    if args.grid != None:
-        grid_backend = args.grid
+    grid_backend = args.grid
     if grid_backend.lower() not in _VALID_GRID:
         print_and_exit(f'Invalid grid backend ({grid_backend})', 4)
 
-    floating_point_system = _DEFAULT_FPS
-    if args.fps != None:
-        floating_point_system = args.fps
+    floating_point_system = args.fps
     if floating_point_system.lower() not in _VALID_FPS:
         msg = f'Invalid floating point system ({floating_point_system})'
         print_and_exit(msg, 5)
 
-    computation_offloading = _DEFAULT_OFFLOAD
-    if args.offload != None:
-        computation_offloading = args.offload
+    computation_offloading = args.offload
     if computation_offloading.lower() not in _VALID_OFFLOAD:
         msg = f'Invalid computation offloading tool ({computation_offloading})'
         print_and_exit(msg, 6)
@@ -197,9 +192,31 @@ if __name__ == '__main__':
         fptr.write( '\n')
         fptr.write(f'#define {grid_backend_macro}\n')
         if runtime_backend_macro != None:
-            fptr.write(f'#define {runtime_backend_macro}\n')
+            # Rather than define the macro here, we prefer that the build system
+            # define the macro at the global level.  This avoids subtle errors
+            # where this header wasn't included but should have been or errors
+            # in which the header must be included before a preprocessor
+            # command.
+            #
+            # Under the assumption that calling code will include this header in
+            # at least one of its source code files, the calling code build will
+            # fail if they haven't chosen to build with the matching backend.
+            # It's important that they do so as one of their files could include
+            # in a Milhoja header that uses this macro.
+            msg  = f'Milhoja library built with {runtime_backend_macro}.  '
+            msg +=  'All calling code must also define this macro.'
+            fptr.write( '\n')
+            fptr.write(f'#ifndef {runtime_backend_macro}\n')
+            fptr.write(f'#error "{msg}"\n')
+            fptr.write( '#endif\n')
         if offload_macro != None:
-            fptr.write(f'#define {offload_macro}\n')
+            #  As for runtime_backend_macro
+            msg  = f'Milhoja library built with {offload_macro}.  '
+            msg +=  'All calling code must also define this macro.'
+            fptr.write( '\n')
+            fptr.write(f'#ifndef {offload_macro}\n')
+            fptr.write(f'#error "{msg}"\n')
+            fptr.write( '#endif\n')
         fptr.write( '\n')
         fptr.write( '#endif\n\n')
 
