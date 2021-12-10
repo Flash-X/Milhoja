@@ -5,8 +5,8 @@
 #include <mpi.h>
 
 int main(int argc, char* argv[]) {
-    constexpr MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
-    constexpr int        LEAD_RANK   = 0;
+    MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
+    int        LEAD_RANK   = 0;
 
     ::testing::InitGoogleTest(&argc, argv);
 

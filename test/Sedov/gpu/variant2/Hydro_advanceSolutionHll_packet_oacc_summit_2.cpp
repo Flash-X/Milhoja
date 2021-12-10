@@ -8,7 +8,7 @@
 #include "Eos.h"
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
                                                     orchestration::DataItem* dataItem_h) {

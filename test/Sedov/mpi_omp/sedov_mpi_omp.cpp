@@ -36,14 +36,15 @@ int main(int argc, char* argv[]) {
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME, LOG_RANK);
+    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME,
+                                       GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Grid_init
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init
     orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                                   IO_RANK);
+                                   GLOBAL_COMM, IO_RANK);
 
     // Analogous to calling sim_init
     std::vector<std::string>  variableNames = sim::getVariableNames();
@@ -54,7 +55,7 @@ int main(int argc, char* argv[]) {
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI+OpenMP",
                         N_DIST_THREADS, 0, N_CPU_THREADS, N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
-                        TIMER_RANK};
+                        GLOBAL_COMM, TIMER_RANK};
 
     //----- MIMIC Grid_initDomain
     orchestration::Io&       io      = orchestration::Io::instance();

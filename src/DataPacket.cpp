@@ -191,10 +191,10 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
  */
 void   DataPacket::setVariableMask(const int startVariable,
                                    const int endVariable) {
-    if        (startVariable <= 0) {
+    if        (startVariable < 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Starting variable index is negative");
-    } else if (endVariable <= 0) {
+    } else if (endVariable < 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Ending variable index is negative");
     } else if (startVariable > endVariable) {

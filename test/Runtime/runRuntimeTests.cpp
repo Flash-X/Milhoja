@@ -18,8 +18,8 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 // We need to create our own main for the testsuite since we can only call
 // MPI_Init/MPI_Finalize once per testsuite execution.
 int main(int argc, char* argv[]) {
-    constexpr MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
-    constexpr int        LEAD_RANK   = 0;
+    MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
+    int        LEAD_RANK   = 0;
 
     ::testing::InitGoogleTest(&argc, argv);
 
