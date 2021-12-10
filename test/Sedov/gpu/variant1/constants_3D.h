@@ -5,7 +5,5 @@
 #define NYB  16
 #define NZB  16
 
-#define NDIM 3
-
 #endif
 

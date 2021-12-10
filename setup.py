@@ -1,20 +1,54 @@
 #!/usr/bin/env python3
 
-# This script is the main workhorse of the build system. Users should invoke this script with a setup line
-# similar to the following, which will set up a build directory with the necessary files for making a test.
-# `python setup.py -s Thomass-MBP -d 2 -p grid_2D.par -t Grid`
-#
-# To make the test, cd into the build directory and run `make` or `make all`. Then, the test can be run with
-# `make test` and the code coverage report can be generated with `make coverage`.
-#
-# To get a summary of all the command line options, run `python setup.py --help`.
+"""
+To obtain program usage information including detailed information regarding
+command line arguments, run the script with the flag -h.
+"""
 
-import argparse, sys, os, shutil
-from subprocess import check_output
+import os
+import sys
+import shutil
+import argparse
 
-def main():
+import subprocess as sbp
+
+from pathlib import Path
+
+#####----- FIXED CONFIGURATION VALUES
+# Always build with IEEE double precision reals.
+_FLOATING_POINT_SYSTEM = 'double'
+
+#####----- PROGRAM USAGE INFO
+_DESCRIPTION = \
+    "This script is the main workhorse of the build system. Users should\n" \
+    "invoke this script with a setup line similar to the following, which\n" \
+    "will set up a build directory with the necessary files for making a\n" \
+    "test.\n\n" \
+    "\tpython setup.py -s Thomass-MBP -d 2 -p grid_2D.par Grid\n\n" \
+    "The build directory is always created in the root folder of the called\n" \
+    "script's repository.  If a file or directory already exists with that\n" \
+    "name, this script deletes it without warning so that each build is clean.\n\n" \
+    "To make the test, cd into the build directory and run 'make' or\n" \
+    "'make all'. Then, the test can be run with 'make test' and the code\n" \
+    "coverage report can be generated with 'make coverage'.\n"
+
+def _print_and_exit(msg, error_code):
+    """
+    Pretty-print the given error message, exit, and return to the caller the
+    given error code.
+    """
+    print(file=sys.stderr)
+    print(f'SETUP ERROR: {msg}', file=sys.stderr)
+    print(file=sys.stderr)
+    exit(error_code)
+
+if __name__ == '__main__':
+    """
+    Setup a build directory in accord with the given command line arguments.
+    """
     # Parse command line args
-    parser = argparse.ArgumentParser(description='Runtime Setup Tool')
+    parser = argparse.ArgumentParser(description=_DESCRIPTION, \
+                                     formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--site','-s',type=str,help='site name')
     parser.add_argument('--library','-l',type=str,help='Path to prebuilt Runtime library')
     parser.add_argument('--build','-b',type=str,default='build',help='build directory')
@@ -117,6 +151,27 @@ def main():
                 f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
                 f.write("LIB_RUNTIME = .")
 
+    #####----- Construct milhoja.h file in build dir
+    # The write script does error checking of the command line arguments passed
+    # to it.  Therefore, this script doesn't need to check them as well.
+    # Default values for those arguments are determined by the script as well.
+    fname_header = Path(buildDir).resolve().joinpath('milhoja.h')
+    fname_script = Path(homeDir).resolve().joinpath('tools', 'write_library_header.py')
+    if not fname_script.is_file():
+        _print_and_exit(f'Cannot find {fname_script}', 1)
+
+    # Since the build folder is always built new by this script, we are certain
+    # that the header file does not already exist.
+    cmd = [str(fname_script), str(fname_header),
+           '--dim',  str(args.dim),
+           '--grid', 'AMReX',
+           '--fps',  _FLOATING_POINT_SYSTEM]
+    print('Creating milhoja.h header file')
+    try:
+        # Store stdout output for later logging
+        hdr_stdout = sbp.check_output(cmd).decode('utf-8')
+    except sbp.CalledProcessError:
+        _print_and_exit(f'Unable to create milhoja.h', 2)
 
     # Copy par file into build dir
     if args.par is not None:
@@ -175,18 +230,17 @@ def main():
                 f.write(line)
         f.write('----------------------------\n\n')
 
+        f.write(hdr_stdout)
+
         f.write('Repository status:\n')
         f.write('----------------------------\n')
-        f.write( check_output(['git','status']).decode('utf-8') )
+        f.write( sbp.check_output(['git','status']).decode('utf-8') )
         f.write('----------------------------\n\n')
 
         f.write('Most recent commits:\n')
         f.write('----------------------------\n')
-        f.write( check_output(['git','log','--max-count','5']).decode('utf-8') )
+        f.write( sbp.check_output(['git','log','--max-count','5']).decode('utf-8') )
         f.write('----------------------------\n')
 
     print("Successfully set up build directory!")
 
-
-if __name__ == '__main__':
-    main()

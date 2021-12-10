@@ -3,6 +3,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "milhoja.h"
+
 #include "Flash.h"
 #include "Sedov.h"
 

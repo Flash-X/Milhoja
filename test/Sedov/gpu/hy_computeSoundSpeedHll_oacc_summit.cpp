@@ -6,7 +6,8 @@
 
 #include <cmath>
 
-#include "Flash.h"
+#include "milhoja.h"
+
 #include "Sedov.h"
 
 void hy::computeSoundSpeedHll_oacc_summit(const orchestration::IntVect* lo_d,

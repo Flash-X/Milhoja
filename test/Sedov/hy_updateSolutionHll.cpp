@@ -1,5 +1,7 @@
 #include "Hydro.h"
 
+#include "milhoja.h"
+
 #include "Sedov.h"
 
 void hy::updateSolutionHll(const orchestration::IntVect& lo,

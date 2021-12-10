@@ -2,6 +2,7 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
+#include "milhoja.h"
 #include "DataPacket.h"
 
 #include "Eos.h"

@@ -1,6 +1,7 @@
 #ifndef DATA_PACKET_HYDRO_GPU_1_H__
 #define DATA_PACKET_HYDRO_GPU_1_H__
 
+#include "milhoja.h"
 #include "Grid_REAL.h"
 #include "DataPacket.h"
 

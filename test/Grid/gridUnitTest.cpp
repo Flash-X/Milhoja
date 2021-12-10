@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "milhoja.h"
 #include "Grid.h"
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"

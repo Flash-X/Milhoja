@@ -5,7 +5,5 @@
 #define NYB 1
 #define NZB 1
 
-#define NDIM 1
-
 #endif
 
