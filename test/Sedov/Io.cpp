@@ -9,6 +9,7 @@
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 
+#include "Sedov.h"
 #include "constants.h"
 #include "Flash_par.h"
 
