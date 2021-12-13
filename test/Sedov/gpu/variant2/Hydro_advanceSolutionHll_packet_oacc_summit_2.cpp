@@ -41,7 +41,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
     //
     // Note that to avoid such overwriting, GAMC must be adjacent in memory
     // to all other variables in the packet and GAME outside of this grouping.
-    // For this test, these two variables were declared in Flash.h as the
+    // For this test, these two variables were declared in Sedov.h as the
     // last two UNK variables to accomplish this goal.
     //
     // TODO: How to do the masking?  Does the setup tool/offline toolchain have

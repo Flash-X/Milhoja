@@ -136,13 +136,10 @@
 
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
-#include "FArray1D.h"
 #include "FArray4D.h"
 #include "Tile.h"
 #include "DataItem.h"
 #include "Stream.h"
-
-#include "Flash.h"
 
 namespace orchestration {
 
@@ -230,6 +227,7 @@ public:
      * what type of memory the data is sent.
      */
     virtual void           pack(void) = 0;
+    virtual void           unpack(void) = 0;
 
     /**
      * Obtain a pointer to the start of the contiguous block of memory on the
@@ -265,7 +263,6 @@ public:
      * Obtain the number of bytes to be sent from the GPU back to the host.
      */
     std::size_t            returnToHostSizeInBytes(void) const { return nReturnToHostBytes_; };
-    void                   unpack(void);
 
 #ifdef ENABLE_OPENACC_OFFLOAD
     /**
@@ -358,41 +355,6 @@ protected:
     std::size_t                            nCopyToGpuBytes_;    //!< Number of bytes in copy in and copy in/out
     std::size_t                            nReturnToHostBytes_; //!< Number of bytes in copy in/out and copy out
 
-    static constexpr std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE =   (NXB + 2 * NGUARD * K1D)
-                                                                     * (NYB + 2 * NGUARD * K2D)
-                                                                     * (NZB + 2 * NGUARD * K3D);
-    static constexpr std::size_t    N_ELEMENTS_PER_CC  = N_ELEMENTS_PER_CC_PER_VARIABLE * NUNKVAR;
-
-    static constexpr std::size_t    N_ELEMENTS_PER_FCX_PER_VARIABLE = (NXB + 1) * NYB * NZB;
-    static constexpr std::size_t    N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
-
-    static constexpr std::size_t    N_ELEMENTS_PER_FCY_PER_VARIABLE = NXB * (NYB + 1) * NZB;
-    static constexpr std::size_t    N_ELEMENTS_PER_FCY = N_ELEMENTS_PER_FCY_PER_VARIABLE * NFLUXES;
-
-    static constexpr std::size_t    N_ELEMENTS_PER_FCZ_PER_VARIABLE = NXB * NYB * (NZB + 1);
-    static constexpr std::size_t    N_ELEMENTS_PER_FCZ = N_ELEMENTS_PER_FCZ_PER_VARIABLE * NFLUXES;
-
-    static constexpr std::size_t    DRIVER_DT_SIZE_BYTES =          sizeof(Real);
-    static constexpr std::size_t    DELTA_SIZE_BYTES     =          sizeof(RealVect);
-    static constexpr std::size_t    CC_BLOCK_SIZE_BYTES  = N_ELEMENTS_PER_CC
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCX_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCX
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCY_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCY
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    FCZ_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCZ
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    POINT_SIZE_BYTES     =          sizeof(IntVect);
-    static constexpr std::size_t    ARRAY1_SIZE_BYTES    =          sizeof(FArray1D);
-    static constexpr std::size_t    ARRAY4_SIZE_BYTES    =          sizeof(FArray4D);
-    static constexpr std::size_t    COORDS_X_SIZE_BYTES  = (NXB + 2 * NGUARD * K1D)
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    COORDS_Y_SIZE_BYTES  = (NYB + 2 * NGUARD * K2D)
-                                                                  * sizeof(Real);
-    static constexpr std::size_t    COORDS_Z_SIZE_BYTES  = (NZB + 2 * NGUARD * K3D)
-                                                                  * sizeof(Real);
-
-private:
     int   startVariable_;
     int   endVariable_;
 };
