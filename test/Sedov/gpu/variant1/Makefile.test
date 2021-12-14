@@ -10,6 +10,7 @@ TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant1
 CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
 CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
 CUFLAGS_TEST        = -I$(SEDOVDIR)
+LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \

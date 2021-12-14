@@ -39,11 +39,7 @@ public:
     static Io&   instance(void);
 
     //----- INTEGRAL QUANTITIES
-#ifdef MAGP_VAR
-    static constexpr  int  N_GLOBAL_SUM_PROP = 8;
-#else
     static constexpr  int  N_GLOBAL_SUM_PROP = 7;
-#endif
     static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP;
 
     void   computeIntegralQuantitiesByBlock(const int threadIndex,
@@ -82,7 +78,6 @@ private:
     orchestration::Real*    intQuantities_ener_;
     orchestration::Real*    intQuantities_ke_;
     orchestration::Real*    intQuantities_eint_;
-    orchestration::Real*    intQuantities_magp_;
 };
 
 }
