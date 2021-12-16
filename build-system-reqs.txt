@@ -48,6 +48,8 @@ Library Requirements
 
 [ ] If linking a prebuilt library that used an incompatible set of Runtime parameters, the Makefile shall return an appropriate and informative error.
 
+[ ] TODO: Should libraries be built with -fPIC/-fpic?  What about -fPIE/-fpie?
+
 File Name Requirements
 ----------------------
 [x] Each test directory should include files named Flash_ND.h and constants_ND.h where N is each supported dimensionality of the test. Each site should include parameter files ("par files") which will be specified in a command line argument and copied into the build directory as Flash_par.h.

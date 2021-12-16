@@ -8,7 +8,7 @@
 #ifdef GRID_AMREX
 #include "GridAmrex.h"
 namespace orchestration {
-    typedef GridAmrex GridVersion;
+    typedef GridAmrex GridBackend;
 }
 #else
 #error "Need to specify Grid implementation with GRID_[NAME] macro"
@@ -29,7 +29,7 @@ Grid&   Grid::instance(void) {
         throw std::logic_error("Cannot call Grid::instance until after "
                                "Grid::instantiate has been called.");
     }
-    static GridVersion gridSingleton;
+    static GridBackend gridSingleton;
     return gridSingleton;
 }
 

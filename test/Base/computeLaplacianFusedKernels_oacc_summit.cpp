@@ -4,7 +4,7 @@
 
 #include "computeLaplacianFused.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 void StaticPhysicsRoutines::computeLaplacianFusedKernels_oacc_summit(const orchestration::IntVect* lo_d,
                                                                      const orchestration::IntVect* hi_d,
@@ -29,21 +29,21 @@ void StaticPhysicsRoutines::computeLaplacianFusedKernels_oacc_summit(const orche
     #pragma acc loop vector collapse(2)
     for     (int j=j_s; j<=j_e; ++j) {
         for (int i=i_s; i<=i_e; ++i) {
-              Uout_d->at(i, j, 0, DENS_VAR_C) = 
-                       (     (  Uin_d->at(i-1, j,   0, DENS_VAR_C)
-                              + Uin_d->at(i+1, j,   0, DENS_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR_C) ) * dx_sqr_inv
-                     + (     (  Uin_d->at(i  , j-1, 0, DENS_VAR_C)
-                              + Uin_d->at(i  , j+1, 0, DENS_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR_C) ) * dy_sqr_inv;
+              Uout_d->at(i, j, 0, DENS_VAR) = 
+                       (     (  Uin_d->at(i-1, j,   0, DENS_VAR)
+                              + Uin_d->at(i+1, j,   0, DENS_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR) ) * dx_sqr_inv
+                     + (     (  Uin_d->at(i  , j-1, 0, DENS_VAR)
+                              + Uin_d->at(i  , j+1, 0, DENS_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, DENS_VAR) ) * dy_sqr_inv;
 
-              Uout_d->at(i, j, 0, ENER_VAR_C) = 
-                       (     (  Uin_d->at(i-1, j,   0, ENER_VAR_C)
-                              + Uin_d->at(i+1, j,   0, ENER_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, ENER_VAR_C) ) * dx_sqr_inv
-                     + (     (  Uin_d->at(i  , j-1, 0, ENER_VAR_C)
-                              + Uin_d->at(i  , j+1, 0, ENER_VAR_C))
-                        - 2.0 * Uin_d->at(i,   j,   0, ENER_VAR_C) ) * dy_sqr_inv;
+              Uout_d->at(i, j, 0, ENER_VAR) = 
+                       (     (  Uin_d->at(i-1, j,   0, ENER_VAR)
+                              + Uin_d->at(i+1, j,   0, ENER_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, ENER_VAR) ) * dx_sqr_inv
+                     + (     (  Uin_d->at(i  , j-1, 0, ENER_VAR)
+                              + Uin_d->at(i  , j+1, 0, ENER_VAR))
+                        - 2.0 * Uin_d->at(i,   j,   0, ENER_VAR) ) * dy_sqr_inv;
          }
     }
     // The OFFLINE TOOLCHAIN should figure out that Uin/Uout can be used

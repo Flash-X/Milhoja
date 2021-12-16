@@ -2,9 +2,10 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "Hydro.h"
+#include "milhoja.h"
 
-#include "Flash.h"
+#include "Hydro.h"
+#include "Sedov.h"
 
 void hy::updateVelyHll_oacc_summit(const orchestration::IntVect* lo_d,
                                    const orchestration::IntVect* hi_d,
@@ -29,26 +30,26 @@ void hy::updateVelyHll_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                invNewDens = 1.0_wp / Uout_d->at(i, j, k, DENS_VAR_C);
+                invNewDens = 1.0_wp / Uout_d->at(i, j, k, DENS_VAR);
 
 #if NDIM == 1
-                Uout_d->at(i, j, k, VELY_VAR_C) = (  Uin_d->at(i,   j, k, VELY_VAR_C) * Uin_d->at(i, j, k, DENS_VAR_C)
-                                                   + flX_d->at(i,   j, k, HY_YMOM_FLUX_C)
-                                                   - flX_d->at(i+1, j, k, HY_YMOM_FLUX_C) ) * invNewDens;
+                Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j, k, VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
+                                                 + flX_d->at(i,   j, k, HY_YMOM_FLUX)
+                                                 - flX_d->at(i+1, j, k, HY_YMOM_FLUX) ) * invNewDens;
 #elif NDIM == 2
-                Uout_d->at(i, j, k, VELY_VAR_C) = (  Uin_d->at(i,   j,   k, VELY_VAR_C) * Uin_d->at(i, j, k, DENS_VAR_C)
-                                                   + flX_d->at(i,   j,   k, HY_YMOM_FLUX_C)
-                                                   - flX_d->at(i+1, j,   k, HY_YMOM_FLUX_C)
-                                                   + flY_d->at(i,   j,   k, HY_YMOM_FLUX_C)
-                                                   - flY_d->at(i,   j+1, k, HY_YMOM_FLUX_C) ) * invNewDens;
+                Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j,   k, VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
+                                                 + flX_d->at(i,   j,   k, HY_YMOM_FLUX)
+                                                 - flX_d->at(i+1, j,   k, HY_YMOM_FLUX)
+                                                 + flY_d->at(i,   j,   k, HY_YMOM_FLUX)
+                                                 - flY_d->at(i,   j+1, k, HY_YMOM_FLUX) ) * invNewDens;
 #elif NDIM == 3
-                Uout_d->at(i, j, k, VELY_VAR_C) = (  Uin_d->at(i,   j,   k,   VELY_VAR_C) * Uin_d->at(i, j, k, DENS_VAR_C)
-                                                   + flX_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                   - flX_d->at(i+1, j,   k,   HY_YMOM_FLUX_C)
-                                                   + flY_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                   - flY_d->at(i,   j+1, k,   HY_YMOM_FLUX_C)
-                                                   + flZ_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                   - flZ_d->at(i,   j,   k+1, HY_YMOM_FLUX_C) ) * invNewDens;
+                Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j,   k,   VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
+                                                 + flX_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                                 - flX_d->at(i+1, j,   k,   HY_YMOM_FLUX)
+                                                 + flY_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                                 - flY_d->at(i,   j+1, k,   HY_YMOM_FLUX)
+                                                 + flZ_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                                 - flZ_d->at(i,   j,   k+1, HY_YMOM_FLUX) ) * invNewDens;
 #endif
             }
         }

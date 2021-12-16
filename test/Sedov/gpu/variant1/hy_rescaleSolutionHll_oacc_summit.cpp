@@ -4,7 +4,7 @@
 
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void hy::rescaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
                                         const orchestration::IntVect* hi_d,
@@ -25,12 +25,12 @@ void hy::rescaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                invNewDens = 1.0_wp / U_d->at(i, j, k, DENS_VAR_C);
+                invNewDens = 1.0_wp / U_d->at(i, j, k, DENS_VAR);
 
-                U_d->at(i, j, k, VELX_VAR_C) *= invNewDens;
-                U_d->at(i, j, k, VELY_VAR_C) *= invNewDens;
-                U_d->at(i, j, k, VELZ_VAR_C) *= invNewDens;
-                U_d->at(i, j, k, ENER_VAR_C) *= invNewDens;
+                U_d->at(i, j, k, VELX_VAR) *= invNewDens;
+                U_d->at(i, j, k, VELY_VAR) *= invNewDens;
+                U_d->at(i, j, k, VELZ_VAR) *= invNewDens;
+                U_d->at(i, j, k, ENER_VAR) *= invNewDens;
             }
         }
     }

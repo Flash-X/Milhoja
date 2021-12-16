@@ -1,23 +1,26 @@
-#include "Flash.h"
-#include "constants.h"
-#include "Flash_par.h"
+#include <iostream>
 
+#include <AMReX.H>
+#include <AMReX_FArrayBox.H>
+
+#include <gtest/gtest.h>
+
+#include "milhoja.h"
 #include "Grid.h"
 #include "Grid_Macros.h"
 #include "Grid_Edge.h"
 #include "Grid_Axis.h"
+#include "Tile.h"
+
+#include "Base.h"
+#include "constants.h"
+#include "Flash_par.h"
+#include "Simulation.h"
 #include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
 #include "errorEstMaximal.h"
 #include "errorEstMultiple.h"
-#include "gtest/gtest.h"
-#include <AMReX.H>
-#include <AMReX_FArrayBox.H>
-#include "Tile.h"
-
-#include <iostream>
-
 
 using namespace orchestration;
 
@@ -452,7 +455,7 @@ TEST_F(GridUnitTest,GCFill){
 
                     expected_val  = 1.0_wp;
 
-                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR_C), eps);
+                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR), eps);
                 }
             }
         }
@@ -548,13 +551,15 @@ TEST_F(GridUnitTest,LogicErrors){
 }
 
 TEST_F(GridUnitTest,PlotfileOutput){
+    std::vector<std::string>   names = sim::getVariableNames();
+
     Grid& grid = Grid::instance();
     grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstMaximal);
 
-    grid.writePlotfile("test_plt_0000");
+    grid.writePlotfile("test_plt_0000", names);
 }
 
 }

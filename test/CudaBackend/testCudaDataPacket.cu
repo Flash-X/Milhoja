@@ -1,3 +1,7 @@
+#ifndef USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
+
 #include <AMReX_Dim3.H>
 #include <AMReX_Array4.H>
 #include <AMReX_MultiFab.H>
@@ -8,7 +12,7 @@
 #include "CudaDataPacket.h"
 #include "CudaStreamManager.h"
 
-#include "Flash.h"
+#include "Base.h"
 #include "Flash_par.h"
 #include "constants.h"
 
@@ -40,10 +44,10 @@ protected:
         const amrex::Dim3 hiGC = tileDesc->hiGC();
         for     (int j = loGC.y; j <= hiGC.y; ++j) {
             for (int i = loGC.x; i <= hiGC.x; ++i) {
-                f(i, j, loGC.z, DENS_VAR_C) = 2.2;
-                f(i, j, loGC.z, ENER_VAR_C) = 2.2;
-//                f(i, j, loGC.z, DENS_VAR_C) = i;
-//                f(i, j, loGC.z, ENER_VAR_C) = 2.0 * j;
+                f(i, j, loGC.z, DENS_VAR) = 2.2;
+                f(i, j, loGC.z, ENER_VAR) = 2.2;
+//                f(i, j, loGC.z, DENS_VAR) = i;
+//                f(i, j, loGC.z, ENER_VAR) = 2.0 * j;
             }
         }
     }
@@ -260,10 +264,10 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
 
         for     (int j = loGC.y; j <= hiGC.y; ++j) {
             for (int i = loGC.x; i <= hiGC.x; ++i) {
-                EXPECT_EQ(2.2, f(i, j, loGC.z, DENS_VAR_C));
-                EXPECT_EQ(2.2, f(i, j, loGC.z, ENER_VAR_C));
-//                EXPECT_EQ(i,       f(i, j, loGC.z, DENS_VAR_C));
-//                EXPECT_EQ(2.0 * j, f(i, j, loGC.z, ENER_VAR_C));
+                EXPECT_EQ(2.2, f(i, j, loGC.z, DENS_VAR));
+                EXPECT_EQ(2.2, f(i, j, loGC.z, ENER_VAR));
+//                EXPECT_EQ(i,       f(i, j, loGC.z, DENS_VAR));
+//                EXPECT_EQ(2.0 * j, f(i, j, loGC.z, ENER_VAR));
             }
         }
     }
@@ -315,10 +319,10 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
 
         for     (int j = loGC.y; j <= hiGC.y; ++j) {
             for (int i = loGC.x; i <= hiGC.x; ++i) {
-                EXPECT_EQ(2.2, f(i, j, loGC.z, DENS_VAR_C));
-                EXPECT_EQ(2.2, f(i, j, loGC.z, ENER_VAR_C));
-//                EXPECT_EQ(i,       f(i, j, loGC.z, DENS_VAR_C));
-//                EXPECT_EQ(2.0 * j, f(i, j, loGC.z, ENER_VAR_C));
+                EXPECT_EQ(2.2, f(i, j, loGC.z, DENS_VAR));
+                EXPECT_EQ(2.2, f(i, j, loGC.z, ENER_VAR));
+//                EXPECT_EQ(i,       f(i, j, loGC.z, DENS_VAR));
+//                EXPECT_EQ(2.0 * j, f(i, j, loGC.z, ENER_VAR));
             }
         }
     }
@@ -378,8 +382,8 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
 
         for     (int j = loGC.y; j <= hiGC.y; ++j) {
             for (int i = loGC.x; i <= hiGC.x; ++i) {
-                EXPECT_EQ(2.2*copyInData.coefficient, f(i, j, loGC.z, DENS_VAR_C));
-                EXPECT_EQ(2.2*copyInData.coefficient, f(i, j, loGC.z, ENER_VAR_C));
+                EXPECT_EQ(2.2*copyInData.coefficient, f(i, j, loGC.z, DENS_VAR));
+                EXPECT_EQ(2.2*copyInData.coefficient, f(i, j, loGC.z, ENER_VAR));
             }
         }
     }

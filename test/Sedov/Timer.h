@@ -41,19 +41,17 @@
 
 #include "OrchestrationLogger.h"
 
-#include "constants.h"
+#include "Sedov.h"
 
-namespace orchestration {
-    namespace Timer {
-        inline void   start(const std::string& msg) {
-            MPI_Barrier(GLOBAL_COMM);
-            Logger::instance().log("[Timer] Start timing " + msg);
-        }
-    
-        inline void   stop(const std::string& msg) {
-            MPI_Barrier(GLOBAL_COMM);
-            Logger::instance().log("[Timer] Stop timing " + msg);
-        }
+namespace Timer {
+    inline void   start(const std::string& msg) {
+        MPI_Barrier(GLOBAL_COMM);
+        orchestration::Logger::instance().log("[Timer] Start timing " + msg);
+    }
+
+    inline void   stop(const std::string& msg) {
+        MPI_Barrier(GLOBAL_COMM);
+        orchestration::Logger::instance().log("[Timer] Stop timing " + msg);
     }
 }
 

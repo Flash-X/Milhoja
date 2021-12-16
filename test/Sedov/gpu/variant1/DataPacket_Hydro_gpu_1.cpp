@@ -10,9 +10,8 @@
 #include "FArray4D.h"
 #include "Backend.h"
 
+#include "Sedov.h"
 #include "Driver.h"
-
-#include "Flash.h"
 
 #if NFLUXES <= 0
 #error "Sedov problem should include fluxes"
@@ -387,6 +386,89 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
         tilePtrs_p->FCZ_d = nullptr;
 #endif
     }
+}
+
+/**
+ * The runtime calls this member function automatically once a DataPacket
+ * has arrived in the host memory again.  It is responsible for unpacking
+ * the contents and in particular for copying cell-centered data back to the
+ * host-side Grid data structures that hold solution data.  The data is copied
+ * back in accord with the variable masks set in the DataPacket to avoid
+ * inadvertently overwriting variables that were updated in parallel by other
+ * actions.
+ *
+ * All memory and stream resources are released.
+ *
+ * While the packet is consumed once the function finishes, the list of Tiles
+ * that were included in the packet is preserved.  This is necessary so that
+ * runtime elements such as MoverUnpacker can enqueue the Tiles with its data
+ * subscriber.
+ *
+ * @todo Should unpacking be made more generic so that the CC blocks need not 
+ *       start always with the first data variable.  What if the packet just
+ *       needs to include variables 3-5 (out of 10 for example)?
+ */
+void  DataPacket_Hydro_gpu_1::unpack(void) {
+    if (tiles_.size() <= 0) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "
+                               "Empty data packet");
+    } else if (!stream_.isValid()) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "
+                               "Stream not acquired");
+    } else if (pinnedPtrs_ == nullptr) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "
+                               "No pinned pointers set");
+    } else if (   (startVariable_ < UNK_VARS_BEGIN )
+               || (startVariable_ > UNK_VARS_END )
+               || (endVariable_   < UNK_VARS_BEGIN )
+               || (endVariable_   > UNK_VARS_END)) {
+        throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "
+                               "Invalid variable mask");
+    }
+
+    // Release stream as soon as possible
+    Backend::instance().releaseStream(stream_);
+    assert(!stream_.isValid());
+
+    for (std::size_t n=0; n<tiles_.size(); ++n) {
+        Tile*   tileDesc_h = tiles_[n].get();
+
+        Real*         data_h = tileDesc_h->dataPtr();
+        const Real*   data_p = nullptr;
+        switch (location_) {
+            case PacketDataLocation::CC1:
+                data_p = pinnedPtrs_[n].CC1_data;
+                break;
+            case PacketDataLocation::CC2:
+                data_p = pinnedPtrs_[n].CC2_data;
+                break;
+            default:
+                throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] Data not in CC1 or CC2");
+        }
+
+        if (data_h == nullptr) {
+            throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "
+                                   "Invalid pointer to data in host memory");
+        } else if (data_p == nullptr) {
+            throw std::runtime_error("[DataPacket_Hydro_gpu_1::unpack] "
+                                     "Invalid pointer to data in pinned memory");
+        }
+
+        // The code here imposes requirements on the variable indices.
+        assert(UNK_VARS_BEGIN == 0);
+        assert(UNK_VARS_END == (NUNKVAR - 1));
+        std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
+                              * static_cast<std::size_t>(startVariable_);
+        Real*        start_h = data_h + offset;
+        const Real*  start_p = data_p + offset;
+        std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
+                              * N_ELEMENTS_PER_CC_PER_VARIABLE
+                              * sizeof(Real);
+        std::memcpy((void*)start_h, (void*)start_p, nBytes);
+    }
+
+    // The packet is consumed upon unpacking.
+    nullify();
 }
 
 }

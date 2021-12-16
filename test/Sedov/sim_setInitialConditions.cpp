@@ -24,11 +24,13 @@
 
 #include "Simulation.h"
 
+#include "milhoja.h"
 #include "Grid_REAL.h"
 #include "Grid.h"
 #include "FArray2D.h"
 
 #include "constants.h"
+#include "Sedov.h"
 #include "Flash.h"
 #include "Flash_par.h"
 
@@ -245,20 +247,20 @@ void  sim::setInitialConditions_topHat(const orchestration::IntVect& lo,
                 e    = e / rho + ek;
                 e    = std::max(e, rp_Simulation::SMALL_E);
 
-                solnData(i, j, k, DENS_VAR_C) = rho;
-                solnData(i, j, k, PRES_VAR_C) = p;
-                solnData(i, j, k, ENER_VAR_C) = e;
-#ifdef EINT_VAR_C
-                solnData(i, j, k, EINT_VAR_C) = eint;
+                solnData(i, j, k, DENS_VAR) = rho;
+                solnData(i, j, k, PRES_VAR) = p;
+                solnData(i, j, k, ENER_VAR) = e;
+#ifdef EINT_VAR
+                solnData(i, j, k, EINT_VAR) = eint;
 #endif
-                solnData(i, j, k, GAME_VAR_C) = rp_Eos::GAMMA;
-                solnData(i, j, k, GAMC_VAR_C) = rp_Eos::GAMMA;
-                solnData(i, j, k, VELX_VAR_C) = vx;
-                solnData(i, j, k, VELY_VAR_C) = vy;
-                solnData(i, j, k, VELZ_VAR_C) = vz;
-                solnData(i, j, k, TEMP_VAR_C) = rp_Simulation::SMALL_T;
-#ifdef BDRY_VAR_C
-                solnData(i, j, k, BDRY_VAR_C) = -1.0_wp;
+                solnData(i, j, k, GAME_VAR) = rp_Eos::GAMMA;
+                solnData(i, j, k, GAMC_VAR) = rp_Eos::GAMMA;
+                solnData(i, j, k, VELX_VAR) = vx;
+                solnData(i, j, k, VELY_VAR) = vy;
+                solnData(i, j, k, VELZ_VAR) = vz;
+                solnData(i, j, k, TEMP_VAR) = rp_Simulation::SMALL_T;
+#ifdef BDRY_VAR
+                solnData(i, j, k, BDRY_VAR) = -1.0_wp;
 #endif 
             }
         }

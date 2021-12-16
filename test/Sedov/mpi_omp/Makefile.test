@@ -21,4 +21,5 @@ SRCS_TEST = \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
+	$(SEDOVDIR)/sim_getVariableNames.cpp \
 	$(TESTDIR)/sedov_mpi_omp.cpp

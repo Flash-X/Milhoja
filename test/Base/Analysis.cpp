@@ -9,7 +9,7 @@
 #include "FArray4D.h"
 #include "Grid.h"
 
-#include "Flash.h"
+#include "Base.h"
 
 using namespace orchestration;
 
@@ -52,7 +52,7 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
                 x = xCoords(i);
 
                 UExpected = (18.0*x - 12.0*y - 1.0);
-                absErr = fabs(UExpected - U(i, j, k, DENS_VAR_C));
+                absErr = fabs(UExpected - U(i, j, k, DENS_VAR));
                 sum1 += absErr;
                 if (absErr > maxAbsErr1) {
                      maxAbsErr1 = absErr;
@@ -61,7 +61,7 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
                 UExpected = (  48.0*x*x - 18.0*x
                              - 12.0*y*y + 12.0*y
                              - 2.0);
-                absErr = fabs(UExpected - U(i, j, k, ENER_VAR_C));
+                absErr = fabs(UExpected - U(i, j, k, ENER_VAR));
                 sum2 += absErr;
                 if (absErr > maxAbsErr2) {
                      maxAbsErr2 = absErr;

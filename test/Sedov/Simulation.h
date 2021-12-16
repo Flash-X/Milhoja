@@ -1,6 +1,9 @@
 #ifndef SIMULATION_H__
 #define SIMULATION_H__
 
+#include <string>
+#include <vector>
+
 #include "Grid_IntVect.h"
 #include "Grid_RealVect.h"
 #include "FArray1D.h"
@@ -14,6 +17,8 @@ namespace Simulation {
 }
 
 namespace sim {
+    std::vector<std::string>   getVariableNames(void);
+
     void setInitialConditions(const orchestration::IntVect& lo,
                               const orchestration::IntVect& hi,
                               const unsigned int level,

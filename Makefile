@@ -37,19 +37,40 @@ $(info $(CXXCOMPNAME) compiler not yet supported.)
 endif
 CUFLAGS_STD  = -std=c++11
 
+CXXFLAGS_LIB =
+CUFLAGS_LIB  =
+ifdef LIBONLY
+# TODO: Is this necessary?  Should it be -fpic?  What about -fpie/fPIE for
+# tests?
+CXXFLAGS_LIB = -fPIC
+CUFLAGS_LIB  = -fPIC
+endif
 
 # Combine all compiler and linker flags
 ifeq ($(DEBUG),true)
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_TEST_DEBUG) $(CXXFLAGS_AMREX)
+           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG) $(CXXFLAGS_AMREX)
 else
 CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_TEST_PROD) $(CXXFLAGS_AMREX)
+           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD) $(CXXFLAGS_AMREX)
 endif
-CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_BASE) $(CUFLAGS_TEST) \
-	   $(CUFLAGS_AMREX) -I$(BUILDDIR)
+CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) -I$(BUILDDIR) $(CUFLAGS_BASE) \
+           $(CUFLAGS_LIB) $(CUFLAGS_TEST) $(CUFLAGS_AMREX)
 LDFLAGS  = -L$(LIB_RUNTIME) -lruntime $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_STD)
 
+ifeq ($(USE_CUDA_BACKEND),true)
+CXXFLAGS += -DUSE_CUDA_BACKEND
+CUFLAGS  += -DUSE_CUDA_BACKEND
+CU_SRCS   = $(CU_SRCS_BASE) $(CU_SRCS_TEST)
+else
+CU_SRCS   =
+endif
+
+ifeq ($(ENABLE_OPENACC_OFFLOAD),true)
+CXXFLAGS += $(OACC_FLAGS) -DENABLE_OPENACC_OFFLOAD
+CUFLAGS  +=               -DENABLE_OPENACC_OFFLOAD
+LDFLAGS  += $(OACC_FLAGS)
+endif
 
 # Add code coverage flags
 ifeq ($(CODECOVERAGE), true)

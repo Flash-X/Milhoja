@@ -4,11 +4,12 @@
 
 #include <stdexcept>
 
+#include "milhoja.h"
 #include "Tile.h"
 #include "Grid.h"
 #include "OrchestrationLogger.h"
 
-#include "constants.h"
+#include "Sedov.h"
 #include "Flash_par.h"
 
 using namespace orchestration;
@@ -16,19 +17,26 @@ using namespace orchestration;
 //----- STATIC MEMBER DEFINITIONS
 bool             Io::instantiated_ = false;
 std::string      Io::intQuantitiesFile_ = "";
+MPI_Comm         Io::comm_ = MPI_COMM_NULL;
+int              Io::ioRank_ = -1;
 
 /**
  * Instantiate the IO unit singleton and allow it to initialize the unit.
  */
-void   Io::instantiate(const std::string filename) {
+void   Io::instantiate(const std::string filename,
+                       const MPI_Comm comm, const int ioRank) {
     Logger::instance().log("[IO] Initializing...");
 
     if (instantiated_) {
         throw std::logic_error("[Io::instantiate] Io is already instantiated");
     } else if (filename == "") {
         throw std::invalid_argument("[Io::instantiate] Empty filename given");
+    } else if (ioRank < 0) {
+        throw std::invalid_argument("[Io::instantiate] Negative MPI rank");
     }
     intQuantitiesFile_ = filename;
+    comm_ = comm;
+    ioRank_ = ioRank;
 
     instantiated_ = true;
     Io::instance();
@@ -60,7 +68,7 @@ Io&   Io::instance(void) {
  *       FLASH-X to see how they manange files like the integral quantities output.
  */
 Io::Io(void)
-    : rank_{MASTER_PE},
+    : rank_{-1},
       nIntQuantities_{N_GLOBAL_SUM_PROP},
       localIntQuantities_{new Real[nIntQuantities_]},
       globalIntQuantities_{nullptr},
@@ -70,17 +78,16 @@ Io::Io(void)
       intQuantities_zmom_{nullptr}, 
       intQuantities_ener_{nullptr}, 
       intQuantities_ke_{nullptr}, 
-      intQuantities_eint_{nullptr}, 
-      intQuantities_magp_{nullptr} 
+      intQuantities_eint_{nullptr}
 {
     Logger&   logger = Logger::instance();
 
-    if (MPI_Comm_rank(GLOBAL_COMM, &rank_) != MPI_SUCCESS) {
+    if (MPI_Comm_rank(comm_, &rank_) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::Io] Unable to acquire MPI rank");
     }
 
     // Construct buffer that receives final integral quantity results
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         globalIntQuantities_ = new Real[nIntQuantities_];
     }
 
@@ -90,65 +97,32 @@ Io::Io(void)
     // Leave the accumulators zeroed so that they are ready for use.
     logger.log("[IO] Integral quantities to be computed and output are");
     unsigned int   nThreads = rp_Runtime::N_THREADS_PER_TEAM;
-#ifdef DENS_VAR_C
     intQuantities_mass_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_mass_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Mass");
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
     intQuantities_xmom_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_xmom_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     X-Momentum");
-#endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
     intQuantities_ymom_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_ymom_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Y-Momentum");
-#endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
     intQuantities_zmom_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_zmom_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Z-Momentum");
-#endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
     intQuantities_ener_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_ener_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Total Energy");
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
     intQuantities_ke_   = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_ke_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Kinetic Energy");
-#endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
     intQuantities_eint_ = new Real[nThreads];
     for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_eint_[i] = 0.0_wp;
+        intQuantities_mass_[i] = 0.0;
+        intQuantities_xmom_[i] = 0.0;
+        intQuantities_ymom_[i] = 0.0;
+        intQuantities_zmom_[i] = 0.0;
+        intQuantities_ener_[i] = 0.0;
+        intQuantities_ke_[i]   = 0.0;
+        intQuantities_eint_[i] = 0.0;
     }
+    logger.log("[IO]     Mass");
+    logger.log("[IO]     X-Momentum");
+    logger.log("[IO]     Y-Momentum");
+    logger.log("[IO]     Z-Momentum");
+    logger.log("[IO]     Total Energy");
+    logger.log("[IO]     Kinetic Energy");
     logger.log("[IO]     Internal Energy");
-#endif
-#ifdef MAGP_VAR_C
-    intQuantities_magp_ = new Real[nThreads];
-    for (unsigned int i=0; i<nThreads; ++i) {
-        intQuantities_magp_[i] = 0.0_wp;
-    }
-    logger.log("[IO]     Magnetic Energy");
-#endif
 
     // Append integral quantity header to file
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         FILE*   fptr = fopen(intQuantitiesFile_.c_str(), "a");
         if (!fptr) {
             std::string msg = "[Io::Io] Unable to open integral quantities output file "
@@ -156,18 +130,6 @@ Io::Io(void)
             throw std::runtime_error(msg);
         }
 
-#ifdef MAGP_VAR_C
-        fprintf(fptr, "#%24s %25s %25s %25s %25s %25s %25s %25s %25s\n",
-                    "time", 
-                    "mass",
-                    "x-momentum",
-                    "y-momentum",
-                    "z-momentum",
-                    "E_total",
-                    "E_kinetic",
-                    "E_internal",
-                    "MagEnergy");
-#else
         fprintf(fptr, "#%24s %25s %25s %25s %25s %25s %25s %25s\n",
                     "time", 
                     "mass",
@@ -177,7 +139,6 @@ Io::Io(void)
                     "E_total",
                     "E_kinetic",
                     "E_internal");
-#endif
         fclose(fptr);
         fptr = NULL;
     }
@@ -226,11 +187,6 @@ Io::~Io(void) {
         intQuantities_eint_ = nullptr;
     }
 
-    if (intQuantities_magp_) {
-        delete [] intQuantities_magp_;
-        intQuantities_magp_ = nullptr;
-    }
-
     if (localIntQuantities_) {
         delete [] localIntQuantities_;
         localIntQuantities_ = nullptr;
@@ -242,6 +198,11 @@ Io::~Io(void) {
     }
 
     Logger::instance().log("[IO] Finalized");
+
+    intQuantitiesFile_ = "";
+    comm_ = MPI_COMM_NULL;
+    ioRank_ = -1;
+    instantiated_ = false;
 }
 
 void   Io::computeLocalIntegralQuantities(void) {
@@ -304,109 +265,52 @@ void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
                                             const orchestration::IntVect& hi,
                                             const orchestration::FArray3D& cellVolumes,
                                             const orchestration::FArray4D& solnData) {
-    Real    dvol = 0.0_wp;
-#if defined(DENS_VAR_C)
-    Real    mass = 0.0_wp;
-    Real    massSum = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
-    Real    xmomSum = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
-    Real    ymomSum = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
-    Real    zmomSum = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
-    Real    enerSum = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
-    Real    keSum   = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
-    Real    eintSum = 0.0_wp;
-#endif
-#ifdef MAGP_VAR_C
-    Real    magpSum = 0.0_wp;
-#endif
+    Real    dvol = 0.0;
+    Real    mass = 0.0;
+    Real    massSum = 0.0;
+    Real    xmomSum = 0.0;
+    Real    ymomSum = 0.0;
+    Real    zmomSum = 0.0;
+    Real    enerSum = 0.0;
+    Real    keSum   = 0.0;
+    Real    eintSum = 0.0;
 
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
                 dvol = cellVolumes(i, j, k);
 
-#if defined(DENS_VAR_C)
                 // mass
-                mass = solnData(i, j, k, DENS_VAR_C) * dvol;
+                mass = solnData(i, j, k, DENS_VAR) * dvol;
                 massSum += mass;
-#endif
 
                 // momentum
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
-                xmomSum += mass * solnData(i, j, k, VELX_VAR_C);
-#endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
-                ymomSum += mass * solnData(i, j, k, VELY_VAR_C);
-#endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
-                zmomSum += mass * solnData(i, j, k, VELZ_VAR_C);
-#endif
+                xmomSum += mass * solnData(i, j, k, VELX_VAR);
+                ymomSum += mass * solnData(i, j, k, VELY_VAR);
+                zmomSum += mass * solnData(i, j, k, VELZ_VAR);
 
                 // total energy
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
-                enerSum += mass * solnData(i, j, k, ENER_VAR_C);
-#ifdef MAGP_VAR_C
-                // total plasma energy
-                enerSum += solnData(i, j, k, MAGP_VAR_C) * dvol;
-#endif
-#endif
+                enerSum += mass * solnData(i, j, k, ENER_VAR);
 
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
                 // kinetic energy
                 keSum += 0.5_wp * mass
-                                * (  std::pow(solnData(i, j, k, VELX_VAR_C), 2)
-                                   + std::pow(solnData(i, j, k, VELY_VAR_C), 2)
-                                   + std::pow(solnData(i, j, k, VELZ_VAR_C), 2));
-#endif
+                                * (  std::pow(solnData(i, j, k, VELX_VAR), 2)
+                                   + std::pow(solnData(i, j, k, VELY_VAR), 2)
+                                   + std::pow(solnData(i, j, k, VELZ_VAR), 2));
 
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
               // internal energy
-              eintSum += mass * solnData(i, j, k, EINT_VAR_C);
-#endif
-
-#ifdef MAGP_VAR_C
-              // magnetic energy
-              magpSum += solnData(i, j, k, MAGP_VAR_C) * dvol;
-#endif
+              eintSum += mass * solnData(i, j, k, EINT_VAR);
             }
         }
     }
 
-#ifdef DENS_VAR_C
     intQuantities_mass_[threadIdx] += massSum;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
     intQuantities_xmom_[threadIdx] += xmomSum;
-#endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
     intQuantities_ymom_[threadIdx] += ymomSum;
-#endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
     intQuantities_zmom_[threadIdx] += zmomSum;
-#endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
     intQuantities_ener_[threadIdx] += enerSum;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
     intQuantities_ke_[threadIdx]   += keSum;
-#endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
     intQuantities_eint_[threadIdx] += eintSum;
-#endif
-#ifdef MAGP_VAR_C
-    intQuantities_magp_[threadIdx] += magpSum;
-#endif
 }
 
 /**
@@ -424,7 +328,7 @@ void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
  */
 void   Io::reduceToGlobalIntegralQuantities(void) {
     for (unsigned int i=0; i<nIntQuantities_; ++i) {
-        localIntQuantities_[i] = 0.0_wp;
+        localIntQuantities_[i] = 0.0;
     }
 
     // Any or all of the threads in the thread team that ran
@@ -433,44 +337,26 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     for (unsigned int i=0; i<rp_Runtime::N_THREADS_PER_TEAM; ++i) {
         // The order in which quantities are stored in the array must match the
         // order in which quantities are listed in the output file's header.
-#ifdef DENS_VAR_C
         localIntQuantities_[0] += intQuantities_mass_[i];
-        intQuantities_mass_[i] = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C)
         localIntQuantities_[1] += intQuantities_xmom_[i];
-        intQuantities_xmom_[i] = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELY_VAR_C)
         localIntQuantities_[2] += intQuantities_ymom_[i];
-        intQuantities_ymom_[i] = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELZ_VAR_C)
         localIntQuantities_[3] += intQuantities_zmom_[i];
-        intQuantities_zmom_[i] = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(ENER_VAR_C)
         localIntQuantities_[4] += intQuantities_ener_[i];
-        intQuantities_ener_[i] = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(VELX_VAR_C) && defined(VELY_VAR_C) && defined(VELZ_VAR_C)
         localIntQuantities_[5] += intQuantities_ke_[i];
-        intQuantities_ke_[i]   = 0.0_wp;
-#endif
-#if defined(DENS_VAR_C) && defined(EINT_VAR_C)
         localIntQuantities_[6] += intQuantities_eint_[i];
-        intQuantities_eint_[i] = 0.0_wp;
-#endif
-#ifdef MAGP_VAR_C
-        localIntQuantities_[7] += intQuantities_magp_[i];
-        intQuantities_magp_[i] = 0.0_wp;
-#endif
+        intQuantities_mass_[i] = 0.0;
+        intQuantities_xmom_[i] = 0.0;
+        intQuantities_ymom_[i] = 0.0;
+        intQuantities_zmom_[i] = 0.0;
+        intQuantities_ener_[i] = 0.0;
+        intQuantities_ke_[i]   = 0.0;
+        intQuantities_eint_[i] = 0.0;
     }
 
     if (MPI_Reduce((void*)localIntQuantities_,
                    (void*)globalIntQuantities_,
-                   nIntQuantities_, ORCH_REAL, MPI_SUM,
-                   MASTER_PE, MPI_COMM_WORLD) != MPI_SUCCESS) {
+                   nIntQuantities_, MILHOJA_MPI_REAL, MPI_SUM,
+                   ioRank_, comm_) != MPI_SUCCESS) {
         throw std::runtime_error("[Io::reduceToIntegralQuantities] Unable to reduce integral quantities");
     }
 }
@@ -488,7 +374,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
  * \param simTime - the simulation time at which the quantities were computed.
  */
 void  Io::writeIntegralQuantities(const orchestration::Real simTime) {
-    if (rank_ == MASTER_PE) {
+    if (rank_ == ioRank_) {
         FILE*   fptr = fopen(intQuantitiesFile_.c_str(), "a");
         if (!fptr) {
             std::string msg =   "[Io::writeIntegralQuantities] ";

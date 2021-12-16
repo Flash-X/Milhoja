@@ -7,10 +7,10 @@ SEDOVGPUDIR         = $(BASEDIR)/test/Sedov/gpu
 TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant3
 
 # Define compiler flags in CXXFLAGS_TEST_*
-CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) $(OACC_FLAGS) -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-CUFLAGS_TEST        = -I$(SEDOVDIR)                                             -DUSE_CUDA_BACKEND -DENABLE_OPENACC_OFFLOAD
-LDFLAGS_TEST        = $(OACC_FLAGS)
+CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CUFLAGS_TEST        = -I$(SEDOVDIR)
+LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
@@ -19,6 +19,7 @@ SRCS_TEST = \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
+	$(SEDOVDIR)/sim_getVariableNames.cpp \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
@@ -36,9 +37,3 @@ SRCS_TEST = \
 	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
 	$(TESTDIR)/sedov_gpu_3.cpp
-
-CU_SRCS = \
-	$(SRCDIR)/CudaBackend.cu \
-	$(SRCDIR)/CudaGpuEnvironment.cu \
-	$(SRCDIR)/CudaStreamManager.cu \
-	$(SRCDIR)/CudaMemoryManager.cu

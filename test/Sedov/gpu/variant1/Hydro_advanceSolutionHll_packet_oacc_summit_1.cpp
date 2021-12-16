@@ -2,12 +2,13 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
+#include "milhoja.h"
 #include "DataPacket.h"
 
 #include "Eos.h"
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
                                                     orchestration::DataItem* dataItem_h) {
@@ -57,7 +58,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
     // variables in memory sounds like part of the larger optimization problem
     // as it affects all data packets.
     packet_h->setDataLocation(PacketDataLocation::CC2);
-    packet_h->setVariableMask(UNK_VARS_BEGIN_C, EINT_VAR_C);
+    packet_h->setVariableMask(UNK_VARS_BEGIN, EINT_VAR);
 
     //----- ADVANCE SOLUTION
     // Update unk data on interiors only
@@ -214,7 +215,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
 
             hy::rescaleSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
         }
-#ifdef EINT_VAR_C
+#ifdef EINT_VAR
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;

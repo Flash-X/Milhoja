@@ -2,9 +2,10 @@
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "Hydro.h"
+#include "milhoja.h"
 
-#include "Flash.h"
+#include "Hydro.h"
+#include "Sedov.h"
 
 void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
                                        const orchestration::IntVect* hi_d,
@@ -22,7 +23,7 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
     int     j_e = hi_d->J();
     int     k_e = hi_d->K();
 
-#ifdef EINT_VAR_C
+#ifdef EINT_VAR
     Real    norm2_sqr = 0.0_wp;
 #endif
     Real    densOld = 0.0_wp;
@@ -33,112 +34,112 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
                 // Update density first
-                densOld = U_d->at(i, j, k, DENS_VAR_C);
+                densOld = U_d->at(i, j, k, DENS_VAR);
 #if NDIM == 1
                 densNew =   densOld
-                          + flX_d->at(i,   j, k, HY_DENS_FLUX_C)
-                          - flX_d->at(i+1, j, k, HY_DENS_FLUX_C);
+                          + flX_d->at(i,   j, k, HY_DENS_FLUX)
+                          - flX_d->at(i+1, j, k, HY_DENS_FLUX);
 #elif NDIM == 2
                 densNew =   densOld
-                          + flX_d->at(i,   j,   k, HY_DENS_FLUX_C)
-                          - flX_d->at(i+1, j,   k, HY_DENS_FLUX_C)
-                          + flY_d->at(i,   j,   k, HY_DENS_FLUX_C)
-                          - flY_d->at(i,   j+1, k, HY_DENS_FLUX_C);
+                          + flX_d->at(i,   j,   k, HY_DENS_FLUX)
+                          - flX_d->at(i+1, j,   k, HY_DENS_FLUX)
+                          + flY_d->at(i,   j,   k, HY_DENS_FLUX)
+                          - flY_d->at(i,   j+1, k, HY_DENS_FLUX);
 #elif NDIM == 3
                 densNew =   densOld 
-                          + flX_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                          - flX_d->at(i+1, j,   k,   HY_DENS_FLUX_C)
-                          + flY_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                          - flY_d->at(i,   j+1, k,   HY_DENS_FLUX_C)
-                          + flZ_d->at(i,   j,   k,   HY_DENS_FLUX_C)
-                          - flZ_d->at(i,   j,   k+1, HY_DENS_FLUX_C);
+                          + flX_d->at(i,   j,   k,   HY_DENS_FLUX)
+                          - flX_d->at(i+1, j,   k,   HY_DENS_FLUX)
+                          + flY_d->at(i,   j,   k,   HY_DENS_FLUX)
+                          - flY_d->at(i,   j+1, k,   HY_DENS_FLUX)
+                          + flZ_d->at(i,   j,   k,   HY_DENS_FLUX)
+                          - flZ_d->at(i,   j,   k+1, HY_DENS_FLUX);
 #endif
-                U_d->at(i, j, k, DENS_VAR_C) = densNew;
+                U_d->at(i, j, k, DENS_VAR) = densNew;
                 densNew_inv = 1.0_wp / densNew;
 
                 // velocities and total energy can be updated independently
                 // using density result
 #if NDIM == 1
-                U_d->at(i, j, k, VELX_VAR_C) = (    U_d->at(i,   j, k, VELX_VAR_C) * densOld
-                                                + flX_d->at(i,   j, k, HY_XMOM_FLUX_C)
-                                                - flX_d->at(i+1, j, k, HY_XMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j, k, VELX_VAR) * densOld
+                                              + flX_d->at(i,   j, k, HY_XMOM_FLUX)
+                                              - flX_d->at(i+1, j, k, HY_XMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELY_VAR_C) = (    U_d->at(i,   j, k, VELY_VAR_C) * densOld
-                                                + flX_d->at(i,   j, k, HY_YMOM_FLUX_C)
-                                                - flX_d->at(i+1, j, k, HY_YMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELY_VAR) = (    U_d->at(i,   j, k, VELY_VAR) * densOld
+                                              + flX_d->at(i,   j, k, HY_YMOM_FLUX)
+                                              - flX_d->at(i+1, j, k, HY_YMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELZ_VAR_C) = (    U_d->at(i,   j, k, VELZ_VAR_C) * densOld
-                                                + flX_d->at(i,   j, k, HY_ZMOM_FLUX_C)
-                                                - flX_d->at(i+1, j, k, HY_ZMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELZ_VAR) = (    U_d->at(i,   j, k, VELZ_VAR) * densOld
+                                              + flX_d->at(i,   j, k, HY_ZMOM_FLUX)
+                                              - flX_d->at(i+1, j, k, HY_ZMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, ENER_VAR_C) = (    U_d->at(i,   j, k, ENER_VAR_C) * densOld
-                                                + flX_d->at(i,   j, k, HY_ENER_FLUX_C)
-                                                - flX_d->at(i+1, j, k, HY_ENER_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, ENER_VAR) = (    U_d->at(i,   j, k, ENER_VAR) * densOld
+                                              + flX_d->at(i,   j, k, HY_ENER_FLUX)
+                                              - flX_d->at(i+1, j, k, HY_ENER_FLUX) ) * densNew_inv;
 #elif NDIM == 2
-                U_d->at(i, j, k, VELX_VAR_C) = (    U_d->at(i,   j,   k, VELX_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k, HY_XMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k, HY_XMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k, HY_XMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k, HY_XMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j,   k, VELX_VAR) * densOld
+                                              + flX_d->at(i,   j,   k, HY_XMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k, HY_XMOM_FLUX)
+                                              + flY_d->at(i,   j,   k, HY_XMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k, HY_XMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELY_VAR_C) = (    U_d->at(i,   j,   k, VELY_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k, HY_YMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k, HY_YMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k, HY_YMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k, HY_YMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELY_VAR) = (    U_d->at(i,   j,   k, VELY_VAR) * densOld
+                                              + flX_d->at(i,   j,   k, HY_YMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k, HY_YMOM_FLUX)
+                                              + flY_d->at(i,   j,   k, HY_YMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k, HY_YMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELZ_VAR_C) = (    U_d->at(i,   j,   k, VELZ_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k, HY_ZMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k, HY_ZMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k, HY_ZMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k, HY_ZMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELZ_VAR) = (    U_d->at(i,   j,   k, VELZ_VAR) * densOld
+                                              + flX_d->at(i,   j,   k, HY_ZMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k, HY_ZMOM_FLUX)
+                                              + flY_d->at(i,   j,   k, HY_ZMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k, HY_ZMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, ENER_VAR_C) = (    U_d->at(i,   j,   k, ENER_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k, HY_ENER_FLUX_C)
-                                                - flX_d->at(i+1, j,   k, HY_ENER_FLUX_C)
-                                                + flY_d->at(i,   j,   k, HY_ENER_FLUX_C)
-                                                - flY_d->at(i,   j+1, k, HY_ENER_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, ENER_VAR) = (    U_d->at(i,   j,   k, ENER_VAR) * densOld
+                                              + flX_d->at(i,   j,   k, HY_ENER_FLUX)
+                                              - flX_d->at(i+1, j,   k, HY_ENER_FLUX)
+                                              + flY_d->at(i,   j,   k, HY_ENER_FLUX)
+                                              - flY_d->at(i,   j+1, k, HY_ENER_FLUX) ) * densNew_inv;
 #elif NDIM == 3
-                U_d->at(i, j, k, VELX_VAR_C) = (    U_d->at(i,   j,   k,   VELX_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k,   HY_XMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k,   HY_XMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k,   HY_XMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k,   HY_XMOM_FLUX_C)
-                                                + flZ_d->at(i,   j,   k,   HY_XMOM_FLUX_C)
-                                                - flZ_d->at(i,   j,   k+1, HY_XMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j,   k,   VELX_VAR) * densOld
+                                              + flX_d->at(i,   j,   k,   HY_XMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k,   HY_XMOM_FLUX)
+                                              + flY_d->at(i,   j,   k,   HY_XMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k,   HY_XMOM_FLUX)
+                                              + flZ_d->at(i,   j,   k,   HY_XMOM_FLUX)
+                                              - flZ_d->at(i,   j,   k+1, HY_XMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELY_VAR_C) = (    U_d->at(i,   j,   k,   VELY_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k,   HY_YMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k,   HY_YMOM_FLUX_C)
-                                                + flZ_d->at(i,   j,   k,   HY_YMOM_FLUX_C)
-                                                - flZ_d->at(i,   j,   k+1, HY_YMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELY_VAR) = (    U_d->at(i,   j,   k,   VELY_VAR) * densOld
+                                              + flX_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k,   HY_YMOM_FLUX)
+                                              + flY_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k,   HY_YMOM_FLUX)
+                                              + flZ_d->at(i,   j,   k,   HY_YMOM_FLUX)
+                                              - flZ_d->at(i,   j,   k+1, HY_YMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, VELZ_VAR_C) = (    U_d->at(i,   j,   k,   VELZ_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k,   HY_ZMOM_FLUX_C)
-                                                - flX_d->at(i+1, j,   k,   HY_ZMOM_FLUX_C)
-                                                + flY_d->at(i,   j,   k,   HY_ZMOM_FLUX_C)
-                                                - flY_d->at(i,   j+1, k,   HY_ZMOM_FLUX_C)
-                                                + flZ_d->at(i,   j,   k,   HY_ZMOM_FLUX_C)
-                                                - flZ_d->at(i,   j,   k+1, HY_ZMOM_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, VELZ_VAR) = (    U_d->at(i,   j,   k,   VELZ_VAR) * densOld
+                                              + flX_d->at(i,   j,   k,   HY_ZMOM_FLUX)
+                                              - flX_d->at(i+1, j,   k,   HY_ZMOM_FLUX)
+                                              + flY_d->at(i,   j,   k,   HY_ZMOM_FLUX)
+                                              - flY_d->at(i,   j+1, k,   HY_ZMOM_FLUX)
+                                              + flZ_d->at(i,   j,   k,   HY_ZMOM_FLUX)
+                                              - flZ_d->at(i,   j,   k+1, HY_ZMOM_FLUX) ) * densNew_inv;
 
-                U_d->at(i, j, k, ENER_VAR_C) = (    U_d->at(i,   j,   k,   ENER_VAR_C) * densOld
-                                                + flX_d->at(i,   j,   k,   HY_ENER_FLUX_C)
-                                                - flX_d->at(i+1, j,   k,   HY_ENER_FLUX_C)
-                                                + flY_d->at(i,   j,   k,   HY_ENER_FLUX_C)
-                                                - flY_d->at(i,   j+1, k,   HY_ENER_FLUX_C)
-                                                + flZ_d->at(i,   j,   k,   HY_ENER_FLUX_C)
-                                                - flZ_d->at(i,   j,   k+1, HY_ENER_FLUX_C) ) * densNew_inv;
+                U_d->at(i, j, k, ENER_VAR) = (    U_d->at(i,   j,   k,   ENER_VAR) * densOld
+                                              + flX_d->at(i,   j,   k,   HY_ENER_FLUX)
+                                              - flX_d->at(i+1, j,   k,   HY_ENER_FLUX)
+                                              + flY_d->at(i,   j,   k,   HY_ENER_FLUX)
+                                              - flY_d->at(i,   j+1, k,   HY_ENER_FLUX)
+                                              + flZ_d->at(i,   j,   k,   HY_ENER_FLUX)
+                                              - flZ_d->at(i,   j,   k+1, HY_ENER_FLUX) ) * densNew_inv;
 #endif
 
-#ifdef EINT_VAR_C
+#ifdef EINT_VAR
                 // Compute energy correction from new velocities and energy
-                norm2_sqr =   U_d->at(i, j, k, VELX_VAR_C) * U_d->at(i, j, k, VELX_VAR_C)
-                            + U_d->at(i, j, k, VELY_VAR_C) * U_d->at(i, j, k, VELY_VAR_C)
-                            + U_d->at(i, j, k, VELZ_VAR_C) * U_d->at(i, j, k, VELZ_VAR_C);
-                U_d->at(i, j, k, EINT_VAR_C) =    U_d->at(i, j, k, ENER_VAR_C)
-                                               - (0.5_wp * norm2_sqr);
+                norm2_sqr =   U_d->at(i, j, k, VELX_VAR) * U_d->at(i, j, k, VELX_VAR)
+                            + U_d->at(i, j, k, VELY_VAR) * U_d->at(i, j, k, VELY_VAR)
+                            + U_d->at(i, j, k, VELZ_VAR) * U_d->at(i, j, k, VELZ_VAR);
+                U_d->at(i, j, k, EINT_VAR) =    U_d->at(i, j, k, ENER_VAR)
+                                             - (0.5_wp * norm2_sqr);
 #endif
             }
         }

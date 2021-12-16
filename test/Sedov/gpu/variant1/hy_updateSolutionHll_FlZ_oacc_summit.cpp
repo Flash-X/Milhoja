@@ -4,7 +4,7 @@
 
 #include "Hydro.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void hy::updateSolutionHll_FlZ_oacc_summit(const orchestration::IntVect* lo_d,
                                            const orchestration::IntVect* hi_d,
@@ -24,16 +24,16 @@ void hy::updateSolutionHll_FlZ_oacc_summit(const orchestration::IntVect* lo_d,
     for         (int k=k_s; k<=k_e; ++k) {
         for     (int j=j_s; j<=j_e; ++j) {
             for (int i=i_s; i<=i_e; ++i) {
-                U_d->at(i, j, k, DENS_VAR_C) += (  flZ_d->at(i, j, k,   HY_DENS_FLUX_C)
-                                                 - flZ_d->at(i, j, k+1, HY_DENS_FLUX_C) );
-                U_d->at(i, j, k, VELX_VAR_C) += (  flZ_d->at(i, j, k,   HY_XMOM_FLUX_C)
-                                                 - flZ_d->at(i, j, k+1, HY_XMOM_FLUX_C) );
-                U_d->at(i, j, k, VELY_VAR_C) += (  flZ_d->at(i, j, k,   HY_YMOM_FLUX_C)
-                                                 - flZ_d->at(i, j, k+1, HY_YMOM_FLUX_C) );
-                U_d->at(i, j, k, VELZ_VAR_C) += (  flZ_d->at(i, j, k,   HY_ZMOM_FLUX_C)
-                                                 - flZ_d->at(i, j, k+1, HY_ZMOM_FLUX_C) );
-                U_d->at(i, j, k, ENER_VAR_C) += (  flZ_d->at(i, j, k,   HY_ENER_FLUX_C)
-                                                 - flZ_d->at(i, j, k+1, HY_ENER_FLUX_C) );
+                U_d->at(i, j, k, DENS_VAR) += (  flZ_d->at(i, j, k,   HY_DENS_FLUX)
+                                               - flZ_d->at(i, j, k+1, HY_DENS_FLUX) );
+                U_d->at(i, j, k, VELX_VAR) += (  flZ_d->at(i, j, k,   HY_XMOM_FLUX)
+                                               - flZ_d->at(i, j, k+1, HY_XMOM_FLUX) );
+                U_d->at(i, j, k, VELY_VAR) += (  flZ_d->at(i, j, k,   HY_YMOM_FLUX)
+                                               - flZ_d->at(i, j, k+1, HY_YMOM_FLUX) );
+                U_d->at(i, j, k, VELZ_VAR) += (  flZ_d->at(i, j, k,   HY_ZMOM_FLUX)
+                                               - flZ_d->at(i, j, k+1, HY_ZMOM_FLUX) );
+                U_d->at(i, j, k, ENER_VAR) += (  flZ_d->at(i, j, k,   HY_ENER_FLUX)
+                                               - flZ_d->at(i, j, k+1, HY_ENER_FLUX) );
             }
         }
     }

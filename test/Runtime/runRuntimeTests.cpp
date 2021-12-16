@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <mpi.h>
+
 // It appears that OpenACC on Summit with PGI has max 32 asynchronous
 // queues.  If you assign more CUDA streams to queues with OpenACC, then
 // these streams just roll over and the last 32 CUDA streams will be the
@@ -16,16 +18,20 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 // We need to create our own main for the testsuite since we can only call
 // MPI_Init/MPI_Finalize once per testsuite execution.
 int main(int argc, char* argv[]) {
+    MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
+    int        LEAD_RANK   = 0;
+
     ::testing::InitGoogleTest(&argc, argv);
 
     // Grid initialized AMReX and MPI
-    orchestration::Logger::instantiate("RuntimeTest.log");
+    orchestration::Logger::instantiate("RuntimeTest.log",
+                                       GLOBAL_COMM, LEAD_RANK);
     orchestration::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
                                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
     orchestration::Grid::instantiate();
 
     int  rank = -1;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(GLOBAL_COMM, &rank);
 
     ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();

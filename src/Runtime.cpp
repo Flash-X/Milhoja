@@ -1,6 +1,5 @@
 #include "Runtime.h"
 
-#include <mpi.h>
 #ifdef USE_THREADED_DISTRIBUTOR
 #include <omp.h>
 #endif
@@ -279,7 +278,8 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
                                     const unsigned int stagger_usec,
                                     const RuntimeAction& gpuAction,
                                     const DataPacket& packetPrototype,
-                                    const unsigned int stepNumber) {
+                                    const unsigned int stepNumber,
+                                    const MPI_Comm comm) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
@@ -314,7 +314,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
 
     //***** SETUP TIMING
     int rank = -1;
-    MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_rank(comm, &rank);
 
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
                                   / (double)gpuAction.nTilesPerPacket);
@@ -890,7 +890,8 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
                                             const unsigned int nTilesPerCpuTurn,
-                                            const unsigned int stepNumber) {
+                                            const unsigned int stepNumber,
+                                            const MPI_Comm comm) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
@@ -937,7 +938,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 
     //***** SETUP TIMING
     int rank = -1;
-    MPI_Comm_rank(GLOBAL_COMM, &rank);
+    MPI_Comm_rank(comm, &rank);
 
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
                                   / (double)gpuAction.nTilesPerPacket);

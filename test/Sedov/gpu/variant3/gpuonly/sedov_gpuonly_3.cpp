@@ -19,14 +19,20 @@
 
 #include "errorEstBlank.h"
 
+#include "Sedov.h"
 #include "Flash_par.h"
+
+constexpr int   LOG_RANK   = LEAD_RANK;
+constexpr int   IO_RANK    = LEAD_RANK;
+constexpr int   TIMER_RANK = LEAD_RANK;
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME);
+    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME,
+                                       GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Orchestration_init
     orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
@@ -38,7 +44,11 @@ int main(int argc, char* argv[]) {
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME);
+    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
+                                   GLOBAL_COMM, IO_RANK);
+
+    // Analogous to calling sim_init
+    std::vector<std::string>  variableNames = sim::getVariableNames();
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
@@ -61,24 +71,24 @@ int main(int argc, char* argv[]) {
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
-    orchestration::Timer::start("Set initial conditions");
+    Timer::start("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu,
                     rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
                     rp_Simulation::N_THREADS_FOR_IC,
                     Simulation::errorEstBlank);
-    orchestration::Timer::stop("Set initial conditions");
+    Timer::stop("Set initial conditions");
 
-    orchestration::Timer::start("computeLocalIQ");
+    Timer::start("computeLocalIQ");
     runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-    orchestration::Timer::stop("computeLocalIQ");
+    Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
     // Compute global integral quantities via DATA MOVEMENT
-    orchestration::Timer::start("Reduce/Write");
+    Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs");
-    orchestration::Timer::stop("Reduce/Write");
+//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
+    Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
     RuntimeAction     hydroAdvance_gpu;
@@ -94,9 +104,10 @@ int main(int argc, char* argv[]) {
                         0,
                         hydroAdvance_gpu.nInitialThreads,
                         hydroAdvance_gpu.nTilesPerPacket,
-                        0};
+                        0,
+                        GLOBAL_COMM, TIMER_RANK};
 
-    orchestration::Timer::start(rp_Simulation::NAME + " simulation");
+    Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int   nStep   = 1;
 
@@ -116,15 +127,15 @@ int main(int argc, char* argv[]) {
             Driver::simTime += Driver::dt;
         }
         // TODO: Log as well
-        if (rank == MASTER_PE) {
+        if (rank == LEAD_RANK) {
             printf("Step n=%d / t=%.4e / dt=%.4e\n", nStep, Driver::simTime, Driver::dt);
         }
 
         //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
         if (nStep > 1) {
-            orchestration::Timer::start("GC Fill");
+            Timer::start("GC Fill");
             grid.fillGuardCells();
-            orchestration::Timer::stop("GC Fill");
+            Timer::stop("GC Fill");
         }
 
         double   tStart = MPI_Wtime();
@@ -138,26 +149,28 @@ int main(int argc, char* argv[]) {
                                       rp_Bundle_2::STAGGER_USEC,
                                       hydroAdvance_gpu,
                                       packetPrototype,
-                                      nStep);
+                                      nStep,
+                                      GLOBAL_COMM);
         double   wtime_sec = MPI_Wtime() - tStart;
-        orchestration::Timer::start("Gather/Write");
+        Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
-        orchestration::Timer::stop("Gather/Write");
+        Timer::stop("Gather/Write");
 
-        orchestration::Timer::start("computeLocalIQ");
+        Timer::start("computeLocalIQ");
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-        orchestration::Timer::stop("computeLocalIQ");
+        Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
         //  local integral quantities computed as part of previous bundle
-        orchestration::Timer::start("Reduce/Write");
+        Timer::start("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
         if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep));
+            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
+                               variableNames);
         }
-        orchestration::Timer::stop("Reduce/Write");
+        Timer::stop("Reduce/Write");
 
         //----- UPDATE GRID IF REQUIRED
         // We are running in pseudo-UG for now and can therefore skip this
@@ -184,12 +197,12 @@ int main(int argc, char* argv[]) {
 
         ++nStep;
     }
-    orchestration::Timer::stop(rp_Simulation::NAME + " simulation");
+    Timer::stop(rp_Simulation::NAME + " simulation");
 
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         Logger::instance().log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final");
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 

@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include <mpi.h>
+
 #include "Grid_REAL.h"
 #include "Grid_IntVect.h"
 #include "DataItem.h"
@@ -32,16 +34,13 @@ public:
     Io& operator=(const Io&) = delete;
     Io& operator=(Io&&)      = delete;
 
-    static void  instantiate(const std::string filename);
+    static void  instantiate(const std::string filename,
+                             const MPI_Comm comm, const int ioRank);
     static Io&   instance(void);
 
     //----- INTEGRAL QUANTITIES
-#ifdef MAGP_VAR_C
-    static constexpr  int  N_GLOBAL_SUM_PROP = 8;
-#else
     static constexpr  int  N_GLOBAL_SUM_PROP = 7;
-#endif
-    static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP + NMASS_SCALARS;
+    static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP;
 
     void   computeIntegralQuantitiesByBlock(const int threadIndex,
                                             const orchestration::IntVect& lo,
@@ -57,6 +56,8 @@ private:
 
     static bool             instantiated_;
     static std::string      intQuantitiesFile_;
+    static MPI_Comm         comm_;
+    static int              ioRank_;
 
     int    rank_;
 
@@ -77,7 +78,6 @@ private:
     orchestration::Real*    intQuantities_ener_;
     orchestration::Real*    intQuantities_ke_;
     orchestration::Real*    intQuantities_eint_;
-    orchestration::Real*    intQuantities_magp_;
 };
 
 }

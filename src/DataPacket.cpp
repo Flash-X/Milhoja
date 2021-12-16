@@ -2,8 +2,6 @@
 
 #include "Backend.h"
 
-#include "Flash.h"
-
 namespace orchestration {
 
 /**
@@ -27,8 +25,8 @@ DataPacket::DataPacket(void)
         stream_{},
         nCopyToGpuBytes_{0},
         nReturnToHostBytes_{0},
-        startVariable_{UNK_VARS_BEGIN_C - 1},
-        endVariable_{UNK_VARS_BEGIN_C - 1}
+        startVariable_{-1},
+        endVariable_{-1}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -67,8 +65,8 @@ void  DataPacket::nullify(void) {
 
     location_ = PacketDataLocation::NOT_ASSIGNED;
 
-    startVariable_ = UNK_VARS_BEGIN_C - 1;
-    endVariable_   = UNK_VARS_BEGIN_C - 1;
+    startVariable_ = -1;
+    endVariable_   = -1;
 
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
@@ -99,9 +97,9 @@ std::string  DataPacket::isNull(void) const {
         return "Device memory buffer has already been allocated";
     } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
         return "Data location already assigned";
-    } else if (startVariable_ >= UNK_VARS_BEGIN_C) {
+    } else if (startVariable_ >= 0) {
         return "Start variable already set";
-    } else if (endVariable_ >= UNK_VARS_BEGIN_C) {
+    } else if (endVariable_ >= 0) {
         return "End variable already set";
     } else if (nCopyToGpuBytes_ > 0) {
         return "Non-zero packet size";
@@ -180,6 +178,10 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
 }
 
 /**
+ * We assume that all variable indices are non-negative and that the end index
+ * is greater than or equal to the start index.  Other than this, there is no
+ * error checking of the variables performed here.
+ *
  * @todo The present interface allows task functions to specify the variable
  * mask.  Since concrete DataPackets are now coupled to task functions, it seems
  * like this should be known when the concrete classes are designed.  Remove the
@@ -187,12 +189,12 @@ void   DataPacket::setDataLocation(const PacketDataLocation location) {
  */
 void   DataPacket::setVariableMask(const int startVariable,
                                    const int endVariable) {
-    if        (startVariable < UNK_VARS_BEGIN_C) {
+    if        (startVariable < 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable is invalid");
-    } else if (endVariable > UNK_VARS_END_C) {
+                               "Starting variable index is negative");
+    } else if (endVariable < 0) {
         throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Ending variable is invalid");
+                               "Ending variable index is negative");
     } else if (startVariable > endVariable) {
         throw std::logic_error("[DataPacket::setVariableMask] "
                                "Starting variable > ending variable");
@@ -200,91 +202,6 @@ void   DataPacket::setVariableMask(const int startVariable,
 
     startVariable_ = startVariable;
     endVariable_ = endVariable;
-}
-
-/**
- * The runtime calls this member function automatically once a DataPacket
- * has arrived in the host memory again.  It is responsible for unpacking
- * the contents and in particular for copying cell-centered data back to the
- * host-side Grid data structures that hold solution data.  The data is copied
- * back in accord with the variable masks set in the DataPacket to avoid
- * inadvertently overwriting variables that were updated in parallel by other
- * actions.
- *
- * All memory and stream resources are released.
- *
- * While the packet is consumed once the function finishes, the list of Tiles
- * that were included in the packet is preserved.  This is necessary so that
- * runtime elements such as MoverUnpacker can enqueue the Tiles with its data
- * subscriber.
- *
- * @todo Should unpacking be made more generic so that the CC blocks need not 
- *       start always with the first data variable.  What if the packet just
- *       needs to include variables 3-5 (out of 10 for example)?
- */
-void  DataPacket::unpack(void) {
-    if (tiles_.size() <= 0) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Empty data packet");
-    } else if (!stream_.isValid()) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Stream not acquired");
-    } else if (pinnedPtrs_ == nullptr) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "No pinned pointers set");
-    } else if (   (startVariable_ < UNK_VARS_BEGIN_C )
-               || (startVariable_ > UNK_VARS_END_C )
-               || (endVariable_   < UNK_VARS_BEGIN_C )
-               || (endVariable_   > UNK_VARS_END_C)) {
-        throw std::logic_error("[DataPacket::unpack] "
-                               "Invalid variable mask");
-    }
-
-    // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
-    assert(!stream_.isValid());
-
-    for (std::size_t n=0; n<tiles_.size(); ++n) {
-        Tile*   tileDesc_h = tiles_[n].get();
-
-        Real*         data_h = tileDesc_h->dataPtr();
-        const Real*   data_p = nullptr;
-        switch (location_) {
-            case PacketDataLocation::CC1:
-                data_p = pinnedPtrs_[n].CC1_data;
-                break;
-            case PacketDataLocation::CC2:
-                data_p = pinnedPtrs_[n].CC2_data;
-                break;
-            default:
-                throw std::logic_error("[DataPacket::unpack] Data not in CC1 or CC2");
-        }
-
-        if (data_h == nullptr) {
-            throw std::logic_error("[DataPacket::unpack] "
-                                   "Invalid pointer to data in host memory");
-        } else if (data_p == nullptr) {
-            throw std::runtime_error("[DataPacket::unpack] "
-                                     "Invalid pointer to data in pinned memory");
-        }
-
-        // The code here imposes requirements on the variable indices.  See Flash.h
-        // for more information.  If this code is changed, please make sure to
-        // adjust Flash.h appropriately.
-        assert(UNK_VARS_BEGIN_C == 0);
-        assert(UNK_VARS_END_C == (NUNKVAR - 1));
-        std::size_t  offset =   N_ELEMENTS_PER_CC_PER_VARIABLE
-                              * static_cast<std::size_t>(startVariable_);
-        Real*        start_h = data_h + offset;
-        const Real*  start_p = data_p + offset;
-        std::size_t  nBytes =  (endVariable_ - startVariable_ + 1)
-                              * N_ELEMENTS_PER_CC_PER_VARIABLE
-                              * sizeof(Real);
-        std::memcpy((void*)start_h, (void*)start_p, nBytes);
-    }
-
-    // The packet is consumed upon unpacking.
-    nullify();
 }
 
 }
