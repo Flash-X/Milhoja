@@ -2,6 +2,8 @@
 #error "This file need not be compiled if the CUDA backend isn't used"
 #endif
 
+#include <gtest/gtest.h>
+
 #include <AMReX_Dim3.H>
 #include <AMReX_Array4.H>
 #include <AMReX_MultiFab.H>
@@ -14,11 +16,8 @@
 
 #include "Base.h"
 #include "Flash_par.h"
-#include "constants.h"
 
 #include "gpuKernel.h"
-
-#include "gtest/gtest.h"
 
 namespace {
 
@@ -274,9 +273,9 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
 
     // FIXME: nDataPerTile is presently fixed to a block
     gpuKernel::copyIn    copyInData;
-    copyInData.nDataPerTile =   (NXB + 2 * NGUARD * K1D)
-                              * (NYB + 2 * NGUARD * K2D)
-                              * (NZB + 2 * NGUARD * K3D)
+    copyInData.nDataPerTile =   (rp_Grid::NXB + 2 * NGUARD * K1D)
+                              * (rp_Grid::NYB + 2 * NGUARD * K2D)
+                              * (rp_Grid::NZB + 2 * NGUARD * K3D)
                               * NUNKVAR;
     copyInData.coefficient = 1.1;
     std::size_t   nBytesCopyIn = sizeof(gpuKernel::copyIn);

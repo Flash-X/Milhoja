@@ -14,6 +14,10 @@ namespace rp_Grid {
 
     constexpr unsigned int          LREFINE_MAX = 3;
 
+    constexpr unsigned int          NXB = 8;
+    constexpr unsigned int          NYB = 8;
+    constexpr unsigned int          NZB = 8;
+
     constexpr unsigned int          N_BLOCKS_X  = 4;
     constexpr unsigned int          N_BLOCKS_Y  = 4;
     constexpr unsigned int          N_BLOCKS_Z  = 4;

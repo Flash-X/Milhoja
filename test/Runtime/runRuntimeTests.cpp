@@ -7,7 +7,6 @@
 #include "Grid.h"
 #include "Runtime.h"
 
-#include "constants.h"
 #include "Flash.h"
 #include "Flash_par.h"
 
@@ -43,9 +42,9 @@ int main(int argc, char* argv[]) {
         cfg.yMax           = rp_Grid::Y_MAX;
         cfg.zMin           = rp_Grid::Z_MIN;
         cfg.zMax           = rp_Grid::Z_MAX;
-        cfg.nxb            = NXB;
-        cfg.nyb            = NYB;
-        cfg.nzb            = NZB;
+        cfg.nxb            = rp_Grid::NXB;
+        cfg.nyb            = rp_Grid::NYB;
+        cfg.nzb            = rp_Grid::NZB;
         cfg.nCcVars        = NUNKVAR;
         cfg.nGuard         = NGUARD;
         cfg.nBlocksX       = rp_Grid::N_BLOCKS_X;

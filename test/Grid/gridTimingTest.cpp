@@ -1,7 +1,6 @@
 #include "Grid.h"
 #include "Grid_Macros.h"
 #include "Flash.h"
-#include "constants.h"
 #include "setInitialConditions_block.h"
 #include "gtest/gtest.h"
 

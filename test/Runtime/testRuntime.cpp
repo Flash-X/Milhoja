@@ -6,7 +6,6 @@
 
 #include "Flash.h"
 #include "Flash_par.h"
-#include "constants.h"
 
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"

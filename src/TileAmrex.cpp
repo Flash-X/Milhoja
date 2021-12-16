@@ -1,12 +1,12 @@
 #include "TileAmrex.h"
 
-#include "Grid.h"
-#include "OrchestrationLogger.h"
-#include "Flash.h"
-#include "constants.h"
-
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
+
+#include "OrchestrationLogger.h"
+#include "Grid.h"
+
+#include "Flash.h"
 
 namespace orchestration {
 

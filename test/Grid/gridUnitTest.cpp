@@ -13,7 +13,6 @@
 #include "Tile.h"
 
 #include "Base.h"
-#include "constants.h"
 #include "Flash_par.h"
 #include "Simulation.h"
 #include "setInitialConditions.h"
@@ -198,7 +197,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
                               rp_Grid::N_BLOCKS_Y,
                               rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
@@ -258,7 +257,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
                               rp_Grid::N_BLOCKS_Y,
                               rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
@@ -323,7 +322,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
     IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
                               rp_Grid::N_BLOCKS_Y,
                               rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(NXB, NYB, NZB)};
+    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;

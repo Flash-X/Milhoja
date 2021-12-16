@@ -1,8 +1,9 @@
 #ifndef ERROR_EST_MULTIPLE_H__
 #define ERROR_EST_MULTIPLE_H__
 
-#include "Tile.h"
 #include <memory>
+
+#include "Tile.h"
 
 using namespace orchestration;
 

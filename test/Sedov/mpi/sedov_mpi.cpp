@@ -90,20 +90,20 @@ int main(int argc, char* argv[]) {
     // Create scratch buffers.
     // They will be reindexed as needed, but size needs to be correct.
     FArray4D   flX = FArray4D::buildScratchArray4D(
-                        IntVect{LIST_NDIM(1,         1,   1)},
-                        IntVect{LIST_NDIM(NXB+K1D, NYB, NZB)},
+                        IntVect{LIST_NDIM(1,                1,            1)},
+                        IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB, rp_Grid::NZB)},
                         NFLUXES);
     FArray4D   flY = FArray4D::buildScratchArray4D(
-                        IntVect{LIST_NDIM(1,         1,   1)},
-                        IntVect{LIST_NDIM(NXB, NYB+K2D, NZB)},
+                        IntVect{LIST_NDIM(1,            1,                1)},
+                        IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+K2D, rp_Grid::NZB)},
                         NFLUXES);
     FArray4D   flZ = FArray4D::buildScratchArray4D(
-                        IntVect{LIST_NDIM(1,     1,       1)},
-                        IntVect{LIST_NDIM(NXB, NYB, NZB+K3D)},
+                        IntVect{LIST_NDIM(1,            1,            1)},
+                        IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+K3D)},
                         NFLUXES);
     FArray3D   auxC = FArray3D::buildScratchArray(
-                        IntVect{LIST_NDIM(1  -K1D, 1  -K2D, 1  -K3D)},
-                        IntVect{LIST_NDIM(NXB+K1D, NYB+K2D, NZB+K3D)});
+                        IntVect{LIST_NDIM(1  -K1D,          1  -K2D,          1  -K3D)},
+                        IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB+K2D, rp_Grid::NZB+K3D)});
 
     Timer::start(rp_Simulation::NAME + " simulation");
 

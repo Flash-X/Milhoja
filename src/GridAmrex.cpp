@@ -18,7 +18,10 @@ namespace orchestration {
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
   */
 GridAmrex::GridAmrex(void)
-    : amrcore_{nullptr}
+    : amrcore_{nullptr},
+      nxb_{0}, 
+      nyb_{0}, 
+      nzb_{0}
 {
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
@@ -34,12 +37,18 @@ GridAmrex::GridAmrex(void)
     }
 
     // Access config singleton within limited local scope so that it can't
-    // be used for any reason other than configuring AMReX.
+    // be used accidentally after the config values have been consumed in this
+    // block.
     {
         GridConfiguration&   cfg = GridConfiguration::instance();
         if (!cfg.isValid()) {
             throw std::invalid_argument("[GridAmrex::GridAmrex] Invalid configuration");
         }
+
+        // Save configuration values owned by GridAmrex
+        nxb_ = cfg.nxb;
+        nyb_ = cfg.nyb;
+        nzb_ = cfg.nzb;
 
         amrex::ParmParse    ppGeo("geometry");
         ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
@@ -52,35 +61,35 @@ GridAmrex::GridAmrex(void)
                                                             cfg.zMax)});
 
         // TODO: Check for overflow
-        int  lrefineMax = static_cast<int>(cfg.maxFinestLevel);
-        int  nxb        = static_cast<int>(cfg.nxb);
-        int  nyb        = static_cast<int>(cfg.nyb);
-        int  nzb        = static_cast<int>(cfg.nzb);
-        int  nCellsX    = static_cast<int>(cfg.nxb * cfg.nBlocksX);
-        int  nCellsY    = static_cast<int>(cfg.nyb * cfg.nBlocksY);
-        int  nCellsZ    = static_cast<int>(cfg.nzb * cfg.nBlocksZ);
+        int  lrefineMax_i = static_cast<int>(cfg.maxFinestLevel);
+        int  nxb_i        = static_cast<int>(nxb_);
+        int  nyb_i        = static_cast<int>(nyb_);
+        int  nzb_i        = static_cast<int>(nzb_);
+        int  nCellsX_i    = static_cast<int>(nxb_ * cfg.nBlocksX);
+        int  nCellsY_i    = static_cast<int>(nyb_ * cfg.nBlocksY);
+        int  nCellsZ_i    = static_cast<int>(nzb_ * cfg.nBlocksZ);
 
         amrex::ParmParse ppAmr("amr");
 
         ppAmr.add("v", 0); //verbosity
         //ppAmr.add("regrid_int",nrefs); //how often to refine
-        ppAmr.add("max_level", lrefineMax - 1); //0-based
-        ppAmr.addarr("n_cell", std::vector<int>{LIST_NDIM(nCellsX,
-                                                          nCellsY,
-                                                          nCellsZ)});
+        ppAmr.add("max_level", lrefineMax_i - 1); //0-based
+        ppAmr.addarr("n_cell", std::vector<int>{LIST_NDIM(nCellsX_i,
+                                                          nCellsY_i,
+                                                          nCellsZ_i)});
 
         //octree mode:
-        ppAmr.add("max_grid_size_x",    nxb);
-        ppAmr.add("max_grid_size_y",    nyb);
-        ppAmr.add("max_grid_size_z",    nzb);
-        ppAmr.add("blocking_factor_x",  nxb * 2);
-        ppAmr.add("blocking_factor_y",  nyb * 2);
-        ppAmr.add("blocking_factor_z",  nzb * 2);
+        ppAmr.add("max_grid_size_x",    nxb_i);
+        ppAmr.add("max_grid_size_y",    nyb_i);
+        ppAmr.add("max_grid_size_z",    nzb_i);
+        ppAmr.add("blocking_factor_x",  nxb_i * 2);
+        ppAmr.add("blocking_factor_y",  nyb_i * 2);
+        ppAmr.add("blocking_factor_z",  nzb_i * 2);
         ppAmr.add("refine_grid_layout", 0);
         ppAmr.add("grid_eff",           1.0);
         ppAmr.add("n_proper",           1);
         ppAmr.add("n_error_buf",        0);
-        ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax, 2));
+        ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax_i, 2));
 
         // Communicate to the config singleton that its contents have been
         // consumed and that other code should not be able to access it.
@@ -170,6 +179,16 @@ void  GridAmrex::fillGuardCells() {
     }
 }
 
+/**
+ * Obtain the size of the interior of all blocks.
+ */
+void    GridAmrex::getBlockSize(unsigned int* nxb,
+                                unsigned int* nyb,
+                                unsigned int* nzb) const {
+    *nxb = nxb_;
+    *nyb = nyb_;
+    *nzb = nzb_;
+}
 
 /**
   * getDomainLo gets the lower bound of a given level index space.

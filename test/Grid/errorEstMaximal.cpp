@@ -1,11 +1,6 @@
 #include "errorEstMaximal.h"
 
-#include "Grid.h"
-#include "Tile.h"
-#include "Flash.h"
-#include "constants.h"
-
-#include "Grid_AmrCoreFlash.h"
+#include <AMReX_TagBox.H>
 
 using namespace orchestration;
 
