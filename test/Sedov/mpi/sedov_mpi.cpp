@@ -3,18 +3,19 @@
 
 #include <mpi.h>
 
+#include "milhoja.h"
+#include "Grid_REAL.h"
+#include "Grid.h"
+#include "Timer.h"
+#include "OrchestrationLogger.h"
+
 #include "Io.h"
 #include "Eos.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-
-#include "milhoja.h"
-#include "Grid_REAL.h"
-#include "Grid.h"
-#include "Timer.h"
-#include "OrchestrationLogger.h"
+#include "loadGridConfiguration.h"
 
 #include "errorEstBlank.h"
 
@@ -40,6 +41,7 @@ int main(int argc, char* argv[]) {
                                        GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Grid_init
+    loadGridConfiguration();
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init

@@ -6,62 +6,14 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include "TileIterAmrex.h"
 
+#include "OrchestrationLogger.h"
+#include "GridConfiguration.h"
 #include "Grid_Axis.h"
 #include "Grid_Edge.h"
-#include "OrchestrationLogger.h"
-
-#include "Flash.h"
-#include "Flash_par.h"
-#include "constants.h"
+#include "TileIterAmrex.h"
 
 namespace orchestration {
-
-void passRPToAmrex() {
-#ifdef GRID_LOG
-    Logger::instance().log("[GridAmrex] Passing runtime parameters"
-                           " to amrex...");
-#endif
-    {
-        amrex::ParmParse pp("geometry");
-        pp.addarr("is_periodic", std::vector<int>{1, 1, 1} );
-        pp.add("coord_sys", 0); //cartesian
-        pp.addarr("prob_lo", std::vector<Real>{LIST_NDIM(rp_Grid::X_MIN,
-                                                         rp_Grid::Y_MIN,
-                                                         rp_Grid::Z_MIN)});
-        pp.addarr("prob_hi", std::vector<Real>{LIST_NDIM(rp_Grid::X_MAX,
-                                                         rp_Grid::Y_MAX,
-                                                         rp_Grid::Z_MAX)});
-    }
-
-    {
-        amrex::ParmParse pp("amr");
-
-        // TODO: Check for overflow
-        int  lrefineMax = static_cast<int>(rp_Grid::LREFINE_MAX);
-
-        pp.add("v", 0); //verbosity
-        //pp.add("regrid_int",nrefs); //how often to refine
-        pp.add("max_level", lrefineMax - 1); //0-based
-        pp.addarr("n_cell",std::vector<int>{LIST_NDIM(NXB * rp_Grid::N_BLOCKS_X,
-                                                      NYB * rp_Grid::N_BLOCKS_Y,
-                                                      NZB * rp_Grid::N_BLOCKS_Z)});
-
-        //octree mode:
-        pp.add("max_grid_size_x", NXB);
-        pp.add("max_grid_size_y", NYB);
-        pp.add("max_grid_size_z", NZB);
-        pp.add("blocking_factor_x", NXB*2);
-        pp.add("blocking_factor_y", NYB*2);
-        pp.add("blocking_factor_z", NZB*2);
-        pp.add("refine_grid_layout", 0);
-        pp.add("grid_eff", 1.0);
-        pp.add("n_proper", 1);
-        pp.add("n_error_buf", 0);
-        pp.addarr("ref_ratio",std::vector<int>(rp_Grid::LREFINE_MAX, 2));
-    }
-}
 
 /** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
   */
@@ -81,7 +33,64 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    passRPToAmrex();
+    // Access config singleton within limited local scope so that it can't
+    // be used for any reason other than configuring AMReX.
+    {
+        GridConfiguration&   cfg = GridConfiguration::instance();
+        if (!cfg.isValid()) {
+            throw std::invalid_argument("[GridAmrex::GridAmrex] Invalid configuration");
+        }
+
+        amrex::ParmParse    ppGeo("geometry");
+        ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
+        ppGeo.add("coord_sys", 0); //cartesian
+        ppGeo.addarr("prob_lo", std::vector<Real>{LIST_NDIM(cfg.xMin,
+                                                            cfg.yMin,
+                                                            cfg.zMin)});
+        ppGeo.addarr("prob_hi", std::vector<Real>{LIST_NDIM(cfg.xMax,
+                                                            cfg.yMax,
+                                                            cfg.zMax)});
+
+        // TODO: Check for overflow
+        int  lrefineMax = static_cast<int>(cfg.maxFinestLevel);
+        int  nxb        = static_cast<int>(cfg.nxb);
+        int  nyb        = static_cast<int>(cfg.nyb);
+        int  nzb        = static_cast<int>(cfg.nzb);
+        int  nCellsX    = static_cast<int>(cfg.nxb * cfg.nBlocksX);
+        int  nCellsY    = static_cast<int>(cfg.nyb * cfg.nBlocksY);
+        int  nCellsZ    = static_cast<int>(cfg.nzb * cfg.nBlocksZ);
+
+        amrex::ParmParse ppAmr("amr");
+
+        ppAmr.add("v", 0); //verbosity
+        //ppAmr.add("regrid_int",nrefs); //how often to refine
+        ppAmr.add("max_level", lrefineMax - 1); //0-based
+        ppAmr.addarr("n_cell", std::vector<int>{LIST_NDIM(nCellsX,
+                                                          nCellsY,
+                                                          nCellsZ)});
+
+        //octree mode:
+        ppAmr.add("max_grid_size_x",    nxb);
+        ppAmr.add("max_grid_size_y",    nyb);
+        ppAmr.add("max_grid_size_z",    nzb);
+        ppAmr.add("blocking_factor_x",  nxb * 2);
+        ppAmr.add("blocking_factor_y",  nyb * 2);
+        ppAmr.add("blocking_factor_z",  nzb * 2);
+        ppAmr.add("refine_grid_layout", 0);
+        ppAmr.add("grid_eff",           1.0);
+        ppAmr.add("n_proper",           1);
+        ppAmr.add("n_error_buf",        0);
+        ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax, 2));
+
+        // Communicate to the config singleton that its contents have been
+        // consumed and that other code should not be able to access it.
+        cfg.clear();
+
+#ifdef GRID_LOG
+        Logger::instance().log("[GridAmrex] Loaded configuration values into AMReX");
+#endif
+    }
+
     amrex::Initialize(MPI_COMM_WORLD);
 
     // Tell Logger to get its rank once AMReX has initialized MPI, but
