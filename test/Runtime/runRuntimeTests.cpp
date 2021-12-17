@@ -7,7 +7,7 @@
 #include "Grid.h"
 #include "Runtime.h"
 
-#include "Flash.h"
+#include "Base.h"
 #include "Flash_par.h"
 
 // It appears that OpenACC on Summit with PGI has max 32 asynchronous

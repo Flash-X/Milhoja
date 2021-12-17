@@ -17,8 +17,6 @@
 #include "DataPacket.h"
 #include "OrchestrationLogger.h"
 
-#include "Flash.h"
-
 namespace orchestration {
 
 unsigned int    Runtime::nTeams_            = 0;

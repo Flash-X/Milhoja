@@ -6,7 +6,7 @@
 #include "GridConfiguration.h"
 #include "Grid.h"
 
-#include "Flash.h"
+#include "Base.h"
 #include "Flash_par.h"
 
 int main(int argc, char* argv[]) {

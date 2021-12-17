@@ -21,7 +21,9 @@ class AmrCoreFlash
     : public amrex::AmrCore
 {
 public:
-    AmrCoreFlash(ACTION_ROUTINE initBlock,
+    AmrCoreFlash(const unsigned int nGuard,
+                 const unsigned int nCcVars,
+                 ACTION_ROUTINE initBlock,
                  const unsigned int nDistributorThreads,
                  const unsigned int nRuntimeThreads,
                  ERROR_ROUTINE errorEst);
@@ -93,6 +95,19 @@ private:
     std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
 
     amrex::Vector<amrex::BCRec> bcs_; //!< Boundary conditions
+
+    //----- GRID CONFIGURATION VALUES OWNED BY AmrCore
+    // These cannot be acquired from AMReX, are not needed in GridAmrex, and
+    // play an important role here in terms of constructing MultiFabs.
+    //
+    // NOTE: nCcVars_ could be retrieved with nComp() from a MultiFab that
+    // already exists, but this class has to establish the first MultiFab at
+    // some time after construction.
+    //
+    // We would prefer to store these as unsigned int, but AmrCore works with
+    // them as ints.  Therefore, we will eagerly cast and store these results.
+    const int   nGuard_;
+    const int   nCcVars_;
 
     // Pointers to physics routines are cached here so they can be specified
     // only once. More thought should be given to this design.

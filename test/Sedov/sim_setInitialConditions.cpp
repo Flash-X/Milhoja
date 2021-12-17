@@ -30,7 +30,6 @@
 #include "FArray2D.h"
 
 #include "Sedov.h"
-#include "Flash.h"
 #include "Flash_par.h"
 
 // Hardcoded

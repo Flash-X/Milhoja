@@ -225,12 +225,6 @@ if __name__ == '__main__':
         parFile = os.path.join(siteDir,args.par)
         shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
 
-    # Copy Flash_ND.h to build dir as Flash.h
-    flashH = os.path.join(testDir,'Flash_{}D.h'.format(args.dim))
-    if os.path.isfile(flashH):
-        print("Copying Flash_{}D.h as Flash.h".format(args.dim))
-        shutil.copy(flashH,os.path.join(buildDir,'Flash.h'))
-
     # Write the setup logfile
     print("Writing setup.log")
     logfileName = os.path.join(buildDir,"setup.log")
@@ -257,9 +251,6 @@ if __name__ == '__main__':
         if args.par is not None:
             f.write('Flash_par.h copied from: {}\n'.format(
                     os.path.abspath(parFile)) )
-        if os.path.isfile(flashH):
-            f.write('Flash.h copied from: {}\n'.format(
-                    os.path.abspath(flashH)) )
         f.write('\n')
 
         f.write('Contents of Makefile.setup:\n')

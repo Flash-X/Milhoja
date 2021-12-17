@@ -1,7 +1,6 @@
 #include "Simulation.h"
 
 #include "Base.h"
-#include "Flash.h"
 
 /**
  * Obtain the names of the physical observables used in the Base test case.

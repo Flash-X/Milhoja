@@ -6,8 +6,6 @@
 #include "OrchestrationLogger.h"
 #include "Grid.h"
 
-#include "Flash.h"
-
 namespace orchestration {
 
 /**
@@ -125,7 +123,8 @@ Real*   TileAmrex::dataPtr(void) {
  *         data and provides Fortran-style access.
  */
 FArray4D TileAmrex::data(void) {
-    return FArray4D{dataPtr(), loGC(), hiGC(), NUNKVAR};
+    unsigned int   nCcVars = static_cast<unsigned int>(unkRef_.nComp());
+    return FArray4D{dataPtr(), loGC(), hiGC(), nCcVars};
 }
 
 }

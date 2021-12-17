@@ -1,7 +1,6 @@
 #include "Simulation.h"
 
 #include "Sedov.h"
-#include "Flash.h"
 
 /**
  * Obtain the names of the physical observables used in the Sedov simulation.

@@ -19,9 +19,11 @@ namespace orchestration {
   */
 GridAmrex::GridAmrex(void)
     : amrcore_{nullptr},
-      nxb_{0}, 
-      nyb_{0}, 
-      nzb_{0}
+      nxb_{GridConfiguration::instance().nxb}, 
+      nyb_{GridConfiguration::instance().nyb}, 
+      nzb_{GridConfiguration::instance().nzb},
+      nGuard_tmp_{GridConfiguration::instance().nGuard},
+      nCcVars_tmp_{GridConfiguration::instance().nCcVars}
 {
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
@@ -44,11 +46,6 @@ GridAmrex::GridAmrex(void)
         if (!cfg.isValid()) {
             throw std::invalid_argument("[GridAmrex::GridAmrex] Invalid configuration");
         }
-
-        // Save configuration values owned by GridAmrex
-        nxb_ = cfg.nxb;
-        nyb_ = cfg.nyb;
-        nzb_ = cfg.nzb;
 
         amrex::ParmParse    ppGeo("geometry");
         ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
@@ -151,8 +148,16 @@ void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
     }
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreFlash(initBlock, nDistributorThreads,
+    amrcore_ = new AmrCoreFlash(nGuard_tmp_, nCcVars_tmp_,
+                                initBlock, nDistributorThreads,
                                 nRuntimeThreads, errorEst);
+    // AmrCoreFlash owns nGuard and nCcVars, not this class.  Therefore, we
+    // set to nonsensical values the temporary data members used to configure
+    // AmrCoreFlash once they are consumed.
+    //
+    // We cannot, however, do this just yet since some tests are calling
+    // initDomain multiple times within one execution.
+
     amrcore_->InitFromScratch(0.0_wp);
 
     std::string msg = "[GridAmrex] Initialized domain with " +

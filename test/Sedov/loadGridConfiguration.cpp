@@ -2,7 +2,7 @@
 
 #include "GridConfiguration.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 #include "Flash_par.h"
 
 void loadGridConfiguration(void) {

@@ -5,7 +5,7 @@
 #include "milhoja.h"
 #include "Tile.h"
 
-#include "Flash.h"
+#include "Sedov.h"
 
 void Hydro::advanceSolutionHll_tile_cpu(const int tId,
                                         orchestration::DataItem* dataItem) {
