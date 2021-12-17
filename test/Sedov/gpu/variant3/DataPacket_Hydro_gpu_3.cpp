@@ -4,11 +4,12 @@
 #include <cstring>
 #include <stdexcept>
 
-#include "Grid_IntVect.h"
-#include "Grid_RealVect.h"
-#include "Grid.h"
-#include "FArray4D.h"
-#include "Backend.h"
+#include <milhoja.h>
+#include <Grid_IntVect.h>
+#include <Grid_RealVect.h>
+#include <Grid.h>
+#include <FArray4D.h>
+#include <Backend.h>
 
 #include "Sedov.h"
 #include "Driver.h"
@@ -29,8 +30,48 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       stream2_{},
       stream3_{},
 #endif
-      dt_d_{nullptr}
+      dt_d_{nullptr},
+      N_ELEMENTS_PER_CC_PER_VARIABLE{0},
+      N_ELEMENTS_PER_FCX_PER_VARIABLE{0},
+      N_ELEMENTS_PER_FCX{0},
+      N_ELEMENTS_PER_FCY_PER_VARIABLE{0},
+      N_ELEMENTS_PER_FCY{0},
+      N_ELEMENTS_PER_FCZ_PER_VARIABLE{0},
+      N_ELEMENTS_PER_FCZ{0},
+      DRIVER_DT_SIZE_BYTES{0},
+      DELTA_SIZE_BYTES{0},
+      FCX_BLOCK_SIZE_BYTES{0},
+      FCY_BLOCK_SIZE_BYTES{0},
+      FCZ_BLOCK_SIZE_BYTES{0},
+      POINT_SIZE_BYTES{0},
+      ARRAY4_SIZE_BYTES{0}
 {
+    unsigned int   nxb, nyb, nzb;
+    Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
+
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
+                                     * (nyb + 2 * NGUARD * K2D)
+                                     * (nzb + 2 * NGUARD * K3D);
+
+    N_ELEMENTS_PER_FCX_PER_VARIABLE = (nxb + 1) * nyb * nzb;
+    N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
+
+    N_ELEMENTS_PER_FCY_PER_VARIABLE = nxb * (nyb + 1) * nzb;
+    N_ELEMENTS_PER_FCY = N_ELEMENTS_PER_FCY_PER_VARIABLE * NFLUXES;
+
+    N_ELEMENTS_PER_FCZ_PER_VARIABLE = nxb * nyb * (nzb + 1);
+    N_ELEMENTS_PER_FCZ = N_ELEMENTS_PER_FCZ_PER_VARIABLE * NFLUXES;
+
+    DRIVER_DT_SIZE_BYTES =          sizeof(Real);
+    DELTA_SIZE_BYTES     =          sizeof(RealVect);
+    FCX_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCX
+                                  * sizeof(Real);
+    FCY_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCY
+                                  * sizeof(Real);
+    FCZ_BLOCK_SIZE_BYTES = N_ELEMENTS_PER_FCZ
+                                  * sizeof(Real);
+    POINT_SIZE_BYTES     =          sizeof(IntVect);
+    ARRAY4_SIZE_BYTES    =          sizeof(FArray4D);
 }
 
 /**
