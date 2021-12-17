@@ -45,17 +45,11 @@ bool GridConfiguration::isValid(void) const {
     } else if (nCcVars <= 0) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - nCcVars not positive");
         isValid = false;
-    } else if (nGuard < 0) {
-        Logger::instance().log("[GridConfiguration::isValid] ERROR - Negative guardcell number");
-        isValid = false;
     } else if ((nxb <= 0) || (nyb <= 0) || (nzb <= 0)) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid block size");
         isValid = false;
     } else if ((nBlocksX <= 0) || (nBlocksY <= 0) || (nBlocksZ <= 0)) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid domain block array");
-        isValid = false;
-    } else if (maxFinestLevel < 0) {
-        Logger::instance().log("[GridConfiguration::isValid] ERROR - Negative maximum level");
         isValid = false;
     }
 
@@ -88,7 +82,7 @@ void GridConfiguration::clear(void) {
     nBlocksX                 =  0; 
     nBlocksY                 =  0; 
     nBlocksZ                 =  0; 
-    maxFinestLevel           = -1;
+    maxFinestLevel           =  0;
     errorEstimation          = nullptr;
 
     // Limit possiblity that calling code can access the

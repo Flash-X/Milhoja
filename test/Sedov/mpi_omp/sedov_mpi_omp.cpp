@@ -3,18 +3,19 @@
 
 #include <mpi.h>
 
+#include "milhoja.h"
+#include "Grid_REAL.h"
+#include "Grid.h"
+#include "Timer.h"
+#include "OrchestrationLogger.h"
+
 #include "Io.h"
 #include "Eos.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-
-#include "milhoja.h"
-#include "Grid_REAL.h"
-#include "Grid.h"
-#include "Timer.h"
-#include "OrchestrationLogger.h"
+#include "loadGridConfiguration.h"
 
 #include "errorEstBlank.h"
 
@@ -40,6 +41,7 @@ int main(int argc, char* argv[]) {
                                        GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Grid_init
+    loadGridConfiguration();
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init
@@ -127,20 +129,20 @@ int main(int argc, char* argv[]) {
             // Create thread-private scratch buffers.
             // They will be reindexed as needed, but size needs to be correct.
             FArray4D   flX = FArray4D::buildScratchArray4D(
-                                IntVect{LIST_NDIM(1,         1,   1)},
-                                IntVect{LIST_NDIM(NXB+K1D, NYB, NZB)},
+                                IntVect{LIST_NDIM(1,                1,            1)},
+                                IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB, rp_Grid::NZB)},
                                 NFLUXES);
             FArray4D   flY = FArray4D::buildScratchArray4D(
-                                IntVect{LIST_NDIM(1,         1,   1)},
-                                IntVect{LIST_NDIM(NXB, NYB+K2D, NZB)},
+                                IntVect{LIST_NDIM(1,            1,                1)},
+                                IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+K2D, rp_Grid::NZB)},
                                 NFLUXES);
             FArray4D   flZ = FArray4D::buildScratchArray4D(
-                                IntVect{LIST_NDIM(1,     1,       1)},
-                                IntVect{LIST_NDIM(NXB, NYB, NZB+K3D)},
+                                IntVect{LIST_NDIM(1,            1,            1)},
+                                IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+K3D)},
                                 NFLUXES);
             FArray3D   auxC = FArray3D::buildScratchArray(
-                                IntVect{LIST_NDIM(1  -K1D, 1  -K2D, 1  -K3D)},
-                                IntVect{LIST_NDIM(NXB+K1D, NYB+K2D, NZB+K3D)});
+                                IntVect{LIST_NDIM(1  -K1D,          1  -K2D,          1  -K3D)},
+                                IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB+K2D, rp_Grid::NZB+K3D)});
 
             for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
                 tileDesc = ti->buildCurrentTile();
