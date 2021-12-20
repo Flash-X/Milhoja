@@ -16,6 +16,7 @@ LDFLAGS_TEST        =
 SRCS_TEST = \
 	$(SRCDIR)/DataPacket.cpp \
 	$(SRCDIR)/MoverUnpacker.cpp \
+	$(SEDOVDIR)/loadGridConfiguration.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \

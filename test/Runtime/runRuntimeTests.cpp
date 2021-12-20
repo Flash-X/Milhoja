@@ -1,10 +1,14 @@
-#include "Grid.h"
-#include "Runtime.h"
-#include "OrchestrationLogger.h"
-
 #include <gtest/gtest.h>
 
 #include <mpi.h>
+
+#include "OrchestrationLogger.h"
+#include "GridConfiguration.h"
+#include "Grid.h"
+#include "Runtime.h"
+
+#include "Base.h"
+#include "Flash_par.h"
 
 // It appears that OpenACC on Summit with PGI has max 32 asynchronous
 // queues.  If you assign more CUDA streams to queues with OpenACC, then
@@ -23,12 +27,34 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    // Grid initialized AMReX and MPI
     orchestration::Logger::instantiate("RuntimeTest.log",
                                        GLOBAL_COMM, LEAD_RANK);
     orchestration::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
                                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
-    orchestration::Grid::instantiate();
+
+    // Access config singleton within limited local scope so that it can't be
+    // used by the rest of the application code outside the block.
+    {
+        orchestration::GridConfiguration&   cfg = orchestration::GridConfiguration::instance();
+        cfg.xMin           = rp_Grid::X_MIN;
+        cfg.xMax           = rp_Grid::X_MAX;
+        cfg.yMin           = rp_Grid::Y_MIN;
+        cfg.yMax           = rp_Grid::Y_MAX;
+        cfg.zMin           = rp_Grid::Z_MIN;
+        cfg.zMax           = rp_Grid::Z_MAX;
+        cfg.nxb            = rp_Grid::NXB;
+        cfg.nyb            = rp_Grid::NYB;
+        cfg.nzb            = rp_Grid::NZB;
+        cfg.nCcVars        = NUNKVAR;
+        cfg.nGuard         = NGUARD;
+        cfg.nBlocksX       = rp_Grid::N_BLOCKS_X;
+        cfg.nBlocksY       = rp_Grid::N_BLOCKS_Y;
+        cfg.nBlocksZ       = rp_Grid::N_BLOCKS_Z;
+        cfg.maxFinestLevel = rp_Grid::LREFINE_MAX;
+
+        // Grid initialized AMReX and MPI
+        orchestration::Grid::instantiate();
+    }
 
     int  rank = -1;
     MPI_Comm_rank(GLOBAL_COMM, &rank);

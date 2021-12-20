@@ -40,6 +40,9 @@ public:
     void         restrictAllLevels() override;
     void         fillGuardCells() override;
     void         regrid() override { amrcore_->regrid(0,0.0_wp); }
+    void         getBlockSize(unsigned int* nxb,
+                              unsigned int* nyb,
+                              unsigned int* nzb) const override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo() const override;
@@ -87,6 +90,17 @@ private:
     // DEV NOTE: Used mix-in pattern over inheritance so amrcore can be
     // created/destroyed multiple times in one run.
     AmrCoreFlash*      amrcore_;
+
+    // Grid configuration values owned by this class.
+    // These cannot be obtained from AMReX and are not needed by AmrCore.
+    const unsigned int    nxb_, nyb_, nzb_;
+
+    // nGuard and nCcVars are owned by AmrCoreFlash.  We have to temporarily
+    // store the configuration values given to this class so that this class can
+    // later pass them to AmrCoreFlash when it is instantiated.  These should not
+    // be used for any other purpose.
+    const unsigned int    nGuard_tmp_;
+    const unsigned int    nCcVars_tmp_;
 };
 
 }

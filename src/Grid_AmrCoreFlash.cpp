@@ -12,20 +12,23 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include "Flash.h"
-#include "Flash_par.h"
-
 namespace orchestration {
 
 /** \brief Constructor for AmrCoreFlash
   *
   * Creates blank multifabs on each level.
+  *
+  * \todo Check for overflow on nGuard/nCcVars casts
   */
-AmrCoreFlash::AmrCoreFlash(ACTION_ROUTINE initBlock,
+AmrCoreFlash::AmrCoreFlash(const unsigned int nGuard,
+                           const unsigned int nCcVars,
+                           ACTION_ROUTINE initBlock,
                            const unsigned int nDistributorThreads,
                            const unsigned int nRuntimeThreads,
                            ERROR_ROUTINE errorEst)
-    : initBlock_{initBlock},
+    : nGuard_{static_cast<int>(nGuard)},
+      nCcVars_{static_cast<int>(nCcVars)},
+      initBlock_{initBlock},
       nThreads_initBlock_{nRuntimeThreads},
       nDistributorThreads_initBlock_{nDistributorThreads},
       errorEst_{errorEst} {
@@ -92,7 +95,7 @@ void AmrCoreFlash::MakeNewLevelFromCoarse (int lev, amrex::Real time,
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, nCcVars_, nGuard_);
 
     fillFromCoarse(unk_[lev], lev);
 }
@@ -113,7 +116,7 @@ void AmrCoreFlash::RemakeLevel (int lev, amrex::Real time,
     Logger::instance().log(msg);
 #endif
 
-    amrex::MultiFab unkTmp{ba, dm, NUNKVAR, NGUARD};
+    amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
     fillPatch(unkTmp, lev);
 
     std::swap(unkTmp, unk_[lev] );
@@ -157,7 +160,7 @@ void AmrCoreFlash::MakeNewLevelFromScratch (int lev, amrex::Real time,
     Grid& grid = Grid::instance();
 
     // Build multifab unk_[lev].
-    unk_[lev].define(ba, dm, NUNKVAR, NGUARD);
+    unk_[lev].define(ba, dm, nCcVars_, nGuard_);
 
     // Initialize data in unk_[lev] to 0.0.
     unk_[lev].setVal(0.0_wp);

@@ -5,8 +5,6 @@
 #include "FArray4D.h"
 #include "DataItem.h"
 
-#include "Flash.h"
-
 namespace Eos {
     // lo/hi can be any two corners, including loGC/hiGC
     void idealGammaDensIe(const orchestration::IntVect& lo,

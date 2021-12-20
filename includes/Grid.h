@@ -50,6 +50,9 @@ public:
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
     virtual void regrid() = 0;
+    virtual void           getBlockSize(unsigned int* nxb,
+                                        unsigned int* nyb,
+                                        unsigned int* nzb) const = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;
     virtual IntVect        getDomainHi(const unsigned int lev) const = 0;
     virtual RealVect       getProbLo() const = 0;

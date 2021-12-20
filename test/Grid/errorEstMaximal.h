@@ -2,6 +2,7 @@
 #define ERROR_EST_MAXIMAL_H__
 
 #include "Tile.h"
+
 #include <memory>
 
 using namespace orchestration;

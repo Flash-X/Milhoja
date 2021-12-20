@@ -3,19 +3,20 @@
 
 #include <mpi.h>
 
+#include <Grid_REAL.h>
+#include <Grid.h>
+#include <Timer.h>
+#include <Runtime.h>
+#include <Backend.h>
+#include <OrchestrationLogger.h>
+
 #include "Io.h"
 #include "Hydro.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
+#include "loadGridConfiguration.h"
 #include "DataPacket_Hydro_gpu_1.h"
-
-#include "Grid_REAL.h"
-#include "Grid.h"
-#include "Timer.h"
-#include "Runtime.h"
-#include "Backend.h"
-#include "OrchestrationLogger.h"
 
 #include "errorEstBlank.h"
 
@@ -41,6 +42,7 @@ int main(int argc, char* argv[]) {
                                         rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
+    loadGridConfiguration();
     orchestration::Grid::instantiate();
 
     // Analogous to calling IO_init

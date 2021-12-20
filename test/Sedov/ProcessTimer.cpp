@@ -5,7 +5,6 @@
 #include "milhoja.h"
 #include "Grid.h"
 
-#include "constants.h"
 #include "Flash_par.h"
 
 /**
@@ -36,6 +35,9 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     MPI_Comm_rank(comm_, &rank_);
     MPI_Comm_size(comm_, &nProcs_);
 
+    unsigned int    nxb, nyb, nzb;
+    orchestration::Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
+
     // Write header to file
     if (rank_ == timerRank_) {
         wtimes_sec_  = new double[nProcs_];
@@ -44,9 +46,9 @@ ProcessTimer::ProcessTimer(const std::string& filename,
         fptr_.open(filename, std::ios::out);
         fptr_ << "# Testname = " << testname << "\n";
         fptr_ << "# Dimension = " << NDIM << "\n";
-        fptr_ << "# NXB = " << NXB << "\n";
-        fptr_ << "# NYB = " << NYB << "\n";
-        fptr_ << "# NZB = " << NZB << "\n";
+        fptr_ << "# NXB = " << nxb << "\n";
+        fptr_ << "# NYB = " << nyb << "\n";
+        fptr_ << "# NZB = " << nzb << "\n";
         fptr_ << "# N_BLOCKS_X = " << rp_Grid::N_BLOCKS_X << "\n";
         fptr_ << "# N_BLOCKS_Y = " << rp_Grid::N_BLOCKS_Y << "\n";
         fptr_ << "# N_BLOCKS_Z = " << rp_Grid::N_BLOCKS_Z << "\n";

@@ -19,8 +19,6 @@
 #include "FArray3D.h"
 #include "FArray4D.h"
 
-#include "Flash.h"
-
 namespace orchestration {
 
 class Io {

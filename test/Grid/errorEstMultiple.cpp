@@ -1,13 +1,8 @@
 #include "errorEstMultiple.h"
 
-#include "Grid.h"
-#include "Tile.h"
-#include "Flash.h"
-#include "constants.h"
-
 #include <AMReX_TagBox.H>
 
-#include "Grid_AmrCoreFlash.h"
+#include "Grid.h"
 
 using namespace orchestration;
 

@@ -17,9 +17,6 @@
 #include "DataPacket.h"
 #include "OrchestrationLogger.h"
 
-#include "Flash.h"
-#include "constants.h"
-
 namespace orchestration {
 
 unsigned int    Runtime::nTeams_            = 0;
@@ -316,6 +313,9 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     int rank = -1;
     MPI_Comm_rank(comm, &rank);
 
+    unsigned int  nxb, nyb, nzb;
+    grid.getBlockSize(&nxb, &nyb, &nzb);
+
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
                                   / (double)gpuAction.nTilesPerPacket);
 
@@ -337,9 +337,9 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     fptr << "# Step = " << stepNumber << "\n";
     fptr << "# MPI rank = " << rank << "\n";
     fptr << "# Dimension = " << NDIM << "\n";
-    fptr << "# NXB = " << NXB << "\n";
-    fptr << "# NYB = " << NYB << "\n";
-    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# NXB = " << nxb << "\n";
+    fptr << "# NYB = " << nyb << "\n";
+    fptr << "# NZB = " << nzb << "\n";
     fptr << "# n_distributor_threads = " << nDistThreads << "\n";
     fptr << "# stagger_usec = " << stagger_usec << "\n";
     fptr << "# n_cpu_threads = 0\n";
@@ -940,6 +940,9 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     int rank = -1;
     MPI_Comm_rank(comm, &rank);
 
+    unsigned int  nxb, nyb, nzb;
+    grid.getBlockSize(&nxb, &nyb, &nzb);
+
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
                                   / (double)gpuAction.nTilesPerPacket);
 
@@ -961,9 +964,9 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     fptr << "# Step = " << stepNumber << "\n";
     fptr << "# MPI rank = " << rank << "\n";
     fptr << "# Dimension = " << NDIM << "\n";
-    fptr << "# NXB = " << NXB << "\n";
-    fptr << "# NYB = " << NYB << "\n";
-    fptr << "# NZB = " << NZB << "\n";
+    fptr << "# NXB = " << nxb << "\n";
+    fptr << "# NYB = " << nyb << "\n";
+    fptr << "# NZB = " << nzb << "\n";
     fptr << "# n_distributor_threads = " << nDistThreads << "\n";
     fptr << "# stagger_usec = " << stagger_usec << "\n";
     fptr << "# n_cpu_threads = " << cpuAction.nInitialThreads << "\n";

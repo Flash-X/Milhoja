@@ -179,8 +179,6 @@ struct PacketContents {
  * @class DataPacket DataPacket.h
  * @brief Define and effectively export to applications the minimal DataPacket
  * interface that their concrete DataPackets must implement.
- * @todo Many if not all of the static constexpr lines should be moved to a file
- *       such as constants.h.
  */
 class DataPacket : public DataItem {
 public:

@@ -29,9 +29,7 @@
 #include "Grid.h"
 #include "FArray2D.h"
 
-#include "constants.h"
 #include "Sedov.h"
-#include "Flash.h"
 #include "Flash_par.h"
 
 // Hardcoded

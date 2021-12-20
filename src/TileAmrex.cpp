@@ -1,12 +1,10 @@
 #include "TileAmrex.h"
 
-#include "Grid.h"
-#include "OrchestrationLogger.h"
-#include "Flash.h"
-#include "constants.h"
-
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
+
+#include "OrchestrationLogger.h"
+#include "Grid.h"
 
 namespace orchestration {
 
@@ -125,7 +123,11 @@ Real*   TileAmrex::dataPtr(void) {
  *         data and provides Fortran-style access.
  */
 FArray4D TileAmrex::data(void) {
-    return FArray4D{dataPtr(), loGC(), hiGC(), NUNKVAR};
+    int            nComp   = unkRef_.nComp();
+    assert(nComp >= 0);
+    unsigned int   nCcVars = static_cast<unsigned int>(nComp);
+
+    return FArray4D{dataPtr(), loGC(), hiGC(), nCcVars};
 }
 
 }

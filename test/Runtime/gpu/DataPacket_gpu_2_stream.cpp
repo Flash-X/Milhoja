@@ -3,15 +3,40 @@
 #include <cassert>
 #include <cstring>
 
-#include "Grid_IntVect.h"
-#include "Grid_RealVect.h"
-#include "Grid.h"
-#include "FArray4D.h"
-#include "Backend.h"
+#include <milhoja.h>
+#include <Grid_IntVect.h>
+#include <Grid_RealVect.h>
+#include <Grid.h>
+#include <FArray4D.h>
+#include <Backend.h>
 
 #include "Base.h"
 
 namespace orchestration {
+
+DataPacket_gpu_2_stream::DataPacket_gpu_2_stream(void)
+    : stream2_{},
+      N_ELEMENTS_PER_CC_PER_VARIABLE{0},
+      N_ELEMENTS_PER_CC{0},
+      DELTA_SIZE_BYTES{0},
+      CC_BLOCK_SIZE_BYTES{0},
+      POINT_SIZE_BYTES{0},
+      ARRAY4_SIZE_BYTES{0}
+{
+    unsigned int    nxb, nyb, nzb;
+    Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
+
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
+                                     * (nyb + 2 * NGUARD * K2D)
+                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC  = N_ELEMENTS_PER_CC_PER_VARIABLE * NUNKVAR;
+    
+    DELTA_SIZE_BYTES     =          sizeof(RealVect);
+    CC_BLOCK_SIZE_BYTES  = N_ELEMENTS_PER_CC
+                                  * sizeof(Real);
+    POINT_SIZE_BYTES     =          sizeof(IntVect);
+    ARRAY4_SIZE_BYTES    =          sizeof(FArray4D);
+}
 
 /**
  *

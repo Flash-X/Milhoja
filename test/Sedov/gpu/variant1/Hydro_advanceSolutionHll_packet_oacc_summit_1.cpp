@@ -44,7 +44,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
     //
     // Note that this optimization requires that GAMC be adjacent in memory to
     // all other variables in the packet and GAME outside of this grouping.  For
-    // this test, these two variables were declared in Flash.h as the last two
+    // this test, these two variables were declared in Sedov.h as the last two
     // UNK variables to accomplish this goal.
     //
     // GAMC is sent to the GPU, but does not need to be returned to the host.
