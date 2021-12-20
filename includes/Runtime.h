@@ -14,7 +14,6 @@
 
 #include "ThreadTeam.h"
 #include "DataPacket.h"
-#include "ActionBundle.h"
 #include "RuntimeAction.h"
 
 #if defined(USE_CUDA_BACKEND)
