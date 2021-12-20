@@ -11,7 +11,7 @@
  * configuration values before the Grid singleton is initialized, during which
  * time the Grid singleton configures itself automatically using the contents of
  * this configuration singleton.  After consuming the contents, the Grid
- * singleton clears the configuration singleton.  Thereafter, no code should use
+ * singleton clears the configuration singleton.  Therefore, no code should use
  * the configuration singleton after Grid initialization.  Indeed, it is
  * recommended that the creation and population of this singleton be included in
  * a curly brace block so that application code outside the block cannot access
@@ -21,7 +21,6 @@
  * \todo Add in boundary conditions
  */
 
-#include "milhoja.h"
 #include "Grid_REAL.h"
 #include "actionRoutine.h"
 

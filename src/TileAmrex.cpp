@@ -123,7 +123,10 @@ Real*   TileAmrex::dataPtr(void) {
  *         data and provides Fortran-style access.
  */
 FArray4D TileAmrex::data(void) {
-    unsigned int   nCcVars = static_cast<unsigned int>(unkRef_.nComp());
+    int            nComp   = unkRef_.nComp();
+    assert(nComp >= 0);
+    unsigned int   nCcVars = static_cast<unsigned int>(nComp);
+
     return FArray4D{dataPtr(), loGC(), hiGC(), nCcVars};
 }
 
