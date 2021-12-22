@@ -5,11 +5,11 @@
 #include <stdexcept>
 
 #include <milhoja.h>
-#include <Grid_IntVect.h>
-#include <Grid_RealVect.h>
-#include <Grid.h>
-#include <FArray4D.h>
-#include <Backend.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "Sedov.h"
 #include "Driver.h"
@@ -18,14 +18,12 @@
 #error "Sedov problem should include fluxes"
 #endif
 
-namespace orchestration {
-
 /**
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
 DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
-    : DataPacket{},
+    : milhoja::DataPacket{},
 #if NDIM == 3
       stream2_{},
       stream3_{},
@@ -46,6 +44,8 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       POINT_SIZE_BYTES{0},
       ARRAY4_SIZE_BYTES{0}
 {
+    using namespace milhoja;
+
     unsigned int   nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
@@ -90,8 +90,8 @@ DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_3{}};
+std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
+    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_3{}};
 }
 
 #if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
@@ -104,14 +104,14 @@ void  DataPacket_Hydro_gpu_3::releaseExtraQueue(const unsigned int id) {
             throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Second queue invalid or already released");
         } else {
-            Backend::instance().releaseStream(stream2_);
+            milhoja::RuntimeBackend::instance().releaseStream(stream2_);
         }
     } else if (id == 3) {
         if (!stream3_.isValid()) {
             throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Third queue invalid or already released");
         } else {
-            Backend::instance().releaseStream(stream3_);
+            milhoja::RuntimeBackend::instance().releaseStream(stream3_);
         }
     } else {
         throw std::invalid_argument("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
@@ -149,6 +149,8 @@ int  DataPacket_Hydro_gpu_3::extraAsynchronousQueue(const unsigned int id) {
  *
  */
 void  DataPacket_Hydro_gpu_3::pack(void) {
+    using namespace milhoja;
+
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] " + errMsg);
@@ -223,13 +225,13 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                    + nTiles * nBlockMetadataPerTileBytes
                                    + nTiles * nCopyInOutDataPerTileBytes;
 
-    stream_ = Backend::instance().requestStream(true);
+    stream_ = RuntimeBackend::instance().requestStream(true);
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
     }
 #if NDIM == 3
-    stream2_ = Backend::instance().requestStream(true);
-    stream3_ = Backend::instance().requestStream(true);
+    stream2_ = RuntimeBackend::instance().requestStream(true);
+    stream3_ = RuntimeBackend::instance().requestStream(true);
     if (!stream2_.isValid() || !stream3_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
     }
@@ -237,8 +239,8 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
-    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
-                                         &packet_p_, nBytesPerPacket, &packet_d_);
+    RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
+                                                &packet_p_, nBytesPerPacket, &packet_d_);
 
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
@@ -429,6 +431,8 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
  *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket_Hydro_gpu_3::unpack(void) {
+    using namespace milhoja;
+
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket_Hydro_gpu_3::unpack] "
                                "Empty data packet");
@@ -447,7 +451,7 @@ void  DataPacket_Hydro_gpu_3::unpack(void) {
     }
 
     // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
+    RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
     for (std::size_t n=0; n<tiles_.size(); ++n) {
@@ -486,7 +490,5 @@ void  DataPacket_Hydro_gpu_3::unpack(void) {
                               * sizeof(Real);
         std::memcpy((void*)start_h, (void*)start_p, nBytes);
     }
-}
-
 }
 

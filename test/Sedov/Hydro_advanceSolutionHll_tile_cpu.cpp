@@ -1,15 +1,15 @@
-#include "Eos.h"
 #include "Hydro.h"
-#include "Driver.h"
 
-#include "milhoja.h"
-#include "Tile.h"
+#include <milhoja.h>
+#include <Milhoja_Tile.h>
 
 #include "Sedov.h"
+#include "Driver.h"
+#include "Eos.h"
 
 void Hydro::advanceSolutionHll_tile_cpu(const int tId,
-                                        orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+                                        milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
 

@@ -1,15 +1,12 @@
 #ifndef DATA_PACKET_HYDRO_GPU_3_H__
 #define DATA_PACKET_HYDRO_GPU_3_H__
 
-#include "Grid_REAL.h"
-#include "DataPacket.h"
+#include <Milhoja_real.h>
+#include <Milhoja_DataPacket.h> 
 
-
-namespace orchestration {
-
-class DataPacket_Hydro_gpu_3 : public DataPacket {
+class DataPacket_Hydro_gpu_3 : public milhoja::DataPacket {
 public:
-    std::unique_ptr<DataPacket>  clone(void) const override;
+    std::unique_ptr<milhoja::DataPacket>  clone(void) const override;
 
     DataPacket_Hydro_gpu_3(void);
     ~DataPacket_Hydro_gpu_3(void);
@@ -31,10 +28,10 @@ public:
 
 private:
 #if NDIM == 3
-    Stream  stream2_;
-    Stream  stream3_;
+    milhoja::Stream  stream2_;
+    milhoja::Stream  stream3_;
 #endif
-    Real*   dt_d_;
+    milhoja::Real*   dt_d_;
 
     std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE;
     std::size_t    N_ELEMENTS_PER_FCX_PER_VARIABLE;
@@ -51,8 +48,6 @@ private:
     std::size_t    POINT_SIZE_BYTES;
     std::size_t    ARRAY4_SIZE_BYTES;
 };
-
-}
 
 #endif
 

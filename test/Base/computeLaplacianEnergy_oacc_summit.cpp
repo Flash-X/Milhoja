@@ -1,24 +1,22 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
-#error "This file should only be compiled if using OpenACC offloading"
-#endif
-
 #include "computeLaplacianEnergy.h"
 
 #include "Base.h"
 
-void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const orchestration::IntVect* lo_d,
-                                                               const orchestration::IntVect* hi_d,
-                                                               const orchestration::FArray4D* Uin_d,
-                                                               orchestration::FArray4D* Uout_d,
-                                                               const orchestration::RealVect* deltas_d) {
-    using namespace orchestration;
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
 
-    int     i_s = lo_d->I();
-    int     j_s = lo_d->J();
-    int     i_e = hi_d->I();
-    int     j_e = hi_d->J();
-    Real    dx_sqr_inv = 1.0 / (deltas_d->I() * deltas_d->I());
-    Real    dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
+void StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(const milhoja::IntVect* lo_d,
+                                                               const milhoja::IntVect* hi_d,
+                                                               const milhoja::FArray4D* Uin_d,
+                                                               milhoja::FArray4D* Uout_d,
+                                                               const milhoja::RealVect* deltas_d) {
+    int              i_s = lo_d->I();
+    int              j_s = lo_d->J();
+    int              i_e = hi_d->I();
+    int              j_e = hi_d->J();
+    milhoja::Real    dx_sqr_inv = 1.0 / (deltas_d->I() * deltas_d->I());
+    milhoja::Real    dy_sqr_inv = 1.0 / (deltas_d->J() * deltas_d->J());
 
     // Compute Laplacian in Uout
     // THe OFFLINE TOOLCHAIN should realize that there is no need for

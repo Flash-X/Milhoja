@@ -1,21 +1,21 @@
 #ifndef SET_INITIAL_CONDITIONS_H__
 #define SET_INITIAL_CONDITIONS_H__
 
-#include "Grid_IntVect.h"
-#include "FArray1D.h"
-#include "FArray4D.h"
-#include "DataItem.h"
+#include <Milhoja_IntVect.h>
+#include <Milhoja_FArray1D.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_DataItem.h>
 
 namespace StaticPhysicsRoutines {
-    void setInitialConditions(const orchestration::IntVect& loGC,
-                              const orchestration::IntVect& hiGC,
-                              const orchestration::FArray1D& xCoords,
-                              const orchestration::FArray1D& yCoords,
-                              orchestration::FArray4D& U);
+    void setInitialConditions(const milhoja::IntVect& loGC,
+                              const milhoja::IntVect& hiGC,
+                              const milhoja::FArray1D& xCoords,
+                              const milhoja::FArray1D& yCoords,
+                              milhoja::FArray4D& U);
 }
 
 namespace ActionRoutines {
-    void setInitialConditions_tile_cpu(const int tId, orchestration::DataItem* dataItem);
+    void setInitialConditions_tile_cpu(const int tId, milhoja::DataItem* dataItem);
 }
 
 #endif

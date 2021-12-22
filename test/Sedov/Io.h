@@ -13,13 +13,11 @@
 
 #include <mpi.h>
 
-#include "Grid_REAL.h"
-#include "Grid_IntVect.h"
-#include "DataItem.h"
-#include "FArray3D.h"
-#include "FArray4D.h"
-
-namespace orchestration {
+#include <Milhoja_real.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_DataItem.h>
+#include <Milhoja_FArray3D.h>
+#include <Milhoja_FArray4D.h>
 
 class Io {
 public:
@@ -41,13 +39,13 @@ public:
     static constexpr  int  N_GLOBAL_SUM = N_GLOBAL_SUM_PROP;
 
     void   computeIntegralQuantitiesByBlock(const int threadIndex,
-                                            const orchestration::IntVect& lo,
-                                            const orchestration::IntVect& hi,
-                                            const orchestration::FArray3D& cellVolumes,
-                                            const orchestration::FArray4D& solnData);
+                                            const milhoja::IntVect& lo,
+                                            const milhoja::IntVect& hi,
+                                            const milhoja::FArray3D& cellVolumes,
+                                            const milhoja::FArray4D& solnData);
     void   computeLocalIntegralQuantities(void);
     void   reduceToGlobalIntegralQuantities(void);
-    void   writeIntegralQuantities(const orchestration::Real simTime);
+    void   writeIntegralQuantities(const milhoja::Real simTime);
 
 private:
     Io(void);
@@ -64,26 +62,24 @@ private:
 
     // Internal buffers for storing the intermediate integral quantities
     // at the level of an MPI process and for the entire domain
-    orchestration::Real*    localIntQuantities_;
-    orchestration::Real*    globalIntQuantities_;
+    milhoja::Real*    localIntQuantities_;
+    milhoja::Real*    globalIntQuantities_;
 
     // Internal buffers for accumulating integral quantities as they are 
     // computed across all blocks managed by the MPI process.
-    orchestration::Real*    intQuantities_mass_;
-    orchestration::Real*    intQuantities_xmom_;
-    orchestration::Real*    intQuantities_ymom_;
-    orchestration::Real*    intQuantities_zmom_;
-    orchestration::Real*    intQuantities_ener_;
-    orchestration::Real*    intQuantities_ke_;
-    orchestration::Real*    intQuantities_eint_;
+    milhoja::Real*    intQuantities_mass_;
+    milhoja::Real*    intQuantities_xmom_;
+    milhoja::Real*    intQuantities_ymom_;
+    milhoja::Real*    intQuantities_zmom_;
+    milhoja::Real*    intQuantities_ener_;
+    milhoja::Real*    intQuantities_ke_;
+    milhoja::Real*    intQuantities_eint_;
 };
-
-}
 
 //----- ORCHESTRATION RUNTIME ACTION ROUTINES
 namespace ActionRoutines {
     void   Io_computeIntegralQuantitiesByBlock_tile_cpu(const int tId,
-                                                        orchestration::DataItem* dataItem);
+                                                        milhoja::DataItem* dataItem);
 }
 
 #endif

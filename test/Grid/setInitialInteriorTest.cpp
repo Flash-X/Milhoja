@@ -1,15 +1,16 @@
 #include "setInitialInteriorTest.h"
 
-#include "FArray4D.h"
-#include "Grid.h"
-#include "Tile.h"
-#include "Grid_Axis.h"
-#include "Grid_Edge.h"
+#include <Milhoja_FArray1D.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_Tile.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_edge.h>
 
 #include "Base.h"
 
-void Simulation::setInitialInteriorTest(const int tId, orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Tile*  tileDesc = static_cast<Tile*>(dataItem);
 

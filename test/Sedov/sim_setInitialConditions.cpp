@@ -18,34 +18,35 @@
 //  sim_zctr           Explosion center coordinates
 //  sim_nsubzones      Number of `sub-zones' in cells for applying 1d profile
 
+#include "Simulation.h"
+
 #include <cmath>
 #include <algorithm>
 #include <iostream>
 
-#include "Simulation.h"
-
-#include "milhoja.h"
-#include "Grid_REAL.h"
-#include "Grid.h"
-#include "FArray2D.h"
+#include <milhoja.h>
+#include <Milhoja_real.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_FArray2D.h>
 
 #include "Sedov.h"
+
 #include "Flash_par.h"
 
 // Hardcoded
-const     orchestration::Real   MIN_DIST = 1.0e-10_wp;
+const     milhoja::Real   MIN_DIST = 1.0e-10_wp;
 
 /**
   *
   */
-void  sim::setInitialConditions(const orchestration::IntVect& lo,
-                                const orchestration::IntVect& hi,
+void  sim::setInitialConditions(const milhoja::IntVect& lo,
+                                const milhoja::IntVect& hi,
                                 const unsigned int level,
-                                const orchestration::FArray1D& xCoords,
-                                const orchestration::FArray1D& yCoords,
-                                const orchestration::FArray1D& zCoords,
-                                const orchestration::RealVect& deltas,
-                                orchestration::FArray4D& solnData) {
+                                const milhoja::FArray1D& xCoords,
+                                const milhoja::FArray1D& yCoords,
+                                const milhoja::FArray1D& zCoords,
+                                const milhoja::RealVect& deltas,
+                                milhoja::FArray4D& solnData) {
     // TODO: Add in ability to analytically compute initial conditions
     //       for t_0 > 0.
     setInitialConditions_topHat(lo, hi, level,
@@ -56,15 +57,15 @@ void  sim::setInitialConditions(const orchestration::IntVect& lo,
 /**
   *
   */
-void  sim::setInitialConditions_topHat(const orchestration::IntVect& lo,
-                                       const orchestration::IntVect& hi,
+void  sim::setInitialConditions_topHat(const milhoja::IntVect& lo,
+                                       const milhoja::IntVect& hi,
                                        const unsigned int level,
-                                       const orchestration::FArray1D& xCoords,
-                                       const orchestration::FArray1D& yCoords,
-                                       const orchestration::FArray1D& zCoords,
-                                       const orchestration::RealVect& deltas,
-                                       orchestration::FArray4D& solnData) {
-    using namespace orchestration;
+                                       const milhoja::FArray1D& xCoords,
+                                       const milhoja::FArray1D& yCoords,
+                                       const milhoja::FArray1D& zCoords,
+                                       const milhoja::RealVect& deltas,
+                                       milhoja::FArray4D& solnData) {
+    using namespace milhoja;
 
     //Construct the radial samples needed for the initialization.
     Real    diagonal =        (rp_Grid::X_MAX - rp_Grid::X_MIN)

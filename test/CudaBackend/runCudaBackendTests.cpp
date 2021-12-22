@@ -1,9 +1,9 @@
-#include "Backend.h"
-#include "OrchestrationLogger.h"
-
 #include <gtest/gtest.h>
 
 #include <mpi.h>
+
+#include <Milhoja_RuntimeBackend.h>
+#include <Milhoja_Logger.h>
 
 namespace cudaTestConstants {
     unsigned int SLEEP_TIME_NS = 0;
@@ -27,9 +27,9 @@ int main(int argc, char* argv[]) {
 
     // Instantiate up front so that the acquisition of stream resources is not
     // included in the timing of the first test.
-    orchestration::Logger::instantiate("CudaBackend.log",
-                                       GLOBAL_COMM, LEAD_RANK);
-    orchestration::Backend::instantiate(N_STREAMS, N_BYTES_IN_MEMORY_POOLS);
+    milhoja::Logger::instantiate("CudaBackend.log",
+                                 GLOBAL_COMM, LEAD_RANK);
+    milhoja::RuntimeBackend::instantiate(N_STREAMS, N_BYTES_IN_MEMORY_POOLS);
 
     return RUN_ALL_TESTS();
 }

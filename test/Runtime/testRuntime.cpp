@@ -1,25 +1,25 @@
-#include "Grid.h"
-#include "RuntimeAction.h"
-#include "Runtime.h"
-#include "OrchestrationLogger.h"
-#include "errorEstBlank.h"
+#include <gtest/gtest.h>
 
-#include "Flash_par.h"
+#include <Milhoja_Grid.h>
+#include <Milhoja_RuntimeAction.h>
+#include <Milhoja_Runtime.h>
+#include <Milhoja_Logger.h>
 
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
+#include "errorEstBlank.h"
 
 #if defined(USE_CUDA_BACKEND)
 #include "DataPacket_gpu_1_stream.h"
 #include "DataPacket_gpu_2_stream.h"
 #endif
 
-#include "gtest/gtest.h"
+#include "Flash_par.h"
 
-using namespace orchestration;
+using namespace milhoja;
 
 namespace {
 

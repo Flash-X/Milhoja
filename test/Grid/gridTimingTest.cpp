@@ -1,11 +1,13 @@
-#include "Grid.h"
-#include "Grid_Macros.h"
-#include "setInitialConditions_block.h"
-#include "gtest/gtest.h"
-
 #include <iostream>
 
-using namespace orchestration;
+#include <gtest/gtest.h>
+
+#include <Milhoja_Grid.h>
+#include <Milhoja_macros.h>
+
+#include "setInitialConditions_block.h"
+
+using namespace milhoja;
 
 namespace {
 
@@ -27,7 +29,7 @@ protected:
 };
 
 TEST_F(GridTimingTest,VectorDirectInitialization){
-        using namespace orchestration;
+        using namespace milhoja;
         //test creation and conversion
         IntVect expected = IntVect(LIST_NDIM(3,10,2));
         for (int i=0;i<=1000000;i++){
@@ -37,7 +39,7 @@ TEST_F(GridTimingTest,VectorDirectInitialization){
 }
 
 TEST_F(GridTimingTest,VectorCopyInitialization){
-        using namespace orchestration;
+        using namespace milhoja;
         //test creation and conversion
         IntVect expected = IntVect(LIST_NDIM(3,10,2));
         for (int i=0;i<=1000000;i++){

@@ -2,15 +2,13 @@
 
 #include "Base.h"
 
-void StaticPhysicsRoutines::setInitialConditions(const orchestration::IntVect& loGC,
-                                                 const orchestration::IntVect& hiGC,
-                                                 const orchestration::FArray1D& xCoords,
-                                                 const orchestration::FArray1D& yCoords,
-                                                 orchestration::FArray4D& U) {
-    using namespace orchestration;
-
-    Real    x = 0.0;
-    Real    y = 0.0;
+void StaticPhysicsRoutines::setInitialConditions(const milhoja::IntVect& loGC,
+                                                 const milhoja::IntVect& hiGC,
+                                                 const milhoja::FArray1D& xCoords,
+                                                 const milhoja::FArray1D& yCoords,
+                                                 milhoja::FArray4D& U) {
+    milhoja::Real    x = 0.0;
+    milhoja::Real    y = 0.0;
     for         (int k = loGC.K(); k <= hiGC.K(); ++k) {
         for     (int j = loGC.J(); j <= hiGC.J(); ++j) {
             y = yCoords(j);

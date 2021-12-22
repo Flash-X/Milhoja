@@ -3,15 +3,15 @@
 
 #include <mpi.h>
 
-#include <Grid_REAL.h>
-#include <Grid.h>
-#include <Timer.h>
-#include <Runtime.h>
-#include <Backend.h>
-#include <OrchestrationLogger.h>
+#include <Milhoja_real.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_Runtime.h>
+#include <Milhoja_RuntimeBackend.h>
+#include <Milhoja_Logger.h>
 
 #include "Io.h"
 #include "Hydro.h"
+#include "Timer.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
@@ -31,22 +31,22 @@ int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME,
-                                       GLOBAL_COMM, LOG_RANK);
+    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME,
+                                 GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Orchestration_init
-    orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
-                                        rp_Runtime::N_THREADS_PER_TEAM,
-                                        rp_Runtime::N_STREAMS,
-                                        rp_Runtime::MEMORY_POOL_SIZE_BYTES);
+    milhoja::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
+                                  rp_Runtime::N_THREADS_PER_TEAM,
+                                  rp_Runtime::N_STREAMS,
+                                  rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
     loadGridConfiguration();
-    orchestration::Grid::instantiate();
+    milhoja::Grid::instantiate();
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                                   GLOBAL_COMM, IO_RANK);
+    Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
+                    GLOBAL_COMM, IO_RANK);
 
     // Analogous to calling sim_init
     std::vector<std::string>  variableNames = sim::getVariableNames();
@@ -55,10 +55,10 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
     //----- MIMIC Grid_initDomain
-    orchestration::Io&       io      = orchestration::Io::instance();
-    orchestration::Grid&     grid    = orchestration::Grid::instance();
-    orchestration::Logger&   logger  = orchestration::Logger::instance();
-    orchestration::Runtime&  runtime = orchestration::Runtime::instance();
+    Io&                      io      = Io::instance();
+    milhoja::Grid&           grid    = milhoja::Grid::instance();
+    milhoja::Logger&         logger  = milhoja::Logger::instance();
+    milhoja::Runtime&        runtime = milhoja::Runtime::instance();
 
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
 
         // FIXME: This is a cheap hack necessitated by the fact that the runtime
         // does not yet have a real memory manager.
-        orchestration::Backend::instance().reset();
+        milhoja::RuntimeBackend::instance().reset();
 
         ++nStep;
     }

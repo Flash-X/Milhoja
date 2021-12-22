@@ -4,15 +4,13 @@
 #include <cstring>
 
 #include <milhoja.h>
-#include <Grid_IntVect.h>
-#include <Grid_RealVect.h>
-#include <Grid.h>
-#include <FArray4D.h>
-#include <Backend.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "Base.h"
-
-namespace orchestration {
 
 DataPacket_gpu_2_stream::DataPacket_gpu_2_stream(void)
     : stream2_{},
@@ -23,6 +21,8 @@ DataPacket_gpu_2_stream::DataPacket_gpu_2_stream(void)
       POINT_SIZE_BYTES{0},
       ARRAY4_SIZE_BYTES{0}
 {
+    using namespace milhoja;
+
     unsigned int    nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
@@ -51,8 +51,8 @@ DataPacket_gpu_2_stream::~DataPacket_gpu_2_stream(void) {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_gpu_2_stream::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_gpu_2_stream{}};
+std::unique_ptr<milhoja::DataPacket>   DataPacket_gpu_2_stream::clone(void) const {
+    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_gpu_2_stream{}};
 }
 
 #ifdef ENABLE_OPENACC_OFFLOAD
@@ -66,7 +66,7 @@ void  DataPacket_gpu_2_stream::releaseExtraQueue(const unsigned int id) {
         throw std::logic_error("[DataPacket_gpu_2_stream::releaseExtraQueue] No stream");
     }
 
-    Backend::instance().releaseStream(stream2_);
+    milhoja::RuntimeBackend::instance().releaseStream(stream2_);
 }
 #endif
 
@@ -90,6 +90,8 @@ int  DataPacket_gpu_2_stream::extraAsynchronousQueue(const unsigned int id) {
  *
  */
 void  DataPacket_gpu_2_stream::pack(void) {
+    using namespace milhoja;
+
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[DataPacket_gpu_2_stream::pack] " + errMsg);
@@ -134,15 +136,15 @@ void  DataPacket_gpu_2_stream::pack(void) {
     // this, it is assumed that the patch code will free stream2_ immediately
     // after it is finished with it as stream2_ is acquired here on behalf of
     // the patch code for the purpose of computation only.
-    stream_  = Backend::instance().requestStream(true);
-    stream2_ = Backend::instance().requestStream(true);
+    stream_  = RuntimeBackend::instance().requestStream(true);
+    stream2_ = RuntimeBackend::instance().requestStream(true);
     if ((!stream_.isValid()) || (!stream2_.isValid())) {
         throw std::runtime_error("[DataPacket_gpu_2_stream::pack] Unable to acquire streams");
     }
 
     // Allocate memory in pinned and device memory on demand for now
-    Backend::instance().requestGpuMemory(nBytesPerPacket, &packet_p_,
-                                         nBytesPerPacket, &packet_d_);
+    RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket, &packet_p_,
+                                                nBytesPerPacket, &packet_d_);
 
     // Define high-level structure
     copyInStart_p_       = static_cast<char*>(packet_p_);
@@ -270,6 +272,8 @@ void  DataPacket_gpu_2_stream::pack(void) {
  *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket_gpu_2_stream::unpack(void) {
+    using namespace milhoja;
+
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket_gpu_2_stream::unpack] "
                                "Empty data packet");
@@ -288,7 +292,7 @@ void  DataPacket_gpu_2_stream::unpack(void) {
     }
 
     // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
+    RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
     for (std::size_t n=0; n<tiles_.size(); ++n) {
@@ -330,7 +334,5 @@ void  DataPacket_gpu_2_stream::unpack(void) {
 
     // The packet is consumed upon unpacking.
     nullify();
-}
-
 }
 

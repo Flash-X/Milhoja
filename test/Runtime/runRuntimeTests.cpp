@@ -2,10 +2,10 @@
 
 #include <mpi.h>
 
-#include "OrchestrationLogger.h"
-#include "GridConfiguration.h"
-#include "Grid.h"
-#include "Runtime.h"
+#include <Milhoja_Logger.h>
+#include <Milhoja_GridConfiguration.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_Runtime.h>
 
 #include "Base.h"
 #include "Flash_par.h"
@@ -27,15 +27,14 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    orchestration::Logger::instantiate("RuntimeTest.log",
-                                       GLOBAL_COMM, LEAD_RANK);
-    orchestration::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                                        N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+    milhoja::Logger::instantiate("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
+    milhoja::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                                  N_STREAMS, MEMORY_POOL_SIZE_BYTES);
 
     // Access config singleton within limited local scope so that it can't be
     // used by the rest of the application code outside the block.
     {
-        orchestration::GridConfiguration&   cfg = orchestration::GridConfiguration::instance();
+        milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
         cfg.xMin           = rp_Grid::X_MIN;
         cfg.xMax           = rp_Grid::X_MAX;
         cfg.yMin           = rp_Grid::Y_MIN;
@@ -53,7 +52,7 @@ int main(int argc, char* argv[]) {
         cfg.maxFinestLevel = rp_Grid::LREFINE_MAX;
 
         // Grid initialized AMReX and MPI
-        orchestration::Grid::instantiate();
+        milhoja::Grid::instantiate();
     }
 
     int  rank = -1;

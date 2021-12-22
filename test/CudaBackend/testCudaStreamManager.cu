@@ -6,13 +6,12 @@
 #error "Please enable offloading with OpenACC"
 #endif
 
-#include "OrchestrationLogger.h"
+#include <gtest/gtest.h>
 
-#include "Backend.h"
+#include <Milhoja_Logger.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "cudaTestConstants.h"
-
-#include "gtest/gtest.h"
 
 __global__ void kernel(const std::size_t N, double* f, const unsigned int sleepTime_ns) {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
@@ -25,11 +24,11 @@ __global__ void kernel(const std::size_t N, double* f, const unsigned int sleepT
 namespace {
 
 TEST(TestCudaStreamManager, TestManager) {
-    using namespace orchestration;
+    using namespace milhoja;
 
     Logger::instance().log("[googletest] Start TestManager test");
 
-    Backend&   bknd = Backend::instance();
+    RuntimeBackend&   bknd = RuntimeBackend::instance();
     int  maxNumStreams = bknd.maxNumberStreams();
     ASSERT_EQ(3, maxNumStreams);
     ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
@@ -139,7 +138,7 @@ TEST(TestCudaStreamManager, TestManager) {
  *  expected.
  */
 TEST(TestCudaStreamManager, TestStreams) {
-    using namespace orchestration;
+    using namespace milhoja;
 
     Logger::instance().log("[googletest] Start TestStreams test");
 
@@ -147,7 +146,7 @@ TEST(TestCudaStreamManager, TestStreams) {
     // into smaller equal-sized chunks for computation with GPU.
     constexpr  std::size_t  N_DATA_PER_PACKET = 1024;
 
-    Backend&   bknd = Backend::instance();
+    RuntimeBackend&   bknd = RuntimeBackend::instance();
     int  maxNumStreams = bknd.maxNumberStreams();
     ASSERT_EQ(maxNumStreams, bknd.numberFreeStreams());
 

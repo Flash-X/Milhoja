@@ -12,21 +12,20 @@
 #include <vector>
 #include <fstream>
 #include <stdexcept>
+
 #include <pthread.h>
 
-#include "estimateTimerResolution.h"
+#include <gtest/gtest.h>
 
-#include "DataItem.h"
+#include <Milhoja_DataItem.h>
+#include <Milhoja_RuntimeAction.h>
+#include <Milhoja_ThreadTeam.h>
+#include <Milhoja_Logger.h>
+
 #include "NullItem.h"
 #include "threadTeamTest.h"
 #include "testThreadRoutines.h"
-#include "RuntimeAction.h"
-#include "ThreadTeam.h"
-#include "OrchestrationLogger.h"
-
-#include "gtest/gtest.h"
-
-using namespace orchestration;
+#include "estimateTimerResolution.h"
 
 namespace {
 
@@ -56,30 +55,30 @@ void processWalltimes(const std::vector<double>& wtimes,
  */ 
 class ThreadTeamTest : public testing::Test {
 protected:
-    RuntimeAction    nullRoutine;
-    RuntimeAction    noop;
-    RuntimeAction    delay_10ms;
-    RuntimeAction    delay_100ms;
+    milhoja::RuntimeAction    nullRoutine;
+    milhoja::RuntimeAction    noop;
+    milhoja::RuntimeAction    delay_10ms;
+    milhoja::RuntimeAction    delay_100ms;
 
     ThreadTeamTest(void) {
         nullRoutine.name = "nullRoutine";
         nullRoutine.nInitialThreads = 0;
-        nullRoutine.teamType = ThreadTeamDataType::BLOCK;
+        nullRoutine.teamType = milhoja::ThreadTeamDataType::BLOCK;
         nullRoutine.routine = nullptr;
 
         noop.name = "noop";
         noop.nInitialThreads = 0;
-        noop.teamType = ThreadTeamDataType::BLOCK;
+        noop.teamType = milhoja::ThreadTeamDataType::BLOCK;
         noop.routine = TestThreadRoutines::noop;
 
         delay_10ms.name = "10ms";
         delay_10ms.nInitialThreads = 0;
-        delay_10ms.teamType = ThreadTeamDataType::BLOCK;
+        delay_10ms.teamType = milhoja::ThreadTeamDataType::BLOCK;
         delay_10ms.routine = TestThreadRoutines::delay_10ms;
 
         delay_100ms.name = "100ms";
         delay_100ms.nInitialThreads = 0;
-        delay_100ms.teamType = ThreadTeamDataType::BLOCK;
+        delay_100ms.teamType = milhoja::ThreadTeamDataType::BLOCK;
         delay_100ms.routine = TestThreadRoutines::delay_100ms;
     }
 
@@ -91,6 +90,8 @@ protected:
  *  This implicitly tests destruction from the Idle mode.
  */
 TEST_F(ThreadTeamTest, TestInitialState) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 100;
 
     unsigned int   N_idle = 0;
@@ -98,7 +99,7 @@ TEST_F(ThreadTeamTest, TestInitialState) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestInitialState.log");
+    Logger::setLogFilename("TestInitialState.log");
 
     // Check that having two thread teams available at the same time
     // is OK in terms of initial state
@@ -152,12 +153,14 @@ TEST_F(ThreadTeamTest, TestInitialState) {
  * \todo - figure out how to test this automatically
  */
 TEST_F(ThreadTeamTest, TestDestruction) {
+    using namespace milhoja;
+
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestDestruction.log");
+    Logger::setLogFilename("TestDestruction.log");
 
     ThreadTeam*    team1 = new ThreadTeam(4, 1);
     EXPECT_EQ(4, team1->nMaximumThreads());
@@ -228,12 +231,14 @@ TEST_F(ThreadTeamTest, TestDestruction) {
  * nonsense is allowed.
  */
 TEST_F(ThreadTeamTest, TestIdleWait) {
+    using namespace milhoja;
+
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestIdleWait.log");
+    Logger::setLogFilename("TestIdleWait.log");
 
     ThreadTeam    team1(3, 1);
 
@@ -288,12 +293,14 @@ TEST_F(ThreadTeamTest, TestIdleWait) {
  *  transitions to Idle as well automatically.
  */
 TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
+    using namespace milhoja;
+
     unsigned int   N_idle = 0;
     unsigned int   N_wait = 0;
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestNoWorkNoThreads.log");
+    Logger::setLogFilename("TestNoWorkNoThreads.log");
 
     ThreadTeam    team1(3, 1);
     ThreadTeam    team2(2, 2);
@@ -334,9 +341,11 @@ TEST_F(ThreadTeamTest, TestNoWorkNoThreads) {
  * the Idle mode.
  */
 TEST_F(ThreadTeamTest, TestIdleErrors) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
-    orchestration::Logger::setLogFilename("TestIdleErrors.log");
+    Logger::setLogFilename("TestIdleErrors.log");
 
     ThreadTeam    team1(10, 1);
     ThreadTeam    team2(5,  2);
@@ -417,6 +426,8 @@ TEST_F(ThreadTeamTest, TestIdleErrors) {
  *  forwards along the rest.
  */ 
 TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -424,7 +435,7 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestIdleForwardsThreads.log");
+    Logger::setLogFilename("TestIdleForwardsThreads.log");
 
     ThreadTeam  team1(2, 1);
     ThreadTeam  team2(4, 2);
@@ -518,6 +529,8 @@ TEST_F(ThreadTeamTest, TestIdleForwardsThreads) {
  * Confirm proper functionality when no work is given, but we still run cycles.
  */
 TEST_F(ThreadTeamTest, TestNoWork) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 100;
 
     unsigned int   N_idle = 0;
@@ -525,7 +538,7 @@ TEST_F(ThreadTeamTest, TestNoWork) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestNoWork.log");
+    Logger::setLogFilename("TestNoWork.log");
 
     ThreadTeam  team1(5, 1);
 
@@ -564,6 +577,8 @@ TEST_F(ThreadTeamTest, TestNoWork) {
  * the Running & Open mode.
  */
 TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -571,7 +586,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningOpenErrors.log");
+    Logger::setLogFilename("TestRunningOpenErrors.log");
 
     ThreadTeam  team1(10, 1);
     ThreadTeam  team2(10, 2);
@@ -659,6 +674,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenErrors) {
  *  Confirm that threads can be increased correctly in Running & Open.
  */
 TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -666,7 +683,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningOpenIncreaseThreads.log");
+    Logger::setLogFilename("TestRunningOpenIncreaseThreads.log");
 
     ThreadTeam  team1(3, 1);
     ThreadTeam  team2(4, 2);
@@ -762,6 +779,8 @@ TEST_F(ThreadTeamTest, TestRunningOpenIncreaseThreads) {
  *  computing threads push data items to Data subscribers.
  */
 TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 2;
 
     unsigned int   N_idle = 0;
@@ -769,7 +788,7 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningOpenEnqueue.log");
+    Logger::setLogFilename("TestRunningOpenEnqueue.log");
 
     ThreadTeam  team1(3, 1);
     ThreadTeam  team2(2, 2);
@@ -861,9 +880,11 @@ TEST_F(ThreadTeamTest, TestRunningOpenEnqueue) {
  * Closed mode do fail.
  */
 TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
-    orchestration::Logger::setLogFilename("TestRunningClosedErrors.log");
+    Logger::setLogFilename("TestRunningClosedErrors.log");
 
     ThreadTeam  team1(5, 1);
 
@@ -902,6 +923,8 @@ TEST_F(ThreadTeamTest, TestRunningClosedErrors) {
  * Confirm that activating threads when in Running & Closed works as expected.
  */
 TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -909,7 +932,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningClosedActivation.log");
+    Logger::setLogFilename("TestRunningClosedActivation.log");
 
     ThreadTeam  team1(4, 1);
 
@@ -975,6 +998,8 @@ TEST_F(ThreadTeamTest, TestRunningClosedActivation) {
  * Confirm that activating threads when in Running & Closed works as expected.
  */
 TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -982,7 +1007,7 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningClosedWorkPub.log");
+    Logger::setLogFilename("TestRunningClosedWorkPub.log");
 
     ThreadTeam  team1(3, 1);
     ThreadTeam  team2(4, 2);
@@ -1118,6 +1143,8 @@ TEST_F(ThreadTeamTest, TestRunningClosedWorkPub) {
  * No More Work mode do fail.
  */
 TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -1125,7 +1152,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkErrors.log");
+    Logger::setLogFilename("TestRunningNoMoreWorkErrors.log");
 
     ThreadTeam  team1(5, 1);
 
@@ -1170,6 +1197,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkErrors) {
  *  count are forwarded on to the thread subscriber.
  */
 TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -1177,7 +1206,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkForward.log");
+    Logger::setLogFilename("TestRunningNoMoreWorkForward.log");
 
     ThreadTeam  team1(2, 1);
     ThreadTeam  team2(3, 2);
@@ -1279,6 +1308,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkForward) {
  * correctly in the Running & No More Work mode
  */
 TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
+    using namespace milhoja;
+
     unsigned int   N_ITERS = 10;
 
     unsigned int   N_idle = 0;
@@ -1286,7 +1317,7 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
     unsigned int   N_comp = 0;
     unsigned int   N_Q    = 0;
 
-    orchestration::Logger::setLogFilename("TestRunningNoMoreWorkTransition.log");
+    Logger::setLogFilename("TestRunningNoMoreWorkTransition.log");
 
     ThreadTeam  team1(8, 1);
     ThreadTeam  team2(3, 2);
@@ -1435,6 +1466,8 @@ TEST_F(ThreadTeamTest, TestRunningNoMoreWorkTransition) {
 
 #ifndef DEBUG_RUNTIME
 TEST_F(ThreadTeamTest, TestTimings) {
+    using namespace milhoja;
+
     using namespace std::chrono;
 
     using microseconds = std::chrono::duration<double, std::micro>;
@@ -1460,7 +1493,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
         resolution_str = "Too small to measure";
     }
 
-    orchestration::Logger::setLogFilename("TestTimings2.log");
+    Logger::setLogFilename("TestTimings2.log");
 
     ThreadTeam* team1 = nullptr;
     ThreadTeam  team2(T3::nThreadsPerTeam, 2);
@@ -1485,7 +1518,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
               << "      is much larger than the above clock resolution.\n" << std::endl; 
 
     //***** RUN CREATION TIME EXPERIMENT
-    orchestration::Logger::setLogFilename("TestTimings1.log");
+    Logger::setLogFilename("TestTimings1.log");
 
     for (unsigned int i=0; i<wtimes_us.size(); ++i) {
         start = steady_clock::now();

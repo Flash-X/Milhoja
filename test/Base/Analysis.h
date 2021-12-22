@@ -3,25 +3,25 @@
 
 #include <string>
 
-#include "DataItem.h"
-#include "Grid_IntVect.h"
-#include "FArray1D.h"
-#include "FArray4D.h"
+#include <Milhoja_DataItem.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_FArray1D.h>
+#include <Milhoja_FArray4D.h>
 
 namespace Analysis {
     void   initialize(const unsigned int nBlocks);
     void   densityErrors(double* L_inf, double* meanAbsError);
     void   energyErrors(double* L_inf, double* meanAbsError);
     void   writeToFile(const std::string& filename);
-    void   computeErrors(const orchestration::IntVect& lo, const orchestration::IntVect& hi,
-                         const orchestration::FArray1D& xCoords,
-                         const orchestration::FArray1D& yCoords,
-                         const orchestration::FArray4D& U,
+    void   computeErrors(const milhoja::IntVect& lo, const milhoja::IntVect& hi,
+                         const milhoja::FArray1D& xCoords,
+                         const milhoja::FArray1D& yCoords,
+                         const milhoja::FArray4D& U,
                          const int idx);
 }
 
 namespace ActionRoutines {
-    void   computeErrors_tile_cpu(const int tId, orchestration::DataItem* dataItem);
+    void   computeErrors_tile_cpu(const int tId, milhoja::DataItem* dataItem);
 }
 
 #endif

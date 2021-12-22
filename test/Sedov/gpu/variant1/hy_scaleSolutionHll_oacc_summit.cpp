@@ -1,17 +1,15 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
-#error "This file should only be compiled if using OpenACC offloading"
-#endif
-
 #include "Hydro.h"
 
 #include "Sedov.h"
 
-void hy::scaleSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
-                                      const orchestration::IntVect* hi_d,
-                                      const orchestration::FArray4D* Uin_d,
-                                      orchestration::FArray4D* Uout_d) {
-    using namespace orchestration;
+#ifndef ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
 
+void hy::scaleSolutionHll_oacc_summit(const milhoja::IntVect* lo_d,
+                                      const milhoja::IntVect* hi_d,
+                                      const milhoja::FArray4D* Uin_d,
+                                      milhoja::FArray4D* Uout_d) {
     int     i_s = lo_d->I();
     int     j_s = lo_d->J();
     int     k_s = lo_d->K();

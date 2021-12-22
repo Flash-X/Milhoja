@@ -5,23 +5,22 @@
 #include <chrono>
 #include <stdexcept>
 
-#include "DataItem.h"
+#include <gtest/gtest.h>
+
+#include <Milhoja_DataItem.h>
+#include <Milhoja_ThreadTeam.h>
+#include <Milhoja_Logger.h>
+
 #include "NullItem.h"
-#include "ThreadTeam.h"
-#include "OrchestrationLogger.h"
-
-#include "gtest/gtest.h"
-
-using namespace orchestration;
 
 namespace {
 
 // No-op action routine that assume that give dataItem is an int
-void noopActionRoutine_int(const int tId, DataItem* dataItem) { }
+void noopActionRoutine_int(const int tId, milhoja::DataItem* dataItem) { }
 
 // Action routine that assume that give dataItem is an int
 // and that sleepsfor a random amount of time
-void randomActionRoutine_int(const int tId, DataItem* dataItem) {
+void randomActionRoutine_int(const int tId, milhoja::DataItem* dataItem) {
     int  time = rand() % 100;
     std::this_thread::sleep_for(std::chrono::microseconds(time));
 }
@@ -31,18 +30,18 @@ void randomActionRoutine_int(const int tId, DataItem* dataItem) {
  */ 
 class ThreadRuntimeNull : public testing::Test {
 protected:
-    RuntimeAction    noop_int;
-    RuntimeAction    random_int;
+    milhoja::RuntimeAction    noop_int;
+    milhoja::RuntimeAction    random_int;
 
     ThreadRuntimeNull(void) {
         noop_int.name = "noop_int";
         noop_int.nInitialThreads = 0;
-        noop_int.teamType = ThreadTeamDataType::OTHER;
+        noop_int.teamType = milhoja::ThreadTeamDataType::OTHER;
         noop_int.routine = noopActionRoutine_int;
 
         random_int.name = "Random Wait";
         random_int.nInitialThreads = 0;
-        random_int.teamType = ThreadTeamDataType::OTHER;
+        random_int.teamType = milhoja::ThreadTeamDataType::OTHER;
         random_int.routine = randomActionRoutine_int;
     }
 
@@ -56,7 +55,9 @@ protected:
  * studied to confirm correctness.
  */
 TEST_F(ThreadRuntimeNull, TestSingle_ManualCheck) {
-    orchestration::Logger::setLogFilename("TestSingle_ManualCheck.log");
+    using namespace milhoja;
+
+    Logger::setLogFilename("TestSingle_ManualCheck.log");
 
     std::vector<int>   work = {-5, 4, -1, 0, -6, 25};
 
@@ -122,7 +123,9 @@ TEST_F(ThreadRuntimeNull, TestSingle_ManualCheck) {
  * runtime produced the correct result.  No exceptions means the test passed.
  */
 TEST_F(ThreadRuntimeNull, TestMultipleFast) {
-    orchestration::Logger::setLogFilename("TestMultipleFast.log");
+    using namespace milhoja;
+
+    Logger::setLogFilename("TestMultipleFast.log");
 
 #ifdef DEBUG_RUNTIME
     unsigned int   N_ITERS    = 10;
@@ -201,7 +204,9 @@ TEST_F(ThreadRuntimeNull, TestMultipleFast) {
  * means the test passed.
  */
 TEST_F(ThreadRuntimeNull, TestMultipleRandomWait) {
-    orchestration::Logger::setLogFilename("TestMultipleRandomWait.log");
+    using namespace milhoja;
+
+    Logger::setLogFilename("TestMultipleRandomWait.log");
 
     srand(1000);
 

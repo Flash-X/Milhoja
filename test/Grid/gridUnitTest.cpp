@@ -5,23 +5,23 @@
 
 #include <gtest/gtest.h>
 
-#include "milhoja.h"
-#include "Grid.h"
-#include "Grid_Macros.h"
-#include "Grid_Edge.h"
-#include "Grid_Axis.h"
-#include "Tile.h"
+#include <milhoja.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_macros.h>
+#include <Milhoja_edge.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_Tile.h>
 
 #include "Base.h"
-#include "Flash_par.h"
 #include "Simulation.h"
 #include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
 #include "errorEstMaximal.h"
 #include "errorEstMultiple.h"
+#include "Flash_par.h"
 
-using namespace orchestration;
+using namespace milhoja;
 
 namespace {
 

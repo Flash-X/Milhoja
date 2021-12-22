@@ -1,7 +1,7 @@
 #include "Io.h"
 
-#include "Tile.h"
-#include "Grid.h"
+#include <Milhoja_Tile.h>
+#include <Milhoja_Grid.h>
 
 /**
  * The action routine wrapper of computeIntegralQuantitiesByBlock created so that
@@ -14,8 +14,8 @@
  *                   a Tile object.
  */
 void ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu(const int tId,
-                                                                  orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+                                                                  milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Io&   io   = Io::instance();
     Grid& grid = Grid::instance();

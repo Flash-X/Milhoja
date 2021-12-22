@@ -1,13 +1,13 @@
 #include "computeLaplacianDensity.h"
 
-#include "Grid_IntVect.h"
-#include "Grid_RealVect.h"
-#include "FArray4D.h"
-#include "Tile.h"
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_Tile.h>
 
 void ActionRoutines::computeLaplacianDensity_tile_cpu(const int tId,
-                                                      orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+                                                      milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Tile*  tileDesc = static_cast<Tile*>(dataItem);
 

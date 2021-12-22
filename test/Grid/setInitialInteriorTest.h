@@ -1,10 +1,10 @@
 #ifndef SET_INITIAL_INTERIOR_TEST_H__
 #define SET_INITIAL_INTERIOR_TEST_H__
 
-#include "DataItem.h"
+#include <Milhoja_DataItem.h>
 
 namespace Simulation {
-    void setInitialInteriorTest(const int tId, orchestration::DataItem* dataItem);
+    void setInitialInteriorTest(const int tId, milhoja::DataItem* dataItem);
 }
 
 #endif

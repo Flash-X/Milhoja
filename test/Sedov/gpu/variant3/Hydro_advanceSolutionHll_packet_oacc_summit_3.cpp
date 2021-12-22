@@ -1,18 +1,18 @@
+#include "Hydro.h"
+
+#include <milhoja.h>
+#include <Milhoja_DataPacket.h>
+
+#include "Sedov.h"
+#include "Eos.h"
+
 #ifndef ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "milhoja.h"
-#include "DataPacket.h"
-
-#include "Eos.h"
-#include "Hydro.h"
-
-#include "Sedov.h"
-
 void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
-                                                    orchestration::DataItem* dataItem_h) {
-    using namespace orchestration;
+                                                    milhoja::DataItem* dataItem_h) {
+    using namespace milhoja;
 
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
