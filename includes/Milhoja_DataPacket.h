@@ -176,7 +176,7 @@ struct PacketContents {
 };
 
 /**
- * @class DataPacket DataPacket.h
+ * @class DataPacket Milhoja_DataPacket.h
  * @brief Define and effectively export to applications the minimal DataPacket
  * interface that their concrete DataPackets must implement.
  */
