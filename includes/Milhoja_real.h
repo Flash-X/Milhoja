@@ -1,7 +1,7 @@
 #ifndef MILHOJA_REAL_H__
 #define MILHOJA_REAL_H__
 
-#include "milhoja.h"
+#include "Milhoja.h"
 
 #ifdef REAL_IS_FLOAT
 #  ifdef REAL_IS_DOUBLE

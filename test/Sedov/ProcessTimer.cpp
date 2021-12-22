@@ -2,7 +2,7 @@
 
 #include <iomanip>
 
-#include <milhoja.h>
+#include <Milhoja.h>
 #include <Milhoja_Grid.h>
 
 #include "Flash_par.h"

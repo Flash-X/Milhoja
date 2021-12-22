@@ -1,6 +1,6 @@
 #include "Hydro.h"
 
-#include <milhoja.h>
+#include <Milhoja.h>
 #include <Milhoja_Tile.h>
 
 #include "Sedov.h"

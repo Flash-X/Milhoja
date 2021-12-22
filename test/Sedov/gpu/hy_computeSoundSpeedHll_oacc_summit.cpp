@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include <milhoja.h>
+#include <Milhoja.h>
 
 #include "Sedov.h"
 

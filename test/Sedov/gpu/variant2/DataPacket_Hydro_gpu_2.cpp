@@ -4,7 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 
-#include <milhoja.h>
+#include <Milhoja.h>
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
 #include <Milhoja_Grid.h>

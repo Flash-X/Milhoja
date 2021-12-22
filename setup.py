@@ -195,8 +195,8 @@ if __name__ == '__main__':
                 f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
                 f.write("LIB_RUNTIME = .")
 
-    ##-- Construct milhoja.h file in build dir
-    fname_header = Path(buildDir).resolve().joinpath('milhoja.h')
+    ##-- Construct Milhoja.h file in build dir
+    fname_header = Path(buildDir).resolve().joinpath('Milhoja.h')
     fname_script = Path(homeDir).resolve().joinpath('tools', 'write_library_header.py')
     if not fname_script.is_file():
         print_and_exit(f'Cannot find {fname_script}', 1)
@@ -212,12 +212,12 @@ if __name__ == '__main__':
            '--grid',    grid_backend,
            '--fps',     _FLOATING_POINT_SYSTEM,
            '--offload', computation_offloading]
-    print('Creating milhoja.h header file')
+    print('Creating Milhoja.h header file')
     try:
         # Store stdout output for later logging
         hdr_stdout = sbp.check_output(cmd).decode('utf-8')
     except sbp.CalledProcessError:
-        print_and_exit(f'Unable to create milhoja.h', 2)
+        print_and_exit(f'Unable to create Milhoja.h', 2)
 
     # Copy par file into build dir
     if args.par is not None:

@@ -5,7 +5,7 @@
 #include <iosfwd>
 #include <stdexcept>
 
-#include "milhoja.h"
+#include "Milhoja.h"
 #include "Milhoja_macros.h"
 #include "Milhoja_axis.h"
 

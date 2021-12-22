@@ -4,7 +4,7 @@
 
 #include <mpi.h>
 
-#include <milhoja.h>
+#include <Milhoja.h>
 #include <Milhoja_Tile.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Logger.h>

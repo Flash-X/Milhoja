@@ -1,7 +1,7 @@
 #ifndef MILHOJA_MACROS_H__
 #define MILHOJA_MACROS_H__
 
-#include "milhoja.h"
+#include "Milhoja.h"
 
 #ifndef NDIM
 #error NDIM needs to be defined
