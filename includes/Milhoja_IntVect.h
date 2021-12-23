@@ -30,7 +30,7 @@ class RealVect;
   * functions should especially be used when writing triple-nested loops that
   * are dimension-agnostic.
   *
-  * \TODO Remove deprecated constructor
+  * \todo Remove deprecated constructor
   */
 class IntVect
 {
@@ -39,7 +39,7 @@ class IntVect
     /** \brief Default constructor
       *
       * Returns a vector with undefined components.
-      * \TODO: return a default value aka 0?
+      * \todo return a default value aka 0?
       */
     explicit IntVect () {}
 
