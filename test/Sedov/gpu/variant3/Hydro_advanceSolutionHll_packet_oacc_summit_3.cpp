@@ -1,23 +1,23 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
+#include "Hydro.h"
+
+#include <Milhoja.h>
+#include <Milhoja_DataPacket.h>
+
+#include "Sedov.h"
+#include "Eos.h"
+
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "milhoja.h"
-#include "DataPacket.h"
-
-#include "Eos.h"
-#include "Hydro.h"
-
-#include "Sedov.h"
-
 void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
-                                                    orchestration::DataItem* dataItem_h) {
-    using namespace orchestration;
+                                                    milhoja::DataItem* dataItem_h) {
+    using namespace milhoja;
 
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
     const int                  queue_h    = packet_h->asynchronousQueue();
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
     const int                  queue3_h   = packet_h->extraAsynchronousQueue(3);
 #endif
@@ -78,7 +78,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 
         // The X, Y, and Z fluxes each depend on the speed of sound, but can
         // be computed independently and therefore concurrently.
-#if   NDIM == 1
+#if   MILHOJA_NDIM == 1
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;
@@ -92,7 +92,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
         }
         // No need for barrier since all kernels are launched on the same
         // queue for 1D case.
-#elif NDIM == 2
+#elif MILHOJA_NDIM == 2
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;
@@ -112,7 +112,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                ptrs->deltas_d,
                                                U_d, flY_d, auxC_d);
         }
-#elif NDIM == 3
+#elif MILHOJA_NDIM == 3
         // Wait for data to arrive and then launch these three for concurrent
         // execution
         #pragma acc wait(queue_h)
@@ -165,9 +165,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
             const FArray4D*        flY_d = ptrs->FCY_d;
             const FArray4D*        flZ_d = ptrs->FCZ_d;
 
-            // NOTE: If NDIM < 3, then some of the FC[YZ]_d will be garbage.
+            // NOTE: If MILHOJA_NDIM < 3, then some of the FC[YZ]_d will be garbage.
             //       We therefore assume that this routine will not use
-            //       those fluxes associated with axes "above" NDIM.
+            //       those fluxes associated with axes "above" MILHOJA_NDIM.
             hy::updateSolutionHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
                                               U_d, flX_d, flY_d, flZ_d);
         }

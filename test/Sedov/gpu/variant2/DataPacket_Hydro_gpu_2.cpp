@@ -4,12 +4,12 @@
 #include <cstring>
 #include <stdexcept>
 
-#include <milhoja.h>
-#include <Grid_IntVect.h>
-#include <Grid_RealVect.h>
-#include <Grid.h>
-#include <FArray4D.h>
-#include <Backend.h>
+#include <Milhoja.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "Sedov.h"
 #include "Driver.h"
@@ -18,14 +18,12 @@
 #error "Sedov problem should include fluxes"
 #endif
 
-namespace orchestration {
-
 /**
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
 DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(void)
-    : DataPacket{},
+    : milhoja::DataPacket{},
       dt_d_{nullptr},
       N_ELEMENTS_PER_CC_PER_VARIABLE{0},
       N_ELEMENTS_PER_FCX_PER_VARIABLE{0},
@@ -42,12 +40,14 @@ DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(void)
       POINT_SIZE_BYTES{0},
       ARRAY4_SIZE_BYTES{0}
 {
+    using namespace milhoja;
+
     unsigned int    nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
-    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
-                                     * (nyb + 2 * NGUARD * K2D)
-                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
+                                     * (nyb + 2 * NGUARD * MILHOJA_K2D)
+                                     * (nzb + 2 * NGUARD * MILHOJA_K3D);
 
     N_ELEMENTS_PER_FCX_PER_VARIABLE = (nxb + 1) * nyb * nzb;
     N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
@@ -86,11 +86,11 @@ DataPacket_Hydro_gpu_2::~DataPacket_Hydro_gpu_2(void) {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_2::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_2{}};
+std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_2::clone(void) const {
+    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_2{}};
 }
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -103,11 +103,11 @@ void  DataPacket_Hydro_gpu_2::releaseExtraQueue(const unsigned int id) {
                                "Extra queue invalid or already released");
     }
 
-    Backend::instance().releaseStream(streams_[id-2]);
+    milhoja::RuntimeBackend::instance().releaseStream(streams_[id-2]);
 }
 #endif
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -128,6 +128,8 @@ int  DataPacket_Hydro_gpu_2::extraAsynchronousQueue(const unsigned int id) {
  *
  */
 void  DataPacket_Hydro_gpu_2::pack(void) {
+    using namespace milhoja;
+
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] " + errMsg);
@@ -158,11 +160,11 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
 
     std::size_t  nScratchPerTileBytes = FCX_BLOCK_SIZE_BYTES;
     unsigned int nScratchArrays = 1;
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     nScratchPerTileBytes += FCZ_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
@@ -196,12 +198,12 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
                                    + nTiles * nCopyInDataPerTileBytes
                                    + nTiles * nCopyOutDataPerTileBytes;
 
-    stream_ = Backend::instance().requestStream(true);
+    stream_ = RuntimeBackend::instance().requestStream(true);
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire stream");
     }
     for (unsigned int i=0; i<N_STREAMS; ++i) {
-        streams_[i] = Backend::instance().requestStream(true);
+        streams_[i] = RuntimeBackend::instance().requestStream(true);
         if (!streams_[i].isValid()) {
             throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire extra stream");
         }
@@ -209,8 +211,8 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
-    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
-                                         &packet_p_, nBytesPerPacket, &packet_d_);
+    RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
+                                                &packet_p_, nBytesPerPacket, &packet_d_);
 
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
@@ -276,10 +278,10 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
     char* CC2_data_p    = copyOutStart_p;
     char* CC2_data_d    = copyOutStart_d;
     char* FCX_scratch_d = scratchStart_d;
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
 #endif
 
@@ -358,7 +360,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         CC2_data_d    += cc2BlockSizeBytes;
         FCX_scratch_d += nScratchPerTileBytes;
 
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
         FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
@@ -372,7 +374,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         tilePtrs_p->FCY_d = nullptr;
 #endif
 
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
         FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),
@@ -410,6 +412,8 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
  *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket_Hydro_gpu_2::unpack(void) {
+    using namespace milhoja;
+
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] "
                                "Empty data packet");
@@ -428,7 +432,7 @@ void  DataPacket_Hydro_gpu_2::unpack(void) {
     }
 
     // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
+    RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
     for (std::size_t n=0; n<tiles_.size(); ++n) {
@@ -470,7 +474,5 @@ void  DataPacket_Hydro_gpu_2::unpack(void) {
 
     // The packet is consumed upon unpacking.
     nullify();
-}
-
 }
 

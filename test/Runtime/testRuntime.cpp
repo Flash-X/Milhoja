@@ -1,25 +1,25 @@
-#include "Grid.h"
-#include "RuntimeAction.h"
-#include "Runtime.h"
-#include "OrchestrationLogger.h"
-#include "errorEstBlank.h"
+#include <gtest/gtest.h>
 
-#include "Flash_par.h"
+#include <Milhoja_Grid.h>
+#include <Milhoja_RuntimeAction.h>
+#include <Milhoja_Runtime.h>
+#include <Milhoja_Logger.h>
 
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
+#include "errorEstBlank.h"
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 #include "DataPacket_gpu_1_stream.h"
 #include "DataPacket_gpu_2_stream.h"
 #endif
 
-#include "gtest/gtest.h"
+#include "Flash_par.h"
 
-using namespace orchestration;
+using namespace milhoja;
 
 namespace {
 
@@ -120,7 +120,7 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     Logger::instance().log("[googletest] End Fused Kernels - Host");
 }
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestGpuOnlyConfig) {
     Logger::instance().log("[googletest] Start TestGpuOnlyConfig");
 
@@ -155,7 +155,7 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestCpuGpuConfig) {
     Logger::instance().log("[googletest] Start TestCpuGpu");
 
@@ -190,7 +190,7 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     constexpr unsigned int   N_DIST_THREADS = 2;
 
@@ -242,7 +242,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     Logger::instance().log("[googletest] Start Cpu/Gpu Wowza Config");
 
@@ -287,7 +287,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestFusedActions) {
     Logger::instance().log("[googletest] Start Fused Actions");
 
@@ -313,7 +313,7 @@ TEST_F(TestRuntime, TestFusedActions) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestFusedKernelsStrong) {
     Logger::instance().log("[googletest] Start Fused Kernels Strong");
 
@@ -339,7 +339,7 @@ TEST_F(TestRuntime, TestFusedKernelsStrong) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestFusedKernelsWeak) {
     Logger::instance().log("[googletest] Start Fused Kernels Weak");
 
@@ -365,7 +365,7 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
     constexpr unsigned int   N_DIST_THREADS = 2;
 
@@ -404,7 +404,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
 }
 #endif
 
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     constexpr unsigned int   N_DIST_THREADS = 2;
 

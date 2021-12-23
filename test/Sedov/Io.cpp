@@ -1,18 +1,17 @@
 #include "Io.h"
 
-#include <mpi.h>
-
 #include <stdexcept>
 
-#include "milhoja.h"
-#include "Tile.h"
-#include "Grid.h"
-#include "OrchestrationLogger.h"
+#include <mpi.h>
+
+#include <Milhoja.h>
+#include <Milhoja_Tile.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_Logger.h>
 
 #include "Sedov.h"
-#include "Flash_par.h"
 
-using namespace orchestration;
+#include "Flash_par.h"
 
 //----- STATIC MEMBER DEFINITIONS
 bool             Io::instantiated_ = false;
@@ -25,7 +24,7 @@ int              Io::ioRank_ = -1;
  */
 void   Io::instantiate(const std::string filename,
                        const MPI_Comm comm, const int ioRank) {
-    Logger::instance().log("[IO] Initializing...");
+    milhoja::Logger::instance().log("[IO] Initializing...");
 
     if (instantiated_) {
         throw std::logic_error("[Io::instantiate] Io is already instantiated");
@@ -41,7 +40,7 @@ void   Io::instantiate(const std::string filename,
     instantiated_ = true;
     Io::instance();
 
-    Logger::instance().log("[IO] Created and ready for use");
+    milhoja::Logger::instance().log("[IO] Created and ready for use");
 }
 
 /**
@@ -70,7 +69,7 @@ Io&   Io::instance(void) {
 Io::Io(void)
     : rank_{-1},
       nIntQuantities_{N_GLOBAL_SUM_PROP},
-      localIntQuantities_{new Real[nIntQuantities_]},
+      localIntQuantities_{new milhoja::Real[nIntQuantities_]},
       globalIntQuantities_{nullptr},
       intQuantities_mass_{nullptr},
       intQuantities_xmom_{nullptr}, 
@@ -80,6 +79,8 @@ Io::Io(void)
       intQuantities_ke_{nullptr}, 
       intQuantities_eint_{nullptr}
 {
+    using namespace milhoja;
+
     Logger&   logger = Logger::instance();
 
     if (MPI_Comm_rank(comm_, &rank_) != MPI_SUCCESS) {
@@ -150,7 +151,7 @@ Io::Io(void)
  * Clean-up the IO unit.
  */
 Io::~Io(void) {
-    Logger::instance().log("[IO] Finalizing...");
+    milhoja::Logger::instance().log("[IO] Finalizing...");
 
     if (intQuantities_mass_) {
         delete [] intQuantities_mass_;
@@ -197,7 +198,7 @@ Io::~Io(void) {
         globalIntQuantities_ = nullptr;
     }
 
-    Logger::instance().log("[IO] Finalized");
+    milhoja::Logger::instance().log("[IO] Finalized");
 
     intQuantitiesFile_ = "";
     comm_ = MPI_COMM_NULL;
@@ -206,7 +207,9 @@ Io::~Io(void) {
 }
 
 void   Io::computeLocalIntegralQuantities(void) {
-    orchestration::Grid&     grid    = orchestration::Grid::instance();
+    using namespace milhoja;
+
+    Grid&     grid = Grid::instance();
 
     unsigned int            level{0};
     std::shared_ptr<Tile>   tileDesc{};
@@ -261,19 +264,19 @@ void   Io::computeLocalIntegralQuantities(void) {
  * \param solnData - the data to integrate
  */
 void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
-                                            const orchestration::IntVect& lo,
-                                            const orchestration::IntVect& hi,
-                                            const orchestration::FArray3D& cellVolumes,
-                                            const orchestration::FArray4D& solnData) {
-    Real    dvol = 0.0;
-    Real    mass = 0.0;
-    Real    massSum = 0.0;
-    Real    xmomSum = 0.0;
-    Real    ymomSum = 0.0;
-    Real    zmomSum = 0.0;
-    Real    enerSum = 0.0;
-    Real    keSum   = 0.0;
-    Real    eintSum = 0.0;
+                                            const milhoja::IntVect& lo,
+                                            const milhoja::IntVect& hi,
+                                            const milhoja::FArray3D& cellVolumes,
+                                            const milhoja::FArray4D& solnData) {
+    milhoja::Real    dvol = 0.0;
+    milhoja::Real    mass = 0.0;
+    milhoja::Real    massSum = 0.0;
+    milhoja::Real    xmomSum = 0.0;
+    milhoja::Real    ymomSum = 0.0;
+    milhoja::Real    zmomSum = 0.0;
+    milhoja::Real    enerSum = 0.0;
+    milhoja::Real    keSum   = 0.0;
+    milhoja::Real    eintSum = 0.0;
 
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
@@ -373,7 +376,7 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
  *
  * \param simTime - the simulation time at which the quantities were computed.
  */
-void  Io::writeIntegralQuantities(const orchestration::Real simTime) {
+void  Io::writeIntegralQuantities(const milhoja::Real simTime) {
     if (rank_ == ioRank_) {
         FILE*   fptr = fopen(intQuantitiesFile_.c_str(), "a");
         if (!fptr) {

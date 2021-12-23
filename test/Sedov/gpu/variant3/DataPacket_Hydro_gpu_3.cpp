@@ -4,12 +4,12 @@
 #include <cstring>
 #include <stdexcept>
 
-#include <milhoja.h>
-#include <Grid_IntVect.h>
-#include <Grid_RealVect.h>
-#include <Grid.h>
-#include <FArray4D.h>
-#include <Backend.h>
+#include <Milhoja.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "Sedov.h"
 #include "Driver.h"
@@ -18,15 +18,13 @@
 #error "Sedov problem should include fluxes"
 #endif
 
-namespace orchestration {
-
 /**
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
 DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
-    : DataPacket{},
-#if NDIM == 3
+    : milhoja::DataPacket{},
+#if MILHOJA_NDIM == 3
       stream2_{},
       stream3_{},
 #endif
@@ -46,12 +44,14 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
       POINT_SIZE_BYTES{0},
       ARRAY4_SIZE_BYTES{0}
 {
+    using namespace milhoja;
+
     unsigned int   nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
-    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
-                                     * (nyb + 2 * NGUARD * K2D)
-                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
+                                     * (nyb + 2 * NGUARD * MILHOJA_K2D)
+                                     * (nzb + 2 * NGUARD * MILHOJA_K3D);
 
     N_ELEMENTS_PER_FCX_PER_VARIABLE = (nxb + 1) * nyb * nzb;
     N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
@@ -79,7 +79,7 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
  * been consumed and therefore own no resources.
  */
 DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     if (stream2_.isValid() || stream3_.isValid()) {
         throw std::logic_error("[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] "
                                "One or more extra streams not released");
@@ -90,11 +90,11 @@ DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
 /**
  *
  */
-std::unique_ptr<DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
-    return std::unique_ptr<DataPacket>{new DataPacket_Hydro_gpu_3{}};
+std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
+    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_3{}};
 }
 
-#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
+#if MILHOJA_NDIM == 3 && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -104,14 +104,14 @@ void  DataPacket_Hydro_gpu_3::releaseExtraQueue(const unsigned int id) {
             throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Second queue invalid or already released");
         } else {
-            Backend::instance().releaseStream(stream2_);
+            milhoja::RuntimeBackend::instance().releaseStream(stream2_);
         }
     } else if (id == 3) {
         if (!stream3_.isValid()) {
             throw std::logic_error("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
                                    "Third queue invalid or already released");
         } else {
-            Backend::instance().releaseStream(stream3_);
+            milhoja::RuntimeBackend::instance().releaseStream(stream3_);
         }
     } else {
         throw std::invalid_argument("[DataPacket_Hydro_gpu_3::releaseExtraQueue] "
@@ -120,7 +120,7 @@ void  DataPacket_Hydro_gpu_3::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#if NDIM == 3 && defined(ENABLE_OPENACC_OFFLOAD)
+#if MILHOJA_NDIM == 3 && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -149,6 +149,8 @@ int  DataPacket_Hydro_gpu_3::extraAsynchronousQueue(const unsigned int id) {
  *
  */
 void  DataPacket_Hydro_gpu_3::pack(void) {
+    using namespace milhoja;
+
     std::string   errMsg = isNull();
     if (errMsg != "") {
         throw std::logic_error("[DataPacket_Hydro_gpu_3::pack] " + errMsg);
@@ -186,11 +188,11 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     unsigned int nScratchArrays = 2;
     std::size_t  nScratchPerTileBytes  =  cc2BlockSizeBytes
                                         + FCX_BLOCK_SIZE_BYTES;
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     nScratchPerTileBytes += FCZ_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
@@ -223,13 +225,13 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
                                    + nTiles * nBlockMetadataPerTileBytes
                                    + nTiles * nCopyInOutDataPerTileBytes;
 
-    stream_ = Backend::instance().requestStream(true);
+    stream_ = RuntimeBackend::instance().requestStream(true);
     if (!stream_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire stream");
     }
-#if NDIM == 3
-    stream2_ = Backend::instance().requestStream(true);
-    stream3_ = Backend::instance().requestStream(true);
+#if MILHOJA_NDIM == 3
+    stream2_ = RuntimeBackend::instance().requestStream(true);
+    stream3_ = RuntimeBackend::instance().requestStream(true);
     if (!stream2_.isValid() || !stream3_.isValid()) {
         throw std::runtime_error("[DataPacket_Hydro_gpu_3::pack] Unable to acquire extra streams");
     }
@@ -237,8 +239,8 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
 
     // ACQUIRE PINNED AND GPU MEMORY & SPECIFY STRUCTURE
     // Scratch only needed on GPU side
-    Backend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
-                                         &packet_p_, nBytesPerPacket, &packet_d_);
+    RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nTiles * nScratchPerTileBytes,
+                                                &packet_p_, nBytesPerPacket, &packet_d_);
 
     // Define high-level structure
     location_ = PacketDataLocation::CC1;
@@ -295,10 +297,10 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     char* CC_data_d     = copyInOutStart_d_;
     char* CC_scratch_d  = scratchStart_d;
     char* FCX_scratch_d = CC_scratch_d + cc2BlockSizeBytes;
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
 #endif
 
@@ -377,7 +379,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         CC_scratch_d  += nScratchPerTileBytes;
         FCX_scratch_d += nScratchPerTileBytes;
 
-#if NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
         FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
@@ -391,7 +393,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
         tilePtrs_p->FCY_d = nullptr;
 #endif
 
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
         FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),
@@ -429,6 +431,8 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
  *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket_Hydro_gpu_3::unpack(void) {
+    using namespace milhoja;
+
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket_Hydro_gpu_3::unpack] "
                                "Empty data packet");
@@ -447,7 +451,7 @@ void  DataPacket_Hydro_gpu_3::unpack(void) {
     }
 
     // Release stream as soon as possible
-    Backend::instance().releaseStream(stream_);
+    RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
 
     for (std::size_t n=0; n<tiles_.size(); ++n) {
@@ -486,7 +490,5 @@ void  DataPacket_Hydro_gpu_3::unpack(void) {
                               * sizeof(Real);
         std::memcpy((void*)start_h, (void*)start_p, nBytes);
     }
-}
-
 }
 

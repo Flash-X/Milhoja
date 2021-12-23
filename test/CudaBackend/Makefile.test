@@ -12,8 +12,6 @@ LDFLAGS_TEST        = $(LIB_GTEST)
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
-	$(SRCDIR)/DataPacket.cpp \
-	$(SRCDIR)/MoverUnpacker.cpp \
 	$(TESTDIR)/runCudaBackendTests.cpp
 
 CU_SRCS_TEST = \

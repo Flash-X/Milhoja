@@ -1,17 +1,13 @@
 #ifndef NULL_ITEM_H__
 #define NULL_ITEM_H__
 
-#include "DataItem.h"
+#include <Milhoja_DataItem.h>
 
-namespace orchestration {
-
-class NullItem : public DataItem {
+class NullItem : public milhoja::DataItem {
 public:
-    NullItem(void) : DataItem{} { };
-    ~NullItem(void)             { };
+    NullItem(void) : milhoja::DataItem{} { };
+    ~NullItem(void)                      { };
 };
-
-}
 
 #endif
 

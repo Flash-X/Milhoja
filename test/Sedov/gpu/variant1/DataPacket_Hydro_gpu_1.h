@@ -1,14 +1,12 @@
 #ifndef DATA_PACKET_HYDRO_GPU_1_H__
 #define DATA_PACKET_HYDRO_GPU_1_H__
 
-#include "Grid_REAL.h"
-#include "DataPacket.h"
+#include <Milhoja_real.h>
+#include <Milhoja_DataPacket.h>
 
-namespace orchestration {
-
-class DataPacket_Hydro_gpu_1 : public DataPacket {
+class DataPacket_Hydro_gpu_1 : public milhoja::DataPacket {
 public:
-    std::unique_ptr<DataPacket>  clone(void) const override;
+    std::unique_ptr<milhoja::DataPacket>  clone(void) const override;
 
     DataPacket_Hydro_gpu_1(void);
     ~DataPacket_Hydro_gpu_1(void);
@@ -23,19 +21,19 @@ public:
     void    pack(void) override;
     void    unpack(void) override;
 
-#if NDIM >= 2 && defined(ENABLE_OPENACC_OFFLOAD)
+#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
     int     extraAsynchronousQueue(const unsigned int id) override;
     void    releaseExtraQueue(const unsigned int id) override;
 #endif
 
 private:
-#if NDIM >= 2
-    Stream  stream2_;
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
+    milhoja::Stream  stream2_;
 #endif
-#if NDIM == 3
-    Stream  stream3_;
+#if MILHOJA_NDIM == 3
+    milhoja::Stream  stream3_;
 #endif
-    Real*   dt_d_;
+    milhoja::Real*   dt_d_;
 
     std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE;
     std::size_t    N_ELEMENTS_PER_FCX_PER_VARIABLE;
@@ -52,8 +50,6 @@ private:
     std::size_t    POINT_SIZE_BYTES;
     std::size_t    ARRAY4_SIZE_BYTES;
 };
-
-}
 
 #endif
 

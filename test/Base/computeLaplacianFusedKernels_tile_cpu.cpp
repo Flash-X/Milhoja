@@ -1,10 +1,10 @@
 #include "computeLaplacianFused.h"
 
-#include "Tile.h"
+#include <Milhoja_Tile.h>
 
 void ActionRoutines::computeLaplacianFusedKernels_tile_cpu(const int tId,
-                                                           orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+                                                           milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Tile*  tileDesc = static_cast<Tile*>(dataItem);
 

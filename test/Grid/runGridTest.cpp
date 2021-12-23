@@ -2,9 +2,9 @@
 
 #include <mpi.h>
 
-#include "OrchestrationLogger.h"
-#include "GridConfiguration.h"
-#include "Grid.h"
+#include <Milhoja_Logger.h>
+#include <Milhoja_GridConfiguration.h>
+#include <Milhoja_Grid.h>
 
 #include "Base.h"
 #include "Flash_par.h"
@@ -15,13 +15,13 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    orchestration::Logger::instantiate("GridUnitTest.log",
-                                       GLOBAL_COMM, LEAD_RANK);
+    milhoja::Logger::instantiate("GridUnitTest.log",
+                                 GLOBAL_COMM, LEAD_RANK);
 
     // Access config singleton within limited local scope so that it can't be
     // used by the rest of the application code outside the block.
     {
-        orchestration::GridConfiguration&   cfg = orchestration::GridConfiguration::instance();
+        milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
         cfg.xMin           = rp_Grid::X_MIN;
         cfg.xMax           = rp_Grid::X_MAX;
         cfg.yMin           = rp_Grid::Y_MIN;
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         cfg.nBlocksZ       = rp_Grid::N_BLOCKS_Z;
         cfg.maxFinestLevel = rp_Grid::LREFINE_MAX;
 
-        orchestration::Grid::instantiate();
+        milhoja::Grid::instantiate();
     }
 
     return RUN_ALL_TESTS();

@@ -1,8 +1,5 @@
 #include "errorEstBlank.h"
 
-using namespace orchestration;
-
-void Simulation::errorEstBlank(std::shared_ptr<Tile> tileDesc, int* tptr) {
-
+void Simulation::errorEstBlank(std::shared_ptr<milhoja::Tile> tileDesc, int* tptr) {
 }
 

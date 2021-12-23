@@ -1,23 +1,23 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
-#error "This file should only be compiled if using OpenACC offloading"
-#endif
-
 #include "Hydro.h"
 
 #include <algorithm>
 
-#include "milhoja.h"
+#include <Milhoja.h>
 
 #include "Sedov.h"
 
-void hy::computeFluxesHll_X_oacc_summit(const orchestration::Real* dt_d,
-                                        const orchestration::IntVect* lo_d,
-                                        const orchestration::IntVect* hi_d,
-                                        const orchestration::RealVect* deltas_d,
-                                        const orchestration::FArray4D* U_d,
-                                        orchestration::FArray4D* flX_d,
-                                        const orchestration::FArray4D* auxC_d) {
-    using namespace orchestration;
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
+
+void hy::computeFluxesHll_X_oacc_summit(const milhoja::Real* dt_d,
+                                        const milhoja::IntVect* lo_d,
+                                        const milhoja::IntVect* hi_d,
+                                        const milhoja::RealVect* deltas_d,
+                                        const milhoja::FArray4D* U_d,
+                                        milhoja::FArray4D* flX_d,
+                                        const milhoja::FArray4D* auxC_d) {
+    using namespace milhoja;
 
     int     i_s = lo_d->I();
     int     j_s = lo_d->J();
@@ -39,9 +39,9 @@ void hy::computeFluxesHll_X_oacc_summit(const orchestration::Real* dt_d,
     Real    dtdx = *dt_d / deltas_d->I();
 
     #pragma acc loop vector collapse(3)
-    for         (int k=k_s; k<=k_e;     ++k) {
-        for     (int j=j_s; j<=j_e;     ++j) {
-            for (int i=i_s; i<=i_e+K1D; ++i) {
+    for         (int k=k_s; k<=k_e;             ++k) {
+        for     (int j=j_s; j<=j_e;             ++j) {
+            for (int i=i_s; i<=i_e+MILHOJA_K1D; ++i) {
                 sL = std::min(U_d->at(i-1, j, k, VELX_VAR) - auxC_d->at(i-1, j, k, 0),
                               U_d->at(i,   j, k, VELX_VAR) - auxC_d->at(i,   j, k, 0));
                 sR = std::max(U_d->at(i-1, j, k, VELX_VAR) + auxC_d->at(i-1, j, k, 0),

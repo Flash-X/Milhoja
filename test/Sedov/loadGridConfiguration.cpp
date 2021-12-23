@@ -1,12 +1,13 @@
 #include "loadGridConfiguration.h"
 
-#include "GridConfiguration.h"
+#include <Milhoja_GridConfiguration.h>
 
 #include "Sedov.h"
+
 #include "Flash_par.h"
 
 void loadGridConfiguration(void) {
-    orchestration::GridConfiguration&   cfg = orchestration::GridConfiguration::instance();
+    milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
     cfg.xMin           = rp_Grid::X_MIN;
     cfg.xMax           = rp_Grid::X_MAX;
     cfg.yMin           = rp_Grid::Y_MIN;

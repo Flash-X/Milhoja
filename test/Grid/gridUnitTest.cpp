@@ -5,23 +5,23 @@
 
 #include <gtest/gtest.h>
 
-#include "milhoja.h"
-#include "Grid.h"
-#include "Grid_Macros.h"
-#include "Grid_Edge.h"
-#include "Grid_Axis.h"
-#include "Tile.h"
+#include <Milhoja.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_macros.h>
+#include <Milhoja_edge.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_Tile.h>
 
 #include "Base.h"
-#include "Flash_par.h"
 #include "Simulation.h"
 #include "setInitialConditions.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstBlank.h"
 #include "errorEstMaximal.h"
 #include "errorEstMultiple.h"
+#include "Flash_par.h"
 
-using namespace orchestration;
+using namespace milhoja;
 
 namespace {
 
@@ -69,7 +69,7 @@ TEST_F(GridUnitTest,VectorClasses){
 
     //test operators for RealVect
     float eps = 1.0e-14;
-    for (int i=0;i<NDIM;++i) {
+    for (int i=0;i<MILHOJA_NDIM;++i) {
         EXPECT_NEAR(realVec1[i] , realVecConst[i] , eps);
         EXPECT_NEAR(realVec2[i] ,
                 RealVect(LIST_NDIM(3.0_wp,10.0_wp,2.0_wp))[i] , eps );
@@ -208,7 +208,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
     // Testing Grid::getProb{Lo,Hi}
     RealVect probLo   = grid.getProbLo();
     RealVect probHi   = grid.getProbHi();
-    for (int i=0;i<NDIM;++i) {
+    for (int i=0;i<MILHOJA_NDIM;++i) {
         EXPECT_NEAR(probLo[i] , actual_min[i] , eps);
         EXPECT_NEAR(probHi[i] , actual_max[i] , eps);
     }
@@ -226,7 +226,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
         EXPECT_EQ( domainHi, actual_dhi - 1 );
 
         RealVect deltas = grid.getDeltas(lev);
-        for(int i=1;i<NDIM;++i) {
+        for(int i=1;i<MILHOJA_NDIM;++i) {
             EXPECT_NEAR(actual_deltas[i] , deltas[i], eps);
         }
     }
@@ -261,7 +261,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
-    for (int i=0;i<NDIM;++i) {
+    for (int i=0;i<MILHOJA_NDIM;++i) {
         int p1 = int(i==0);
         int p2 = 2 - int(i==2);
         actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1], *actual_deltas[p2] );
@@ -284,7 +284,7 @@ TEST_F(GridUnitTest,PerTileGetters){
             RealVect coords = actual_min + actual_deltas*sumVec*0.5_wp;
 
             RealVect blkCenterCoords = tileDesc->getCenterCoords();
-            for(int i=1;i<NDIM;++i) {
+            for(int i=1;i<MILHOJA_NDIM;++i) {
                 ASSERT_NEAR(coords[i] , blkCenterCoords[i], eps);
             }
         }
@@ -299,7 +299,7 @@ TEST_F(GridUnitTest,PerTileGetters){
         TileAmrex tileDesc(itor, 0);
         IntVect coord = tileDesc.lo();
         ASSERT_NEAR( actual_vol , grid.getCellVolume(0,coord) , eps);
-        for(int i=1;i<NDIM;++i) {
+        for(int i=1;i<MILHOJA_NDIM;++i) {
             ASSERT_NEAR( actual_fa[i] , grid.getCellFaceAreaLo(0,i,coord) , eps);
         }
     }*/
@@ -326,7 +326,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
-    for (int i=0;i<NDIM;++i) {
+    for (int i=0;i<MILHOJA_NDIM;++i) {
         int p1 = int(i==0);
         int p2 = 2 - int(i==2);
         actual_fa[i] = CONCAT_NDIM( 1.0_wp, *actual_deltas[p1],
@@ -378,7 +378,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
         {
         amrex::FArrayBox  area_fab{vol_bx,1};
         Real* area_ptr = area_fab.dataPtr();
-        for(int n=0;n<NDIM;++n) {
+        for(int n=0;n<MILHOJA_NDIM;++n) {
             grid.fillCellFaceAreasLo(n,lev,vlo,vhi,area_ptr);
             for (int i=vlo.I(); i<=vhi.I(); ++i) {
             for (int j=vlo.J(); j<=vhi.J(); ++j) {
@@ -406,7 +406,7 @@ TEST_F(GridUnitTest,MultiCellGetters){
                     offset = 0.5_wp;
                     break;
             }
-            for(int n=0;n<NDIM;++n) {
+            for(int n=0;n<MILHOJA_NDIM;++n) {
                 //loop over axis cases
                 FArray1D coord_ptr = grid.getCellCoords(n,edge[j],lev,vlo,vhi);
                 for(int i=vlo[n]; i<=vhi[n]; ++i) {

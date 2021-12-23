@@ -3,22 +3,21 @@
 
 #include <mpi.h>
 
-#include <Grid_REAL.h>
-#include <Grid.h>
-#include <Timer.h>
-#include <Runtime.h>
-#include <OrchestrationLogger.h>
+#include <Milhoja_real.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_Runtime.h>
+#include <Milhoja_Logger.h>
 
+#include "Sedov.h"
 #include "Io.h"
 #include "Hydro.h"
+#include "Timer.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
 #include "loadGridConfiguration.h"
-
 #include "errorEstBlank.h"
 
-#include "Sedov.h"
 #include "Flash_par.h"
 
 constexpr  int          LOG_RANK            = LEAD_RANK;
@@ -35,22 +34,22 @@ int main(int argc, char* argv[]) {
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    orchestration::Logger::instantiate(rp_Simulation::LOG_FILENAME,
-                                       GLOBAL_COMM, LOG_RANK);
+    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME,
+                                 GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Orchestration_init
-    orchestration::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
-                                        rp_Runtime::N_THREADS_PER_TEAM,
-                                        rp_Runtime::N_STREAMS,
-                                        rp_Runtime::MEMORY_POOL_SIZE_BYTES);
+    milhoja::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
+                                  rp_Runtime::N_THREADS_PER_TEAM,
+                                  rp_Runtime::N_STREAMS,
+                                  rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
     loadGridConfiguration();
-    orchestration::Grid::instantiate();
+    milhoja::Grid::instantiate();
 
     // Analogous to calling IO_init
-    orchestration::Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                                   GLOBAL_COMM, IO_RANK);
+    Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
+                    GLOBAL_COMM, IO_RANK);
 
     // Analogous to calling sim_init
     std::vector<std::string>  variableNames = sim::getVariableNames();
@@ -59,19 +58,19 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
     //----- MIMIC Grid_initDomain
-    orchestration::Io&       io      = orchestration::Io::instance();
-    orchestration::Grid&     grid    = orchestration::Grid::instance();
-    orchestration::Logger&   logger  = orchestration::Logger::instance();
-    orchestration::Runtime&  runtime = orchestration::Runtime::instance();
+    Io&                      io      = Io::instance();
+    milhoja::Grid&           grid    = milhoja::Grid::instance();
+    milhoja::Logger&         logger  = milhoja::Logger::instance();
+    milhoja::Runtime&        runtime = milhoja::Runtime::instance();
 
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
     // This only makes sense if the iteration is over LEAF blocks.
-    RuntimeAction     computeIntQuantitiesByBlk;
+    milhoja::RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
     computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
-    computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
+    computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
@@ -96,10 +95,10 @@ int main(int argc, char* argv[]) {
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    RuntimeAction     hydroAdvance;
+    milhoja::RuntimeAction     hydroAdvance;
     hydroAdvance.name            = "Advance Hydro Solution";
     hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
-    hydroAdvance.teamType        = ThreadTeamDataType::BLOCK;
+    hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
@@ -117,7 +116,7 @@ int main(int argc, char* argv[]) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
         if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
-            Real   origDt = Driver::dt;
+            milhoja::Real   origDt = Driver::dt;
             Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
             Driver::simTime = rp_Simulation::T_MAX;
             logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
@@ -188,7 +187,7 @@ int main(int argc, char* argv[]) {
     Timer::stop(rp_Simulation::NAME + " simulation");
 
     if (Driver::simTime >= rp_Simulation::T_MAX) {
-        Logger::instance().log("[Simulation] Reached max SimTime");
+        logger.log("[Simulation] Reached max SimTime");
     }
     grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
 

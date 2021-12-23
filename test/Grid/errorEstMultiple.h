@@ -3,12 +3,10 @@
 
 #include <memory>
 
-#include "Tile.h"
-
-using namespace orchestration;
+#include <Milhoja_Tile.h>
 
 namespace Simulation {
-    void errorEstMultiple(std::shared_ptr<Tile> tileDesc, int* tptr);
+    void errorEstMultiple(std::shared_ptr<milhoja::Tile> tileDesc, int* tptr);
 }
 
 #endif

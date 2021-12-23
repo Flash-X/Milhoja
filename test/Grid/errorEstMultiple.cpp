@@ -2,11 +2,11 @@
 
 #include <AMReX_TagBox.H>
 
-#include "Grid.h"
+#include <Milhoja_Grid.h>
 
-using namespace orchestration;
+void Simulation::errorEstMultiple(std::shared_ptr<milhoja::Tile> tileDesc, int* tptr) {
+    using namespace milhoja;
 
-void Simulation::errorEstMultiple(std::shared_ptr<Tile> tileDesc, int* tptr) {
     Grid&   grid = Grid::instance();
     int lev = tileDesc->level();
     const int clearval = amrex::TagBox::CLEAR;

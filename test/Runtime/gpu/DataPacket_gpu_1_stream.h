@@ -1,13 +1,11 @@
 #ifndef DATA_PACKET_GPU_1_STREAM_H__
 #define DATA_PACKET_GPU_1_STREAM_H__
 
-#include "DataPacket.h"
+#include <Milhoja_DataPacket.h>
 
-namespace orchestration {
-
-class DataPacket_gpu_1_stream : public DataPacket {
+class DataPacket_gpu_1_stream : public milhoja::DataPacket {
 public:
-    std::unique_ptr<DataPacket>  clone(void) const override;
+    std::unique_ptr<milhoja::DataPacket>  clone(void) const override;
 
     DataPacket_gpu_1_stream(void);
     ~DataPacket_gpu_1_stream(void) { };
@@ -29,8 +27,6 @@ public:
     std::size_t    POINT_SIZE_BYTES;
     std::size_t    ARRAY4_SIZE_BYTES;
 };
-
-}
 
 #endif
 

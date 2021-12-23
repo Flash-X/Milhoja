@@ -1,20 +1,19 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
-#error "This file should only be compiled if using OpenACC offloading"
-#endif
-
 #include "computeLaplacianFused.h"
 
-#include "DataItem.h"
-#include "DataPacket.h"
+#include <Milhoja_DataItem.h>
+#include <Milhoja_DataPacket.h>
 
+#include "Base.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#include "Base.h"
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#error "This file should only be compiled if using OpenACC offloading"
+#endif
 
 void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int tId,
-                                                                     orchestration::DataItem* dataItem_h) {
-    using namespace orchestration;
+                                                                     milhoja::DataItem* dataItem_h) {
+    using namespace milhoja;
 
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();

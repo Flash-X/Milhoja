@@ -2,8 +2,8 @@
 
 #include <iomanip>
 
-#include "milhoja.h"
-#include "Grid.h"
+#include <Milhoja.h>
+#include <Milhoja_Grid.h>
 
 #include "Flash_par.h"
 
@@ -36,7 +36,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     MPI_Comm_size(comm_, &nProcs_);
 
     unsigned int    nxb, nyb, nzb;
-    orchestration::Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
+    milhoja::Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
     // Write header to file
     if (rank_ == timerRank_) {
@@ -45,7 +45,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
 
         fptr_.open(filename, std::ios::out);
         fptr_ << "# Testname = " << testname << "\n";
-        fptr_ << "# Dimension = " << NDIM << "\n";
+        fptr_ << "# Dimension = " << MILHOJA_NDIM << "\n";
         fptr_ << "# NXB = " << nxb << "\n";
         fptr_ << "# NYB = " << nyb << "\n";
         fptr_ << "# NZB = " << nzb << "\n";
@@ -86,7 +86,7 @@ ProcessTimer::~ProcessTimer(void) {
  *
  */
 void ProcessTimer::logTimestep(const unsigned int step, const double wtime_sec) {
-    unsigned int nBlocks = orchestration::Grid::instance().getNumberLocalBlocks();
+    unsigned int nBlocks = milhoja::Grid::instance().getNumberLocalBlocks();
     MPI_Gather(&wtime_sec,  1, MPI_DOUBLE,
                wtimes_sec_, 1, MPI_DOUBLE, timerRank_,
                comm_);

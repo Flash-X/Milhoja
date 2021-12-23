@@ -1,4 +1,4 @@
-#ifndef USE_CUDA_BACKEND
+#ifndef MILHOJA_USE_CUDA_BACKEND
 #error "This file need not be compiled if the CUDA backend isn't used"
 #endif
 
@@ -9,15 +9,15 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
 
-#include "Tile.h"
-#include "Grid.h"
-#include "CudaDataPacket.h"
-#include "CudaStreamManager.h"
+#include <Milhoja_Tile.h>
+#include <Milhoja_Grid.h>
+#include <Milhoja_CudaStreamManager.h>
 
 #include "Base.h"
-#include "Flash_par.h"
-
 #include "gpuKernel.h"
+#include "CudaDataPacket.h"
+
+#include "Flash_par.h"
 
 namespace {
 
@@ -273,9 +273,9 @@ TEST_F(TestCudaDataPacket, TestPrepareForTransfer) {
 
     // FIXME: nDataPerTile is presently fixed to a block
     gpuKernel::copyIn    copyInData;
-    copyInData.nDataPerTile =   (rp_Grid::NXB + 2 * NGUARD * K1D)
-                              * (rp_Grid::NYB + 2 * NGUARD * K2D)
-                              * (rp_Grid::NZB + 2 * NGUARD * K3D)
+    copyInData.nDataPerTile =   (rp_Grid::NXB + 2 * NGUARD * MILHOJA_K1D)
+                              * (rp_Grid::NYB + 2 * NGUARD * MILHOJA_K2D)
+                              * (rp_Grid::NZB + 2 * NGUARD * MILHOJA_K3D)
                               * NUNKVAR;
     copyInData.coefficient = 1.1;
     std::size_t   nBytesCopyIn = sizeof(gpuKernel::copyIn);

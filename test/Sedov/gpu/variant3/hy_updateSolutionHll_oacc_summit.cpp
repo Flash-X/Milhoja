@@ -1,19 +1,20 @@
-#ifndef ENABLE_OPENACC_OFFLOAD
+#include "Hydro.h"
+
+#include <Milhoja.h>
+
+#include "Sedov.h"
+
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
-#include "milhoja.h"
-
-#include "Hydro.h"
-#include "Sedov.h"
-
-void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
-                                       const orchestration::IntVect* hi_d,
-                                       orchestration::FArray4D* U_d,
-                                       const orchestration::FArray4D* flX_d,
-                                       const orchestration::FArray4D* flY_d,
-                                       const orchestration::FArray4D* flZ_d) {
-    using namespace orchestration;
+void hy::updateSolutionHll_oacc_summit(const milhoja::IntVect* lo_d,
+                                       const milhoja::IntVect* hi_d,
+                                       milhoja::FArray4D* U_d,
+                                       const milhoja::FArray4D* flX_d,
+                                       const milhoja::FArray4D* flY_d,
+                                       const milhoja::FArray4D* flZ_d) {
+    using namespace milhoja;
 
     int     i_s = lo_d->I();
     int     j_s = lo_d->J();
@@ -35,17 +36,17 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
             for (int i=i_s; i<=i_e; ++i) {
                 // Update density first
                 densOld = U_d->at(i, j, k, DENS_VAR);
-#if NDIM == 1
+#if MILHOJA_NDIM == 1
                 densNew =   densOld
                           + flX_d->at(i,   j, k, HY_DENS_FLUX)
                           - flX_d->at(i+1, j, k, HY_DENS_FLUX);
-#elif NDIM == 2
+#elif MILHOJA_NDIM == 2
                 densNew =   densOld
                           + flX_d->at(i,   j,   k, HY_DENS_FLUX)
                           - flX_d->at(i+1, j,   k, HY_DENS_FLUX)
                           + flY_d->at(i,   j,   k, HY_DENS_FLUX)
                           - flY_d->at(i,   j+1, k, HY_DENS_FLUX);
-#elif NDIM == 3
+#elif MILHOJA_NDIM == 3
                 densNew =   densOld 
                           + flX_d->at(i,   j,   k,   HY_DENS_FLUX)
                           - flX_d->at(i+1, j,   k,   HY_DENS_FLUX)
@@ -59,7 +60,7 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
 
                 // velocities and total energy can be updated independently
                 // using density result
-#if NDIM == 1
+#if MILHOJA_NDIM == 1
                 U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j, k, VELX_VAR) * densOld
                                               + flX_d->at(i,   j, k, HY_XMOM_FLUX)
                                               - flX_d->at(i+1, j, k, HY_XMOM_FLUX) ) * densNew_inv;
@@ -75,7 +76,7 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
                 U_d->at(i, j, k, ENER_VAR) = (    U_d->at(i,   j, k, ENER_VAR) * densOld
                                               + flX_d->at(i,   j, k, HY_ENER_FLUX)
                                               - flX_d->at(i+1, j, k, HY_ENER_FLUX) ) * densNew_inv;
-#elif NDIM == 2
+#elif MILHOJA_NDIM == 2
                 U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j,   k, VELX_VAR) * densOld
                                               + flX_d->at(i,   j,   k, HY_XMOM_FLUX)
                                               - flX_d->at(i+1, j,   k, HY_XMOM_FLUX)
@@ -99,7 +100,7 @@ void hy::updateSolutionHll_oacc_summit(const orchestration::IntVect* lo_d,
                                               - flX_d->at(i+1, j,   k, HY_ENER_FLUX)
                                               + flY_d->at(i,   j,   k, HY_ENER_FLUX)
                                               - flY_d->at(i,   j+1, k, HY_ENER_FLUX) ) * densNew_inv;
-#elif NDIM == 3
+#elif MILHOJA_NDIM == 3
                 U_d->at(i, j, k, VELX_VAR) = (    U_d->at(i,   j,   k,   VELX_VAR) * densOld
                                               + flX_d->at(i,   j,   k,   HY_XMOM_FLUX)
                                               - flX_d->at(i+1, j,   k,   HY_XMOM_FLUX)

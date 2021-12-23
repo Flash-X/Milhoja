@@ -1,13 +1,13 @@
 #include "setInitialConditions.h"
 
-#include "Grid.h"
-#include "Tile.h"
-#include "Grid_Axis.h"
-#include "Grid_Edge.h"
+#include <Milhoja_Grid.h>
+#include <Milhoja_Tile.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_edge.h>
 
 void ActionRoutines::setInitialConditions_tile_cpu(const int tId,
-                                                   orchestration::DataItem* dataItem) {
-    using namespace orchestration;
+                                                   milhoja::DataItem* dataItem) {
+    using namespace milhoja;
 
     Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
 

@@ -2,15 +2,13 @@
 
 #include "Base.h"
 
-void StaticPhysicsRoutines::computeLaplacianEnergy(const orchestration::IntVect& lo,
-                                                   const orchestration::IntVect& hi,
-                                                   orchestration::FArray4D& U,
-                                                   orchestration::FArray4D& scratch,
-                                                   const orchestration::RealVect& deltas) {
-    using namespace orchestration;
-
-    Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
-    Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());
+void StaticPhysicsRoutines::computeLaplacianEnergy(const milhoja::IntVect& lo,
+                                                   const milhoja::IntVect& hi,
+                                                   milhoja::FArray4D& U,
+                                                   milhoja::FArray4D& scratch,
+                                                   const milhoja::RealVect& deltas) {
+    milhoja::Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
+    milhoja::Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());
 
     // OFFLINE TOOLCHAIN - Place parallelization directive/hints here
     // Compute Laplacian in scratch

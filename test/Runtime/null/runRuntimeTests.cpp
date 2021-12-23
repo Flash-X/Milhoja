@@ -1,8 +1,8 @@
-#include "OrchestrationLogger.h"
-
 #include <gtest/gtest.h>
 
 #include <mpi.h>
+
+#include <Milhoja_Logger.h>
 
 int main(int argc, char* argv[]) {
     MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
@@ -10,8 +10,8 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    orchestration::Logger::instantiate("RuntimeTest.log",
-                                       GLOBAL_COMM, LEAD_RANK);
+    milhoja::Logger::instantiate("RuntimeTest.log",
+                                 GLOBAL_COMM, LEAD_RANK);
 
     return RUN_ALL_TESTS();
 }

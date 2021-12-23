@@ -37,21 +37,22 @@
 #define TIMER_H__
 
 #include <string>
+
 #include <mpi.h>
 
-#include "OrchestrationLogger.h"
+#include <Milhoja_Logger.h>
 
 #include "Sedov.h"
 
 namespace Timer {
     inline void   start(const std::string& msg) {
         MPI_Barrier(GLOBAL_COMM);
-        orchestration::Logger::instance().log("[Timer] Start timing " + msg);
+        milhoja::Logger::instance().log("[Timer] Start timing " + msg);
     }
 
     inline void   stop(const std::string& msg) {
         MPI_Barrier(GLOBAL_COMM);
-        orchestration::Logger::instance().log("[Timer] Stop timing " + msg);
+        milhoja::Logger::instance().log("[Timer] Stop timing " + msg);
     }
 }
 

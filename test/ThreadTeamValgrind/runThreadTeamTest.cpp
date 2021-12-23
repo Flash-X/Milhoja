@@ -1,17 +1,16 @@
-#include "ThreadTeam.h"
+#include <Milhoja_ThreadTeam.h>
+#include <Milhoja_DataItem.h>
+#include <Milhoja_DataPacket.h>
+#include <DataItemSplitter.h>
 
-#include "DataItem.h"
 #include "NullItem.h"
-#include "DataPacket.h"
-#include "ThreadTeam.h"
-#include "DataItemSplitter.h"
 
 namespace TestThreadRoutines {
     void noop(const int tId, void* dataItem) {  };
 }
 
 int testThreadTeam(const unsigned int nLoops, const unsigned int nData) {
-    using namespace orchestration;
+    using namespace milhoja;
 
     ThreadTeam  team1(2, 1);
     ThreadTeam  team2(4, 2);
@@ -64,7 +63,7 @@ int testThreadTeam(const unsigned int nLoops, const unsigned int nData) {
 int testRuntimeFullPacket(const unsigned int nLoops,
 		          const unsigned int nData,
 			  const unsigned int nTilesPerPacket) {
-    using namespace orchestration;
+    using namespace milhoja;
 
     ThreadTeam        team1{11, 1};
     ThreadTeam        team2{20, 2};

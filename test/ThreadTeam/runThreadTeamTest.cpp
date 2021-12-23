@@ -2,7 +2,7 @@
 
 #include <mpi.h>
 
-#include "OrchestrationLogger.h"
+#include <Milhoja_Logger.h>
 
 #include "threadTeamTest.h"
 
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     T3::nThreadsPerTeam = std::stoi(std::string(argv[1]));
 
     // Each test sets its own meaningful filename
-    orchestration::Logger::instantiate("DeleteMe.log", GLOBAL_COMM, LEAD_RANK);
+    milhoja::Logger::instantiate("DeleteMe.log", GLOBAL_COMM, LEAD_RANK);
 
     return RUN_ALL_TESTS();
 }

@@ -4,37 +4,37 @@
 #include <string>
 #include <vector>
 
-#include "Grid_IntVect.h"
-#include "Grid_RealVect.h"
-#include "FArray1D.h"
-#include "FArray4D.h"
-#include "DataItem.h"
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_FArray1D.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_DataItem.h>
 
 namespace Simulation {
     //----- ORCHESTRATION RUNTIME ACTION ROUTINES
     void setInitialConditions_tile_cpu(const int tId,
-                                       orchestration::DataItem* dataItem);
+                                       milhoja::DataItem* dataItem);
 }
 
 namespace sim {
     std::vector<std::string>   getVariableNames(void);
 
-    void setInitialConditions(const orchestration::IntVect& lo,
-                              const orchestration::IntVect& hi,
+    void setInitialConditions(const milhoja::IntVect& lo,
+                              const milhoja::IntVect& hi,
                               const unsigned int level,
-                              const orchestration::FArray1D& xCoords,
-                              const orchestration::FArray1D& yCoords,
-                              const orchestration::FArray1D& zCoords,
-                              const orchestration::RealVect& deltas,
-                              orchestration::FArray4D& solnData);
-    void setInitialConditions_topHat(const orchestration::IntVect& lo,
-                                     const orchestration::IntVect& hi,
+                              const milhoja::FArray1D& xCoords,
+                              const milhoja::FArray1D& yCoords,
+                              const milhoja::FArray1D& zCoords,
+                              const milhoja::RealVect& deltas,
+                              milhoja::FArray4D& solnData);
+    void setInitialConditions_topHat(const milhoja::IntVect& lo,
+                                     const milhoja::IntVect& hi,
                                      const unsigned int level,
-                                     const orchestration::FArray1D& xCoords,
-                                     const orchestration::FArray1D& yCoords,
-                                     const orchestration::FArray1D& zCoords,
-                                     const orchestration::RealVect& deltas,
-                                     orchestration::FArray4D& solnData);
+                                     const milhoja::FArray1D& xCoords,
+                                     const milhoja::FArray1D& yCoords,
+                                     const milhoja::FArray1D& zCoords,
+                                     const milhoja::RealVect& deltas,
+                                     milhoja::FArray4D& solnData);
 }
 
 #endif

@@ -1,13 +1,12 @@
 #ifndef ERROR_EST_BLANK_H__
 #define ERROR_EST_BLANK_H__
 
-#include "Tile.h"
 #include <memory>
 
-using namespace orchestration;
+#include <Milhoja_Tile.h>
 
 namespace Simulation {
-    void errorEstBlank(std::shared_ptr<Tile> tileDesc, int* tptr);
+    void errorEstBlank(std::shared_ptr<milhoja::Tile> tileDesc, int* tptr);
 }
 
 #endif

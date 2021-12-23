@@ -15,8 +15,6 @@ LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
-	$(SRCDIR)/DataPacket.cpp \
-	$(SRCDIR)/MoverUnpacker.cpp \
 	$(SEDOVDIR)/loadGridConfiguration.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
