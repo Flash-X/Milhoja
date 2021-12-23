@@ -20,8 +20,8 @@ class IntVect;
 /**
   * \brief Container for MILHOJA_NDIM tuples of Reals.
   *
-  * \TODO detailed description.
-  * \TODO Remove deprecated constructor
+  * \todo detailed description.
+  * \todo Remove deprecated constructor
   */
 class RealVect
 {
@@ -30,7 +30,7 @@ class RealVect
     /** \brief Default constructor
       *
       * Returns a vector with undefined components.
-      * \TODO: return a default value aka 0?
+      * \todo return a default value aka 0?
       */
     explicit RealVect () {}
 
