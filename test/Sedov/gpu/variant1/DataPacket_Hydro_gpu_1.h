@@ -21,13 +21,13 @@ public:
     void    pack(void) override;
     void    unpack(void) override;
 
-#if MILHOJA_NDIM >= 2 && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
     int     extraAsynchronousQueue(const unsigned int id) override;
     void    releaseExtraQueue(const unsigned int id) override;
 #endif
 
 private:
-#if MILHOJA_NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     milhoja::Stream  stream2_;
 #endif
 #if MILHOJA_NDIM == 3

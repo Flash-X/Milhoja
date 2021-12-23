@@ -21,14 +21,6 @@ void hy::computeFluxesHll(const milhoja::Real dt,
 //  if (hy_fluxCorrect) then
 //     call Driver_abortFlash("hy_hllUnsplit: flux correction is not implemented!")
 //  end if
-//
-//  if (hy_useGravity) then
-//     call Driver_abortFlash("hy_hllUnsplit: support for gravity not implemented!")
-//  end if
-//
-//  if (.NOT.hy_updateHydroFluxes) then
-//     return
-//  end if
 
     // For each relevant direction We set indicators to determine whether
     // fluxes on the last face (to the right of the last cell in the
@@ -45,10 +37,10 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     // Therefore, this information should come from the calling code.
     // How to do this?
 //  if (tileLimits(HIGH,IAXIS) == ubound(Uin,iX  )-NGUARD) iLastX = 1
-//#if MILHOJA_NDIM > 1
+//#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
 //  if (tileLimits(HIGH,JAXIS) == ubound(Uin,iX+1)-NGUARD) iLastY = 1
 //#endif
-//#if MILHOJA_NDIM > 2
+//#if MILHOJA_NDIM == 3
 //  if (tileLimits(HIGH,KAXIS) == ubound(Uin,iX+2)-NGUARD) iLastZ = 1
 //#endif
 
@@ -160,7 +152,7 @@ void hy::computeFluxesHll(const milhoja::Real dt,
         }
     }
 
-#if MILHOJA_NDIM > 1
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     int     js = 0;
     int     jL = 0;
     int     jR = 0;
@@ -244,7 +236,7 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     }
 #endif
 
-#if MILHOJA_NDIM > 2
+#if MILHOJA_NDIM == 3
     int     ks = 0;
     int     kL = 0;
     int     kR = 0;

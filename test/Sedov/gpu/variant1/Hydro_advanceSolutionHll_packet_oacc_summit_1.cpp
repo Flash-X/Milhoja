@@ -17,7 +17,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
     DataPacket*                packet_h   = dynamic_cast<DataPacket*>(dataItem_h);
 
     const int                  queue_h    = packet_h->asynchronousQueue();
-#if MILHOJA_NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
 #endif
 #if MILHOJA_NDIM == 3
@@ -188,7 +188,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
 
             hy::updateSolutionHll_FlX_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d, flX_d);
         }
-#if MILHOJA_NDIM >= 2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;

@@ -187,6 +187,11 @@ if __name__ == '__main__':
         fptr.write(f'#define MILHOJA_K2D       {k2d}\n')
         fptr.write(f'#define MILHOJA_K3D       {k3d}\n')
         fptr.write( '\n')
+        # Ultra-defensive, ultra-paranoid sanity check
+        fptr.write( '#if (MILHOJA_NDIM != 1) && (MILHOJA_NDIM != 2) && (MILHOJA_NDIM != 3)\n')
+        fptr.write( '#error "MILHOJA_NDIM not in {1,2,3}"\n')
+        fptr.write( '#endif\n')
+        fptr.write( '\n')
         fptr.write(f'#define {real_type}\n')
         fptr.write(f'#define MILHOJA_MPI_REAL      {mpi_real_type}\n')
         fptr.write( '\n')

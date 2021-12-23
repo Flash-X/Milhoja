@@ -23,7 +23,7 @@ void hy::updateSolutionHll(const milhoja::IntVect& lo,
             for (int i=lo.I(); i<=hi.I(); ++i) {
                 // Update density first
                 densOld = U(i, j, k, DENS_VAR);
-#if MILHOJA_NDIM == 1
+#if   MILHOJA_NDIM == 1
                 densNew =   densOld
                           + flX(i,   j, k, HY_DENS_FLUX)
                           - flX(i+1, j, k, HY_DENS_FLUX);
@@ -47,7 +47,7 @@ void hy::updateSolutionHll(const milhoja::IntVect& lo,
 
                 // velocities and total energy can be updated independently
                 // using density result
-#if MILHOJA_NDIM == 1
+#if   MILHOJA_NDIM == 1
                 U(i, j, k, VELX_VAR) = (  U(i, j, k, VELX_VAR) * densOld
                                         + flX(i,   j, k, HY_XMOM_FLUX)
                                         - flX(i+1, j, k, HY_XMOM_FLUX) ) * densNew_inv;

@@ -20,7 +20,8 @@ class IntVect;
 /**
   * \brief Container for MILHOJA_NDIM tuples of Reals.
   *
-  * TODO detailed description.
+  * \TODO detailed description.
+  * \TODO Remove deprecated constructor
   */
 class RealVect
 {
@@ -29,7 +30,7 @@ class RealVect
     /** \brief Default constructor
       *
       * Returns a vector with undefined components.
-      * TODO: return a default value aka 0?
+      * \TODO: return a default value aka 0?
       */
     explicit RealVect () {}
 
@@ -41,7 +42,7 @@ class RealVect
     explicit RealVect (const Real* x)
         : LIST_NDIM(i_{x[0]}, j_{x[1]}, k_{x[2]}) {}
 
-#if MILHOJA_NDIM<3
+#if (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
     //! Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z)
         : LIST_NDIM(i_{x}, j_{y}, k_{z}) {
@@ -80,65 +81,69 @@ class RealVect
 
     //! Return second element of vector, or 0 if MILHOJA_NDIM<2
     Real J() const {
-#if (MILHOJA_NDIM>=2)
+#if   (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         return j_;
-#else
+#elif (MILHOJA_NDIM == 1)
         return 0.0_wp;
+#else
+#error "MILHOJA_NDIM not defined or invalid"
 #endif
     }
 
     //! Return third element of vector, or 0 if MILHOJA_NDIM<3
     Real K() const {
-#if (MILHOJA_NDIM==3)
+#if   (MILHOJA_NDIM == 3)
         return k_;
-#else
+#elif (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
         return 0.0_wp;
+#else
+#error "MILHOJA_NDIM not defined or invalid"
 #endif
     }
 
     /** \brief Get and set values of the internal array.
       * Perform bounds check unless GRID_ERRCHECK_OFF is set.
+      *
+      * \todo Should arugment be unsigned int like for IntVect?
       */
     Real& operator[] (const int i) {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=MILHOJA_NDIM || i<0) {
-            throw std::logic_error("Index out-of-bounds in RealVect.");
-        }
-#endif
-        switch(i) {
+        switch (i) {
             case Axis::I:
                 return i_;
-#if MILHOJA_NDIM>=2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
             case Axis::J:
                 return j_;
 #endif
-#if MILHOJA_NDIM==3
+#if (MILHOJA_NDIM == 3)
             case Axis::K:
                 return k_;
 #endif
+            default:
+                throw std::invalid_argument("[RealVect::operator[]] Invalid index");
         }
-        return i_;
+        throw std::logic_error("[RealVect::operator[]] Programmer logic error");
     }
-    //! Get values of the internal array as consts.
+
+    /** Get values of the internal array as consts.
+      *
+      * \todo Should arugment be unsigned int like for IntVect?
+      */
     const Real& operator[] (const int i) const {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=MILHOJA_NDIM || i<0) {
-            throw std::logic_error("Index out-of-bounds in RealVect.");
-        }
-#endif
-        switch(i) {
+        switch (i) {
             case Axis::I:
                 return i_;
-#if MILHOJA_NDIM>=2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
             case Axis::J:
                 return j_;
 #endif
-#if MILHOJA_NDIM==3
+#if (MILHOJA_NDIM == 3)
             case Axis::K:
                 return k_;
 #endif
+            default:
+                throw std::invalid_argument("[RealVect::const operator[]] Invalid index");
         }
-        return i_;
+        throw std::logic_error("[RealVect::const operator[]] Programmer logic error");
     }
 
     //TODO: Potential operators

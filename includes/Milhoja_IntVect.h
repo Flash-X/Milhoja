@@ -29,6 +29,8 @@ class RealVect;
   * or a default value of 0 if trying to get an element above MILHOJA_NDIM. These
   * functions should especially be used when writing triple-nested loops that
   * are dimension-agnostic.
+  *
+  * \TODO Remove deprecated constructor
   */
 class IntVect
 {
@@ -37,7 +39,7 @@ class IntVect
     /** \brief Default constructor
       *
       * Returns a vector with undefined components.
-      * TODO: return a default value aka 0?
+      * \TODO: return a default value aka 0?
       */
     explicit IntVect () {}
 
@@ -51,7 +53,7 @@ class IntVect
         throw std::logic_error("IntVect: int* constructor deprecated.");
     }
 
-#if MILHOJA_NDIM<3
+#if (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
     //! Deprecated constructor from MILHOPA_MDIM ints
     explicit IntVect (const int x, const int y, const int z)
         : LIST_NDIM(i_{x},j_{y},k_{z}) {
@@ -93,10 +95,12 @@ class IntVect
     #pragma acc routine seq
 #endif
     int J() const {
-#if (MILHOJA_NDIM>=2)
+#if   (MILHOJA_NDIM == 1)
+        return 0;
+#elif (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         return j_;
 #else
-        return 0;
+#error "MILHOJA_NDIM not defined or invalid"
 #endif
     }
 
@@ -105,54 +109,51 @@ class IntVect
     #pragma acc routine seq
 #endif
     int K() const {
-#if (MILHOJA_NDIM==3)
+#if   (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
+        return 0;
+#elif (MILHOJA_NDIM == 3)
         return k_;
 #else
-        return 0;
+#error "MILHOJA_NDIM not defined or invalid"
 #endif
     }
 
     //! Get and set values of the internal array.
     int& operator[] (const unsigned int i) {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=MILHOJA_NDIM) {
-            throw std::logic_error("Index out-of-bounds in IntVect.");
-        }
-#endif
-        switch(i) {
+        switch (i) {
             case Axis::I:
                 return i_;
-#if MILHOJA_NDIM>=2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
             case Axis::J:
                 return j_;
 #endif
-#if MILHOJA_NDIM==3
+#if (MILHOJA_NDIM == 3)
             case Axis::K:
                 return k_;
 #endif
+            default:
+                throw std::invalid_argument("[IntVect::operator[]] Invalid index");
         }
-        return i_;
+        throw std::logic_error("[IntVect::operator[]] Programmer logic error");
     }
+
     //! Get values of the internal array as const.
     const int& operator[] (const unsigned int i) const {
-#ifndef GRID_ERRCHECK_OFF
-        if(i>=MILHOJA_NDIM) {
-            throw std::logic_error("Index out-of-bounds in IntVect.");
-        }
-#endif
-        switch(i) {
+        switch (i) {
             case Axis::I:
                 return i_;
-#if MILHOJA_NDIM>=2
+#if (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
             case Axis::J:
                 return j_;
 #endif
-#if MILHOJA_NDIM==3
+#if (MILHOJA_NDIM == 3)
             case Axis::K:
                 return k_;
 #endif
+            default:
+                throw std::invalid_argument("[IntVect::const operator[]] Invalid index");
         }
-        return i_;
+        throw std::logic_error("[IntVect::const operator[]] Programmer logic error");
     }
 
     //! Check if two vectors are equal element-by-element.
