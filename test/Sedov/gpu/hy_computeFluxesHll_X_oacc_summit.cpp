@@ -6,7 +6,7 @@
 
 #include "Sedov.h"
 
-#ifndef ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
@@ -39,9 +39,9 @@ void hy::computeFluxesHll_X_oacc_summit(const milhoja::Real* dt_d,
     Real    dtdx = *dt_d / deltas_d->I();
 
     #pragma acc loop vector collapse(3)
-    for         (int k=k_s; k<=k_e;     ++k) {
-        for     (int j=j_s; j<=j_e;     ++j) {
-            for (int i=i_s; i<=i_e+K1D; ++i) {
+    for         (int k=k_s; k<=k_e;             ++k) {
+        for     (int j=j_s; j<=j_e;             ++j) {
+            for (int i=i_s; i<=i_e+MILHOJA_K1D; ++i) {
                 sL = std::min(U_d->at(i-1, j, k, VELX_VAR) - auxC_d->at(i-1, j, k, 0),
                               U_d->at(i,   j, k, VELX_VAR) - auxC_d->at(i,   j, k, 0));
                 sR = std::max(U_d->at(i-1, j, k, VELX_VAR) + auxC_d->at(i-1, j, k, 0),

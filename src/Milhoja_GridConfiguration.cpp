@@ -33,7 +33,7 @@ GridConfiguration&   GridConfiguration::instance(void) {
  *
  * \todo Confirm that function pointers are not nullptr
  * \todo Confirm that thread counts are positive
- * \todo What is the requirement on the Min/Max values above NDIM?  Do we need
+ * \todo What is the requirement on the Min/Max values above MILHOJA_NDIM?  Do we need
  *       adjust these tests in accord with this?
  */
 bool GridConfiguration::isValid(void) const {

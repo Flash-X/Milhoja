@@ -45,9 +45,9 @@ DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(void)
     unsigned int    nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
-    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
-                                     * (nyb + 2 * NGUARD * K2D)
-                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
+                                     * (nyb + 2 * NGUARD * MILHOJA_K2D)
+                                     * (nzb + 2 * NGUARD * MILHOJA_K3D);
 
     N_ELEMENTS_PER_FCX_PER_VARIABLE = (nxb + 1) * nyb * nzb;
     N_ELEMENTS_PER_FCX = N_ELEMENTS_PER_FCX_PER_VARIABLE * NFLUXES;
@@ -90,7 +90,7 @@ std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_2::clone(void) const
     return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_2{}};
 }
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -107,7 +107,7 @@ void  DataPacket_Hydro_gpu_2::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -160,11 +160,11 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
 
     std::size_t  nScratchPerTileBytes = FCX_BLOCK_SIZE_BYTES;
     unsigned int nScratchArrays = 1;
-#if NDIM >= 2
+#if MILHOJA_NDIM >= 2
     nScratchPerTileBytes += FCY_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     nScratchPerTileBytes += FCZ_BLOCK_SIZE_BYTES;
     ++nScratchArrays;
 #endif
@@ -278,10 +278,10 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
     char* CC2_data_p    = copyOutStart_p;
     char* CC2_data_d    = copyOutStart_d;
     char* FCX_scratch_d = scratchStart_d;
-#if NDIM >= 2
+#if MILHOJA_NDIM >= 2
     char* FCY_scratch_d = FCX_scratch_d + FCX_BLOCK_SIZE_BYTES;
 #endif
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
     char* FCZ_scratch_d = FCY_scratch_d + FCY_BLOCK_SIZE_BYTES;
 #endif
 
@@ -360,7 +360,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         CC2_data_d    += cc2BlockSizeBytes;
         FCX_scratch_d += nScratchPerTileBytes;
 
-#if NDIM >= 2
+#if MILHOJA_NDIM >= 2
         tilePtrs_p->FCY_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+1, hi.K())};
         FArray4D   FCY_d{static_cast<Real*>((void*)FCY_scratch_d),
@@ -374,7 +374,7 @@ void  DataPacket_Hydro_gpu_2::pack(void) {
         tilePtrs_p->FCY_d = nullptr;
 #endif
 
-#if NDIM == 3
+#if MILHOJA_NDIM == 3
         tilePtrs_p->FCZ_d = static_cast<FArray4D*>((void*)ptr_d);
         fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+1)};
         FArray4D   FCZ_d{static_cast<Real*>((void*)FCZ_scratch_d),

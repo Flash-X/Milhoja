@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include "Milhoja_Logger.h"
-#ifdef USE_CUDA_BACKEND
+#ifdef MILHOJA_USE_CUDA_BACKEND
 #include "Milhoja_CudaBackend.h"
 #else
 #include "Milhoja_NullBackend.h"
@@ -56,7 +56,7 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
         throw std::logic_error("[RuntimeBackend::instance] instantiate first");
     }
 
-#ifdef USE_CUDA_BACKEND
+#ifdef MILHOJA_USE_CUDA_BACKEND
     static CudaBackend singleton{nStreams_, nBytesInMemoryPools_};
 #else
     static NullBackend singleton{};

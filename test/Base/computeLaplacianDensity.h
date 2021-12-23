@@ -19,7 +19,7 @@ namespace ActionRoutines {
                                           milhoja::DataItem* dataItem);
 }
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 namespace StaticPhysicsRoutines{
     #pragma acc routine vector
     void computeLaplacianDensity_oacc_summit(const milhoja::IntVect* lo_d,

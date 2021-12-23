@@ -165,7 +165,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const unsigned int nDistributorThreads,
                               const unsigned int stagger_usec,
@@ -269,7 +269,7 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeGpuTasks_timed(const std::string& bundleName,
                                     const unsigned int nDistributorThreads,
                                     const unsigned int stagger_usec,
@@ -336,7 +336,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     fptr << "# Testname = GPU-Only\n";
     fptr << "# Step = " << stepNumber << "\n";
     fptr << "# MPI rank = " << rank << "\n";
-    fptr << "# Dimension = " << NDIM << "\n";
+    fptr << "# Dimension = " << MILHOJA_NDIM << "\n";
     fptr << "# NXB = " << nxb << "\n";
     fptr << "# NYB = " << nyb << "\n";
     fptr << "# NZB = " << nzb << "\n";
@@ -458,7 +458,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const RuntimeAction& gpuAction,
@@ -597,7 +597,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const RuntimeAction& gpuAction,
@@ -719,7 +719,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const unsigned int stagger_usec,
@@ -882,7 +882,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
                                             const unsigned int stagger_usec,
@@ -963,7 +963,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     fptr << "# Testname = Data Parallel CPU/GPU\n";
     fptr << "# Step = " << stepNumber << "\n";
     fptr << "# MPI rank = " << rank << "\n";
-    fptr << "# Dimension = " << NDIM << "\n";
+    fptr << "# Dimension = " << MILHOJA_NDIM << "\n";
     fptr << "# NXB = " << nxb << "\n";
     fptr << "# NYB = " << nyb << "\n";
     fptr << "# NZB = " << nzb << "\n";
@@ -1132,7 +1132,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                               const unsigned int nDistributorThreads,
                                               const RuntimeAction& actionA_cpu,
@@ -1308,7 +1308,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const RuntimeAction& actionA_cpu,
                                       const RuntimeAction& actionA_gpu,
@@ -1481,7 +1481,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
  *
  * \return 
  */
-#if defined(USE_CUDA_BACKEND)
+#if defined(MILHOJA_USE_CUDA_BACKEND)
 void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,

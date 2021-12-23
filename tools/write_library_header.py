@@ -133,21 +133,21 @@ if __name__ == '__main__':
     if   runtime_backend.lower() == 'none':
         runtime_backend_macro = None
     elif runtime_backend.lower() == 'cuda':
-        runtime_backend_macro = 'USE_CUDA_BACKEND'
+        runtime_backend_macro = 'MILHOJA_USE_CUDA_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - runtime_backend')
         exit(100)
 
     # Grid
     if grid_backend.lower() == 'amrex':
-        grid_backend_macro = 'GRID_AMREX'
+        grid_backend_macro = 'MILHOJA_GRID_AMREX'
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')
         exit(100)
 
     # FPS
     if floating_point_system.lower() == 'double':
-        real_type     = 'REAL_IS_DOUBLE'
+        real_type     = 'MILHOJA_REAL_IS_DOUBLE'
         mpi_real_type = 'MPI_DOUBLE_PRECISION'
     else:
         print('PROGRAMMER LOGIC ERROR - floating_point_system')
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     if   computation_offloading.lower() == 'none':
         offload_macro = None
     elif computation_offloading.lower() == 'openacc':
-        offload_macro = 'ENABLE_OPENACC_OFFLOAD'
+        offload_macro = 'MILHOJA_ENABLE_OPENACC_OFFLOAD'
     else:
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)
@@ -181,11 +181,11 @@ if __name__ == '__main__':
         fptr.write( '#ifndef MILHOJA_H__\n')
         fptr.write( '#define MILHOJA_H__\n')
         fptr.write( '\n')
-        fptr.write(f'#define MDIM      {_DEFAULT_MDIM}\n')
-        fptr.write(f'#define NDIM      {ndim}\n')
-        fptr.write(f'#define K1D       {k1d}\n')
-        fptr.write(f'#define K2D       {k2d}\n')
-        fptr.write(f'#define K3D       {k3d}\n')
+        fptr.write(f'#define MILHOJA_MDIM      {_DEFAULT_MDIM}\n')
+        fptr.write(f'#define MILHOJA_NDIM      {ndim}\n')
+        fptr.write(f'#define MILHOJA_K1D       {k1d}\n')
+        fptr.write(f'#define MILHOJA_K2D       {k2d}\n')
+        fptr.write(f'#define MILHOJA_K3D       {k3d}\n')
         fptr.write( '\n')
         fptr.write(f'#define {real_type}\n')
         fptr.write(f'#define MILHOJA_MPI_REAL      {mpi_real_type}\n')

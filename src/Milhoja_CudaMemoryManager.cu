@@ -6,7 +6,7 @@
 #include "Milhoja_Logger.h"
 #include "Milhoja_CudaGpuEnvironment.h"
 
-#ifndef USE_CUDA_BACKEND
+#ifndef MILHOJA_USE_CUDA_BACKEND
 #error "This file need not be compiled if the CUDA backend isn't used"
 #endif
 

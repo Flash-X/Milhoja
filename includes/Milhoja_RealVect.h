@@ -9,7 +9,7 @@
 #include "Milhoja_axis.h"
 #include "Milhoja_real.h"
 
-#ifdef GRID_AMREX
+#ifdef MILHOJA_GRID_AMREX
 #include <AMReX_RealVect.H>
 #endif
 
@@ -18,7 +18,7 @@ namespace milhoja {
 class IntVect;
 
 /**
-  * \brief Container for NDIM tuples of Reals.
+  * \brief Container for MILHOJA_NDIM tuples of Reals.
   *
   * TODO detailed description.
   */
@@ -33,7 +33,7 @@ class RealVect
       */
     explicit RealVect () {}
 
-    //! Constructor from NDIM Reals.
+    //! Constructor from MILHOJA_NDIM Reals.
     constexpr explicit RealVect (LIST_NDIM(const Real x, const Real y, const Real z))
         : LIST_NDIM(i_{x}, j_{y}, k_{z}) {}
 
@@ -41,7 +41,7 @@ class RealVect
     explicit RealVect (const Real* x)
         : LIST_NDIM(i_{x[0]}, j_{x[1]}, k_{x[2]}) {}
 
-#if NDIM<3
+#if MILHOJA_NDIM<3
     //! Constructor from 3 Reals.
     explicit RealVect (const Real x, const Real y, const Real z)
         : LIST_NDIM(i_{x}, j_{y}, k_{z}) {
@@ -49,7 +49,7 @@ class RealVect
     }
 #endif
 
-#ifdef GRID_AMREX
+#ifdef MILHOJA_GRID_AMREX
     //! Constructor from amrex::RealVect
     explicit RealVect (const amrex::RealVect& ain)
         : LIST_NDIM(i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}
@@ -78,18 +78,18 @@ class RealVect
         return i_;
     }
 
-    //! Return second element of vector, or 0 if NDIM<2
+    //! Return second element of vector, or 0 if MILHOJA_NDIM<2
     Real J() const {
-#if (NDIM>=2)
+#if (MILHOJA_NDIM>=2)
         return j_;
 #else
         return 0.0_wp;
 #endif
     }
 
-    //! Return third element of vector, or 0 if NDIM<3
+    //! Return third element of vector, or 0 if MILHOJA_NDIM<3
     Real K() const {
-#if (NDIM==3)
+#if (MILHOJA_NDIM==3)
         return k_;
 #else
         return 0.0_wp;
@@ -101,18 +101,18 @@ class RealVect
       */
     Real& operator[] (const int i) {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) {
+        if(i>=MILHOJA_NDIM || i<0) {
             throw std::logic_error("Index out-of-bounds in RealVect.");
         }
 #endif
         switch(i) {
             case Axis::I:
                 return i_;
-#if NDIM>=2
+#if MILHOJA_NDIM>=2
             case Axis::J:
                 return j_;
 #endif
-#if NDIM==3
+#if MILHOJA_NDIM==3
             case Axis::K:
                 return k_;
 #endif
@@ -122,18 +122,18 @@ class RealVect
     //! Get values of the internal array as consts.
     const Real& operator[] (const int i) const {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM || i<0) {
+        if(i>=MILHOJA_NDIM || i<0) {
             throw std::logic_error("Index out-of-bounds in RealVect.");
         }
 #endif
         switch(i) {
             case Axis::I:
                 return i_;
-#if NDIM>=2
+#if MILHOJA_NDIM>=2
             case Axis::J:
                 return j_;
 #endif
-#if NDIM==3
+#if MILHOJA_NDIM==3
             case Axis::K:
                 return k_;
 #endif

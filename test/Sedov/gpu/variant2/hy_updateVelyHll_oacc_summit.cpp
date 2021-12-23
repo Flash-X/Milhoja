@@ -4,7 +4,7 @@
 
 #include "Sedov.h"
 
-#ifndef ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
@@ -31,17 +31,17 @@ void hy::updateVelyHll_oacc_summit(const milhoja::IntVect* lo_d,
             for (int i=i_s; i<=i_e; ++i) {
                 invNewDens = 1.0_wp / Uout_d->at(i, j, k, DENS_VAR);
 
-#if NDIM == 1
+#if MILHOJA_NDIM == 1
                 Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j, k, VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
                                                  + flX_d->at(i,   j, k, HY_YMOM_FLUX)
                                                  - flX_d->at(i+1, j, k, HY_YMOM_FLUX) ) * invNewDens;
-#elif NDIM == 2
+#elif MILHOJA_NDIM == 2
                 Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j,   k, VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
                                                  + flX_d->at(i,   j,   k, HY_YMOM_FLUX)
                                                  - flX_d->at(i+1, j,   k, HY_YMOM_FLUX)
                                                  + flY_d->at(i,   j,   k, HY_YMOM_FLUX)
                                                  - flY_d->at(i,   j+1, k, HY_YMOM_FLUX) ) * invNewDens;
-#elif NDIM == 3
+#elif MILHOJA_NDIM == 3
                 Uout_d->at(i, j, k, VELY_VAR) = (  Uin_d->at(i,   j,   k,   VELY_VAR) * Uin_d->at(i, j, k, DENS_VAR)
                                                  + flX_d->at(i,   j,   k,   HY_YMOM_FLUX)
                                                  - flX_d->at(i+1, j,   k,   HY_YMOM_FLUX)

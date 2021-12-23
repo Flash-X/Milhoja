@@ -6,7 +6,7 @@
 #include "Sedov.h"
 #include "Eos.h"
 
-#ifndef ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
@@ -80,7 +80,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
 
         // The X, Y, and Z fluxes each depend on the speed of sound, but can
         // be computed independently and therefore concurrently.
-#if   NDIM == 1
+#if   MILHOJA_NDIM == 1
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const PacketContents*  ptrs = contents_d + n;
@@ -94,7 +94,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
         }
         // No need for barrier since all kernels are launched on the same
         // queue for 1D case.
-#elif NDIM == 2
+#elif MILHOJA_NDIM == 2
         // Wait for data to arrive and then launch these two for concurrent
         // execution
         #pragma acc wait(queue_h)
@@ -123,7 +123,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
         }
         // BARRIER - fluxes must all be computed before updating the solution
         #pragma acc wait(queue_h,queue2_h)
-#elif NDIM == 3
+#elif MILHOJA_NDIM == 3
         // Wait for data to arrive and then launch these three for concurrent
         // execution
         #pragma acc wait(queue_h)

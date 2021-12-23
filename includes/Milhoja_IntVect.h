@@ -9,7 +9,7 @@
 #include "Milhoja_macros.h"
 #include "Milhoja_axis.h"
 
-#ifdef GRID_AMREX
+#ifdef MILHOJA_GRID_AMREX
 #include <AMReX_IntVect.H>
 #endif
 
@@ -18,15 +18,15 @@ namespace milhoja {
 class RealVect;
 
 /**
-  * \brief Container for NDIM tuples of integers.
+  * \brief Container for MILHOJA_NDIM tuples of integers.
   *
   * There are two methods of indexing in to IntVects. For read-write up
-  * to NDIM, use  `operator[]`, which directly obtains reference to the
+  * to MILHOJA_NDIM, use  `operator[]`, which directly obtains reference to the
   * internal data members. This operator has bounds checking (unless error checking
-  * is turned off). Alternatively, if MDIM-like behavior is needed, three
+  * is turned off). Alternatively, if MILHOJA_MDIM-like behavior is needed, three
   * functions `IntVect::I()`, `IntVect::J()`, and `IntVect::K()` are provided.
   * They return the first, second, or third element of the vector, respectively,
-  * or a default value of 0 if trying to get an element above NDIM. These
+  * or a default value of 0 if trying to get an element above MILHOJA_NDIM. These
   * functions should especially be used when writing triple-nested loops that
   * are dimension-agnostic.
   */
@@ -41,7 +41,7 @@ class IntVect
       */
     explicit IntVect () {}
 
-    //! Constructor from NDIM ints.
+    //! Constructor from MILHOJA_NDIM ints.
     constexpr explicit IntVect(LIST_NDIM(const int x, const int y, const int z))
         : LIST_NDIM( i_{x}, j_{y}, k_{z} ) {}
 
@@ -51,15 +51,15 @@ class IntVect
         throw std::logic_error("IntVect: int* constructor deprecated.");
     }
 
-#if NDIM<3
-    //! Deprecated constructor from MDIM ints
+#if MILHOJA_NDIM<3
+    //! Deprecated constructor from MILHOPA_MDIM ints
     explicit IntVect (const int x, const int y, const int z)
         : LIST_NDIM(i_{x},j_{y},k_{z}) {
         throw std::logic_error("Using deprecated IntVect constructor. Please wrap arguments in LIST_NDIM macro.\n");
     }
 #endif
 
-#ifdef GRID_AMREX
+#ifdef MILHOJA_GRID_AMREX
     //! Constructor from amrex::IntVect
     explicit IntVect (const amrex::IntVect& ain)
         : LIST_NDIM( i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}
@@ -81,31 +81,31 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     //! Return first element of vector
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     int I() const {
         return i_;
     }
 
-    //! Return second element of vector, or 0 if NDIM<2
-#ifdef ENABLE_OPENACC_OFFLOAD
+    //! Return second element of vector, or 0 if MILHOJA_NDIM<2
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     int J() const {
-#if (NDIM>=2)
+#if (MILHOJA_NDIM>=2)
         return j_;
 #else
         return 0;
 #endif
     }
 
-    //! Return third element of vector, or 0 if NDIM<3
-#ifdef ENABLE_OPENACC_OFFLOAD
+    //! Return third element of vector, or 0 if MILHOJA_NDIM<3
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     int K() const {
-#if (NDIM==3)
+#if (MILHOJA_NDIM==3)
         return k_;
 #else
         return 0;
@@ -115,18 +115,18 @@ class IntVect
     //! Get and set values of the internal array.
     int& operator[] (const unsigned int i) {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM) {
+        if(i>=MILHOJA_NDIM) {
             throw std::logic_error("Index out-of-bounds in IntVect.");
         }
 #endif
         switch(i) {
             case Axis::I:
                 return i_;
-#if NDIM>=2
+#if MILHOJA_NDIM>=2
             case Axis::J:
                 return j_;
 #endif
-#if NDIM==3
+#if MILHOJA_NDIM==3
             case Axis::K:
                 return k_;
 #endif
@@ -136,18 +136,18 @@ class IntVect
     //! Get values of the internal array as const.
     const int& operator[] (const unsigned int i) const {
 #ifndef GRID_ERRCHECK_OFF
-        if(i>=NDIM) {
+        if(i>=MILHOJA_NDIM) {
             throw std::logic_error("Index out-of-bounds in IntVect.");
         }
 #endif
         switch(i) {
             case Axis::I:
                 return i_;
-#if NDIM>=2
+#if MILHOJA_NDIM>=2
             case Axis::J:
                 return j_;
 #endif
-#if NDIM==3
+#if MILHOJA_NDIM==3
             case Axis::K:
                 return k_;
 #endif

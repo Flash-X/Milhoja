@@ -6,7 +6,7 @@
 #include "Milhoja_edge.h"
 
 // TODO: move to a header?
-#ifdef GRID_AMREX
+#ifdef MILHOJA_GRID_AMREX
 #include "Milhoja_GridAmrex.h"
 namespace milhoja {
     typedef GridAmrex GridBackend;

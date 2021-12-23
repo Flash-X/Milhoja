@@ -3,26 +3,26 @@
 
 #include "Milhoja.h"
 
-#ifndef NDIM
-#error NDIM needs to be defined
+#ifndef MILHOJA_NDIM
+#error MILHOJA_NDIM needs to be defined
 #endif
 
-#if ((NDIM!=1)&&(NDIM!=2)&&(NDIM!=3))
-#error NDIM needs to be in range 1-3
+#if ((MILHOJA_NDIM!=1)&&(MILHOJA_NDIM!=2)&&(MILHOJA_NDIM!=3))
+#error MILHOJA_NDIM needs to be in range 1-3
 #endif
 
 
-#if NDIM==1
-// Make a comma-separated list of NDIM elements from a list of 3
+#if MILHOJA_NDIM==1
+// Make a comma-separated list of MILHOJA_NDIM elements from a list of 3
 #define LIST_NDIM(x,y,z) x
 
-// Make a space-separated list of NDIM elements from a list of 3
+// Make a space-separated list of MILHOJA_NDIM elements from a list of 3
 #define CONCAT_NDIM(x,y,z) x
 
-#elif NDIM==2
+#elif MILHOJA_NDIM==2
 #define LIST_NDIM(x,y,z) x,y
 #define CONCAT_NDIM(x,y,z) x y
-#elif NDIM==3
+#elif MILHOJA_NDIM==3
 #define LIST_NDIM(x,y,z) x,y,z
 #define CONCAT_NDIM(x,y,z) x y z
 #endif

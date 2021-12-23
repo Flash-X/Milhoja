@@ -34,9 +34,9 @@ RealVect operator* (const Real c, const RealVect& a) {
 //! Nice printing of vectors.
 std::ostream& operator<< (std::ostream& os, const RealVect& vout) {
     os << '(';
-    for (int i=0; i<NDIM; ++i){
+    for (int i=0; i<MILHOJA_NDIM; ++i){
         os << vout[i];
-        if(i<(NDIM-1)) os << ", ";
+        if(i<(MILHOJA_NDIM-1)) os << ", ";
     }
     os << ')';
     return os;

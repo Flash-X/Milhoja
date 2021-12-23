@@ -20,17 +20,17 @@ void Hydro::advanceSolutionHll_tile_cpu(const int tId,
 
     //----- ALLOCATE SCRATCH MEMORY NEEDED BY PHYSICS
     // Fluxes needed on interior and boundary faces only
-    IntVect    fHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J(), hi.K())};
+    IntVect    fHi = IntVect{LIST_NDIM(hi.I()+MILHOJA_K1D, hi.J(), hi.K())};
     FArray4D   flX = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
 
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+K2D, hi.K())};
+    fHi = IntVect{LIST_NDIM(hi.I(), hi.J()+MILHOJA_K2D, hi.K())};
     FArray4D   flY = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
 
-    fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+K3D)};
+    fHi = IntVect{LIST_NDIM(hi.I(), hi.J(), hi.K()+MILHOJA_K3D)};
     FArray4D   flZ = FArray4D::buildScratchArray4D(lo, fHi, NFLUXES);
 
-    IntVect    cLo = IntVect{LIST_NDIM(lo.I()-K1D, lo.J()-K2D, lo.K()-K3D)};
-    IntVect    cHi = IntVect{LIST_NDIM(hi.I()+K1D, hi.J()+K2D, hi.K()+K3D)};
+    IntVect    cLo = IntVect{LIST_NDIM(lo.I()-MILHOJA_K1D, lo.J()-MILHOJA_K2D, lo.K()-MILHOJA_K3D)};
+    IntVect    cHi = IntVect{LIST_NDIM(hi.I()+MILHOJA_K1D, hi.J()+MILHOJA_K2D, hi.K()+MILHOJA_K3D)};
     FArray3D   auxC = FArray3D::buildScratchArray(cLo, cHi);
 
     //----- ADVANCE SOLUTION

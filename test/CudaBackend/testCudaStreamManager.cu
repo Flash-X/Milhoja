@@ -1,8 +1,8 @@
-#ifndef USE_CUDA_BACKEND
+#ifndef MILHOJA_USE_CUDA_BACKEND
 #error "No sense in running this test if CUDA backend not chosen"
 #endif
 
-#ifndef ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "Please enable offloading with OpenACC"
 #endif
 

@@ -3,27 +3,27 @@
 
 #include "Milhoja.h"
 
-#ifdef REAL_IS_FLOAT
-#  ifdef REAL_IS_DOUBLE
+#ifdef MILHOJA_REAL_IS_FLOAT
+#  ifdef MILHOJA_REAL_IS_DOUBLE
 #    error Cannot define Real as both Double and Float.
 #  else
-#    undef REAL_IS_FLOAT
-#    undef REAL_IS_DOUBLE
-#    define REAL_IS_FLOAT 1
-/*   Use REAL_IS_FLOAT if AMReX was configured to use floats for its real type
+#    undef MILHOJA_REAL_IS_FLOAT
+#    undef MILHOJA_REAL_IS_DOUBLE
+#    define MILHOJA_REAL_IS_FLOAT 1
+/*   Use MILHOJA_REAL_IS_FLOAT if AMReX was configured to use floats for its real type
      (AMReX was configured with the macro BL_USE_FLOAT).
 */
 #  endif
 #else
-#  ifdef REAL_IS_DOUBLE
-#    undef REAL_IS_FLOAT
-#    undef REAL_IS_DOUBLE
-#    define REAL_IS_DOUBLE 1
-/* Use REAL_IS_DOUBLE if AMReX was configured to use doubles for its real type
+#  ifdef MILHOJA_REAL_IS_DOUBLE
+#    undef MILHOJA_REAL_IS_FLOAT
+#    undef MILHOJA_REAL_IS_DOUBLE
+#    define MILHOJA_REAL_IS_DOUBLE 1
+/* Use MILHOJA_REAL_IS_DOUBLE if AMReX was configured to use doubles for its real type
    (AMReX was configured with the macro BL_USE_DOUBLE).
 */
 #  else
-#    error Please define either REAL_IS_DOUBLE or REAL_IS_FLOAT to match the configuration of AMReX.
+#    error Please define either MILHOJA_REAL_IS_DOUBLE or MILHOJA_REAL_IS_FLOAT to match the configuration of AMReX.
 #  endif
 #endif
 
@@ -33,7 +33,7 @@
 #include <float.h>
 #endif
 
-#ifdef REAL_IS_FLOAT
+#ifdef MILHOJA_REAL_IS_FLOAT
 typedef float orch_real;
 #else
 typedef double orch_real;

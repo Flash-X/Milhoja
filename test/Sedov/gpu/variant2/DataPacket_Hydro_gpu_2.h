@@ -21,7 +21,7 @@ public:
     void    pack(void) override;
     void    unpack(void) override;
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     int     extraAsynchronousQueue(const unsigned int id) override;
     void    releaseExtraQueue(const unsigned int id) override;
 #endif

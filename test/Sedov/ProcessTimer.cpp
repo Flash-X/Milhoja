@@ -45,7 +45,7 @@ ProcessTimer::ProcessTimer(const std::string& filename,
 
         fptr_.open(filename, std::ios::out);
         fptr_ << "# Testname = " << testname << "\n";
-        fptr_ << "# Dimension = " << NDIM << "\n";
+        fptr_ << "# Dimension = " << MILHOJA_NDIM << "\n";
         fptr_ << "# NXB = " << nxb << "\n";
         fptr_ << "# NYB = " << nyb << "\n";
         fptr_ << "# NZB = " << nzb << "\n";

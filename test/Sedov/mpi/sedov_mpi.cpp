@@ -88,20 +88,20 @@ int main(int argc, char* argv[]) {
     // Create scratch buffers.
     // They will be reindexed as needed, but size needs to be correct.
     milhoja::FArray4D   flX = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,                1,            1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB, rp_Grid::NZB)},
+                            milhoja::IntVect{LIST_NDIM(1,                        1,            1)},
+                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB, rp_Grid::NZB)},
                             NFLUXES);
     milhoja::FArray4D   flY = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,            1,                1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+K2D, rp_Grid::NZB)},
+                            milhoja::IntVect{LIST_NDIM(1,            1,                        1)},
+                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB)},
                             NFLUXES);
     milhoja::FArray4D   flZ = milhoja::FArray4D::buildScratchArray4D(
                             milhoja::IntVect{LIST_NDIM(1,            1,            1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+K3D)},
+                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+MILHOJA_K3D)},
                             NFLUXES);
     milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
-                            milhoja::IntVect{LIST_NDIM(1  -K1D,          1  -K2D,          1  -K3D)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+K1D, rp_Grid::NYB+K2D, rp_Grid::NZB+K3D)});
+                            milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D,          1  -MILHOJA_K2D,          1  -MILHOJA_K3D)},
+                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB+MILHOJA_K3D)});
 
     Timer::start(rp_Simulation::NAME + " simulation");
 
@@ -145,9 +145,9 @@ int main(int argc, char* argv[]) {
             const milhoja::IntVect       hi = tileDesc->hi();
             milhoja::FArray4D            U  = tileDesc->data();
 
-            const milhoja::IntVect       cLo = milhoja::IntVect{LIST_NDIM(lo.I()-K1D,
-                                                                lo.J()-K2D,
-                                                                lo.K()-K3D)};
+            const milhoja::IntVect       cLo = milhoja::IntVect{LIST_NDIM(lo.I()-MILHOJA_K1D,
+                                                                          lo.J()-MILHOJA_K2D,
+                                                                          lo.K()-MILHOJA_K3D)};
             flX.reindex(lo);
             flY.reindex(lo);
             flZ.reindex(lo);

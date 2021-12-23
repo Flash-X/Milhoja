@@ -24,9 +24,9 @@ IntVect operator* (const int c, const IntVect& a) {
 //! Nice printing of vectors.
 std::ostream& operator<< (std::ostream& os, const IntVect& vout) {
     os << '(';
-    for(int i=0; i<NDIM; ++i) {
+    for(int i=0; i<MILHOJA_NDIM; ++i) {
         os << vout[i];
-        if(i<(NDIM-1)) os << ", ";
+        if(i<(MILHOJA_NDIM-1)) os << ", ";
     }
     os << ')';
     return os;

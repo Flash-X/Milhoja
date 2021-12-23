@@ -377,7 +377,7 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
     int offset = 0; //accounts for indexing of left/right cases
 
     FArray1D coords = FArray1D::buildScratchArray1D(idxLo, idxHi);
-    if (axis >= NDIM) {
+    if (axis >= MILHOJA_NDIM) {
         // TODO: What value to put here?  Should it change
         //       based on edge?
         coords(idxLo) = 0.0;

@@ -46,14 +46,14 @@ public:
     void reindex(const int lo);
 
     //! Get and set data in a Fortran-style way.
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     Real& operator()(const int i) const {
         return data_[i-i0_];
     }
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
     #pragma acc routine seq
 #endif
     Real& at(const int i) const {

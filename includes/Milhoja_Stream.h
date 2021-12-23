@@ -19,7 +19,7 @@
 #ifndef MILHOJA_STREAM_H__
 #define MILHOJA_STREAM_H__
 
-#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
 #include <cuda_runtime.h>
 #endif
 
@@ -35,12 +35,12 @@ namespace milhoja {
 constexpr int NULL_ACC_ASYNC_QUEUE = -1;
 
 struct Stream {
-#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
     // cudaStream_t is a typedef of a pointer.  Therefore, this
     // default value is valid and moves should be quick.
     cudaStream_t   cudaStream = nullptr;
 #endif
-#if defined(ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
     int            accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
 #endif
 
@@ -48,22 +48,22 @@ struct Stream {
     ~Stream(void)  { };
 
     Stream(Stream&& stream) {
-#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
         cudaStream = stream.cudaStream;
         stream.cudaStream = nullptr;
 #endif
-#if defined(ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
         accAsyncQueue = stream.accAsyncQueue;
         stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
 #endif
     }
 
     Stream& operator=(Stream&& rhs) {
-#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
         cudaStream = rhs.cudaStream;
         rhs.cudaStream = nullptr;
 #endif
-#if defined(ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
         accAsyncQueue = rhs.accAsyncQueue;
         rhs.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
 #endif
@@ -77,12 +77,12 @@ struct Stream {
     Stream& operator=(const Stream&) = delete;
 
     bool   isValid(void) const {
-#if defined(USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
         if (cudaStream == nullptr) {
             return false;
         }
 #endif
-#if defined(ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
         if (accAsyncQueue == NULL_ACC_ASYNC_QUEUE) {
             return false;
         }

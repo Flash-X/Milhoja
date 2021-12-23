@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-#ifdef USE_CUDA_BACKEND
+#ifdef MILHOJA_USE_CUDA_BACKEND
 #include <cuda_runtime.h>
 #endif
 
@@ -12,7 +12,7 @@
 
 namespace milhoja {
 
-#ifdef USE_CUDA_BACKEND
+#ifdef MILHOJA_USE_CUDA_BACKEND
 using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
 #else
 // No notion of callback function otherwise.

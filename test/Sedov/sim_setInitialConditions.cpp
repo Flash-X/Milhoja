@@ -68,12 +68,12 @@ void  sim::setInitialConditions_topHat(const milhoja::IntVect& lo,
     using namespace milhoja;
 
     //Construct the radial samples needed for the initialization.
-    Real    diagonal =        (rp_Grid::X_MAX - rp_Grid::X_MIN)
-                            * (rp_Grid::X_MAX - rp_Grid::X_MIN);
-    diagonal        += (K2D * (rp_Grid::Y_MAX - rp_Grid::Y_MIN)
-                            * (rp_Grid::Y_MAX - rp_Grid::Y_MIN));
-    diagonal        += (K3D * (rp_Grid::Z_MAX - rp_Grid::Z_MIN)
-                            * (rp_Grid::Z_MAX - rp_Grid::Z_MIN));
+    Real    diagonal =                (rp_Grid::X_MAX - rp_Grid::X_MIN)
+                                    * (rp_Grid::X_MAX - rp_Grid::X_MIN);
+    diagonal        += (MILHOJA_K2D * (rp_Grid::Y_MAX - rp_Grid::Y_MIN)
+                                    * (rp_Grid::Y_MAX - rp_Grid::Y_MIN));
+    diagonal        += (MILHOJA_K3D * (rp_Grid::Z_MAX - rp_Grid::Z_MIN)
+                                    * (rp_Grid::Z_MAX - rp_Grid::Z_MIN));
     diagonal = sqrt(diagonal);
 
     Real    drProf = diagonal / (Real(rp_Simulation::N_PROFILE - 1));
@@ -96,8 +96,8 @@ void  sim::setInitialConditions_topHat(const milhoja::IntVect& lo,
     Grid&   grid = Grid::instance();
 
     Real      dxx = deltas.I();
-    Real      dyy = deltas.J() * K2D;
-    Real      dzz = deltas.K() * K3D;
+    Real      dyy = deltas.J() * MILHOJA_K2D;
+    Real      dzz = deltas.K() * MILHOJA_K3D;
 
     Real      dvSub_buffer[rp_Simulation::N_SUB_ZONES * rp_Simulation::N_SUB_ZONES];
     FArray2D  dvSub{dvSub_buffer,
@@ -154,13 +154,13 @@ void  sim::setInitialConditions_topHat(const milhoja::IntVect& lo,
                 dvc = grid.getCellVolume(level, IntVect{LIST_NDIM(i, j, k)});
 
                 grid.subcellGeometry(     rp_Simulation::N_SUB_ZONES,
-                                     1 + (rp_Simulation::N_SUB_ZONES - 1)*K2D,
-                                     1 + (rp_Simulation::N_SUB_ZONES - 1)*K3D,
+                                     1 + (rp_Simulation::N_SUB_ZONES - 1)*MILHOJA_K2D,
+                                     1 + (rp_Simulation::N_SUB_ZONES - 1)*MILHOJA_K3D,
                                      dvc, dvSub_buffer,
                                      xCoords(i) - 0.5_wp*dxx,
                                      xCoords(i) + 0.5_wp*dxx);
 
-                // Break the cell into rp_Simulation::N_SUB_ZONES^NDIM sub-zones, and look up the
+                // Break the cell into rp_Simulation::N_SUB_ZONES^MILHOJA_NDIM sub-zones, and look up the
                 // appropriate quantities along the 1d profile for that subzone.  
                 // 
                 // Have the final values for the zone be equal to the average of
@@ -170,13 +170,13 @@ void  sim::setInitialConditions_topHat(const milhoja::IntVect& lo,
                 sumVX  = 0.0;
                 sumVY  = 0.0;
                 sumVZ  = 0.0;
-                for (unsigned int kk=0; kk<=(rp_Simulation::N_SUB_ZONES - 1)*K3D; ++kk) {
+                for (unsigned int kk=0; kk<=(rp_Simulation::N_SUB_ZONES - 1)*MILHOJA_K3D; ++kk) {
                     zz    = zCoords(k) + ((kk + 0.5_wp) * rp_Simulation::IN_SUBZONES - 0.5_wp) * dzz;
-                    zDist = (zz - rp_Simulation::Z_CENTER) * K3D;
+                    zDist = (zz - rp_Simulation::Z_CENTER) * MILHOJA_K3D;
 
-                    for (unsigned int jj=0; jj<=(rp_Simulation::N_SUB_ZONES - 1)*K2D; ++jj) {
+                    for (unsigned int jj=0; jj<=(rp_Simulation::N_SUB_ZONES - 1)*MILHOJA_K2D; ++jj) {
                         yy    = yCoords(j) + ((jj + 0.5_wp) * rp_Simulation::IN_SUBZONES - 0.5_wp) * dyy;
-                        yDist = (yy - rp_Simulation::Y_CENTER) * K2D;
+                        yDist = (yy - rp_Simulation::Y_CENTER) * MILHOJA_K2D;
 
                         for (unsigned int ii=0; ii<rp_Simulation::N_SUB_ZONES; ++ii) {
                             xx    = xCoords(i) + ((ii + 0.5_wp) * rp_Simulation::IN_SUBZONES - 0.5_wp) * dxx;

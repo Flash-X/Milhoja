@@ -43,7 +43,7 @@ AmrCoreAmrex::AmrCoreAmrex(const unsigned int nGuard,
 
     // Set periodic Boundary conditions
     bcs_.resize(1);
-    for(int i=0; i<NDIM; ++i) {
+    for(int i=0; i<MILHOJA_NDIM; ++i) {
         bcs_[0].setLo(i, amrex::BCType::int_dir);
         bcs_[0].setHi(i, amrex::BCType::int_dir);
     }

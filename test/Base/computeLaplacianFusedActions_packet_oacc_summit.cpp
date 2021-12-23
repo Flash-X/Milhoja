@@ -7,7 +7,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#ifndef ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 

@@ -45,10 +45,10 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     // Therefore, this information should come from the calling code.
     // How to do this?
 //  if (tileLimits(HIGH,IAXIS) == ubound(Uin,iX  )-NGUARD) iLastX = 1
-//#if NDIM > 1
+//#if MILHOJA_NDIM > 1
 //  if (tileLimits(HIGH,JAXIS) == ubound(Uin,iX+1)-NGUARD) iLastY = 1
 //#endif
-//#if NDIM > 2
+//#if MILHOJA_NDIM > 2
 //  if (tileLimits(HIGH,KAXIS) == ubound(Uin,iX+2)-NGUARD) iLastZ = 1
 //#endif
 
@@ -58,9 +58,9 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     // calculate sound speed
     // TODO: Should the limits be the bounds of auxC?  Does that help with
     //       the potential tiling issue?
-    for         (int k=lo.K()-K3D; k<=hi.K()+K3D; ++k) {
-        for     (int j=lo.J()-K2D; j<=hi.J()+K2D; ++j) {
-            for (int i=lo.I()-K1D; i<=hi.I()+K1D; ++i) {
+    for         (int k=lo.K()-MILHOJA_K3D; k<=hi.K()+MILHOJA_K3D; ++k) {
+        for     (int j=lo.J()-MILHOJA_K2D; j<=hi.J()+MILHOJA_K2D; ++j) {
+            for (int i=lo.I()-MILHOJA_K1D; i<=hi.I()+MILHOJA_K1D; ++i) {
                 auxC(i, j, k) = sqrt(  Uin(i, j, k, GAMC_VAR)
                                      * Uin(i, j, k, PRES_VAR)
                                      / Uin(i, j, k, DENS_VAR) );
@@ -81,9 +81,9 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     int     iL = 0;
     int     iR = 0;
     Real    dtdx = dt / deltas.I();
-    for         (int k=lo.K(); k<=hi.K();     ++k) {
-        for     (int j=lo.J(); j<=hi.J();     ++j) {
-            for (int i=lo.I(); i<=hi.I()+K1D; ++i) {
+    for         (int k=lo.K(); k<=hi.K();             ++k) {
+        for     (int j=lo.J(); j<=hi.J();             ++j) {
+            for (int i=lo.I(); i<=hi.I()+MILHOJA_K1D; ++i) {
                 sL = std::min(Uin(i-1, j, k, VELX_VAR) - auxC(i-1, j, k),
                               Uin(i,   j, k, VELX_VAR) - auxC(i,   j, k));
                 sR = std::max(Uin(i-1, j, k, VELX_VAR) + auxC(i-1, j, k),
@@ -160,14 +160,14 @@ void hy::computeFluxesHll(const milhoja::Real dt,
         }
     }
 
-#if NDIM > 1
+#if MILHOJA_NDIM > 1
     int     js = 0;
     int     jL = 0;
     int     jR = 0;
     Real    dtdy = dt / deltas.J();
-    for         (int k=lo.K(); k<=hi.K();     ++k) {
-        for     (int j=lo.J(); j<=hi.J()+K2D; ++j) {
-            for (int i=lo.I(); i<=hi.I();     ++i) {
+    for         (int k=lo.K(); k<=hi.K();             ++k) {
+        for     (int j=lo.J(); j<=hi.J()+MILHOJA_K2D; ++j) {
+            for (int i=lo.I(); i<=hi.I();             ++i) {
                 sL = std::min(Uin(i, j-1, k, VELY_VAR) - auxC(i, j-1, k),
                               Uin(i, j,   k, VELY_VAR) - auxC(i, j,   k));
                 sR = std::max(Uin(i, j-1, k, VELY_VAR) + auxC(i, j-1, k),
@@ -244,14 +244,14 @@ void hy::computeFluxesHll(const milhoja::Real dt,
     }
 #endif
 
-#if NDIM > 2
+#if MILHOJA_NDIM > 2
     int     ks = 0;
     int     kL = 0;
     int     kR = 0;
     Real    dtdz = dt / deltas.K();
-    for         (int k=lo.K(); k<=hi.K()+K3D; ++k) {
-        for     (int j=lo.J(); j<=hi.J();     ++j) {
-            for (int i=lo.I(); i<=hi.I();     ++i) {
+    for         (int k=lo.K(); k<=hi.K()+MILHOJA_K3D; ++k) {
+        for     (int j=lo.J(); j<=hi.J();             ++j) {
+            for (int i=lo.I(); i<=hi.I();             ++i) {
                 sL = std::min(Uin(i, j, k-1, VELZ_VAR) - auxC(i, j, k-1),
                               Uin(i, j, k,   VELZ_VAR) - auxC(i, j, k));
                 sR = std::max(Uin(i, j, k-1, VELZ_VAR) + auxC(i, j, k-1),

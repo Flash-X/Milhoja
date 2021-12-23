@@ -25,9 +25,9 @@ DataPacket_gpu_1_stream::DataPacket_gpu_1_stream(void)
     unsigned int    nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
-    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
-                                     * (nyb + 2 * NGUARD * K2D)
-                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
+                                     * (nyb + 2 * NGUARD * MILHOJA_K2D)
+                                     * (nzb + 2 * NGUARD * MILHOJA_K3D);
     N_ELEMENTS_PER_CC  = N_ELEMENTS_PER_CC_PER_VARIABLE * NUNKVAR;
 
     DELTA_SIZE_BYTES     =          sizeof(RealVect);

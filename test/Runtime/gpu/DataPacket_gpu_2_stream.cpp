@@ -26,9 +26,9 @@ DataPacket_gpu_2_stream::DataPacket_gpu_2_stream(void)
     unsigned int    nxb, nyb, nzb;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
-    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * K1D)
-                                     * (nyb + 2 * NGUARD * K2D)
-                                     * (nzb + 2 * NGUARD * K3D);
+    N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
+                                     * (nyb + 2 * NGUARD * MILHOJA_K2D)
+                                     * (nzb + 2 * NGUARD * MILHOJA_K3D);
     N_ELEMENTS_PER_CC  = N_ELEMENTS_PER_CC_PER_VARIABLE * NUNKVAR;
     
     DELTA_SIZE_BYTES     =          sizeof(RealVect);
@@ -55,7 +55,7 @@ std::unique_ptr<milhoja::DataPacket>   DataPacket_gpu_2_stream::clone(void) cons
     return std::unique_ptr<milhoja::DataPacket>{new DataPacket_gpu_2_stream{}};
 }
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Do not call this member function before calling pack() or more than once.
  */
@@ -70,7 +70,7 @@ void  DataPacket_gpu_2_stream::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#ifdef ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
 /**
  * Pack must be called before calling this member function.  It cannot be called
  * after calling releaseExtraStream on the same ID.
