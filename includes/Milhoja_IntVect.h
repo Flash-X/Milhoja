@@ -134,7 +134,9 @@ class IntVect
             default:
                 throw std::invalid_argument("[IntVect::operator[]] Invalid index");
         }
-        throw std::logic_error("[IntVect::operator[]] Programmer logic error");
+// PGI is smart enough to know that this can never be called and adds many
+// warnings.
+//        throw std::logic_error("[IntVect::operator[]] Programmer logic error");
     }
 
     //! Get values of the internal array as const.
@@ -153,7 +155,9 @@ class IntVect
             default:
                 throw std::invalid_argument("[IntVect::const operator[]] Invalid index");
         }
-        throw std::logic_error("[IntVect::const operator[]] Programmer logic error");
+// PGI is smart enough to know that this can never be called and adds many
+// warnings.
+//        throw std::logic_error("[IntVect::const operator[]] Programmer logic error");
     }
 
     //! Check if two vectors are equal element-by-element.

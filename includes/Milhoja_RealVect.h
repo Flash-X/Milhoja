@@ -121,7 +121,9 @@ class RealVect
             default:
                 throw std::invalid_argument("[RealVect::operator[]] Invalid index");
         }
-        throw std::logic_error("[RealVect::operator[]] Programmer logic error");
+// PGI is smart enough to know that this can never be called and adds many
+// warnings.
+//        throw std::logic_error("[RealVect::operator[]] Programmer logic error");
     }
 
     /** Get values of the internal array as consts.
@@ -143,7 +145,9 @@ class RealVect
             default:
                 throw std::invalid_argument("[RealVect::const operator[]] Invalid index");
         }
-        throw std::logic_error("[RealVect::const operator[]] Programmer logic error");
+// PGI is smart enough to know that this can never be called and adds many
+// warnings.
+//        throw std::logic_error("[RealVect::const operator[]] Programmer logic error");
     }
 
     //TODO: Potential operators
