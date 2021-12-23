@@ -14,6 +14,10 @@
 #include "Milhoja_TileIter.h"
 #include "Milhoja_TileAmrex.h"
 
+#ifndef MILHOJA_GRID_AMREX
+#error "This file need not be compiled if the AMReX backend isn't used"
+#endif
+
 namespace milhoja {
 
 /**

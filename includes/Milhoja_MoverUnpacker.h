@@ -35,7 +35,8 @@
  *
  * \todo Should this be built into the library if no non-trivial Runtime backend
  *       is chosen (i.e. there is no possibility of data movements)?  If so, how
- *       to do this?
+ *       to do this?  Milhoja_DataPacket should be considered as well as part of
+ *       this.
  */
 
 #ifndef MILHOJA_MOVER_UNPACKER_H__
