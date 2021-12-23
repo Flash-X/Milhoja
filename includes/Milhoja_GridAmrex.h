@@ -10,8 +10,13 @@
 
 #include <AMReX_MultiFab.H>
 
+#include "Milhoja.h"
 #include "Milhoja_Grid.h"
 #include "Milhoja_AmrCoreAmrex.h"
+
+#ifndef MILHOJA_GRID_AMREX
+#error "This file need not be compiled if the AMReX backend isn't used"
+#endif
 
 namespace milhoja {
 

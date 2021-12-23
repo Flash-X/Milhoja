@@ -26,7 +26,12 @@
 
 #include <pthread.h>
 
+#include "Milhoja.h"
 #include "Milhoja_Stream.h"
+
+#ifndef MILHOJA_USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
 
 namespace milhoja {
 

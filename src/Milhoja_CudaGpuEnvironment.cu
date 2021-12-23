@@ -5,10 +5,6 @@
 
 #include "Milhoja_Logger.h"
 
-#ifndef MILHOJA_USE_CUDA_BACKEND
-#error "This file need not be compiled if the CUDA backend isn't used"
-#endif
-
 namespace milhoja {
 
 bool    CudaGpuEnvironment::instantiated_ = false;

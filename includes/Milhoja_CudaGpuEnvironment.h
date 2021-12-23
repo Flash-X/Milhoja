@@ -9,6 +9,12 @@
 
 #include <string>
 
+#include "Milhoja.h"
+
+#ifndef MILHOJA_USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
+
 namespace milhoja {
 
 class CudaGpuEnvironment {

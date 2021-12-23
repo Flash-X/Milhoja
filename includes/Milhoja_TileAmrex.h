@@ -6,8 +6,13 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MFIter.H>
 
+#include "Milhoja.h"
 #include "Milhoja_IntVect.h"
 #include "Milhoja_Tile.h"
+
+#ifndef MILHOJA_GRID_AMREX
+#error "This file need not be compiled if the AMReX backend isn't used"
+#endif
 
 namespace milhoja {
 

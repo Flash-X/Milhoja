@@ -1,7 +1,12 @@
 #ifndef MILHOJA_CUDA_BACKEND_H__
 #define MILHOJA_CUDA_BACKEND_H__
 
+#include "Milhoja.h"
 #include "Milhoja_RuntimeBackend.h"
+
+#ifndef MILHOJA_USE_CUDA_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
 
 namespace milhoja {
 

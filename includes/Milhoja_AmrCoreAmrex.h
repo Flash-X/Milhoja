@@ -6,7 +6,12 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PhysBCFunct.H>
 
+#include "Milhoja.h"
 #include "Milhoja_actionRoutine.h"
+
+#ifndef MILHOJA_GRID_AMREX
+#error "This file need not be compiled if the AMReX backend isn't used"
+#endif
 
 namespace milhoja {
 
