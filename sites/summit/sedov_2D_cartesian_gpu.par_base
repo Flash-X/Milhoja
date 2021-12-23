@@ -3,6 +3,10 @@
 
 #include <Milhoja_real.h>
 
+#if MILHOJA_NDIM != 2
+#error "MILHOJA_NDIM not defined or invalid for 2D problem"
+#endif
+
 //----- ACTION ROUTINE BUNDLE RUNTIME PARAMETERS
 namespace rp_Bundle_1 {
     constexpr unsigned int          N_THREADS_CPU = 6;
@@ -91,13 +95,7 @@ namespace rp_Simulation {
 
     // Value from FLASH-X constants.h
     constexpr milhoja::Real         PI           = 3.1415926535897932384_wp;
-#if NDIM == 1
-    constexpr milhoja::Real         vctr         = 2.0_wp * R_INIT;
-#elif NDIM == 2
     constexpr milhoja::Real         vctr         = PI * R_INIT*R_INIT;
-#else
-    constexpr milhoja::Real         vctr         = 4.0_wp / 3.0_wp * PI * R_INIT*R_INIT*R_INIT;
-#endif
     constexpr milhoja::Real         P_EXP        = (rp_Eos::GAMMA - 1.0_wp) * EXP_ENERGY / vctr;
     constexpr milhoja::Real         IN_SUBZONES  = 1.0 / milhoja::Real(N_SUB_ZONES);
 }
