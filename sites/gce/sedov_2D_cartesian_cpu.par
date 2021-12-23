@@ -2,7 +2,6 @@
 #define FLASH_PAR_H__
 
 #include <Milhoja_real.h>
-#include <Milhoja_IntVect.h>
 
 namespace rp_Driver {
     // This is how I fake a Driver_computeDt

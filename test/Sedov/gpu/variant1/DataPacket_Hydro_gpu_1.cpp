@@ -452,7 +452,7 @@ void  DataPacket_Hydro_gpu_1::pack(void) {
  *       needs to include variables 3-5 (out of 10 for example)?
  */
 void  DataPacket_Hydro_gpu_1::unpack(void) {
-    using namespace miloja;
+    using namespace milhoja;
 
     if (tiles_.size() <= 0) {
         throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] "

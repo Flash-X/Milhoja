@@ -9,6 +9,7 @@
 #include <Milhoja_RuntimeBackend.h>
 #include <Milhoja_Logger.h>
 
+#include "Sedov.h"
 #include "Io.h"
 #include "Hydro.h"
 #include "Timer.h"
@@ -17,10 +18,8 @@
 #include "ProcessTimer.h"
 #include "loadGridConfiguration.h"
 #include "DataPacket_Hydro_gpu_3.h"
-
 #include "errorEstBlank.h"
 
-#include "Sedov.h"
 #include "Flash_par.h"
 
 constexpr int      LOG_RANK   = LEAD_RANK;
@@ -64,10 +63,10 @@ int main(int argc, char* argv[]) {
     Driver::simTime = rp_Simulation::T_0;
 
     // This only makes sense if the iteration is over LEAF blocks.
-    RuntimeAction     computeIntQuantitiesByBlk;
+    milhoja::RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
     computeIntQuantitiesByBlk.nInitialThreads = rp_Bundle_1::N_THREADS_CPU;
-    computeIntQuantitiesByBlk.teamType        = ThreadTeamDataType::BLOCK;
+    computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
@@ -92,17 +91,17 @@ int main(int argc, char* argv[]) {
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    RuntimeAction     hydroAdvance_cpu;
+    milhoja::RuntimeAction     hydroAdvance_cpu;
     hydroAdvance_cpu.name            = "Advance Hydro Solution - CPU";
     hydroAdvance_cpu.nInitialThreads = rp_Bundle_2::N_THREADS_CPU;
-    hydroAdvance_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    hydroAdvance_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance_cpu.nTilesPerPacket = 0;
     hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-    RuntimeAction     hydroAdvance_gpu;
+    milhoja::RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
     hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
-    hydroAdvance_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    hydroAdvance_gpu.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
     hydroAdvance_gpu.nTilesPerPacket = rp_Bundle_2::N_BLOCKS_PER_PACKET;
     hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
 
@@ -124,7 +123,7 @@ int main(int argc, char* argv[]) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
         if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
-            Real   origDt = Driver::dt;
+            milhoja::Real   origDt = Driver::dt;
             Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
             Driver::simTime = rp_Simulation::T_MAX;
             logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
@@ -212,7 +211,7 @@ int main(int argc, char* argv[]) {
     Timer::stop(rp_Simulation::NAME + " simulation");
 
     if (Driver::simTime >= rp_Simulation::T_MAX) {
-        Logger::instance().log("[Simulation] Reached max SimTime");
+        logger.log("[Simulation] Reached max SimTime");
     }
     grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
 

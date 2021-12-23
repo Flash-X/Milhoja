@@ -1,4 +1,4 @@
-#include "Milhoha_CudaStreamManager.h"
+#include "Milhoja_CudaStreamManager.h"
 
 #include <cassert>
 #include <iostream>

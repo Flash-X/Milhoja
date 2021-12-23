@@ -4,12 +4,12 @@
 #include <Milhoja_real.h>
 
 namespace rp_Grid {
-    constexpr milhoja::Real   X_MIN       = 0.0_wp;
-    constexpr milhoja::Real   X_MAX       = 1.0_wp;
-    constexpr milhoja::Real   Y_MIN       = 0.0_wp;
-    constexpr milhoja::Real   Y_MAX       = 1.0_wp;
-    constexpr milhoja::Real   Z_MIN       = 0.0_wp;
-    constexpr milhoja::Real   Z_MAX       = 1.0_wp;
+    constexpr milhoja::Real         X_MIN       = 0.0_wp;
+    constexpr milhoja::Real         X_MAX       = 1.0_wp;
+    constexpr milhoja::Real         Y_MIN       = 0.0_wp;
+    constexpr milhoja::Real         Y_MAX       = 1.0_wp;
+    constexpr milhoja::Real         Z_MIN       = 0.0_wp;
+    constexpr milhoja::Real         Z_MAX       = 1.0_wp;
 
     constexpr unsigned int          LREFINE_MAX = 1;
 
@@ -25,8 +25,8 @@ namespace rp_Grid {
 namespace rp_Simulation {
     // setInitialConditions run in CPU-only thread team
     // configuration using blocks
-    constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 2;
-    constexpr  unsigned int         N_THREADS_FOR_IC = 4;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS_FOR_IC = 2;
+    constexpr unsigned int          N_THREADS_FOR_IC = 4;
 }
 
 #endif

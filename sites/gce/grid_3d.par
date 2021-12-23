@@ -2,15 +2,14 @@
 #define FLASH_PAR_H__
 
 #include <Milhoja_real.h>
-#include <Milhoja_IntVect.h>
 
 namespace rp_Grid {
-    constexpr milhoja::Real   X_MIN       = 0.0_wp;
-    constexpr milhoja::Real   X_MAX       = 1.0_wp;
-    constexpr milhoja::Real   Y_MIN       = 0.0_wp;
-    constexpr milhoja::Real   Y_MAX       = 1.0_wp;
-    constexpr milhoja::Real   Z_MIN       = 0.0_wp;
-    constexpr milhoja::Real   Z_MAX       = 1.0_wp;
+    constexpr milhoja::Real         X_MIN       = 0.0_wp;
+    constexpr milhoja::Real         X_MAX       = 1.0_wp;
+    constexpr milhoja::Real         Y_MIN       = 0.0_wp;
+    constexpr milhoja::Real         Y_MAX       = 1.0_wp;
+    constexpr milhoja::Real         Z_MIN       = 0.0_wp;
+    constexpr milhoja::Real         Z_MAX       = 1.0_wp;
 
     constexpr unsigned int          LREFINE_MAX = 3;
 
@@ -24,8 +23,8 @@ namespace rp_Grid {
 }
 
 namespace rp_Simulation {
-    constexpr  unsigned int         N_THREADS_FOR_IC = 6;
-    constexpr  unsigned int         N_DISTRIBUTOR_THREADS_FOR_IC = 1;
+    constexpr unsigned int          N_THREADS_FOR_IC = 6;
+    constexpr unsigned int          N_DISTRIBUTOR_THREADS_FOR_IC = 1;
 }
 
 #endif

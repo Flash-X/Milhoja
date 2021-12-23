@@ -4,7 +4,7 @@
 #include <Milhoja_real.h>
 #include <Milhoja_DataPacket.h>
 
-class DataPacket_Hydro_gpu_1 : public DataPacket {
+class DataPacket_Hydro_gpu_1 : public milhoja::DataPacket {
 public:
     std::unique_ptr<milhoja::DataPacket>  clone(void) const override;
 
