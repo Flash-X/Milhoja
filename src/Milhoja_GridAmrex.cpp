@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <AMReX.H>
-#include <AMReX_ParmParse.H>
 
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
@@ -21,9 +20,7 @@ GridAmrex::GridAmrex(void)
     : amrcore_{nullptr},
       nxb_{GridConfiguration::instance().nxb}, 
       nyb_{GridConfiguration::instance().nyb}, 
-      nzb_{GridConfiguration::instance().nzb},
-      nGuard_tmp_{GridConfiguration::instance().nGuard},
-      nCcVars_tmp_{GridConfiguration::instance().nCcVars}
+      nzb_{GridConfiguration::instance().nzb}
 {
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
@@ -38,70 +35,35 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    // Access config singleton within limited local scope so that it can't
-    // be used accidentally after the config values have been consumed in this
-    // block.
-    {
-        GridConfiguration&   cfg = GridConfiguration::instance();
-        if (!cfg.isValid()) {
-            throw std::invalid_argument("[GridAmrex::GridAmrex] Invalid configuration");
-        }
-
-        amrex::ParmParse    ppGeo("geometry");
-        ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
-        ppGeo.add("coord_sys", 0); //cartesian
-        ppGeo.addarr("prob_lo", std::vector<Real>{LIST_NDIM(cfg.xMin,
-                                                            cfg.yMin,
-                                                            cfg.zMin)});
-        ppGeo.addarr("prob_hi", std::vector<Real>{LIST_NDIM(cfg.xMax,
-                                                            cfg.yMax,
-                                                            cfg.zMax)});
-
-        // TODO: Check for overflow
-        int  lrefineMax_i = static_cast<int>(cfg.maxFinestLevel);
-        int  nxb_i        = static_cast<int>(nxb_);
-        int  nyb_i        = static_cast<int>(nyb_);
-        int  nzb_i        = static_cast<int>(nzb_);
-        int  nCellsX_i    = static_cast<int>(nxb_ * cfg.nBlocksX);
-        int  nCellsY_i    = static_cast<int>(nyb_ * cfg.nBlocksY);
-        int  nCellsZ_i    = static_cast<int>(nzb_ * cfg.nBlocksZ);
-
-        amrex::ParmParse ppAmr("amr");
-
-        ppAmr.add("v", 0); //verbosity
-        //ppAmr.add("regrid_int",nrefs); //how often to refine
-        ppAmr.add("max_level", lrefineMax_i - 1); //0-based
-        ppAmr.addarr("n_cell", std::vector<int>{LIST_NDIM(nCellsX_i,
-                                                          nCellsY_i,
-                                                          nCellsZ_i)});
-
-        //octree mode:
-        ppAmr.add("max_grid_size_x",    nxb_i);
-        ppAmr.add("max_grid_size_y",    nyb_i);
-        ppAmr.add("max_grid_size_z",    nzb_i);
-        ppAmr.add("blocking_factor_x",  nxb_i * 2);
-        ppAmr.add("blocking_factor_y",  nyb_i * 2);
-        ppAmr.add("blocking_factor_z",  nzb_i * 2);
-        ppAmr.add("refine_grid_layout", 0);
-        ppAmr.add("grid_eff",           1.0);
-        ppAmr.add("n_proper",           1);
-        ppAmr.add("n_error_buf",        0);
-        ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax_i, 2));
-
-        // Communicate to the config singleton that its contents have been
-        // consumed and that other code should not be able to access it.
-        cfg.clear();
-
-#ifdef GRID_LOG
-        Logger::instance().log("[GridAmrex] Loaded configuration values into AMReX");
-#endif
-    }
-
     amrex::Initialize(MPI_COMM_WORLD);
 
     // Tell Logger to get its rank once AMReX has initialized MPI, but
     // before we log anything
     Logger::instance().acquireRank();
+
+    // Communicate to the config singleton that its contents have been
+    // consumed and that other code should not be able to access it.
+    //
+    // Access config singleton within limited local scope so that it can't
+    // be used accidentally after clearing in this block.
+    {
+        GridConfiguration&   cfg = GridConfiguration::instance();
+
+        if (!cfg.initBlock) {
+            throw std::logic_error("[GridAmrex::GridAmrex] Null initBlock given");
+        } else if (!cfg.errorEstimation) {
+            throw std::logic_error("[GridAmrex::GridAmrex] Null errorEst given");
+        }
+
+        // nGuard and nCcVars owned by AmrCoreAmrex still
+        amrcore_ = new AmrCoreAmrex(cfg.nGuard, cfg.nCcVars,
+                                    cfg.initBlock, 
+                                    cfg.nDistributorThreads_init,
+                                    cfg.nCpuThreads_init,
+                                    cfg.errorEstimation);
+        cfg.clear();
+    }
+
     Logger::instance().log("[GridAmrex] Initialized Grid.");
 }
 
@@ -114,7 +76,9 @@ GridAmrex::~GridAmrex(void) {
     Logger::instance().log("[GridAmrex] Finalized Grid.");
 }
 
-/** Destroy amrcore_. initDomain can be called again if desired.
+/**
+  *  Destroy the domain.  It is a logical error to call this if initDomain has
+  *  not already been called or to call it multiple times.
   */
 void  GridAmrex::destroyDomain(void) {
     if (amrcore_) {
@@ -129,34 +93,10 @@ void  GridAmrex::destroyDomain(void) {
  * initDomain creates the domain in AMReX. It creates amrcore_ and then
  * calls amrex::AmrCore::InitFromScratch.
  *
- * @param initBlock Function pointer to the simulation's initBlock routine.
- * @param nDistributorThreads number of threads to activate in distributor
- * @param nRuntimeThreads     number of threads to use to apply IC
- * @param errorEst            the routine to use estimate errors as part
- *                            of refining blocks
+ * @todo  This routine shall throw an error if it is called more than once.
  */
-void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
-                           const unsigned int nDistributorThreads,
-                           const unsigned int nRuntimeThreads,
-                           ERROR_ROUTINE errorEst) {
-    if (amrcore_) {
-        throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
-                               " already called");
-    } else if (!initBlock) {
-        throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
-                               " pointer given");
-    }
+void GridAmrex::initDomain(void) {
     Logger::instance().log("[GridAmrex] Initializing domain...");
-
-    amrcore_ = new AmrCoreAmrex(nGuard_tmp_, nCcVars_tmp_,
-                                initBlock, nDistributorThreads,
-                                nRuntimeThreads, errorEst);
-    // AmrCoreAmrex owns nGuard and nCcVars, not this class.  Therefore, we
-    // set to nonsensical values the temporary data members used to configure
-    // AmrCoreAmrex once they are consumed.
-    //
-    // We cannot, however, do this just yet since some tests are calling
-    // initDomain multiple times within one execution.
 
     amrcore_->InitFromScratch(0.0_wp);
 

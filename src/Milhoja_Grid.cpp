@@ -12,7 +12,7 @@ namespace milhoja {
     typedef GridAmrex GridBackend;
 }
 #else
-#error "Need to specify Grid implementation with GRID_[NAME] macro"
+#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
 #endif
 
 namespace milhoja {

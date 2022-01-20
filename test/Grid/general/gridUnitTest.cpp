@@ -12,8 +12,6 @@
 #include <Milhoja_Tile.h>
 
 #include "Simulation.h"
-#include "setInitialConditions.h"
-#include "errorEstMaximal.h"
 #include "Flash_par.h"
 
 using namespace milhoja;
@@ -392,16 +390,14 @@ TEST(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-    try {
-        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                        rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                        rp_Simulation::N_THREADS_FOR_IC,
-                        Simulation::errorEstMaximal);
-    } catch (const std::logic_error& e) {
-        caughtErrors++;
-    }
+//  TODO: Reimplement once initDomain interface finalized (Issue #45).
+//    try {
+//        grid.initDomain();
+//    } catch (const std::logic_error& e) {
+//        caughtErrors++;
+//    }
 
-    EXPECT_EQ( caughtErrors, 2);
+    EXPECT_EQ( caughtErrors, 1);
 }
 
 TEST(GridUnitTest,PlotfileOutput){

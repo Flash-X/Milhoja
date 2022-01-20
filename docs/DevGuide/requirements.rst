@@ -9,6 +9,29 @@ implementation ideas or details.
 System
 ******
 
+Grid Configuration
+******************
+
+1. Calling code shall be allowed to call ``load`` at most one time.  If any
+configuration value stored in the configuration singleton when ``load`` is
+called is invalid, then ``load`` shall throw an exception.
+
+2. Calling code shall be allowed to call ``clear`` at most one time.  After
+``clear`` is called, an exception shall be thrown if calling code attempts to
+access the configuration singleton again or to call ``load``.  It shall be
+acceptable for calling code to call ``clear`` without calling ``load``.
+
+3. All Grid backend implementations shall call the configuration singleton's
+``clear`` function immediately after consuming all configuration values.  It is
+advised that the singleton, its values, and its ``clear`` function all be
+accessed within a local block so that code in the same function cannot
+accidentally access the singleton after ``clear`` is called.
+
+The requirements imply that calling code could call ``load`` and terminate
+without calling ``clear`` if the Grid singleton is never instantiated.  This is
+acceptable since there is little risk of using the configuration values
+inappropriately to the detriment of Grid execution.
+
 Grid
 ****
 

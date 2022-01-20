@@ -46,3 +46,35 @@ destroyDomain.
 
 11. The compiler dictates when the Grid and GridConfiguration singletons are
 destroyed.
+
+AMReX Backend
+-------------
+
+The ownership of Grid unit configuration values is split between AMReX and the
+GridAmrex class.  This division of ownership is motivated by the goal to only
+have configuration values stored in one location so that synchronization of
+values across multiple variables is not an issue.  To this end, if AMReX is
+configured with a value and has a getter for accessing the value, then AMReX
+owns the value.  GridAmrex generally owns values that are used by the AmrCore
+member functions that it overrides to construct and manage MultiFabs.
+
+The caching of configuration values owned by AMReX in GridAmrex is considered
+preoptimization presently and has therefore been avoided.
+
+==============   =====    =========
+Configuration    AMReX    GridAmrex
+==============   =====    =========
+(xMin, xMax)     X
+(yMin, yMax)     X
+(zMin, zMax)     X
+maxFinestLevel   X
+nxb                       X
+nyb                       X
+nzb                       X
+nGuard                    X
+nCcVars                   X
+nBlocksX         X 
+nBlocksY         X 
+nBlocksZ         X 
+==============   =====    =========
+

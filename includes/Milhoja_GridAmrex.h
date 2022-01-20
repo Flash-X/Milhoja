@@ -37,10 +37,7 @@ public:
     GridAmrex& operator=(GridAmrex&&) = delete;
 
     // Pure virtual function overrides.
-    void         initDomain(ACTION_ROUTINE initBlock,
-                            const unsigned int nDistributorThreads,
-                            const unsigned int nRuntimeThreads,
-                            ERROR_ROUTINE errorEst) override;
+    void         initDomain(void) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;
     void         fillGuardCells() override;
@@ -99,13 +96,6 @@ private:
     // Grid configuration values owned by this class.
     // These cannot be obtained from AMReX and are not needed by AmrCore.
     const unsigned int    nxb_, nyb_, nzb_;
-
-    // nGuard and nCcVars are owned by AmrCoreAmrex.  We have to temporarily
-    // store the configuration values given to this class so that this class can
-    // later pass them to AmrCoreAmrex when it is instantiated.  These should not
-    // be used for any other purpose.
-    const unsigned int    nGuard_tmp_;
-    const unsigned int    nCcVars_tmp_;
 };
 
 }

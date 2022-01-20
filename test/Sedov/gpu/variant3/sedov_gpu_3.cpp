@@ -18,7 +18,6 @@
 #include "ProcessTimer.h"
 #include "loadGridConfiguration.h"
 #include "DataPacket_Hydro_gpu_3.h"
-#include "errorEstBlank.h"
 
 #include "Flash_par.h"
 
@@ -72,10 +71,7 @@ int main(int argc, char* argv[]) {
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     Timer::start("Set initial conditions");
-    grid.initDomain(Simulation::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstBlank);
+    grid.initDomain();
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");

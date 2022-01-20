@@ -1,16 +1,20 @@
 #include <gtest/gtest.h>
 
+#include <Milhoja_Logger.h>
 #include <Milhoja_Grid.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_edge.h>
+#include <Milhoja_FArray1D.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_Tile.h>
 #include <Milhoja_RuntimeAction.h>
 #include <Milhoja_Runtime.h>
-#include <Milhoja_Logger.h>
 
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
-#include "errorEstBlank.h"
 
 #if defined(MILHOJA_USE_CUDA_BACKEND)
 #include "DataPacket_gpu_1_stream.h"
@@ -26,15 +30,31 @@ namespace {
 class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
-        Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                                    rp_Simulation::N_THREADS_FOR_IC,
-                                    Simulation::errorEstBlank);
+        // Each test can use the Grid structure determined by initDomain when
+        // this application is started.  However, each test can overwrite the
+        // ICs during execution.  Therefore, we blindly reset the ICs each time.
+        Grid&    grid = Grid::instance();
+        for (int level = 0; level<=grid.getMaxLevel(); ++level) {
+            for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+                std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+
+                const IntVect       loGC  = tileDesc->loGC();
+                const IntVect       hiGC  = tileDesc->hiGC();
+                FArray4D            U     = tileDesc->data();
+
+                FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, level,
+                                                      loGC, hiGC); 
+                FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, level,
+                                                      loGC, hiGC); 
+
+                StaticPhysicsRoutines::setInitialConditions(loGC, hiGC,
+                                                            xCoords, yCoords,
+                                                            U);
+            }
+        }
     }
 
-    ~TestRuntime(void) {
-        Grid::instance().destroyDomain();
-    }
+    ~TestRuntime(void) { }
 
     void checkSolution(void) {
         RuntimeAction    computeError;
