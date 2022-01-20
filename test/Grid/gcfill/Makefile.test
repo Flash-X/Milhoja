@@ -1,0 +1,17 @@
+BINARYNAME          = test_grid_gcfill.x
+
+TESTGRIDDIR         = $(BASEDIR)/test/Grid
+TESTDIR             = $(TESTGRIDDIR)/gcfill
+TESTBASEDIR         = $(BASEDIR)/test/Base
+
+CXXFLAGS_TEST_DEBUG = -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_PROD  = -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+LDFLAGS_TEST        = $(LIB_GTEST)
+
+SRCS_TEST = \
+    $(TESTDIR)/runGridTest.cpp \
+    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTBASEDIR)/sim_getVariableNames.cpp \
+    $(TESTDIR)/setInitialInteriorTest.cpp \
+    $(TESTGRIDDIR)/errorEstMaximal.cpp
+

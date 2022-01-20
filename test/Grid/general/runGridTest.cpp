@@ -7,6 +7,8 @@
 #include <Milhoja_Grid.h>
 
 #include "Base.h"
+#include "setInitialConditions.h"
+#include "errorEstMaximal.h"
 #include "Flash_par.h"
 
 int main(int argc, char* argv[]) {
@@ -15,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    milhoja::Logger::instantiate("GridUnitTest.log",
+    milhoja::Logger::instantiate("GridGeneralUnitTest.log",
                                  GLOBAL_COMM, LEAD_RANK);
 
     // Access config singleton within limited local scope so that it can't be
@@ -41,6 +43,15 @@ int main(int argc, char* argv[]) {
         milhoja::Grid::instantiate();
     }
 
-    return RUN_ALL_TESTS();
+    milhoja::Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
+                                         rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
+                                         rp_Simulation::N_THREADS_FOR_IC,
+                                         Simulation::errorEstMaximal);
+
+    int exitCode = RUN_ALL_TESTS();
+
+    milhoja::Grid::instance().destroyDomain();
+
+    return exitCode;
 }
 
