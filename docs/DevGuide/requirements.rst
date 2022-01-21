@@ -9,6 +9,18 @@ implementation ideas or details.
 System
 ******
 
+The design philosophy for configuring the various components used in the system
+is to
+* avoid as much as possible having multiple copies of any single value,
+* avoid the notion of runtime parameters,
+* keep the configuration systems as minimal and simple as possible, and
+* grow the complexity of configuration systems only as needed as new backends or
+  features are added.
+
+In particular, calling code is asked to simply pass configuration values to this
+system.  Therefore, it is irrelevant from the point of view of this library if
+these values were fixed at compile time or loaded/determined dynamically.
+
 Grid Configuration
 ******************
 

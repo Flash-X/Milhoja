@@ -8,11 +8,13 @@
 #ifndef MILHOJA_GRID_AMREX_H__
 #define MILHOJA_GRID_AMREX_H__
 
+#include <AMReX_AmrCore.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_PhysBCFunct.H>
 
 #include "Milhoja.h"
 #include "Milhoja_Grid.h"
-#include "Milhoja_AmrCoreAmrex.h"
+#include "Milhoja_actionRoutine.h"
 
 #ifndef MILHOJA_GRID_AMREX
 #error "This file need not be compiled if the AMReX backend isn't used"
@@ -25,7 +27,8 @@ namespace milhoja {
   *
   * Grid derived class implemented with AMReX.
   */
-class GridAmrex : public Grid {
+class GridAmrex : public Grid,
+                  private amrex::AmrCore {
 public:
     ~GridAmrex(void);
 
@@ -36,12 +39,13 @@ public:
     GridAmrex& operator=(const GridAmrex&) = delete;
     GridAmrex& operator=(GridAmrex&&) = delete;
 
+    //----- GRID OVERRIDES
     // Pure virtual function overrides.
     void         initDomain(void) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;
     void         fillGuardCells() override;
-    void         regrid() override { amrcore_->regrid(0,0.0_wp); }
+    void         regrid() override { amrex::AmrCore::regrid(0, 0.0_wp); }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
@@ -81,21 +85,59 @@ public:
                                  const IntVect& hi,
                                  Real* volPtr) const override;
 
-    // Other public functions
-
 private:
     GridAmrex(void);
 
     // DEV NOTE: needed for polymorphic singleton
     friend Grid& Grid::instance();
 
-    // DEV NOTE: Used mix-in pattern over inheritance so amrcore can be
-    // created/destroyed multiple times in one run.
-    AmrCoreAmrex*      amrcore_;
+    void    fillPatch(amrex::MultiFab& mf, const int level);
 
-    // Grid configuration values owned by this class.
+    std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
+    amrex::Vector<amrex::BCRec>  bcs_; //!< Boundary conditions
+
+    //----- AMRCORE OVERRIDES
+    void MakeNewLevelFromCoarse(int level, amrex::Real time,
+                                const amrex::BoxArray& ba,
+                                const amrex::DistributionMapping& dm) override;
+
+    void RemakeLevel(int level,
+                     amrex::Real time,
+                     const amrex::BoxArray& ba,
+                     const amrex::DistributionMapping& dm) override;
+
+    void ClearLevel(int level) override;
+
+    void MakeNewLevelFromScratch(int level,
+                                 amrex::Real time,
+                                 const amrex::BoxArray& ba,
+                                 const amrex::DistributionMapping& dm) override;
+
+    void ErrorEst(int level,
+                  amrex::TagBoxArray& tags,
+                  amrex::Real time,
+                  int ngrow) override;
+
+    //----- GRID CONFIGURATION VALUES OWNED BY GridAmrex
     // These cannot be obtained from AMReX and are not needed by AmrCore.
     const unsigned int    nxb_, nyb_, nzb_;
+
+    // These cannot be acquired from AMReX and play an important role here in
+    // terms of constructing MultiFabs.
+    //
+    // NOTE: nCcVars_ could be retrieved with nComp() from a MultiFab that
+    // already exists, but this class has to establish the first MultiFab at
+    // some time after construction.
+    //
+    // We would prefer to store these as unsigned int, but AmrCore works with
+    // them as ints.  Therefore, we will eagerly cast and store these results.
+    const int   nGuard_;
+    const int   nCcVars_;
+
+    ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
+    unsigned int   nThreads_initBlock_;  //!< Number of runtime threads to use for computing the ICs
+    unsigned int   nDistributorThreads_initBlock_;  //!< Number of host threads to use for distributing data items for computing the ICs
+    ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
 };
 
 }

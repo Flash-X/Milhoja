@@ -18,7 +18,6 @@ SRCS_BASE       = \
     $(SRCDIR)/Milhoja_GridConfigurationAMReX.cpp \
     $(SRCDIR)/Milhoja_Grid.cpp \
     $(SRCDIR)/Milhoja_GridAmrex.cpp \
-    $(SRCDIR)/Milhoja_AmrCoreAmrex.cpp \
     $(SRCDIR)/Milhoja_Tile.cpp \
     $(SRCDIR)/Milhoja_TileAmrex.cpp \
     $(SRCDIR)/Milhoja_RuntimeElement.cpp \
