@@ -143,10 +143,11 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
 
     //***** ACTION PARALLEL DISTRIBUTOR
-    unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        cpuTeam->enqueue( ti->buildCurrentTile() );
+    for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
+        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+            cpuTeam->enqueue( ti->buildCurrentTile() );
+        }
     }
     cpuTeam->closeQueue(nullptr);
 

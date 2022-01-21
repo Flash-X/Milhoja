@@ -65,6 +65,13 @@ int main(int argc, char* argv[]) {
     Driver::dt      = rp_Simulation::DT_INIT;
     Driver::simTime = rp_Simulation::T_0;
 
+    milhoja::RuntimeAction     initBlock_cpu;
+    initBlock_cpu.name            = "initBlock_cpu";
+    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+    initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+    initBlock_cpu.nTilesPerPacket = 0;
+    initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
+
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
@@ -75,7 +82,7 @@ int main(int argc, char* argv[]) {
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
     Timer::start("Set initial conditions");
-    grid.initDomain();
+    grid.initDomain(initBlock_cpu);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -192,6 +199,7 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    grid.destroyDomain();
 
     return 0;
 }

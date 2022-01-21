@@ -16,8 +16,6 @@ void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataIt
 
     Grid&   grid = Grid::instance();
 
-    // Fill in the GC data as well as we aren't doing a GC fill in any
-    // of these tests
     const IntVect   lo = tileDesc->lo();
     const IntVect   hi = tileDesc->hi();
     FArray4D        f  = tileDesc->data();
@@ -27,6 +25,7 @@ void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataIt
     FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
                         lo, hi); 
 
+    // We intentionally leave the GC unset.
     Real    x = 0.0;
     Real    y = 0.0;
     int     i0 = lo.I();
@@ -38,9 +37,6 @@ void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataIt
                 x = xCoords(i); 
 
                 f(i, j, k, DENS_VAR) = 1.0_wp; 
-
-                // PROBLEM TWO
-                // Approximation is not exact and we know the error term exactly
                 f(i, j, k, ENER_VAR) =   4.0*x*x*x*x - 3.0*x*x*x + 2.0*x*x -     x
                                        -     y*y*y*y + 2.0*y*y*y - 3.0*y*y + 4.0*y 
                                        + 1.0;

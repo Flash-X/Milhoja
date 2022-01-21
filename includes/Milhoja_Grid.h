@@ -18,6 +18,8 @@
 #include "Milhoja_FArray1D.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_TileIter.h"
+#include "Milhoja_actionRoutine.h"
+#include "Milhoja_RuntimeAction.h"
 
 namespace milhoja {
 
@@ -42,7 +44,8 @@ public:
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
-    virtual void initDomain(void) = 0;
+    virtual void initDomain(ACTION_ROUTINE initBlock) = 0;
+    virtual void initDomain(const RuntimeAction& cpuAction) = 0;
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
     virtual void regrid() = 0;

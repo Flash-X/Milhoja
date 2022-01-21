@@ -5,25 +5,35 @@
 #include <Milhoja_Logger.h>
 #include <Milhoja_GridConfiguration.h>
 #include <Milhoja_Grid.h>
+#include <Milhoja_Runtime.h>
 
 #include "Base.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstMaximal.h"
 #include "Flash_par.h"
 
+// TODO: These should probably be runtime parameters at some point.
+constexpr int            N_STREAMS              = 32; 
+constexpr unsigned int   N_THREAD_TEAMS         = 1;
+constexpr unsigned int   N_THREADS_PER_TEAM     = 10;
+constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 0;
+
 int main(int argc, char* argv[]) {
+    using namespace milhoja;
+
     MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
     int        LEAD_RANK   = 0;
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    milhoja::Logger::instantiate("GridGcFillUnitTest.log",
-                                 GLOBAL_COMM, LEAD_RANK);
+    Logger::instantiate("GridGcFillUnitTest.log", GLOBAL_COMM, LEAD_RANK);
+    Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
 
     // Access config singleton within limited local scope so that it can't be
     // used by the rest of the application code outside the block.
     {
-        milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
+        GridConfiguration&   cfg = GridConfiguration::instance();
 
         cfg.xMin                     = rp_Grid::X_MIN;
         cfg.xMax                     = rp_Grid::X_MAX;
@@ -40,21 +50,24 @@ int main(int argc, char* argv[]) {
         cfg.nBlocksY                 = rp_Grid::N_BLOCKS_Y;
         cfg.nBlocksZ                 = rp_Grid::N_BLOCKS_Z;
         cfg.maxFinestLevel           = rp_Grid::LREFINE_MAX;
-        cfg.initBlock                = Simulation::setInitialInteriorTest;
-        cfg.nDistributorThreads_init = rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC;
-        cfg.nCpuThreads_init         = rp_Simulation::N_THREADS_FOR_IC;
         cfg.errorEstimation          = Simulation::errorEstMaximal;
 
         cfg.load();
-
-        milhoja::Grid::instantiate();
     }
+    Grid::instantiate();
 
-    milhoja::Grid::instance().initDomain();
+    RuntimeAction   initBlock_cpu;
+    initBlock_cpu.name = "initBlock_cpu";
+    initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+    initBlock_cpu.nTilesPerPacket = 0;
+    initBlock_cpu.routine         = Simulation::setInitialInteriorTest;
+
+    Grid::instance().initDomain(initBlock_cpu);
 
     int exitCode = RUN_ALL_TESTS();
 
-    milhoja::Grid::instance().destroyDomain();
+    Grid::instance().destroyDomain();
 
     return exitCode;
 }

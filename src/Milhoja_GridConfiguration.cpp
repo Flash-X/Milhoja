@@ -60,14 +60,8 @@ bool GridConfiguration::isValid(void) const {
     } else if ((nBlocksX <= 0) || (nBlocksY <= 0) || (nBlocksZ <= 0)) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid domain block array");
         isValid = false;
-    } else if (!initBlock) {
-        Logger::instance().log("[GridConfiguration::isValid] ERROR - Null initBlock given");
-        isValid = false;
     } else if (!errorEstimation) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Null errorEstimation given");
-        isValid = false;
-    } else if (nDistributorThreads_init <= 0) {
-        Logger::instance().log("[GridConfiguration::isValid] ERROR - nDistributorThreads_init must be positive");
         isValid = false;
     }
 
@@ -90,9 +84,6 @@ void GridConfiguration::clear(void) {
     zMin                     =  1.0;
     zMax                     =  0.0;
     nCcVars                  =  0;
-    initBlock                = nullptr;
-    nCpuThreads_init         =  0;
-    nDistributorThreads_init =  0;
     nxb                      =  0; 
     nyb                      =  0; 
     nzb                      =  0; 

@@ -10,8 +10,10 @@
 #include <Milhoja_macros.h>
 #include <Milhoja_edge.h>
 #include <Milhoja_Tile.h>
+#include <Milhoja_ThreadTeamDataType.h>
 
 #include "Simulation.h"
+#include "setInitialConditions.h"
 #include "Flash_par.h"
 
 using namespace milhoja;
@@ -390,14 +392,26 @@ TEST(GridUnitTest,LogicErrors){
         caughtErrors++;
     }
 
-//  TODO: Reimplement once initDomain interface finalized (Issue #45).
-//    try {
-//        grid.initDomain();
-//    } catch (const std::logic_error& e) {
-//        caughtErrors++;
-//    }
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
 
-    EXPECT_EQ( caughtErrors, 1);
+    try {
+        RuntimeAction   initBlock_cpu;
+        initBlock_cpu.name = "initBlock_cpu";
+        initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
+        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.nTilesPerPacket = 0;
+        initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+
+        grid.initDomain(initBlock_cpu);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
+
+    EXPECT_EQ( caughtErrors, 3);
 }
 
 TEST(GridUnitTest,PlotfileOutput){

@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     Driver::simTime = rp_Simulation::T_0;
 
     Timer::start("Set initial conditions");
-    grid.initDomain();
+    grid.initDomain(Simulation::setInitialConditions_tile_cpu);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -208,6 +208,7 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    grid.destroyDomain();
 
     return 0;
 }

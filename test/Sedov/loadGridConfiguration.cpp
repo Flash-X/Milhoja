@@ -26,9 +26,6 @@ void loadGridConfiguration(void) {
     cfg.nBlocksY                 = rp_Grid::N_BLOCKS_Y;
     cfg.nBlocksZ                 = rp_Grid::N_BLOCKS_Z;
     cfg.maxFinestLevel           = rp_Grid::LREFINE_MAX;
-    cfg.initBlock                = Simulation::setInitialConditions_tile_cpu;
-    cfg.nDistributorThreads_init = rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC;
-    cfg.nCpuThreads_init         = rp_Simulation::N_THREADS_FOR_IC;
     cfg.errorEstimation          = Simulation::errorEstBlank;
 
     cfg.load();

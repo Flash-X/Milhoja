@@ -41,7 +41,8 @@ public:
 
     //----- GRID OVERRIDES
     // Pure virtual function overrides.
-    void         initDomain(void) override;
+    void         initDomain(ACTION_ROUTINE initBlock) override;
+    void         initDomain(const RuntimeAction& cpuAction) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels() override;
     void         fillGuardCells() override;
@@ -118,6 +119,10 @@ private:
                   amrex::Real time,
                   int ngrow) override;
 
+    //----- STATIC STATE VARIABLES
+    static bool    domainInitialized_;
+    static bool    domainDestroyed_;
+
     //----- GRID CONFIGURATION VALUES OWNED BY GridAmrex
     // These cannot be obtained from AMReX and are not needed by AmrCore.
     const unsigned int    nxb_, nyb_, nzb_;
@@ -134,10 +139,10 @@ private:
     const int   nGuard_;
     const int   nCcVars_;
 
-    ACTION_ROUTINE initBlock_; //!< Routine for initialializing data per block
-    unsigned int   nThreads_initBlock_;  //!< Number of runtime threads to use for computing the ICs
-    unsigned int   nDistributorThreads_initBlock_;  //!< Number of host threads to use for distributing data items for computing the ICs
     ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
+
+    ACTION_ROUTINE initBlock_noRuntime_; //!< Temporary cache for setting initial conditions without runtime
+    RuntimeAction  initCpuAction_;       //!< Temporary cache for setting initial conditions with runtime
 };
 
 }

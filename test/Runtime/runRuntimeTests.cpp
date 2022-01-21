@@ -24,19 +24,21 @@ constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296;
 // We need to create our own main for the testsuite since we can only call
 // MPI_Init/MPI_Finalize once per testsuite execution.
 int main(int argc, char* argv[]) {
+    using namespace milhoja;
+
     MPI_Comm   GLOBAL_COMM = MPI_COMM_WORLD;
     int        LEAD_RANK   = 0;
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    milhoja::Logger::instantiate("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
-    milhoja::Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                                  N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+    Logger::instantiate("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
+    Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
 
     // Access config singleton within limited local scope so that it can't be
     // used by the rest of the application code outside the block.
     {
-        milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
+        GridConfiguration&   cfg = GridConfiguration::instance();
 
         cfg.xMin                     = rp_Grid::X_MIN;
         cfg.xMax                     = rp_Grid::X_MAX;
@@ -53,16 +55,21 @@ int main(int argc, char* argv[]) {
         cfg.nBlocksY                 = rp_Grid::N_BLOCKS_Y;
         cfg.nBlocksZ                 = rp_Grid::N_BLOCKS_Z;
         cfg.maxFinestLevel           = rp_Grid::LREFINE_MAX;
-        cfg.initBlock                = ActionRoutines::setInitialConditions_tile_cpu;
-        cfg.nDistributorThreads_init = rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC;
-        cfg.nCpuThreads_init         = rp_Simulation::N_THREADS_FOR_IC;
         cfg.errorEstimation          = Simulation::errorEstBlank;
 
         cfg.load();
     }
 
-    milhoja::Grid::instantiate();
-    milhoja::Grid::instance().initDomain();
+    Grid::instantiate();
+
+    RuntimeAction   initBlock_cpu;
+    initBlock_cpu.name = "initBlock_cpu";
+    initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
+    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+    initBlock_cpu.nTilesPerPacket = 0;
+    initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+
+    Grid::instance().initDomain(initBlock_cpu);
 
     int  rank = -1;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
@@ -75,7 +82,7 @@ int main(int argc, char* argv[]) {
 
     int exitCode = RUN_ALL_TESTS();
 
-    milhoja::Grid::instance().destroyDomain();
+    Grid::instance().destroyDomain();
 
     return exitCode;
 }

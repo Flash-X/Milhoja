@@ -15,11 +15,13 @@
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 #include "Milhoja_TileIterAmrex.h"
-#include "Milhoja_RuntimeAction.h"
-#include "Milhoja_ThreadTeamDataType.h"
-#include "Milhoja_ThreadTeam.h"
+#include "Milhoja_Runtime.h"
 
 namespace milhoja {
+
+//----- STATIC DATA MEMBER DEFAULT VALUES
+bool GridAmrex::domainInitialized_ = false;
+bool GridAmrex::domainDestroyed_   = false;
 
 /**
   * Construct the AMReX Grid backend singleton.  When construction ends,
@@ -38,16 +40,10 @@ GridAmrex::GridAmrex(void)
       nzb_{GridConfiguration::instance().nzb},
       nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
-      initBlock_{GridConfiguration::instance().initBlock},
-      nThreads_initBlock_{GridConfiguration::instance().nCpuThreads_init},
-      nDistributorThreads_initBlock_{GridConfiguration::instance().nDistributorThreads_init},
-      errorEst_{GridConfiguration::instance().errorEstimation}
+      errorEst_{GridConfiguration::instance().errorEstimation},
+      initBlock_noRuntime_{nullptr},
+      initCpuAction_{}
 {
-#ifndef USE_THREADED_DISTRIBUTOR
-      // Override if multithreading is disabled
-      nDistributorThreads_initBlock_ = 1;
-#endif
-
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
@@ -59,6 +55,14 @@ GridAmrex::GridAmrex(void)
 
         cfg.clear();
     }
+
+    // Set nonsensical values so that code will fail in obvious way if this is
+    // accidentally used before initDomain is called.
+    initCpuAction_.name = "initCpuAction_ used in ERROR";
+    initCpuAction_.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    initCpuAction_.nInitialThreads =    0;
+    initCpuAction_.nTilesPerPacket = 1000;
+    initCpuAction_.routine         = nullptr;
 
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
@@ -95,7 +99,10 @@ GridAmrex::GridAmrex(void)
   * having first called destroyDomain.
   */
 GridAmrex::~GridAmrex(void) {
-    destroyDomain();
+    if ((domainInitialized_) && (!domainDestroyed_)) {
+        std::cerr << "[GridAmrex::~GridAmrex] ERROR - domain not destroyed"
+                  << std::endl;
+    }
 
     // AmrCore will finalize only after this destructor runs and the compiler
     // determines when that will happen.  Therefore, we must finalize AMReX here
@@ -112,27 +119,84 @@ GridAmrex::~GridAmrex(void) {
 /**
  *  Destroy the domain.  It is a logical error to call this if initDomain has
  *  not already been called or to call it multiple times.
- *
- * @todo  This routine shall throw an error if it is called more than once.
  */
 void  GridAmrex::destroyDomain(void) {
-    initBlock_                     = nullptr;
-    nThreads_initBlock_            = 0;
-    nDistributorThreads_initBlock_ = 0;
-    errorEst_                      = nullptr;
+    if (!domainInitialized_) {
+        throw std::logic_error("[GridAmrex::destroyDomain] initDomain never called");
+    } else if (domainDestroyed_) {
+        throw std::logic_error("[GridAmrex::destroyDomain] destroyDomain already called");
+    }
+
+    // Set nonsensical value for error estimation routine so that accidental use
+    // of the pointer will fail in obvious way.
+    errorEst_ = nullptr;
+    domainDestroyed_ = true;
+
     Logger::instance().log("[GridAmrex] Destroyed domain.");
 }
 
 /**
  * Set the initial conditions and setup the grid structure so that the initial
- * conditions are resolved in accord with the Grid configuration.
+ * conditions are resolved in accord with the Grid configuration.  This is
+ * executed one block at a time without the runtime.
  *
- * @todo  This routine shall throw an error if it is called more than once.
  */
-void GridAmrex::initDomain(void) {
+void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
+    // domainDestroyed_ => domainInitialized_
+    // Therefore, no need to check domainDestroyed_.
+    if (domainInitialized_) {
+        throw std::logic_error("[GridAmrex::initDomain] initDomain already called");
+    } else if (!initBlock) {
+        throw std::invalid_argument("[GridAmrex::initDomain] null initBlock pointer");
+    }
+
+    initBlock_noRuntime_ = initBlock;
     InitFromScratch(0.0_wp);
+    initBlock_noRuntime_ = nullptr;
+
+    domainInitialized_ = true;
+
+    std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
+    for(unsigned int level=0; level<=finest_level; ++level) {
+        nGlobalBlocks += unk_[level].size();
+    }
+
+    std::string msg = "[GridAmrex] Initialized domain with " +
+                      std::to_string(nGlobalBlocks) +
+                      " total blocks.";
+    Logger::instance().log(msg);
+}
+
+/**
+ * Set the initial conditions and setup the grid structure so that the initial
+ * conditions are resolved in accord with the Grid configuration.  This is
+ * carried out by the runtime using the CPU-only thread team configuration.
+ */ 
+void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
+    Logger::instance().log("[GridAmrex] Initializing domain with runtime...");
+
+    // domainDestroyed_ => domainInitialized_
+    // Therefore, no need to check domainDestroyed_.
+    if (domainInitialized_) {
+        throw std::logic_error("[GridAmrex::initDomain] initDomain already called");
+    }
+
+    // Cache given action so that AmrCore routines can access action.
+    initCpuAction_ = cpuAction;
+
+    InitFromScratch(0.0_wp);
+
+    // Set nonsensical values so that code will fail in obvious way if this is
+    // accidentally used in the future.
+    initCpuAction_.name = "initCpuAction_ used in ERROR";
+    initCpuAction_.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    initCpuAction_.nInitialThreads =    0;
+    initCpuAction_.nTilesPerPacket = 1000;
+    initCpuAction_.routine         = nullptr;
+
+    domainInitialized_ = true;
 
     std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
     for(unsigned int level=0; level<=finest_level; ++level) {
@@ -230,7 +294,10 @@ RealVect    GridAmrex::getProbHi() const {
   * @return Maximum (finest) refinement level of simulation.
   */
 unsigned int GridAmrex::getMaxRefinement() const {
-    return max_level;
+    if (max_level < 0) {
+        throw std::logic_error("[GridAmrex::getMaxRefinement] max_level negative");
+    }
+    return static_cast<unsigned int>(max_level);
 }
 
 /**
@@ -239,7 +306,10 @@ unsigned int GridAmrex::getMaxRefinement() const {
   * @return The max level of existing blocks (0 is coarsest).
   */
 unsigned int GridAmrex::getMaxLevel() const {
-    return finest_level;
+    if (finest_level < 0) {
+        throw std::logic_error("[GridAmrex::getMaxLevel] finest_level negative");
+    }
+    return static_cast<unsigned int>(finest_level);
 }
 
 /**
@@ -307,7 +377,6 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
     return std::unique_ptr<TileIter>{new TileIterAmrex(unk_[level], level)};
 }
 
-
 /**
   * getDeltas gets the cell size for a given level.
   *
@@ -322,7 +391,7 @@ RealVect    GridAmrex::getDeltas(const unsigned int level) const {
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
   *
   * @param axis Axis of desired face, returns the area of the lo side.
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return area of face (Real)
   */
@@ -576,35 +645,20 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
     unk_[level].setVal(0.0_wp);
 
-    if (nThreads_initBlock_ <= 0) {
-        throw std::invalid_argument("[GridAmrex::MakeNewLevelFromScratch] "
-                                    "N computation threads must be positive");
-    } else if (nDistributorThreads_initBlock_ != 1) {
-        throw std::invalid_argument("[GridAmrex::MakeNewLevelFromScratch] "
-                                    "Only one distributor thread presently allowed");
-    } else if (nDistributorThreads_initBlock_ > nThreads_initBlock_) {
-        throw std::invalid_argument("[GridAmrex::MakeNewLevelFromScratch] "
-                                    "More distributor threads than computation threads");
+    if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
+        // Apply initial conditions using the runtime
+        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch", initCpuAction_);
+    } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
+        // Apply initial conditions using just the iterator
+        for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {
+            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+            initBlock_noRuntime_(0, tileDesc.get());
+        }
+    } else if ((!initBlock_noRuntime_) && (!initCpuAction_.routine)) {
+        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] No IC routine given");
+    } else {
+        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
-
-    RuntimeAction    action;
-    action.name = "initBlock";
-    action.nInitialThreads = nThreads_initBlock_ - nDistributorThreads_initBlock_;
-    action.teamType = ThreadTeamDataType::BLOCK;
-    action.routine = initBlock_;
-    ThreadTeam  team(nThreads_initBlock_, 1);
-    team.startCycle(action, "Cpu");
-
-    // Initalize simulation block data in unk_[lev].
-    Grid& grid = Grid::instance();
-    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        team.enqueue( ti->buildCurrentTile() );
-    }
-    team.closeQueue(nullptr);
-    team.increaseThreadCount(nDistributorThreads_initBlock_);
-    team.wait();
-
-    // DO A GC FILL HERE?
 
 #ifdef GRID_LOG
     msg =    "[GridAmrex::MakeNewLevelFromScratch] Created level "
@@ -656,7 +710,7 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
   *
   * \todo Use tiling here?
   *
-  * \param lev Level being checked
+  * \param level Level being checked
   * \param tags Tags for Box array
   * \param time Simulation time
   * \param ngrow ngrow

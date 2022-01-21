@@ -54,11 +54,6 @@ public:
     // Specification of Problem Physical Variables
     unsigned int                    nCcVars;
 
-    // Initial Conditions
-    milhoja::ACTION_ROUTINE         initBlock;
-    unsigned int                    nCpuThreads_init;
-    unsigned int                    nDistributorThreads_init;
-
     // Boundary Conditions
 
     // Specification of Domain Decomposition
