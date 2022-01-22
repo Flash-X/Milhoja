@@ -78,10 +78,17 @@ void GridConfigurationAMReX::load(void) const {
     ppAmr.add("n_error_buf",        0);
     ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax_i, 2));
 
+    // DEV_GUIDE: Satisfy GridConfiguration requirements
+    int     wasInitialized = 0;
+    MPI_Initialized(&wasInitialized);
+    if (!wasInitialized) {
+        throw std::logic_error("[GridConfigurationAMReX::load] Please initialize MPI first");
+    }
+
     // It appears that AMReX must be initialized before the derived AmrCore
     // class is instantiated.  Therefore, we must perform the initialization of
     // AMReX here.
-    amrex::Initialize(MPI_COMM_WORLD);
+    amrex::Initialize(mpiComm);
 
     // Tell Logger to get its rank once AMReX has initialized MPI, but
     // before we log anything

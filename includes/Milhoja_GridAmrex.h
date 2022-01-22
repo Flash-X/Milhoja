@@ -40,6 +40,8 @@ public:
     GridAmrex& operator=(GridAmrex&&) = delete;
 
     //----- GRID OVERRIDES
+    void  finalize(void) override;
+
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock) override;
     void         initDomain(const RuntimeAction& cpuAction) override;

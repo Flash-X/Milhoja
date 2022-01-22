@@ -387,7 +387,7 @@ TEST(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
     try {
-        Grid::instantiate();
+        Grid::initialize();
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }

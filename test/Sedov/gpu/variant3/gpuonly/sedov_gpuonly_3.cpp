@@ -27,6 +27,7 @@ constexpr int   TIMER_RANK = LEAD_RANK;
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
+    MPI_Init(&argc, &argv);
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
@@ -214,6 +215,9 @@ int main(int argc, char* argv[]) {
     // The singletons are finalized automatically when the program is
     // terminating.
     grid.destroyDomain();
+    grid.finalize();
+
+    MPI_Finalize();
 
     return 0;
 }

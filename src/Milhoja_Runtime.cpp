@@ -90,7 +90,7 @@ Runtime::Runtime(void)
  * \return 
  */
 Runtime::~Runtime(void) {
-    Logger::instance().log("[Runtime] Finalizing...");
+    Logger::instance().log("[Runtime] Terminating...");
 
     for (unsigned int i=0; i<nTeams_; ++i) {
         delete teams_[i];
@@ -101,7 +101,7 @@ Runtime::~Runtime(void) {
 
     instantiated_ = false;
 
-    Logger::instance().log("[Runtime] Finalized");
+    Logger::instance().log("[Runtime] Destroyed");
 }
 
 /**

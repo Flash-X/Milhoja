@@ -30,7 +30,7 @@ namespace milhoja {
   */
 class Grid {
 public:
-    virtual ~Grid(void) { instantiated_ = false; }
+    virtual ~Grid(void) {}
 
     Grid(Grid&) = delete;
     Grid(const Grid&) = delete;
@@ -39,8 +39,9 @@ public:
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
 
-    static Grid& instance(void);
-    static void  instantiate(void);
+    static  Grid& instance(void);
+    static  void  initialize(void);
+    virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
@@ -102,8 +103,9 @@ public:
 
 protected:
     Grid(void) {}
-    static bool instantiated_; //!< Track if singleton has been instantiated.
 
+    static bool initialized_;  //!< True if initialize has been called
+    static bool finalized_;    //!< True if finalize has been called
 };
 
 }

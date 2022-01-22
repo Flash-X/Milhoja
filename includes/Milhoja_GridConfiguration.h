@@ -28,6 +28,8 @@
  * \todo Add in boundary conditions
  */
 
+#include <mpi.h>
+
 #include "Milhoja_real.h"
 #include "Milhoja_actionRoutine.h"
 
@@ -64,6 +66,9 @@ public:
     // Adaptive Mesh Refinement
     unsigned int                    maxFinestLevel;
     milhoja::ERROR_ROUTINE          errorEstimation;
+
+    // MPI
+    MPI_Comm                        mpiComm;
 
 protected:
     GridConfiguration(void);

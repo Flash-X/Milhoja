@@ -32,15 +32,15 @@ constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 
 int main(int argc, char* argv[]) {
     // TODO: Add in error handling code
+    MPI_Init(&argc, &argv);
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME,
-                                 GLOBAL_COMM, LOG_RANK);
+    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME, GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Grid_init
     loadGridConfiguration();
-    milhoja::Grid::instantiate();
+    milhoja::Grid::initialize();
 
     // Analogous to calling IO_init
     Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     Driver::simTime = rp_Simulation::T_0;
 
     Timer::start("Set initial conditions");
-    grid.initDomain();
+    grid.initDomain(Simulation::setInitialConditions_tile_cpu);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -215,6 +215,10 @@ int main(int argc, char* argv[]) {
     //----- CLEAN-UP
     // The singletons are finalized automatically when the program is
     // terminating.
+    grid.destroyDomain();
+    grid.finalize();
+
+    MPI_Finalize();
 
     return 0;
 }

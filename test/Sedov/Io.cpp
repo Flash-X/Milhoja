@@ -151,7 +151,7 @@ Io::Io(void)
  * Clean-up the IO unit.
  */
 Io::~Io(void) {
-    milhoja::Logger::instance().log("[IO] Finalizing...");
+    milhoja::Logger::instance().log("[IO] Terminating...");
 
     if (intQuantities_mass_) {
         delete [] intQuantities_mass_;
@@ -198,7 +198,7 @@ Io::~Io(void) {
         globalIntQuantities_ = nullptr;
     }
 
-    milhoja::Logger::instance().log("[IO] Finalized");
+    milhoja::Logger::instance().log("[IO] Destroyed");
 
     intQuantitiesFile_ = "";
     comm_ = MPI_COMM_NULL;

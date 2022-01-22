@@ -10,9 +10,15 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
+    MPI_Init(&argc, &argv);
+
     milhoja::Logger::instantiate("RuntimeTest.log",
                                  GLOBAL_COMM, LEAD_RANK);
 
-    return RUN_ALL_TESTS();
+    int exitCode = RUN_ALL_TESTS();
+
+    MPI_Finalize();
+
+    return exitCode;
 }
 

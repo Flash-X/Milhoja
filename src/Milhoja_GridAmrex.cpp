@@ -99,21 +99,44 @@ GridAmrex::GridAmrex(void)
   * having first called destroyDomain.
   */
 GridAmrex::~GridAmrex(void) {
-    if ((domainInitialized_) && (!domainDestroyed_)) {
-        std::cerr << "[GridAmrex::~GridAmrex] ERROR - domain not destroyed"
+    Logger::instance().log("[GridAmrex] Terminating...");
+
+    if ((initialized_) && (!finalized_)) {
+        std::cerr << "[GridAmrex::~GridAmrex] ERROR - Grid not finalized"
                   << std::endl;
     }
 
-    // AmrCore will finalize only after this destructor runs and the compiler
-    // determines when that will happen.  Therefore, we must finalize AMReX here
-    // and need to clean-up manually before doing so.  Else, the automatic
-    // clean-up occurs after AMReX is finalized, which results in runtime
-    // failures.
-    std::vector<amrex::MultiFab>().swap(unk_);
+    Logger::instance().log("[GridAmrex] Destroyed");
+}
 
+/**
+ *  Finalize the Grid singleton by cleaning up all AMReX resources and
+ *  finalizing AMReX.  This must be called before MPI is finalized.
+ */
+void  GridAmrex::finalize(void) {
+    // We need to do error checking explicitly upfront rather than wait for the
+    // Grid base implementation to do so; else, we would finalize AMReX twice.
+    if ((domainInitialized_) && (!domainDestroyed_)) {
+        throw std::logic_error("[GridAmrex::finalize] Domain not destroyed");
+    } else if (!initialized_) {
+        throw std::logic_error("[GridAmrex::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[GridAmrex::finalize] Already finalized");
+    }
+
+    Logger::instance().log("[GridAmrex] Finalizing ...");
+
+    // Clean-up all AMReX structures before finalization.
+    std::vector<amrex::MultiFab>().swap(unk_);
+    
+    // This is the ugliest part of the multiple inheritance design of this class
+    // because we finalize AMReX before AmrCore is destroyed, which occurs
+    // whenever the compiler decides to destroy the Grid backend singleton.
     amrex::Finalize();
 
-    Logger::instance().log("[GridAmrex] Finalized Grid.");
+    Grid::finalize();
+
+    Logger::instance().log("[GridAmrex] Finalized");
 }
 
 /**
@@ -142,8 +165,6 @@ void  GridAmrex::destroyDomain(void) {
  *
  */
 void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
-    Logger::instance().log("[GridAmrex] Initializing domain...");
-
     // domainDestroyed_ => domainInitialized_
     // Therefore, no need to check domainDestroyed_.
     if (domainInitialized_) {
@@ -151,6 +172,8 @@ void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     } else if (!initBlock) {
         throw std::invalid_argument("[GridAmrex::initDomain] null initBlock pointer");
     }
+
+    Logger::instance().log("[GridAmrex] Initializing domain...");
 
     initBlock_noRuntime_ = initBlock;
     InitFromScratch(0.0_wp);
@@ -175,13 +198,13 @@ void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
  * carried out by the runtime using the CPU-only thread team configuration.
  */ 
 void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
-    Logger::instance().log("[GridAmrex] Initializing domain with runtime...");
-
     // domainDestroyed_ => domainInitialized_
     // Therefore, no need to check domainDestroyed_.
     if (domainInitialized_) {
         throw std::logic_error("[GridAmrex::initDomain] initDomain already called");
     }
+
+    Logger::instance().log("[GridAmrex] Initializing domain with runtime...");
 
     // Cache given action so that AmrCore routines can access action.
     initCpuAction_ = cpuAction;
