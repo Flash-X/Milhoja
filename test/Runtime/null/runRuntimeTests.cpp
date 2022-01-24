@@ -12,12 +12,22 @@ int main(int argc, char* argv[]) {
 
     MPI_Init(&argc, &argv);
 
-    milhoja::Logger::initialize("RuntimeTest.log",
-                                GLOBAL_COMM, LEAD_RANK);
+    int     exitCode = 1;
+    try {
+        milhoja::Logger::initialize("RuntimeTest.log",
+                                    GLOBAL_COMM, LEAD_RANK);
 
-    int exitCode = RUN_ALL_TESTS();
+        exitCode = RUN_ALL_TESTS();
 
-    milhoja::Logger::instance().finalize();
+        milhoja::Logger::instance().finalize();
+    } catch(const std::exception& e) {
+        std::cerr << "FAILURE - Runtime/null - " << e.what() << std::endl;
+        return 111;
+    } catch(...) {
+        std::cerr << "FAILURE - Runtime::null - Exception of unexpected type caught"
+                  << std::endl;
+        return 222;
+    }
 
     MPI_Finalize();
 

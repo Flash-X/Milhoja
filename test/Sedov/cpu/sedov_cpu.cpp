@@ -29,181 +29,189 @@ constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
 constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 
 int main(int argc, char* argv[]) {
-    // TODO: Add in error handling code
     MPI_Init(&argc, &argv);
-
-    //----- MIMIC Driver_init
-    // Analogous to calling Log_init
-    milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME,
-                                GLOBAL_COMM, LOG_RANK);
-
-    // Analogous to calling Orchestration_init
-    milhoja::Runtime::initialize(rp_Runtime::N_THREAD_TEAMS, 
-                                 rp_Runtime::N_THREADS_PER_TEAM,
-                                 rp_Runtime::N_STREAMS,
-                                 rp_Runtime::MEMORY_POOL_SIZE_BYTES);
-
-    // Analogous to calling Grid_init
-    loadGridConfiguration();
-    milhoja::Grid::initialize();
-
-    // Analogous to calling IO_init
-    Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                    GLOBAL_COMM, IO_RANK);
-
-    // Analogous to calling sim_init
-    std::vector<std::string>  variableNames = sim::getVariableNames();
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
-    //----- MIMIC Grid_initDomain
-    Io&                      io      = Io::instance();
-    milhoja::Grid&           grid    = milhoja::Grid::instance();
-    milhoja::Logger&         logger  = milhoja::Logger::instance();
-    milhoja::Runtime&        runtime = milhoja::Runtime::instance();
+    try {
+        //----- MIMIC Driver_init
+        // Analogous to calling Log_init
+        milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME,
+                                    GLOBAL_COMM, LOG_RANK);
 
-    Driver::dt      = rp_Simulation::DT_INIT;
-    Driver::simTime = rp_Simulation::T_0;
+        // Analogous to calling Orchestration_init
+        milhoja::Runtime::initialize(rp_Runtime::N_THREAD_TEAMS, 
+                                     rp_Runtime::N_THREADS_PER_TEAM,
+                                     rp_Runtime::N_STREAMS,
+                                     rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
-    milhoja::RuntimeAction     initBlock_cpu;
-    initBlock_cpu.name            = "initBlock_cpu";
-    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
-    initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-    initBlock_cpu.nTilesPerPacket = 0;
-    initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
+        // Analogous to calling Grid_init
+        loadGridConfiguration();
+        milhoja::Grid::initialize();
 
-    // This only makes sense if the iteration is over LEAF blocks.
-    milhoja::RuntimeAction     computeIntQuantitiesByBlk;
-    computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
-    computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-    computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-    computeIntQuantitiesByBlk.routine         
-        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
+        // Analogous to calling IO_init
+        Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
+                        GLOBAL_COMM, IO_RANK);
 
-    Timer::start("Set initial conditions");
-    grid.initDomain(initBlock_cpu);
-    Timer::stop("Set initial conditions");
+        // Analogous to calling sim_init
+        std::vector<std::string>  variableNames = sim::getVariableNames();
 
-    Timer::start("computeLocalIQ");
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
-    Timer::stop("computeLocalIQ");
+        //----- MIMIC Grid_initDomain
+        Io&                      io      = Io::instance();
+        milhoja::Grid&           grid    = milhoja::Grid::instance();
+        milhoja::Logger&         logger  = milhoja::Logger::instance();
+        milhoja::Runtime&        runtime = milhoja::Runtime::instance();
 
-    //----- OUTPUT RESULTS TO FILES
-    // Compute global integral quantities via DATA MOVEMENT
-    Timer::start("Reduce/Write");
-    io.reduceToGlobalIntegralQuantities();
-    io.writeIntegralQuantities(Driver::simTime);
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
-    Timer::stop("Reduce/Write");
+        Driver::dt      = rp_Simulation::DT_INIT;
+        Driver::simTime = rp_Simulation::T_0;
 
-    //----- MIMIC Driver_evolveFlash
-    milhoja::RuntimeAction     hydroAdvance;
-    hydroAdvance.name            = "Advance Hydro Solution";
-    hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
-    hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-    hydroAdvance.nTilesPerPacket = 0;
-    hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
+        milhoja::RuntimeAction     initBlock_cpu;
+        initBlock_cpu.name            = "initBlock_cpu";
+        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+        initBlock_cpu.nTilesPerPacket = 0;
+        initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
-                        N_DIST_THREADS, 0,
-                        hydroAdvance.nInitialThreads,
-                        N_GPU_THREADS,
-                        N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
-                        GLOBAL_COMM, TIMER_RANK};
+        // This only makes sense if the iteration is over LEAF blocks.
+        milhoja::RuntimeAction     computeIntQuantitiesByBlk;
+        computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
+        computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
+        computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+        computeIntQuantitiesByBlk.nTilesPerPacket = 0;
+        computeIntQuantitiesByBlk.routine         
+            = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
 
-    Timer::start(rp_Simulation::NAME + " simulation");
-
-    unsigned int   nStep   = 1;
-    while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
-        //----- ADVANCE TIME
-        // Don't let simulation time exceed maximum simulation time
-        if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
-            milhoja::Real   origDt = Driver::dt;
-            Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
-            Driver::simTime = rp_Simulation::T_MAX;
-            logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
-                       + " to " + std::to_string(Driver::dt)
-                       + " so that tmax=" + std::to_string(rp_Simulation::T_MAX)
-                       + " is not exceeded");
-        } else {
-            Driver::simTime += Driver::dt;
-        }
-        // TODO: Log as well
-        if (rank == LEAD_RANK) {
-            printf("Step n=%d / t=%.4e / dt=%.4e\n", nStep, Driver::simTime, Driver::dt);
-        }
-
-        //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
-        if (nStep > 1) {
-            Timer::start("GC Fill");
-            grid.fillGuardCells();
-            Timer::stop("GC Fill");
-        }
-
-        double   tStart = MPI_Wtime();
-        runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
-        double   wtime_sec = MPI_Wtime() - tStart;
-        Timer::start("Gather/Write");
-        hydro.logTimestep(nStep, wtime_sec);
-        Timer::stop("Gather/Write");
+        Timer::start("Set initial conditions");
+        grid.initDomain(initBlock_cpu);
+        Timer::stop("Set initial conditions");
 
         Timer::start("computeLocalIQ");
         runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
         Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
-        // Compute local integral quantities
-        // TODO: This should be run as a CPU-based pipeline extension
-        //       to the physics action bundle.
+        // Compute global integral quantities via DATA MOVEMENT
         Timer::start("Reduce/Write");
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
-
-        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
-                               variableNames);
-        }
+//        grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
         Timer::stop("Reduce/Write");
 
-        //----- UPDATE GRID IF REQUIRED
-        // We are running in pseudo-UG for now and can therefore skip this
+        //----- MIMIC Driver_evolveFlash
+        milhoja::RuntimeAction     hydroAdvance;
+        hydroAdvance.name            = "Advance Hydro Solution";
+        hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
+        hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+        hydroAdvance.nTilesPerPacket = 0;
+        hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-        //----- COMPUTE dt FOR NEXT STEP
-        // NOTE: The AllReduce that follows should appear here
-        //       rather than be buried in Driver_computeDt.
-        //
-        // When this problem is run in FLASH-X, the hydro dt is always greater
-        // than 5.0e-5 seconds.  Therefore, using a dt value fixed to a smaller
-        // value should always keep us on the stable side of the CFL condition.
-        // Therefore, we skip the computeDt for Hydro here. 
-        //
-        // When a dt value of 5.0e-5 is used, FLASH-X complains that it is too
-        // low and sets dt to the Hydro CFL-determined dt value, which should be 
-        // Simulation::DT_INIT.  There after, it allows for 5.0e-5.  Therefore,
-        // we mimic that dt sequence here so that we can directly compare
-        // results.
-        Driver::dt = rp_Driver::DT_AFTER;
+        ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
+                            N_DIST_THREADS, 0,
+                            hydroAdvance.nInitialThreads,
+                            N_GPU_THREADS,
+                            N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
+                            GLOBAL_COMM, TIMER_RANK};
 
-        ++nStep;
+        Timer::start(rp_Simulation::NAME + " simulation");
+
+        unsigned int   nStep   = 1;
+        while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
+            //----- ADVANCE TIME
+            // Don't let simulation time exceed maximum simulation time
+            if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
+                milhoja::Real   origDt = Driver::dt;
+                Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
+                Driver::simTime = rp_Simulation::T_MAX;
+                logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
+                           + " to " + std::to_string(Driver::dt)
+                           + " so that tmax=" + std::to_string(rp_Simulation::T_MAX)
+                           + " is not exceeded");
+            } else {
+                Driver::simTime += Driver::dt;
+            }
+            // TODO: Log as well
+            if (rank == LEAD_RANK) {
+                printf("Step n=%d / t=%.4e / dt=%.4e\n", nStep, Driver::simTime, Driver::dt);
+            }
+
+            //----- ADVANCE SOLUTION BASED ON HYDRODYNAMICS
+            if (nStep > 1) {
+                Timer::start("GC Fill");
+                grid.fillGuardCells();
+                Timer::stop("GC Fill");
+            }
+
+            double   tStart = MPI_Wtime();
+            runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+            double   wtime_sec = MPI_Wtime() - tStart;
+            Timer::start("Gather/Write");
+            hydro.logTimestep(nStep, wtime_sec);
+            Timer::stop("Gather/Write");
+
+            Timer::start("computeLocalIQ");
+            runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+            Timer::stop("computeLocalIQ");
+
+            //----- OUTPUT RESULTS TO FILES
+            // Compute local integral quantities
+            // TODO: This should be run as a CPU-based pipeline extension
+            //       to the physics action bundle.
+            Timer::start("Reduce/Write");
+            io.reduceToGlobalIntegralQuantities();
+            io.writeIntegralQuantities(Driver::simTime);
+
+            if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
+                grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
+                                   variableNames);
+            }
+            Timer::stop("Reduce/Write");
+
+            //----- UPDATE GRID IF REQUIRED
+            // We are running in pseudo-UG for now and can therefore skip this
+
+            //----- COMPUTE dt FOR NEXT STEP
+            // NOTE: The AllReduce that follows should appear here
+            //       rather than be buried in Driver_computeDt.
+            //
+            // When this problem is run in FLASH-X, the hydro dt is always greater
+            // than 5.0e-5 seconds.  Therefore, using a dt value fixed to a smaller
+            // value should always keep us on the stable side of the CFL condition.
+            // Therefore, we skip the computeDt for Hydro here. 
+            //
+            // When a dt value of 5.0e-5 is used, FLASH-X complains that it is too
+            // low and sets dt to the Hydro CFL-determined dt value, which should be 
+            // Simulation::DT_INIT.  There after, it allows for 5.0e-5.  Therefore,
+            // we mimic that dt sequence here so that we can directly compare
+            // results.
+            Driver::dt = rp_Driver::DT_AFTER;
+
+            ++nStep;
+        }
+        Timer::stop(rp_Simulation::NAME + " simulation");
+
+        if (Driver::simTime >= rp_Simulation::T_MAX) {
+            logger.log("[Simulation] Reached max SimTime");
+        }
+        grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
+
+        nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
+
+        //----- CLEAN-UP
+        // The singletons are finalized automatically when the program is
+        // terminating.
+        grid.destroyDomain();
+        grid.finalize();
+        runtime.finalize();
+        logger.finalize();
+    } catch(const std::exception& e) {
+        std::cerr << "FAILURE - Sedov/cpu - " << e.what() << std::endl;
+        return 111;
+    } catch(...) {
+        std::cerr << "FAILURE - Sedov/cpu - Exception of unexpected type caught"
+                  << std::endl;
+        return 222;
     }
-    Timer::stop(rp_Simulation::NAME + " simulation");
-
-    if (Driver::simTime >= rp_Simulation::T_MAX) {
-        logger.log("[Simulation] Reached max SimTime");
-    }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
-
-    nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
-
-    //----- CLEAN-UP
-    // The singletons are finalized automatically when the program is
-    // terminating.
-    grid.destroyDomain();
-    grid.finalize();
-    runtime.finalize();
-    logger.finalize();
 
     MPI_Finalize();
 

@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "FAILURE - Grid/general::main - " << e.what() << std::endl;
         return 111;
     } catch(...) {
-        std::cerr << "FAILURE - Grid/general::main - Expectation of unexpected type occurred"
+        std::cerr << "FAILURE - Grid/general::main - Exception of unexpected type caught"
                   << std::endl;
         return 222;
     }
