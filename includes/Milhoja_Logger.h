@@ -11,15 +11,13 @@
 #include <string>
 #include <chrono>
 
-#ifndef LOGGER_NO_MPI
 #include <mpi.h>
-#endif
 
 namespace milhoja {
 
 class Logger {
 public:
-    ~Logger(void)   {}
+    ~Logger(void);
 
     Logger(Logger&)                  = delete;
     Logger(const Logger&)            = delete;
@@ -28,13 +26,9 @@ public:
     Logger& operator=(const Logger&) = delete;
     Logger& operator=(Logger&&)      = delete;
 
-#ifdef LOGGER_NO_MPI
-    static  void    initialize(const std::string& filename);
-#else
     static  void    initialize(const std::string& filename,
                                const MPI_Comm comm,
                                const int logRank);
-#endif
     static  Logger& instance(void);
     void            finalize(void);
 
@@ -46,10 +40,8 @@ private:
     Logger(void);
 
     static std::string    logFilename_;
-#ifndef LOGGER_NO_MPI
     static MPI_Comm       comm_;
     static int            logRank_;
-#endif
     static bool           initialized_;
     static bool           finalized_;
 

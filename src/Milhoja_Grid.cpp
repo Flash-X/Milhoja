@@ -70,17 +70,26 @@ void   Grid::initialize(void) {
  * function *after* performing its own clean-up.
  */
 void   Grid::finalize(void) {
-    Logger::instance().log("[Grid] Finalizing ...");
-
     if        (!initialized_) {
         throw std::logic_error("[Grid::finalize] Never initialized");
     } else if (finalized_) {
         throw std::logic_error("[Grid::finalize] Already finalized");
     }
 
+    Logger::instance().log("[Grid] Finalizing ...");
+
     finalized_ = true;
 
     Logger::instance().log("[Grid] Finalized");
+}
+
+/**
+ *
+ */
+Grid::~Grid(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[Grid::~Grid] ERROR - Not finalized" << std::endl;
+    }
 }
 
 /**

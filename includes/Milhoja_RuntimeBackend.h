@@ -59,7 +59,7 @@ using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void*);
  */
 class RuntimeBackend {
 public:
-    virtual ~RuntimeBackend(void)   {}
+    virtual ~RuntimeBackend(void);
 
     RuntimeBackend(RuntimeBackend&)                  = delete;
     RuntimeBackend(const RuntimeBackend&)            = delete;

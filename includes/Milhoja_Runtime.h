@@ -24,7 +24,7 @@ namespace milhoja {
 
 class Runtime {
 public:
-    ~Runtime(void)  {}
+    ~Runtime(void);
 
     Runtime(Runtime&)                  = delete;
     Runtime(const Runtime&)            = delete;

@@ -8,10 +8,8 @@
 namespace milhoja {
 
 std::string     Logger::logFilename_ = "";
-#ifndef LOGGER_NO_MPI
 MPI_Comm        Logger::comm_        = MPI_COMM_NULL;
 int             Logger::logRank_     = -1;
-#endif
 bool            Logger::initialized_ = false;
 bool            Logger::finalized_   = false;
 
@@ -60,13 +58,9 @@ Logger& Logger::instance(void) {
  *               process
  * \param logRank - the rank of the single MPI process that should perform logging
  */
-#ifdef LOGGER_NO_MPI
-void   Logger::initialize(const std::string& filename) {
-#else
 void   Logger::initialize(const std::string& filename,
                           const MPI_Comm comm,
                           const int logRank) {
-#endif
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
@@ -74,7 +68,6 @@ void   Logger::initialize(const std::string& filename,
     }
     setLogFilename(filename);
     
-#ifndef LOGGER_NO_MPI
     int     wasInitialized = false;
     MPI_Initialized(&wasInitialized);
 
@@ -88,7 +81,6 @@ void   Logger::initialize(const std::string& filename,
 
     comm_ = comm;
     logRank_ = logRank;
-#endif
 
     initialized_ = true;
     instance();
@@ -111,10 +103,8 @@ void    Logger::finalize(void) {
     log("[Logger] Terminated at " + std::string(timestamp) + " UTC");
 
     logFilename_ = "";
-#ifndef LOGGER_NO_MPI
     comm_        = MPI_COMM_NULL;
     logRank_     = -1;
-#endif
     rank_        = -1;
 
     finalized_ = true;
@@ -130,11 +120,9 @@ Logger::Logger(void)
 {
     using namespace std::chrono;
 
-#ifndef LOGGER_NO_MPI
     MPI_Comm_rank(comm_, &rank_);
 
     if (rank_ == logRank_) {
-#endif
         // Get time to be used for elapsed time
         auto         now   = system_clock::now();
         std::time_t  now_t = system_clock::to_time_t(now);
@@ -142,9 +130,16 @@ Logger::Logger(void)
         std::strftime(timestamp, sizeof(timestamp), "%FT%T", std::gmtime(&now_t));
         std::string   msg{};
         log("[Logger] Started at " + std::string(timestamp) + " UTC");
-#ifndef LOGGER_NO_MPI
     }
-#endif
+}
+
+/**
+ *
+ */
+Logger::~Logger(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[Logger::~Logger] ERROR - Not finalized" << std::endl;
+    }
 }
 
 /**
@@ -160,9 +155,7 @@ void   Logger::log(const std::string& msg) const {
         throw std::logic_error("[Logger::log] Cannot use after finalization");
     }
 
-#ifndef LOGGER_NO_MPI
     if (rank_ == logRank_) {
-#endif
         auto endTime = std::chrono::steady_clock::now();
         std::string   elapsedTime = std::to_string(seconds(endTime - startTime_).count());
         elapsedTime += " s - ";
@@ -171,9 +164,7 @@ void   Logger::log(const std::string& msg) const {
         logFile.open(logFilename_, std::ios::out | std::ios::app);
         logFile << elapsedTime << msg << std::endl;
         logFile.close();
-#ifndef LOGGER_NO_MPI
     }
-#endif
 }
 
 }

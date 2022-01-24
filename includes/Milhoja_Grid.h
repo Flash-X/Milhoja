@@ -30,7 +30,7 @@ namespace milhoja {
   */
 class Grid {
 public:
-    virtual ~Grid(void) {}
+    virtual ~Grid(void);
 
     Grid(Grid&) = delete;
     Grid(const Grid&) = delete;

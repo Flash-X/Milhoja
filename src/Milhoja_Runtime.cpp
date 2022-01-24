@@ -116,6 +116,15 @@ Runtime::Runtime(void)
 }
 
 /**
+ *
+ */
+ Runtime::~Runtime(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[Runtime::~Runtime] ERROR - Not finalized" << std::endl;
+    }
+ }
+
+/**
  * 
  *
  * \return 

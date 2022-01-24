@@ -22,9 +22,27 @@ int main(int argc, char* argv[]) {
     }
     T3::nThreadsPerTeam = std::stoi(std::string(argv[1]));
 
-    // Each test sets its own meaningful filename
-    milhoja::Logger::instantiate("DeleteMe.log", GLOBAL_COMM, LEAD_RANK);
+    MPI_Init(&argc, &argv);
 
-    return RUN_ALL_TESTS();
+    int     exitCode = 1;
+    try {
+        // Each test sets its own meaningful filename
+        milhoja::Logger::initialize("DeleteMe.log", GLOBAL_COMM, LEAD_RANK);
+
+        exitCode = RUN_ALL_TESTS();
+
+        milhoja::Logger::instance().finalize();
+    } catch(const std::exception& e) {
+        std::cerr << "FAILURE - ThreadTeam::main - " << e.what() << std::endl;
+        return 111;
+    } catch(...) {
+        std::cerr << "FAILURE - ThreadTeam::main - Exception of unexpected type caught"
+                  << std::endl;
+        return 222;
+    }
+
+    MPI_Finalize();
+
+    return exitCode;
 }
 

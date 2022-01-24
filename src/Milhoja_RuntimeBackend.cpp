@@ -93,5 +93,11 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
     return singleton;
 }
 
+RuntimeBackend::~RuntimeBackend(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[RuntimeBackend::~RuntimeBackend] ERROR - Not finalized" << std::endl;
+    }
+}
+
 }
 
