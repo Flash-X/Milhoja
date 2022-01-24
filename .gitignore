@@ -12,6 +12,7 @@ docs/GridPolymorphism.pdf
 docs/doxygen/html
 docs/doxygen/latex
 docs/DevGuide/_build
+docs/UserManual/_build
 docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.aux
 docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.out
 docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.pdf
