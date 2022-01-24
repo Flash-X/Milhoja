@@ -12,6 +12,10 @@ docs/GridPolymorphism.pdf
 docs/doxygen/html
 docs/doxygen/latex
 docs/DevGuide/_build
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.aux
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.out
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.pdf
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.toc
 sites/*/test_threadteam_cpp.x
 sites/*/test_runtime_null_cpp.x
 sites/*/gather_data_cpp.x
