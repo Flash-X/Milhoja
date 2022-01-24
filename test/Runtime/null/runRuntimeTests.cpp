@@ -12,10 +12,12 @@ int main(int argc, char* argv[]) {
 
     MPI_Init(&argc, &argv);
 
-    milhoja::Logger::instantiate("RuntimeTest.log",
-                                 GLOBAL_COMM, LEAD_RANK);
+    milhoja::Logger::initialize("RuntimeTest.log",
+                                GLOBAL_COMM, LEAD_RANK);
 
     int exitCode = RUN_ALL_TESTS();
+
+    milhoja::Logger::instance().finalize();
 
     MPI_Finalize();
 

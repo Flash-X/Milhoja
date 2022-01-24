@@ -24,6 +24,18 @@ CudaBackend::CudaBackend(const unsigned int nStreams,
 /**
  * Refer to the RuntimeBackend documentation for more information.
  */
+void    CudaBackend::finalize(void) {
+    Logger::instance().log("[CudaBackend] Finalizing...");
+
+    RuntimeBackend::finalize();
+
+    Logger::instance().log("[CudaBackend] Finalized");
+}
+
+
+/**
+ * Refer to the RuntimeBackend documentation for more information.
+ */
 int  CudaBackend::maxNumberStreams(void) const {
     return CudaStreamManager::instance().maxNumberStreams();
 }

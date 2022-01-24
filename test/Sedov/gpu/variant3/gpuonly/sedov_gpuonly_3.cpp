@@ -31,18 +31,18 @@ int main(int argc, char* argv[]) {
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME,
-                                 GLOBAL_COMM, LOG_RANK);
+    milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME,
+                                GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Orchestration_init
-    milhoja::Runtime::instantiate(rp_Runtime::N_THREAD_TEAMS, 
-                                  rp_Runtime::N_THREADS_PER_TEAM,
-                                  rp_Runtime::N_STREAMS,
-                                  rp_Runtime::MEMORY_POOL_SIZE_BYTES);
+    milhoja::Runtime::initialize(rp_Runtime::N_THREAD_TEAMS, 
+                                 rp_Runtime::N_THREADS_PER_TEAM,
+                                 rp_Runtime::N_STREAMS,
+                                 rp_Runtime::MEMORY_POOL_SIZE_BYTES);
 
     // Analogous to calling Grid_init
     loadGridConfiguration();
-    milhoja::Grid::instantiate();
+    milhoja::Grid::initialize();
 
     // Analogous to calling IO_init
     Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
@@ -216,6 +216,8 @@ int main(int argc, char* argv[]) {
     // terminating.
     grid.destroyDomain();
     grid.finalize();
+    runtime.finalize();
+    logger.finalize();
 
     MPI_Finalize();
 

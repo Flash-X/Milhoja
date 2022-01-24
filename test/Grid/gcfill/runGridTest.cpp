@@ -28,9 +28,9 @@ int main(int argc, char* argv[]) {
 
     MPI_Init(&argc, &argv);
 
-    Logger::instantiate("GridGcFillUnitTest.log", GLOBAL_COMM, LEAD_RANK);
-    Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+    Logger::initialize("GridGcFillUnitTest.log", GLOBAL_COMM, LEAD_RANK);
+    Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                        N_STREAMS, MEMORY_POOL_SIZE_BYTES);
 
     // Access config singleton within limited local scope so that it can't be
     // used by the rest of the application code outside the block.
@@ -73,6 +73,8 @@ int main(int argc, char* argv[]) {
 
     grid.destroyDomain();
     grid.finalize();
+    Runtime::instance().finalize();
+    Logger::instance().finalize();
 
     MPI_Finalize();
 

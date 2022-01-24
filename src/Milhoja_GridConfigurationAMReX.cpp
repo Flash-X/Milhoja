@@ -90,10 +90,6 @@ void GridConfigurationAMReX::load(void) const {
     // AMReX here.
     amrex::Initialize(mpiComm);
 
-    // Tell Logger to get its rank once AMReX has initialized MPI, but
-    // before we log anything
-    Logger::instance().acquireRank();
-
     loaded_ = true;
 
     Logger::instance().log("[GridConfigurationAMReX] Loaded configuration values into AMReX");

@@ -59,7 +59,7 @@ using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void*);
  */
 class RuntimeBackend {
 public:
-    virtual ~RuntimeBackend(void);
+    virtual ~RuntimeBackend(void)   {}
 
     RuntimeBackend(RuntimeBackend&)                  = delete;
     RuntimeBackend(const RuntimeBackend&)            = delete;
@@ -68,9 +68,10 @@ public:
     RuntimeBackend& operator=(const RuntimeBackend&) = delete;
     RuntimeBackend& operator=(RuntimeBackend&&)      = delete;
 
-    static void              instantiate(const unsigned int nStreams,
+    static  void              initialize(const unsigned int nStreams,
                                          const std::size_t  nBytesInMemoryPools);
-    static RuntimeBackend&   instance(void);
+    static  RuntimeBackend&   instance(void);
+    virtual void              finalize(void);
 
     //----- STREAMS
     /**
@@ -188,7 +189,8 @@ protected:
     RuntimeBackend(void)     {};
 
 private:
-    static bool           instantiated_;
+    static bool           initialized_;
+    static bool           finalized_;
     static unsigned int   nStreams_;
     static std::size_t    nBytesInMemoryPools_;
 };

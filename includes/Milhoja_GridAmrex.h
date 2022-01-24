@@ -3,6 +3,11 @@
  *
  * \brief
  *
+ * \todo Does AMReX have a getter for the MPI Communicator so that we don't have
+ * this stored in AMReX and here?
+ * \todo Can we get the total cells in the domain from AMReX?  If so, then using
+ * this and the block size, we can get nBlocks[XYZ].  It think that these values
+ * are only used for printing out the config as well.
  */
 
 #ifndef MILHOJA_GRID_AMREX_H__
@@ -125,8 +130,13 @@ private:
     static bool    domainInitialized_;
     static bool    domainDestroyed_;
 
+    // AMReX is given this communicator and therefore should own this.  However,
+    // I have not yet found a getter to access it in this class.
+    MPI_Comm       comm_;
+
     //----- GRID CONFIGURATION VALUES OWNED BY GridAmrex
-    // These cannot be obtained from AMReX and are not needed by AmrCore.
+    // These cannot be obtained from AMReX
+    const unsigned int    nBlocksX_, nBlocksY_, nBlocksZ_;
     const unsigned int    nxb_, nyb_, nzb_;
 
     // These cannot be acquired from AMReX and play an important role here in

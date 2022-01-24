@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     //----- MIMIC Driver_init
     // Analogous to calling Log_init
-    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME, GLOBAL_COMM, LOG_RANK);
+    milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME, GLOBAL_COMM, LOG_RANK);
 
     // Analogous to calling Grid_init
     loadGridConfiguration();
@@ -211,6 +211,7 @@ int main(int argc, char* argv[]) {
     // terminating.
     grid.destroyDomain();
     grid.finalize();
+    logger.finalize();
 
     MPI_Finalize();
 

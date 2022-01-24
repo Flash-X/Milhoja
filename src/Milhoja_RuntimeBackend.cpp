@@ -11,7 +11,8 @@
 
 namespace milhoja {
 
-bool           RuntimeBackend::instantiated_ = false;
+bool           RuntimeBackend::initialized_ = false;
+bool           RuntimeBackend::finalized_   = false;
 unsigned int   RuntimeBackend::nStreams_ = 0;
 std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
 
@@ -27,12 +28,14 @@ std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
  * pools.  Refer to the documentation for each backend to determine what memory
  * pools will be allocated.
  */
-void   RuntimeBackend::instantiate(const unsigned int nStreams,
+void   RuntimeBackend::initialize(const unsigned int nStreams,
                             const std::size_t  nBytesInMemoryPools) {
     Logger::instance().log("[RuntimeBackend] Initializing...");
 
-    if (instantiated_) {
-        throw std::logic_error("[RuntimeBackend::instantiate] Already instantiated");
+    // finalized_ => initialized_
+    // Therefore, no need to check finalized_.
+    if (initialized_) {
+        throw std::logic_error("[RuntimeBackend::initialize] Already initialized");
     }
 
     // The responsibility of error checking these falls on the code that
@@ -40,7 +43,7 @@ void   RuntimeBackend::instantiate(const unsigned int nStreams,
     nStreams_ = nStreams;
     nBytesInMemoryPools_ = nBytesInMemoryPools;
 
-    instantiated_ = true;
+    initialized_ = true;
 
     // Create/initialize backend
     instance();
@@ -49,11 +52,35 @@ void   RuntimeBackend::instantiate(const unsigned int nStreams,
 }
 
 /**
+ *
+ * Derived classes that overload this implementation should call this member
+ * function *after* performing its own clean-up.
+ */
+void   RuntimeBackend::finalize(void) {
+    Logger::instance().log("[RuntimeBackend] Finalizing ...");
+
+    if        (!initialized_) {
+        throw std::logic_error("[RuntimeBackend::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[RuntimeBackend::finalize] Already finalized");
+    }
+
+    nStreams_ = 0;
+    nBytesInMemoryPools_ = 0;
+
+    finalized_ = true;
+
+    Logger::instance().log("[RuntimeBackend] Finalized");
+}
+
+/**
  * Obtain access to the RuntimeBackend Singleton object.
  */
 RuntimeBackend&   RuntimeBackend::instance(void) {
-    if(!instantiated_) {
-        throw std::logic_error("[RuntimeBackend::instance] instantiate first");
+    if(!initialized_) {
+        throw std::logic_error("[RuntimeBackend::instance] initialize first");
+    } else if (finalized_) {
+        throw std::logic_error("[RuntimeBackend::instance] No access after finalization");
     }
 
 #ifdef MILHOJA_USE_CUDA_BACKEND
@@ -65,12 +92,6 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
 
     return singleton;
 }
-
-RuntimeBackend::~RuntimeBackend(void) {
-    instantiated_ = false;
-    nStreams_ = 0;
-    nBytesInMemoryPools_ = 0;
-};
 
 }
 

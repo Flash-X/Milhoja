@@ -21,8 +21,6 @@ constexpr unsigned int   N_THREAD_TEAMS = 3;
 constexpr unsigned int   N_THREADS_PER_TEAM = 10;
 constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
 
-// We need to create our own main for the testsuite since we can only call
-// MPI_Init/MPI_Finalize once per testsuite execution.
 int main(int argc, char* argv[]) {
     using namespace milhoja;
 
@@ -31,62 +29,131 @@ int main(int argc, char* argv[]) {
 
     ::testing::InitGoogleTest(&argc, argv);
 
+    // We need to create our own main for the testsuite since we can only call
+    // MPI_Init/MPI_Finalize once per testsuite execution.
     MPI_Init(&argc, &argv);
-
-    Logger::instantiate("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
-    Runtime::instantiate(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                         N_STREAMS, MEMORY_POOL_SIZE_BYTES);
-
-    // Access config singleton within limited local scope so that it can't be
-    // used by the rest of the application code outside the block.
-    {
-        GridConfiguration&   cfg = GridConfiguration::instance();
-
-        cfg.xMin            = rp_Grid::X_MIN;
-        cfg.xMax            = rp_Grid::X_MAX;
-        cfg.yMin            = rp_Grid::Y_MIN;
-        cfg.yMax            = rp_Grid::Y_MAX;
-        cfg.zMin            = rp_Grid::Z_MIN;
-        cfg.zMax            = rp_Grid::Z_MAX;
-        cfg.nxb             = rp_Grid::NXB;
-        cfg.nyb             = rp_Grid::NYB;
-        cfg.nzb             = rp_Grid::NZB;
-        cfg.nCcVars         = NUNKVAR;
-        cfg.nGuard          = NGUARD;
-        cfg.nBlocksX        = rp_Grid::N_BLOCKS_X;
-        cfg.nBlocksY        = rp_Grid::N_BLOCKS_Y;
-        cfg.nBlocksZ        = rp_Grid::N_BLOCKS_Z;
-        cfg.maxFinestLevel  = rp_Grid::LREFINE_MAX;
-        cfg.errorEstimation = Simulation::errorEstBlank;
-        cfg.mpiComm         = GLOBAL_COMM;
-
-        cfg.load();
-    }
-    Grid::initialize();
-
-    RuntimeAction   initBlock_cpu;
-    initBlock_cpu.name = "initBlock_cpu";
-    initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
-    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
-    initBlock_cpu.nTilesPerPacket = 0;
-    initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
-
-    Grid&   grid = Grid::instance();
-    grid.initDomain(initBlock_cpu);
 
     int  rank = -1;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
-    ::testing::TestEventListeners& listeners =
-        ::testing::UnitTest::GetInstance()->listeners();
-    if (rank != 0) {
-        delete listeners.Release(listeners.default_result_printer());
+    int     exitCode = 1;
+    try {
+        Logger::initialize("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
+
+        // We test throughout logic errors related to the use of the runtime in
+        // the high-level application control flow, some of which cannot be
+        // included in a googletest.
+        try {
+            // We cannot finalize without getting the singleton.  Therefore this
+            // also proves that we cannot finalize without first initializing.
+            Runtime::instance();
+            std::cerr << "FAILURE - Runtime::main - Accessed runtime before init"
+                      << std::endl;
+            return 1;
+        } catch(const std::logic_error& e) {
+            // Ignore since this is the expected behavior.
+        } catch(...) {
+            throw;
+        }
+
+        Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                            N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+
+        try {
+            Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
+                                N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+            std::cerr << "FAILURE - Runtime::main - Runtime initialized more than once"
+                      << std::endl;
+            return 2;
+        } catch(const std::logic_error& e) {
+            // Ignore since this is the expected behavior.
+        } catch(...) {
+            throw;
+        }
+
+        Runtime&    runtime = Runtime::instance();
+
+        // Access config singleton within limited local scope so that it can't be
+        // used by the rest of the application code outside the block.
+        {
+            GridConfiguration&   cfg = GridConfiguration::instance();
+
+            cfg.xMin            = rp_Grid::X_MIN;
+            cfg.xMax            = rp_Grid::X_MAX;
+            cfg.yMin            = rp_Grid::Y_MIN;
+            cfg.yMax            = rp_Grid::Y_MAX;
+            cfg.zMin            = rp_Grid::Z_MIN;
+            cfg.zMax            = rp_Grid::Z_MAX;
+            cfg.nxb             = rp_Grid::NXB;
+            cfg.nyb             = rp_Grid::NYB;
+            cfg.nzb             = rp_Grid::NZB;
+            cfg.nCcVars         = NUNKVAR;
+            cfg.nGuard          = NGUARD;
+            cfg.nBlocksX        = rp_Grid::N_BLOCKS_X;
+            cfg.nBlocksY        = rp_Grid::N_BLOCKS_Y;
+            cfg.nBlocksZ        = rp_Grid::N_BLOCKS_Z;
+            cfg.maxFinestLevel  = rp_Grid::LREFINE_MAX;
+            cfg.errorEstimation = Simulation::errorEstBlank;
+            cfg.mpiComm         = GLOBAL_COMM;
+
+            cfg.load();
+        }
+        Grid::initialize();
+        Grid&   grid = Grid::instance();
+
+        RuntimeAction   initBlock_cpu;
+        initBlock_cpu.name = "initBlock_cpu";
+        initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
+        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.nTilesPerPacket = 0;
+        initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+
+        grid.initDomain(initBlock_cpu);
+
+        ::testing::TestEventListeners& listeners =
+            ::testing::UnitTest::GetInstance()->listeners();
+        if (rank != 0) {
+            delete listeners.Release(listeners.default_result_printer());
+        }
+
+        exitCode = RUN_ALL_TESTS();
+
+        grid.destroyDomain();
+        grid.finalize();
+        runtime.finalize();
+
+        try {
+            runtime.finalize();
+            std::cerr << "FAILURE - Runtime::main - Runtime finalized more than once"
+                        << std::endl;
+            return 3;
+        } catch(const std::logic_error& e) {
+            // Ignore since this is the expected behavior.
+        } catch(...) {
+            throw;
+        }
+
+        try {
+            // This implies that finalization cannot be called more than once.
+            Runtime::instance();
+            std::cerr << "FAILURE - Runtime::main - Runtime accessed after finalize"
+                      << std::endl;
+            return 4;
+        } catch(const std::logic_error& e) {
+            // Ignore since this is the expected behavior.
+        } catch(...) {
+            throw;
+        }
+
+        Logger::instance().finalize();
+    } catch(const std::exception& e) {
+        std::cerr << "FAILURE - Runtime::main - " << e.what() << std::endl;
+        return 111;
+    } catch(...) {
+        std::cerr << "FAILURE - Runtime::main - Exception of unexpected type caught"
+                  << std::endl;
+        return 222;
     }
-
-    int exitCode = RUN_ALL_TESTS();
-
-    grid.destroyDomain();
-    grid.finalize();
 
     MPI_Finalize();
 

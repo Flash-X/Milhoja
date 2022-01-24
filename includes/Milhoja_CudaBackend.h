@@ -28,6 +28,8 @@ public:
     CudaBackend& operator=(const CudaBackend&) = delete;
     CudaBackend& operator=(CudaBackend&&)      = delete;
 
+    void      finalize(void) override;
+
     int       maxNumberStreams(void) const override; 
     int       numberFreeStreams(void) override;
     Stream    requestStream(const bool block) override;

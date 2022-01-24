@@ -35,6 +35,10 @@ bool GridAmrex::domainDestroyed_   = false;
 GridAmrex::GridAmrex(void)
     : Grid(),
       AmrCore(),
+      comm_{GridConfiguration::instance().mpiComm},
+      nBlocksX_{GridConfiguration::instance().nBlocksX},
+      nBlocksY_{GridConfiguration::instance().nBlocksY},
+      nBlocksZ_{GridConfiguration::instance().nBlocksZ},
       nxb_{GridConfiguration::instance().nxb}, 
       nyb_{GridConfiguration::instance().nyb}, 
       nzb_{GridConfiguration::instance().nzb},
@@ -44,6 +48,9 @@ GridAmrex::GridAmrex(void)
       initBlock_noRuntime_{nullptr},
       initCpuAction_{}
 {
+    Logger&   logger = Logger::instance();
+    logger.log("[GridAmrex] Initializing...");
+
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
@@ -87,7 +94,125 @@ GridAmrex::GridAmrex(void)
         bcs_[0].setHi(i, amrex::BCType::int_dir);
     }
 
-    Logger::instance().log("[GridAmrex] Initialized Grid.");
+    //----- LOG GRID CONFIGURATION INFORMATION
+    int size = -1;
+    MPI_Comm_size(comm_, &size);
+
+    // Get values owned by AMReX
+    RealVect  domainLo = getProbLo();
+    RealVect  domainHi = getProbHi();
+
+    std::string   msg{};
+    msg =   "[GridAmrex] " + std::to_string(size)
+          + " MPI processes in given communicator";
+    logger.log(msg);
+
+    msg = "[GridAmrex] N dimensions = " + std::to_string(MILHOJA_NDIM);
+    logger.log(msg);
+
+    msg  = "[GridAmrex] Physical spatial domain specification";
+    logger.log(msg);
+    msg =   "[GridAmrex]    x in ("
+          + std::to_string(domainLo[Axis::I]) + ", "
+          + std::to_string(domainHi[Axis::I]) + ")";
+    logger.log(msg);
+#if MILHOJA_NDIM >= 2
+    msg =   "[GridAmrex]    y in ("
+          + std::to_string(domainLo[Axis::J]) + ", "
+          + std::to_string(domainHi[Axis::J]) + ")";
+    logger.log(msg);
+#endif
+#if MILHOJA_NDIM >= 3
+    msg =   "[GridAmrex]    z in ("
+          + std::to_string(domainLo[Axis::K]) + ", "
+          + std::to_string(domainHi[Axis::K]) + ")";
+    logger.log(msg);
+#endif
+
+    msg =   "[GridAmrex] Maximum Finest Level = "
+          + std::to_string(max_level);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Guardcells = "
+          + std::to_string(nGuard_);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Cell-centered Variables = "
+          + std::to_string(nCcVars_);
+    logger.log(msg);
+
+#if   MILHOJA_NDIM == 1
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_)
+          + " blocks";
+    logger.log(msg);
+    
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]);
+        logger.log(msg);
+    }
+#elif MILHOJA_NDIM == 2
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_) + " x "
+          + std::to_string(nyb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_) + " x "
+          + std::to_string(nBlocksY_)
+          + " blocks";
+    logger.log(msg);
+
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]) + " x "
+              + std::to_string(deltas[Axis::J]);
+        logger.log(msg);
+    }
+#elif MILHOJA_NDIM == 3
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_) + " x "
+          + std::to_string(nyb_) + " x "
+          + std::to_string(nzb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_) + " x "
+          + std::to_string(nBlocksY_) + " x "
+          + std::to_string(nBlocksZ_)
+          + " blocks";
+    logger.log(msg);
+
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]) + " x "
+              + std::to_string(deltas[Axis::J]) + " x "
+              + std::to_string(deltas[Axis::K]);
+        logger.log(msg);
+    }
+#endif
+
+    logger.log("[GridAmrex] Created and ready for use");
 }
 
 /**
@@ -99,14 +224,10 @@ GridAmrex::GridAmrex(void)
   * having first called destroyDomain.
   */
 GridAmrex::~GridAmrex(void) {
-    Logger::instance().log("[GridAmrex] Terminating...");
-
     if ((initialized_) && (!finalized_)) {
         std::cerr << "[GridAmrex::~GridAmrex] ERROR - Grid not finalized"
                   << std::endl;
     }
-
-    Logger::instance().log("[GridAmrex] Destroyed");
 }
 
 /**

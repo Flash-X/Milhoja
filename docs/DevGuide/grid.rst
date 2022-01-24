@@ -73,8 +73,8 @@ nyb                       X
 nzb                       X
 nGuard                    X
 nCcVars                   X
-nBlocksX         X 
-nBlocksY         X 
-nBlocksZ         X 
+nBlocksX                  X
+nBlocksY                  X
+nBlocksZ                  X
 ==============   =====    =========
 
