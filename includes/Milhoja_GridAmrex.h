@@ -51,19 +51,19 @@ public:
     void         initDomain(ACTION_ROUTINE initBlock) override;
     void         initDomain(const RuntimeAction& cpuAction) override;
     void         destroyDomain(void) override;
-    void         restrictAllLevels() override;
-    void         fillGuardCells() override;
-    void         regrid() override { amrex::AmrCore::regrid(0, 0.0_wp); }
+    void         restrictAllLevels(void) override;
+    void         fillGuardCells(void) override;
+    void         updateGrid(void) override { amrex::AmrCore::regrid(0, 0.0_wp); }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
-    RealVect     getProbLo() const override;
-    RealVect     getProbHi() const override;
-    unsigned int getMaxRefinement() const override;
-    unsigned int getMaxLevel() const override;
-    unsigned int getNumberLocalBlocks() override;
+    RealVect     getProbLo(void) const override;
+    RealVect     getProbHi(void) const override;
+    unsigned int getMaxRefinement(void) const override;
+    unsigned int getMaxLevel(void) const override;
+    unsigned int getNumberLocalBlocks(void) override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
     void         writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const override;

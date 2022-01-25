@@ -24,7 +24,7 @@ TEST(GridUnitTest,MultipleLevels){
     }
 
     grid.fillGuardCells();
-    grid.regrid();
+    grid.updateGrid();
 
     for(auto ti=grid.buildTileIter(1); ti->isValid(); ti->next()) {
         auto tileDesc = ti->buildCurrentTile();
@@ -40,7 +40,7 @@ TEST(GridUnitTest,MultipleLevels){
     grid.restrictAllLevels();
 
     grid.fillGuardCells();
-    grid.regrid();
+    grid.updateGrid();
 
     for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
         auto tileDesc = ti->buildCurrentTile();

@@ -1,26 +1,31 @@
 #include "Milhoja_CudaGpuEnvironment.h"
 
 #include <stdexcept>
+#include <iostream>
 #include <sstream>
 
 #include "Milhoja_Logger.h"
 
 namespace milhoja {
 
-bool    CudaGpuEnvironment::instantiated_ = false;
+bool    CudaGpuEnvironment::initialized_ = false;
+bool    CudaGpuEnvironment::finalized_   = false;
 
 /**
  * 
  *
  * \return 
  */
-void   CudaGpuEnvironment::instantiate(void) {
+void   CudaGpuEnvironment::initialize(void) {
+    // finalized_ => initialized_
+    // Therefore, no need to check finalized_.
+    if (initialized_) {
+        throw std::logic_error("[CudaGpuEnvironment::initialize] Already initialized");
+    }
+
     Logger::instance().log("[CudaGpuEnvironment] Initializing...");
 
-    if (instantiated_) {
-        throw std::logic_error("[CudaGpuEnvironment::instantiate] Already instantiated");
-    }
-    instantiated_ = true;
+    initialized_ = true;
 
     // Create/initialize environment
     const CudaGpuEnvironment&   gpuEnv = instance();
@@ -33,11 +38,34 @@ void   CudaGpuEnvironment::instantiate(void) {
 }
 
 /**
+ *
+ */
+void    CudaGpuEnvironment::finalize(void) {
+    if        (!initialized_) {
+        throw std::logic_error("[CudaGpuEnvironment::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaGpuEnvironment::finalize] Already finalized");
+    }
+
+    Logger::instance().log("[CudaGpuEnvironment] Finalizing ...");
+
+    finalized_ = true;
+
+    Logger::instance().log("[CudaGpuEnvironment] Finalized");
+}
+
+/**
  * 
  *
  * \return 
  */
 CudaGpuEnvironment& CudaGpuEnvironment::instance(void) {
+    if        (!initialized_) {
+        throw std::logic_error("[CudaGpuEnvironment::instance] Singleton not initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaGpuEnvironment::instance] No access after finalization");
+    }
+
     static CudaGpuEnvironment     singleton;
     return singleton;
 }
@@ -141,6 +169,16 @@ std::string  CudaGpuEnvironment::information(void) const {
          <<  gpuMaxConcurrentKernels_;
 
     return info.str();
+}
+
+/**
+ *
+ */
+CudaGpuEnvironment::~CudaGpuEnvironment(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[CudaGpuEnvironment::~CudaGpuEnvironment] ERROR - Not finalized"
+                  << std::endl;
+    }
 }
 
 }

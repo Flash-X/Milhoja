@@ -6,8 +6,8 @@
 #include <Milhoja_real.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Runtime.h>
-#include <Milhoja_RuntimeBackend.h>
 #include <Milhoja_Logger.h>
+#include <Milhoja_RuntimeBackend.h>
 
 #include "Sedov.h"
 #include "Io.h"
@@ -16,45 +16,18 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "loadGridConfiguration.h"
 #include "DataPacket_Hydro_gpu_3.h"
 
 #include "Flash_par.h"
 
-constexpr int      LOG_RANK   = LEAD_RANK;
-constexpr int      IO_RANK    = LEAD_RANK;
-constexpr int      TIMER_RANK = LEAD_RANK;
-
-int main(int argc, char* argv[]) {
-    // TODO: Add in error handling code
-    MPI_Init(&argc, &argv);
-
-    //----- MIMIC Driver_init
-    // Analogous to calling Log_init
-    milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME,
-                                GLOBAL_COMM, LOG_RANK);
-
-    // Analogous to calling Orchestration_init
-    milhoja::Runtime::initialize(rp_Runtime::N_THREAD_TEAMS, 
-                                 rp_Runtime::N_THREADS_PER_TEAM,
-                                 rp_Runtime::N_STREAMS,
-                                 rp_Runtime::MEMORY_POOL_SIZE_BYTES);
-
-    // Analogous to calling Grid_init
-    loadGridConfiguration();
-    milhoja::Grid::initialize();
-
-    // Analogous to calling IO_init
-    Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                    GLOBAL_COMM, IO_RANK);
-
-    // Analogous to calling sim_init
-    std::vector<std::string>  variableNames = sim::getVariableNames();
+void    Driver::executeSimulation(void) {
+    constexpr int   TIMER_RANK = LEAD_RANK;
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
-    //----- MIMIC Grid_initDomain
+    std::vector<std::string>  variableNames = sim::getVariableNames();
+
     Io&                      io      = Io::instance();
     milhoja::Grid&           grid    = milhoja::Grid::instance();
     milhoja::Logger&         logger  = milhoja::Logger::instance();
@@ -96,13 +69,6 @@ int main(int argc, char* argv[]) {
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    milhoja::RuntimeAction     hydroAdvance_cpu;
-    hydroAdvance_cpu.name            = "Advance Hydro Solution - CPU";
-    hydroAdvance_cpu.nInitialThreads = rp_Bundle_2::N_THREADS_CPU;
-    hydroAdvance_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-    hydroAdvance_cpu.nTilesPerPacket = 0;
-    hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
-
     milhoja::RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
     hydroAdvance_gpu.nInitialThreads = rp_Bundle_2::N_THREADS_GPU;
@@ -113,10 +79,10 @@ int main(int argc, char* argv[]) {
     ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "GPU",
                         rp_Bundle_2::N_DISTRIBUTOR_THREADS,
                         rp_Bundle_2::STAGGER_USEC,
-                        hydroAdvance_cpu.nInitialThreads,
+                        0,
                         hydroAdvance_gpu.nInitialThreads,
                         hydroAdvance_gpu.nTilesPerPacket,
-                        rp_Bundle_2::N_TILES_PER_CPU_TURN,
+                        0,
                         GLOBAL_COMM, TIMER_RANK};
 
     Timer::start(rp_Simulation::NAME + " simulation");
@@ -151,22 +117,18 @@ int main(int argc, char* argv[]) {
         }
 
         double   tStart = MPI_Wtime();
-//        runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
-//                                        rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-//                                        rp_Bundle_2::STAGGER_USEC,
-//                                        hydroAdvance_cpu,
-//                                        hydroAdvance_gpu,
-//                                        packetPrototype,
-//                                        rp_Bundle_2::N_TILES_PER_CPU_TURN);
-        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
-                                              rp_Bundle_2::N_DISTRIBUTOR_THREADS,
-                                              rp_Bundle_2::STAGGER_USEC,
-                                              hydroAdvance_cpu,
-                                              hydroAdvance_gpu,
-                                              packetPrototype,
-                                              rp_Bundle_2::N_TILES_PER_CPU_TURN,
-                                              nStep,
-                                              GLOBAL_COMM);
+//        runtime.executeGpuTasks("Advance Hydro Solution",
+//                                rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+//                                rp_Bundle_2::STAGGER_USEC,
+//                                hydroAdvance_gpu,
+//                                packetPrototype);
+        runtime.executeGpuTasks_timed("Advance Hydro Solution",
+                                      rp_Bundle_2::N_DISTRIBUTOR_THREADS,
+                                      rp_Bundle_2::STAGGER_USEC,
+                                      hydroAdvance_gpu,
+                                      packetPrototype,
+                                      nStep,
+                                      GLOBAL_COMM);
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
@@ -222,16 +184,6 @@ int main(int argc, char* argv[]) {
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 
-    //----- CLEAN-UP
-    // The singletons are finalized automatically when the program is
-    // terminating.
     grid.destroyDomain();
-    grid.finalize();
-    runtime.finalize();
-    logger.finalize();
-
-    MPI_Finalize();
-
-    return 0;
 }
 

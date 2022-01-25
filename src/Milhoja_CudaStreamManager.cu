@@ -12,7 +12,8 @@
 
 namespace milhoja {
 
-bool   CudaStreamManager::instantiated_ = false;
+bool   CudaStreamManager::initialized_ = false;
+bool   CudaStreamManager::finalized_   = false;
 int    CudaStreamManager::nMaxStreams_ = -1;
 
 /**
@@ -21,32 +22,92 @@ int    CudaStreamManager::nMaxStreams_ = -1;
  * \param nMaxStreams - the maximum number of streams to be made available.  The
  *                      given value must be a positive integer.
  */
-void   CudaStreamManager::instantiate(const int nMaxStreams) {
-    if (instantiated_) {
-        throw std::logic_error("[CudaStreamManager::instantiate] "
-                               "Already instantiated");
+void   CudaStreamManager::initialize(const int nMaxStreams) {
+    // finalized_ => initialized_
+    // Therefore, no need to check finalized_.
+    if (initialized_) {
+        throw std::logic_error("[CudaStreamManager::initialize] "
+                               "Already initialized");
     } else if (nMaxStreams <= 0) {
         // We need at least one stream to avoid deadlocking in requestStream
         // when there are no free streams.
-        throw std::invalid_argument("[CudaStreamManager::instantiate] "
+        throw std::invalid_argument("[CudaStreamManager::initialize] "
                                     "Need at least one stream");
     }
 
     // Create/initialize
     nMaxStreams_ = nMaxStreams;
-    instantiated_ = true;
+    initialized_ = true;
 
     instance();
 }
 
 /**
+ * \todo When designing an appropriate error handling system, should we include
+ * the possibility of including warnings?  Should there be a logging system to
+ * which we could write this?  Should the logging system patch into a logging
+ * system offered by client code?
+ */
+void    CudaStreamManager::finalize(void) {
+    if        (!initialized_) {
+        throw std::logic_error("[CudaStreamManager::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaStreamManager::finalize] Already finalized");
+    }
+
+    Logger::instance().log("[CudaStreamManager] Finalizing ...");
+
+    pthread_mutex_lock(&idxMutex_);
+
+    if (streams_.size() != nMaxStreams_) {
+        std::cerr << "[CudaStreamManager::~CudaStreamManager] WARNING - "
+                  << (nMaxStreams_ - streams_.size()) 
+                  << " out of " << nMaxStreams_
+                  << " streams have not been released" << std::endl;
+    }
+
+#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+    Logger::instance().log(  "[CudaStreamManager] No longer using "
+                           + std::to_string(streams_.size())
+                           + " CUDA streams/OpenACC asynchronous queues");
+#else
+    cudaError_t   cErr = cudaErrorInvalidValue;
+    for (std::size_t i=0; i<streams_.size(); ++i) {
+         cErr = cudaStreamDestroy(streams_[i].cudaStream);
+         if (cErr != cudaSuccess) {
+            std::string  errMsg = "[CudaStreamManager::~CudaStreamManager] ";
+            errMsg += "Unable to destroy CUDA stream\n";
+            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+            std::cerr << errMsg;
+         }
+    }
+    Logger::instance().log(  "[CudaStreamManager] Destroyed "
+                           + std::to_string(streams_.size())
+                           + " CUDA streams");
+#endif
+
+    pthread_mutex_unlock(&idxMutex_);
+
+    pthread_cond_destroy(&streamReleased_);
+    pthread_mutex_destroy(&idxMutex_);
+
+    nMaxStreams_ = -1;
+
+    finalized_ = true;
+
+    Logger::instance().log("[CudaStreamManager] Finalized");
+}
+
+/**
  * Request access to the singleton stream manager.  Before calling this routine,
- * calling code must first instantiate the manager.
+ * calling code must first initialize the manager.
  */
 CudaStreamManager&   CudaStreamManager::instance(void) {
-    if (!instantiated_) {
-        throw std::logic_error("[CudaStreamManager::instance] "
-                               "CudaStreamManager must be instantiated first");
+    if        (!initialized_) {
+        throw std::logic_error("[CudaStreamManager::instance] Singleton not initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaStreamManager::instance] No access after finalization");
     }
 
     static CudaStreamManager   manager;
@@ -110,51 +171,10 @@ CudaStreamManager::CudaStreamManager(void)
  * called at program termination.
  */
 CudaStreamManager::~CudaStreamManager(void) {
-    Logger::instance().log("[CudaStreamManager] Finalizing...");
-
-    pthread_mutex_lock(&idxMutex_);
-
-    // TODO: When designing an appropriate error handling system, should we
-    // include the possibility of including warnings?  Should there be a logging
-    // system to which we could write this?  Should the logging system patch
-    // into a logging system offered by client code?
-    if (streams_.size() != nMaxStreams_) {
-        std::cerr << "[CudaStreamManager::~CudaStreamManager] WARNING - "
-                  << (nMaxStreams_ - streams_.size()) 
-                  << " out of " << nMaxStreams_
-                  << " streams have not been released" << std::endl;
+    if (initialized_ && !finalized_) {
+        std::cerr << "[CudaStreamManager::~CudaStreamManager] ERROR - Not finalized"
+                  << std::endl;
     }
-
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
-    Logger::instance().log(  "[CudaStreamManager] No longer using "
-                           + std::to_string(streams_.size())
-                           + " CUDA streams/OpenACC asynchronous queues");
-#else
-    cudaError_t   cErr = cudaErrorInvalidValue;
-    for (std::size_t i=0; i<streams_.size(); ++i) {
-         cErr = cudaStreamDestroy(streams_[i].cudaStream);
-         if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaStreamManager::~CudaStreamManager] ";
-            errMsg += "Unable to destroy CUDA stream\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            std::cerr << errMsg;
-         }
-    }
-    Logger::instance().log(  "[CudaStreamManager] Destroyed "
-                           + std::to_string(streams_.size())
-                           + " CUDA streams");
-#endif
-
-    pthread_mutex_unlock(&idxMutex_);
-
-    pthread_cond_destroy(&streamReleased_);
-    pthread_mutex_destroy(&idxMutex_);
-
-    nMaxStreams_ = -1;
-    instantiated_ = false;
-
-    Logger::instance().log("[CudaStreamManager] Destroyed");
 }
 
 /**

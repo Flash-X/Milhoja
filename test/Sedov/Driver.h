@@ -10,6 +10,9 @@ namespace Driver {
     // device memory.
     extern milhoja::Real     dt;
     extern milhoja::Real     simTime;
+
+    // Each tests needs to define its own version of this function.
+    void  executeSimulation(void);
 };
 
 #endif

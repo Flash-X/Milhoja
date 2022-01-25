@@ -116,6 +116,9 @@ int main(int argc, char* argv[]) {
             delete listeners.Release(listeners.default_result_printer());
         }
 
+        // All allocation of test-specific resources occurs in the local scope
+        // of the tests.  They are therefore released/destroyed before we do
+        // high-level clean-up next, which is a good practice.
         exitCode = RUN_ALL_TESTS();
 
         grid.destroyDomain();

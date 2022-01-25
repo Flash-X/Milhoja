@@ -14,7 +14,6 @@ LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
-	$(SEDOVDIR)/loadGridConfiguration.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
@@ -35,4 +34,5 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
-	$(TESTDIR)/sedov_gpu_3.cpp
+	$(TESTDIR)/Driver_executeSimulation.cpp \
+	$(SEDOVDIR)/solve_sedov_with_runtime.cpp

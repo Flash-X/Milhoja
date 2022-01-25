@@ -25,12 +25,30 @@ int main(int argc, char* argv[]) {
     }
     cudaTestConstants::SLEEP_TIME_NS = std::stoi(std::string(argv[1]));
 
-    // Instantiate up front so that the acquisition of stream resources is not
-    // included in the timing of the first test.
-    milhoja::Logger::instantiate("CudaBackend.log",
-                                 GLOBAL_COMM, LEAD_RANK);
-    milhoja::RuntimeBackend::instantiate(N_STREAMS, N_BYTES_IN_MEMORY_POOLS);
+    MPI_Init(&argc, &argv);
 
-    return RUN_ALL_TESTS();
+    int     exitCode = 1;
+    try {
+        // Instantiate up front so that the acquisition of stream resources is not
+        // included in the timing of the first test.
+        milhoja::Logger::initialize("CudaBackend.log", GLOBAL_COMM, LEAD_RANK);
+        milhoja::RuntimeBackend::initialize(N_STREAMS, N_BYTES_IN_MEMORY_POOLS);
+
+        exitCode = RUN_ALL_TESTS();
+
+        milhoja::RuntimeBackend::instance().finalize();
+        milhoja::Logger::instance().finalize();
+    } catch(const std::exception& e) {
+        std::cerr << "FAILURE - CudaBackendTests::main - " << e.what() << std::endl;
+        return 111;
+    } catch(...) {
+        std::cerr << "FAILURE - CudaBackendTests::main - Exception of unexpected type caught"
+                  << std::endl;
+        return 222;
+    }
+
+    MPI_Finalize();
+
+    return exitCode;
 }
 

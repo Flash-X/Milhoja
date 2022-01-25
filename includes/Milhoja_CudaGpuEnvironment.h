@@ -19,7 +19,7 @@ namespace milhoja {
 
 class CudaGpuEnvironment {
 public:
-    ~CudaGpuEnvironment(void)   { instantiated_ = false; };
+    ~CudaGpuEnvironment(void);
 
     CudaGpuEnvironment(CudaGpuEnvironment&)                  = delete;
     CudaGpuEnvironment(const CudaGpuEnvironment&)            = delete;
@@ -28,8 +28,9 @@ public:
     CudaGpuEnvironment& operator=(const CudaGpuEnvironment&) = delete;
     CudaGpuEnvironment& operator=(CudaGpuEnvironment&&)      = delete;
 
-    static void                 instantiate(void);
+    static void                 initialize(void);
     static CudaGpuEnvironment&  instance(void);
+    void                        finalize(void);
 
     std::size_t   nGpuDevices(void) const         { return nDevices_; }
     std::size_t   bytesInDeviceMemory(void) const { return gpuTotalGlobalMemBytes_; }
@@ -39,7 +40,8 @@ public:
 private:
     CudaGpuEnvironment(void);
 
-    static bool   instantiated_;
+    static bool   initialized_;
+    static bool   finalized_;
 
     int           nDevices_;
     std::string   gpuDeviceName_;

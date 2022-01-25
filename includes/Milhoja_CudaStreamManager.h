@@ -39,8 +39,9 @@ class CudaStreamManager {
 public:
     ~CudaStreamManager();
 
-    static void                 instantiate(const int nMaxStreams);
+    static void                 initialize(const int nMaxStreams);
     static CudaStreamManager&   instance(void);
+    void                        finalize(void);
 
     int      maxNumberStreams(void) const  { return nMaxStreams_; };
     int      numberFreeStreams(void);
@@ -51,7 +52,8 @@ public:
 private:
     CudaStreamManager();
 
-    static bool   instantiated_;
+    static bool   initialized_;
+    static bool   finalized_;
     static int    nMaxStreams_;
 
     std::deque<Stream>   streams_;
