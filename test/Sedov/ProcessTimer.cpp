@@ -5,7 +5,7 @@
 #include <Milhoja.h>
 #include <Milhoja_Grid.h>
 
-#include "Flash_par.h"
+#include "RuntimeParameters.h"
 
 /**
  *
@@ -38,6 +38,12 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     unsigned int    nxb, nyb, nzb;
     milhoja::Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
+    // TODO: Get these from Grid instead of from RPs (as for n[xyz]b).
+    RuntimeParameters&    RPs = RuntimeParameters::instance();
+    unsigned int    nBlocksX{RPs.getUnsignedInt("Grid", "nBlocksX")};
+    unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
+    unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
+
     // Write header to file
     if (rank_ == timerRank_) {
         wtimes_sec_  = new double[nProcs_];
@@ -49,9 +55,9 @@ ProcessTimer::ProcessTimer(const std::string& filename,
         fptr_ << "# NXB = " << nxb << "\n";
         fptr_ << "# NYB = " << nyb << "\n";
         fptr_ << "# NZB = " << nzb << "\n";
-        fptr_ << "# N_BLOCKS_X = " << rp_Grid::N_BLOCKS_X << "\n";
-        fptr_ << "# N_BLOCKS_Y = " << rp_Grid::N_BLOCKS_Y << "\n";
-        fptr_ << "# N_BLOCKS_Z = " << rp_Grid::N_BLOCKS_Z << "\n";
+        fptr_ << "# N_BLOCKS_X = " << nBlocksX << "\n";
+        fptr_ << "# N_BLOCKS_Y = " << nBlocksY << "\n";
+        fptr_ << "# N_BLOCKS_Z = " << nBlocksZ << "\n";
         fptr_ << "# n_distributor_threads = " << nDistributorThreads << "\n";
         fptr_ << "# stagger_usec = " << stagger_usec << "\n";
         fptr_ << "# n_cpu_threads = " << nCpuThreads << "\n";

@@ -57,6 +57,9 @@ _ERROR = '\033[0;91;1m' # Bright Red/bold
 #_ERROR = '\033[0;31;1m' # Red/bold
 _NC    = '\033[0m'      # No Color/Not bold
 
+#####----- HARDCODED VARIABLES
+PAR_FILENAME = 'RuntimeParameters.json'
+
 if __name__ == '__main__':
     """
     Setup a build directory in accord with the given command line arguments.
@@ -221,9 +224,9 @@ if __name__ == '__main__':
 
     # Copy par file into build dir
     if args.par is not None:
-        print("Copying par file "+args.par+" as Flash_par.h")
-        parFile = os.path.join(siteDir,args.par)
-        shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
+        print(f"Copying par file {args.par} as {PAR_FILENAME}")
+        parFile = os.path.join(siteDir, args.par)
+        shutil.copy(parFile,os.path.join(buildDir, PAR_FILENAME))
 
     # Write the setup logfile
     print("Writing setup.log")
@@ -249,8 +252,8 @@ if __name__ == '__main__':
 
         f.write('Path to copied files:\n')
         if args.par is not None:
-            f.write('Flash_par.h copied from: {}\n'.format(
-                    os.path.abspath(parFile)) )
+            f.write('{} copied from: {}\n'.format(
+                    PAR_FILENAME, os.path.abspath(parFile)) )
         f.write('\n')
 
         f.write('Contents of Makefile.setup:\n')

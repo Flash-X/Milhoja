@@ -6,6 +6,8 @@
 #include <Milhoja_DataItem.h>
 
 namespace Eos {
+    constexpr milhoja::Real         GAMMA = 1.4_wp;
+
     // lo/hi can be any two corners, including loGC/hiGC
     void idealGammaDensIe(const milhoja::IntVect& lo,
                           const milhoja::IntVect& hi,

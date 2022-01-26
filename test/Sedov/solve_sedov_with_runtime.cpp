@@ -6,11 +6,10 @@
 #include <Milhoja_Logger.h>
 
 #include "Sedov.h"
+#include "RuntimeParameters.h"
 #include "Io.h"
 #include "Driver.h"
 #include "errorEstBlank.h"
-
-#include "Flash_par.h"
 
 int main(int argc, char* argv[]) {
     constexpr int    LOG_RANK = LEAD_RANK;
@@ -20,34 +19,37 @@ int main(int argc, char* argv[]) {
 
     int     exitCode = 0;
     try {
-        milhoja::Logger::initialize(rp_Simulation::LOG_FILENAME,
-                                    GLOBAL_COMM, LOG_RANK);
+        milhoja::Logger::initialize("sedov.log", GLOBAL_COMM, LOG_RANK);
 
-        milhoja::Runtime::initialize(rp_Runtime::N_THREAD_TEAMS, 
-                                     rp_Runtime::N_THREADS_PER_TEAM,
-                                     rp_Runtime::N_STREAMS,
-                                     rp_Runtime::MEMORY_POOL_SIZE_BYTES);
+        RuntimeParameters::initialize("RuntimeParameters.json");
+        RuntimeParameters&    RPs = RuntimeParameters::instance();
+
+        milhoja::Runtime::initialize(
+                    RPs.getUnsignedInt("Runtime", "nThreadTeams"),
+                    RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
+                    RPs.getUnsignedInt("Runtime", "nStreams"),
+                    RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
 
         // Configure in local block so that code cannot accidentally access
         // configuration data after it is consumed by Grid at initialization.
         {
             milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
 
-            cfg.xMin            = rp_Grid::X_MIN;
-            cfg.xMax            = rp_Grid::X_MAX;
-            cfg.yMin            = rp_Grid::Y_MIN;
-            cfg.yMax            = rp_Grid::Y_MAX;
-            cfg.zMin            = rp_Grid::Z_MIN;
-            cfg.zMax            = rp_Grid::Z_MAX;
-            cfg.nxb             = rp_Grid::NXB;
-            cfg.nyb             = rp_Grid::NYB;
-            cfg.nzb             = rp_Grid::NZB;
+            cfg.xMin            = RPs.getReal("Grid", "xMin");
+            cfg.xMax            = RPs.getReal("Grid", "xMax");
+            cfg.yMin            = RPs.getReal("Grid", "yMin");
+            cfg.yMax            = RPs.getReal("Grid", "yMax");
+            cfg.zMin            = RPs.getReal("Grid", "zMin");
+            cfg.zMax            = RPs.getReal("Grid", "zMax");
+            cfg.nxb             = RPs.getUnsignedInt("Grid", "NXB");
+            cfg.nyb             = RPs.getUnsignedInt("Grid", "NYB");
+            cfg.nzb             = RPs.getUnsignedInt("Grid", "NZB");
             cfg.nCcVars         = NUNKVAR;
             cfg.nGuard          = NGUARD;
-            cfg.nBlocksX        = rp_Grid::N_BLOCKS_X;
-            cfg.nBlocksY        = rp_Grid::N_BLOCKS_Y;
-            cfg.nBlocksZ        = rp_Grid::N_BLOCKS_Z;
-            cfg.maxFinestLevel  = rp_Grid::LREFINE_MAX;
+            cfg.nBlocksX        = RPs.getUnsignedInt("Grid", "nBlocksX");
+            cfg.nBlocksY        = RPs.getUnsignedInt("Grid", "nBlocksY");
+            cfg.nBlocksZ        = RPs.getUnsignedInt("Grid", "nBlocksZ");
+            cfg.maxFinestLevel  = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
             cfg.errorEstimation = Simulation::errorEstBlank;
             cfg.mpiComm         = GLOBAL_COMM;
 
@@ -55,8 +57,7 @@ int main(int argc, char* argv[]) {
         }
         milhoja::Grid::initialize();
 
-        Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                        GLOBAL_COMM, IO_RANK);
+        Io::instantiate("sedov.dat", GLOBAL_COMM, IO_RANK);
 
         // All allocation of simulation-specific resources occurs in the local
         // scope of this function.  They are therefore released/destroyed before
@@ -65,6 +66,7 @@ int main(int argc, char* argv[]) {
 
         milhoja::Grid::instance().finalize();
         milhoja::Runtime::instance().finalize();
+        RuntimeParameters::instance().finalize();
         milhoja::Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - " << e.what() << std::endl;

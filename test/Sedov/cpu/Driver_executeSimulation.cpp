@@ -9,14 +9,13 @@
 #include <Milhoja_Logger.h>
 
 #include "Sedov.h"
+#include "RuntimeParameters.h"
 #include "Io.h"
 #include "Hydro.h"
 #include "Timer.h"
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-
-#include "Flash_par.h"
 
 void    Driver::executeSimulation(void) {
     constexpr  int          TIMER_RANK          = LEAD_RANK;
@@ -31,16 +30,17 @@ void    Driver::executeSimulation(void) {
     std::vector<std::string>  variableNames = sim::getVariableNames();
 
     Io&                      io      = Io::instance();
+    RuntimeParameters&       RPs     = RuntimeParameters::instance();
     milhoja::Grid&           grid    = milhoja::Grid::instance();
     milhoja::Logger&         logger  = milhoja::Logger::instance();
     milhoja::Runtime&        runtime = milhoja::Runtime::instance();
 
-    Driver::dt      = rp_Simulation::DT_INIT;
-    Driver::simTime = rp_Simulation::T_0;
+    Driver::dt      = RPs.getReal("Simulation", "dtInit");
+    Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
     milhoja::RuntimeAction     initBlock_cpu;
     initBlock_cpu.name            = "initBlock_cpu";
-    initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+    initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
     initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     initBlock_cpu.nTilesPerPacket = 0;
     initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
@@ -48,7 +48,7 @@ void    Driver::executeSimulation(void) {
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
     computeIntQuantitiesByBlk.name            = "Compute Integral Quantities";
-    computeIntQuantitiesByBlk.nInitialThreads = rp_Io::N_THREADS_FOR_INT_QUANTITIES;
+    computeIntQuantitiesByBlk.nInitialThreads = RPs.getUnsignedInt("Io", "nThreadsForIntQuantities");
     computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
@@ -67,37 +67,41 @@ void    Driver::executeSimulation(void) {
     Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
+//    grid.writePlotfile("sedov_plt_ICs", variableNames);
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
     milhoja::RuntimeAction     hydroAdvance;
     hydroAdvance.name            = "Advance Hydro Solution";
-    hydroAdvance.nInitialThreads = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
+    hydroAdvance.nInitialThreads = RPs.getUnsignedInt("Hydro", "nThreadsForAdvanceSolution");
     hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
     hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings_hydro.dat", "CPU",
+    ProcessTimer  hydro{"sedov_timings.dat", "CPU",
                         N_DIST_THREADS, 0,
                         hydroAdvance.nInitialThreads,
                         N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
                         GLOBAL_COMM, TIMER_RANK};
 
-    Timer::start(rp_Simulation::NAME + " simulation");
+    Timer::start("Sedov simulation");
 
-    unsigned int   nStep   = 1;
-    while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
+    unsigned int   nStep            = 1;
+    unsigned int   maxSteps         = RPs.getUnsignedInt("Simulation", "maxSteps");
+    milhoja::Real  tMax             = RPs.getReal("Simulation", "tMax");
+    milhoja::Real  dtAfter          = RPs.getReal("Driver", "dtAfter");
+    unsigned int   writeEveryNSteps = RPs.getUnsignedInt("Driver", "writeEveryNSteps");
+    while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
-        if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
+        if ((Driver::simTime + Driver::dt) > tMax) {
             milhoja::Real   origDt = Driver::dt;
-            Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
-            Driver::simTime = rp_Simulation::T_MAX;
+            Driver::dt = (tMax - Driver::simTime);
+            Driver::simTime = tMax;
             logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
                        + " to " + std::to_string(Driver::dt)
-                       + " so that tmax=" + std::to_string(rp_Simulation::T_MAX)
+                       + " so that tmax=" + std::to_string(tMax)
                        + " is not exceeded");
         } else {
             Driver::simTime += Driver::dt;
@@ -133,8 +137,8 @@ void    Driver::executeSimulation(void) {
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
-        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
+        if ((nStep % writeEveryNSteps) == 0) {
+            grid.writePlotfile("sedov_plt_" + std::to_string(nStep),
                                variableNames);
         }
         Timer::stop("Reduce/Write");
@@ -156,18 +160,18 @@ void    Driver::executeSimulation(void) {
         // Simulation::DT_INIT.  There after, it allows for 5.0e-5.  Therefore,
         // we mimic that dt sequence here so that we can directly compare
         // results.
-        Driver::dt = rp_Driver::DT_AFTER;
+        Driver::dt = dtAfter;
 
         ++nStep;
     }
-    Timer::stop(rp_Simulation::NAME + " simulation");
+    Timer::stop("Sedov simulation");
 
-    if (Driver::simTime >= rp_Simulation::T_MAX) {
+    if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
+    grid.writePlotfile("sedov_plt_final", variableNames);
 
-    nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
+    nStep = std::min(nStep, maxSteps);
 
     grid.destroyDomain();
 }

@@ -2,8 +2,6 @@
 
 #include "Sedov.h"
 
-#include "Flash_par.h"
-
 namespace Eos {
 
 void idealGammaDensIe(const milhoja::IntVect& lo, 
@@ -16,8 +14,8 @@ void idealGammaDensIe(const milhoja::IntVect& lo,
     constexpr milhoja::Real   GAS_CONSTANT = 8.3144598e7_wp;  // J/mol/K
     
     // Derived from runtime parameters/constants
-    constexpr milhoja::Real   GGPROD_INV    = (rp_Eos::GAMMA - 1.0_wp) / GAS_CONSTANT;
-    constexpr milhoja::Real   GAMMA_M_1_INV = (rp_Eos::GAMMA - 1.0_wp);
+    constexpr milhoja::Real   GGPROD_INV    = (Eos::GAMMA - 1.0_wp) / GAS_CONSTANT;
+    constexpr milhoja::Real   GAMMA_M_1_INV = (Eos::GAMMA - 1.0_wp);
 
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {

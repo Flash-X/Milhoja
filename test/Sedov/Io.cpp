@@ -10,8 +10,7 @@
 #include <Milhoja_Logger.h>
 
 #include "Sedov.h"
-
-#include "Flash_par.h"
+#include "RuntimeParameters.h"
 
 //----- STATIC MEMBER DEFINITIONS
 bool             Io::instantiated_ = false;
@@ -97,7 +96,8 @@ Io::Io(void)
     //
     // Leave the accumulators zeroed so that they are ready for use.
     logger.log("[IO] Integral quantities to be computed and output are");
-    unsigned int   nThreads = rp_Runtime::N_THREADS_PER_TEAM;
+    RuntimeParameters&   RPs = RuntimeParameters::instance();
+    unsigned int   nThreads{RPs.getUnsignedInt("Runtime", "nThreadsPerTeam")};
     intQuantities_mass_ = new Real[nThreads];
     intQuantities_xmom_ = new Real[nThreads];
     intQuantities_ymom_ = new Real[nThreads];
@@ -332,7 +332,9 @@ void   Io::reduceToGlobalIntegralQuantities(void) {
     // Any or all of the threads in the thread team that ran
     // computeIntegralQuantitiesByBlock could have computed part of the
     // integration.  Therefore, we integrate across all threads.
-    for (unsigned int i=0; i<rp_Runtime::N_THREADS_PER_TEAM; ++i) {
+    RuntimeParameters&   RPs = RuntimeParameters::instance();
+    unsigned int   nThreads{RPs.getUnsignedInt("Runtime", "nThreadsPerTeam")};
+    for (unsigned int i=0; i<nThreads; ++i) {
         // The order in which quantities are stored in the array must match the
         // order in which quantities are listed in the output file's header.
         localIntQuantities_[0] += intQuantities_mass_[i];
