@@ -5,18 +5,11 @@
 #include <Milhoja_Logger.h>
 #include <Milhoja_GridConfiguration.h>
 #include <Milhoja_Grid.h>
-#include <Milhoja_Runtime.h>
 
 #include "Base.h"
 #include "setInitialInteriorTest.h"
 #include "errorEstMultiple.h"
 #include "Flash_par.h"
-
-// TODO: These should probably be runtime parameters at some point.
-constexpr int            N_STREAMS              = 32; 
-constexpr unsigned int   N_THREAD_TEAMS         = 1;
-constexpr unsigned int   N_THREADS_PER_TEAM     = 10;
-constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 0;
 
 int main(int argc, char* argv[]) {
     using namespace milhoja;
@@ -31,8 +24,6 @@ int main(int argc, char* argv[]) {
     int     exitCode = 1;
     try {
         Logger::initialize("GridMultipleUnitTest.log", GLOBAL_COMM, LEAD_RANK);
-        Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                             N_STREAMS, MEMORY_POOL_SIZE_BYTES);
 
         // Access config singleton within limited local scope so that it can't be
         // used by the rest of the application code outside the block.
@@ -60,30 +51,21 @@ int main(int argc, char* argv[]) {
             cfg.load();
         }
         Grid::initialize();
-
-        RuntimeAction   initBlock_cpu;
-        initBlock_cpu.name = "initBlock_cpu";
-        initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
-        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
-        initBlock_cpu.nTilesPerPacket = 0;
-        initBlock_cpu.routine         = Simulation::setInitialInteriorTest;
-
-        Grid&   grid = Grid::instance();
-        grid.initDomain(initBlock_cpu);
+        Grid::instance().initDomain(Simulation::setInitialInteriorTest);
 
         exitCode = RUN_ALL_TESTS();
 
-        grid.destroyDomain();
-        grid.finalize();
-        Runtime::instance().finalize();
+        Grid::instance().destroyDomain();
+        Grid::instance().finalize();
+
         Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - Grid/multiple::main - " << e.what() << std::endl;
-        return 111;
+        exitCode = 111;
     } catch(...) {
         std::cerr << "FAILURE - Grid/multiple::main - Exception of unexpected type caught"
                   << std::endl;
-        return 222;
+        exitCode = 222;
     }
 
     MPI_Finalize();

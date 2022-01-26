@@ -21,7 +21,7 @@
 #include "Flash_par.h"
 
 /**
- * Numerically approximate using the second GPU variant the solution to the
+ * Numerically approximate using the first GPU variant the solution to the
  * Sedov problem as defined partially by given runtime parameters.  Note that
  * this function initializes and destroys the problem domain.
  */

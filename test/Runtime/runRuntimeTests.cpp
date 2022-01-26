@@ -36,6 +36,12 @@ int main(int argc, char* argv[]) {
     int  rank = -1;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
+    ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+    if (rank != 0) {
+        delete listeners.Release(listeners.default_result_printer());
+    }
+
     int     exitCode = 1;
     try {
         Logger::initialize("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
@@ -110,12 +116,6 @@ int main(int argc, char* argv[]) {
 
         grid.initDomain(initBlock_cpu);
 
-        ::testing::TestEventListeners& listeners =
-            ::testing::UnitTest::GetInstance()->listeners();
-        if (rank != 0) {
-            delete listeners.Release(listeners.default_result_printer());
-        }
-
         // All allocation of test-specific resources occurs in the local scope
         // of the tests.  They are therefore released/destroyed before we do
         // high-level clean-up next, which is a good practice.
@@ -151,11 +151,11 @@ int main(int argc, char* argv[]) {
         Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - Runtime::main - " << e.what() << std::endl;
-        return 111;
+        exitCode = 111;
     } catch(...) {
         std::cerr << "FAILURE - Runtime::main - Exception of unexpected type caught"
                   << std::endl;
-        return 222;
+        exitCode = 222;
     }
 
     MPI_Finalize();

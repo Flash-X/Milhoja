@@ -139,11 +139,11 @@ int main(int argc, char* argv[]) {
         Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - Grid/general::main - " << e.what() << std::endl;
-        return 111;
+        exitCode = 111;
     } catch(...) {
         std::cerr << "FAILURE - Grid/general::main - Exception of unexpected type caught"
                   << std::endl;
-        return 222;
+        exitCode = 222;
     }
 
     MPI_Finalize();
