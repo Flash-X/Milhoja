@@ -43,10 +43,7 @@ void   CudaStreamManager::initialize(const int nMaxStreams) {
 }
 
 /**
- * \todo When designing an appropriate error handling system, should we include
- * the possibility of including warnings?  Should there be a logging system to
- * which we could write this?  Should the logging system patch into a logging
- * system offered by client code?
+ * 
  */
 void    CudaStreamManager::finalize(void) {
     if        (!initialized_) {
@@ -60,10 +57,12 @@ void    CudaStreamManager::finalize(void) {
     pthread_mutex_lock(&idxMutex_);
 
     if (streams_.size() != nMaxStreams_) {
-        std::cerr << "[CudaStreamManager::~CudaStreamManager] WARNING - "
-                  << (nMaxStreams_ - streams_.size()) 
-                  << " out of " << nMaxStreams_
-                  << " streams have not been released" << std::endl;
+        std::string   errMsg =   "[CudaStreamManager::finalize] "
+                               + std::to_string(nMaxStreams_ - streams_.size()) 
+                               + " out of "
+                               + std::to_string(nMaxStreams_)
+                               + " streams have not been released";
+        throw std::runtime_error(errMsg);
     }
 
 #ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
@@ -75,11 +74,11 @@ void    CudaStreamManager::finalize(void) {
     for (std::size_t i=0; i<streams_.size(); ++i) {
          cErr = cudaStreamDestroy(streams_[i].cudaStream);
          if (cErr != cudaSuccess) {
-            std::string  errMsg = "[CudaStreamManager::~CudaStreamManager] ";
+            std::string  errMsg = "[CudaStreamManager::finalize] ";
             errMsg += "Unable to destroy CUDA stream\n";
             errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            std::cerr << errMsg;
+            errMsg += std::string(cudaGetErrorString(cErr));
+            throw std::runtime_error(errMsg);
          }
     }
     Logger::instance().log(  "[CudaStreamManager] Destroyed "

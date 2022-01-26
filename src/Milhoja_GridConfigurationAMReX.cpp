@@ -28,7 +28,7 @@ GridConfigurationAMReX::GridConfigurationAMReX(void)
  * the contents upon assuming ownership of its values.
  */
 void GridConfigurationAMReX::load(void) const {
-    if (cleared_) {
+    if        (cleared_) {
         throw std::logic_error("[GridConfigurationAMReX::load] Configuration already consumed");
     } else if (loaded_) {
         throw std::logic_error("[GridConfigurationAMReX::load] Configuration already loaded");

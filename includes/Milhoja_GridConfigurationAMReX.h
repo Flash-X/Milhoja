@@ -5,8 +5,7 @@
  * A class for creating and populating a singleton that encapsulates all the
  * information needed to configure the Grid AMReX backend singleton.
  * 
- * Refer to the documentation of this class' base classes for more
- * information.
+ * Refer to the documentation of this class' base class for more information.
  */
 
 #include "Milhoja_GridConfiguration.h"

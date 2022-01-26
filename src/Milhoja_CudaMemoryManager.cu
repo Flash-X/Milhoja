@@ -55,11 +55,11 @@ void    CudaMemoryManager::finalize(void) {
     if (pinnedBuffer_ != nullptr) {
         cudaError_t   cErr = cudaFreeHost(pinnedBuffer_);
         if (cErr != cudaSuccess) {
-            std::cerr << "[CudaMemoryManager::~CudaMemoryManager] "
-                      << "Unable to deallocate pinned memory\n"
-                      << "CUDA error - "
-                      << cudaGetErrorName(cErr) << "\n"
-                      << cudaGetErrorString(cErr) << std::endl;
+            std::string  msg =   "[CudaMemoryManager::finalize] "
+                               + "Unable to deallocate pinned memory\n";
+            msg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            msg += std::string(cudaGetErrorString(cErr));
+            throw std::runtime_error(msg);
         }
         pinnedBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
@@ -70,11 +70,11 @@ void    CudaMemoryManager::finalize(void) {
     if (gpuBuffer_ != nullptr) {
         cudaError_t   cErr = cudaFree(gpuBuffer_);
         if (cErr != cudaSuccess) {
-            std::cerr << "[CudaMemoryManager::~CudaMemoryManager] "
-                      << "Unable to deallocate GPU memory\n"
-                      << "CUDA error - "
-                      << cudaGetErrorName(cErr) << "\n"
-                      << cudaGetErrorString(cErr) << std::endl;
+            std::string  msg =   "[CudaMemoryManager::finalize] "
+                               + "Unable to deallocate GPU memory\n";
+            msg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            msg += std::string(cudaGetErrorString(cErr));
+            throw std::runtime_error(msg);
         }
         gpuBuffer_ = nullptr;
         Logger::instance().log(  "[CudaMemoryManager] Deallocated " 

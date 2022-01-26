@@ -24,13 +24,22 @@ bool GridAmrex::domainInitialized_ = false;
 bool GridAmrex::domainDestroyed_   = false;
 
 /**
-  * Construct the AMReX Grid backend singleton.  When construction ends,
-  * both AMReX and MPI are fully initialized.  However, the data structures
-  * needed to store data will not have been created.
+  * Construct the AMReX Grid backend singleton.  It is assumed that
+  * configuration values have already been loaded into the GridConfiguration
+  * AMReX backend and that AMReX has been initialized.  The latter constraint is
+  * required by the AmrCore base class' constructor.  When construction ends,
+  * AMReX will be fully initialized.  However, the data structures needed to
+  * store data will not have been created.
   *
-  * It is assumed that the GridConfiguration singleton has already been loaded,
-  * which implies that rudimentary validation of configuration values has been
-  * carried out.  Therefore, only minimal error checking is done here.
+  * The prior loading of the GridConfiguration singleton implies that
+  * rudimentary validation of configuration values has been carried out.
+  * Therefore, only minimal error checking need be done here.
+  *
+  * \todo Within local-scope block, retroactively check cast to int of
+  * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
+  * invalid.  We are forced to cast and then check since we want
+  * nGuard_/nCcVars_ to be const.
+  *
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
@@ -54,12 +63,6 @@ GridAmrex::GridAmrex(void)
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
-
-        // TODO: Retroactively check cast to int of cfg.nGuard and cfg.nCcVars
-        // for overflow and fail if the stored values are invalid.  We are
-        // forced to cast and then check since we want nGuard_/nCcVars_ to be
-        // const.
-
         cfg.clear();
     }
 
@@ -216,12 +219,9 @@ GridAmrex::GridAmrex(void)
 }
 
 /**
-  * Clean-up and finalize the AMReX Grid singleton.  This includes finalizing
-  * AMReX.
-  *
-  * Under normal program execution and if initDomain has been called, it is a
+  * Under normal program execution and if initialize been called, it is a
   * logical error for singleton destruction to occur without the calling code
-  * having first called destroyDomain.
+  * having first called finalize.
   */
 GridAmrex::~GridAmrex(void) {
     if ((initialized_) && (!finalized_)) {
@@ -303,7 +303,7 @@ void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
     domainInitialized_ = true;
 
     std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
-    for(unsigned int level=0; level<=finest_level; ++level) {
+    for (int level=0; level<=finest_level; ++level) {
         nGlobalBlocks += unk_[level].size();
     }
 
@@ -343,7 +343,7 @@ void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
     domainInitialized_ = true;
 
     std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
-    for(unsigned int level=0; level<=finest_level; ++level) {
+    for (int level=0; level<=finest_level; ++level) {
         nGlobalBlocks += unk_[level].size();
     }
 
@@ -373,7 +373,7 @@ void GridAmrex::restrictAllLevels() {
 /** Fill guard cells on all levels.
   */
 void  GridAmrex::fillGuardCells() {
-    for (int level=0; level<=getMaxLevel(); ++level) {
+    for (int level=0; level<=finest_level; ++level) {
 #ifdef GRID_LOG
         Logger::instance().log("[GridAmrex] GCFill on level " +
                            std::to_string(level) );
@@ -488,10 +488,6 @@ unsigned int GridAmrex::getNumberLocalBlocks() {
  */
 void    GridAmrex::writePlotfile(const std::string& filename,
                                  const std::vector<std::string>& names) const {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex] Writing to plotfile: "+filename+"...";
-    Logger::instance().log(msg);
-#endif
 
     amrex::Vector<std::string>  names_amrex{names.size()};
     for (auto j=0; j<names.size(); ++j) {
@@ -512,6 +508,8 @@ void    GridAmrex::writePlotfile(const std::string& filename,
                                    0.0,
                                    lsteps,
                                    ref_ratio);
+
+    Logger::instance().log("[GridAmrex] Wrote to plotfile " + filename);
 }
 
 /**
@@ -725,13 +723,9 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
   * \param level   Level being cleared
   */
 void    GridAmrex::ClearLevel(int level) {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex::ClearLevel] Clearing level " +
-                      std::to_string(level) + "...";
-    Logger::instance().log(msg);
-#endif
-
     unk_[level].clear();
+
+    Logger::instance().log("[GridAmrex] Cleared level " + std::to_string(level));
 }
 
 /**
@@ -745,16 +739,12 @@ void    GridAmrex::ClearLevel(int level) {
 void   GridAmrex::RemakeLevel(int level, amrex::Real time,
                               const amrex::BoxArray& ba,
                               const amrex::DistributionMapping& dm) {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex::RemakeLevel] Remaking level " +
-                      std::to_string(level) + "...";
-    Logger::instance().log(msg);
-#endif
-
     amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
     fillPatch(unkTmp, level);
 
     std::swap(unkTmp, unk_[level]);
+
+    Logger::instance().log("[GridAmrex] Remade level " + std::to_string(level));
 }
 
 /**
@@ -764,13 +754,8 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
   * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
   * team configuration should be used.  If the GPU-only configuration is
   * allowed, then we should allow for more than one distributor thread.
-  * \todo Use the runtime directly rather than recreate a thread team
-  * configuration.
-  * \todo The RuntimeAction should be created/set when initDomain is called
-  *       and destroyed so that we get a failure here if this is used after
-  *       initDomain finishes.  Similarly, this should fail in an obvious way if
-  *       initDomain has not been called.
   * \todo Should this do a GC fill at the end?
+  * \todo Really necessary to zero data?  Check with Flash-X.
   *
   * \param level Level being made
   * \param time Simulation time
@@ -804,12 +789,10 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
 
-#ifdef GRID_LOG
-    msg =    "[GridAmrex::MakeNewLevelFromScratch] Created level "
-           + std::to_string(level) + " with "
-           + std::to_string(ba.size()) + " blocks.";
+    msg =    "[GridAmrex] Created level "
+           + std::to_string(level) + " from scratch with "
+           + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
-#endif
 }
 
 /**
@@ -847,6 +830,11 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  geom[level-1], geom[level],
                                  cphysbc, 0, fphysbc, 0,
                                  ref_ratio[level-1], mapper, bcs_, 0);
+
+    msg =    "[GridAmrex] Created level "
+           + std::to_string(level) + " from fine level with "
+           + std::to_string(ba.size()) + " blocks";
+    Logger::instance().log(msg);
 }
 
 /**

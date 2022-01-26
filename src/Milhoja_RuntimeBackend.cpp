@@ -30,13 +30,13 @@ std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
  */
 void   RuntimeBackend::initialize(const unsigned int nStreams,
                             const std::size_t  nBytesInMemoryPools) {
-    Logger::instance().log("[RuntimeBackend] Initializing...");
-
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
         throw std::logic_error("[RuntimeBackend::initialize] Already initialized");
     }
+
+    Logger::instance().log("[RuntimeBackend] Initializing...");
 
     // The responsibility of error checking these falls on the code that
     // consumes them later.
@@ -57,13 +57,13 @@ void   RuntimeBackend::initialize(const unsigned int nStreams,
  * function *after* performing its own clean-up.
  */
 void   RuntimeBackend::finalize(void) {
-    Logger::instance().log("[RuntimeBackend] Finalizing ...");
-
     if        (!initialized_) {
         throw std::logic_error("[RuntimeBackend::finalize] Never initialized");
     } else if (finalized_) {
         throw std::logic_error("[RuntimeBackend::finalize] Already finalized");
     }
+
+    Logger::instance().log("[RuntimeBackend] Finalizing ...");
 
     nStreams_ = 0;
     nBytesInMemoryPools_ = 0;
@@ -77,8 +77,8 @@ void   RuntimeBackend::finalize(void) {
  * Obtain access to the RuntimeBackend Singleton object.
  */
 RuntimeBackend&   RuntimeBackend::instance(void) {
-    if(!initialized_) {
-        throw std::logic_error("[RuntimeBackend::instance] initialize first");
+    if        (!initialized_) {
+        throw std::logic_error("[RuntimeBackend::instance] Initialize first");
     } else if (finalized_) {
         throw std::logic_error("[RuntimeBackend::instance] No access after finalization");
     }

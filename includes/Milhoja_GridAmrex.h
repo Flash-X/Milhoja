@@ -132,7 +132,7 @@ private:
 
     // AMReX is given this communicator and therefore should own this.  However,
     // I have not yet found a getter to access it in this class.
-    MPI_Comm       comm_;
+    const MPI_Comm        comm_;
 
     //----- GRID CONFIGURATION VALUES OWNED BY GridAmrex
     // These cannot be obtained from AMReX

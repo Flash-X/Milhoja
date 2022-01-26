@@ -6,11 +6,6 @@
 
 #ifdef MILHOJA_GRID_AMREX
 #include "Milhoja_GridConfigurationAMReX.h"
-namespace milhoja {
-    typedef GridConfigurationAMReX GridConfigBackend;
-}
-#else
-#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
 #endif
 
 namespace milhoja {
@@ -31,7 +26,12 @@ GridConfiguration&   GridConfiguration::instance(void) {
         throw std::logic_error("[GridConfiguration::instance] Configuration already consumed");
     }
 
-    static GridConfigBackend    singleton;
+#ifdef MILHOJA_GRID_AMREX
+    static GridConfigurationAMReX   singleton;
+#else
+#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
+#endif
+
     return singleton;
 }
 
