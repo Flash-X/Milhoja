@@ -765,12 +765,6 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
 void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
                                            const amrex::BoxArray& ba,
                                            const amrex::DistributionMapping& dm) {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex::MakeNewLevelFromScratch] Creating level " +
-                      std::to_string(level) + "...";
-    Logger::instance().log(msg);
-#endif
-
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
     unk_[level].setVal(0.0_wp);
 
@@ -789,9 +783,9 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
 
-    msg =    "[GridAmrex] Created level "
-           + std::to_string(level) + " from scratch with "
-           + std::to_string(ba.size()) + " blocks";
+    std::string    msg =   "[GridAmrex] Created level "
+                         + std::to_string(level) + " from scratch with "
+                         + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
 }
 
@@ -808,12 +802,6 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
 void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                          const amrex::BoxArray& ba,
                                          const amrex::DistributionMapping& dm) {
-#ifdef GRID_LOG
-    std::string msg = "[GridAmrex::MakeNewLevelFromCoarse] Making level " +
-                      std::to_string(level) + " from coarse...";
-    Logger::instance().log(msg);
-#endif
-
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
 
     amrex::CpuBndryFuncFab  bndry_func(nullptr);
@@ -831,9 +819,9 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  cphysbc, 0, fphysbc, 0,
                                  ref_ratio[level-1], mapper, bcs_, 0);
 
-    msg =    "[GridAmrex] Created level "
-           + std::to_string(level) + " from fine level with "
-           + std::to_string(ba.size()) + " blocks";
+    std::string    msg =   "[GridAmrex] Created level "
+                         + std::to_string(level) + " from fine level with "
+                         + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
 }
 
