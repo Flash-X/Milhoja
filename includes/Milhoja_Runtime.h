@@ -33,11 +33,12 @@ public:
     Runtime& operator=(const Runtime&) = delete;
     Runtime& operator=(Runtime&&)      = delete;
 
-    static void          instantiate(const unsigned int nTeams,
+    static void          initialize(const unsigned int nTeams,
                                      const unsigned int nThreadsPerTeam,
                                      const unsigned int nStreams,
                                      const std::size_t nBytesInMemoryPools);
     static Runtime&      instance(void);
+    void                 finalize(void);
 
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);
@@ -105,7 +106,8 @@ private:
 
     static unsigned int    nTeams_; 
     static unsigned int    maxThreadsPerTeam_;
-    static bool            instantiated_;
+    static bool            initialized_;
+    static bool            finalized_;
 
     ThreadTeam**     teams_;
 

@@ -9,39 +9,18 @@
 #include <Milhoja_Grid.h>
 #include <Milhoja_macros.h>
 #include <Milhoja_edge.h>
-#include <Milhoja_axis.h>
 #include <Milhoja_Tile.h>
+#include <Milhoja_ThreadTeamDataType.h>
 
-#include "Base.h"
 #include "Simulation.h"
 #include "setInitialConditions.h"
-#include "setInitialInteriorTest.h"
-#include "errorEstBlank.h"
-#include "errorEstMaximal.h"
-#include "errorEstMultiple.h"
 #include "Flash_par.h"
 
 using namespace milhoja;
 
 namespace {
 
-//test fixture
-class GridUnitTest : public testing::Test {
-protected:
-    GridUnitTest(void) {
-    }
-
-    ~GridUnitTest(void) {
-            Grid::instance().destroyDomain();
-    }
-};
-
-TEST_F(GridUnitTest,VectorClasses){
-    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                                rp_Simulation::N_THREADS_FOR_IC,
-                                Simulation::errorEstBlank);
-
+TEST(GridUnitTest,VectorClasses){
     //test creation and conversion
     IntVect intVec1{LIST_NDIM(3,10,2)};
     const IntVect intVecConst{LIST_NDIM(3,10,2)};
@@ -116,12 +95,7 @@ TEST_F(GridUnitTest,VectorClasses){
     std::cout << "Sample RealVect: " << realVec1 << std::endl;
 }
 
-TEST_F(GridUnitTest,FArrayClasses){
-    //Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-    //                            rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-    //                            rp_Simulation::N_THREADS_FOR_IC,
-    //                            Simulation::errorEstBlank);
-
+TEST(GridUnitTest,FArrayClasses){
     //test creation and assignment
     Real arrayData[10];
     FArray1D data{arrayData, 0};
@@ -179,11 +153,7 @@ TEST_F(GridUnitTest,FArrayClasses){
     EXPECT_EQ( caughtErrors, 4);
 }
 
-TEST_F(GridUnitTest,ProbConfigGetters){
-    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                                rp_Simulation::N_THREADS_FOR_IC,
-                                Simulation::errorEstMaximal);
+TEST(GridUnitTest,ProbConfigGetters){
     float eps = 1.0e-14;
     int count;
 
@@ -239,11 +209,7 @@ TEST_F(GridUnitTest,ProbConfigGetters){
 
 }
 
-TEST_F(GridUnitTest,PerTileGetters){
-    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                                rp_Simulation::N_THREADS_FOR_IC,
-                                Simulation::errorEstMaximal);
+TEST(GridUnitTest,PerTileGetters){
     float eps = 1.0e-14;
     int count;
 
@@ -305,11 +271,7 @@ TEST_F(GridUnitTest,PerTileGetters){
     }*/
 }
 
-TEST_F(GridUnitTest,MultiCellGetters){
-    Grid::instance().initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                                rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                                rp_Simulation::N_THREADS_FOR_IC,
-                                Simulation::errorEstMaximal);
+TEST(GridUnitTest,MultiCellGetters){
     float eps = 1.0e-14;
 
     Grid& grid = Grid::instance();
@@ -421,127 +383,30 @@ TEST_F(GridUnitTest,MultiCellGetters){
 
 }
 
-TEST_F(GridUnitTest,GCFill){
-    Grid& grid = Grid::instance();
-    float eps = 1.0e-14;
-
-    grid.initDomain(Simulation::setInitialInteriorTest,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstMaximal);
-
-    grid.fillGuardCells();
-    // Test Guard cell fill
-    Real expected_val = 0.0_wp;
-    for (int lev = 0; lev<=grid.getMaxLevel(); ++lev) {
-    for (auto ti = grid.buildTileIter(lev); ti->isValid(); ti->next()) {
-        std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
-
-        RealVect cellCenter = tileDesc->getCenterCoords();
-
-        IntVect lo = tileDesc->lo();
-        IntVect hi = tileDesc->hi();
-        IntVect loGC = tileDesc->loGC();
-        IntVect hiGC = tileDesc->hiGC();
-        FArray4D data = tileDesc->data();
-        for (        int k = loGC.K(); k <= hiGC.K(); ++k) {
-            for (    int j = loGC.J(); j <= hiGC.J(); ++j) {
-                for (int i = loGC.I(); i <= hiGC.I(); ++i) {
-                    IntVect pos{LIST_NDIM(i,j,k)};
-                    if (pos.allGE(lo) && pos.allLE(hi) ) {
-                        continue;
-                    }
-
-                    expected_val  = 1.0_wp;
-
-                    EXPECT_NEAR( expected_val, data(i,j,k,DENS_VAR), eps);
-                }
-            }
-        }
-
-    } //iterator loop
-    } //level loop
-}
-
-TEST_F(GridUnitTest,MultipleLevels){
-    Grid& grid = Grid::instance();
-    float eps = 1.0e-10;
-    grid.initDomain(Simulation::setInitialInteriorTest,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstMultiple);
-
-    for(auto ti=grid.buildTileIter(0); ti->isValid(); ti->next()) {
-        auto tileDesc = ti->buildCurrentTile();
-        auto data = tileDesc->data();
-        auto lo = tileDesc->lo();
-        auto hi = tileDesc->hi();
-        for (int k = lo.K(); k <= hi.K(); ++k) {
-        for (int j = lo.J(); j <= hi.J(); ++j) {
-        for (int i = lo.I(); i <= hi.I(); ++i) {
-            data(i,j,k,0) = 1.15_wp;
-        }}}
-    }
-
-    grid.fillGuardCells();
-    grid.regrid();
-
-    for(auto ti=grid.buildTileIter(1); ti->isValid(); ti->next()) {
-        auto tileDesc = ti->buildCurrentTile();
-        auto data = tileDesc->data();
-        auto lo = tileDesc->lo();
-        auto hi = tileDesc->hi();
-        for (int k = lo.K(); k <= hi.K(); ++k) {
-        for (int j = lo.J(); j <= hi.J(); ++j) {
-        for (int i = lo.I(); i <= hi.I(); ++i) {
-            data(i,j,k,0) = 1.25_wp;
-        }}}
-    }
-    grid.restrictAllLevels();
-
-    grid.fillGuardCells();
-    grid.regrid();
-
-    for(auto ti=grid.buildTileIter(2); ti->isValid(); ti->next()) {
-        auto tileDesc = ti->buildCurrentTile();
-        auto data = tileDesc->data();
-        auto lo = tileDesc->lo();
-        auto hi = tileDesc->hi();
-        for (int k = lo.K(); k <= hi.K(); ++k) {
-        for (int j = lo.J(); j <= hi.J(); ++j) {
-        for (int i = lo.I(); i <= hi.I(); ++i) {
-            ASSERT_NEAR(data(i,j,k,0) , 1.25_wp, eps);
-        }}}
-    }
-}
-
-TEST_F(GridUnitTest,LogicErrors){
+TEST(GridUnitTest,LogicErrors){
     Grid& grid = Grid::instance();
     int caughtErrors = 0;
     try {
-        Grid::instantiate();
-    } catch (const std::logic_error& e) {
-        caughtErrors++;
-    }
-    try {
-        grid.initDomain(nullptr,
-                        rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                        rp_Simulation::N_THREADS_FOR_IC,
-                        Simulation::errorEstMaximal);
+        Grid::initialize();
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
 
-    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstMaximal);
+    try {
+        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+    } catch (const std::logic_error& e) {
+        caughtErrors++;
+    }
 
     try {
-        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                        rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                        rp_Simulation::N_THREADS_FOR_IC,
-                        Simulation::errorEstMaximal);
+        RuntimeAction   initBlock_cpu;
+        initBlock_cpu.name = "initBlock_cpu";
+        initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
+        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.nTilesPerPacket = 0;
+        initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+
+        grid.initDomain(initBlock_cpu);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
@@ -549,16 +414,12 @@ TEST_F(GridUnitTest,LogicErrors){
     EXPECT_EQ( caughtErrors, 3);
 }
 
-TEST_F(GridUnitTest,PlotfileOutput){
+TEST(GridUnitTest,PlotfileOutput){
     std::vector<std::string>   names = sim::getVariableNames();
 
     Grid& grid = Grid::instance();
-    grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstMaximal);
-
     grid.writePlotfile("test_plt_0000", names);
 }
 
 }
+

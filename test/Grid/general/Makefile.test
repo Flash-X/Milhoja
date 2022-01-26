@@ -1,0 +1,18 @@
+BINARYNAME          = test_grid_general.x
+
+TESTGRIDDIR         = $(BASEDIR)/test/Grid
+TESTDIR             = $(TESTGRIDDIR)/general
+TESTBASEDIR         = $(BASEDIR)/test/Base
+
+CXXFLAGS_TEST_DEBUG = -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_PROD  = -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+LDFLAGS_TEST        = $(LIB_GTEST)
+
+SRCS_TEST = \
+    $(TESTDIR)/runGridTest.cpp \
+    $(TESTDIR)/gridUnitTest.cpp \
+    $(TESTBASEDIR)/sim_getVariableNames.cpp \
+    $(TESTBASEDIR)/setInitialConditions.cpp \
+    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTGRIDDIR)/errorEstMaximal.cpp
+

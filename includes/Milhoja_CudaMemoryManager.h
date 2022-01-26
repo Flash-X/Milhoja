@@ -31,8 +31,9 @@ public:
     CudaMemoryManager& operator=(const CudaMemoryManager&) = delete;
     CudaMemoryManager& operator=(CudaMemoryManager&&)      = delete;
 
-    static void                 instantiate(const std::size_t nBytesInMemoryPools);
+    static void                 initialize(const std::size_t nBytesInMemoryPools);
     static CudaMemoryManager&   instance(void);
+    void                        finalize(void);
 
     void   requestMemory(const std::size_t pinnedBytes,
                          void** pinnedPtr,
@@ -47,7 +48,8 @@ private:
     CudaMemoryManager(void);
 
     static std::size_t  nBytes_;
-    static bool         instantiated_;
+    static bool         initialized_;
+    static bool         finalized_;
 
     pthread_mutex_t   mutex_;
     pthread_cond_t    memoryReleased_;

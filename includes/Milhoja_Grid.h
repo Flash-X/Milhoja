@@ -19,6 +19,7 @@
 #include "Milhoja_Tile.h"
 #include "Milhoja_TileIter.h"
 #include "Milhoja_actionRoutine.h"
+#include "Milhoja_RuntimeAction.h"
 
 namespace milhoja {
 
@@ -29,7 +30,7 @@ namespace milhoja {
   */
 class Grid {
 public:
-    virtual ~Grid(void) { instantiated_ = false; }
+    virtual ~Grid(void);
 
     Grid(Grid&) = delete;
     Grid(const Grid&) = delete;
@@ -38,18 +39,17 @@ public:
     Grid& operator=(const Grid&) = delete;
     Grid& operator=(Grid&&) = delete;
 
-    static Grid& instance(void);
-    static void  instantiate(void);
+    static  Grid& instance(void);
+    static  void  initialize(void);
+    virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
-    virtual void initDomain(ACTION_ROUTINE initBlock,
-                            const unsigned int nDistributorThreads,
-                            const unsigned int nRuntimeThreads,
-                            ERROR_ROUTINE errorEst) = 0;
+    virtual void initDomain(ACTION_ROUTINE initBlock) = 0;
+    virtual void initDomain(const RuntimeAction& cpuAction) = 0;
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
-    virtual void regrid() = 0;
+    virtual void updateGrid() = 0;
     virtual void           getBlockSize(unsigned int* nxb,
                                         unsigned int* nyb,
                                         unsigned int* nzb) const = 0;
@@ -103,8 +103,9 @@ public:
 
 protected:
     Grid(void) {}
-    static bool instantiated_; //!< Track if singleton has been instantiated.
 
+    static bool initialized_;  //!< True if initialize has been called
+    static bool finalized_;    //!< True if finalize has been called
 };
 
 }

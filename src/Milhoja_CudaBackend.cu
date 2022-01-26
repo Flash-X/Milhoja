@@ -1,5 +1,6 @@
 #include "Milhoja_CudaBackend.h"
 
+#include "Milhoja_Logger.h"
 #include "Milhoja_CudaGpuEnvironment.h"
 #include "Milhoja_CudaStreamManager.h"
 #include "Milhoja_CudaMemoryManager.h"
@@ -7,19 +8,39 @@
 namespace milhoja {
 
 /**
- * Instantiate a CudaBackend object and all the helpers that it relies on.  It
- * is intended that this only ever be called by the RuntimeBackend's instantiate
- * member function.  In this way, the instatiated object should be a singleton.
+ * Initialize a CudaBackend object and all the helpers that it relies on.  It
+ * is intended that this only ever be called by the RuntimeBackend's initialize
+ * member function.  In this way, the initialized object should be a singleton.
  */
 CudaBackend::CudaBackend(const unsigned int nStreams,
                          const std::size_t  nBytesInMemoryPools) {
-    // Since RuntimeBackend calls instance() inside instantiate() and this constructor
+    Logger::instance().log("[CudaBackend] Initializing...");
+
+    // Since RuntimeBackend calls instance() inside initialize() and this constructor
     // should only be called once, these lines effectively carry out the 
-    // instantiate() work of this derived class.
-    CudaGpuEnvironment::instantiate();
-    CudaStreamManager::instantiate(nStreams);
-    CudaMemoryManager::instantiate(nBytesInMemoryPools);
+    // initialize() work of this derived class.
+    CudaGpuEnvironment::initialize();
+    CudaStreamManager::initialize(nStreams);
+    CudaMemoryManager::initialize(nBytesInMemoryPools);
+
+    Logger::instance().log("[CudaBackend] Created and ready for use");
 }
+
+/**
+ * Refer to the RuntimeBackend documentation for more information.
+ */
+void    CudaBackend::finalize(void) {
+    Logger::instance().log("[CudaBackend] Finalizing...");
+
+    CudaMemoryManager::instance().finalize();
+    CudaStreamManager::instance().finalize();
+    CudaGpuEnvironment::instance().finalize();
+
+    RuntimeBackend::finalize();
+
+    Logger::instance().log("[CudaBackend] Finalized");
+}
+
 
 /**
  * Refer to the RuntimeBackend documentation for more information.

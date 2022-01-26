@@ -5,26 +5,75 @@
 #include <vector>
 
 #include <AMReX.H>
-#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_PlotFileUtil.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 #include "Milhoja_TileIterAmrex.h"
+#include "Milhoja_Runtime.h"
 
 namespace milhoja {
 
-/** Passes FLASH Runtime Parameters to AMReX then initialize AMReX.
+//----- STATIC DATA MEMBER DEFAULT VALUES
+bool GridAmrex::domainInitialized_ = false;
+bool GridAmrex::domainDestroyed_   = false;
+
+/**
+  * Construct the AMReX Grid backend singleton.  It is assumed that
+  * configuration values have already been loaded into the GridConfiguration
+  * AMReX backend and that AMReX has been initialized.  The latter constraint is
+  * required by the AmrCore base class' constructor.  When construction ends,
+  * AMReX will be fully initialized.  However, the data structures needed to
+  * store data will not have been created.
+  *
+  * The prior loading of the GridConfiguration singleton implies that
+  * rudimentary validation of configuration values has been carried out.
+  * Therefore, only minimal error checking need be done here.
+  *
+  * \todo Within local-scope block, retroactively check cast to int of
+  * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
+  * invalid.  We are forced to cast and then check since we want
+  * nGuard_/nCcVars_ to be const.
+  *
   */
 GridAmrex::GridAmrex(void)
-    : amrcore_{nullptr},
+    : Grid(),
+      AmrCore(),
+      comm_{GridConfiguration::instance().mpiComm},
+      nBlocksX_{GridConfiguration::instance().nBlocksX},
+      nBlocksY_{GridConfiguration::instance().nBlocksY},
+      nBlocksZ_{GridConfiguration::instance().nBlocksZ},
       nxb_{GridConfiguration::instance().nxb}, 
       nyb_{GridConfiguration::instance().nyb}, 
       nzb_{GridConfiguration::instance().nzb},
-      nGuard_tmp_{GridConfiguration::instance().nGuard},
-      nCcVars_tmp_{GridConfiguration::instance().nCcVars}
+      nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
+      nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
+      errorEst_{GridConfiguration::instance().errorEstimation},
+      initBlock_noRuntime_{nullptr},
+      initCpuAction_{}
 {
+    Logger&   logger = Logger::instance();
+    logger.log("[GridAmrex] Initializing...");
+
+    // Satisfy grid configuration requirements and suggestions (See dev guide).
+    {
+        GridConfiguration&  cfg = GridConfiguration::instance();
+        cfg.clear();
+    }
+
+    // Set nonsensical values so that code will fail in obvious way if this is
+    // accidentally used before initDomain is called.
+    initCpuAction_.name = "initCpuAction_ used in ERROR";
+    initCpuAction_.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    initCpuAction_.nInitialThreads =    0;
+    initCpuAction_.nTilesPerPacket = 1000;
+    initCpuAction_.routine         = nullptr;
+
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
       throw std::logic_error("amrex::Real does not match milhoja::Real");
@@ -38,149 +87,299 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    // Access config singleton within limited local scope so that it can't
-    // be used accidentally after the config values have been consumed in this
-    // block.
-    {
-        GridConfiguration&   cfg = GridConfiguration::instance();
-        if (!cfg.isValid()) {
-            throw std::invalid_argument("[GridAmrex::GridAmrex] Invalid configuration");
-        }
+    // Allocate and resize unk_
+    unk_.resize(max_level+1);
 
-        amrex::ParmParse    ppGeo("geometry");
-        ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
-        ppGeo.add("coord_sys", 0); //cartesian
-        ppGeo.addarr("prob_lo", std::vector<Real>{LIST_NDIM(cfg.xMin,
-                                                            cfg.yMin,
-                                                            cfg.zMin)});
-        ppGeo.addarr("prob_hi", std::vector<Real>{LIST_NDIM(cfg.xMax,
-                                                            cfg.yMax,
-                                                            cfg.zMax)});
-
-        // TODO: Check for overflow
-        int  lrefineMax_i = static_cast<int>(cfg.maxFinestLevel);
-        int  nxb_i        = static_cast<int>(nxb_);
-        int  nyb_i        = static_cast<int>(nyb_);
-        int  nzb_i        = static_cast<int>(nzb_);
-        int  nCellsX_i    = static_cast<int>(nxb_ * cfg.nBlocksX);
-        int  nCellsY_i    = static_cast<int>(nyb_ * cfg.nBlocksY);
-        int  nCellsZ_i    = static_cast<int>(nzb_ * cfg.nBlocksZ);
-
-        amrex::ParmParse ppAmr("amr");
-
-        ppAmr.add("v", 0); //verbosity
-        //ppAmr.add("regrid_int",nrefs); //how often to refine
-        ppAmr.add("max_level", lrefineMax_i - 1); //0-based
-        ppAmr.addarr("n_cell", std::vector<int>{LIST_NDIM(nCellsX_i,
-                                                          nCellsY_i,
-                                                          nCellsZ_i)});
-
-        //octree mode:
-        ppAmr.add("max_grid_size_x",    nxb_i);
-        ppAmr.add("max_grid_size_y",    nyb_i);
-        ppAmr.add("max_grid_size_z",    nzb_i);
-        ppAmr.add("blocking_factor_x",  nxb_i * 2);
-        ppAmr.add("blocking_factor_y",  nyb_i * 2);
-        ppAmr.add("blocking_factor_z",  nzb_i * 2);
-        ppAmr.add("refine_grid_layout", 0);
-        ppAmr.add("grid_eff",           1.0);
-        ppAmr.add("n_proper",           1);
-        ppAmr.add("n_error_buf",        0);
-        ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax_i, 2));
-
-        // Communicate to the config singleton that its contents have been
-        // consumed and that other code should not be able to access it.
-        cfg.clear();
-
-#ifdef GRID_LOG
-        Logger::instance().log("[GridAmrex] Loaded configuration values into AMReX");
-#endif
+    // Set periodic Boundary conditions
+    bcs_.resize(1);
+    for(int i=0; i<MILHOJA_NDIM; ++i) {
+        bcs_[0].setLo(i, amrex::BCType::int_dir);
+        bcs_[0].setHi(i, amrex::BCType::int_dir);
     }
 
-    amrex::Initialize(MPI_COMM_WORLD);
+    //----- LOG GRID CONFIGURATION INFORMATION
+    int size = -1;
+    MPI_Comm_size(comm_, &size);
 
-    // Tell Logger to get its rank once AMReX has initialized MPI, but
-    // before we log anything
-    Logger::instance().acquireRank();
-    Logger::instance().log("[GridAmrex] Initialized Grid.");
+    // Get values owned by AMReX
+    RealVect  domainLo = getProbLo();
+    RealVect  domainHi = getProbHi();
+
+    std::string   msg{};
+    msg =   "[GridAmrex] " + std::to_string(size)
+          + " MPI processes in given communicator";
+    logger.log(msg);
+
+    msg = "[GridAmrex] N dimensions = " + std::to_string(MILHOJA_NDIM);
+    logger.log(msg);
+
+    msg  = "[GridAmrex] Physical spatial domain specification";
+    logger.log(msg);
+    msg =   "[GridAmrex]    x in ("
+          + std::to_string(domainLo[Axis::I]) + ", "
+          + std::to_string(domainHi[Axis::I]) + ")";
+    logger.log(msg);
+#if MILHOJA_NDIM >= 2
+    msg =   "[GridAmrex]    y in ("
+          + std::to_string(domainLo[Axis::J]) + ", "
+          + std::to_string(domainHi[Axis::J]) + ")";
+    logger.log(msg);
+#endif
+#if MILHOJA_NDIM >= 3
+    msg =   "[GridAmrex]    z in ("
+          + std::to_string(domainLo[Axis::K]) + ", "
+          + std::to_string(domainHi[Axis::K]) + ")";
+    logger.log(msg);
+#endif
+
+    msg =   "[GridAmrex] Maximum Finest Level = "
+          + std::to_string(max_level);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Guardcells = "
+          + std::to_string(nGuard_);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Cell-centered Variables = "
+          + std::to_string(nCcVars_);
+    logger.log(msg);
+
+#if   MILHOJA_NDIM == 1
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_)
+          + " blocks";
+    logger.log(msg);
+    
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]);
+        logger.log(msg);
+    }
+#elif MILHOJA_NDIM == 2
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_) + " x "
+          + std::to_string(nyb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_) + " x "
+          + std::to_string(nBlocksY_)
+          + " blocks";
+    logger.log(msg);
+
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]) + " x "
+              + std::to_string(deltas[Axis::J]);
+        logger.log(msg);
+    }
+#elif MILHOJA_NDIM == 3
+    msg =   "[GridAmrex] Block interior size = "
+          + std::to_string(nxb_) + " x "
+          + std::to_string(nyb_) + " x "
+          + std::to_string(nzb_)
+          + " cells";
+    logger.log(msg);
+
+    msg =   "[GridAmrex] Domain decomposition at coarsest level = "
+          + std::to_string(nBlocksX_) + " x "
+          + std::to_string(nBlocksY_) + " x "
+          + std::to_string(nBlocksZ_)
+          + " blocks";
+    logger.log(msg);
+
+    msg = "[GridAmrex] Mesh deltas by level";
+    logger.log(msg);
+    for (int level=0; level<=max_level; ++level) {
+        RealVect  deltas = getDeltas(level);
+        msg =   "[GridAmrex]    Level " + std::to_string(level)
+              + "       "
+              + std::to_string(deltas[Axis::I]) + " x "
+              + std::to_string(deltas[Axis::J]) + " x "
+              + std::to_string(deltas[Axis::K]);
+        logger.log(msg);
+    }
+#endif
+
+    logger.log("[GridAmrex] Created and ready for use");
 }
 
-/** Detroy domain and then finalize AMReX.
+/**
+  * Under normal program execution and if initialize been called, it is a
+  * logical error for singleton destruction to occur without the calling code
+  * having first called finalize.
   */
 GridAmrex::~GridAmrex(void) {
-    destroyDomain();
-    amrex::Finalize();
-
-    Logger::instance().log("[GridAmrex] Finalized Grid.");
+    if ((initialized_) && (!finalized_)) {
+        std::cerr << "[GridAmrex::~GridAmrex] ERROR - Grid not finalized"
+                  << std::endl;
+    }
 }
 
-/** Destroy amrcore_. initDomain can be called again if desired.
-  */
-void  GridAmrex::destroyDomain(void) {
-    if (amrcore_) {
-        delete amrcore_; // deletes unk
-        amrcore_ = nullptr;
+/**
+ *  Finalize the Grid singleton by cleaning up all AMReX resources and
+ *  finalizing AMReX.  This must be called before MPI is finalized.
+ */
+void  GridAmrex::finalize(void) {
+    // We need to do error checking explicitly upfront rather than wait for the
+    // Grid base implementation to do so; else, we would finalize AMReX twice.
+    if ((domainInitialized_) && (!domainDestroyed_)) {
+        throw std::logic_error("[GridAmrex::finalize] Domain not destroyed");
+    } else if (!initialized_) {
+        throw std::logic_error("[GridAmrex::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[GridAmrex::finalize] Already finalized");
     }
+
+    Logger::instance().log("[GridAmrex] Finalizing ...");
+
+    // Clean-up all AMReX structures before finalization.
+    std::vector<amrex::MultiFab>().swap(unk_);
+    
+    // This is the ugliest part of the multiple inheritance design of this class
+    // because we finalize AMReX before AmrCore is destroyed, which occurs
+    // whenever the compiler decides to destroy the Grid backend singleton.
+    amrex::Finalize();
+
+    Grid::finalize();
+
+    Logger::instance().log("[GridAmrex] Finalized");
+}
+
+/**
+ *  Destroy the domain.  It is a logical error to call this if initDomain has
+ *  not already been called or to call it multiple times.
+ */
+void  GridAmrex::destroyDomain(void) {
+    if (!domainInitialized_) {
+        throw std::logic_error("[GridAmrex::destroyDomain] initDomain never called");
+    } else if (domainDestroyed_) {
+        throw std::logic_error("[GridAmrex::destroyDomain] destroyDomain already called");
+    }
+
+    // Set nonsensical value for error estimation routine so that accidental use
+    // of the pointer will fail in obvious way.
+    errorEst_ = nullptr;
+    domainDestroyed_ = true;
 
     Logger::instance().log("[GridAmrex] Destroyed domain.");
 }
 
 /**
- * initDomain creates the domain in AMReX. It creates amrcore_ and then
- * calls amrex::AmrCore::InitFromScratch.
+ * Set the initial conditions and setup the grid structure so that the initial
+ * conditions are resolved in accord with the Grid configuration.  This is
+ * executed one block at a time without the runtime.
  *
- * @param initBlock Function pointer to the simulation's initBlock routine.
- * @param nDistributorThreads number of threads to activate in distributor
- * @param nRuntimeThreads     number of threads to use to apply IC
- * @param errorEst            the routine to use estimate errors as part
- *                            of refining blocks
  */
-void GridAmrex::initDomain(ACTION_ROUTINE initBlock,
-                           const unsigned int nDistributorThreads,
-                           const unsigned int nRuntimeThreads,
-                           ERROR_ROUTINE errorEst) {
-    if (amrcore_) {
-        throw std::logic_error("[GridAmrex::initDomain] Grid unit's initDomain"
-                               " already called");
+void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
+    // domainDestroyed_ => domainInitialized_
+    // Therefore, no need to check domainDestroyed_.
+    if (domainInitialized_) {
+        throw std::logic_error("[GridAmrex::initDomain] initDomain already called");
     } else if (!initBlock) {
-        throw std::logic_error("[GridAmrex::initDomain] Null initBlock function"
-                               " pointer given");
+        throw std::invalid_argument("[GridAmrex::initDomain] null initBlock pointer");
     }
+
     Logger::instance().log("[GridAmrex] Initializing domain...");
 
-    amrcore_ = new AmrCoreAmrex(nGuard_tmp_, nCcVars_tmp_,
-                                initBlock, nDistributorThreads,
-                                nRuntimeThreads, errorEst);
-    // AmrCoreAmrex owns nGuard and nCcVars, not this class.  Therefore, we
-    // set to nonsensical values the temporary data members used to configure
-    // AmrCoreAmrex once they are consumed.
-    //
-    // We cannot, however, do this just yet since some tests are calling
-    // initDomain multiple times within one execution.
+    initBlock_noRuntime_ = initBlock;
+    InitFromScratch(0.0_wp);
+    initBlock_noRuntime_ = nullptr;
 
-    amrcore_->InitFromScratch(0.0_wp);
+    domainInitialized_ = true;
+
+    std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
+    for (int level=0; level<=finest_level; ++level) {
+        nGlobalBlocks += unk_[level].size();
+    }
 
     std::string msg = "[GridAmrex] Initialized domain with " +
-                      std::to_string(amrcore_->globalNumBlocks()) +
+                      std::to_string(nGlobalBlocks) +
                       " total blocks.";
     Logger::instance().log(msg);
 }
 
+/**
+ * Set the initial conditions and setup the grid structure so that the initial
+ * conditions are resolved in accord with the Grid configuration.  This is
+ * carried out by the runtime using the CPU-only thread team configuration.
+ */ 
+void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
+    // domainDestroyed_ => domainInitialized_
+    // Therefore, no need to check domainDestroyed_.
+    if (domainInitialized_) {
+        throw std::logic_error("[GridAmrex::initDomain] initDomain already called");
+    }
+
+    Logger::instance().log("[GridAmrex] Initializing domain with runtime...");
+
+    // Cache given action so that AmrCore routines can access action.
+    initCpuAction_ = cpuAction;
+
+    InitFromScratch(0.0_wp);
+
+    // Set nonsensical values so that code will fail in obvious way if this is
+    // accidentally used in the future.
+    initCpuAction_.name = "initCpuAction_ used in ERROR";
+    initCpuAction_.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    initCpuAction_.nInitialThreads =    0;
+    initCpuAction_.nTilesPerPacket = 1000;
+    initCpuAction_.routine         = nullptr;
+
+    domainInitialized_ = true;
+
+    std::vector<amrex::MultiFab>::size_type   nGlobalBlocks = 0;
+    for (int level=0; level<=finest_level; ++level) {
+        nGlobalBlocks += unk_[level].size();
+    }
+
+    std::string msg = "[GridAmrex] Initialized domain with " +
+                      std::to_string(nGlobalBlocks) +
+                      " total blocks.";
+    Logger::instance().log(msg);
+}
+
+/**
+ * Where feasible, set the data in the cells of all coarse blocks to the data
+ * values obtained by aggregating the data from the associated cells from finer
+ * blocks.
+ *
+ * @todo Rename so that the action doesn't refer to the action carried out by
+ * the algorithm, but rather reflects what action needs to be carried out on the
+ * data.
+ */
 void GridAmrex::restrictAllLevels() {
-    amrcore_->averageDownAll();
+    for (int level=finest_level-1; level>=0; --level) {
+        amrex::average_down(unk_[level+1], unk_[level],
+                            geom[level+1], geom[level],
+                            0, nCcVars_, ref_ratio[level]);
+    }
 }
 
 /** Fill guard cells on all levels.
   */
 void  GridAmrex::fillGuardCells() {
-    for(int lev=0; lev<=getMaxLevel(); ++lev) {
+    for (int level=0; level<=finest_level; ++level) {
 #ifdef GRID_LOG
         Logger::instance().log("[GridAmrex] GCFill on level " +
-                           std::to_string(lev) );
+                           std::to_string(level) );
 #endif
 
-        amrex::MultiFab& unk = amrcore_->unk(lev);
-        amrcore_->fillPatch(unk, lev);
+        fillPatch(unk_[level], level);
     }
 }
 
@@ -200,8 +399,8 @@ void    GridAmrex::getBlockSize(unsigned int* nxb,
   *
   * @return An int vector: <xlo, ylo, zlo>
   */
-IntVect    GridAmrex::getDomainLo(const unsigned int lev) const {
-    return IntVect{amrcore_->Geom(lev).Domain().smallEnd()};
+IntVect    GridAmrex::getDomainLo(const unsigned int level) const {
+    return IntVect{geom[level].Domain().smallEnd()};
 }
 
 /**
@@ -209,8 +408,8 @@ IntVect    GridAmrex::getDomainLo(const unsigned int lev) const {
   *
   * @return An int vector: <xhi, yhi, zhi>
   */
-IntVect    GridAmrex::getDomainHi(const unsigned int lev) const {
-    return IntVect{amrcore_->Geom(lev).Domain().bigEnd()};
+IntVect    GridAmrex::getDomainHi(const unsigned int level) const {
+    return IntVect{geom[level].Domain().bigEnd()};
 }
 
 
@@ -220,7 +419,7 @@ IntVect    GridAmrex::getDomainHi(const unsigned int lev) const {
   * @return A real vector: <xlo, ylo, zlo>
   */
 RealVect    GridAmrex::getProbLo() const {
-    return RealVect{amrcore_->Geom(0).ProbLo()};
+    return RealVect{geom[0].ProbLo()};
 }
 
 /**
@@ -229,7 +428,7 @@ RealVect    GridAmrex::getProbLo() const {
   * @return A real vector: <xhi, yhi, zhi>
   */
 RealVect    GridAmrex::getProbHi() const {
-    return RealVect{amrcore_->Geom(0).ProbHi()};
+    return RealVect{geom[0].ProbHi()};
 }
 
 /**
@@ -239,7 +438,10 @@ RealVect    GridAmrex::getProbHi() const {
   * @return Maximum (finest) refinement level of simulation.
   */
 unsigned int GridAmrex::getMaxRefinement() const {
-    return amrcore_->maxLevel();
+    if (max_level < 0) {
+        throw std::logic_error("[GridAmrex::getMaxRefinement] max_level negative");
+    }
+    return static_cast<unsigned int>(max_level);
 }
 
 /**
@@ -248,7 +450,10 @@ unsigned int GridAmrex::getMaxRefinement() const {
   * @return The max level of existing blocks (0 is coarsest).
   */
 unsigned int GridAmrex::getMaxLevel() const {
-    return amrcore_->finestLevel();
+    if (finest_level < 0) {
+        throw std::logic_error("[GridAmrex::getMaxLevel] finest_level negative");
+    }
+    return static_cast<unsigned int>(finest_level);
 }
 
 /**
@@ -283,22 +488,36 @@ unsigned int GridAmrex::getNumberLocalBlocks() {
  */
 void    GridAmrex::writePlotfile(const std::string& filename,
                                  const std::vector<std::string>& names) const {
-    amrex::Vector<std::string>  names_amrex{names.size()};
 
+    amrex::Vector<std::string>  names_amrex{names.size()};
     for (auto j=0; j<names.size(); ++j) {
         names_amrex[j] = names[j];
     }
 
-    amrcore_->writeMultiPlotfile(filename, names_amrex);
+    amrex::Vector<const amrex::MultiFab*> mfs;
+    for(int i=0; i<=finest_level; ++i) {
+        mfs.push_back( &unk_[i] );
+    }
+    amrex::Vector<int> lsteps(max_level+1 , 0);
+
+    amrex::WriteMultiLevelPlotfile(filename,
+                                   finest_level+1,
+                                   mfs,
+                                   names_amrex,
+                                   geom,
+                                   0.0,
+                                   lsteps,
+                                   ref_ratio);
+
+    Logger::instance().log("[GridAmrex] Wrote to plotfile " + filename);
 }
 
 /**
   *
   */
-std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
-    return std::unique_ptr<TileIter>{new TileIterAmrex(amrcore_->unk(lev), lev)};
+std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
+    return std::unique_ptr<TileIter>{new TileIterAmrex(unk_[level], level)};
 }
-
 
 /**
   * getDeltas gets the cell size for a given level.
@@ -307,32 +526,32 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int lev) {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    GridAmrex::getDeltas(const unsigned int level) const {
-    return RealVect{amrcore_->Geom(level).CellSize()};
+    return RealVect{geom[level].CellSize()};
 }
 
 
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
   *
   * @param axis Axis of desired face, returns the area of the lo side.
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return area of face (Real)
   */
 Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
-                                   const unsigned int lev,
+                                   const unsigned int level,
                                    const IntVect& coord) const {
-    return amrcore_->Geom(lev).AreaLo( amrex::IntVect(coord) , axis);
+    return geom[level].AreaLo(amrex::IntVect(coord), axis);
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
   *
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
   * @return Volume of cell (Real)
   */
-Real  GridAmrex::getCellVolume(const unsigned int lev,
+Real  GridAmrex::getCellVolume(const unsigned int level,
                                const IntVect& coord) const {
-    return amrcore_->Geom(lev).Volume( amrex::IntVect(coord) );
+    return geom[level].Volume(amrex::IntVect(coord));
 }
 
 /** Obtain the coordinates along a given axis for either the left edge, center,
@@ -344,7 +563,7 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param edge Edge of desired coord (allowed: Edge::{Left,Right,Center})
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @returns The coordinates as a Fortran-style array.
@@ -354,7 +573,7 @@ Real  GridAmrex::getCellVolume(const unsigned int lev,
   */
 FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
                                      const unsigned int edge,
-                                     const unsigned int lev,
+                                     const unsigned int level,
                                      const IntVect& lo,
                                      const IntVect& hi) const {
     int   idxLo = 0;
@@ -387,12 +606,12 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
     //coordvec is length nElements + 1 if edge is Left or Right
     amrex::Vector<amrex::Real> coordvec;
     if        (edge == Edge::Left) {
-        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+        geom[level].GetEdgeLoc(coordvec, range, axis);
     } else if (edge == Edge::Right) {
         offset = 1;
-        amrcore_->Geom(lev).GetEdgeLoc(coordvec,range,axis);
+        geom[level].GetEdgeLoc(coordvec, range, axis);
     } else if (edge == Edge::Center) {
-        amrcore_->Geom(lev).GetCellLoc(coordvec,range,axis);
+        geom[level].GetCellLoc(coordvec, range, axis);
     } else {
         throw std::logic_error("GridAmrex::getCellCoords: Invalid edge.");
     }
@@ -409,7 +628,7 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
   * DEV NOTE: I assumed CoordSys::SetFaceArea corresponds to AreaLo (not AreaHi)
   *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param areaPtr Real Ptr to some fortran-style data structure. Will be filled
@@ -417,7 +636,7 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
   *                    (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
 void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
-                                       const unsigned int lev,
+                                       const unsigned int level,
                                        const IntVect& lo,
                                        const IntVect& hi,
                                        Real* areaPtr) const {
@@ -427,29 +646,232 @@ void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
     }
 #endif
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::FArrayBox area_fab{range,1,areaPtr};
-    amrcore_->Geom(lev).CoordSys::SetFaceArea(area_fab,range,axis);
+    amrex::FArrayBox area_fab{range, 1, areaPtr};
+    geom[level].CoordSys::SetFaceArea(area_fab, range, axis);
 }
 
 
 /** fillCellVolumes fills a Real array (passed by pointer) with the
   * volumes of cells in a given range
   *
-  * @param lev Level (0-based)
+  * @param level Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
   * @param volPtr Real Ptr to some fortran-style data structure. Will be filled
   *             with volumes. Should be of shape:
   *                 (lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2], 1).
   */
-void    GridAmrex::fillCellVolumes(const unsigned int lev,
+void    GridAmrex::fillCellVolumes(const unsigned int level,
                                    const IntVect& lo,
                                    const IntVect& hi,
                                    Real* volPtr) const {
     amrex::Box range{ amrex::IntVect(lo), amrex::IntVect(hi) };
-    amrex::FArrayBox vol_fab{range,1,volPtr};
-    amrcore_->Geom(lev).CoordSys::SetVolume(vol_fab,range);
+    amrex::FArrayBox vol_fab{range, 1, volPtr};
+    geom[level].CoordSys::SetVolume(vol_fab, range);
 }
 
+/**
+ *
+ */
+void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
+    if (level == 0) {
+        amrex::Vector<amrex::MultiFab*>     smf;
+        amrex::Vector<amrex::Real>          stime;
+        smf.push_back(&unk_[0]);
+        stime.push_back(0.0_wp);
+
+        amrex::CpuBndryFuncFab      bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            physbc(geom[level], bcs_, bndry_func);
+
+        amrex::FillPatchSingleLevel(mf, 0.0_wp, smf, stime,
+                                    0, 0, mf.nComp(),
+                                    geom[level], physbc, 0);
+    }
+    else {
+        amrex::Vector<amrex::MultiFab*>     cmf;
+        amrex::Vector<amrex::MultiFab*>     fmf;
+        amrex::Vector<amrex::Real>          ctime;
+        amrex::Vector<amrex::Real>          ftime;
+        cmf.push_back(&unk_[level-1]);
+        ctime.push_back(0.0_wp);
+        fmf.push_back(&unk_[level]);
+        ftime.push_back(0.0_wp);
+
+        amrex::CpuBndryFuncFab      bndry_func(nullptr);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            cphysbc(geom[level-1], bcs_, bndry_func);
+        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+            fphysbc(geom[level  ], bcs_, bndry_func);
+
+        // CellConservativeLinear interpolator from AMReX_Interpolator.H
+        amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+        amrex::FillPatchTwoLevels(mf, 0.0_wp,
+                                  cmf, ctime, fmf, ftime,
+                                  0, 0, mf.nComp(),
+                                  geom[level-1], geom[level],
+                                  cphysbc, 0, fphysbc, 0,
+                                  ref_ratio[level-1], mapper, bcs_, 0);
+    }
+}
+
+//----- amrex::AmrCore OVERRIDES
+/**
+  * \brief Clear level
+  *
+  * \param level   Level being cleared
+  */
+void    GridAmrex::ClearLevel(int level) {
+    unk_[level].clear();
+
+    Logger::instance().log("[GridAmrex] Cleared level " + std::to_string(level));
+}
+
+/**
+  * \brief Remake Level
+  *
+  * \param level Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
+void   GridAmrex::RemakeLevel(int level, amrex::Real time,
+                              const amrex::BoxArray& ba,
+                              const amrex::DistributionMapping& dm) {
+    amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
+    fillPatch(unkTmp, level);
+
+    std::swap(unkTmp, unk_[level]);
+
+    Logger::instance().log("[GridAmrex] Remade level " + std::to_string(level));
+}
+
+/**
+  * \brief Make new level from scratch
+  *
+  * \todo Simulations should be allowed to use the GPU for setting the ICs.
+  * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
+  * team configuration should be used.  If the GPU-only configuration is
+  * allowed, then we should allow for more than one distributor thread.
+  * \todo Should this do a GC fill at the end?
+  * \todo Really necessary to zero data?  Check with Flash-X.
+  *
+  * \param level Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
+void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
+                                           const amrex::BoxArray& ba,
+                                           const amrex::DistributionMapping& dm) {
+    unk_[level].define(ba, dm, nCcVars_, nGuard_);
+    unk_[level].setVal(0.0_wp);
+
+    if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
+        // Apply initial conditions using the runtime
+        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch", initCpuAction_);
+    } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
+        // Apply initial conditions using just the iterator
+        for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {
+            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
+            initBlock_noRuntime_(0, tileDesc.get());
+        }
+    } else if ((!initBlock_noRuntime_) && (!initCpuAction_.routine)) {
+        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] No IC routine given");
+    } else {
+        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
+    }
+
+    std::string    msg =   "[GridAmrex] Created level "
+                         + std::to_string(level) + " from scratch with "
+                         + std::to_string(ba.size()) + " blocks";
+    Logger::instance().log(msg);
+}
+
+/**
+  * \brief Make New Level from Coarse
+  *
+  * \todo Fail if initDomain has not yet been called.
+  *
+  * \param level Level being made
+  * \param time Simulation time
+  * \param ba BoxArray of level being made
+  * \param dm DistributionMapping of leving being made
+  */
+void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
+                                         const amrex::BoxArray& ba,
+                                         const amrex::DistributionMapping& dm) {
+    unk_[level].define(ba, dm, nCcVars_, nGuard_);
+
+    amrex::CpuBndryFuncFab  bndry_func(nullptr);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        cphysbc(geom[level-1], bcs_, bndry_func);
+    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
+        fphysbc(geom[level  ], bcs_, bndry_func);
+
+    // CellConservativeLinear interpolator from AMReX_Interpolator.H
+    amrex::Interpolater* mapper = &amrex::cell_cons_interp;
+
+    amrex::InterpFromCoarseLevel(unk_[level], 0.0_wp, unk_[level-1],
+                                 0, 0, nCcVars_,
+                                 geom[level-1], geom[level],
+                                 cphysbc, 0, fphysbc, 0,
+                                 ref_ratio[level-1], mapper, bcs_, 0);
+
+    std::string    msg =   "[GridAmrex] Created level "
+                         + std::to_string(level) + " from fine level with "
+                         + std::to_string(ba.size()) + " blocks";
+    Logger::instance().log(msg);
+}
+
+/**
+  * \brief Tag boxes for refinement
+  *
+  * \todo Use tiling here?
+  *
+  * \param level Level being checked
+  * \param tags Tags for Box array
+  * \param time Simulation time
+  * \param ngrow ngrow
+  */
+void    GridAmrex::ErrorEst(int level, amrex::TagBoxArray& tags,
+                            amrex::Real time, int ngrow) {
+#ifdef GRID_LOG
+    std::string msg = "[GridAmrex::ErrorEst] Doing ErrorEst for level " +
+                      std::to_string(level) + "...";
+    Logger::instance().log(msg);
+#endif
+
+    if (!errorEst_) {
+        throw std::invalid_argument("[GridAmrex::ErrorEst] "
+                                    "Error estimation pointer null");
+    }
+
+    amrex::Vector<int> itags;
+
+    Grid& grid = Grid::instance();
+    for (auto ti=grid.buildTileIter(level); ti->isValid(); ti->next()) {
+        std::shared_ptr<Tile>   tileDesc = ti->buildCurrentTile();
+
+        amrex::Box validbox{ amrex::IntVect(tileDesc->lo()),
+                             amrex::IntVect(tileDesc->hi()) };
+        amrex::TagBox&      tagfab = tags[tileDesc->gridIndex()];
+        tagfab.get_itags(itags, validbox);
+
+        //errorEst_(lev, tags, time, ngrow, tileDesc);
+        int* tptr = itags.dataPtr();
+        errorEst_(tileDesc, tptr);
+
+        tagfab.tags_and_untags(itags,validbox);
+    }
+
+#ifdef GRID_LOG
+    msg =   "[GridAmrex::ErrorEst] Did ErrorEst for level "
+          + std::to_string(level) + ".";
+    Logger::instance().log(msg);
+#endif
+}
 
 }
+

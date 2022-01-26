@@ -12,7 +12,6 @@ LDFLAGS_TEST        =
 
 # Define list of sources in SRCS_TEST
 SRCS_TEST = \
-	$(SEDOVDIR)/loadGridConfiguration.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
@@ -23,4 +22,5 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/sim_getVariableNames.cpp \
-	$(TESTDIR)/sedov_mpi.cpp
+	$(TESTDIR)/Driver_executeSimulation.cpp \
+	$(SEDOVDIR)/solve_sedov_without_runtime.cpp

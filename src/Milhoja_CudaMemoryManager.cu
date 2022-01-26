@@ -9,26 +9,29 @@
 namespace milhoja {
 
 std::size_t   CudaMemoryManager::nBytes_ = 0;
-bool          CudaMemoryManager::instantiated_ = false;
+bool          CudaMemoryManager::initialized_ = false;
+bool          CudaMemoryManager::finalized_ = false;
 
 /**
  *
  * \return 
  */
-void CudaMemoryManager::instantiate(const std::size_t nBytesInMemoryPools) {
-    Logger::instance().log("[CudaMemoryManager] Initializing...");
-
-    if (instantiated_) {
-        throw std::logic_error("[CudaMemoryManager::instantiate] "
-                               "Memory manager already instantiated");
+void CudaMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
+    // finalized_ => initialized_
+    // Therefore, no need to check finalized_.
+    if (initialized_) {
+        throw std::logic_error("[CudaMemoryManager::initialize] "
+                               "Memory manager already initialized");
     } else if (nBytesInMemoryPools == 0) {
-        throw std::invalid_argument("[CudaMemoryManager::instantiate] "
+        throw std::invalid_argument("[CudaMemoryManager::initialize] "
                                     "Buffers must be non-empty");
     }
     // TODO: Check that buffers are sized for byte alignment?
 
+    Logger::instance().log("[CudaMemoryManager] Initializing...");
+
     nBytes_ = nBytesInMemoryPools;
-    instantiated_ = true;
+    initialized_ = true;
 
     instance();
 
@@ -37,11 +40,68 @@ void CudaMemoryManager::instantiate(const std::size_t nBytesInMemoryPools) {
 
 /**
  *
+ */
+void    CudaMemoryManager::finalize(void) {
+    if        (!initialized_) {
+        throw std::logic_error("[CudaMemoryManager::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaMemoryManager::finalize] Already finalized");
+    }
+
+    Logger::instance().log("[CudaMemoryManager] Finalizing ...");
+
+    pthread_mutex_lock(&mutex_);
+
+    if (pinnedBuffer_ != nullptr) {
+        cudaError_t   cErr = cudaFreeHost(pinnedBuffer_);
+        if (cErr != cudaSuccess) {
+            std::string  msg = "[CudaMemoryManager::finalize] Unable to deallocate pinned memory\n";
+            msg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            msg += std::string(cudaGetErrorString(cErr));
+            throw std::runtime_error(msg);
+        }
+        pinnedBuffer_ = nullptr;
+        Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
+                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
+                               + " Gb of pinned memory");
+    }
+
+    if (gpuBuffer_ != nullptr) {
+        cudaError_t   cErr = cudaFree(gpuBuffer_);
+        if (cErr != cudaSuccess) {
+            std::string  msg = "[CudaMemoryManager::finalize] Unable to deallocate GPU memory\n";
+            msg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+            msg += std::string(cudaGetErrorString(cErr));
+            throw std::runtime_error(msg);
+        }
+        gpuBuffer_ = nullptr;
+        Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
+                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
+                               + " Gb of GPU memory");
+    }
+ 
+    pinnedOffset_ = 0;
+    gpuOffset_ = 0;
+
+    pthread_mutex_unlock(&mutex_);
+
+    pthread_cond_destroy(&memoryReleased_);
+    pthread_mutex_destroy(&mutex_);
+
+    finalized_ = true;
+
+    Logger::instance().log("[CudaMemoryManager] Finalized");
+}
+
+/**
+ *
  * \return 
  */
 CudaMemoryManager&   CudaMemoryManager::instance(void) {
-    if (!instantiated_) {
-        throw std::logic_error("[CudaMemoryManager::instance] Instantiate first");
+    if        (!initialized_) {
+        throw std::logic_error("[CudaMemoryManager::instance] Singleton not initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[CudaMemoryManager::instance] No access after finalization");
     }
 
     static CudaMemoryManager   manager;
@@ -109,50 +169,10 @@ CudaMemoryManager::CudaMemoryManager(void)
  * \return 
  */
 CudaMemoryManager::~CudaMemoryManager(void) {
-    Logger::instance().log("[CudaMemoryManager] Finalizing...");
-
-    pthread_mutex_lock(&mutex_);
-
-    if (pinnedBuffer_ != nullptr) {
-        cudaError_t   cErr = cudaFreeHost(pinnedBuffer_);
-        if (cErr != cudaSuccess) {
-            std::cerr << "[CudaMemoryManager::~CudaMemoryManager] "
-                      << "Unable to deallocate pinned memory\n"
-                      << "CUDA error - "
-                      << cudaGetErrorName(cErr) << "\n"
-                      << cudaGetErrorString(cErr) << std::endl;
-        }
-        pinnedBuffer_ = nullptr;
-        Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
-                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
-                               + " Gb of pinned memory");
+    if (initialized_ && !finalized_) {
+        std::cerr << "[CudaMemoryManager::~CudaMemoryManager] ERROR - Not finalized"
+                  << std::endl;
     }
-
-    if (gpuBuffer_ != nullptr) {
-        cudaError_t   cErr = cudaFree(gpuBuffer_);
-        if (cErr != cudaSuccess) {
-            std::cerr << "[CudaMemoryManager::~CudaMemoryManager] "
-                      << "Unable to deallocate GPU memory\n"
-                      << "CUDA error - "
-                      << cudaGetErrorName(cErr) << "\n"
-                      << cudaGetErrorString(cErr) << std::endl;
-        }
-        gpuBuffer_ = nullptr;
-        Logger::instance().log(  "[CudaMemoryManager] Deallocated " 
-                               + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
-                               + " Gb of GPU memory");
-    }
- 
-    pinnedOffset_ = 0;
-    gpuOffset_ = 0;
-    instantiated_ = false;
-
-    pthread_mutex_unlock(&mutex_);
-
-    pthread_cond_destroy(&memoryReleased_);
-    pthread_mutex_destroy(&mutex_);
-
-    Logger::instance().log("[CudaMemoryManager] Destroyed");
 }
 
 /**

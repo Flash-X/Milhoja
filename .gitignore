@@ -11,6 +11,12 @@ docs/data\ types.pdf
 docs/GridPolymorphism.pdf
 docs/doxygen/html
 docs/doxygen/latex
+docs/DevGuide/_build
+docs/UserManual/_build
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.aux
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.out
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.pdf
+docs/RuntimeDesign/ThreadTeam/ThreadTeamDesign.toc
 sites/*/test_threadteam_cpp.x
 sites/*/test_runtime_null_cpp.x
 sites/*/gather_data_cpp.x
@@ -58,6 +64,7 @@ studies/Summit_2020-04-15/gatherDataF2003_*
 studies/Summit_2020-04-15/testRuntimeCpp_*
 studies/Summit_2020-04-15/testThreadTeam_*
 build/*
+tools/sedov_pypkg/.eggs
 tools/sedov_pypkg/Sedov.egg-info/
 tools/sedov_pypkg/dist/
 tools/sedov_pypkg/sedov/__pycache__/

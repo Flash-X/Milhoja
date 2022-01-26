@@ -21,34 +21,37 @@ namespace milhoja {
 
 unsigned int    Runtime::nTeams_            = 0;
 unsigned int    Runtime::maxThreadsPerTeam_ = 0;
-bool            Runtime::instantiated_      = false;
+bool            Runtime::initialized_       = false;
+bool            Runtime::finalized_         = false;
 
 /**
  * 
  *
  * \return 
  */
-void   Runtime::instantiate(const unsigned int nTeams,
+void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
                             const unsigned int nStreams,
                             const std::size_t  nBytesInMemoryPools) {
-    Logger::instance().log("[Runtime] Initializing...");
-
-    if (instantiated_) {
-        throw std::logic_error("[Runtime::instantiate] Already instantiated");
+    // finalized_ => initialized_
+    // Therefore, no need to check finalized_.
+    if (initialized_) {
+        throw std::logic_error("[Runtime::initialize] Already initialized");
     } else if (nTeams == 0) {
-        throw std::invalid_argument("[Runtime::instantiate] "
+        throw std::invalid_argument("[Runtime::initialize] "
                                     "Need at least one ThreadTeam");
     } else if (nThreadsPerTeam == 0) {
-        throw std::invalid_argument("[Runtime::instantiate] "
+        throw std::invalid_argument("[Runtime::initialize] "
                                     "Need at least one thread per team");
     }
 
+    Logger::instance().log("[Runtime] Initializing...");
+
     nTeams_ = nTeams;
     maxThreadsPerTeam_ = nThreadsPerTeam;
-    instantiated_ = true;
+    initialized_ = true;
 
-    milhoja::RuntimeBackend::instantiate(nStreams, nBytesInMemoryPools);
+    milhoja::RuntimeBackend::initialize(nStreams, nBytesInMemoryPools);
 
     // Create/initialize runtime
     instance();
@@ -57,13 +60,41 @@ void   Runtime::instantiate(const unsigned int nTeams,
 }
 
 /**
+ *
+ */
+void   Runtime::finalize(void) {
+    if        (!initialized_) {
+        throw std::logic_error("[Runtime::finalize] Never initialized");
+    } else if (finalized_) {
+        throw std::logic_error("[Runtime::finalize] Already finalized");
+    }
+
+    Logger::instance().log("[Runtime] Finalizing ...");
+
+    for (unsigned int i=0; i<nTeams_; ++i) {
+        delete teams_[i];
+        teams_[i] = nullptr;
+    }
+    delete [] teams_;
+    teams_ = nullptr;
+
+    milhoja::RuntimeBackend::instance().finalize();
+
+    finalized_ = true;
+
+    Logger::instance().log("[Runtime] Finalized");
+}
+
+/**
  * 
  *
  * \return 
  */
 Runtime& Runtime::instance(void) {
-    if (!instantiated_) {
-        throw std::logic_error("[Runtime::instance] Instantiate first");
+    if (!initialized_) {
+        throw std::logic_error("[Runtime::instance] Initialize first");
+    } else if (finalized_) {
+        throw std::logic_error("[Runtime::instance] No access after finalization");
     }
 
     static Runtime     singleton;
@@ -85,24 +116,13 @@ Runtime::Runtime(void)
 }
 
 /**
- * 
  *
- * \return 
  */
-Runtime::~Runtime(void) {
-    Logger::instance().log("[Runtime] Finalizing...");
-
-    for (unsigned int i=0; i<nTeams_; ++i) {
-        delete teams_[i];
-        teams_[i] = nullptr;
+ Runtime::~Runtime(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[Runtime::~Runtime] ERROR - Not finalized" << std::endl;
     }
-    delete [] teams_;
-    teams_ = nullptr;
-
-    instantiated_ = false;
-
-    Logger::instance().log("[Runtime] Finalized");
-}
+ }
 
 /**
  * 
@@ -143,10 +163,11 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
 
     //***** ACTION PARALLEL DISTRIBUTOR
-    unsigned int   level = 0;
     Grid&   grid = Grid::instance();
-    for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-        cpuTeam->enqueue( ti->buildCurrentTile() );
+    for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
+        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+            cpuTeam->enqueue( ti->buildCurrentTile() );
+        }
     }
     cpuTeam->closeQueue(nullptr);
 

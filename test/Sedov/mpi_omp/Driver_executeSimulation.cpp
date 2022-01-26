@@ -16,48 +16,27 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "loadGridConfiguration.h"
-#include "errorEstBlank.h"
 
 #include "Flash_par.h"
 
-constexpr int           LOG_RANK            = LEAD_RANK;
-constexpr int           IO_RANK             = LEAD_RANK;
-constexpr int           TIMER_RANK          = LEAD_RANK;
-
-constexpr  unsigned int N_DIST_THREADS      = 0;
-constexpr  unsigned int N_CPU_THREADS       = 1;
-constexpr  unsigned int N_GPU_THREADS       = 0;
-constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
-constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
-
-int main(int argc, char* argv[]) {
-    // TODO: Add in error handling code
-
-    //----- MIMIC Driver_init
-    // Analogous to calling Log_init
-    milhoja::Logger::instantiate(rp_Simulation::LOG_FILENAME, GLOBAL_COMM, LOG_RANK);
-
-    // Analogous to calling Grid_init
-    loadGridConfiguration();
-    milhoja::Grid::instantiate();
-
-    // Analogous to calling IO_init
-    Io::instantiate(rp_Simulation::INTEGRAL_QUANTITIES_FILENAME,
-                    GLOBAL_COMM, IO_RANK);
+void    Driver::executeSimulation(void) {
+    constexpr  int          TIMER_RANK          = LEAD_RANK;
+    constexpr  unsigned int N_DIST_THREADS      = 0;
+    constexpr  unsigned int N_CPU_THREADS       = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
+    constexpr  unsigned int N_GPU_THREADS       = 0;
+    constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
+    constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
 
     int  rank = 0;
     MPI_Comm_rank(GLOBAL_COMM, &rank);
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI",
+    std::vector<std::string>  variableNames = sim::getVariableNames();
+
+    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI+OpenMP",
                         N_DIST_THREADS, 0, N_CPU_THREADS, N_GPU_THREADS,
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
                         GLOBAL_COMM, TIMER_RANK};
 
-    // Analogous to calling sim_init
-    std::vector<std::string>  variableNames = sim::getVariableNames();
-
-    //----- MIMIC Grid_initDomain
     Io&                      io      = Io::instance();
     milhoja::Grid&           grid    = milhoja::Grid::instance();
     milhoja::Logger&         logger  = milhoja::Logger::instance();
@@ -66,10 +45,7 @@ int main(int argc, char* argv[]) {
     Driver::simTime = rp_Simulation::T_0;
 
     Timer::start("Set initial conditions");
-    grid.initDomain(Simulation::setInitialConditions_tile_cpu,
-                    rp_Simulation::N_DISTRIBUTOR_THREADS_FOR_IC,
-                    rp_Simulation::N_THREADS_FOR_IC,
-                    Simulation::errorEstBlank);
+    grid.initDomain(Simulation::setInitialConditions_tile_cpu);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -85,29 +61,11 @@ int main(int argc, char* argv[]) {
     Timer::stop("Reduce/Write");
 
     //----- MIMIC Driver_evolveFlash
-    // Create scratch buffers.
-    // They will be reindexed as needed, but size needs to be correct.
-    milhoja::FArray4D   flX = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,                        1,            1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB, rp_Grid::NZB)},
-                            NFLUXES);
-    milhoja::FArray4D   flY = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,            1,                        1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB)},
-                            NFLUXES);
-    milhoja::FArray4D   flZ = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,            1,            1)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+MILHOJA_K3D)},
-                            NFLUXES);
-    milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
-                            milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D,          1  -MILHOJA_K2D,          1  -MILHOJA_K3D)},
-                            milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB+MILHOJA_K3D)});
-
     Timer::start(rp_Simulation::NAME + " simulation");
 
     unsigned int                     level{0};
     std::shared_ptr<milhoja::Tile>   tileDesc{};
-    unsigned int            nStep{1};
+    unsigned int                     nStep{1};
     while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -136,28 +94,51 @@ int main(int argc, char* argv[]) {
 
         //----- ADVANCE SOLUTION
         // Update unk data on interiors only
-
         double   tStart = MPI_Wtime();
-        for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            tileDesc = ti->buildCurrentTile();
+#pragma omp parallel default(none) \
+                     private(tileDesc) \
+                     shared(grid, level, Driver::dt) \
+                     num_threads(rp_Hydro::N_THREADS_FOR_ADV_SOLN)
+        {
+            // Create thread-private scratch buffers.
+            // They will be reindexed as needed, but size needs to be correct.
+            milhoja::FArray4D   flX = milhoja::FArray4D::buildScratchArray4D(
+                                    milhoja::IntVect{LIST_NDIM(1,                        1,            1)},
+                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB, rp_Grid::NZB)},
+                                    NFLUXES);
+            milhoja::FArray4D   flY = milhoja::FArray4D::buildScratchArray4D(
+                                    milhoja::IntVect{LIST_NDIM(1,            1,                        1)},
+                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB)},
+                                    NFLUXES);
+            milhoja::FArray4D   flZ = milhoja::FArray4D::buildScratchArray4D(
+                                    milhoja::IntVect{LIST_NDIM(1,            1,            1)},
+                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+MILHOJA_K3D)},
+                                    NFLUXES);
+            milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
+                                    milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D,          1  -MILHOJA_K2D,          1  -MILHOJA_K3D)},
+                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB+MILHOJA_K3D)});
 
-            const milhoja::IntVect       lo = tileDesc->lo();
-            const milhoja::IntVect       hi = tileDesc->hi();
-            milhoja::FArray4D            U  = tileDesc->data();
+            for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
+                tileDesc = ti->buildCurrentTile();
 
-            const milhoja::IntVect       cLo = milhoja::IntVect{LIST_NDIM(lo.I()-MILHOJA_K1D,
-                                                                          lo.J()-MILHOJA_K2D,
-                                                                          lo.K()-MILHOJA_K3D)};
-            flX.reindex(lo);
-            flY.reindex(lo);
-            flZ.reindex(lo);
-            auxC.reindex(cLo);
+                const milhoja::IntVect       lo = tileDesc->lo();
+                const milhoja::IntVect       hi = tileDesc->hi();
+                milhoja::FArray4D            U  = tileDesc->data();
 
-            hy::computeFluxesHll(Driver::dt, lo, hi,
-                                 tileDesc->deltas(),
-                                 U, flX, flY, flZ, auxC);
-            hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
-            Eos::idealGammaDensIe(lo, hi, U);
+                const milhoja::IntVect       cLo = milhoja::IntVect{LIST_NDIM(lo.I()-MILHOJA_K1D,
+                                                                              lo.J()-MILHOJA_K2D,
+                                                                              lo.K()-MILHOJA_K3D)};
+                flX.reindex(lo);
+                flY.reindex(lo);
+                flZ.reindex(lo);
+                auxC.reindex(cLo);
+
+                hy::computeFluxesHll(Driver::dt, lo, hi,
+                                     tileDesc->deltas(),
+                                     U, flX, flY, flZ, auxC);
+                hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
+                Eos::idealGammaDensIe(lo, hi, U);
+            }
         }
         double       wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
@@ -205,14 +186,11 @@ int main(int argc, char* argv[]) {
     if (Driver::simTime >= rp_Simulation::T_MAX) {
         logger.log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final", variableNames);
+    grid.writePlotfile(rp_Simulation::NAME + "_plt_final",
+                       variableNames);
 
     nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
 
-    //----- CLEAN-UP
-    // The singletons are finalized automatically when the program is
-    // terminating.
-
-    return 0;
+    grid.destroyDomain();
 }
 

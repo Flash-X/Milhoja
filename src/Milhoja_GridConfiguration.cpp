@@ -4,6 +4,10 @@
 
 #include "Milhoja_Logger.h"
 
+#ifdef MILHOJA_GRID_AMREX
+#include "Milhoja_GridConfigurationAMReX.h"
+#endif
+
 namespace milhoja {
 
 //----- STATIC DATA MEMBER INITIALIZATION
@@ -22,7 +26,12 @@ GridConfiguration&   GridConfiguration::instance(void) {
         throw std::logic_error("[GridConfiguration::instance] Configuration already consumed");
     }
 
-    static GridConfiguration    singleton;
+#ifdef MILHOJA_GRID_AMREX
+    static GridConfigurationAMReX   singleton;
+#else
+#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
+#endif
+
     return singleton;
 }
 
@@ -51,6 +60,12 @@ bool GridConfiguration::isValid(void) const {
     } else if ((nBlocksX <= 0) || (nBlocksY <= 0) || (nBlocksZ <= 0)) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid domain block array");
         isValid = false;
+    } else if (!errorEstimation) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Null errorEstimation given");
+        isValid = false;
+    } else if (mpiComm == MPI_COMM_NULL) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Null MPI communicator");
+        isValid = false;
     }
 
     return isValid;
@@ -65,25 +80,23 @@ void GridConfiguration::clear(void) {
         throw std::logic_error("[GridConfiguration::clear] Configuration already cleared");
     }
 
-    xMin                     =  1.0;
-    xMax                     =  0.0;
-    yMin                     =  1.0;
-    yMax                     =  0.0;
-    zMin                     =  1.0;
-    zMax                     =  0.0;
-    nCcVars                  =  0;
-    initBlock                = nullptr;
-    nCpuThreads_init         =  0;
-    nDistributorThreads_init =  0;
-    nxb                      =  0; 
-    nyb                      =  0; 
-    nzb                      =  0; 
-    nGuard                   =  0;
-    nBlocksX                 =  0; 
-    nBlocksY                 =  0; 
-    nBlocksZ                 =  0; 
-    maxFinestLevel           =  0;
-    errorEstimation          = nullptr;
+    xMin            =  1.0;
+    xMax            =  0.0;
+    yMin            =  1.0;
+    yMax            =  0.0;
+    zMin            =  1.0;
+    zMax            =  0.0;
+    nCcVars         =  0;
+    nxb             =  0; 
+    nyb             =  0; 
+    nzb             =  0; 
+    nGuard          =  0;
+    nBlocksX        =  0; 
+    nBlocksY        =  0; 
+    nBlocksZ        =  0; 
+    maxFinestLevel  =  0;
+    errorEstimation = nullptr;
+    mpiComm         = MPI_COMM_NULL;
 
     // Limit possiblity that calling code can access the
     // configuration at a later time.

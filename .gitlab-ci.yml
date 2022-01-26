@@ -83,15 +83,21 @@ test_gnu:
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_REPO/gce
  # Unittests
- - ./buildTestGrid.sh        && ./testGrid.sh
- - ./buildTestThreadTeam.sh  && ./testThreadTeam.sh
- - ./buildTestRuntimeNull.sh && ./testRuntimeNull.sh
- - ./buildTestRuntimeCpu.sh  && ./testRuntimeCpu.sh
+ - ./buildTestGrid.sh
+ - ./testGrid.sh
+ - ./buildTestThreadTeam.sh
+ - ./testThreadTeam.sh
+ - ./buildTestRuntimeNull.sh
+ - ./testRuntimeNull.sh
+ - ./buildTestRuntimeCpu.sh
+ - ./testRuntimeCpu.sh
  # Acquire Sedov results for regression testing
  # Run only in production since the debugs can run so long on sandy bridge that the
  # test suite times out.
- - ./buildSedovMpi.sh && ./runSedovMpi.sh
- - ./buildSedovCpu.sh && ./runSedovCpu.sh
+ - ./buildSedovMpi.sh
+ - ./runSedovMpi.sh
+ - ./buildSedovCpu.sh
+ - ./runSedovCpu.sh
  # Execute regression tests
  # Setup same SW stack used to build fcompare binary
  - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
