@@ -87,11 +87,11 @@ void    Driver::executeSimulation(void) {
 
     Timer::start("sedov simulation");
 
-    unsigned int   nStep            = 1;
-    unsigned int   maxSteps         = RPs.getUnsignedInt("Simulation", "maxSteps");
-    milhoja::Real  tMax             = RPs.getReal("Simulation", "tMax");
-    milhoja::Real  dtAfter          = RPs.getReal("Driver", "dtAfter");
-    unsigned int   writeEveryNSteps = RPs.getUnsignedInt("Driver", "writeEveryNSteps");
+    unsigned int      nStep{1};
+    unsigned int      maxSteps{RPs.getUnsignedInt("Simulation", "maxSteps")};
+    milhoja::Real     tMax{RPs.getReal("Simulation", "tMax")};
+    milhoja::Real     dtAfter{RPs.getReal("Driver", "dtAfter")};
+    unsigned int      writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
     while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time

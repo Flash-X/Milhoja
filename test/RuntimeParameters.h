@@ -18,6 +18,8 @@ public:
     // I tried these as a single templated get routine, but calling code looked
     // ugly.  Since this is for tests, hopefully slightly decreased
     // maintainability here wins out over calling code that is easier to read.
+    int                getInt(const std::string& group,
+                              const std::string& parameter) const;
     unsigned int       getUnsignedInt(const std::string& group,
                                       const std::string& parameter) const;
     std::size_t        getSizeT(const std::string& group,

@@ -87,6 +87,18 @@ RuntimeParameters::~RuntimeParameters(void) {
 /**
  *
  */
+int    RuntimeParameters::getInt(const std::string& group,
+                                 const std::string& parameter) const {
+    if (finalized_) {
+        throw std::logic_error("[RuntimeParameters::getInt] Invalid after finalize");
+    }
+
+    return json_.at(group).at(parameter).get<int>();
+}
+
+/**
+ *
+ */
 unsigned int    RuntimeParameters::getUnsignedInt(const std::string& group,
                                                   const std::string& parameter) const {
     if (finalized_) {

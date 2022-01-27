@@ -94,16 +94,16 @@ test_gnu:
  # Acquire Sedov results for regression testing
  # Run only in production since the debugs can run so long on sandy bridge that the
  # test suite times out.
-# - ./buildSedovMpi.sh
-# - ./runSedovMpi.sh
+ - ./buildSedovMpi.sh
+ - ./runSedovMpi.sh
  - ./buildSedovCpu.sh
  - ./runSedovCpu.sh
  # Execute regression tests
  # Setup same SW stack used to build fcompare binary
  - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
  - module load anaconda3
-# - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
-# - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - module unload anaconda3
