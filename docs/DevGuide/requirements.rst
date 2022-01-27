@@ -259,6 +259,12 @@ Grid
 AMReX Backend
 -------------
 
+This backend must be implemented and maintained carefully as AMReX often has
+variables defined as ``int``, when they could be and are in this repo defined as
+``unsigned int`` or similar.  This is a case where explicitly performing casts
+where casts are required should help improve maintainability and therefore
+correctness of code.  Error checking of casts shall be performed where required.
+
     1. The AMReX Grid backend class shall be inherited from the abstract Grid and
     abstract amrex::AmrCore classes.  This does not simplify the public interface,
     but rather the implementation.  Now ownership of Grid configuration values need

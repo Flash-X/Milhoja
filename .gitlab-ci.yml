@@ -83,8 +83,8 @@ test_gnu:
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_REPO/gce
  # Unittests
-# - ./buildTestGrid.sh
-# - ./testGrid.sh
+ - ./buildTestGrid.sh
+ - ./testGrid.sh
  - ./buildTestThreadTeam.sh
  - ./testThreadTeam.sh
 # - ./buildTestRuntimeNull.sh

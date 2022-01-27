@@ -12,9 +12,9 @@
 #include <Milhoja_Tile.h>
 #include <Milhoja_ThreadTeamDataType.h>
 
+#include "RuntimeParameters.h"
 #include "Simulation.h"
 #include "setInitialConditions.h"
-#include "Flash_par.h"
 
 using namespace milhoja;
 
@@ -157,23 +157,33 @@ TEST(GridUnitTest,ProbConfigGetters){
     float eps = 1.0e-14;
     int count;
 
-    Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
+    Grid&               grid = Grid::instance();
+    RuntimeParameters&  RPs  = RuntimeParameters::instance();
+
+    Real           xMin{RPs.getReal("Grid", "xMin")};
+    Real           xMax{RPs.getReal("Grid", "xMax")};
+    Real           yMin{RPs.getReal("Grid", "yMin")};
+    Real           yMax{RPs.getReal("Grid", "yMax")};
+    Real           zMin{RPs.getReal("Grid", "zMin")};
+    Real           zMax{RPs.getReal("Grid", "zMax")};
+    int            nBlocksX{RPs.getInt("Grid", "nBlocksX")};
+    int            nBlocksY{RPs.getInt("Grid", "nBlocksY")};
+    int            nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
+    int            nxb{RPs.getInt("Grid", "NXB")};
+    int            nyb{RPs.getInt("Grid", "NYB")};
+    int            nzb{RPs.getInt("Grid", "NZB")};
+    unsigned int   lRefineMax{RPs.getUnsignedInt("Grid", "finestRefinementLevel")};
+
+    RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
+    RealVect actual_max{LIST_NDIM(xMax, yMax, zMax)};
+    IntVect nBlocks{LIST_NDIM(nBlocksX, nBlocksY, nBlocksZ)};
+    IntVect nCells{LIST_NDIM(nxb, nyb, nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     IntVect  actual_dhi = nBlocks*nCells;
 
     // Testing Grid::getMaxRefinement and getMaxLevel
-    EXPECT_EQ(grid.getMaxRefinement() , rp_Grid::LREFINE_MAX-1);
-    EXPECT_EQ(grid.getMaxLevel()      , rp_Grid::LREFINE_MAX-1);
+    EXPECT_EQ(grid.getMaxRefinement(), lRefineMax-1);
+    EXPECT_EQ(grid.getMaxLevel()     , lRefineMax-1);
 
     // Testing Grid::getProb{Lo,Hi}
     RealVect probLo   = grid.getProbLo();
@@ -213,17 +223,26 @@ TEST(GridUnitTest,PerTileGetters){
     float eps = 1.0e-14;
     int count;
 
-    Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
+    Grid&               grid = Grid::instance();
+    RuntimeParameters&  RPs  = RuntimeParameters::instance();
+
+    Real  xMin{RPs.getReal("Grid", "xMin")};
+    Real  xMax{RPs.getReal("Grid", "xMax")};
+    Real  yMin{RPs.getReal("Grid", "yMin")};
+    Real  yMax{RPs.getReal("Grid", "yMax")};
+    Real  zMin{RPs.getReal("Grid", "zMin")};
+    Real  zMax{RPs.getReal("Grid", "zMax")};
+    int   nBlocksX{RPs.getInt("Grid", "nBlocksX")};
+    int   nBlocksY{RPs.getInt("Grid", "nBlocksY")};
+    int   nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
+    int   nxb{RPs.getInt("Grid", "NXB")};
+    int   nyb{RPs.getInt("Grid", "NYB")};
+    int   nzb{RPs.getInt("Grid", "NZB")};
+
+    RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
+    RealVect actual_max{LIST_NDIM(xMax, yMax, zMax)};
+    IntVect nBlocks{LIST_NDIM(nBlocksX, nBlocksY, nBlocksZ)};
+    IntVect nCells{LIST_NDIM(nxb, nyb, nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
@@ -274,17 +293,26 @@ TEST(GridUnitTest,PerTileGetters){
 TEST(GridUnitTest,MultiCellGetters){
     float eps = 1.0e-14;
 
-    Grid& grid = Grid::instance();
-    RealVect actual_min{LIST_NDIM(rp_Grid::X_MIN,
-                                  rp_Grid::Y_MIN,
-                                  rp_Grid::Z_MIN)};
-    RealVect actual_max{LIST_NDIM(rp_Grid::X_MAX,
-                                  rp_Grid::Y_MAX,
-                                  rp_Grid::Z_MAX)};
-    IntVect nBlocks{LIST_NDIM(rp_Grid::N_BLOCKS_X,
-                              rp_Grid::N_BLOCKS_Y,
-                              rp_Grid::N_BLOCKS_Z)};
-    IntVect nCells{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB)};
+    Grid&               grid = Grid::instance();
+    RuntimeParameters&  RPs  = RuntimeParameters::instance();
+
+    Real  xMin{RPs.getReal("Grid", "xMin")};
+    Real  xMax{RPs.getReal("Grid", "xMax")};
+    Real  yMin{RPs.getReal("Grid", "yMin")};
+    Real  yMax{RPs.getReal("Grid", "yMax")};
+    Real  zMin{RPs.getReal("Grid", "zMin")};
+    Real  zMax{RPs.getReal("Grid", "zMax")};
+    int   nBlocksX{RPs.getInt("Grid", "nBlocksX")};
+    int   nBlocksY{RPs.getInt("Grid", "nBlocksY")};
+    int   nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
+    int   nxb{RPs.getInt("Grid", "NXB")};
+    int   nyb{RPs.getInt("Grid", "NYB")};
+    int   nzb{RPs.getInt("Grid", "NZB")};
+
+    RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
+    RealVect actual_max{LIST_NDIM(xMax, yMax, zMax)};
+    IntVect nBlocks{LIST_NDIM(nBlocksX, nBlocksY, nBlocksZ)};
+    IntVect nCells{LIST_NDIM(nxb, nyb, nzb)};
     RealVect actual_deltas = (actual_max-actual_min) / RealVect(nBlocks*nCells);
     Real actual_vol = actual_deltas.product();
     RealVect actual_fa;
@@ -402,7 +430,7 @@ TEST(GridUnitTest,LogicErrors){
         RuntimeAction   initBlock_cpu;
         initBlock_cpu.name = "initBlock_cpu";
         initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
-        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.nInitialThreads = 1;
         initBlock_cpu.nTilesPerPacket = 0;
         initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
 
