@@ -87,8 +87,8 @@ test_gnu:
  - ./testGrid.sh
  - ./buildTestThreadTeam.sh
  - ./testThreadTeam.sh
-# - ./buildTestRuntimeNull.sh
-# - ./testRuntimeNull.sh
+ - ./buildTestRuntimeNull.sh
+ - ./testRuntimeNull.sh
  - ./buildTestRuntimeCpu.sh
  - ./testRuntimeCpu.sh
  # Acquire Sedov results for regression testing
@@ -111,6 +111,7 @@ test_gnu:
 test_doxygen:
  stage: test
  script:
- - pushd docs/doxygen && doxygen && popd
-
+ - pushd docs/doxygen
+ - doxygen
+ - popd
 
