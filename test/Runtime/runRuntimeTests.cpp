@@ -8,9 +8,9 @@
 #include <Milhoja_Runtime.h>
 
 #include "Base.h"
+#include "RuntimeParameters.h"
 #include "setInitialConditions.h"
 #include "errorEstBlank.h"
-#include "Flash_par.h"
 
 // It appears that OpenACC on Summit with PGI has max 32 asynchronous
 // queues.  If you assign more CUDA streams to queues with OpenACC, then
@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
     int     exitCode = 1;
     try {
         Logger::initialize("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
+        RuntimeParameters::initialize("RuntimeParameters.json");
 
         // We test throughout logic errors related to the use of the runtime in
         // the high-level application control flow, some of which cannot be
@@ -77,28 +78,29 @@ int main(int argc, char* argv[]) {
             throw;
         }
 
-        Runtime&    runtime = Runtime::instance();
+        Runtime&             runtime = Runtime::instance();
+        RuntimeParameters&   RPs = RuntimeParameters::instance();
 
         // Access config singleton within limited local scope so that it can't be
         // used by the rest of the application code outside the block.
         {
             GridConfiguration&   cfg = GridConfiguration::instance();
 
-            cfg.xMin            = rp_Grid::X_MIN;
-            cfg.xMax            = rp_Grid::X_MAX;
-            cfg.yMin            = rp_Grid::Y_MIN;
-            cfg.yMax            = rp_Grid::Y_MAX;
-            cfg.zMin            = rp_Grid::Z_MIN;
-            cfg.zMax            = rp_Grid::Z_MAX;
-            cfg.nxb             = rp_Grid::NXB;
-            cfg.nyb             = rp_Grid::NYB;
-            cfg.nzb             = rp_Grid::NZB;
+            cfg.xMin            = RPs.getReal("Grid", "xMin");
+            cfg.xMax            = RPs.getReal("Grid", "xMax");
+            cfg.yMin            = RPs.getReal("Grid", "yMin");
+            cfg.yMax            = RPs.getReal("Grid", "yMax");
+            cfg.zMin            = RPs.getReal("Grid", "zMin");
+            cfg.zMax            = RPs.getReal("Grid", "zMax");
+            cfg.nxb             = RPs.getUnsignedInt("Grid", "NXB");
+            cfg.nyb             = RPs.getUnsignedInt("Grid", "NYB");
+            cfg.nzb             = RPs.getUnsignedInt("Grid", "NZB");
             cfg.nCcVars         = NUNKVAR;
             cfg.nGuard          = NGUARD;
-            cfg.nBlocksX        = rp_Grid::N_BLOCKS_X;
-            cfg.nBlocksY        = rp_Grid::N_BLOCKS_Y;
-            cfg.nBlocksZ        = rp_Grid::N_BLOCKS_Z;
-            cfg.maxFinestLevel  = rp_Grid::LREFINE_MAX;
+            cfg.nBlocksX        = RPs.getUnsignedInt("Grid", "nBlocksX");
+            cfg.nBlocksY        = RPs.getUnsignedInt("Grid", "nBlocksY");
+            cfg.nBlocksZ        = RPs.getUnsignedInt("Grid", "nBlocksZ");
+            cfg.maxFinestLevel  = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
             cfg.errorEstimation = Simulation::errorEstBlank;
             cfg.mpiComm         = GLOBAL_COMM;
 
@@ -110,7 +112,7 @@ int main(int argc, char* argv[]) {
         RuntimeAction   initBlock_cpu;
         initBlock_cpu.name = "initBlock_cpu";
         initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
-        initBlock_cpu.nInitialThreads = rp_Simulation::N_THREADS_FOR_IC;
+        initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
         initBlock_cpu.nTilesPerPacket = 0;
         initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
 
@@ -148,6 +150,7 @@ int main(int argc, char* argv[]) {
             throw;
         }
 
+        RuntimeParameters::instance().finalize();
         Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - Runtime::main - " << e.what() << std::endl;

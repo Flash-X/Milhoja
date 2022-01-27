@@ -89,8 +89,8 @@ test_gnu:
  - ./testThreadTeam.sh
 # - ./buildTestRuntimeNull.sh
 # - ./testRuntimeNull.sh
-# - ./buildTestRuntimeCpu.sh
-# - ./testRuntimeCpu.sh
+ - ./buildTestRuntimeCpu.sh
+ - ./testRuntimeCpu.sh
  # Acquire Sedov results for regression testing
  # Run only in production since the debugs can run so long on sandy bridge that the
  # test suite times out.

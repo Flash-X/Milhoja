@@ -10,6 +10,7 @@
 #include <Milhoja_RuntimeAction.h>
 #include <Milhoja_Runtime.h>
 
+#include "RuntimeParameters.h"
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
@@ -20,8 +21,6 @@
 #include "DataPacket_gpu_1_stream.h"
 #include "DataPacket_gpu_2_stream.h"
 #endif
-
-#include "Flash_par.h"
 
 using namespace milhoja;
 
@@ -64,9 +63,12 @@ protected:
         computeError.nTilesPerPacket = 0;
         computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
 
-        Analysis::initialize(  rp_Grid::N_BLOCKS_X
-                             * rp_Grid::N_BLOCKS_Y
-                             * rp_Grid::N_BLOCKS_Z);
+        RuntimeParameters&   RPs = RuntimeParameters::instance();
+
+        unsigned int    nBlocksX{RPs.getUnsignedInt("Grid", "nBlocksX")};
+        unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
+        unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
+        Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
         Runtime::instance().executeCpuTasks("Analysis", computeError);
 
         double L_inf1      = 0.0;

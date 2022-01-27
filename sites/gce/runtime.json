@@ -1,0 +1,21 @@
+{
+    "Grid": {
+        "xMin":                           0.0,
+        "xMax":                           1.0,
+        "yMin":                           0.0,
+        "yMax":                           1.0,
+        "zMin":                           0.0,
+        "zMax":                           1.0,
+        "finestRefinementLevel":          1,
+        "nBlocksX":                       8,
+        "nBlocksY":                      16,
+        "nBlocksZ":                       1,
+        "NXB":                          256,
+        "NYB":                          128,
+        "NZB":                            1
+    },
+    "Simulation": {
+        "nThreadsForIC":                  4
+    }
+}
+
