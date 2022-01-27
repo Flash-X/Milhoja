@@ -1,7 +1,7 @@
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/AMReX_$(NDIM)D
 GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/googletest
-JSONDIR      = $(JSON_CPP_REPO)/single_include
+JSONDIR      = $(MILHOJA_TEST_REPO)/gce/intel_current/json/single_include
 CUDADIR      =
 
 CXXCOMPNAME  = intel
