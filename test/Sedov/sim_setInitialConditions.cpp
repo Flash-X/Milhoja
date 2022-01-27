@@ -40,23 +40,24 @@ void  sim::setInitialConditions(const milhoja::IntVect& lo,
     constexpr unsigned int     N_PROFILE    = 10000;
     constexpr Real             P_AMBIENT    = 1.0e-5_wp;
     constexpr Real             RHO_AMBIENT  = 1.0_wp;
-    constexpr Real             R_INIT       = 0.109375_wp;
     constexpr Real             MIN_RHO_INIT = 1.0e-20_wp;
     constexpr Real             SMALL_RHO    = 1.0e-10_wp;
     constexpr Real             SMALL_P      = 1.0e-10_wp;
     constexpr Real             SMALL_E      = 1.0e-10_wp;
     constexpr Real             SMALL_T      = 1.0e-10_wp;
-#if   MILHOJA_NDIM == 1
-#error "Missing 1D vctr constexpr"
-#elif MILHOJA_NDIM == 2
-    constexpr Real             vctr         = PI * R_INIT*R_INIT;
-#elif MILHOJA_NDIM == 3
-    constexpr Real             vctr         = 4.0_wp / 3.0_wp * PI * R_INIT*R_INIT*R_INIT;
-#endif
     constexpr Real             EXP_ENERGY   = 1.0_wp;
-    constexpr Real             P_EXP        = (Eos::GAMMA - 1.0_wp) * EXP_ENERGY / vctr;
     constexpr unsigned int     N_SUB_ZONES  = 7;
     constexpr Real             IN_SUBZONES  = 1.0 / Real(N_SUB_ZONES);
+#if   MILHOJA_NDIM == 1
+#error "Missing 1D R_INIT and vctr constexpr"
+#elif MILHOJA_NDIM == 2
+    constexpr Real             R_INIT       = 0.013671875_wp;
+    constexpr Real             vctr         = PI * R_INIT*R_INIT;
+#elif MILHOJA_NDIM == 3
+    constexpr Real             R_INIT       = 0.109375_wp;
+    constexpr Real             vctr         = 4.0_wp / 3.0_wp * PI * R_INIT*R_INIT*R_INIT;
+#endif
+    constexpr Real             P_EXP        = (Eos::GAMMA - 1.0_wp) * EXP_ENERGY / vctr;
 
     RuntimeParameters&   RPs = RuntimeParameters::instance();
 
@@ -147,10 +148,6 @@ void  sim::setInitialConditions(const milhoja::IntVect& lo,
     Real            ek = 0.0;
     Real            eint = 0.0;
 
-    // Assuming that:
-    // - NSPECIES = 0
-    // - EINT_VAR in use?
-    // - BDRY_VAR in use?
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
             for (int i=lo.I(); i<=hi.I(); ++i) {
@@ -209,7 +206,7 @@ void  sim::setInitialConditions(const milhoja::IntVect& lo,
                             if (jHi >= N_PROFILE) {
                                 throw std::runtime_error("jHi search failed!");
                             } else if ((rProf[jLo] > dist) || (rProf[jHi] <= dist)) {
-                                throw std::runtime_error("What the blurg?!");
+                                throw std::runtime_error("What the what?!");
                             }
 
                             // a point at `dist' is frac-way between jLo and jHi.   We do a
@@ -253,18 +250,13 @@ void  sim::setInitialConditions(const milhoja::IntVect& lo,
                 solnData(i, j, k, DENS_VAR) = rho;
                 solnData(i, j, k, PRES_VAR) = p;
                 solnData(i, j, k, ENER_VAR) = e;
-#ifdef EINT_VAR
                 solnData(i, j, k, EINT_VAR) = eint;
-#endif
                 solnData(i, j, k, GAME_VAR) = Eos::GAMMA;
                 solnData(i, j, k, GAMC_VAR) = Eos::GAMMA;
                 solnData(i, j, k, VELX_VAR) = vx;
                 solnData(i, j, k, VELY_VAR) = vy;
                 solnData(i, j, k, VELZ_VAR) = vz;
                 solnData(i, j, k, TEMP_VAR) = SMALL_T;
-#ifdef BDRY_VAR
-                solnData(i, j, k, BDRY_VAR) = -1.0_wp;
-#endif 
             }
         }
     }
