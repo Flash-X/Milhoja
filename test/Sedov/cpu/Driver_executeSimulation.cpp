@@ -85,7 +85,7 @@ void    Driver::executeSimulation(void) {
                         N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
                         GLOBAL_COMM, TIMER_RANK};
 
-    Timer::start("Sedov simulation");
+    Timer::start("sedov simulation");
 
     unsigned int   nStep            = 1;
     unsigned int   maxSteps         = RPs.getUnsignedInt("Simulation", "maxSteps");
@@ -164,7 +164,7 @@ void    Driver::executeSimulation(void) {
 
         ++nStep;
     }
-    Timer::stop("Sedov simulation");
+    Timer::stop("sedov simulation");
 
     if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");
