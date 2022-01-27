@@ -105,7 +105,7 @@ unsigned int    RuntimeParameters::getUnsignedInt(const std::string& group,
         throw std::logic_error("[RuntimeParameters::getUnsignedInt] Invalid after finalize");
     }
 
-    return json_[group][parameter].get<unsigned int>();
+    return json_.at(group).at(parameter).get<unsigned int>();
 }
 
 /**
@@ -117,7 +117,7 @@ std::size_t    RuntimeParameters::getSizeT(const std::string& group,
         throw std::logic_error("[RuntimeParameters::getSizeT] Invalid after finalize");
     }
 
-    return json_[group][parameter].get<std::size_t>();
+    return json_.at(group).at(parameter).get<std::size_t>();
 }
 
 /**
@@ -129,6 +129,6 @@ milhoja::Real   RuntimeParameters::getReal(const std::string& group,
         throw std::logic_error("[RuntimeParameters::getReal] Invalid after finalize");
     }
 
-    return json_[group][parameter].get<milhoja::Real>();
+    return json_.at(group).at(parameter).get<milhoja::Real>();
 }
 

@@ -85,8 +85,8 @@ test_gnu:
  # Unittests
 # - ./buildTestGrid.sh
 # - ./testGrid.sh
-# - ./buildTestThreadTeam.sh
-# - ./testThreadTeam.sh
+ - ./buildTestThreadTeam.sh
+ - ./testThreadTeam.sh
 # - ./buildTestRuntimeNull.sh
 # - ./testRuntimeNull.sh
 # - ./buildTestRuntimeCpu.sh

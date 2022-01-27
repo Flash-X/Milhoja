@@ -4,7 +4,7 @@ BINARYNAME          = sedov_cpu.x
 # Define relevant paths
 TESTROOTDIR         = $(BASEDIR)/test
 SEDOVDIR            = $(TESTROOTDIR)/Sedov
-TESTDIR             = $(TESTROOTDIR)/Sedov/cpu
+TESTDIR             = $(SEDOVDIR)/cpu
 
 # Define compiler flags in CXXFLAGS_TEST_*
 CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR)

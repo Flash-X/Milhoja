@@ -58,7 +58,7 @@ _ERROR = '\033[0;91;1m' # Bright Red/bold
 _NC    = '\033[0m'      # No Color/Not bold
 
 #####----- HARDCODED VARIABLES
-PAR_FILENAME = 'RuntimeParameters.json'
+PAR_FILENAME_BASE = 'RuntimeParameters'
 
 if __name__ == '__main__':
     """
@@ -222,11 +222,29 @@ if __name__ == '__main__':
     except sbp.CalledProcessError:
         print_and_exit(f'Unable to create Milhoja.h', 2)
 
-    # Copy par file into build dir
-    if args.par is not None:
-        print(f"Copying par file {args.par} as {PAR_FILENAME}")
-        parFile = os.path.join(siteDir, args.par)
-        shutil.copy(parFile,os.path.join(buildDir, PAR_FILENAME))
+    #####----- DERIVE PAR FILENAME & COPY TO BUILD DIR
+    # The final filename will have the same extension of the given file.
+    # A file that ends in
+    #  * .json is ready for immediate use
+    #  * .json_base needs updating before use
+    par_filename_src = args.par
+    if par_filename_src is None:
+        print_and_exit('Please specify a parameter file', 3)
+
+    tmp = par_filename_src.split('.')
+    if (len(tmp) != 2) or (tmp[1] not in ['json', 'json_base']):
+        print_and_exit('Par file names must be of the form <name>.json[_base]', 4)
+    _, par_ext = tmp
+    par_filename_dest = PAR_FILENAME_BASE + '.' + par_ext
+
+    parFile_src  = Path(siteDir).joinpath(par_filename_src).resolve()
+    parFile_dest = Path(buildDir).joinpath(par_filename_dest).resolve()
+    if not parFile_src.is_file():
+        print_and_exit(f'{parFile_src} is not a file', 5)
+    if parFile_dest.exists():
+        print_and_exit(f'{parFile_dest} already exists', 6)
+    print(f"Copying {parFile_src.name} as {parFile_dest.name}")
+    shutil.copy(parFile_src, parFile_dest)
 
     # Write the setup logfile
     print("Writing setup.log")
@@ -251,9 +269,7 @@ if __name__ == '__main__':
         f.write('\n')
 
         f.write('Path to copied files:\n')
-        if args.par is not None:
-            f.write('{} copied from: {}\n'.format(
-                    PAR_FILENAME, os.path.abspath(parFile)) )
+        f.write(f'{parFile_dest.name} copied from: {parFile_src}\n')
         f.write('\n')
 
         f.write('Contents of Makefile.setup:\n')

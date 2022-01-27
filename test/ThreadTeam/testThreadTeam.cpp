@@ -22,6 +22,7 @@
 #include <Milhoja_ThreadTeam.h>
 #include <Milhoja_Logger.h>
 
+#include "RuntimeParameters.h"
 #include "NullItem.h"
 #include "threadTeamTest.h"
 #include "testThreadRoutines.h"
@@ -1475,6 +1476,8 @@ TEST_F(ThreadTeamTest, TestTimings) {
     unsigned int   N_ITERS = 5000;
     unsigned int   N_WORK  = 100;
 
+    RuntimeParameters&   RPs = RuntimeParameters::instance();
+
     std::vector<double>  wtimes_us(N_ITERS);
     auto                 start = steady_clock::now();
     auto                 end   = steady_clock::now();
@@ -1495,8 +1498,10 @@ TEST_F(ThreadTeamTest, TestTimings) {
 
     Logger::setLogFilename("TestTimings2.log");
 
+    unsigned int   nThreadsPerTeam{RPs.getUnsignedInt("Runtime", "nThreadsPerTeam")};
+
     ThreadTeam* team1 = nullptr;
-    ThreadTeam  team2(T3::nThreadsPerTeam, 2);
+    ThreadTeam  team2(nThreadsPerTeam, 2);
 
     std::cout << "\nTiming using C++ standard library steady clock\n";
     std::cout << "-------------------------------------------------------\n";
@@ -1522,7 +1527,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
 
     for (unsigned int i=0; i<wtimes_us.size(); ++i) {
         start = steady_clock::now();
-        team1 = new ThreadTeam(T3::nThreadsPerTeam, 1);
+        team1 = new ThreadTeam(nThreadsPerTeam, 1);
         end = steady_clock::now();
         wtimes_us[i] = microseconds(end - start).count();
         EXPECT_TRUE(wtimes_us[i] > 0.0);
@@ -1536,7 +1541,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
               << std_wtime_us  << " us\n";
 
     //***** PROBE INFORMATION ON Idle->Wait TRANSITION TIMES
-    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             start = steady_clock::now();
             // By passing true, this should not return until all N_thread
@@ -1574,7 +1579,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
     }
 
     //***** PROBE INFORMATION ON Wait->Idle TRANSITION TIMES
-    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             noop.nInitialThreads = n;
             team2.startCycle(noop, "quick", true);
@@ -1617,7 +1622,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
     // setup is setup well, then adding the above time samples together should
     // approximately equal the values measured here.  This might not be true,
     // for instance, if I switch true to false below.
-    for (unsigned int n=0; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=0; n<=nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             noop.nInitialThreads = n;
 
@@ -1655,7 +1660,7 @@ TEST_F(ThreadTeamTest, TestTimings) {
     //***** PROBE INFORMATION ON FULL CYCLE
     // Enqueue same amount of work for each case so that we can get an idea of
     // the overhead associated with the thread team
-    for (unsigned int n=1; n<=T3::nThreadsPerTeam; ++n) {
+    for (unsigned int n=1; n<=nThreadsPerTeam; ++n) {
         for (unsigned int i=0; i<wtimes_us.size(); ++i) {
             noop.nInitialThreads = n;
             start = steady_clock::now();
