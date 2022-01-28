@@ -15,13 +15,13 @@
         "NZB":                            1
     },
     "Runtime": {
-        "nStreams":                       1,
+        "nStreams":                      32,
         "nThreadTeams":                   3,
         "nThreadsPerTeam":               10,
-        "memoryPoolSizeBytes":            0
+        "memoryPoolSizeBytes":   4294967296
     },
     "Simulation": {
-        "nThreadsForIC":                  4
+        "nThreadsForIC":                  7
     }
 }
 

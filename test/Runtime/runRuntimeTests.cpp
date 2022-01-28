@@ -12,15 +12,6 @@
 #include "setInitialConditions.h"
 #include "errorEstBlank.h"
 
-// It appears that OpenACC on Summit with PGI has max 32 asynchronous
-// queues.  If you assign more CUDA streams to queues with OpenACC, then
-// these streams just roll over and the last 32 CUDA streams will be the
-// only streams mapped to queues.
-constexpr int            N_STREAMS = 32; 
-constexpr unsigned int   N_THREAD_TEAMS = 3;
-constexpr unsigned int   N_THREADS_PER_TEAM = 10;
-constexpr std::size_t    MEMORY_POOL_SIZE_BYTES = 4294967296; 
-
 int main(int argc, char* argv[]) {
     using namespace milhoja;
 
@@ -47,6 +38,8 @@ int main(int argc, char* argv[]) {
         Logger::initialize("RuntimeTest.log", GLOBAL_COMM, LEAD_RANK);
         RuntimeParameters::initialize("RuntimeParameters.json");
 
+        RuntimeParameters&   RPs = RuntimeParameters::instance();
+
         // We test throughout logic errors related to the use of the runtime in
         // the high-level application control flow, some of which cannot be
         // included in a googletest.
@@ -63,12 +56,16 @@ int main(int argc, char* argv[]) {
             throw;
         }
 
-        Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                            N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+        Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
+                            RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
+                            RPs.getUnsignedInt("Runtime", "nStreams"),
+                            RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
 
         try {
-            Runtime::initialize(N_THREAD_TEAMS, N_THREADS_PER_TEAM,
-                                N_STREAMS, MEMORY_POOL_SIZE_BYTES);
+            Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
+                                RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
+                                RPs.getUnsignedInt("Runtime", "nStreams"),
+                                RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
             std::cerr << "FAILURE - Runtime::main - Runtime initialized more than once"
                       << std::endl;
             return 2;
@@ -79,7 +76,6 @@ int main(int argc, char* argv[]) {
         }
 
         Runtime&             runtime = Runtime::instance();
-        RuntimeParameters&   RPs = RuntimeParameters::instance();
 
         // Access config singleton within limited local scope so that it can't be
         // used by the rest of the application code outside the block.
