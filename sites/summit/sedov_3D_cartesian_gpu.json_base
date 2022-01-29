@@ -34,7 +34,7 @@
         "maxSteps":                       REPLACE_MAX_STEPS,
         "nThreadsForIC":                  6
     },
-    "Bundle_1": {
+    "compIQ_bundle": {
         "nThreadsCpu":                    6
     },
     "Hydro_cpu/gpu_bundle": {
