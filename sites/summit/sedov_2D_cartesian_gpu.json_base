@@ -20,9 +20,6 @@
         "nStreams":                      32,
         "memoryPoolSizeBytes":   1073741824
     },
-    "Io": {
-        "nThreadsForIntQuantities":       REPLACE_NCT
-    },
     "Driver": {
         "dtAfter":                        2.0e-5,
         "writeEveryNSteps":           10000
