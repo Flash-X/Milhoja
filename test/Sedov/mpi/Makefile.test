@@ -1,17 +1,13 @@
-# Define the desired binary name with BINARYNAME
 BINARYNAME          = sedov_mpi.x
 
-# Define relevant paths
 TESTROOTDIR         = $(BASEDIR)/test
 SEDOVDIR            = $(TESTROOTDIR)/Sedov
 TESTDIR             = $(SEDOVDIR)/mpi
 
-# Define compiler flags in CXXFLAGS_TEST_*
 CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR)
 CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR)
 LDFLAGS_TEST        =
 
-# Define list of sources in SRCS_TEST
 SRCS_TEST = \
 	$(TESTROOTDIR)/RuntimeParameters.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
