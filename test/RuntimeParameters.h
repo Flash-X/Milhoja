@@ -11,6 +11,13 @@ class RuntimeParameters {
 public:
     ~RuntimeParameters(void);
 
+    RuntimeParameters(RuntimeParameters&)                  = delete;
+    RuntimeParameters(const RuntimeParameters&)            = delete;
+    RuntimeParameters(RuntimeParameters&&)                 = delete;
+    RuntimeParameters& operator=(RuntimeParameters&)       = delete;
+    RuntimeParameters& operator=(const RuntimeParameters&) = delete;
+    RuntimeParameters& operator=(RuntimeParameters&&)      = delete;
+
     static void                initialize(const std::string& filename);
     static RuntimeParameters&  instance(void);
     void                       finalize(void);

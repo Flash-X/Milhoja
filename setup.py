@@ -115,9 +115,7 @@ if __name__ == '__main__':
         shutil.rmtree(buildDir)
 
     test_name = args.test
-    if test_name is None:
-        print_and_exit('Please specify a test')
-    elif test_name == 'library':
+    if test_name == 'library':
         testDir = None
         if not args.prefix:
             print_and_exit('Please specify prefix to build library')

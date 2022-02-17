@@ -7,11 +7,11 @@
         "zMin":                           0.0,
         "zMax":                           1.0,
         "finestRefinementLevel":          1,
-        "nBlocksX":                       8,
-        "nBlocksY":                      16,
+        "nBlocksX":                     256,
+        "nBlocksY":                     128,
         "nBlocksZ":                       1,
-        "NXB":                          256,
-        "NYB":                          128,
+        "NXB":                            8,
+        "NYB":                           16,
         "NZB":                            1
     },
     "Runtime": {
