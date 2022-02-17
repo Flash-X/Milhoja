@@ -58,7 +58,8 @@ protected:
     void checkSolution(void) {
         RuntimeAction    computeError;
         computeError.name            = "ComputeErrors";
-        computeError.nInitialThreads = 6;
+//        computeError.nInitialThreads = 6;
+        computeError.nInitialThreads = 1;
         computeError.teamType        = ThreadTeamDataType::BLOCK;
         computeError.nTilesPerPacket = 0;
         computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
@@ -327,6 +328,11 @@ TEST_F(TestRuntime, TestFusedActions) {
     Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, 0, computeLaplacianFused_gpu,
                                         packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
+
+//    std::vector<std::string>    names{};
+//    names.push_back("density");
+//    names.push_back("energy");
+//    Grid::instance().writePlotfile("Wowza", names);
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
