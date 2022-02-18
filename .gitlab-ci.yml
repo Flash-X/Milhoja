@@ -90,7 +90,7 @@ test_gnu:
  - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
  - python setup.py test
  - python setup.py sdist && cd dist
- - pip install --user --upgrade $(ls Sedov-*.tar.gz)
+ - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
