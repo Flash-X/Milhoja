@@ -10,11 +10,14 @@
 # NOTE: The main code here uses pushd/popd.  Careful about this when altering
 #       the code.
 
-# Use CELS's GCE-public runners, which use GCE general computing hardware
+# Use CELS's GCE-public runners, which use GCE general computing hardware.
+# Most runners are now using Ubuntu 20.04 so we restrict ourselves to these
+# runners so that we don't have to maintain two sets of SW stacks by OS.
 default:
  tags:
  - public
  - shared_ssh
+ - 20.04
 
 stages:
   - test
