@@ -9,6 +9,7 @@
 #include <Milhoja_Logger.h>
 
 #include "Sedov.h"
+#include "RuntimeParameters.h"
 #include "Io.h"
 #include "Eos.h"
 #include "Hydro.h"
@@ -17,12 +18,9 @@
 #include "Simulation.h"
 #include "ProcessTimer.h"
 
-#include "Flash_par.h"
-
 void    Driver::executeSimulation(void) {
     constexpr  int          TIMER_RANK          = LEAD_RANK;
     constexpr  unsigned int N_DIST_THREADS      = 0;
-    constexpr  unsigned int N_CPU_THREADS       = rp_Hydro::N_THREADS_FOR_ADV_SOLN;
     constexpr  unsigned int N_GPU_THREADS       = 0;
     constexpr  unsigned int N_BLKS_PER_PACKET   = 0;
     constexpr  unsigned int N_BLKS_PER_CPU_TURN = 1;
@@ -32,17 +30,19 @@ void    Driver::executeSimulation(void) {
 
     std::vector<std::string>  variableNames = sim::getVariableNames();
 
-    ProcessTimer  hydro{rp_Simulation::NAME + "_timings.dat", "MPI+OpenMP",
-                        N_DIST_THREADS, 0, N_CPU_THREADS, N_GPU_THREADS,
-                        N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
-                        GLOBAL_COMM, TIMER_RANK};
-
     Io&                      io      = Io::instance();
+    RuntimeParameters&       RPs     = RuntimeParameters::instance();
     milhoja::Grid&           grid    = milhoja::Grid::instance();
     milhoja::Logger&         logger  = milhoja::Logger::instance();
 
-    Driver::dt      = rp_Simulation::DT_INIT;
-    Driver::simTime = rp_Simulation::T_0;
+    Driver::dt      = RPs.getReal("Simulation", "dtInit");
+    Driver::simTime = RPs.getReal("Simulation", "T_0"); 
+    unsigned int   nCpuThreads{RPs.getUnsignedInt("Hydro", "nThreadsForAdvanceSolution")};
+
+    ProcessTimer  hydro{"sedov_timings.dat", "MPI+OpenMP",
+                        N_DIST_THREADS, 0, nCpuThreads, N_GPU_THREADS,
+                        N_BLKS_PER_PACKET, N_BLKS_PER_CPU_TURN,
+                        GLOBAL_COMM, TIMER_RANK};
 
     Timer::start("Set initial conditions");
     grid.initDomain(Simulation::setInitialConditions_tile_cpu);
@@ -57,25 +57,38 @@ void    Driver::executeSimulation(void) {
     Timer::start("Reduce/Write");
     io.reduceToGlobalIntegralQuantities();
     io.writeIntegralQuantities(Driver::simTime);
-//    grid.writePlotfile(rp_Simulation::NAME + "_plt_ICs", variableNames);
+//    grid.writePlotfile("sedov_plt_ICs", variableNames);
     Timer::stop("Reduce/Write");
 
-    //----- MIMIC Driver_evolveFlash
-    Timer::start(rp_Simulation::NAME + " simulation");
+    Timer::start("sedov simulation");
+
+    int                NXB{RPs.getInt("Grid", "NXB")};
+    int                NYB{RPs.getInt("Grid", "NYB")};
+    int                NZB{RPs.getInt("Grid", "NZB")};
+    milhoja::IntVect   fl_lo{LIST_NDIM(1, 1, 1)};
+    milhoja::IntVect   flX_hi{LIST_NDIM(NXB+MILHOJA_K1D, NYB,             NZB)};
+    milhoja::IntVect   flY_hi{LIST_NDIM(NXB,             NYB+MILHOJA_K2D, NZB)};
+    milhoja::IntVect   flZ_hi{LIST_NDIM(NXB,             NYB,             NZB+MILHOJA_K3D)};
+    milhoja::IntVect   auxC_lo{LIST_NDIM(1  -MILHOJA_K1D, 1  -MILHOJA_K2D, 1  -MILHOJA_K3D)};
+    milhoja::IntVect   auxC_hi{LIST_NDIM(NXB+MILHOJA_K1D, NYB+MILHOJA_K2D, NZB+MILHOJA_K3D)};
 
     unsigned int                     level{0};
     std::shared_ptr<milhoja::Tile>   tileDesc{};
     unsigned int                     nStep{1};
-    while ((nStep <= rp_Simulation::MAX_STEPS) && (Driver::simTime < rp_Simulation::T_MAX)) {
+    unsigned int                     maxSteps{RPs.getUnsignedInt("Simulation", "maxSteps")};
+    milhoja::Real                    tMax{RPs.getReal("Simulation", "tMax")};
+    milhoja::Real                    dtAfter{RPs.getReal("Driver", "dtAfter")};
+    unsigned int                     writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
+    while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
-        if ((Driver::simTime + Driver::dt) > rp_Simulation::T_MAX) {
+        if ((Driver::simTime + Driver::dt) > tMax) {
             milhoja::Real   origDt = Driver::dt;
-            Driver::dt = (rp_Simulation::T_MAX - Driver::simTime);
-            Driver::simTime = rp_Simulation::T_MAX;
+            Driver::dt = (tMax - Driver::simTime);
+            Driver::simTime = tMax;
             logger.log(  "[Driver] Shortened dt from " + std::to_string(origDt)
                        + " to " + std::to_string(Driver::dt)
-                       + " so that tmax=" + std::to_string(rp_Simulation::T_MAX)
+                       + " so that tmax=" + std::to_string(tMax)
                        + " is not exceeded");
         } else {
             Driver::simTime += Driver::dt;
@@ -97,26 +110,15 @@ void    Driver::executeSimulation(void) {
         double   tStart = MPI_Wtime();
 #pragma omp parallel default(none) \
                      private(tileDesc) \
-                     shared(grid, level, Driver::dt) \
-                     num_threads(rp_Hydro::N_THREADS_FOR_ADV_SOLN)
+                     shared(grid, level, Driver::dt, fl_lo, flX_hi, flY_hi, flZ_hi, auxC_lo, auxC_hi) \
+                     num_threads(nCpuThreads)
         {
             // Create thread-private scratch buffers.
             // They will be reindexed as needed, but size needs to be correct.
-            milhoja::FArray4D   flX = milhoja::FArray4D::buildScratchArray4D(
-                                    milhoja::IntVect{LIST_NDIM(1,                        1,            1)},
-                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB, rp_Grid::NZB)},
-                                    NFLUXES);
-            milhoja::FArray4D   flY = milhoja::FArray4D::buildScratchArray4D(
-                                    milhoja::IntVect{LIST_NDIM(1,            1,                        1)},
-                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB)},
-                                    NFLUXES);
-            milhoja::FArray4D   flZ = milhoja::FArray4D::buildScratchArray4D(
-                                    milhoja::IntVect{LIST_NDIM(1,            1,            1)},
-                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB, rp_Grid::NYB, rp_Grid::NZB+MILHOJA_K3D)},
-                                    NFLUXES);
-            milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
-                                    milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D,          1  -MILHOJA_K2D,          1  -MILHOJA_K3D)},
-                                    milhoja::IntVect{LIST_NDIM(rp_Grid::NXB+MILHOJA_K1D, rp_Grid::NYB+MILHOJA_K2D, rp_Grid::NZB+MILHOJA_K3D)});
+            milhoja::FArray4D   flX  = milhoja::FArray4D::buildScratchArray4D(fl_lo, flX_hi, NFLUXES);
+            milhoja::FArray4D   flY  = milhoja::FArray4D::buildScratchArray4D(fl_lo, flY_hi, NFLUXES);
+            milhoja::FArray4D   flZ  = milhoja::FArray4D::buildScratchArray4D(fl_lo, flZ_hi, NFLUXES);
+            milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(auxC_lo, auxC_hi);
 
             for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
                 tileDesc = ti->buildCurrentTile();
@@ -154,8 +156,8 @@ void    Driver::executeSimulation(void) {
         io.reduceToGlobalIntegralQuantities();
         io.writeIntegralQuantities(Driver::simTime);
 
-        if ((nStep % rp_Driver::WRITE_EVERY_N_STEPS) == 0) {
-            grid.writePlotfile(rp_Simulation::NAME + "_plt_" + std::to_string(nStep),
+        if ((nStep % writeEveryNSteps) == 0) {
+            grid.writePlotfile("sedov_plt_" + std::to_string(nStep),
                                variableNames);
         }
         Timer::stop("Reduce/Write");
@@ -177,19 +179,19 @@ void    Driver::executeSimulation(void) {
         // Simulation::DT_INIT.  There after, it allows for 5.0e-5.  Therefore,
         // we mimic that dt sequence here so that we can directly compare
         // results.
-        Driver::dt = rp_Driver::DT_AFTER;
+        Driver::dt = dtAfter;
 
         ++nStep;
     }
-    Timer::stop(rp_Simulation::NAME + " simulation");
+    Timer::stop("sedov simulation");
 
-    if (Driver::simTime >= rp_Simulation::T_MAX) {
+    if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");
     }
-    grid.writePlotfile(rp_Simulation::NAME + "_plt_final",
+    grid.writePlotfile("sedov_plt_final",
                        variableNames);
 
-    nStep = std::min(nStep, rp_Simulation::MAX_STEPS);
+    nStep = std::min(nStep, maxSteps);
 
     grid.destroyDomain();
 }

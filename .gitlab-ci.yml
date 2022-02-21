@@ -10,11 +10,14 @@
 # NOTE: The main code here uses pushd/popd.  Careful about this when altering
 #       the code.
 
-# Use CELS's GCE-public runners, which use GCE general computing hardware
+# Use CELS's GCE-public runners, which use GCE general computing hardware.
+# Most runners are now using Ubuntu 20.04 so we restrict ourselves to these
+# runners so that we don't have to maintain two sets of SW stacks by OS.
 default:
  tags:
  - public
  - shared_ssh
+ - '20.04'
 
 stages:
   - test
@@ -70,15 +73,25 @@ test_gnu:
  # installation of the Sedov python package and therefore ensure that we have a clean install
  # of that package.
  # TODO: Use a python setup locally just for this project?
- - module load anaconda3
+ - module load python/3.8.10-sfhmzp4
+ - rm -rf ./pyenv
+ - which python
+ - python -m venv ./pyenv
+ - source ./pyenv/bin/activate
  - which python
  - which pip
+ - pip install nose
+ - pip install numpy
+ - pip install scipy
+ - pip install pandas
+ - pip install matplotlib
+ - pip install seaborn
+ - pip install yt
  - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
  - python setup.py test
  - python setup.py sdist && cd dist
- - pip install --user --upgrade $(ls Sedov-*.tar.gz)
+ - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
- - module unload anaconda3
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_REPO/gce
@@ -101,16 +114,15 @@ test_gnu:
  # Execute regression tests
  # Setup same SW stack used to build fcompare binary
  - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
- - module load anaconda3
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
- - module unload anaconda3
 
 test_doxygen:
  stage: test
  script:
- - pushd docs/doxygen && doxygen && popd
-
+ - pushd docs/doxygen
+ - doxygen
+ - popd
 

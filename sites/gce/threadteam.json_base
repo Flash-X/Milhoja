@@ -1,0 +1,6 @@
+{
+    "Runtime": {
+        "nThreadsPerTeam":                  REPLACE_N_THREADS_PER_TEAM
+    }
+}
+

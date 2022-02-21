@@ -2,8 +2,6 @@
 
 #include "Sedov.h"
 
-#include "Flash_par.h"
-
 #ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
@@ -20,8 +18,8 @@ void idealGammaDensIe_oacc_summit(const milhoja::IntVect* lo_d,
     constexpr milhoja::Real   GAS_CONSTANT = 8.3144598e7_wp;  // J/mol/K
     
     // Derived from runtime parameters/constants
-    constexpr milhoja::Real   GGPROD_INV    = (rp_Eos::GAMMA - 1.0_wp) / GAS_CONSTANT;
-    constexpr milhoja::Real   GAMMA_M_1_INV = (rp_Eos::GAMMA - 1.0_wp);
+    constexpr milhoja::Real   GGPROD_INV    = (Eos::GAMMA - 1.0_wp) / GAS_CONSTANT;
+    constexpr milhoja::Real   GAMMA_M_1_INV = (Eos::GAMMA - 1.0_wp);
 
     int     i_s = lo_d->I();
     int     j_s = lo_d->J();

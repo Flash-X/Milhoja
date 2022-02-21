@@ -9,9 +9,9 @@
 #include <Milhoja_Grid.h>
 
 #include "Base.h"
+#include "RuntimeParameters.h"
 #include "setInitialConditions.h"
 #include "errorEstMaximal.h"
-#include "Flash_par.h"
 
 int main(int argc, char* argv[]) {
     using namespace milhoja;
@@ -26,27 +26,29 @@ int main(int argc, char* argv[]) {
     int     exitCode = 1;
     try {
         Logger::initialize("GridGeneralUnitTest.log", GLOBAL_COMM, LEAD_RANK);
+        RuntimeParameters::initialize("RuntimeParameters.json");
 
         // Access config singleton within limited local scope so that it can't be
         // used by the rest of the application code outside the block.
         {
             GridConfiguration&   cfg = GridConfiguration::instance();
+            RuntimeParameters&   RPs = RuntimeParameters::instance();
 
-            cfg.xMin            = rp_Grid::X_MIN;
-            cfg.xMax            = rp_Grid::X_MAX;
-            cfg.yMin            = rp_Grid::Y_MIN;
-            cfg.yMax            = rp_Grid::Y_MAX;
-            cfg.zMin            = rp_Grid::Z_MIN;
-            cfg.zMax            = rp_Grid::Z_MAX;
-            cfg.nxb             = rp_Grid::NXB;
-            cfg.nyb             = rp_Grid::NYB;
-            cfg.nzb             = rp_Grid::NZB;
+            cfg.xMin            = RPs.getReal("Grid", "xMin");
+            cfg.xMax            = RPs.getReal("Grid", "xMax");
+            cfg.yMin            = RPs.getReal("Grid", "yMin");
+            cfg.yMax            = RPs.getReal("Grid", "yMax");
+            cfg.zMin            = RPs.getReal("Grid", "zMin");
+            cfg.zMax            = RPs.getReal("Grid", "zMax");
+            cfg.nxb             = RPs.getUnsignedInt("Grid", "NXB");
+            cfg.nyb             = RPs.getUnsignedInt("Grid", "NYB");
+            cfg.nzb             = RPs.getUnsignedInt("Grid", "NZB");
             cfg.nCcVars         = NUNKVAR;
             cfg.nGuard          = NGUARD;
-            cfg.nBlocksX        = rp_Grid::N_BLOCKS_X;
-            cfg.nBlocksY        = rp_Grid::N_BLOCKS_Y;
-            cfg.nBlocksZ        = rp_Grid::N_BLOCKS_Z;
-            cfg.maxFinestLevel  = rp_Grid::LREFINE_MAX;
+            cfg.nBlocksX        = RPs.getUnsignedInt("Grid", "nBlocksX");
+            cfg.nBlocksY        = RPs.getUnsignedInt("Grid", "nBlocksY");
+            cfg.nBlocksZ        = RPs.getUnsignedInt("Grid", "nBlocksZ");
+            cfg.maxFinestLevel  = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
             cfg.errorEstimation = Simulation::errorEstMaximal;
             cfg.mpiComm         = GLOBAL_COMM;
 
@@ -136,6 +138,7 @@ int main(int argc, char* argv[]) {
             throw;
         }
 
+        RuntimeParameters::instance().finalize();
         Logger::instance().finalize();
     } catch(const std::exception& e) {
         std::cerr << "FAILURE - Grid/general::main - " << e.what() << std::endl;

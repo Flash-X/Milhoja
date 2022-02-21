@@ -1,0 +1,41 @@
+{
+    "Grid": {
+        "xMin":                           0.0,
+        "xMax":                           1.0,
+        "yMin":                           0.0,
+        "yMax":                           1.0,
+        "zMin":                           0.0,
+        "zMax":                           1.0,
+        "finestRefinementLevel":          1,
+        "nBlocksX":                      16,
+        "nBlocksY":                      16,
+        "nBlocksZ":                      16,
+        "NXB":                           16,
+        "NYB":                           16,
+        "NZB":                           16
+    },
+    "Runtime": {
+        "nThreadsPerTeam":                4,
+        "nThreadTeams":                   1,
+        "nStreams":                       1,
+        "memoryPoolSizeBytes":            0 
+    },
+    "Io": {
+        "nThreadsForIntQuantities":       2
+    },
+    "Hydro": {
+        "nThreadsForAdvanceSolution":     2
+    },
+    "Driver": {
+        "dtAfter":                        1.1e-4,
+        "writeEveryNSteps":           10000
+    },
+    "Simulation": {
+        "T_0":                            0.0,
+        "dtInit":                         1.7390014281147323e-5,
+        "tMax":                           0.5,
+        "maxSteps":                     250,
+        "nThreadsForIC":                  2
+    }
+}
+

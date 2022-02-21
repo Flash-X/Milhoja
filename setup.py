@@ -19,11 +19,12 @@ from pathlib import Path
 _FLOATING_POINT_SYSTEM = 'double'
 
 #####----- DEFAULT CONFIGURATION VALUES
-_DEFAULT_BUILD   = 'build'
+_DEFAULT_BUILD    = 'build'
+_DEFAULT_MAKEFILE = 'Makefile.site'
 # For no apparent reason, default is host-only execution.
-_DEFAULT_GRID    = 'AMReX'
-_DEFAULT_RUNTIME = 'None'
-_DEFAULT_OFFLOAD = 'None'
+_DEFAULT_GRID     = 'AMReX'
+_DEFAULT_RUNTIME  = 'None'
+_DEFAULT_OFFLOAD  = 'None'
 
 #####----- PROGRAM USAGE INFO
 _DESCRIPTION = \
@@ -31,13 +32,19 @@ _DESCRIPTION = \
     "invoke this script with a setup line similar to the following, which\n" \
     "will set up a build directory with the necessary files for making a\n" \
     "test.\n\n" \
-    "\tpython setup.py -s Thomass-MBP -d 2 -p grid_2D.par Grid\n\n" \
+    "\tsetup.py Grid -s summit -d 2 -p grid_2D.json\n\n" \
     "The build directory is always created in the root folder of the called\n" \
     "script's repository.  If a file or directory already exists with that\n" \
     "name, this script deletes it without warning so that each build is clean.\n\n" \
     "To make the test, cd into the build directory and run 'make' or\n" \
     "'make all'. Then, the test can be run with 'make test' and the code\n" \
     "coverage report can be generated with 'make coverage'.\n"
+_BUILD_HELP = \
+    'Name of desired build directory\n' \
+   f'\tDefault: {_DEFAULT_BUILD}\n'
+_MAKEFILE_HELP = \
+    'Name of Makefile (in site dir)\n' \
+   f'\tDefault: {_DEFAULT_MAKEFILE}\n'
 _RUNTIME_HELP = \
     'Specify the runtime backend to be used by the test.  Refer to the\n' \
     'write_library_header.py documentation for valid values.\n' \
@@ -57,6 +64,13 @@ _ERROR = '\033[0;91;1m' # Bright Red/bold
 #_ERROR = '\033[0;31;1m' # Red/bold
 _NC    = '\033[0m'      # No Color/Not bold
 
+#####----- HARDCODED VARIABLES
+# setup.py is located in the repository root directory.  We assemble the build
+# relative to that directory.
+_HOME_DIR = Path(__file__).resolve().parent
+
+PAR_FILENAME_BASE = 'RuntimeParameters'
+
 if __name__ == '__main__':
     """
     Setup a build directory in accord with the given command line arguments.
@@ -64,30 +78,57 @@ if __name__ == '__main__':
     #####----- SPECIFY COMMAND LINE USAGE
     parser = argparse.ArgumentParser(description=_DESCRIPTION, \
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('test',             type=str,                           help='Name of test')
-    parser.add_argument('--site',     '-s', type=str,                           help='site name')
-    parser.add_argument('--library',  '-l', type=str,                           help='Path to prebuilt Runtime library')
-    parser.add_argument('--build',    '-b', type=str, default=_DEFAULT_BUILD,   help='build directory')
-    parser.add_argument('--par',      '-p', type=str,                           help='Name of par file (in site dir)')
-    parser.add_argument('--makefile', '-M', type=str,                           help='Name of Makefile (in site dir)')
-    parser.add_argument('--dim',      '-d', type=int,                           help='Dimensionality of test.')
-    parser.add_argument('--runtime',  '-r', type=str, default=_DEFAULT_RUNTIME, help=_RUNTIME_HELP)
-    parser.add_argument('--grid',     '-g', type=str, default=_DEFAULT_GRID,    help=_GRID_HELP)
-    parser.add_argument('--offload',  '-o', type=str, default=_DEFAULT_OFFLOAD, help=_OFFLOAD_HELP)
-    parser.add_argument('--prefix',         type=str,                           help='Where to install Runtime library')
+    parser.add_argument('test',             type=str,                            help='Name of test')
+    parser.add_argument('--site',     '-s', type=str,                            help='[mandatory] site name')
+    parser.add_argument('--library',  '-l', type=str,                            help='Path to prebuilt Runtime library')
+    parser.add_argument('--build',    '-b', type=str, default=_DEFAULT_BUILD,    help=_BUILD_HELP)
+    parser.add_argument('--par',      '-p', type=str,                            help='[mandatory] Name of par file (in site dir)')
+    parser.add_argument('--makefile', '-M', type=str, default=_DEFAULT_MAKEFILE, help=_MAKEFILE_HELP)
+    parser.add_argument('--dim',      '-d', type=int,                            help='[mandatory] Dimensionality of test.')
+    parser.add_argument('--runtime',  '-r', type=str, default=_DEFAULT_RUNTIME,  help=_RUNTIME_HELP)
+    parser.add_argument('--grid',     '-g', type=str, default=_DEFAULT_GRID,     help=_GRID_HELP)
+    parser.add_argument('--offload',  '-o', type=str, default=_DEFAULT_OFFLOAD,  help=_OFFLOAD_HELP)
+    parser.add_argument('--prefix',         type=str,                            help='Where to install Runtime library')
     parser.add_argument('--debug',         action="store_true", help='Set up in debug mode.')
     parser.add_argument('--coverage','-c', action="store_true", help='Enable code coverage.')
     parser.add_argument('--multithreaded', action="store_true", help='Enable multithreaded distributor.')
 
-    def print_and_exit(msg, error_code):
+    def print_and_exit(msg):
         print(file=sys.stderr)
         print(f'{_ERROR}SETUP ERROR: {msg}{_NC}', file=sys.stderr)
         print(file=sys.stderr)
         parser.print_help(file=sys.stderr)
-        exit(error_code)
+        exit(1)
 
     #####----- GET COMMAND LINE ARGUMENTS & ERROR CHECK
     args = parser.parse_args()
+
+    if args.site is None:
+        print_and_exit('Please specify a site')
+    siteDir = _HOME_DIR.joinpath('sites', args.site)
+    if not siteDir.is_dir():
+        print_and_exit(f'Site directory {siteDir} does not exist')
+
+    # OK to overwrite previous build
+    buildDir = _HOME_DIR.joinpath(args.build)
+    if buildDir.is_dir():
+        shutil.rmtree(buildDir)
+
+    test_name = args.test
+    if test_name == 'library':
+        testDir = None
+        if not args.prefix:
+            print_and_exit('Please specify prefix to build library')
+    else:
+        testDir = _HOME_DIR.joinpath('test')
+        for each in test_name.split('/'):
+            testDir = testDir.joinpath(each)
+        if not testDir.is_dir():
+            print_and_exit(f'Test directory {testDir} does not exist')
+
+    ndim = args.dim
+    if ndim is None:
+        print_and_exit('Please specify problem dimension')
 
     # The values of these are error checked by write_library_header.py,
     # so we don't error check here.
@@ -95,182 +136,179 @@ if __name__ == '__main__':
     grid_backend           = args.grid
     computation_offloading = args.offload
 
+    par_filename_src = args.par
+    if par_filename_src is None:
+        print_and_exit('Please specify a parameter file')
+    parFile_src  = siteDir.joinpath(par_filename_src)
+    if not parFile_src.is_file():
+        print_and_exit(f'{parFile_src} is not a file')
+
     #####----- ASSEMBLE BUILD FOLDER & CONTENTS
     print("Orchestration Runtime setup")
     print("---------------------------")
 
-    # Setup.py is located in the repository root directory.
-    homeDir = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-    # Make build directory in root directory. Delete it first if it already exists.
-    buildDir = os.path.join( homeDir, args.build)
-    print("Creating build directory: "+args.build)
-    if os.path.isdir(buildDir):
-        shutil.rmtree(buildDir)
+    ##-- MAKE BUILD DIRECTORY
+    # Make in root of repo
+    print(f"Creating build directory: {buildDir.name}")
     os.makedirs(buildDir)
 
-    # Link main makefile
-    print("Linking Makefile")
-    mainMakefile = os.path.join(homeDir,'Makefile')
-    os.symlink(mainMakefile,os.path.join(buildDir,'Makefile'))
+    ##-- MAIN MAKEFILE
+    print("Copying Makefile")
+    mainMakefile_src  = _HOME_DIR.joinpath('Makefile')
+    mainMakefile_dest =  buildDir.joinpath('Makefile')
+    assert(not mainMakefile_dest.exists())
+    shutil.copy(mainMakefile_src, mainMakefile_dest)
 
-    # Link makefiles parts from site and src
-    print("Linking Makefile.base")
-    srcMakefile = os.path.join(homeDir,'src','Makefile.base')
-    os.symlink(srcMakefile,os.path.join(buildDir,'Makefile.base'))
+    ##-- BASE LIBRARY MAKEFILE
+    print("Copying Makefile.base")
+    srcMakefile_src  = _HOME_DIR.joinpath('src', 'Makefile.base')
+    srcMakefile_dest =  buildDir.joinpath(       'Makefile.base')
+    assert(not srcMakefile_dest.exists())
+    shutil.copy(srcMakefile_src, srcMakefile_dest)
 
-    siteDir = os.path.join(homeDir,'sites',args.site)
-    if args.makefile is None:
-        siteMakefile = os.path.join(siteDir,'Makefile.site')
-    else:
-        siteMakefile = os.path.join(siteDir,args.makefile)
-    if not os.path.isfile(siteMakefile):
-        raise ValueError(f"Site Makefile {siteMakefile} not found in site directory")
-    print("Linking Makefile.site from site: "+args.site)
-    os.symlink(siteMakefile,os.path.join(buildDir,'Makefile.site'))
+    ##-- SITE MAKEFILE
+    siteMakefile_src  =  siteDir.joinpath(args.makefile)
+    siteMakefile_dest = buildDir.joinpath('Makefile.site')
+    if not siteMakefile_src.is_file():
+        print_and_exit(f'{siteMakefile_src} is not a file')
+    assert(not siteMakefile_dest.exists())
+    print(f"Copying {siteMakefile_src.name} for site {siteDir.name}")
+    shutil.copy(siteMakefile_src, siteMakefile_dest)
 
-    # Find test directory
-    testDir = os.path.join(homeDir,'test',args.test)
-    if not os.path.isdir(testDir):
-        raise ValueError("Test directory not found")
+    ##-- TEST MAKEFILE
+    if testDir != None:
+        print(f"Copying Makefile.test from test {test_name}")
+        testMakefile_src  =  testDir.joinpath('Makefile.test')
+        testMakefile_dest = buildDir.joinpath('Makefile.test')
+        if not testMakefile_src.is_file():
+            print_and_exit(f'{testMakefile_src} is not a file')
+        assert(not testMakefile_dest.exists())
+        shutil.copy(testMakefile_src, testMakefile_dest)
 
-    if (args.test == 'library'):
-        if not args.prefix:
-            raise ValueError("Need to supply prefix if building library!")
-    else:
-        # Get test makefile
-        print("Linking Makefile.test from test: "+args.test)
-        testMakefile = os.path.join(testDir,'Makefile.test')
-        if not os.path.isfile(testMakefile):
-            raise ValueError("Test Makefile not found in test dir")
-        os.symlink(testMakefile,os.path.join(buildDir,'Makefile.test'))
-
-    # Write Makefile.setup in builddir
+    ##-- GENERATE Makefile.setup
     print("Writing Makefile.setup")
-    setupMakefile = os.path.join(buildDir,'Makefile.setup')
-    with open(setupMakefile,'w') as f:
-        f.write("ifneq ($(BASEDIR),{})\n".format(homeDir) )
-        f.write("$(warning BASEDIR=$(BASEDIR) but repository root directory is {})\n".format(homeDir))
-        f.write("endif\n\n")
-        f.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
+    setupMakefile = buildDir.joinpath('Makefile.setup')
+    assert(not setupMakefile.exists())
+    with open(setupMakefile, 'w') as fptr:
+        fptr.write("ifneq ($(BASEDIR),{})\n".format(_HOME_DIR) )
+        fptr.write("$(warning BASEDIR=$(BASEDIR) but repository root directory is {})\n".format(_HOME_DIR))
+        fptr.write("endif\n\n")
+        fptr.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
         if args.debug:
-            f.write("DEBUG = true\n")
+            fptr.write(f"DEBUG = true\n")
         else:
-            f.write("DEBUG = false\n")
+            fptr.write("DEBUG = false\n")
 
         if args.coverage:
-            f.write("CODECOVERAGE = true\n")
+            fptr.write("CODECOVERAGE = true\n")
         else:
-            f.write("CODECOVERAGE = false\n")
+            fptr.write("CODECOVERAGE = false\n")
 
-        f.write("NDIM = {}\n".format(args.dim))
+        fptr.write(f"NDIM = {ndim}\n")
+
         if args.multithreaded:
-            f.write("THREADED_DISTRIBUTOR = true\n")
+            fptr.write("THREADED_DISTRIBUTOR = true\n")
         else:
-            f.write("THREADED_DISTRIBUTOR = false\n")
+            fptr.write("THREADED_DISTRIBUTOR = false\n")
 
         if runtime_backend.lower() == 'cuda':
-            f.write("USE_CUDA_BACKEND = true\n")
+            fptr.write("USE_CUDA_BACKEND = true\n")
         else:
-            f.write("USE_CUDA_BACKEND = false\n")
+            fptr.write("USE_CUDA_BACKEND = false\n")
 
         if computation_offloading.lower() == 'openacc':
-            f.write("ENABLE_OPENACC_OFFLOAD = true\n")
+            fptr.write("ENABLE_OPENACC_OFFLOAD = true\n")
         else:
-            f.write("ENABLE_OPENACC_OFFLOAD = false\n")
+            fptr.write("ENABLE_OPENACC_OFFLOAD = false\n")
 
-        f.write("\n")
-        if args.test == 'library':
-            f.write("LIBONLY = True\n")
-            f.write("LIB_RUNTIME_PREFIX = {}\n".format(args.prefix))
+        fptr.write("\n")
+        if test_name == 'library':
+            fptr.write("LIBONLY = True\n")
+            fptr.write("LIB_RUNTIME_PREFIX = {}\n".format(args.prefix))
         else:
-            f.write("# Leave blank if building a test\n")
-            f.write("LIBONLY = \n")
+            fptr.write("# Leave blank if building a test\n")
+            fptr.write("LIBONLY = \n")
             if args.library is not None:
-                f.write("LINKLIB = True\n")
-                f.write("LIB_RUNTIME = {}\n".format(args.library))
+                fptr.write("LINKLIB = True\n")
+                fptr.write("LIB_RUNTIME = {}\n".format(args.library))
             else:
-                f.write("# Leave blank if not linking a prebuilt library!\n")
-                f.write("LINKLIB = \n")
-                f.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
-                f.write("LIB_RUNTIME = .")
+                fptr.write("# Leave blank if not linking a prebuilt library!\n")
+                fptr.write("LINKLIB = \n")
+                fptr.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
+                fptr.write("LIB_RUNTIME = .")
 
     ##-- Construct Milhoja.h file in build dir
-    fname_header = Path(buildDir).resolve().joinpath('Milhoja.h')
-    fname_script = Path(homeDir).resolve().joinpath('tools', 'write_library_header.py')
+    fname_header =  buildDir.joinpath('Milhoja.h')
+    fname_script = _HOME_DIR.joinpath('tools', 'write_library_header.py')
     if not fname_script.is_file():
-        print_and_exit(f'Cannot find {fname_script}', 1)
+        print_and_exit(f'Cannot find {fname_script}')
+    assert(not fname_header.exists())
 
-    # Since the build folder is always built new by this script, we are certain
-    # that the header file does not already exist.
-    #
     # Specify all flags so that the defaults defined in this script are used.
     cmd = [str(fname_script),
            str(fname_header),
-           '--dim',     str(args.dim),
+           '--dim',     str(ndim),
            '--runtime', runtime_backend,
            '--grid',    grid_backend,
            '--fps',     _FLOATING_POINT_SYSTEM,
            '--offload', computation_offloading]
-    print('Creating Milhoja.h header file')
+    print(f'Writing {fname_header.name} header file')
     try:
         # Store stdout output for later logging
         hdr_stdout = sbp.check_output(cmd).decode('utf-8')
     except sbp.CalledProcessError:
-        print_and_exit(f'Unable to create Milhoja.h', 2)
+        print_and_exit(f'Unable to create {fname_header}')
 
-    # Copy par file into build dir
-    if args.par is not None:
-        print("Copying par file "+args.par+" as Flash_par.h")
-        parFile = os.path.join(siteDir,args.par)
-        shutil.copy(parFile,os.path.join(buildDir,'Flash_par.h'))
+    ##-- DERIVE PAR FILENAME & COPY TO BUILD DIR
+    # The final filename will have the same extension of the given file.
+    # A file that ends in
+    #  * .json is ready for immediate use
+    #  * .json_base needs updating before use
+    tmp = par_filename_src.split('.')
+    if (len(tmp) != 2) or (tmp[1] not in ['json', 'json_base']):
+        print_and_exit('Par file names must be of the form <name>.json[_base]')
+    _, par_ext = tmp
 
-    # Write the setup logfile
+    parFile_dest = buildDir.joinpath(f'{PAR_FILENAME_BASE}.{par_ext}')
+    assert(not parFile_dest.exists())
+    print(f"Copying {parFile_src.name} as {parFile_dest.name}")
+    shutil.copy(parFile_src, parFile_dest)
+
+    ##-- Log setup info & build metadata
     print("Writing setup.log")
-    logfileName = os.path.join(buildDir,"setup.log")
-    with open(logfileName,'w') as f:
-        f.write('Setup command line: \n')
-        f.write(os.path.abspath(sys.argv[0]))
-        f.write(' ')
-        f.write(' '.join(sys.argv[1:]))
-        f.write('\n\n\n')
+    logfileName = buildDir.joinpath("setup.log")
+    with open(logfileName,'w') as fptr:
+        fptr.write('Setup command line: \n')
+        fptr.write(f'{Path(sys.argv[0]).resolve()}')
+        fptr.write(' ')
+        fptr.write(' '.join(sys.argv[1:]))
+        fptr.write('\n\n\n')
 
-        f.write('Build directory: \n')
-        f.write(os.path.abspath(buildDir) )
-        f.write('\n\n')
+        fptr.write('Build directory: \n')
+        fptr.write(f'{buildDir}')
+        fptr.write('\n\n')
 
-        f.write('Path to linked files:\n')
-        f.write('Makefile --> {}\n'.format(os.path.abspath(mainMakefile)))
-        f.write('Makefile.base --> {}\n'.format(os.path.abspath(srcMakefile)))
-        f.write('Makefile.site --> {}\n'.format(os.path.abspath(siteMakefile)))
-        if(args.test != 'library'):
-            f.write('Makefile.test --> {}\n'.format(os.path.abspath(testMakefile)))
-        f.write('\n')
+        fptr.write('Path to copied files:\n')
+        fptr.write(f'Makefile            -->    {mainMakefile_src}\n')
+        fptr.write(f'Makefile.base       -->    {srcMakefile_src}\n')
+        fptr.write(f'Makefile.site       -->    {siteMakefile_src}\n')
+        if testDir != None:
+            fptr.write(f'Makefile.test       -->    {testMakefile_src}\n')
+        fptr.write(f'{parFile_dest.name} -->    {parFile_src}\n')
+        fptr.write('\n')
 
-        f.write('Path to copied files:\n')
-        if args.par is not None:
-            f.write('Flash_par.h copied from: {}\n'.format(
-                    os.path.abspath(parFile)) )
-        f.write('\n')
+        fptr.write(hdr_stdout)
 
-        f.write('Contents of Makefile.setup:\n')
-        f.write('----------------------------\n')
-        with open(setupMakefile,'r') as fread:
-            for line in fread:
-                f.write(line)
-        f.write('----------------------------\n\n')
-
-        f.write(hdr_stdout)
-
-        f.write('Repository status:\n')
-        f.write('----------------------------\n')
-        f.write( sbp.check_output(['git','status']).decode('utf-8') )
-        f.write('----------------------------\n\n')
-
-        f.write('Most recent commits:\n')
-        f.write('----------------------------\n')
-        f.write( sbp.check_output(['git','log','--max-count','5']).decode('utf-8') )
-        f.write('----------------------------\n')
+    #####----- SET PERMISSIONS TO READ-ONLY
+    os.chmod(mainMakefile_dest, 0o444)
+    os.chmod(srcMakefile_dest,  0o444)
+    os.chmod(siteMakefile_dest, 0o444)
+    if testDir != None:
+        os.chmod(testMakefile_dest, 0o444)
+    os.chmod(setupMakefile, 0o444)
+    os.chmod(fname_header,  0o444)
+    os.chmod(parFile_dest,  0o444)
+    os.chmod(logfileName,   0o444)
 
     print("Successfully set up build directory!")
 

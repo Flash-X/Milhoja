@@ -1,19 +1,17 @@
-# Define the desired binary name with BINARYNAME
 BINARYNAME          = sedov_gpu.x
 
-# Define relevant paths
-SEDOVDIR            = $(BASEDIR)/test/Sedov
-SEDOVGPUDIR         = $(BASEDIR)/test/Sedov/gpu
-TESTDIR             = $(BASEDIR)/test/Sedov/gpu/variant3
+TESTROOTDIR         = $(BASEDIR)/test
+SEDOVDIR            = $(TESTROOTDIR)/Sedov
+SEDOVGPUDIR         = $(SEDOVDIR)/gpu
+TESTDIR             = $(SEDOVGPUDIR)/variant3
 
-# Define compiler flags in CXXFLAGS_TEST_*
-CXXFLAGS_TEST_DEBUG = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
-CXXFLAGS_TEST_PROD  = -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
 CUFLAGS_TEST        = -I$(SEDOVDIR)
 LDFLAGS_TEST        =
 
-# Define list of sources in SRCS_TEST
 SRCS_TEST = \
+	$(TESTROOTDIR)/RuntimeParameters.cpp \
 	$(SEDOVDIR)/errorEstBlank.cpp \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \

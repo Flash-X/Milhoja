@@ -1,5 +1,7 @@
 #include "Milhoja_ThreadTeamIdle.h"
 
+#include <stdexcept>
+
 #include "Milhoja_Logger.h"
 #include "Milhoja_DataItem.h"
 #include "Milhoja_ThreadTeam.h"

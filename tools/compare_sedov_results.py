@@ -199,6 +199,7 @@ if __name__ == '__main__':
         cmd = [FCOMPARE_EXE, \
                '--norm', str(sedov.FCOMPARE_NORM), \
                '--rel_tol', str(sedov.FCOMPARE_TOLERANCE_RELERR), \
+               '--allow_diff_grids', \
                fname_plot_A, fname_plot_B]
         sbp.run(cmd, check=True)
         print()

@@ -1,5 +1,7 @@
 #include "Milhoja_ThreadTeamTerminating.h"
 
+#include <stdexcept>
+
 #include "Milhoja_DataItem.h"
 #include "Milhoja_ThreadTeam.h"
 

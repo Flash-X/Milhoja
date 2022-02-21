@@ -1,6 +1,7 @@
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/AMReX_$(NDIM)D
 GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/googletest
+JSONDIR      = $(MILHOJA_TEST_REPO)/gce/gnu_current/json/single_include
 CUDADIR      =
 
 CXXCOMPNAME  = gnu

@@ -10,6 +10,7 @@
 #include <Milhoja_RuntimeAction.h>
 #include <Milhoja_Runtime.h>
 
+#include "RuntimeParameters.h"
 #include "setInitialConditions.h"
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
@@ -20,8 +21,6 @@
 #include "DataPacket_gpu_1_stream.h"
 #include "DataPacket_gpu_2_stream.h"
 #endif
-
-#include "Flash_par.h"
 
 using namespace milhoja;
 
@@ -59,14 +58,18 @@ protected:
     void checkSolution(void) {
         RuntimeAction    computeError;
         computeError.name            = "ComputeErrors";
-        computeError.nInitialThreads = 6;
+//        computeError.nInitialThreads = 6;
+        computeError.nInitialThreads = 1;
         computeError.teamType        = ThreadTeamDataType::BLOCK;
         computeError.nTilesPerPacket = 0;
         computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
 
-        Analysis::initialize(  rp_Grid::N_BLOCKS_X
-                             * rp_Grid::N_BLOCKS_Y
-                             * rp_Grid::N_BLOCKS_Z);
+        RuntimeParameters&   RPs = RuntimeParameters::instance();
+
+        unsigned int    nBlocksX{RPs.getUnsignedInt("Grid", "nBlocksX")};
+        unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
+        unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
+        Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
         Runtime::instance().executeCpuTasks("Analysis", computeError);
 
         double L_inf1      = 0.0;
@@ -325,6 +328,11 @@ TEST_F(TestRuntime, TestFusedActions) {
     Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, 0, computeLaplacianFused_gpu,
                                         packetPrototype);
     double tWalltime = MPI_Wtime() - tStart; 
+
+//    std::vector<std::string>    names{};
+//    names.push_back("density");
+//    names.push_back("energy");
+//    Grid::instance().writePlotfile("Wowza", names);
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";

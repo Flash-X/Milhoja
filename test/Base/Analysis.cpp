@@ -40,9 +40,7 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
     Real    y          = 0.0;
     Real    absErr     = 0.0;
     Real    maxAbsErr1 = 0.0;
-    Real    sum1       = 0.0;
     Real    maxAbsErr2 = 0.0;
-    Real    sum2       = 0.0;
     double  UExpected  = 0.0;
     nCells = 0;
     for         (int k = lo.K(); k <= hi.K(); ++k) {
@@ -53,7 +51,6 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
 
                 UExpected = (18.0*x - 12.0*y - 1.0);
                 absErr = fabs(UExpected - U(i, j, k, DENS_VAR));
-                sum1 += absErr;
                 if (absErr > maxAbsErr1) {
                      maxAbsErr1 = absErr;
                 }
@@ -62,11 +59,10 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
                              - 12.0*y*y + 12.0*y
                              - 2.0);
                 absErr = fabs(UExpected - U(i, j, k, ENER_VAR));
-                sum2 += absErr;
                 if (absErr > maxAbsErr2) {
                      maxAbsErr2 = absErr;
                 }
-    
+
                 ++nCells;
             }
         }

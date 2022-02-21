@@ -1,0 +1,46 @@
+{
+    "Grid": {
+        "xMin":                           0.0,
+        "xMax":                           1.0,
+        "yMin":                           0.0,
+        "yMax":                           1.0,
+        "zMin":                           0.0,
+        "zMax":                           1.0,
+        "finestRefinementLevel":          1,
+        "nBlocksX":                      32,
+        "nBlocksY":                      32,
+        "nBlocksZ":                       1,
+        "NXB":                           16,
+        "NYB":                           16,
+        "NZB":                            1
+    },
+    "Runtime": {
+        "nThreadsPerTeam":                7,
+        "nThreadTeams":                   2,
+        "nStreams":                      32,
+        "memoryPoolSizeBytes":   1073741824
+    },
+    "Driver": {
+        "dtAfter":                        2.0e-5,
+        "writeEveryNSteps":           10000
+    },
+    "Simulation": {
+        "T_0":                            0.0,
+        "dtInit":                         2.8461091707043134e-6,
+        "tMax":                           0.5,
+        "maxSteps":                       REPLACE_MAX_STEPS,
+        "nThreadsForIC":                  6
+    },
+    "compIQ_bundle": {
+        "nThreadsCpu":                    6
+    },
+    "Hydro_cpu/gpu_bundle": {
+        "nDistributorThreads":            REPLACE_NDT,
+        "stagger_usec":                   REPLACE_STAGGER_USEC,
+        "nTilesPerCpuTurn":               REPLACE_NTPCT,
+        "nThreadsCpu":                    REPLACE_NCT,
+        "nThreadsGpu":                    REPLACE_NGT,
+        "nBlocksPerPacket":               REPLACE_NBPP
+    }
+}
+

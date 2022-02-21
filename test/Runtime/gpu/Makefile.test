@@ -1,19 +1,17 @@
-# Define the desired binary name with BINARYNAME
 BINARYNAME          = test_runtime_gpu.x
 
-# Define relevant paths
-RUNTIMEDIR          = $(BASEDIR)/test/Runtime
+TESTROOTDIR         = $(BASEDIR)/test
+TESTBASEDIR         = $(TESTROOTDIR)/Base
+RUNTIMEDIR          = $(TESTROOTDIR)/Runtime
 TESTDIR             = $(RUNTIMEDIR)/gpu
-TESTBASEDIR         = $(BASEDIR)/test/Base
 
-# Define compiler flags in CXXFLAGS_TEST
-CXXFLAGS_TEST_DEBUG = -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
-CXXFLAGS_TEST_PROD  = -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
 CUFLAGS_TEST        = -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CUFLAGS_GTEST)
 LDFLAGS_TEST        = $(LIB_GTEST)
 
-# Define list of sources in SRCS_TEST
 SRCS_TEST = \
+	$(TESTROOTDIR)/RuntimeParameters.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
