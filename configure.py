@@ -117,15 +117,5 @@ if __name__ == '__main__':
         fptr.write(f"COMPUTATION_OFFLOADING = {computation_offloading}\n")
         fptr.write("THREADED_DISTRIBUTOR = false\n")
 
-        if runtime_backend.lower() == 'cuda':
-            fptr.write("USE_CUDA_BACKEND = true\n")
-        else:
-            fptr.write("USE_CUDA_BACKEND = false\n")
-
-        if computation_offloading.lower() == 'openacc':
-            fptr.write("ENABLE_OPENACC_OFFLOAD = true\n")
-        else:
-            fptr.write("ENABLE_OPENACC_OFFLOAD = false\n")
-
     print()
 
