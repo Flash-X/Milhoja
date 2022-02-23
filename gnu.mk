@@ -1,0 +1,3 @@
+CXXFLAGS_STD = -std=c++14
+DEPFLAGS = -MT $@ -MMD -MP -MF $(BUILDDIR)/$*.d
+

@@ -1,173 +1,100 @@
+# It is intended that make be run from the same folder as the Makefile.  All
+# executions of make that build the library should start from a clean build.
+#TODO: Add in full use of dependency files carefully.
+#TODO: Make Makefile.setup here?
+
 SHELL=/bin/sh
 
+.SUFFIXES:
+.SUFFIXES: .cpp .o
 
-########################################################
-# Makefile flags and defintions
+INCDIR   = ./includes
+SRCDIR   = ./src
+BUILDDIR = ./build
+TARGET   = $(BUILDDIR)/libmilhoja.a
 
-MAKEFILE     = Makefile
-MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.base $(if $(LIBONLY),,Makefile.test)
+MILHOJA_H = $(BUILDDIR)/Milhoja.h
 
-include Makefile.site
-include Makefile.base
-include Makefile.setup
-ifdef LIBONLY
-else
-include Makefile.test
-endif
+include ./Makefile.configure
+include $(SITE_MAKEFILE)
 
 # Default shell commands
 RM ?= /bin/rm
 
-# Use C++11 standard, flags differ by compiler
-# -MMD generates a dependecy list for each file as a side effect
-ifeq ($(CXXCOMPNAME),gnu)
-CXXFLAGS_STD = -std=c++11
-DEPFLAG = -MMD
-else ifeq ($(CXXCOMPNAME), pgi)
-CXXFLAGS_STD = -std=c++11
-DEPFLAG = -MMD
-else ifeq ($(CXXCOMPNAME), ibm)
-CXXFLAGS_STD = -std=c++11
-DEPFLAG = -MMD
-else ifeq ($(CXXCOMPNAME), llvm)
-CXXFLAGS_STD = -std=c++11
-DEPFLAG = -MMD
+ifeq      ($(CXXCOMPNAME),gnu)
+include ./gnu.mk
+else ifeq ($(CXXCOMPNAME),intel)
+include ./intel.mk
 else
-$(info $(CXXCOMPNAME) compiler not yet supported.)
-endif
-CUFLAGS_STD  = -std=c++11
-
-CXXFLAGS_LIB =
-CUFLAGS_LIB  =
-ifdef LIBONLY
-# TODO: Is this necessary?  Should it be -fpic?  What about -fpie/fPIE for
-# tests?
-CXXFLAGS_LIB = -fPIC
-CUFLAGS_LIB  = -fPIC
+$(error $(CXXCOMPNAME) compiler not yet supported.)
 endif
 
-# Combine all compiler and linker flags
 ifeq ($(DEBUG),true)
-CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) -I$(BUILDDIR) -I$(JSONDIR) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG) $(CXXFLAGS_AMREX)
+CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_AMREX)
 else
-CXXFLAGS = $(CXXFLAGS_STD) $(CXXFLAGS_PROD) -I$(BUILDDIR) -I$(JSONDIR) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD) $(CXXFLAGS_AMREX)
-endif
-CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) -I$(BUILDDIR) $(CUFLAGS_BASE) \
-           $(CUFLAGS_LIB) $(CUFLAGS_TEST) $(CUFLAGS_AMREX)
-LDFLAGS  = -L$(LIB_RUNTIME) -lruntime $(LIB_AMREX) $(LDFLAGS_TEST) $(LDFLAGS_STD)
-
-ifeq ($(USE_CUDA_BACKEND),true)
-CXXFLAGS += -DMILHOJA_USE_CUDA_BACKEND
-CUFLAGS  += -DMILHOJA_USE_CUDA_BACKEND
-CU_SRCS   = $(CU_SRCS_BASE) $(CU_SRCS_TEST)
-else
-CU_SRCS   =
+CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_PROD)  $(CXXFLAGS_AMREX)
 endif
 
-ifeq ($(ENABLE_OPENACC_OFFLOAD),true)
-CXXFLAGS += $(OACC_FLAGS) -DMILHOJA_ENABLE_OPENACC_OFFLOAD
-CUFLAGS  +=               -DMILHOJA_ENABLE_OPENACC_OFFLOAD
-LDFLAGS  += $(OACC_FLAGS)
-endif
+CPP_SRCS = \
+	$(SRCDIR)/Milhoja_Logger.cpp \
+	$(SRCDIR)/Milhoja_IntVect.cpp \
+	$(SRCDIR)/Milhoja_RealVect.cpp \
+	$(SRCDIR)/Milhoja_FArray4D.cpp \
+	$(SRCDIR)/Milhoja_FArray3D.cpp \
+	$(SRCDIR)/Milhoja_FArray2D.cpp \
+	$(SRCDIR)/Milhoja_FArray1D.cpp \
+	$(SRCDIR)/Milhoja_GridConfiguration.cpp \
+	$(SRCDIR)/Milhoja_GridConfigurationAMReX.cpp \
+	$(SRCDIR)/Milhoja_Grid.cpp \
+	$(SRCDIR)/Milhoja_GridAmrex.cpp \
+	$(SRCDIR)/Milhoja_Tile.cpp \
+	$(SRCDIR)/Milhoja_TileAmrex.cpp \
+	$(SRCDIR)/Milhoja_RuntimeElement.cpp \
+	$(SRCDIR)/Milhoja_DataPacket.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeam.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeamIdle.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeamTerminating.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeamRunningOpen.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeamRunningClosed.cpp \
+	$(SRCDIR)/Milhoja_ThreadTeamRunningNoMoreWork.cpp \
+	$(SRCDIR)/Milhoja_MoverUnpacker.cpp \
+	$(SRCDIR)/Milhoja_Runtime.cpp \
+	$(SRCDIR)/Milhoja_RuntimeBackend.cpp
 
-# Add code coverage flags
-ifeq ($(CODECOVERAGE), true)
-CXXFLAGS += $(CXXFLAGS_COV)
-LDFLAGS  += $(LDFLAGS_COV)
-endif
+CPP_OBJS=$(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CPP_SRCS:.cpp=.o))
 
-# Adjust flags for multithreaded distributor
-ifeq ($(THREADED_DISTRIBUTOR),true)
-$(info Warning! multi-threaded distributor not fully tested)
-AMREXDIR     = $(AMREXDIR_OMP)
-CXXFLAGS    += $(OMP_FLAGS) -DUSE_THREADED_DISTRIBUTOR
-CUFLAGS     += $(CU_OMP_FLAGS)
-endif
-
-
-# List of sources, objects, and dependencies
-C_SRCS    = $(SRCS_BASE) $(SRCS_TEST)
-SRCS      = $(C_SRCS) $(CU_SRCS)
-
-C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
-CU_OBJS   = $(addsuffix .o, $(basename $(notdir $(CU_SRCS))))
-OBJS      = $(C_OBJS) $(CU_OBJS)
-DEPS      = $(OBJS:.o=.d)
-
-OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST))))
-OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
-
-# Use vpath as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
-# This allows all targets to be put a single directory (the build directory) and directs the Makefile to
-# search the source tree for the prerequisites.
-vpath %.cpp $(sort $(dir $(C_SRCS)))
-vpath %.cu  $(sort $(dir $(CU_SRCS)))
-
-
-##########################################################
-# Makefile commands:
-
-.PHONY: default all clean test install
-default: $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
-all:     $(if $(LIBONLY), libruntime.a, $(BINARYNAME))
-test:
-ifdef LIBONLY
-else
-	./$(BINARYNAME)
-endif
-
-
-# If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS_TEST) $(MAKEFILES) $(if $(LINKLIB), ,libruntime.a)
-ifeq ($(CODECOVERAGE), true)
-	$(RM) -f *.gcda
-endif
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS)
-
-%.o: %.cpp $(MAKEFILES)
-	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
-
-%.o: %.cu $(MAKEFILES)
-	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
-	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
-
-# Commands for just compiling the Runtime into a library
-runtime: libruntime.a
-
-libruntime.a: $(OBJS_BASE) $(MAKEFILES)
-	ar -rcs $@ $(OBJS_BASE)
-
+.PHONY: default all install clean spotless
+default: $(TARGET)
+all:     $(TARGET)
+# TODO: We should only copy over those headers associated with the
+#       specified backends.
 install:
-ifdef LIBONLY
-	mkdir -p $(BASEDIR)/$(LIB_RUNTIME_PREFIX)
-	cp libruntime.a $(BASEDIR)/$(LIB_RUNTIME_PREFIX)/
-endif
-
-
-# Clean removes all intermediate files
+	$(RM) -r $(LIB_MILHOJA_PREFIX)
+	mkdir -p $(LIB_MILHOJA_PREFIX)/include
+	mkdir -p $(LIB_MILHOJA_PREFIX)/lib
+	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
+	cp $(BUILDDIR)/Milhoja.h $(LIB_MILHOJA_PREFIX)/include
+	cp $(INCDIR)/*.h $(LIB_MILHOJA_PREFIX)/include
 clean:
-	$(RM) -f *.o
-	$(RM) -f *.d
-	$(RM) -f *.a
-ifeq ($(CODECOVERAGE), true)
-	$(RM) -f *.gcno
-	$(RM) -f *.gcda
-endif
-	$(RM) -f lcov_temp.info
+	$(RM) $(BUILDDIR)/*.o
+	$(RM) $(BUILDDIR)/*.d
+spotless:
+	$(RM) -r $(BUILDDIR)
 
+$(BUILDDIR):
+	@mkdir $(BUILDDIR)
 
-.PHONY: coverage
-coverage:
-ifeq ($(CODECOVERAGE), true)
-	$(LCOV) -o lcov_temp.info -c -d .
-	$(GENHTML)  -o Coverage_Report lcov_temp.info
-else
-	$(info Include --coverage in your setup line to enable code coverage.)
-endif
+$(MILHOJA_H): | $(BUILDDIR)
+	@./tools/write_library_header.py --dim $(NDIM) \
+                                     --runtime $(RUNTIME_BACKEND) \
+                                     --grid $(GRID_BACKEND) \
+                                     --fps $(FLOATING_POINT_SYSTEM) \
+                                     --offload $(COMPUTATION_OFFLOADING) \
+                                     $(MILHOJA_H)
 
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) Makefile
+	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
-# Include dependencies generated by compiler
--include $(DEPS)
+$(TARGET): $(CPP_OBJS) Makefile
+	ar -rcs $@ $(CPP_OBJS)
 
