@@ -27,6 +27,9 @@ namespace milhoja {
   * Grid is an abstract base class designed with the singleton pattern.
   * Each AMR package will have a corresponding derived class from Grid,
   * implementing at least the pure virtual functions.
+  *
+  * \todo Now that initDomain/destroyDomain can only be called once, is
+  * destroyDomain necessary?  Why not just move that code to finalize?
   */
 class Grid {
 public:

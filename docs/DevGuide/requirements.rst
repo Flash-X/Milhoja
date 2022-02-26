@@ -41,12 +41,57 @@ flavors of the library.  This shall include build flags for specifying
    * the Grid backend (required),
    * the runtime backend (including no backend),
    * if the Fortran interface shall be included in the library,
-   * log/debug level.
+   * log level, and
+   * debug level.
 
-2. The Runtime library can be installed into a directory specified at setup time
-with the command line argument `--prefix`.
+2. The library build system shall allow users to specify to make certain build
+details for each target platform and on a per-SW stack basis for each such
+platform.  Ideally the expression of such information will be isolated in
+dedicated files so that users need not alter core, static portions of the build
+system.  TODO: How does this work with spack?
 
-3. TODO: Should libraries be built with -fPIC/-fpic?
+3. The library build system shall allow users to specify to make all details
+needed to fully specify the particular flavor of library to build.  Ideally the
+expression of such information will be isolated in dedicated files so that users
+need not alter core, static portions of the build system.  The details to be
+specified are
+   * the full path to which the library shall be installed if users choose to
+     install the library for use
+   * the location of the platform-/SW stack-specific information to use to build
+     the library,
+   * the floating point number system to use for Reals,
+   * the dimension of problems with which to use the library,
+   * the Grid backend,
+   * the runtime backend (including no backend),
+   * the computational offloading to use (including no offloading),
+   * debug level, and
+   * log level (optional).
+Users shall be able to update the information and rebuild the library in accord
+with the new contents.
+
+4. The library build system shall include a script that allows users to create
+the library specification file from scratch and populate it with values.  This
+script shall fail if the specification file exists.
+
+5. The library build system shall write a Milhoja.h file in accord with the
+library specification information and do so before any files that depend on
+Milhoja.h are compiled.  This file shall be integrated into the build system so
+that all targets that depend on it are correctly updated when it is changed.
+
+6. If prompted to do so by the user, the library build system shall install a
+library build into the path specified in its library specification file.  It
+shall not perform the installation automatically.  If a previous installation of
+the library exists, it shall be wiped out automatically without warning so that
+the new installation is clean.  Only those headers that were used to build the
+library shall be copied to the install location (e.g., don't copy headers
+associated only with the CUDA backend for a library build that doesnt't use the
+runtime).
+
+7. Library build system maintainers shall maintain a list of all source files
+(given with explict path) that are prerequisites for the particular flavor of
+library being built.  This list shall be adjusted automatically by the build
+system internally so that the list of prerequisites is minimal (e.g., do not
+include CUDA backend files for a library build that doesn't use the runtime).
 
 Test Build System
 *****************

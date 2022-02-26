@@ -2,17 +2,19 @@
 # executions of make that build the library should start from a clean build.
 #TODO: Add in full use of dependency files carefully.
 #TODO: Make Makefile.setup here?
+#TODO: Let users specify if they want to include the Fortran interface.
 
 SHELL=/bin/sh
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o
 
-INCDIR    := ./includes
-SRCDIR    := ./src
-BUILDDIR  := ./build
-TARGET    := $(BUILDDIR)/libmilhoja.a
-MILHOJA_H := $(BUILDDIR)/Milhoja.h
+INCDIR       := ./includes
+SRCDIR       := ./src
+BUILDDIR     := ./build
+INTERFACEDIR := ./interfaces
+TARGET       := $(BUILDDIR)/libmilhoja.a
+MILHOJA_H    := $(BUILDDIR)/Milhoja.h
 
 include ./Makefile.configure
 include $(SITE_MAKEFILE)
@@ -32,8 +34,10 @@ endif
 
 ifeq ($(DEBUG),true)
 CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_AMREX)
+F90FLAGS = -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_DEBUG)
 else
 CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_PROD)  $(CXXFLAGS_AMREX)
+F90FLAGS = -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_PROD)
 endif
 
 CPP_SRCS := \
@@ -63,6 +67,14 @@ CPP_SRCS := \
 	$(SRCDIR)/Milhoja_RuntimeBackend.cpp
 CPP_HDRS := $(wildcard $(INCDIR)/*.h)
 
+CINT_SRCS := \
+	$(INTERFACEDIR)/Milhoja_grid_C_interface.cpp
+FINT_SRCS := \
+	$(INTERFACEDIR)/Milhoja_types_mod.F90 \
+	$(INTERFACEDIR)/Milhoja_errors_mod.F90 \
+	$(INTERFACEDIR)/Milhoja_grid_mod.F90
+CINT_HDRS := $(wildcard $(INTERFACEDIR)/*.h)
+
 ifeq      ($(RUNTIME_BACKEND),None)
 CU_SRCS :=
 CU_HDRS :=
@@ -83,9 +95,11 @@ $(error Unknown backend $(RUNTIME_BACKEND))
 endif
 
 CPP_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CPP_SRCS:.cpp=.o))
+INT_OBJS := $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(CINT_SRCS:.cpp=.o))
+INT_OBJS += $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(FINT_SRCS:.F90=.o))
 CU_OBJS  := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CU_SRCS:.cu=.o))
-OBJS     := $(CPP_OBJS) $(CU_OBJS)
-HDRS     := $(CPP_HDRS) $(CU_HDRS)
+OBJS     := $(CPP_OBJS) $(INT_OBJS) $(CU_OBJS)
+HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
 
 ifeq      ($(COMPUTATION_OFFLOADING),None)
 else ifeq ($(COMPUTATION_OFFLOADING),OpenACC)
@@ -107,8 +121,10 @@ install:
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
 	cp $(BUILDDIR)/Milhoja.h $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
+	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include	
 clean:
 	$(RM) $(BUILDDIR)/*.o
+	$(RM) $(BUILDDIR)/*.mod
 	$(RM) $(BUILDDIR)/*.d
 spotless:
 	$(RM) -r $(BUILDDIR)
@@ -127,9 +143,24 @@ $(MILHOJA_H): | $(BUILDDIR)
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) Makefile
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
+$(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) Makefile
+	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
+
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) Makefile
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
+
+# The build system does not have the facility to automatically discover
+# dependencies between Fortran source files.  Since the only Fortran
+# source files officially in the repo are in the high-level Fortran
+# interface and these are few, we can manually manage dependencies
+# and therefore write the build rules here.
+$(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 Makefile
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+$(BUILDDIR)/Milhoja_errors_mod.o: $(INTERFACEDIR)/Milhoja_errors_mod.F90 $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(BUILDDIR)/Milhoja_types_mod.o Makefile
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+$(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(MILHOJA_H) Makefile
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS) Makefile
 	ar -rcs $@ $(OBJS)
