@@ -26,8 +26,8 @@ ifeq      ($(CXXCOMPNAME),gnu)
 include ./gnu.mk
 else ifeq ($(CXXCOMPNAME),intel)
 include ./intel.mk
-else ifeq ($(CXXCOMPNAME),pgi)
-include ./pgi.mk
+else ifeq ($(CXXCOMPNAME),nvhpc)
+include ./nvhpc.mk
 else
 $(error $(CXXCOMPNAME) compiler not yet supported.)
 endif
@@ -81,6 +81,7 @@ CU_HDRS :=
 CUFLAGS :=
 else ifeq ($(RUNTIME_BACKEND),CUDA)
 CXXFLAGS += -I$(INCDIR)/CudaBackend -DMILHOJA_USE_CUDA_BACKEND
+F90FLAGS +=                         -DMILHOJA_USE_CUDA_BACKEND
 CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
            $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX) \
            -DMILHOJA_USE_CUDA_BACKEND
@@ -104,6 +105,7 @@ HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
 ifeq      ($(COMPUTATION_OFFLOADING),None)
 else ifeq ($(COMPUTATION_OFFLOADING),OpenACC)
 CXXFLAGS += $(OACC_FLAGS) -DMILHOJA_ENABLE_OPENACC_OFFLOAD
+F90FLAGS +=               -DMILHOJA_ENABLE_OPENACC_OFFLOAD
 CUFLAGS  +=               -DMILHOJA_ENABLE_OPENACC_OFFLOAD
 else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
