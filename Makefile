@@ -1,13 +1,17 @@
 # It is intended that make be run from the same folder as the Makefile.  All
-# executions of make that build the library should start from a clean build.
+# executions of make that build the library should start from a clean build
+# since this Makefile does not yet build up and account for dependencies.
 #TODO: Add in full use of dependency files carefully.
-#TODO: Make Makefile.setup here?
+#TODO: Make Makefile.configure here?
 #TODO: Let users specify if they want to include the Fortran interface.
+#TODO: At the moment, this script will overwrite whatever flag specifications
+#      that a user might give at the command line (e.g., CXXFLAGS).  Is this
+#      acceptable?  If not, how to handle this?  Perhaps it's best to put this
+#      off until it is understood how this could be integrated with spack.
 
 SHELL=/bin/sh
 
 .SUFFIXES:
-.SUFFIXES: .cpp .o
 
 INCDIR       := ./includes
 SRCDIR       := ./src
@@ -40,40 +44,12 @@ CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_PROD)  $(CXXFLAG
 F90FLAGS = -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_PROD)
 endif
 
-CPP_SRCS := \
-	$(SRCDIR)/Milhoja_Logger.cpp \
-	$(SRCDIR)/Milhoja_IntVect.cpp \
-	$(SRCDIR)/Milhoja_RealVect.cpp \
-	$(SRCDIR)/Milhoja_FArray4D.cpp \
-	$(SRCDIR)/Milhoja_FArray3D.cpp \
-	$(SRCDIR)/Milhoja_FArray2D.cpp \
-	$(SRCDIR)/Milhoja_FArray1D.cpp \
-	$(SRCDIR)/Milhoja_GridConfiguration.cpp \
-	$(SRCDIR)/Milhoja_GridConfigurationAMReX.cpp \
-	$(SRCDIR)/Milhoja_Grid.cpp \
-	$(SRCDIR)/Milhoja_GridAmrex.cpp \
-	$(SRCDIR)/Milhoja_Tile.cpp \
-	$(SRCDIR)/Milhoja_TileAmrex.cpp \
-	$(SRCDIR)/Milhoja_RuntimeElement.cpp \
-	$(SRCDIR)/Milhoja_DataPacket.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeam.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeamIdle.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeamTerminating.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeamRunningOpen.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeamRunningClosed.cpp \
-	$(SRCDIR)/Milhoja_ThreadTeamRunningNoMoreWork.cpp \
-	$(SRCDIR)/Milhoja_MoverUnpacker.cpp \
-	$(SRCDIR)/Milhoja_Runtime.cpp \
-	$(SRCDIR)/Milhoja_RuntimeBackend.cpp
-CPP_HDRS := $(wildcard $(INCDIR)/*.h)
+CPP_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cpp)
+CPP_HDRS := $(wildcard $(INCDIR)/Milhoja_*.h)
 
-CINT_SRCS := \
-	$(INTERFACEDIR)/Milhoja_grid_C_interface.cpp
-FINT_SRCS := \
-	$(INTERFACEDIR)/Milhoja_types_mod.F90 \
-	$(INTERFACEDIR)/Milhoja_errors_mod.F90 \
-	$(INTERFACEDIR)/Milhoja_grid_mod.F90
-CINT_HDRS := $(wildcard $(INTERFACEDIR)/*.h)
+CINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.cpp)
+FINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.F90)
+CINT_HDRS := $(wildcard $(INTERFACEDIR)/Milhoja_*.h)
 
 ifeq      ($(RUNTIME_BACKEND),None)
 CU_SRCS :=
@@ -85,12 +61,8 @@ F90FLAGS +=                         -DMILHOJA_USE_CUDA_BACKEND
 CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
            $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX) \
            -DMILHOJA_USE_CUDA_BACKEND
-CU_SRCS := \
-	$(SRCDIR)/Milhoja_CudaBackend.cu \
-	$(SRCDIR)/Milhoja_CudaGpuEnvironment.cu \
-	$(SRCDIR)/Milhoja_CudaMemoryManager.cu \
-	$(SRCDIR)/Milhoja_CudaStreamManager.cu
-CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/*.h)
+CU_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cu)
+CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
 else
 $(error Unknown backend $(RUNTIME_BACKEND))
 endif
@@ -111,22 +83,18 @@ else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
-.PHONY: default all install clean spotless
-default: $(TARGET)
+.PHONY: all install clean spotless
 all:     $(TARGET)
-# TODO: We should only copy over those headers associated with the
-#       specified backends.
 install:
 	$(RM) -r $(LIB_MILHOJA_PREFIX)
 	mkdir -p $(LIB_MILHOJA_PREFIX)/include
 	mkdir    $(LIB_MILHOJA_PREFIX)/lib
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
-	cp $(BUILDDIR)/Milhoja.h $(LIB_MILHOJA_PREFIX)/include
+	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
 	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include	
 clean:
 	$(RM) $(BUILDDIR)/*.o
-	$(RM) $(BUILDDIR)/*.mod
 	$(RM) $(BUILDDIR)/*.d
 spotless:
 	$(RM) -r $(BUILDDIR)
@@ -157,11 +125,11 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) Makefile
 # source files officially in the repo are in the high-level Fortran
 # interface and these are few, we can manually manage dependencies
 # and therefore write the build rules here.
-$(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 Makefile
+$(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 $(MILHOJA_H) Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_errors_mod.o: $(INTERFACEDIR)/Milhoja_errors_mod.F90 $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(BUILDDIR)/Milhoja_types_mod.o Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
-$(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(MILHOJA_H) Makefile
+$(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(MILHOJA_H) Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS) Makefile

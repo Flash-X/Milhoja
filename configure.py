@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import os
 import sys
-import shutil
 import argparse
 
 from pathlib import Path
@@ -21,7 +19,7 @@ _DEFAULT_OFFLOAD  = 'None'
 _DESCRIPTION = \
     "This script can be used to configure the library build system so that\n" \
     "it can be used to build a particular flavor of library.  In particular,\n" \
-    "it writes the Makefile.configure to the same folder as this script.\n\n" \
+    "it writes Makefile.configure to the same folder as this script.\n\n" \
     "To build the static library, run 'make all' from the root of the\n" \
     "repository.  After a successful build, `make install` will install the\n" \
     "library, headers, and Fortran mod files in the folder specified by the\n" \
