@@ -25,8 +25,15 @@ extern "C" {
      * calling this routine.
      *
      * \todo Milhoja_GridConfigurationAMReX presently expects
-     * maxRefinementLevel to be 1-based.  Is this really what the C++ code wants
-     * or should this function convert to 0-based?
+     * maxRefinementLevel to be 1-based.  Is this really what the C++ code
+     * wants?
+     * \todo Does this unit or the runtime need to be initialized
+     *       first?  Document here and in runtime.  This routine is
+     *       initializing the Logger, which should be the first Milhoja
+     *       initialization.  Doing that here makes sense since calling code
+     *       could use the grid but not the runtime.  Therefore, it makes sense
+     *       that the grid be initialized before the runtime.  This makes sense
+     *       conceptually as well since the runtime depends on the grid.
      *
      * \param globalCommF          The Fortran version of the MPI communicator that
      *                             Milhoja should use
@@ -130,6 +137,12 @@ extern "C" {
      *
      * Calling code should finalize the grid before finalizing the runtime.
      *
+     * \todo Confirm that grid must be finalized first.  Since we finalize the
+     * logger here, which is reasonable since calling code might use the grid
+     * but not the runtime, I believe that the opposite should be true so that
+     * the finalization of the runtime is logged.  Since the runtime depends on
+     * the grid, the opposite order also makes sense.
+     *
      * \return The milhoja error code
      */
     int    milhoja_grid_finalize_c(void) {
@@ -144,7 +157,7 @@ extern "C" {
             std::cerr << "[milhoja_grid_finalize_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID;
         }
-        
+
         return MILHOJA_SUCCESS;
     }
 
@@ -153,9 +166,14 @@ extern "C" {
      * box that bounds the problem's spatial domain.
      *
      * NOTE: This routine does not presume to know what values to set for
-     * coordinate components above MILHOJA_NDIM.  Therefore, calling code is responsible
-     * for setting or ignoring such data.  This routine will not alter or
-     * overwrite such values in the given arrays.
+     * coordinate components above MILHOJA_NDIM.  Therefore, calling code is
+     * responsible for setting or ignoring such data.  This routine will not
+     * alter or overwrite such values in the given arrays.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointers?  Ideally those pointers could go all the way to the grid
+     * backend and the backend could set the values into the Fortran array
+     * directly in one go.  This would be premature optimization at the moment.
      *
      * \param lo      Where to store coordinates of the low point used to define the box
      * \param hi      Where to store coordinates of the high point used to define the box
@@ -201,7 +219,7 @@ extern "C" {
         using namespace milhoja;
 
         if (!level) {
-            std::cerr << "[milhoja_grid_max_finest_level_c] Invalid pointers" << std::endl;
+            std::cerr << "[milhoja_grid_max_finest_level_c] Invalid pointer" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
@@ -233,7 +251,7 @@ extern "C" {
         using namespace milhoja;
 
         if (!level) {
-            std::cerr << "[milhoja_grid_current_finest_level_c] Invalid pointers" << std::endl;
+            std::cerr << "[milhoja_grid_current_finest_level_c] Invalid pointer" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
@@ -260,6 +278,11 @@ extern "C" {
      * for setting or ignoring such data.  This routine will not alter or
      * overwrite such values in the given array.
      *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the values into the Fortran array
+     * directly in one go.  This would be premature optimization at the moment.
+     *
      * \param level   The 1-based index of the level of interest with 1
      *                being the coarsest level
      * \param deltas  The mesh resolution values
@@ -269,7 +292,7 @@ extern "C" {
         using namespace milhoja;
 
         if (!deltas) {
-            std::cerr << "[milhoja_grid_deltas_c] Invalid pointers" << std::endl;
+            std::cerr << "[milhoja_grid_deltas_c] Invalid pointer" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
@@ -304,7 +327,7 @@ extern "C" {
      * refinement across the domain is consistent with the initial conditions.
      *
      * This routine applies the initial conditions within each MPI process on a
-     * per-tile basis, which implies that it does *not* use the runtime.
+     * per-tile basis *without* using the runtime.
      *
      * \param initBlock    Procedure to use to compute and store the initial
      *                     conditions on a single tile

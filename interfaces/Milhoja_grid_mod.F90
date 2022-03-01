@@ -27,10 +27,12 @@ module milhoja_grid_mod
         !> Fortran interface of the routine calling code gives the grid
         !! infrastructure so that Milhoja can set the initial conditions in the
         !! given data item.
-        subroutine milhoja_initBlock(C_dataItemPtr) bind(c)
-            use iso_c_binding, ONLY : C_PTR
+        subroutine milhoja_initBlock(C_threadID, C_dataItemPtr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            type(C_PTR), intent(IN), value :: C_dataItemPtr
+            integer(MILHOJA_INT), intent(IN), value :: C_threadID
+            type(C_PTR),          intent(IN), value :: C_dataItemPtr
         end subroutine milhoja_initBlock
 
         !> Fortran interface of the callback registered with the grid
@@ -316,7 +318,7 @@ contains
     !! refinement across the domain is consistent with the initial conditions.
     !!
     !! This routine applies the initial conditions within each MPI process on a
-    !! per-tile basis, which implies that it does *not* use the runtime.
+    !! per-tile basis *without* using the runtime.
     !!
     !! @param initBlock    Procedure to use to compute and store the initial
     !!                     conditions on a single tile
