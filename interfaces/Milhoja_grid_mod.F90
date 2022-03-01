@@ -71,20 +71,21 @@ module milhoja_grid_mod
                                      C_nGuard, C_nCcVars,                &
                                      C_errorEst) result(C_ierr) bind(c)
             use iso_c_binding,     ONLY : C_FUNPTR
+            use mpi,               ONLY : MPI_INTEGER_KIND
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_REAL
             implicit none
-            integer,              intent(IN), value :: F_globalComm
-            integer(MILHOJA_INT), intent(IN), value :: C_logRank
-            real(MILHOJA_REAL),   intent(IN), value :: C_xMin, C_xMax
-            real(MILHOJA_REAL),   intent(IN), value :: C_yMin, C_yMax
-            real(MILHOJA_REAL),   intent(IN), value :: C_zMin, C_zMax
-            integer(MILHOJA_INT), intent(IN), value :: C_nxb, C_nyb, C_nzb
-            integer(MILHOJA_INT), intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
-            integer(MILHOJA_INT), intent(IN), value :: C_maxRefinementLevel
-            integer(MILHOJA_INT), intent(IN), value :: C_nGuard
-            integer(MILHOJA_INT), intent(IN), value :: C_nCcVars
-            type(C_FUNPTR),       intent(IN), value :: C_errorEst
-            integer(MILHOJA_INT)                    :: C_ierr
+            integer(MPI_INTEGER_KIND), intent(IN), value :: F_globalComm
+            integer(MILHOJA_INT),      intent(IN), value :: C_logRank
+            real(MILHOJA_REAL),        intent(IN), value :: C_xMin, C_xMax
+            real(MILHOJA_REAL),        intent(IN), value :: C_yMin, C_yMax
+            real(MILHOJA_REAL),        intent(IN), value :: C_zMin, C_zMax
+            integer(MILHOJA_INT),      intent(IN), value :: C_nxb, C_nyb, C_nzb
+            integer(MILHOJA_INT),      intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
+            integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
+            integer(MILHOJA_INT),      intent(IN), value :: C_nGuard
+            integer(MILHOJA_INT),      intent(IN), value :: C_nCcVars
+            type(C_FUNPTR),            intent(IN), value :: C_errorEst
+            integer(MILHOJA_INT)                         :: C_ierr
         end function milhoja_grid_init_C
 
         !> Fortran interface on routine in C interface of same name.
