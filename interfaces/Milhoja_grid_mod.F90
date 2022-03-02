@@ -193,7 +193,9 @@ contains
         use iso_c_binding, ONLY : C_FUNPTR, &
                                   C_FUNLOC
 
-        integer,                                 intent(IN)  :: globalCommF
+        use mpi,           ONLY : MPI_INTEGER_KIND
+
+        integer(MPI_INTEGER_KIND),               intent(IN)  :: globalCommF
         integer(MILHOJA_INT),                    intent(IN)  :: logRank
         real(MILHOJA_REAL),                      intent(IN)  :: xMin, xMax
         real(MILHOJA_REAL),                      intent(IN)  :: yMin, yMax
