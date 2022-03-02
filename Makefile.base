@@ -39,6 +39,7 @@ CXXFLAGS_LIB =
 CUFLAGS_LIB  =
 
 # Combine all compiler and linker flags
+# TODO: Can we get rid of the AMReX flags when compiling?
 ifeq ($(DEBUG),true)
 CXXFLAGS = -I$(BUILDDIR) -I$(JSONDIR) -I$(LIB_MILHOJA)/include \
 			$(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) \

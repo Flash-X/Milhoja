@@ -1,3 +1,5 @@
+# TODO: We need to look up AMReX library by platform (e.g., sandybridge,
+# skylake) as well.
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/AMReX_$(NDIM)D
 GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/googletest
