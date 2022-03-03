@@ -5,8 +5,8 @@
 #  - GTESTDIR: Path to the Googletest build directory
 #  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(MILHOJA_CODE_REPO)
-AMREXDIR     = $(MILHOJA_TEST_REPO)/summit/pgi_current/AMReX_$(NDIM)d
-GTESTDIR     = $(MILHOJA_TEST_REPO)/summit/pgi_current/googletest
+AMREXDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/AMReX_$(NDIM)d
+GTESTDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/googletest
 JSONDIR      = $(OLCF_NLOHMANN_JSON_ROOT)/include
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
@@ -17,7 +17,7 @@ CUDADIR      = $(OLCF_CUDA_ROOT)
 #        will be chosen if --debug (or -d) is included in the setup command,
 #        otherwise the production flags will be used.
 #  - CUCOMP, CUFLAGS_PROD
-CXXCOMPNAME  = pgi
+CXXCOMPNAME  = nvhpc
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -O3 -m64
@@ -25,6 +25,14 @@ CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 
 CUCOMP       = nvcc
 CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
+
+F90COMP        = mpif90
+F90FLAGS_PROD  = \
+	-O3 -Mpreprocess -traceback -Mstack-init=snan \
+	-i4 -r8
+F90FLAGS_DEBUG = \
+	-g -O0 -Mpreprocess -traceback -Mstack-init=snan \
+	-i4 -r8 -Mbounds -Werror -Mchkptr
 
 LDFLAGS_STD = -lpthread -lstdc++ -lcudart -L$(CUDADIR)/lib64
 

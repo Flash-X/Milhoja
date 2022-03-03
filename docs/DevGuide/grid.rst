@@ -1,6 +1,15 @@
 The Grid Abstract Interface
 ===========================
 
+TODO: Add in table that defines index sets in each Grid backend, in the Milhoja
+C++ interface, in the C/C++ interoperability layer, and in the Fortran
+interface.  Obviously it would be nice to have the data collected in one place
+so that people can see the big picture quickly.  However, I do like the idea
+that each routine specify explicitly what it deals with as part of its
+interface/contract.  Therefore, any docs here should state that the inline docs
+supersede what is written here, which is just a general goal for improving
+consistency throughout code layers.
+
 Grid use & lifetime sequence
 ****************************
 

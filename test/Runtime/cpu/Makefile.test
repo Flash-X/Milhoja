@@ -3,6 +3,7 @@ BINARYNAME          = test_runtime_cpu.x
 TESTROOTDIR         = $(BASEDIR)/test
 TESTBASEDIR         = $(TESTROOTDIR)/Base
 RUNTIMEDIR          = $(TESTROOTDIR)/Runtime
+TESTDIR             = $(RUNTIMEDIR)/cpu
 
 CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
 CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
@@ -20,6 +21,6 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(RUNTIMEDIR)/testRuntime.cpp \
+    $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp
 

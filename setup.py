@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-"""
-To obtain program usage information including detailed information regarding
-command line arguments, run the script with the flag -h.
-"""
-
 import os
 import sys
 import shutil
@@ -80,7 +75,7 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('test',             type=str,                            help='Name of test')
     parser.add_argument('--site',     '-s', type=str,                            help='[mandatory] site name')
-    parser.add_argument('--library',  '-l', type=str,                            help='Path to prebuilt Runtime library')
+    parser.add_argument('--library',  '-l', type=str,                            help='[mandatory] Path to prebuilt static library')
     parser.add_argument('--build',    '-b', type=str, default=_DEFAULT_BUILD,    help=_BUILD_HELP)
     parser.add_argument('--par',      '-p', type=str,                            help='[mandatory] Name of par file (in site dir)')
     parser.add_argument('--makefile', '-M', type=str, default=_DEFAULT_MAKEFILE, help=_MAKEFILE_HELP)
@@ -88,7 +83,6 @@ if __name__ == '__main__':
     parser.add_argument('--runtime',  '-r', type=str, default=_DEFAULT_RUNTIME,  help=_RUNTIME_HELP)
     parser.add_argument('--grid',     '-g', type=str, default=_DEFAULT_GRID,     help=_GRID_HELP)
     parser.add_argument('--offload',  '-o', type=str, default=_DEFAULT_OFFLOAD,  help=_OFFLOAD_HELP)
-    parser.add_argument('--prefix',         type=str,                            help='Where to install Runtime library')
     parser.add_argument('--debug',         action="store_true", help='Set up in debug mode.')
     parser.add_argument('--coverage','-c', action="store_true", help='Enable code coverage.')
     parser.add_argument('--multithreaded', action="store_true", help='Enable multithreaded distributor.')
@@ -115,16 +109,17 @@ if __name__ == '__main__':
         shutil.rmtree(buildDir)
 
     test_name = args.test
-    if test_name == 'library':
-        testDir = None
-        if not args.prefix:
-            print_and_exit('Please specify prefix to build library')
-    else:
-        testDir = _HOME_DIR.joinpath('test')
-        for each in test_name.split('/'):
-            testDir = testDir.joinpath(each)
-        if not testDir.is_dir():
-            print_and_exit(f'Test directory {testDir} does not exist')
+    testDir = _HOME_DIR.joinpath('test')
+    for each in test_name.split('/'):
+        testDir = testDir.joinpath(each)
+    if not testDir.is_dir():
+        print_and_exit(f'Test directory {testDir} does not exist')
+
+    if args.library is None:
+        print_and_exit('Please specify library path')
+    libraryDir = Path(args.library).resolve()
+    if not libraryDir.is_dir():
+        print_and_exit(f'Library path {libraryDir} does not exist')
 
     ndim = args.dim
     if ndim is None:
@@ -154,17 +149,10 @@ if __name__ == '__main__':
 
     ##-- MAIN MAKEFILE
     print("Copying Makefile")
-    mainMakefile_src  = _HOME_DIR.joinpath('Makefile')
+    mainMakefile_src  = _HOME_DIR.joinpath('Makefile.base')
     mainMakefile_dest =  buildDir.joinpath('Makefile')
     assert(not mainMakefile_dest.exists())
     shutil.copy(mainMakefile_src, mainMakefile_dest)
-
-    ##-- BASE LIBRARY MAKEFILE
-    print("Copying Makefile.base")
-    srcMakefile_src  = _HOME_DIR.joinpath('src', 'Makefile.base')
-    srcMakefile_dest =  buildDir.joinpath(       'Makefile.base')
-    assert(not srcMakefile_dest.exists())
-    shutil.copy(srcMakefile_src, srcMakefile_dest)
 
     ##-- SITE MAKEFILE
     siteMakefile_src  =  siteDir.joinpath(args.makefile)
@@ -176,14 +164,13 @@ if __name__ == '__main__':
     shutil.copy(siteMakefile_src, siteMakefile_dest)
 
     ##-- TEST MAKEFILE
-    if testDir != None:
-        print(f"Copying Makefile.test from test {test_name}")
-        testMakefile_src  =  testDir.joinpath('Makefile.test')
-        testMakefile_dest = buildDir.joinpath('Makefile.test')
-        if not testMakefile_src.is_file():
-            print_and_exit(f'{testMakefile_src} is not a file')
-        assert(not testMakefile_dest.exists())
-        shutil.copy(testMakefile_src, testMakefile_dest)
+    print(f"Copying Makefile.test from test {test_name}")
+    testMakefile_src  =  testDir.joinpath('Makefile.test')
+    testMakefile_dest = buildDir.joinpath('Makefile.test')
+    if not testMakefile_src.is_file():
+        print_and_exit(f'{testMakefile_src} is not a file')
+    assert(not testMakefile_dest.exists())
+    shutil.copy(testMakefile_src, testMakefile_dest)
 
     ##-- GENERATE Makefile.setup
     print("Writing Makefile.setup")
@@ -222,42 +209,7 @@ if __name__ == '__main__':
             fptr.write("ENABLE_OPENACC_OFFLOAD = false\n")
 
         fptr.write("\n")
-        if test_name == 'library':
-            fptr.write("LIBONLY = True\n")
-            fptr.write("LIB_RUNTIME_PREFIX = {}\n".format(args.prefix))
-        else:
-            fptr.write("# Leave blank if building a test\n")
-            fptr.write("LIBONLY = \n")
-            if args.library is not None:
-                fptr.write("LINKLIB = True\n")
-                fptr.write("LIB_RUNTIME = {}\n".format(args.library))
-            else:
-                fptr.write("# Leave blank if not linking a prebuilt library!\n")
-                fptr.write("LINKLIB = \n")
-                fptr.write("# Should be current dir (i.e. `.`) if not linking prebuilt library\n")
-                fptr.write("LIB_RUNTIME = .")
-
-    ##-- Construct Milhoja.h file in build dir
-    fname_header =  buildDir.joinpath('Milhoja.h')
-    fname_script = _HOME_DIR.joinpath('tools', 'write_library_header.py')
-    if not fname_script.is_file():
-        print_and_exit(f'Cannot find {fname_script}')
-    assert(not fname_header.exists())
-
-    # Specify all flags so that the defaults defined in this script are used.
-    cmd = [str(fname_script),
-           str(fname_header),
-           '--dim',     str(ndim),
-           '--runtime', runtime_backend,
-           '--grid',    grid_backend,
-           '--fps',     _FLOATING_POINT_SYSTEM,
-           '--offload', computation_offloading]
-    print(f'Writing {fname_header.name} header file')
-    try:
-        # Store stdout output for later logging
-        hdr_stdout = sbp.check_output(cmd).decode('utf-8')
-    except sbp.CalledProcessError:
-        print_and_exit(f'Unable to create {fname_header}')
+        fptr.write("LIB_MILHOJA = {}\n".format(libraryDir))
 
     ##-- DERIVE PAR FILENAME & COPY TO BUILD DIR
     # The final filename will have the same extension of the given file.
@@ -290,25 +242,18 @@ if __name__ == '__main__':
 
         fptr.write('Path to copied files:\n')
         fptr.write(f'Makefile            -->    {mainMakefile_src}\n')
-        fptr.write(f'Makefile.base       -->    {srcMakefile_src}\n')
         fptr.write(f'Makefile.site       -->    {siteMakefile_src}\n')
-        if testDir != None:
-            fptr.write(f'Makefile.test       -->    {testMakefile_src}\n')
+        fptr.write(f'Makefile.test       -->    {testMakefile_src}\n')
         fptr.write(f'{parFile_dest.name} -->    {parFile_src}\n')
         fptr.write('\n')
 
-        fptr.write(hdr_stdout)
-
     #####----- SET PERMISSIONS TO READ-ONLY
     os.chmod(mainMakefile_dest, 0o444)
-    os.chmod(srcMakefile_dest,  0o444)
     os.chmod(siteMakefile_dest, 0o444)
-    if testDir != None:
-        os.chmod(testMakefile_dest, 0o444)
-    os.chmod(setupMakefile, 0o444)
-    os.chmod(fname_header,  0o444)
-    os.chmod(parFile_dest,  0o444)
-    os.chmod(logfileName,   0o444)
+    os.chmod(testMakefile_dest, 0o444)
+    os.chmod(setupMakefile,     0o444)
+    os.chmod(parFile_dest,      0o444)
+    os.chmod(logfileName,       0o444)
 
     print("Successfully set up build directory!")
 

@@ -1,3 +1,5 @@
+# TODO: We need to look up AMReX library by platform (e.g., sandybridge,
+# skylake) as well.
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/AMReX_$(NDIM)D
 GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/gnu_current/googletest
@@ -12,6 +14,22 @@ CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
 
 CUCOMP       =
 CUFLAGS_PROD =
+
+F90COMP        = mpif90
+F90FLAGS_PROD  = \
+	-O3 -cpp -fbacktrace -march='skylake-avx512' \
+	-fdefault-real-8 -fdefault-double-8 \
+	-finit-real=snan -finit-derived \
+	-finline-functions
+F90FLAGS_DEBUG = \
+	-g -O0 -cpp -fbacktrace \
+	-fdefault-real-8 -fdefault-double-8 \
+	-finit-real=snan -finit-derived \
+	-fbounds-check \
+	-ffpe-trap=invalid,zero,underflow,overflow \
+	-pedantic -Wall -Waliasing \
+	-Wsurprising -Wconversion -Wunderflow \
+	-fimplicit-none -fstack-protector-all
 
 LDFLAGS_STD = -lpthread -lstdc++ -lgfortran
 

@@ -39,7 +39,6 @@ bool GridAmrex::domainDestroyed_   = false;
   * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
   * invalid.  We are forced to cast and then check since we want
   * nGuard_/nCcVars_ to be const.
-  *
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
@@ -397,6 +396,8 @@ void    GridAmrex::getBlockSize(unsigned int* nxb,
 /**
   * getDomainLo gets the lower bound of a given level index space.
   *
+  * \todo Sanity check level value
+  *
   * @return An int vector: <xlo, ylo, zlo>
   */
 IntVect    GridAmrex::getDomainLo(const unsigned int level) const {
@@ -405,6 +406,8 @@ IntVect    GridAmrex::getDomainLo(const unsigned int level) const {
 
 /**
   * getDomainHi gets the upper bound of a given level in index space.
+  *
+  * \todo Sanity check level value
   *
   * @return An int vector: <xhi, yhi, zhi>
   */
@@ -435,6 +438,8 @@ RealVect    GridAmrex::getProbHi() const {
   * getMaxRefinement returns the maximum possible refinement level which was
   * specified by the user.
   *
+  * \todo Rename to match the C/Fortran interface name.
+  *
   * @return Maximum (finest) refinement level of simulation.
   */
 unsigned int GridAmrex::getMaxRefinement() const {
@@ -446,6 +451,8 @@ unsigned int GridAmrex::getMaxRefinement() const {
 
 /**
   * getMaxLevel returns the highest level of blocks actually in existence.
+  *
+  * \todo Rename to match the C/Fortran interface name.
   *
   * @return The max level of existing blocks (0 is coarsest).
   */
@@ -514,6 +521,8 @@ void    GridAmrex::writePlotfile(const std::string& filename,
 
 /**
   *
+  * \todo Sanity check level value
+  *
   */
 std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
     return std::unique_ptr<TileIter>{new TileIterAmrex(unk_[level], level)};
@@ -526,11 +535,18 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
   * @return The vector <dx,dy,dz> for a given level.
   */
 RealVect    GridAmrex::getDeltas(const unsigned int level) const {
+    if (level > max_level) {
+        std::string    msg =   "[GridAmrex::getDeltas] Invalid level value "
+                             + std::to_string(level);
+        throw std::invalid_argument(msg);
+    }
+
     return RealVect{geom[level].CellSize()};
 }
 
-
 /** getCellFaceAreaLo gets lo face area of a cell with given integer coordinates
+  *
+  * \todo Sanity check axis & level values
   *
   * @param axis Axis of desired face, returns the area of the lo side.
   * @param level Level (0-based)
@@ -544,6 +560,8 @@ Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
 }
 
 /** getCellVolume gets the volume of a cell with given (integer) coordinates
+  *
+  * \todo Sanity check level value
   *
   * @param level Level (0-based)
   * @param coord Cell-centered coordinates (integer, 0-based)
@@ -570,6 +588,7 @@ Real  GridAmrex::getCellVolume(const unsigned int level,
   *
   * \todo profile this, see if we can get a version that doesn't require
   * extra copying.
+  * \todo Sanity check axis, edge, and level values.
   */
 FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
                                      const unsigned int edge,
@@ -627,6 +646,8 @@ FArray1D    GridAmrex::getCellCoords(const unsigned int axis,
   * cell face areas in a given range.
   * DEV NOTE: I assumed CoordSys::SetFaceArea corresponds to AreaLo (not AreaHi)
   *
+  * \todo Sanity check axis and level values.
+  *
   * @param axis Axis of desired coord (allowed: Axis::{I,J,K})
   * @param level Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
@@ -654,6 +675,8 @@ void    GridAmrex::fillCellFaceAreasLo(const unsigned int axis,
 /** fillCellVolumes fills a Real array (passed by pointer) with the
   * volumes of cells in a given range
   *
+  * \todo Sanity check level value.
+  *
   * @param level Level (0-based)
   * @param lo Lower bound of range (cell-centered 0-based integer coordinates)
   * @param hi Upper bound of range (cell-centered 0-based integer coordinates)
@@ -671,8 +694,10 @@ void    GridAmrex::fillCellVolumes(const unsigned int level,
 }
 
 /**
- *
- */
+  *
+  * \todo Sanity check level value.
+  *
+  */
 void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
     if (level == 0) {
         amrex::Vector<amrex::MultiFab*>     smf;
@@ -720,6 +745,8 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
 /**
   * \brief Clear level
   *
+  * \todo Sanity check level value.
+  *
   * \param level   Level being cleared
   */
 void    GridAmrex::ClearLevel(int level) {
@@ -730,6 +757,8 @@ void    GridAmrex::ClearLevel(int level) {
 
 /**
   * \brief Remake Level
+  *
+  * \todo Sanity check level value.
   *
   * \param level Level being made
   * \param time Simulation time
@@ -756,6 +785,7 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
   * allowed, then we should allow for more than one distributor thread.
   * \todo Should this do a GC fill at the end?
   * \todo Really necessary to zero data?  Check with Flash-X.
+  * \todo Sanity check level value.
   *
   * \param level Level being made
   * \param time Simulation time
@@ -793,6 +823,7 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
   * \brief Make New Level from Coarse
   *
   * \todo Fail if initDomain has not yet been called.
+  * \todo Sanity check level value.
   *
   * \param level Level being made
   * \param time Simulation time
@@ -829,6 +860,7 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
   * \brief Tag boxes for refinement
   *
   * \todo Use tiling here?
+  * \todo Sanity check level value.
   *
   * \param level Level being checked
   * \param tags Tags for Box array

@@ -32,5 +32,5 @@ SRCS_TEST = \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/DataPacket_gpu_1_stream.cpp \
     $(TESTDIR)/DataPacket_gpu_2_stream.cpp \
-    $(RUNTIMEDIR)/testRuntime.cpp \
+    $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp
