@@ -54,6 +54,8 @@ public:
     void         restrictAllLevels(void) override;
     void         fillGuardCells(void) override;
     void         updateGrid(void) override { amrex::AmrCore::regrid(0, 0.0_wp); }
+    unsigned int getNGuardcells(void) const override { return nGuard_; }
+    unsigned int getNCcVariables(void) const override { return nCcVars_; }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;

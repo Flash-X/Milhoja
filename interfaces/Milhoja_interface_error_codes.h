@@ -89,6 +89,9 @@ Grid-specific error codes
 #define MILHOJA_ERROR_UNABLE_TO_GET_LEVEL            304
 #define MILHOJA_ERROR_UNABLE_TO_GET_DELTAS           305
 #define MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE       306
+#define MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE       307
+#define MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS     308
+#define MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS        309
 
 #if 0
 --------------------------------------------------------------------------------

@@ -44,6 +44,12 @@ contains
             errorMsg = "Unable to get mesh deltas"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN)
             errorMsg = "Unable to initialize the domain"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE)
+            errorMsg = "Unable to get the block size in cells/edge"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS)
+            errorMsg = "Unable to get the number of guardcells"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS)
+            errorMsg = "Unable to get the number of cell-centered variables"
         case DEFAULT
             errorMsg = "Unknown Milhoja error code"
         end select

@@ -20,6 +20,9 @@ module milhoja_grid_mod
     public :: milhoja_grid_getMaxFinestLevel
     public :: milhoja_grid_getCurrentFinestLevel
     public :: milhoja_grid_getDeltas
+    public :: milhoja_grid_getBlockSize
+    public :: milhoja_grid_getNGuardcells
+    public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_initDomain
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
@@ -130,6 +133,35 @@ module milhoja_grid_mod
             type(C_PTR),          intent(IN), value :: C_deltas
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_grid_deltas_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_block_size_C(C_nxb, C_nyb, C_nzb) result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),         intent(IN), value :: C_nxb
+            type(C_PTR),         intent(IN), value :: C_nyb
+            type(C_PTR),         intent(IN), value :: C_nzb
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function milhoja_grid_block_size_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_n_guardcells_C(C_nGuardcells) result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),         intent(IN), value :: C_nGuardcells
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function milhoja_grid_n_guardcells_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_n_cc_variables_C(C_nCcVars) result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),         intent(IN), value :: C_nCcVars
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function milhoja_grid_n_cc_variables_C
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_init_domain_C(C_initBlockPtr) result(C_ierr) &
@@ -338,6 +370,75 @@ contains
         initBlock_CPTR = C_FUNLOC(initBlock)
         ierr = milhoja_grid_init_domain_C(initBlock_CPTR)
     end subroutine milhoja_grid_initDomain
+
+    !> Obtain the size of each block in the domain in terms of the number of
+    !! cells along each edge.
+    !!
+    !! @param nxb   The number of cells along the x axis
+    !! @param nyb   The number of cells along the y axis
+    !! @param nzb   The number of cells along the z axis
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getBlockSize(nxb, nyb, nzb, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_LOC
+
+        integer(MILHOJA_INT), intent(OUT) :: nxb
+        integer(MILHOJA_INT), intent(OUT) :: nyb
+        integer(MILHOJA_INT), intent(OUT) :: nzb
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        type(C_PTR) :: nxb_CPTR
+        type(C_PTR) :: nyb_CPTR
+        type(C_PTR) :: nzb_CPTR
+
+        nxb = 0
+        nyb = 0
+        nzb = 0
+
+        nxb_CPTR = C_LOC(nxb)
+        nyb_CPTR = C_LOC(nyb)
+        nzb_CPTR = C_LOC(nzb)
+
+        ierr = milhoja_grid_block_size_C(nxb_CPTR, nyb_CPTR, nzb_CPTR)
+    end subroutine milhoja_grid_getBlockSize
+
+    !> Obtain the number of guardcells for each block.
+    !!
+    !! @param nGuardcells   The number of guardcells
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getNGuardcells(nGuardcells, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_LOC
+
+        integer(MILHOJA_INT), intent(OUT) :: nGuardcells
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        type(C_PTR) :: nGuardcells_CPTR
+
+        nGuardcells = 0
+        nGuardcells_CPTR = C_LOC(nGuardcells)
+
+        ierr = milhoja_grid_n_guardcells_C(nGuardcells_CPTR)
+    end subroutine milhoja_grid_getNGuardcells
+
+    !> Obtain the number of guardcells for each block.
+    !!
+    !! @param nGuardcells   The number of guardcells
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getNCcVariables(nCcVars, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_LOC
+
+        integer(MILHOJA_INT), intent(OUT) :: nCcVars
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        type(C_PTR) :: nCcVars_CPTR
+
+        nCcVars = 0
+        nCcVars_CPTR = C_LOC(nCcVars)
+
+        ierr = milhoja_grid_n_cc_variables_C(nCcVars_CPTR)
+    end subroutine milhoja_grid_getNCcVariables
 
 end module milhoja_grid_mod
 
