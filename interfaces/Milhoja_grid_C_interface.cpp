@@ -393,6 +393,54 @@ extern "C" {
     }
 
     /**
+     * Obtain the block domain decomposition of the coarsest level.
+     *
+     * \todo Can we put into the C++ code a routine that just takes
+     * pointers?  Ideally the pointers could go all the way to the grid
+     * backend and the backend could set the values into the Fortran variables
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nBlocks[XYZ]_ui don't have values so large that they
+     * overflow when cast to int.
+     *
+     * \param nBlocksX   The pointer whose variable is set to the number of blocks
+     *                   along the x axis of the coarsest level.
+     * \param nBlocksY   Along the y axis.
+     * \param nBlocksZ   Along the z axis.
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_domain_decomposition_c(int* nBlocksX,
+                                               int* nBlocksY,
+                                               int* nBlocksZ) {
+        using namespace milhoja;
+
+        if (!nBlocksX || !nBlocksY || !nBlocksZ) {
+            std::cerr << "[milhoja_grid_domain_decomposition_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        unsigned int   nBlocksX_ui = 0;
+        unsigned int   nBlocksY_ui = 0;
+        unsigned int   nBlocksZ_ui = 0;
+        try {
+            Grid::instance().getDomainDecomposition(&nBlocksX_ui,
+                                                    &nBlocksY_ui,
+                                                    &nBlocksZ_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_domain_decomposition_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
+        }
+
+        *nBlocksX = static_cast<int>(nBlocksX_ui);
+        *nBlocksY = static_cast<int>(nBlocksY_ui);
+        *nBlocksZ = static_cast<int>(nBlocksZ_ui);
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
      * Obtain the number of guardcells for the blocks.
      *
      * \todo Can we put into the C++ code a routine that just takes the

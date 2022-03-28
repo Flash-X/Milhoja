@@ -59,6 +59,9 @@ public:
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
+    void         getDomainDecomposition(unsigned int* nBlocksX,
+                                        unsigned int* nBlocksY,
+                                        unsigned int* nBlocksZ) const override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo(void) const override;

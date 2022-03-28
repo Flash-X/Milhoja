@@ -21,6 +21,7 @@ module milhoja_grid_mod
     public :: milhoja_grid_getCurrentFinestLevel
     public :: milhoja_grid_getDeltas
     public :: milhoja_grid_getBlockSize
+    public :: milhoja_grid_getDomainDecomposition
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_initDomain
@@ -144,6 +145,20 @@ module milhoja_grid_mod
             type(C_PTR),         intent(IN), value :: C_nzb
             integer(MILHOJA_INT)                   :: C_ierr
         end function milhoja_grid_block_size_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_domain_decomposition_C(C_nBlocksX, &
+                                                     C_nBlocksY, &
+                                                     C_nBlocksZ) &
+                                                     result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),         intent(IN), value :: C_nBlocksX
+            type(C_PTR),         intent(IN), value :: C_nBlocksY
+            type(C_PTR),         intent(IN), value :: C_nBlocksZ
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function milhoja_grid_domain_decomposition_C
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_n_guardcells_C(C_nGuardcells) result(C_ierr) bind(c)
@@ -382,10 +397,10 @@ contains
         use iso_c_binding, ONLY : C_PTR, &
                                   C_LOC
 
-        integer(MILHOJA_INT), intent(OUT) :: nxb
-        integer(MILHOJA_INT), intent(OUT) :: nyb
-        integer(MILHOJA_INT), intent(OUT) :: nzb
-        integer(MILHOJA_INT), intent(OUT) :: ierr
+        integer(MILHOJA_INT), intent(OUT), target :: nxb
+        integer(MILHOJA_INT), intent(OUT), target :: nyb
+        integer(MILHOJA_INT), intent(OUT), target :: nzb
+        integer(MILHOJA_INT), intent(OUT)         :: ierr
 
         type(C_PTR) :: nxb_CPTR
         type(C_PTR) :: nyb_CPTR
@@ -402,6 +417,41 @@ contains
         ierr = milhoja_grid_block_size_C(nxb_CPTR, nyb_CPTR, nzb_CPTR)
     end subroutine milhoja_grid_getBlockSize
 
+    !> Obtain the domain decomposition of the coarsest level.
+    !!
+    !! @param nBlocksX   The number of blocks along the x axis
+    !! @param nBlocksY   The number of blocks along the y axis
+    !! @param nBlocksZ   The number of blocks along the z axis
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getDomainDecomposition(nBlocksX, &
+                                                   nBlocksY, &
+                                                   nBlocksZ, &
+                                                   ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_LOC
+
+        integer(MILHOJA_INT), intent(OUT), target :: nBlocksX
+        integer(MILHOJA_INT), intent(OUT), target :: nBlocksY
+        integer(MILHOJA_INT), intent(OUT), target :: nBlocksZ
+        integer(MILHOJA_INT), intent(OUT)         :: ierr
+
+        type(C_PTR) :: nBlocksX_CPTR
+        type(C_PTR) :: nBlocksY_CPTR
+        type(C_PTR) :: nBlocksZ_CPTR
+
+        nBlocksX = 0
+        nBlocksY = 0
+        nBlocksZ = 0
+
+        nBlocksX_CPTR = C_LOC(nBlocksX)
+        nBlocksY_CPTR = C_LOC(nBlocksY)
+        nBlocksZ_CPTR = C_LOC(nBlocksZ)
+
+        ierr = milhoja_grid_domain_decomposition_C(nBlocksX_CPTR, &
+                                                   nBlocksY_CPTR, &
+                                                   nBlocksZ_CPTR)
+    end subroutine milhoja_grid_getDomainDecomposition
+
     !> Obtain the number of guardcells for each block.
     !!
     !! @param nGuardcells   The number of guardcells
@@ -410,8 +460,8 @@ contains
         use iso_c_binding, ONLY : C_PTR, &
                                   C_LOC
 
-        integer(MILHOJA_INT), intent(OUT) :: nGuardcells
-        integer(MILHOJA_INT), intent(OUT) :: ierr
+        integer(MILHOJA_INT), intent(OUT), target :: nGuardcells
+        integer(MILHOJA_INT), intent(OUT)         :: ierr
 
         type(C_PTR) :: nGuardcells_CPTR
 
@@ -421,16 +471,16 @@ contains
         ierr = milhoja_grid_n_guardcells_C(nGuardcells_CPTR)
     end subroutine milhoja_grid_getNGuardcells
 
-    !> Obtain the number of guardcells for each block.
+    !> Obtain the number of cell-centered variables associated with each block.
     !!
-    !! @param nGuardcells   The number of guardcells
+    !! @param nCcVars    The number of guardcells
     !! @param ierr  The milhoja error code
     subroutine milhoja_grid_getNCcVariables(nCcVars, ierr)
         use iso_c_binding, ONLY : C_PTR, &
                                   C_LOC
 
-        integer(MILHOJA_INT), intent(OUT) :: nCcVars
-        integer(MILHOJA_INT), intent(OUT) :: ierr
+        integer(MILHOJA_INT), intent(OUT), target :: nCcVars
+        integer(MILHOJA_INT), intent(OUT)         :: ierr
 
         type(C_PTR) :: nCcVars_CPTR
 

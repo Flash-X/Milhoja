@@ -46,6 +46,8 @@ contains
             errorMsg = "Unable to initialize the domain"
         case (MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE)
             errorMsg = "Unable to get the block size in cells/edge"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION)
+            errorMsg = "Unable to get the block domain decomposition"
         case (MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS)
             errorMsg = "Unable to get the number of guardcells"
         case (MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS)

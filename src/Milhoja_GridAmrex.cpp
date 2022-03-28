@@ -388,9 +388,30 @@ void  GridAmrex::fillGuardCells() {
 void    GridAmrex::getBlockSize(unsigned int* nxb,
                                 unsigned int* nyb,
                                 unsigned int* nzb) const {
+    if (!nxb || !nyb || !nzb) {
+        std::string    msg = "[GridAmrex::getBlockSize] Invalid pointer";
+        throw std::invalid_argument(msg);
+    }
+
     *nxb = nxb_;
     *nyb = nyb_;
     *nzb = nzb_;
+}
+
+/**
+ * Obtain the block decomposition of the domain on the coarsest level.
+ */
+void    GridAmrex::getDomainDecomposition(unsigned int* nBlocksX,
+                                          unsigned int* nBlocksY,
+                                          unsigned int* nBlocksZ) const {
+    if (!nBlocksX || !nBlocksY || !nBlocksZ) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] Invalid pointer";
+        throw std::invalid_argument(msg);
+    }
+
+    *nBlocksX = nBlocksX_;
+    *nBlocksY = nBlocksY_;
+    *nBlocksZ = nBlocksZ_;
 }
 
 /**
