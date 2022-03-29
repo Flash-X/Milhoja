@@ -101,3 +101,13 @@ Tile-specific error codes
 #endif
 #define MILHOJA_ERROR_UNABLE_TO_GET_METADATA         400
 
+#if 0
+--------------------------------------------------------------------------------
+Iterator-specific error codes
+--------------------------------------------------------------------------------
+#endif
+#define MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR       500
+#define MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR     501
+#define MILHOJA_ERROR_UNABLE_TO_VALIDATE_ITERATOR    502
+#define MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR     503
+

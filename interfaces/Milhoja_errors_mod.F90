@@ -32,6 +32,8 @@ contains
             errorMsg = "Negative value given for cast to unsigned int"
         case (MILHOJA_ERROR_POINTER_IS_NULL)
             errorMsg = "Pointer is null"
+        case (MILHOJA_ERROR_POINTER_NOT_NULL)
+            errorMsg = "Pointer is *not* null"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
             errorMsg = "Unable to initialize grid backend"
         case (MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID)
@@ -52,6 +54,14 @@ contains
             errorMsg = "Unable to get the number of guardcells"
         case (MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS)
             errorMsg = "Unable to get the number of cell-centered variables"
+        case (MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR)
+            errorMsg = "Unable to build an iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR)
+            errorMsg = "Unable to destroy given iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_VALIDATE_ITERATOR)
+            errorMsg = "Unable to validate the state of given iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR)
+            errorMsg = "Unable to advance given iterator to next tile"
         case DEFAULT
             errorMsg = "Unknown Milhoja error code"
         end select
