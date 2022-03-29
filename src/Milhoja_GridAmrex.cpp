@@ -550,6 +550,20 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
 }
 
 /**
+  * It is intended that this routine only be used in the Fortran/C++
+  * interoperability layer, where the use of a unique_ptr will not work.
+  *
+  * This routine dynamically allocates the memory of the iterator object.
+  * Calling code is responsible for using delete to release the resources once
+  * the iterator is no longer needed.
+  *
+  * \todo Sanity check level value
+  */
+TileIter* GridAmrex::buildTileIter_ForFortran(const unsigned int level) {
+    return (new TileIterAmrex(unk_[level], level));
+}
+
+/**
   * getDeltas gets the cell size for a given level.
   *
   * @param level The level of refinement (0 is coarsest).

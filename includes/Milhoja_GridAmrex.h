@@ -70,6 +70,7 @@ public:
     unsigned int getMaxLevel(void) const override;
     unsigned int getNumberLocalBlocks(void) override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
+    TileIter*                 buildTileIter_ForFortran(const unsigned int lev) override;
     void         writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const override;
 

@@ -62,6 +62,8 @@ contains
             errorMsg = "Unable to validate the state of given iterator"
         case (MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR)
             errorMsg = "Unable to advance given iterator to next tile"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_TILE_METADATA)
+            errorMsg = "Unable to retrieve metadata of iterators current tile"
         case DEFAULT
             errorMsg = "Unknown Milhoja error code"
         end select

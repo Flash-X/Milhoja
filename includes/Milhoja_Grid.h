@@ -69,6 +69,7 @@ public:
     virtual unsigned int   getMaxLevel() const = 0;
     virtual unsigned int   getNumberLocalBlocks() = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
+    virtual TileIter*                 buildTileIter_ForFortran(const unsigned int lev) = 0;
     virtual void writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const = 0;
 

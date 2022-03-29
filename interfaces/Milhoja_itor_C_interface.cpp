@@ -8,20 +8,9 @@
 #include <iostream>
 
 #include "Milhoja_interface_error_codes.h"
-
-// A toy iterator for preliminary development of the Fortran/C interface.
-class TestItor {
-public:
-    TestItor(void) : idx_{1}  { std::cout << "Iterator built!"     << std::endl; }
-    ~TestItor(void)           { std::cout << "Iterator destroyed!" << std::endl; }
-
-    bool   isValid(void) const { return idx_ < 10; }
-    void   next(void)
-        { std::cout << "From " << idx_ << " to " << ++idx_ << std::endl; }
-
-private:
-    unsigned int    idx_;
-};
+#include "Milhoja_Grid.h"
+#include "Milhoja_Tile.h"
+#include "Milhoja_TileIter.h"
 
 extern "C" {
     /**
@@ -49,7 +38,8 @@ extern "C" {
         }
 
         try {
-            *itor = static_cast<void*>(new TestItor{});
+            milhoja::Grid&   grid = milhoja::Grid::instance();
+            *itor = static_cast<void*>(grid.buildTileIter_ForFortran(0));
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR;
@@ -73,7 +63,7 @@ extern "C" {
             std::cerr << "[milhoja_itor_destroy_c] Pointer not allocated" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
-        TestItor*   toDelete = static_cast<TestItor*>(itor);
+        milhoja::TileIter*   toDelete = static_cast<milhoja::TileIter*>(itor);
 
         try {
             delete toDelete;
@@ -104,7 +94,7 @@ extern "C" {
             std::cerr << "[milhoja_itor_is_valid_c] Pointer not allocated" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
-        TestItor*   MH_itor = static_cast<TestItor*>(itor);
+        milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
 
         try {
             *isValid = MH_itor->isValid(); 
@@ -131,7 +121,7 @@ extern "C" {
             std::cerr << "[milhoja_itor_next_c] Pointer not allocated" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
-        TestItor*   MH_itor = static_cast<TestItor*>(itor);
+        milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
 
         try {
             MH_itor->next();
@@ -141,6 +131,49 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_itor_next_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the minimal set of metadata for the current tile.
+     *
+     * \todo Can we make a Fortran version that will accept the C pointers
+     * directly and set the values under the hood?  If so, then the routine
+     * could set the data directly into the Fortran variable.  Doing this now
+     * would be premature optimization.
+     *
+     * \param  itor   The pointer to the iterator.
+     * \return The milhoja error code
+     */
+    int    milhoja_itor_current_tile_metadata_c(void* itor) {
+        if (!itor) {
+            std::cerr << "[milhoja_itor_current_tile_metadata_c] Pointer not allocated" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
+        }
+        milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
+
+        try {
+            std::unique_ptr<milhoja::Tile>   tileDesc = MH_itor->buildCurrentTile();
+            unsigned int        gridIndex = tileDesc->gridIndex();
+            milhoja::IntVect    lo        = tileDesc->lo();
+            milhoja::IntVect    hi        = tileDesc->hi();
+            std::cout << "Tile " << gridIndex << "\n";
+            std::cout << "   lo = ("
+                      << lo[0] << ", "
+                      << lo[1] << ", "
+                      << lo[2] << ")\n";
+            std::cout << "   hi = ("
+                      << hi[0] << ", "
+                      << hi[1] << ", "
+                      << hi[2] << ")" << std::endl;
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_TILE_METADATA;
+        } catch (...) {
+            std::cerr << "[milhoja_itor_current_tile_metadata_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_TILE_METADATA;
         }
 
         return MILHOJA_SUCCESS;
