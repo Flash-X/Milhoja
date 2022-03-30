@@ -264,9 +264,9 @@ contains
         procedure(milhoja_errorEstimateCallback)             :: errorEst
         integer(MILHOJA_INT),                    intent(OUT) :: ierr
 
-        type(C_FUNPTR) :: errorEst_CPTR
+        type(C_FUNPTR) :: errorEst_Cptr
 
-        errorEst_CPTR  = C_FUNLOC(errorEst)
+        errorEst_Cptr  = C_FUNLOC(errorEst)
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
                                    xMin, xMax,                   &
@@ -276,7 +276,7 @@ contains
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &
                                    nGuard, nCcVars,              &
-                                   errorEst_CPTR)
+                                   errorEst_Cptr)
     end subroutine milhoja_grid_init
 
     !> Finalize the grid infrastructure.  It is assumed that calling code is
@@ -312,12 +312,12 @@ contains
         real(MILHOJA_REAL),   intent(INOUT), target :: hi(1:MILHOJA_MDIM)
         integer(MILHOJA_INT), intent(OUT)           :: ierr
 
-        type(C_PTR) :: lo_CPTR
-        type(C_PTR) :: hi_CPTR
+        type(C_PTR) :: lo_Cptr
+        type(C_PTR) :: hi_Cptr
 
-        lo_CPTR = C_LOC(lo)
-        hi_CPTR = C_LOC(hi)
-        ierr = milhoja_grid_domain_bound_box_C(lo_CPTR, hi_CPTR)
+        lo_Cptr = C_LOC(lo)
+        hi_Cptr = C_LOC(hi)
+        ierr = milhoja_grid_domain_bound_box_C(lo_Cptr, hi_Cptr)
     end subroutine milhoja_grid_getDomainBoundBox
 
     !> Obtain the index of the finest mesh refinement level that could be
@@ -365,12 +365,12 @@ contains
         real(MILHOJA_REAL),   intent(INOUT), target :: deltas(1:MILHOJA_MDIM)
         integer(MILHOJA_INT), intent(OUT)           :: ierr
 
-        type(C_PTR) :: deltas_CPTR
+        type(C_PTR) :: deltas_Cptr
 
-        deltas_CPTR = C_LOC(deltas)
+        deltas_Cptr = C_LOC(deltas)
 
         ! Assuming C interface has 1-based level index set
-        ierr = milhoja_grid_deltas_C(level, deltas_CPTR)
+        ierr = milhoja_grid_deltas_C(level, deltas_Cptr)
     end subroutine milhoja_grid_getDeltas
 
     !> Initialize the domain and set the initial conditions such that the mesh
@@ -389,10 +389,10 @@ contains
         procedure(milhoja_initBlock)             :: initBlock
         integer(MILHOJA_INT),        intent(OUT) :: ierr
 
-        type(C_FUNPTR) :: initBlock_CPTR
+        type(C_FUNPTR) :: initBlock_Cptr
 
-        initBlock_CPTR = C_FUNLOC(initBlock)
-        ierr = milhoja_grid_init_domain_C(initBlock_CPTR)
+        initBlock_Cptr = C_FUNLOC(initBlock)
+        ierr = milhoja_grid_init_domain_C(initBlock_Cptr)
     end subroutine milhoja_grid_initDomain
 
     !> Obtain the size of each block in the domain in terms of the number of
@@ -411,19 +411,19 @@ contains
         integer(MILHOJA_INT), intent(OUT), target :: nzb
         integer(MILHOJA_INT), intent(OUT)         :: ierr
 
-        type(C_PTR) :: nxb_CPTR
-        type(C_PTR) :: nyb_CPTR
-        type(C_PTR) :: nzb_CPTR
+        type(C_PTR) :: nxb_Cptr
+        type(C_PTR) :: nyb_Cptr
+        type(C_PTR) :: nzb_Cptr
 
         nxb = 0
         nyb = 0
         nzb = 0
 
-        nxb_CPTR = C_LOC(nxb)
-        nyb_CPTR = C_LOC(nyb)
-        nzb_CPTR = C_LOC(nzb)
+        nxb_Cptr = C_LOC(nxb)
+        nyb_Cptr = C_LOC(nyb)
+        nzb_Cptr = C_LOC(nzb)
 
-        ierr = milhoja_grid_block_size_C(nxb_CPTR, nyb_CPTR, nzb_CPTR)
+        ierr = milhoja_grid_block_size_C(nxb_Cptr, nyb_Cptr, nzb_Cptr)
     end subroutine milhoja_grid_getBlockSize
 
     !> Obtain the domain decomposition of the coarsest level.
@@ -444,21 +444,21 @@ contains
         integer(MILHOJA_INT), intent(OUT), target :: nBlocksZ
         integer(MILHOJA_INT), intent(OUT)         :: ierr
 
-        type(C_PTR) :: nBlocksX_CPTR
-        type(C_PTR) :: nBlocksY_CPTR
-        type(C_PTR) :: nBlocksZ_CPTR
+        type(C_PTR) :: nBlocksX_Cptr
+        type(C_PTR) :: nBlocksY_Cptr
+        type(C_PTR) :: nBlocksZ_Cptr
 
         nBlocksX = 0
         nBlocksY = 0
         nBlocksZ = 0
 
-        nBlocksX_CPTR = C_LOC(nBlocksX)
-        nBlocksY_CPTR = C_LOC(nBlocksY)
-        nBlocksZ_CPTR = C_LOC(nBlocksZ)
+        nBlocksX_Cptr = C_LOC(nBlocksX)
+        nBlocksY_Cptr = C_LOC(nBlocksY)
+        nBlocksZ_Cptr = C_LOC(nBlocksZ)
 
-        ierr = milhoja_grid_domain_decomposition_C(nBlocksX_CPTR, &
-                                                   nBlocksY_CPTR, &
-                                                   nBlocksZ_CPTR)
+        ierr = milhoja_grid_domain_decomposition_C(nBlocksX_Cptr, &
+                                                   nBlocksY_Cptr, &
+                                                   nBlocksZ_Cptr)
     end subroutine milhoja_grid_getDomainDecomposition
 
     !> Obtain the number of guardcells for each block.
@@ -472,12 +472,12 @@ contains
         integer(MILHOJA_INT), intent(OUT), target :: nGuardcells
         integer(MILHOJA_INT), intent(OUT)         :: ierr
 
-        type(C_PTR) :: nGuardcells_CPTR
+        type(C_PTR) :: nGuardcells_Cptr
 
         nGuardcells = 0
-        nGuardcells_CPTR = C_LOC(nGuardcells)
+        nGuardcells_Cptr = C_LOC(nGuardcells)
 
-        ierr = milhoja_grid_n_guardcells_C(nGuardcells_CPTR)
+        ierr = milhoja_grid_n_guardcells_C(nGuardcells_Cptr)
     end subroutine milhoja_grid_getNGuardcells
 
     !> Obtain the number of cell-centered variables associated with each block.
@@ -491,12 +491,12 @@ contains
         integer(MILHOJA_INT), intent(OUT), target :: nCcVars
         integer(MILHOJA_INT), intent(OUT)         :: ierr
 
-        type(C_PTR) :: nCcVars_CPTR
+        type(C_PTR) :: nCcVars_Cptr
 
         nCcVars = 0
-        nCcVars_CPTR = C_LOC(nCcVars)
+        nCcVars_Cptr = C_LOC(nCcVars)
 
-        ierr = milhoja_grid_n_cc_variables_C(nCcVars_CPTR)
+        ierr = milhoja_grid_n_cc_variables_C(nCcVars_Cptr)
     end subroutine milhoja_grid_getNCcVariables
 
 

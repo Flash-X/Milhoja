@@ -559,7 +559,7 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
   *
   * \todo Sanity check level value
   */
-TileIter* GridAmrex::buildTileIter_ForFortran(const unsigned int level) {
+TileIter* GridAmrex::buildTileIter_forFortran(const unsigned int level) {
     return (new TileIterAmrex(unk_[level], level));
 }
 

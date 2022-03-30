@@ -374,11 +374,16 @@ extern "C" {
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
-        unsigned int   nxb_ui = 0;
-        unsigned int   nyb_ui = 0;
-        unsigned int   nzb_ui = 0;
         try {
+            unsigned int   nxb_ui = 0;
+            unsigned int   nyb_ui = 0;
+            unsigned int   nzb_ui = 0;
+
             Grid::instance().getBlockSize(&nxb_ui, &nyb_ui, &nzb_ui);
+
+            *nxb = static_cast<int>(nxb_ui);
+            *nyb = static_cast<int>(nyb_ui);
+            *nzb = static_cast<int>(nzb_ui);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
@@ -386,10 +391,6 @@ extern "C" {
             std::cerr << "[milhoja_grid_block_size_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
         }
-
-        *nxb = static_cast<int>(nxb_ui);
-        *nyb = static_cast<int>(nyb_ui);
-        *nzb = static_cast<int>(nzb_ui);
 
         return MILHOJA_SUCCESS;
     }
@@ -420,13 +421,18 @@ extern "C" {
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
-        unsigned int   nBlocksX_ui = 0;
-        unsigned int   nBlocksY_ui = 0;
-        unsigned int   nBlocksZ_ui = 0;
         try {
+            unsigned int   nBlocksX_ui = 0;
+            unsigned int   nBlocksY_ui = 0;
+            unsigned int   nBlocksZ_ui = 0;
+
             Grid::instance().getDomainDecomposition(&nBlocksX_ui,
                                                     &nBlocksY_ui,
                                                     &nBlocksZ_ui);
+
+            *nBlocksX = static_cast<int>(nBlocksX_ui);
+            *nBlocksY = static_cast<int>(nBlocksY_ui);
+            *nBlocksZ = static_cast<int>(nBlocksZ_ui);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
@@ -434,10 +440,6 @@ extern "C" {
             std::cerr << "[milhoja_grid_domain_decomposition_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
         }
-
-        *nBlocksX = static_cast<int>(nBlocksX_ui);
-        *nBlocksY = static_cast<int>(nBlocksY_ui);
-        *nBlocksZ = static_cast<int>(nBlocksZ_ui);
 
         return MILHOJA_SUCCESS;
     }
@@ -464,9 +466,12 @@ extern "C" {
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
-        unsigned int   nGuardcells_ui = 0;
         try {
+            unsigned int   nGuardcells_ui = 0;
+
             nGuardcells_ui = Grid::instance().getNGuardcells();
+
+            *nGuardcells = static_cast<int>(nGuardcells_ui);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS;
@@ -474,8 +479,6 @@ extern "C" {
             std::cerr << "[milhoja_grid_n_guardcells_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS;
         }
-
-        *nGuardcells = static_cast<int>(nGuardcells_ui);
 
         return MILHOJA_SUCCESS;
     }
@@ -502,9 +505,12 @@ extern "C" {
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
 
-        unsigned int   nCcVars_ui = 0;
         try {
+            unsigned int   nCcVars_ui = 0;
+
             nCcVars_ui = Grid::instance().getNCcVariables();
+
+            *nCcVars = static_cast<int>(nCcVars_ui);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS;
@@ -512,8 +518,6 @@ extern "C" {
             std::cerr << "[milhoja_grid_n_cc_variables_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS;
         }
-
-        *nCcVars = static_cast<int>(nCcVars_ui);
 
         return MILHOJA_SUCCESS;
     }
@@ -528,9 +532,9 @@ extern "C" {
             return MILHOJA_ERROR_STEP_NEGATIVE;
         }
 
-        std::string    filename = "milhoja_plt_" + std::to_string(step);
-
         try {
+            std::string    filename = "milhoja_plt_" + std::to_string(step);
+
             milhoja::Grid&    grid = milhoja::Grid::instance();
 
             std::vector<std::string>   names{grid.getNCcVariables()};

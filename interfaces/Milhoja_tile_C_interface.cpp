@@ -82,7 +82,7 @@ extern "C" {
             hiGC[2] = hiGC_k + 1;
 #endif
         } catch (const std::exception& exc) {
-            std::cerr << "[milhoja_tile_get_metadata_c]" << exc.what() << std::endl;
+            std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_METADATA;
         } catch (...) {
             std::cerr << "[milhoja_tile_get_metadata_c] Unknown error caught" << std::endl;

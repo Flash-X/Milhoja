@@ -19,9 +19,11 @@ namespace milhoja {
  * Should be called from inside a Tile Iterator, specifically:
  * TileIterAmrex::buildCurrentTile. Initializes private members.
  *
- * TODO:  Include a single metadata routine that gets gId, level,
- *        lo/hi, and loGC/hiGC in one call?  This could replace the
- *        lo(int*), etc. calls.
+ * \todo Include a single metadata routine that gets gId, level,
+ *       lo/hi, and loGC/hiGC in one call?  This could replace the
+ *       lo(int*), etc. calls.
+ * \todo Acceptable to have no variables?  Accept zero
+ *       here as a test for valid casting, but put a non-zero check in isNull?
  *
  * \param itor An AMReX MFIter currently iterating.
  * \param unkRef A ref to the multifab being iterated over.
@@ -38,8 +40,6 @@ TileAmrex::TileAmrex(amrex::MFIter& itor,
 {
     amrex::FArrayBox& fab = unkRef[gridIdx_];
     int   nComp = fab.nComp();
-    // TODO: Acceptable to have no variables?  Accept zero
-    // here as a test for valid casting, but put a non-zero check in isNull?
     assert(nComp >= 0);
     nCcVars_ = static_cast<unsigned int>(nComp);
 
@@ -126,7 +126,7 @@ TileAmrex::~TileAmrex(void) {
 }
 
 /**
- * \todo Is there a valid use case for creating null Tile's?
+ * \todo Is there a valid use case for creating null Tiles?
  * If so, best to put that motivation in the documentation.  After
  * changes, is this the correct definition of null?  Include asserts
  * that confirm that correct ordering between lo, hi, loGC, and hiGC?
@@ -144,9 +144,14 @@ bool   TileAmrex::isNull(void) const {
  * These are Fortran friendly since we skip the IntVect.  It's also
  * Flash-X friendly since you get MDIM sized points.  Not clear if
  * this is really necessary.
- * \TODO Would it be better to simply get a pointer to the
+ *
+ * \todo Would it be better to simply get a pointer to the
  * start of the underlying amrex::IntVect data buffer and
  * return this?
+ *
+ * \param i   The index along the x axis
+ * \param j   The y axis
+ * \param k   The z axis
  */
 void   TileAmrex::lo(int* i, int* j, int* k) const {
     *i = lo_[0];
@@ -163,6 +168,12 @@ void   TileAmrex::lo(int* i, int* j, int* k) const {
 #endif
 }
 
+
+/**
+ * \param i   The index along the x axis
+ * \param j   The y axis
+ * \param k   The z axis
+ */
 void   TileAmrex::hi(int* i, int* j, int* k) const {
     *i = hi_[0];
     *j = hi_[1];
@@ -178,6 +189,11 @@ void   TileAmrex::hi(int* i, int* j, int* k) const {
 #endif
 }
 
+/**
+ * \param i   The index along the x axis
+ * \param j   The y axis
+ * \param k   The z axis
+ */
 void   TileAmrex::loGC(int* i, int* j, int* k) const {
     *i = loGC_[0];
     *j = loGC_[1];
@@ -193,6 +209,11 @@ void   TileAmrex::loGC(int* i, int* j, int* k) const {
 #endif
 }
 
+/**
+ * \param i   The index along the x axis
+ * \param j   The y axis
+ * \param k   The z axis
+ */
 void   TileAmrex::hiGC(int* i, int* j, int* k) const {
     *i = hiGC_[0];
     *j = hiGC_[1];
@@ -249,7 +270,7 @@ IntVect  TileAmrex::hiGC(void) const {
 /**
  * \brief Returns pointer to underlying data structure.
  *
- * \TODO This routine should return the lo/hi and shape of the data associated
+ * \todo This routine should return the lo/hi and shape of the data associated
  *       with the pointer.  AMReX dictates what we point to and this is
  *       analogous to wrapping the data with FArray4D.
  *

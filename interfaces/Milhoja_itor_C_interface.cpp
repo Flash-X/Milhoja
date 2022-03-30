@@ -39,7 +39,7 @@ extern "C" {
 
         try {
             milhoja::Grid&   grid = milhoja::Grid::instance();
-            *itor = static_cast<void*>(grid.buildTileIter_ForFortran(0));
+            *itor = static_cast<void*>(grid.buildTileIter_forFortran(0));
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR;
@@ -65,8 +65,16 @@ extern "C" {
         }
         milhoja::TileIter*   toDelete = static_cast<milhoja::TileIter*>(itor);
 
-        delete toDelete;
-        toDelete = nullptr;
+        try {
+            delete toDelete;
+            toDelete = nullptr;
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR;
+        } catch (...) {
+            std::cerr << "[milhoja_itor_destroy_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR;
+        }
 
         return MILHOJA_SUCCESS;
     }
@@ -190,8 +198,16 @@ extern "C" {
         }
         milhoja::Tile*   toDelete = static_cast<milhoja::Tile*>(tile);
 
-        delete toDelete;
-        toDelete = nullptr;
+        try {
+            delete toDelete;
+            toDelete = nullptr;
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_RELEASE_TILE;
+        } catch (...) {
+            std::cerr << "[milhoja_itor_release_current_tile_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_RELEASE_TILE;
+        }
 
         return MILHOJA_SUCCESS;
     }
