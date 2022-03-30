@@ -7,10 +7,10 @@
 
 #include <iostream>
 
-#include "Milhoja_interface_error_codes.h"
 #include "Milhoja_Grid.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_TileIter.h"
+#include "Milhoja_interface_error_codes.h"
 
 extern "C" {
     /**
@@ -32,8 +32,11 @@ extern "C" {
      * \return The milhoja error code
      */
     int    milhoja_itor_build_c(void** itor) {
-        if (*itor) {
-            std::cerr << "[milhoja_itor_build_c] Pointer already allocated" << std::endl;
+        if        (!itor) {
+            std::cerr << "[milhoja_itor_build_c] itor is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
+        } else if (*itor) {
+            std::cerr << "[milhoja_itor_build_c] *itor not null" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL; 
         }
 
@@ -60,7 +63,7 @@ extern "C" {
      */
     int    milhoja_itor_destroy_c(void* itor) {
         if (!itor) {
-            std::cerr << "[milhoja_itor_destroy_c] Pointer not allocated" << std::endl;
+            std::cerr << "[milhoja_itor_destroy_c] itor is null" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
         milhoja::TileIter*   toDelete = static_cast<milhoja::TileIter*>(itor);
@@ -83,15 +86,18 @@ extern "C" {
      * Determine if the given iterator is valid and, therefore, if calling code
      * can safely call next().
      *
-     * \param  itor     The pointer to the iterator to validate.
+     * \param  itor     The iterator to validate.
      * \param  isValid  True if the iterator is valid and can be advanced with
-     *                  next.  False, if the iterator is set to the last tile
-     *                  and should *not* be advanced with next.
+     *                  next.  False, if the iterator is invalid and should
+     *                  *not* be advanced with next.
      * \return The milhoja error code
      */
     int    milhoja_itor_is_valid_c(void* itor, bool* isValid) {
         if (!itor) {
-            std::cerr << "[milhoja_itor_is_valid_c] Pointer not allocated" << std::endl;
+            std::cerr << "[milhoja_itor_is_valid_c] itor is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
+        } else if (!isValid) {
+            std::cerr << "[milhoja_itor_is_valid_c] isValid is null" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
         milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
@@ -113,12 +119,12 @@ extern "C" {
      * Advance the iterator to the next tile.  Refer to the documentation for
      * isValid() for more information on the proper usage of this function.
      *
-     * \param  itor   The pointer to the iterator to advance.
+     * \param  itor   The iterator to advance.
      * \return The milhoja error code
      */
     int    milhoja_itor_next_c(void* itor) {
         if (!itor) {
-            std::cerr << "[milhoja_itor_next_c] Pointer not allocated" << std::endl;
+            std::cerr << "[milhoja_itor_next_c] itor is null" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
         milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
@@ -154,11 +160,14 @@ extern "C" {
      * \return The milhoja error code
      */
     int    milhoja_itor_acquire_current_tile_c(void* itor, void** tile) {
-        if (!itor) {
-            std::cerr << "[milhoja_itor_acquire_current_tile_c] Pointer not allocated" << std::endl;
+        if        (!itor) {
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] itor is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
+        } else if (!tile) {
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] tile is null" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         } else if (*tile) {
-            std::cerr << "[milhoja_itor_acquire_current_tile_c] Pointer *not* null" << std::endl;
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] *tile is not null" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL; 
         }
         milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
@@ -183,9 +192,9 @@ extern "C" {
      *
      * Note that the tile resource management scheme is different when tiles are
      * accessed directly in Fortran using the iterator compared to tile access
-     * via the runtime.  It was decided to put this release mechanism in the
-     * iterator (as opposed to tile) since ownership of tile resources is
-     * assumed only using the iterator - routines in this interface get the
+     * in Fortran via the runtime.  It was decided to put this release mechanism
+     * in the iterator (as opposed to tile) since ownership of tile resources is
+     * assumed only using the iterator - routines in this interface provide
      * access, therefore releasing should also be only in this interface.
      *
      * \param tile   The tile to release
@@ -193,7 +202,7 @@ extern "C" {
      */
     int    milhoja_itor_release_current_tile_c(void* tile) {
         if (!tile) {
-            std::cerr << "[milhoja_itor_release_current_tile_c] Pointer not allocated" << std::endl;
+            std::cerr << "[milhoja_itor_release_current_tile_c] tile is null" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
         }
         milhoja::Tile*   toDelete = static_cast<milhoja::Tile*>(tile);

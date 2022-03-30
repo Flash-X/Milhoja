@@ -544,7 +544,7 @@ extern "C" {
 
             grid.writePlotfile(filename, names);
         } catch (const std::exception& exc) {
-            std::cerr << "[milhoja_grid_write_plotfile_c] " << exc.what() << std::endl;
+            std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
         } catch (...) {
             std::cerr << "[milhoja_grid_write_plotfile_c] Unknown error caught" << std::endl;

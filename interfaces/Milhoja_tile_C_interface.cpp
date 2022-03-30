@@ -39,8 +39,11 @@ extern "C" {
         } else if (!gId || !level || !lo || !hi || !loGC || !hiGC || !nVars) {
             std::cerr << "[milhoja_tile_get_metadata_c] Null pointers" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
+        } else if (!data) {
+            std::cerr << "[milhoja_tile_get_metadata_c] data is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
         } else if (*data) {
-            std::cerr << "[milhoja_tile_get_metadata_c] data already allocated" << std::endl;
+            std::cerr << "[milhoja_tile_get_metadata_c] *data must be null" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL; 
         }
 
