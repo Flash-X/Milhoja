@@ -16,6 +16,7 @@ module milhoja_grid_mod
     !!!!!----- PUBLIC INTERFACE
     public :: milhoja_grid_init
     public :: milhoja_grid_finalize
+    public :: milhoja_grid_getCoordinateSystem
     public :: milhoja_grid_getDomainBoundBox
     public :: milhoja_grid_getMaxFinestLevel
     public :: milhoja_grid_getCurrentFinestLevel
@@ -67,6 +68,7 @@ module milhoja_grid_mod
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_init_C(F_globalComm,                       &
                                      C_logRank,                          &
+                                     C_coordSys,                         &
                                      C_xMin, C_xMax,                     &
                                      C_yMin, C_yMax,                     &
                                      C_zMin, C_zMax,                     &
@@ -81,6 +83,7 @@ module milhoja_grid_mod
             implicit none
             integer(MPI_INTEGER_KIND), intent(IN), value :: F_globalComm
             integer(MILHOJA_INT),      intent(IN), value :: C_logRank
+            integer(MILHOJA_INT),      intent(IN), value :: C_coordSys
             real(MILHOJA_REAL),        intent(IN), value :: C_xMin, C_xMax
             real(MILHOJA_REAL),        intent(IN), value :: C_yMin, C_yMax
             real(MILHOJA_REAL),        intent(IN), value :: C_zMin, C_zMax
@@ -99,6 +102,14 @@ module milhoja_grid_mod
             implicit none
             integer(MILHOJA_INT) :: C_ierr
         end function milhoja_grid_finalize_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_coordinate_system_C(C_system) result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(OUT) :: C_system
+            integer(MILHOJA_INT)              :: C_ierr
+        end function milhoja_grid_coordinate_system_C
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_domain_bound_box_C(C_lo, C_hi) result(C_ierr) bind(c)
@@ -209,6 +220,8 @@ contains
     !!                             Milhoja should use
     !! @param logRank              The rank in the given communicator of the MPI process
     !!                             that should perform logging duties.
+    !! @param coordSys             The domain's coordinate system.  See
+    !!                             Milhoja.h for valid values.
     !! @param xMin                 Define the physical domain in X as [xMin, xMax]
     !! @param xMax                 See xMin
     !! @param yMin                 Define the physical domain in Y as [yMin, yMax]
@@ -233,6 +246,7 @@ contains
     !!                             refinement
     !! @param ierr                 The milhoja error code
     subroutine milhoja_grid_init(globalCommF, logRank,         &
+                                 coordSys,                     &
                                  xMin, xMax,                   &
                                  yMin, yMax,                   &
                                  zMin, zMax,                   &
@@ -249,6 +263,7 @@ contains
 
         integer(MPI_INTEGER_KIND),               intent(IN)  :: globalCommF
         integer(MILHOJA_INT),                    intent(IN)  :: logRank
+        integer(MILHOJA_INT),                    intent(IN)  :: coordSys
         real(MILHOJA_REAL),                      intent(IN)  :: xMin, xMax
         real(MILHOJA_REAL),                      intent(IN)  :: yMin, yMax
         real(MILHOJA_REAL),                      intent(IN)  :: zMin, zMax
@@ -265,6 +280,7 @@ contains
         errorEst_Cptr  = C_FUNLOC(errorEst)
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
+                                   coordSys,                     &
                                    xMin, xMax,                   &
                                    yMin, yMax,                   &
                                    zMin, zMax,                   &
@@ -288,6 +304,17 @@ contains
 
         ierr = milhoja_grid_finalize_C()
     end subroutine milhoja_grid_finalize
+
+    !> Obtain the coordinate system used to define the domain.
+    !!
+    !! @param system  An integer index of the system type.  Refer to Milhoja.h.
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_grid_getCoordinateSystem(system, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: system
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_coordinate_system_C(system)
+    end subroutine milhoja_grid_getCoordinateSystem
 
     !> Obtain the low and high coordinates in physical space of the rectangular
     !! box that bounds the problem's spatial domain.

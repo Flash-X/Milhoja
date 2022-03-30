@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <AMReX.H>
+#include <AMReX_CoordSys.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Interpolater.H>
@@ -110,6 +111,23 @@ GridAmrex::GridAmrex(void)
     logger.log(msg);
 
     msg = "[GridAmrex] N dimensions = " + std::to_string(MILHOJA_NDIM);
+    logger.log(msg);
+
+    msg = "[GridAmrex] ";
+    switch (getCoordinateSystem()) {
+    case CoordSys::Cartesian:
+        msg += "Cartesian";
+        break;
+    case CoordSys::Cylindrical:
+        msg += "Cylindrical";
+        break;
+    case CoordSys::Spherical:
+        msg += "Spherical";
+        break;
+    default:
+        throw std::logic_error("[GridAmrex::GridAmrex] Unknown coordinate system");
+    }
+    msg += " Coordinate System";
     logger.log(msg);
 
     msg  = "[GridAmrex] Physical spatial domain specification";
@@ -412,6 +430,22 @@ void    GridAmrex::getDomainDecomposition(unsigned int* nBlocksX,
     *nBlocksX = nBlocksX_;
     *nBlocksY = nBlocksY_;
     *nBlocksZ = nBlocksZ_;
+}
+
+/**
+  * Obtain the coordinate system used to define the domain.
+  */
+CoordSys    GridAmrex::getCoordinateSystem(void) const {
+    switch(geom[0].Coord()) {
+    case amrex::CoordSys::CoordType::cartesian:
+        return CoordSys::Cartesian;
+    case amrex::CoordSys::CoordType::RZ:
+        return CoordSys::Cylindrical;
+    case amrex::CoordSys::CoordType::SPHERICAL:
+        return CoordSys::Spherical;
+    default:
+        throw std::logic_error("[GridAmrex::getCoordinateSystem] Unknown system");
+    }
 }
 
 /**

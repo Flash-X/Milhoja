@@ -24,13 +24,13 @@
  * population of this singleton be included in a curly brace block so that
  * application code outside the block cannot access the singleton.
  *
- * \todo Add in coordinate system
  * \todo Add in boundary conditions
  */
 
 #include <mpi.h>
 
 #include "Milhoja_real.h"
+#include "Milhoja_coordinateSystem.h"
 #include "Milhoja_actionRoutine.h"
 
 namespace milhoja {
@@ -49,6 +49,7 @@ public:
     void                         clear(void);
 
     // Specification of Problem Domain
+    milhoja::CoordSys               coordSys;
     milhoja::Real                   xMin, xMax;
     milhoja::Real                   yMin, yMax;
     milhoja::Real                   zMin, zMax;

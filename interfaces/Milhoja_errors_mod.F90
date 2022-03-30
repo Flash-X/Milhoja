@@ -44,6 +44,8 @@ contains
             errorMsg = "Unable to get bounds"
         case (MILHOJA_ERROR_UNABLE_TO_GET_LEVEL)
             errorMsg = "Unable to get level"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS)
+            errorMsg = "Unable to get coordinate system"
         case (MILHOJA_ERROR_UNABLE_TO_GET_DELTAS)
             errorMsg = "Unable to get mesh deltas"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN)

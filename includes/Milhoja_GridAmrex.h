@@ -62,6 +62,7 @@ public:
     void         getDomainDecomposition(unsigned int* nBlocksX,
                                         unsigned int* nBlocksY,
                                         unsigned int* nBlocksZ) const override;
+    CoordSys     getCoordinateSystem(void) const override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo(void) const override;

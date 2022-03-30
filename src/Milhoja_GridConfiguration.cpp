@@ -80,6 +80,7 @@ void GridConfiguration::clear(void) {
         throw std::logic_error("[GridConfiguration::clear] Configuration already cleared");
     }
 
+    coordSys        = CoordSys::Cartesian;
     xMin            =  1.0;
     xMax            =  0.0;
     yMin            =  1.0;

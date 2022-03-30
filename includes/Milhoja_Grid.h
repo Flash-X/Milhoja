@@ -15,6 +15,7 @@
 #include "Milhoja_real.h"
 #include "Milhoja_RealVect.h"
 #include "Milhoja_IntVect.h"
+#include "Milhoja_coordinateSystem.h"
 #include "Milhoja_FArray1D.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_TileIter.h"
@@ -61,6 +62,7 @@ public:
     virtual void           getDomainDecomposition(unsigned int* nBlocksX,
                                                   unsigned int* nBlocksY,
                                                   unsigned int* nBlocksZ) const = 0;
+    virtual CoordSys       getCoordinateSystem(void) const = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;
     virtual IntVect        getDomainHi(const unsigned int lev) const = 0;
     virtual RealVect       getProbLo() const = 0;

@@ -187,6 +187,10 @@ if __name__ == '__main__':
         fptr.write(f'#define MILHOJA_K2D       {k2d}\n')
         fptr.write(f'#define MILHOJA_K3D       {k3d}\n')
         fptr.write( '\n')
+        fptr.write( '#define MILHOJA_CARTESIAN   0\n')
+        fptr.write( '#define MILHOJA_CYLINDRICAL 1\n')
+        fptr.write( '#define MILHOJA_SPHERICAL   2\n')
+        fptr.write( '\n')
         # Ultra-defensive, ultra-paranoid sanity check
         fptr.write( '#if (MILHOJA_NDIM != 1) && (MILHOJA_NDIM != 2) && (MILHOJA_NDIM != 3)\n')
         fptr.write( '#error "MILHOJA_NDIM not in {1,2,3}"\n')

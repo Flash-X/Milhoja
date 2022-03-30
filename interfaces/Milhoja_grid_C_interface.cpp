@@ -12,6 +12,7 @@
 #include <mpi.h>
 
 #include "Milhoja.h"
+#include "Milhoja_coordinateSystem.h"
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
 #include "Milhoja_Grid.h"
@@ -41,6 +42,8 @@ extern "C" {
      *                             Milhoja should use
      * \param logRank              The rank in the given communicator of the MPI process
      *                             that should perform logging duties.
+     * \param coordSys             The domain's coordinate system.  See
+     *                             Milhoja.h for valid values.
      * \param xMin                 Define the physical domain in X as [xMin, xMax]
      * \param xMax                 See xMin
      * \param yMin                 Define the physical domain in Y as [yMin, yMax]
@@ -67,6 +70,7 @@ extern "C" {
      */
     int    milhoja_grid_init_c(const MPI_Fint globalCommF,
                                const int logRank,
+                               const int coordSys,
                                const milhoja::Real xMin, const milhoja::Real xMax,
                                const milhoja::Real yMin, const milhoja::Real yMax,
                                const milhoja::Real zMin, const milhoja::Real zMax,
@@ -101,7 +105,8 @@ extern "C" {
             // Configure in local block so that code cannot accidentally access
             // configuration data after it is consumed by Grid at initialization.
             milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
-   
+
+            cfg.coordSys        = static_cast<milhoja::CoordSys>(coordSys); 
             cfg.xMin            = xMin;
             cfg.xMax            = xMax;
             cfg.yMin            = yMin;
@@ -158,6 +163,32 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_grid_finalize_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the coordinate system used to define the domain.
+     *
+     * \param system   The pointer whose variable will store the system type
+     * \return The milhoja error code
+     */
+    int   milhoja_grid_coordinate_system_c(int* system) {
+        if (!system) {
+            std::cerr << "[milhoja_grid_coordinate_system_c] system is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            milhoja::Grid&      grid = milhoja::Grid::instance();
+            *system = static_cast<int>(grid.getCoordinateSystem());
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_coordinate_system_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS;
         }
 
         return MILHOJA_SUCCESS;
