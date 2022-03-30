@@ -82,13 +82,17 @@ Runtime-specific error codes
 Grid-specific error codes
 --------------------------------------------------------------------------------
 #endif
-#define MILHOJA_ERROR_UNABLE_TO_INIT_GRID            300
-#define MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID        301
-#define MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN          302
-#define MILHOJA_ERROR_UNABLE_TO_GET_BOUNDS           303
-#define MILHOJA_ERROR_UNABLE_TO_GET_LEVEL            304
-#define MILHOJA_ERROR_UNABLE_TO_GET_DELTAS           305
-#define MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE       306
+#define MILHOJA_ERROR_UNABLE_TO_INIT_GRID                  300
+#define MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID              301
+#define MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN                302
+#define MILHOJA_ERROR_UNABLE_TO_GET_BOUNDS                 303
+#define MILHOJA_ERROR_UNABLE_TO_GET_LEVEL                  304
+#define MILHOJA_ERROR_UNABLE_TO_GET_DELTAS                 305
+#define MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE             306
+#define MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE             307
+#define MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS           308
+#define MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS              309
+#define MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION   310
 
 #if 0
 --------------------------------------------------------------------------------
@@ -96,4 +100,16 @@ Tile-specific error codes
 --------------------------------------------------------------------------------
 #endif
 #define MILHOJA_ERROR_UNABLE_TO_GET_METADATA         400
+
+#if 0
+--------------------------------------------------------------------------------
+Iterator-specific error codes
+--------------------------------------------------------------------------------
+#endif
+#define MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR       500
+#define MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR     501
+#define MILHOJA_ERROR_UNABLE_TO_VALIDATE_ITERATOR    502
+#define MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR     503
+#define MILHOJA_ERROR_UNABLE_TO_ACQUIRE_TILE         504
+#define MILHOJA_ERROR_UNABLE_TO_RELEASE_TILE         505
 

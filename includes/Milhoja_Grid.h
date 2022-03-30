@@ -53,9 +53,14 @@ public:
     virtual void restrictAllLevels() = 0;
     virtual void fillGuardCells() = 0;
     virtual void updateGrid() = 0;
+    virtual unsigned int   getNGuardcells(void) const = 0;
+    virtual unsigned int   getNCcVariables(void) const = 0;
     virtual void           getBlockSize(unsigned int* nxb,
                                         unsigned int* nyb,
                                         unsigned int* nzb) const = 0;
+    virtual void           getDomainDecomposition(unsigned int* nBlocksX,
+                                                  unsigned int* nBlocksY,
+                                                  unsigned int* nBlocksZ) const = 0;
     virtual IntVect        getDomainLo(const unsigned int lev) const = 0;
     virtual IntVect        getDomainHi(const unsigned int lev) const = 0;
     virtual RealVect       getProbLo() const = 0;
@@ -64,6 +69,7 @@ public:
     virtual unsigned int   getMaxLevel() const = 0;
     virtual unsigned int   getNumberLocalBlocks() = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
+    virtual TileIter*                 buildTileIter_forFortran(const unsigned int lev) = 0;
     virtual void writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const = 0;
 

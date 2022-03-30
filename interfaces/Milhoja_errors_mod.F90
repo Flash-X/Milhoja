@@ -32,6 +32,10 @@ contains
             errorMsg = "Negative value given for cast to unsigned int"
         case (MILHOJA_ERROR_POINTER_IS_NULL)
             errorMsg = "Pointer is null"
+        case (MILHOJA_ERROR_POINTER_NOT_NULL)
+            errorMsg = "Pointer is *not* null"
+        case (MILHOJA_ERROR_STEP_NEGATIVE)
+            errorMsg = "Given step value is negative"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
             errorMsg = "Unable to initialize grid backend"
         case (MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID)
@@ -44,6 +48,30 @@ contains
             errorMsg = "Unable to get mesh deltas"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN)
             errorMsg = "Unable to initialize the domain"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE)
+            errorMsg = "Unable to get the block size in cells/edge"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION)
+            errorMsg = "Unable to get the block domain decomposition"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS)
+            errorMsg = "Unable to get the number of guardcells"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS)
+            errorMsg = "Unable to get the number of cell-centered variables"
+        case (MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE)
+            errorMsg = "Unable to write data to plotfile"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_METADATA)
+            errorMsg = "Unable to access tile metadata"
+        case (MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR)
+            errorMsg = "Unable to build an iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR)
+            errorMsg = "Unable to destroy given iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_VALIDATE_ITERATOR)
+            errorMsg = "Unable to validate the state of given iterator"
+        case (MILHOJA_ERROR_UNABLE_TO_ADVANCE_ITERATOR)
+            errorMsg = "Unable to advance given iterator to next tile"
+        case (MILHOJA_ERROR_UNABLE_TO_ACQUIRE_TILE)
+            errorMsg = "Unable to acquire iterators current tile"
+        case (MILHOJA_ERROR_UNABLE_TO_RELEASE_TILE)
+            errorMsg = "Unable to release iterators current tile"
         case DEFAULT
             errorMsg = "Unknown Milhoja error code"
         end select

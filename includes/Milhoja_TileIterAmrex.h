@@ -53,6 +53,14 @@ public:
         return std::unique_ptr<Tile>{ new TileAmrex(mfi_,mfRef_,lev_) };
     }
 
+    /** 
+     * Construct Tile for current index.  Calling code owns the object and is
+     * responsible for deleting it.
+     */
+    Tile* buildCurrentTile_forFortran(void) override {
+        return (new TileAmrex(mfi_, mfRef_, lev_));
+    }
+
 private:
     unsigned int lev_;       //!< Level of iterator.
     amrex::MFIter mfi_;      //!< MFIter that does the iterating.

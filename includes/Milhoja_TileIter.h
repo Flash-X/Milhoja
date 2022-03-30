@@ -32,9 +32,10 @@ public:
     TileIter& operator=(const TileIter&) = delete;
 
     // Pure virtual functions.
-    virtual bool isValid() const  = 0;
-    virtual void next() = 0;
-    virtual std::unique_ptr<Tile> buildCurrentTile() = 0;
+    virtual bool isValid(void) const  = 0;
+    virtual void next(void) = 0;
+    virtual std::unique_ptr<Tile> buildCurrentTile(void) = 0;
+    virtual Tile*                 buildCurrentTile_forFortran(void) = 0;
 
 private:
 };

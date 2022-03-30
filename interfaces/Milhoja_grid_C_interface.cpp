@@ -5,6 +5,8 @@
  * Fortran/C/C++ interoperability documentation.
  */
 
+#include <vector>
+#include <string>
 #include <iostream>
 
 #include <mpi.h>
@@ -342,6 +344,211 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_grid_init_domain_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the size of all blocks in the domain in terms of number of cells
+     * along each edge.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the values into the Fortran variables
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that n[xyz]b_ui don't have values so large that they overflow
+     * when cast to int.
+     *
+     * \param nxb   The variable whose value is set to the number of cells in
+     *              the block along the x axis.
+     * \param nyb   Along the y axis.
+     * \param nzb   Along the z axis.
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_block_size_c(int* nxb, int* nyb, int* nzb) {
+        using namespace milhoja;
+
+        if (!nxb || !nyb || !nzb) {
+            std::cerr << "[milhoja_grid_block_size_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nxb_ui = 0;
+            unsigned int   nyb_ui = 0;
+            unsigned int   nzb_ui = 0;
+
+            Grid::instance().getBlockSize(&nxb_ui, &nyb_ui, &nzb_ui);
+
+            *nxb = static_cast<int>(nxb_ui);
+            *nyb = static_cast<int>(nyb_ui);
+            *nzb = static_cast<int>(nzb_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_block_size_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the block domain decomposition of the coarsest level.
+     *
+     * \todo Can we put into the C++ code a routine that just takes
+     * pointers?  Ideally the pointers could go all the way to the grid
+     * backend and the backend could set the values into the Fortran variables
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nBlocks[XYZ]_ui don't have values so large that they
+     * overflow when cast to int.
+     *
+     * \param nBlocksX   The pointer whose variable is set to the number of blocks
+     *                   along the x axis of the coarsest level.
+     * \param nBlocksY   Along the y axis.
+     * \param nBlocksZ   Along the z axis.
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_domain_decomposition_c(int* nBlocksX,
+                                               int* nBlocksY,
+                                               int* nBlocksZ) {
+        using namespace milhoja;
+
+        if (!nBlocksX || !nBlocksY || !nBlocksZ) {
+            std::cerr << "[milhoja_grid_domain_decomposition_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nBlocksX_ui = 0;
+            unsigned int   nBlocksY_ui = 0;
+            unsigned int   nBlocksZ_ui = 0;
+
+            Grid::instance().getDomainDecomposition(&nBlocksX_ui,
+                                                    &nBlocksY_ui,
+                                                    &nBlocksZ_ui);
+
+            *nBlocksX = static_cast<int>(nBlocksX_ui);
+            *nBlocksY = static_cast<int>(nBlocksY_ui);
+            *nBlocksZ = static_cast<int>(nBlocksZ_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_domain_decomposition_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the number of guardcells for the blocks.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the value into the Fortran variable
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nGuardcells_ui doesn't have a value so large that it
+     * overflows when cast to int.
+     *
+     * \param nGuardcells   The variable whose value is set to the number of
+     *                      guardcells
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_n_guardcells_c(int* nGuardcells) {
+        using namespace milhoja;
+
+        if (!nGuardcells) {
+            std::cerr << "[milhoja_grid_n_guardcells_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nGuardcells_ui = 0;
+
+            nGuardcells_ui = Grid::instance().getNGuardcells();
+
+            *nGuardcells = static_cast<int>(nGuardcells_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_n_guardcells_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the number of cell-centered variables stored in each block.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the value into the Fortran variable
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nCcVars_ui doesn't have a value so large that it
+     * overflows when cast to int.
+     *
+     * \param nCcVars   The variable whose value is set to the number of
+     *                  variables
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_n_cc_variables_c(int* nCcVars) {
+        using namespace milhoja;
+
+        if (!nCcVars) {
+            std::cerr << "[milhoja_grid_n_cc_variables_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nCcVars_ui = 0;
+
+            nCcVars_ui = Grid::instance().getNCcVariables();
+
+            *nCcVars = static_cast<int>(nCcVars_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_n_cc_variables_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * \todo Allow calling code to specify filename.  No need for step in that
+     *       case.
+     */
+    int   milhoja_grid_write_plotfile_c(const int step) {
+        if (step < 0) {
+            std::cerr << "[milhoja_grid_write_plotfile_c] Step is negative" << std::endl;
+            return MILHOJA_ERROR_STEP_NEGATIVE;
+        }
+
+        try {
+            std::string    filename = "milhoja_plt_" + std::to_string(step);
+
+            milhoja::Grid&    grid = milhoja::Grid::instance();
+
+            std::vector<std::string>   names{grid.getNCcVariables()};
+            for (auto n=0; n<names.size(); ++n) {
+                names[n] = "var" + std::to_string(n + 1);
+            }
+
+            grid.writePlotfile(filename, names);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_write_plotfile_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
         }
 
         return MILHOJA_SUCCESS;
