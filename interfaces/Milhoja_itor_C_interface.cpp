@@ -65,16 +65,8 @@ extern "C" {
         }
         milhoja::TileIter*   toDelete = static_cast<milhoja::TileIter*>(itor);
 
-        try {
-            delete toDelete;
-            toDelete = nullptr;
-        } catch (const std::exception& exc) {
-            std::cerr << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR;
-        } catch (...) {
-            std::cerr << "[milhoja_itor_destroy_c] Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR;
-        }
+        delete toDelete;
+        toDelete = nullptr;
 
         return MILHOJA_SUCCESS;
     }
@@ -137,44 +129,69 @@ extern "C" {
     }
 
     /**
-     * Obtain the minimal set of metadata for the current tile.
+     * Obtain a pointer to the tile object that is currently indexed by the
+     * iterator.
      *
-     * \todo Can we make a Fortran version that will accept the C pointers
-     * directly and set the values under the hood?  If so, then the routine
-     * could set the data directly into the Fortran variable.  Doing this now
-     * would be premature optimization.
+     * As part of this, resources for the tile object are allocated dynamically.
+     * The calling code therefore takes ownership of the tile and its resources
+     * and is responsible for releasing the tile and its resources.
+     *
+     * It is intended that Fortran calling code acquire the tile pointer, use
+     * the pointer to access all of the tile's metadata, cache the metadata, and
+     * immediately release the tile/tile resources.
      *
      * \param  itor   The pointer to the iterator.
+     * \param  tile   The variable associated with this pointer will be set to
+     *                the pointer to the current tile.
      * \return The milhoja error code
      */
-    int    milhoja_itor_current_tile_metadata_c(void* itor) {
+    int    milhoja_itor_acquire_current_tile_c(void* itor, void** tile) {
         if (!itor) {
-            std::cerr << "[milhoja_itor_current_tile_metadata_c] Pointer not allocated" << std::endl;
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] Pointer not allocated" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL; 
+        } else if (*tile) {
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] Pointer *not* null" << std::endl;
+            return MILHOJA_ERROR_POINTER_NOT_NULL; 
         }
         milhoja::TileIter*   MH_itor = static_cast<milhoja::TileIter*>(itor);
 
         try {
-            std::unique_ptr<milhoja::Tile>   tileDesc = MH_itor->buildCurrentTile();
-            unsigned int        gridIndex = tileDesc->gridIndex();
-            milhoja::IntVect    lo        = tileDesc->lo();
-            milhoja::IntVect    hi        = tileDesc->hi();
-            std::cout << "Tile " << gridIndex << "\n";
-            std::cout << "   lo = ("
-                      << lo[0] << ", "
-                      << lo[1] << ", "
-                      << lo[2] << ")\n";
-            std::cout << "   hi = ("
-                      << hi[0] << ", "
-                      << hi[1] << ", "
-                      << hi[2] << ")" << std::endl;
+            *tile = static_cast<void*>(MH_itor->buildCurrentTile_forFortran());
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_TILE_METADATA;
+            return MILHOJA_ERROR_UNABLE_TO_ACQUIRE_TILE;
         } catch (...) {
-            std::cerr << "[milhoja_itor_current_tile_metadata_c] Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_GET_TILE_METADATA;
+            std::cerr << "[milhoja_itor_acquire_current_tile_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_ACQUIRE_TILE;
         }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Release the resources associated with the tile as well as the tile
+     * itself.  Refer to the documentation for
+     * milhoja_itor_acquire_current_tile_c for more information.
+     *
+     * Note that the tile resource management scheme is different when tiles are
+     * accessed directly in Fortran using the iterator compared to tile access
+     * via the runtime.  It was decided to put this release mechanism in the
+     * iterator (as opposed to tile) since ownership of tile resources is
+     * assumed only using the iterator - routines in this interface get the
+     * access, therefore releasing should also be only in this interface.
+     *
+     * \param tile   The tile to release
+     * \return The milhoja error code
+     */
+    int    milhoja_itor_release_current_tile_c(void* tile) {
+        if (!tile) {
+            std::cerr << "[milhoja_itor_release_current_tile_c] Pointer not allocated" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL; 
+        }
+        milhoja::Tile*   toDelete = static_cast<milhoja::Tile*>(tile);
+
+        delete toDelete;
+        toDelete = nullptr;
 
         return MILHOJA_SUCCESS;
     }

@@ -5,6 +5,8 @@
  * Fortran/C/C++ interoperability documentation.
  */
 
+#include <vector>
+#include <string>
 #include <iostream>
 
 #include <mpi.h>
@@ -512,6 +514,38 @@ extern "C" {
         }
 
         *nCcVars = static_cast<int>(nCcVars_ui);
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * \todo Allow calling code to specify filename.  No need for step in that
+     *       case.
+     */
+    int   milhoja_grid_write_plotfile_c(const int step) {
+        if (step < 0) {
+            std::cerr << "[milhoja_grid_write_plotfile_c] Step is negative" << std::endl;
+            return MILHOJA_ERROR_STEP_NEGATIVE;
+        }
+
+        std::string    filename = "milhoja_plt_" + std::to_string(step);
+
+        try {
+            milhoja::Grid&    grid = milhoja::Grid::instance();
+
+            std::vector<std::string>   names{grid.getNCcVariables()};
+            for (auto n=0; n<names.size(); ++n) {
+                names[n] = "var" + std::to_string(n + 1);
+            }
+
+            grid.writePlotfile(filename, names);
+        } catch (const std::exception& exc) {
+            std::cerr << "[milhoja_grid_write_plotfile_c] " << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_write_plotfile_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE;
+        }
 
         return MILHOJA_SUCCESS;
     }

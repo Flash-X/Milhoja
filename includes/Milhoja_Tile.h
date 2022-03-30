@@ -32,10 +32,16 @@ public:
     virtual bool         isNull(void) const = 0;
     virtual int          gridIndex(void) const = 0;
     virtual unsigned int level(void) const = 0;
+    virtual unsigned int nVariables(void) const = 0;
     virtual IntVect      lo(void) const = 0;
     virtual IntVect      hi(void) const = 0;
     virtual IntVect      loGC(void) const = 0;
     virtual IntVect      hiGC(void) const = 0;
+    virtual void         lo(int* i, int* j, int* k) const = 0;
+    virtual void         hi(int* i, int* j, int* k) const = 0;
+    virtual void         loGC(int* i, int* j, int* k) const = 0;
+    virtual void         hiGC(int* i, int* j, int* k) const = 0;
+
     // TODO: Create readonly versions of these?
     virtual FArray4D     data(void) = 0;
     virtual Real*        dataPtr(void) = 0;

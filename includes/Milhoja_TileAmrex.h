@@ -41,11 +41,16 @@ public:
     bool           isNull(void) const override;
     int            gridIndex(void) const override { return gridIdx_; }
     unsigned int   level(void) const override { return level_; }
+    unsigned int   nVariables(void) const override { return nCcVars_; }
 
     IntVect        lo(void) const override;
     IntVect        hi(void) const override;
     IntVect        loGC(void) const override;
     IntVect        hiGC(void) const override;
+    void           lo(int* i, int* j, int* k) const override;
+    void           hi(int* i, int* j, int* k) const override;
+    void           loGC(int* i, int* j, int* k) const override;
+    void           hiGC(int* i, int* j, int* k) const override;
 
     FArray4D       data(void) override;
     Real*          dataPtr(void) override;
@@ -53,11 +58,12 @@ public:
 private:
     unsigned int  level_;    /**< 0-based level of Tile */
     int           gridIdx_;  /**< Index into multifab */
-    amrex::Box*   interior_; /**< Box of tile */
-    amrex::Box*   GC_;       /**< Grown box of tile */
-
-    // TODO Remove this once AMReX is extracted from Grid and Tile base classes?
-    amrex::MultiFab&   unkRef_; /**< Ref to multifab with physical data */
+    unsigned int  nCcVars_;  /**< Number of variables in UNK */
+    Real*         dataPtr_;
+    int           lo_[MILHOJA_MDIM];
+    int           hi_[MILHOJA_MDIM];
+    int           loGC_[MILHOJA_MDIM];
+    int           hiGC_[MILHOJA_MDIM];
 };
 
 

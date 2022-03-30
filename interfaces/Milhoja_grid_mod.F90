@@ -25,6 +25,7 @@ module milhoja_grid_mod
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_initDomain
+    public :: milhoja_grid_writePlotfile
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
@@ -187,6 +188,14 @@ module milhoja_grid_mod
             type(C_FUNPTR),      intent(IN), value :: C_initBlockPtr
             integer(MILHOJA_INT)                   :: C_ierr
         end function milhoja_grid_init_domain_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_write_plotfile_C(C_step) result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(IN), value :: C_step
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_grid_write_plotfile_C
     end interface
 
 contains
@@ -489,6 +498,25 @@ contains
 
         ierr = milhoja_grid_n_cc_variables_C(nCcVars_CPTR)
     end subroutine milhoja_grid_getNCcVariables
+
+
+    !> Write the contents of the solution to file.  It is intended that this
+    !! routine only be used for development, testing, and debugging.
+    !!
+    !! Refer to the code to determine the format of the created file.
+    !! The data is written to a file name
+    !!                         milhoja_plt_<nstep>
+    !!
+    !! \todo Calling code should pass in the full filename and not the step
+    !! 
+    !! \param step   The number of the timestep associated with the data
+    !! \param ierr   The milhoja error code
+    subroutine milhoja_grid_writePlotfile(step, ierr)
+        integer(MILHOJA_INT), intent(IN)  :: step
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_write_plotfile_C(step)
+    end subroutine milhoja_grid_writePlotfile
 
 end module milhoja_grid_mod
 
