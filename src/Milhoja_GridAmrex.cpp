@@ -63,6 +63,23 @@ GridAmrex::GridAmrex(void)
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
+
+        bcs_.resize(1);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            if        (cfg.loBCs[i] == BCs::Periodic) {
+                bcs_[0].setLo(i, amrex::BCType::int_dir);
+            } else if (cfg.loBCs[i] == BCs::External) {
+//                bcs_[0].setLo(i, amrex::BCType::ext_dir);
+                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            }
+            if        (cfg.hiBCs[i] == BCs::Periodic) {
+                bcs_[0].setHi(i, amrex::BCType::int_dir);
+            } else if (cfg.hiBCs[i] == BCs::External) {
+//                bcs_[0].setHi(i, amrex::BCType::ext_dir);
+                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            }
+        }
+
         cfg.clear();
     }
 
@@ -89,13 +106,6 @@ GridAmrex::GridAmrex(void)
 
     // Allocate and resize unk_
     unk_.resize(max_level+1);
-
-    // Set periodic Boundary conditions
-    bcs_.resize(1);
-    for(int i=0; i<MILHOJA_NDIM; ++i) {
-        bcs_[0].setLo(i, amrex::BCType::int_dir);
-        bcs_[0].setHi(i, amrex::BCType::int_dir);
-    }
 
     //----- LOG GRID CONFIGURATION INFORMATION
     int size = -1;
@@ -148,6 +158,34 @@ GridAmrex::GridAmrex(void)
           + std::to_string(domainHi[Axis::K]) + ")";
     logger.log(msg);
 #endif
+
+    msg = "[GridAmrex] Boundary Conditions Handling";
+    logger.log(msg);
+    for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+        if        (i == Axis::I) {
+            msg = "[GricAmrex] X-axis ";
+        } else if (i == Axis::J) {
+            msg = "[GricAmrex] Y-axis ";
+        } else if (i == Axis::K) {
+            msg = "[GricAmrex] Z-axis ";
+        }
+
+        if        (bcs_[0].lo(i) == amrex::BCType::int_dir) {
+            logger.log(msg + "lo = Periodic");
+        } else if (bcs_[0].lo(i) == amrex::BCType::ext_dir) {
+            logger.log(msg + "lo = External");
+        } else {
+            throw std::logic_error("[GridAmrex::GridAmrex] Invalid lo AMReX BC type");
+        }
+
+        if        (bcs_[0].hi(i) == amrex::BCType::int_dir) {
+            logger.log(msg + "hi = Periodic");
+        } else if (bcs_[0].hi(i) == amrex::BCType::ext_dir) {
+            logger.log(msg + "hi = External");
+        } else {
+            throw std::logic_error("[GridAmrex::GridAmrex] Invalid hi AMReX BC type");
+        }
+    }
 
     msg =   "[GridAmrex] Maximum Finest Level = "
           + std::to_string(max_level);

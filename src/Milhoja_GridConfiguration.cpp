@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Milhoja_Logger.h"
+#include "Milhoja_axis.h"
 
 #ifdef MILHOJA_GRID_AMREX
 #include "Milhoja_GridConfigurationAMReX.h"
@@ -87,6 +88,12 @@ void GridConfiguration::clear(void) {
     yMax            =  0.0;
     zMin            =  1.0;
     zMax            =  0.0;
+    loBCs[Axis::I]  = BCs::Periodic;
+    loBCs[Axis::J]  = BCs::Periodic;
+    loBCs[Axis::K]  = BCs::Periodic;
+    hiBCs[Axis::I]  = BCs::Periodic;
+    hiBCs[Axis::J]  = BCs::Periodic;
+    hiBCs[Axis::K]  = BCs::Periodic;
     nCcVars         =  0;
     nxb             =  0; 
     nyb             =  0; 

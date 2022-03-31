@@ -23,14 +23,13 @@
  * Grid initialization.  Indeed, it is recommended that the creation and
  * population of this singleton be included in a curly brace block so that
  * application code outside the block cannot access the singleton.
- *
- * \todo Add in boundary conditions
  */
 
 #include <mpi.h>
 
 #include "Milhoja_real.h"
 #include "Milhoja_coordinateSystem.h"
+#include "Milhoja_boundaryConditions.h"
 #include "Milhoja_actionRoutine.h"
 
 namespace milhoja {
@@ -58,6 +57,8 @@ public:
     unsigned int                    nCcVars;
 
     // Boundary Conditions
+    BCs                             loBCs[MILHOJA_MDIM];
+    BCs                             hiBCs[MILHOJA_MDIM];
 
     // Specification of Domain Decomposition
     unsigned int                    nGuard;

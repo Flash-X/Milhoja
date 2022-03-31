@@ -13,6 +13,7 @@
 
 #include "Milhoja.h"
 #include "Milhoja_coordinateSystem.h"
+#include "Milhoja_boundaryConditions.h"
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
 #include "Milhoja_Grid.h"
@@ -50,6 +51,10 @@ extern "C" {
      * \param yMax                 See yMin
      * \param zMin                 Define the physical domain in Z as [zMin, zMax]
      * \param zMax                 See zMin
+     * \param loBCs                Indicate how BCs should be handled at each of
+     *                             the low domain faces.  See Milhoja.h for
+     *                             valid values.
+     * \param hiBCs                High face version of loBCs
      * \param nxb                  The number of cells along X in each block in the
      *                             domain decomposition
      * \param nyb                  The number of cells along Y in each block in the
@@ -74,6 +79,7 @@ extern "C" {
                                const milhoja::Real xMin, const milhoja::Real xMax,
                                const milhoja::Real yMin, const milhoja::Real yMax,
                                const milhoja::Real zMin, const milhoja::Real zMax,
+                               const int* loBCs, const int* hiBCs,
                                const int nxb, const int nyb, const int nzb,
                                const int nBlocksX,
                                const int nBlocksY,
@@ -88,6 +94,9 @@ extern "C" {
             || (maxRefinementLevel < 0) || (nGuard < 0) || (nCcVars < 0)) {
             std::cerr << "[milhoja_grid_init_c] Invalid configuration value" << std::endl;
             return MILHOJA_ERROR_NEGATIVE_VALUE_FOR_UINT;
+        } else if (!loBCs || !hiBCs) {
+            std::cerr << "[milhoja_grid_init_c] BCs null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         unsigned int    nxb_ui                = static_cast<unsigned int>(nxb);
         unsigned int    nyb_ui                = static_cast<unsigned int>(nyb);
@@ -113,6 +122,10 @@ extern "C" {
             cfg.yMax            = yMax;
             cfg.zMin            = zMin;
             cfg.zMax            = zMax;
+            for (unsigned int i=0; i<MILHOJA_MDIM; ++i) {
+                cfg.loBCs[i] = static_cast<milhoja::BCs>(loBCs[i]);
+                cfg.hiBCs[i] = static_cast<milhoja::BCs>(hiBCs[i]);
+            }
             cfg.nxb             = nxb_ui;
             cfg.nyb             = nyb_ui;
             cfg.nzb             = nzb_ui;

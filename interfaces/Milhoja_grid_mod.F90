@@ -72,12 +72,13 @@ module milhoja_grid_mod
                                      C_xMin, C_xMax,                     &
                                      C_yMin, C_yMax,                     &
                                      C_zMin, C_zMax,                     &
+                                     C_loBCs, C_hiBCs,                   &
                                      C_nxb, C_nyb, C_nzb,                &
                                      C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
                                      C_maxRefinementLevel,               &
                                      C_nGuard, C_nCcVars,                &
                                      C_errorEst) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_FUNPTR
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use mpi,               ONLY : MPI_INTEGER_KIND
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_REAL
             implicit none
@@ -87,6 +88,7 @@ module milhoja_grid_mod
             real(MILHOJA_REAL),        intent(IN), value :: C_xMin, C_xMax
             real(MILHOJA_REAL),        intent(IN), value :: C_yMin, C_yMax
             real(MILHOJA_REAL),        intent(IN), value :: C_zMin, C_zMax
+            type(C_PTR),               intent(IN), value :: C_loBCs, C_hiBCs
             integer(MILHOJA_INT),      intent(IN), value :: C_nxb, C_nyb, C_nzb
             integer(MILHOJA_INT),      intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
             integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
@@ -228,6 +230,10 @@ contains
     !! @param yMax                 See yMin
     !! @param zMin                 Define the physical domain in Z as [zMin, zMax]
     !! @param zMax                 See zMin
+    !! @param loBCs                Indicate how BCs should be handled at each of
+    !!                             the low domain faces.  See Milhoja.h for
+    !!                             valid values.
+    !! @param hiBCs                High-face version of loBCs.
     !! @param nxb                  The number of cells along X in each block in the
     !!                             domain decomposition
     !! @param nyb                  The number of cells along Y in each block in the
@@ -250,6 +256,7 @@ contains
                                  xMin, xMax,                   &
                                  yMin, yMax,                   &
                                  zMin, zMax,                   &
+                                 loBCs, hiBCs,                 &
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
@@ -257,7 +264,9 @@ contains
                                  errorEst,                     &
                                  ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
-                                  C_FUNLOC
+                                  C_FUNLOC, &
+                                  C_PTR, &
+                                  C_LOC
 
         use mpi,           ONLY : MPI_INTEGER_KIND
 
@@ -267,6 +276,8 @@ contains
         real(MILHOJA_REAL),                      intent(IN)  :: xMin, xMax
         real(MILHOJA_REAL),                      intent(IN)  :: yMin, yMax
         real(MILHOJA_REAL),                      intent(IN)  :: zMin, zMax
+        integer(MILHOJA_INT), target,            intent(IN)  :: loBCs(1:MILHOJA_MDIM)
+        integer(MILHOJA_INT), target,            intent(IN)  :: hiBCs(1:MILHOJA_MDIM)
         integer(MILHOJA_INT),                    intent(IN)  :: nxb, nyb, nzb
         integer(MILHOJA_INT),                    intent(IN)  :: nBlocksX, nBlocksY, nBlocksZ
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
@@ -275,8 +286,12 @@ contains
         procedure(milhoja_errorEstimateCallback)             :: errorEst
         integer(MILHOJA_INT),                    intent(OUT) :: ierr
 
+        type(C_PTR)    :: loBCs_Cptr
+        type(C_PTR)    :: hiBCs_Cptr
         type(C_FUNPTR) :: errorEst_Cptr
 
+        loBCs_Cptr     = C_LOC(loBCs)
+        hiBCs_Cptr     = C_LOC(hiBCs)
         errorEst_Cptr  = C_FUNLOC(errorEst)
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
@@ -284,6 +299,7 @@ contains
                                    xMin, xMax,                   &
                                    yMin, yMax,                   &
                                    zMin, zMax,                   &
+                                   loBCs_Cptr, hiBCs_Cptr,       &
                                    nxb, nyb, nzb,                &
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &

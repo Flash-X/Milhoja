@@ -38,7 +38,22 @@ void GridConfigurationAMReX::load(void) const {
     }
 
     amrex::ParmParse    ppGeo("geometry");
-    ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
+
+    std::vector<int>   isPeriodic(MILHOJA_MDIM, 0);
+    for (unsigned int i=0; i<MILHOJA_MDIM; ++i) {
+        if        (   (loBCs[i] != BCs::Periodic)
+                   && (loBCs[i] != BCs::External)) {
+            throw std::invalid_argument("[GridConfirmationAMReX::load] Invalid low BC");
+        } else if (   (hiBCs[i] != BCs::Periodic)
+                   && (hiBCs[i] != BCs::External)) {
+            throw std::invalid_argument("[GridConfirmationAMReX::load] Invalid high BC");
+        } else if (   (loBCs[i] == BCs::Periodic)
+                   && (hiBCs[i] == BCs::Periodic)) {
+            isPeriodic[i] = 1;
+        } 
+    }
+    ppGeo.addarr("is_periodic", isPeriodic);
+
     switch (coordSys) {
     case CoordSys::Cartesian:
         ppGeo.add("coord_sys", amrex::CoordSys::CoordType::cartesian);
