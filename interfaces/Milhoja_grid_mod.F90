@@ -30,6 +30,7 @@ module milhoja_grid_mod
     public :: milhoja_grid_getDomainDecomposition
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
+    public :: milhoja_grid_getNFluxVariables
     public :: milhoja_grid_initDomain
     public :: milhoja_grid_fillGuardCells
     public :: milhoja_grid_writePlotfile
@@ -82,7 +83,7 @@ module milhoja_grid_mod
                                      C_nxb, C_nyb, C_nzb,                &
                                      C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
                                      C_maxRefinementLevel,               &
-                                     C_nGuard, C_nCcVars,                &
+                                     C_nGuard, C_nCcVars, C_nFluxVars,   &
                                      C_errorEst) result(C_ierr) bind(c)
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use mpi,               ONLY : MPI_INTEGER_KIND
@@ -100,6 +101,7 @@ module milhoja_grid_mod
             integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
             integer(MILHOJA_INT),      intent(IN), value :: C_nGuard
             integer(MILHOJA_INT),      intent(IN), value :: C_nCcVars
+            integer(MILHOJA_INT),      intent(IN), value :: C_nFluxVars
             type(C_FUNPTR),            intent(IN), value :: C_errorEst
             integer(MILHOJA_INT)                         :: C_ierr
         end function milhoja_grid_init_C
@@ -195,6 +197,14 @@ module milhoja_grid_mod
         end function milhoja_grid_n_cc_variables_C
 
         !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_n_flux_variables_C(C_nFluxVars) result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(OUT) :: C_nFluxVars
+            integer(MILHOJA_INT)              :: C_ierr
+        end function milhoja_grid_n_flux_variables_C
+
+        !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_init_domain_C(C_initBlockPtr) result(C_ierr) &
                                             bind(c)
             use iso_c_binding,     ONLY : C_FUNPTR
@@ -273,7 +283,7 @@ contains
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
-                                 nGuard, nCcVars,              &
+                                 nGuard, nCcVars, nFluxVars,   &
                                  errorEst,                     &
                                  ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
@@ -296,6 +306,7 @@ contains
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
         integer(MILHOJA_INT),                    intent(IN)  :: nGuard
         integer(MILHOJA_INT),                    intent(IN)  :: nCcVars
+        integer(MILHOJA_INT),                    intent(IN)  :: nFluxVars
         procedure(milhoja_errorEstimateCallback)             :: errorEst
         integer(MILHOJA_INT),                    intent(OUT) :: ierr
 
@@ -316,7 +327,7 @@ contains
                                    nxb, nyb, nzb,                &
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &
-                                   nGuard, nCcVars,              &
+                                   nGuard, nCcVars, nFluxVars,   &
                                    errorEst_Cptr)
     end subroutine milhoja_grid_init
 
@@ -506,7 +517,7 @@ contains
 
     !> Obtain the number of cell-centered variables associated with each block.
     !!
-    !! @param nCcVars    The number of guardcells
+    !! @param nCcVars    The number of variables
     !! @param ierr  The milhoja error code
     subroutine milhoja_grid_getNCcVariables(nCcVars, ierr)
         integer(MILHOJA_INT), intent(OUT) :: nCcVars
@@ -514,6 +525,17 @@ contains
 
         ierr = milhoja_grid_n_cc_variables_C(nCcVars)
     end subroutine milhoja_grid_getNCcVariables
+
+    !> Obtain the number of flux variables associated with each block.
+    !!
+    !! @param nFluxVars    The number of variables
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getNFluxVariables(nFluxVars, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: nFluxVars
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_n_flux_variables_C(nFluxVars)
+    end subroutine milhoja_grid_getNFluxVariables
 
     !> Write the contents of the solution to file.  It is intended that this
     !! routine only be used for development, testing, and debugging.

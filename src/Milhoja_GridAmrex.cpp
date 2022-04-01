@@ -53,6 +53,7 @@ GridAmrex::GridAmrex(void)
       nzb_{GridConfiguration::instance().nzb},
       nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
+      nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
       errorEst_{GridConfiguration::instance().errorEstimation},
       initBlock_noRuntime_{nullptr},
       initCpuAction_{}
@@ -197,6 +198,10 @@ GridAmrex::GridAmrex(void)
 
     msg =   "[GridAmrex] N Cell-centered Variables = "
           + std::to_string(nCcVars_);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Flux Variables = "
+          + std::to_string(nFluxVars_);
     logger.log(msg);
 
 #if   MILHOJA_NDIM == 1

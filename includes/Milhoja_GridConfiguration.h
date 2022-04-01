@@ -59,6 +59,7 @@ public:
 
     // Specification of Problem Physical Variables
     unsigned int                    nCcVars;
+    unsigned int                    nFluxVars;
 
     // Boundary Conditions
     BCs                             loBCs[MILHOJA_MDIM];

@@ -95,6 +95,7 @@ void GridConfiguration::clear(void) {
     hiBCs[Axis::J]  = BCs::Periodic;
     hiBCs[Axis::K]  = BCs::Periodic;
     nCcVars         =  0;
+    nFluxVars       =  0;
     nxb             =  0; 
     nyb             =  0; 
     nzb             =  0; 

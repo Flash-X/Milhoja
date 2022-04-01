@@ -68,6 +68,7 @@ extern "C" {
      *                             permitted at any time during the simulation
      * \param nGuard               The number of guardcells
      * \param nCcVars              The number of physical variables in the solution
+     * \param nFluxVars            The number of flux variables needed
      * \param errorEst             Procedure that is used to assess if a block should
      *                             be refined, derefined, or stay at the same
      *                             refinement
@@ -85,13 +86,15 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int maxRefinementLevel,
-                               const int nGuard, const int nCcVars,
+                               const int nGuard,
+                               const int nCcVars, const int nFluxVars,
                                milhoja::ERROR_ROUTINE errorEst) {
         MPI_Comm    globalComm = MPI_Comm_f2c(globalCommF);
 
         if (   (nxb      < 0) || (nyb      < 0) || (nzb      < 0) 
             || (nBlocksX < 0) || (nBlocksY < 0) || (nBlocksZ < 0)
-            || (maxRefinementLevel < 0) || (nGuard < 0) || (nCcVars < 0)) {
+            || (maxRefinementLevel < 0) || (nGuard < 0)
+            || (nCcVars < 0) || (nFluxVars < 0)) {
             std::cerr << "[milhoja_grid_init_c] Invalid configuration value" << std::endl;
             return MILHOJA_ERROR_NEGATIVE_VALUE_FOR_UINT;
         } else if (!loBCs || !hiBCs) {
@@ -107,6 +110,7 @@ extern "C" {
         unsigned int    maxRefinementLevel_ui = static_cast<unsigned int>(maxRefinementLevel);
         unsigned int    nGuard_ui             = static_cast<unsigned int>(nGuard);
         unsigned int    nCcVars_ui            = static_cast<unsigned int>(nCcVars);
+        unsigned int    nFluxVars_ui          = static_cast<unsigned int>(nFluxVars);
 
         try {
             milhoja::Logger::initialize("milhoja.log", globalComm, logRank);
@@ -130,6 +134,7 @@ extern "C" {
             cfg.nyb             = nyb_ui;
             cfg.nzb             = nzb_ui;
             cfg.nCcVars         = nCcVars_ui;
+            cfg.nFluxVars       = nFluxVars_ui;
             cfg.nGuard          = nGuard_ui;
             cfg.nBlocksX        = nBlocksX_ui;
             cfg.nBlocksY        = nBlocksY_ui;
@@ -598,6 +603,43 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_grid_n_cc_variables_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the number of flux variables.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the value into the Fortran variable
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nFluxVars_ui doesn't have a value so large that it
+     * overflows when cast to int.
+     *
+     * \param nFluxVars   The variable whose value is set to the number of
+     *                    variables
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_n_flux_variables_c(int* nFluxVars) {
+        if (!nFluxVars) {
+            std::cerr << "[milhoja_grid_n_flux_variables_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nFluxVars_ui = 0;
+
+            nFluxVars_ui = milhoja::Grid::instance().getNFluxVariables();
+
+            *nFluxVars = static_cast<int>(nFluxVars_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_n_flux_variables_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS;
         }
 
         return MILHOJA_SUCCESS;

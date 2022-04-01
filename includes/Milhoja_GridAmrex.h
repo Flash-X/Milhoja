@@ -59,6 +59,7 @@ public:
     void         updateGrid(void) override { amrex::AmrCore::regrid(0, 0.0_wp); }
     unsigned int getNGuardcells(void) const override { return nGuard_; }
     unsigned int getNCcVariables(void) const override { return nCcVars_; }
+    unsigned int getNFluxVariables(void) const override { return nFluxVars_; }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
@@ -160,6 +161,7 @@ private:
     // them as ints.  Therefore, we will eagerly cast and store these results.
     const int   nGuard_;
     const int   nCcVars_;
+    const int   nFluxVars_;
 
     ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
 
