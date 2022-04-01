@@ -6,6 +6,11 @@
 !!
 !! @todo Build out full interface including iterator, AMR functionality,
 !!       and flux correction.
+!! @todo Some of these routines take arrays of length MDIM.  However, some
+!!       Fortran applications might only work with length NDIM arrays.
+!!       Therefore, this layer should be designed/implemented assuming at least
+!!       NDIM, but possibly up to MDIM (if possible).  This will possibly be
+!!       left until someone actually needs this (if ever).
 module milhoja_grid_mod
     use milhoja_types_mod, ONLY : MILHOJA_INT, &
                                   MILHOJA_REAL
@@ -26,6 +31,7 @@ module milhoja_grid_mod
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_initDomain
+    public :: milhoja_grid_fillGuardCells
     public :: milhoja_grid_writePlotfile
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
@@ -205,6 +211,13 @@ module milhoja_grid_mod
             integer(MILHOJA_INT), intent(IN), value :: C_step
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_grid_write_plotfile_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_fill_guardcells_C() result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT) :: C_ierr
+        end function milhoja_grid_fill_guardcells_C
     end interface
 
 contains
@@ -437,6 +450,11 @@ contains
     !> Obtain the size of each block in the domain in terms of the number of
     !! cells along each edge.
     !!
+    !! NOTE: This routine does not presume to know what values to set for
+    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! for setting or ignoring such data.  This routine will not alter or
+    !! overwrite such variables.
+    !!
     !! @param nxb   The number of cells along the x axis
     !! @param nyb   The number of cells along the y axis
     !! @param nzb   The number of cells along the z axis
@@ -451,6 +469,11 @@ contains
     end subroutine milhoja_grid_getBlockSize
 
     !> Obtain the domain decomposition of the coarsest level.
+    !!
+    !! NOTE: This routine does not presume to know what values to set for
+    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! for setting or ignoring such data.  This routine will not alter or
+    !! overwrite such variables.
     !!
     !! @param nBlocksX   The number of blocks along the x axis
     !! @param nBlocksY   The number of blocks along the y axis
@@ -509,6 +532,15 @@ contains
 
         ierr = milhoja_grid_write_plotfile_C(step)
     end subroutine milhoja_grid_writePlotfile
+
+    !>
+    !!
+    !!
+    subroutine milhoja_grid_fillGuardCells(ierr)
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_fill_guardcells_C()
+    end subroutine milhoja_grid_fillGuardCells
 
 end module milhoja_grid_mod
 

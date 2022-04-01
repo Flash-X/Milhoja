@@ -8,6 +8,9 @@
  * \todo Can we get the total cells in the domain from AMReX?  If so, then using
  * this and the block size, we can get nBlocks[XYZ].  It think that these values
  * are only used for printing out the config as well.
+ * \todo For NDIM < 3, we are storing garbage data in nzb_/nBlocksZ_, etc.  This 
+ * seems dangerous and unnecessary.  Change implementation so that we only store
+ * values that the library can control.
  */
 
 #ifndef MILHOJA_GRID_AMREX_H__

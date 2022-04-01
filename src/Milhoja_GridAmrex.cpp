@@ -440,34 +440,64 @@ void  GridAmrex::fillGuardCells() {
 
 /**
  * Obtain the size of the interior of all blocks.
+ *
+ * NOTE: This function does not presume to know what values to set for variables
+ * above MILHOJA_NDIM.  Therefore, calling code is responsible for setting or
+ * ignoring such data.  This routine will not alter or overwrite such variables.
  */
 void    GridAmrex::getBlockSize(unsigned int* nxb,
                                 unsigned int* nyb,
                                 unsigned int* nzb) const {
-    if (!nxb || !nyb || !nzb) {
-        std::string    msg = "[GridAmrex::getBlockSize] Invalid pointer";
+    if (!nxb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nxb null";
         throw std::invalid_argument(msg);
     }
-
     *nxb = nxb_;
+#if MILHOJA_NDIM >= 2
+    if (!nyb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nyb null";
+        throw std::invalid_argument(msg);
+    }
     *nyb = nyb_;
+#endif
+#if MILHOJA_NDIM == 3
+    if (!nzb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nzb null";
+        throw std::invalid_argument(msg);
+    }
     *nzb = nzb_;
+#endif
 }
 
 /**
  * Obtain the block decomposition of the domain on the coarsest level.
+ *
+ * NOTE: This function does not presume to know what values to set for variables
+ * above MILHOJA_NDIM.  Therefore, calling code is responsible for setting or
+ * ignoring such data.  This routine will not alter or overwrite such variables.
  */
 void    GridAmrex::getDomainDecomposition(unsigned int* nBlocksX,
                                           unsigned int* nBlocksY,
                                           unsigned int* nBlocksZ) const {
-    if (!nBlocksX || !nBlocksY || !nBlocksZ) {
-        std::string    msg = "[GridAmrex::getDomainDecomposition] Invalid pointer";
+    if (!nBlocksX) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksX null";
         throw std::invalid_argument(msg);
     }
-
     *nBlocksX = nBlocksX_;
+#if MILHOJA_NDIM >= 2
+    if (!nBlocksY) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksY null";
+        throw std::invalid_argument(msg);
+    }
     *nBlocksY = nBlocksY_;
+#endif
+#if MILHOJA_NDIM == 3
+    if (!nBlocksZ) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksZ null";
+        throw std::invalid_argument(msg);
+    }
     *nBlocksZ = nBlocksZ_;
+#endif
 }
 
 /**
@@ -886,12 +916,15 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
 /**
   * \brief Make new level from scratch
   *
+  * Refinement/derefinement routines can choose to refine a block if they
+  * determine that there is poorly-refined data in the GC.  Therefore, this
+  * routine fills the GC after setting the ICs so that the data is immediately
+  * ready for ErrorEst.
+  *
   * \todo Simulations should be allowed to use the GPU for setting the ICs.
   * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
   * team configuration should be used.  If the GPU-only configuration is
   * allowed, then we should allow for more than one distributor thread.
-  * \todo Should this do a GC fill at the end?
-  * \todo Really necessary to zero data?  Check with Flash-X.
   * \todo Sanity check level value.
   *
   * \param level Level being made
@@ -919,6 +952,8 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
     } else {
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
+
+    fillPatch(unk_[level], level);
 
     std::string    msg =   "[GridAmrex] Created level "
                          + std::to_string(level) + " from scratch with "

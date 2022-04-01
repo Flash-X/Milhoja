@@ -23,6 +23,10 @@
  * Grid initialization.  Indeed, it is recommended that the creation and
  * population of this singleton be included in a curly brace block so that
  * application code outside the block cannot access the singleton.
+ *
+ * Configuration values that are associated with dimensioned variables above
+ * MILHOJA_NDIM are *not* validated and are ignored.  Calling code can,
+ * therefore, skip setting these values if so desired.
  */
 
 #include <mpi.h>

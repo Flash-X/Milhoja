@@ -397,6 +397,11 @@ extern "C" {
      * Obtain the size of all blocks in the domain in terms of number of cells
      * along each edge.
      *
+     * NOTE: This function does not presume to know what values to set for
+     * dimensions above MILHOJA_NDIM.  Therefore, calling code is responsible
+     * for setting or ignoring such data.  This function will not alter or
+     * overwrite such variables.
+     *
      * \todo Can we put into the C++ code a routine that just takes the
      * pointer?  Ideally that pointer could go all the way to the grid
      * backend and the backend could set the values into the Fortran variables
@@ -413,11 +418,6 @@ extern "C" {
     int    milhoja_grid_block_size_c(int* nxb, int* nyb, int* nzb) {
         using namespace milhoja;
 
-        if (!nxb || !nyb || !nzb) {
-            std::cerr << "[milhoja_grid_block_size_c] Invalid pointer" << std::endl;
-            return MILHOJA_ERROR_POINTER_IS_NULL;
-        }
-
         try {
             unsigned int   nxb_ui = 0;
             unsigned int   nyb_ui = 0;
@@ -425,9 +425,25 @@ extern "C" {
 
             Grid::instance().getBlockSize(&nxb_ui, &nyb_ui, &nzb_ui);
 
+            if (!nxb) {
+                std::cerr << "[milhoja_grid_block_size_c] nxb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nxb = static_cast<int>(nxb_ui);
+#if MILHOJA_NDIM >= 2
+            if (!nyb) {
+                std::cerr << "[milhoja_grid_block_size_c] nyb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nyb = static_cast<int>(nyb_ui);
+#endif
+#if MILHOJA_NDIM == 3
+            if (!nzb) {
+                std::cerr << "[milhoja_grid_block_size_c] nzb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nzb = static_cast<int>(nzb_ui);
+#endif
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
@@ -441,6 +457,11 @@ extern "C" {
 
     /**
      * Obtain the block domain decomposition of the coarsest level.
+     *
+     * NOTE: This function does not presume to know what values to set for
+     * dimensions above MILHOJA_NDIM.  Therefore, calling code is responsible
+     * for setting or ignoring such data.  This function will not alter or
+     * overwrite such variables.
      *
      * \todo Can we put into the C++ code a routine that just takes
      * pointers?  Ideally the pointers could go all the way to the grid
@@ -474,9 +495,25 @@ extern "C" {
                                                     &nBlocksY_ui,
                                                     &nBlocksZ_ui);
 
+            if (!nBlocksX) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksX null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksX = static_cast<int>(nBlocksX_ui);
+#if MILHOJA_NDIM >= 2
+            if (!nBlocksY) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksY null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksY = static_cast<int>(nBlocksY_ui);
+#endif
+#if MILHOJA_NDIM == 3
+            if (!nBlocksZ) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksZ null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksZ = static_cast<int>(nBlocksZ_ui);
+#endif
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
@@ -597,5 +634,22 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
     }
+
+    /**
+     *
+     */
+     int    milhoja_grid_fill_guardcells_c(void) {
+        try {
+            milhoja::Grid::instance().fillGuardCells();
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_FILL_GCS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_fill_guardcells_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_FILL_GCS;
+        }
+
+        return MILHOJA_SUCCESS;
+     }
 }
 
