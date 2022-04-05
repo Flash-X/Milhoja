@@ -110,10 +110,14 @@ private:
     // DEV NOTE: needed for polymorphic singleton
     friend Grid& Grid::instance();
 
+    //!< Assume that guardcells are not used when computing fluxes.
+    static constexpr   unsigned int NO_GC_FOR_FLUX = 0;
+
     void    fillPatch(amrex::MultiFab& mf, const int level);
 
-    std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
-    amrex::Vector<amrex::BCRec>  bcs_; //!< Boundary conditions
+    std::vector<amrex::MultiFab>                unk_;   //!< Physical data, one MF per level
+    std::vector<std::vector<amrex::MultiFab>>   fluxes_;  // Flux data
+    amrex::Vector<amrex::BCRec>                 bcs_;   //!< Boundary conditions
 
     //----- AMRCORE OVERRIDES
     void MakeNewLevelFromCoarse(int level, amrex::Real time,

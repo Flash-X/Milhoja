@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include "Milhoja.h"
-#include "Milhoja_macros.h"
 #include "Milhoja_axis.h"
 #include "Milhoja_real.h"
 

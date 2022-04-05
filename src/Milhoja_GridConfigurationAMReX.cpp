@@ -5,7 +5,7 @@
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParmParse.H>
 
-#include "Milhoja_macros.h"
+#include "Milhoja.h"
 #include "Milhoja_Logger.h"
 
 namespace milhoja {

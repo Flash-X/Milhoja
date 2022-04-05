@@ -1,15 +1,11 @@
 #include "Hydro.h"
 
-#include <Milhoja.h>
-
 #include "Sedov.h"
 
 void hy::updateSolutionHll(const milhoja::IntVect& lo,
                            const milhoja::IntVect& hi,
                            milhoja::FArray4D& U,
-                           const milhoja::FArray4D& flX,
-                           const milhoja::FArray4D& flY,
-                           const milhoja::FArray4D& flZ) {
+                           LIST_NDIM(const milhoja::FArray4D& flX, const milhoja::FArray4D& flY, const milhoja::FArray4D& flZ)) {
     using namespace milhoja;
 
 #ifdef EINT_VAR

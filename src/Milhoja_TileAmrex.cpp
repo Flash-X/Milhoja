@@ -1,12 +1,9 @@
 #ifdef DEBUG_RUNTIME
-#include <cstdio>
 #include <string>
 #endif
 
 #include "Milhoja.h"
 #include "Milhoja_TileAmrex.h"
-
-#include <AMReX_FArrayBox.H>
 
 #include "Milhoja_Logger.h"
 #include "Milhoja_Grid.h"
@@ -19,94 +16,50 @@ namespace milhoja {
  * Should be called from inside a Tile Iterator, specifically:
  * TileIterAmrex::buildCurrentTile. Initializes private members.
  *
- * \todo Include a single metadata routine that gets gId, level,
- *       lo/hi, and loGC/hiGC in one call?  This could replace the
- *       lo(int*), etc. calls.
- * \todo Acceptable to have no variables?  Accept zero
- *       here as a test for valid casting, but put a non-zero check in isNull?
+ * \todo Include a single metadata routine that gets gId, level, lo/hi, and
+ * loGC/hiGC in one call?  This could replace the lo(int*), etc. calls.
  *
- * \param itor An AMReX MFIter currently iterating.
- * \param unkRef A ref to the multifab being iterated over.
- * \param level Level of iterator.
+ * \param level      The 0-based refinement level of the tile
+ * \param gridIndex  The integer index for the block that contains the tile
+ * \param tileIndex  The local integer index for the tile in its block
+ * \param interior   The lo/hi global indices of the tile's interior cells
+ * \param dataArray  The lo/hi global indices of the tile's cell-centered data array
+ * \param unkFab     The FAB containing the cell-centered data at the given
+ *                   level
+ * \param fluxFabs   A vector of pointers to the FABs that store the
+ *                   face-centered flux data at the given level.  If there are
+ *                   no flux variables for the problem, this vector should be
+ *                   empty.  Otherwise, it should have MILHOJA_NDIM elements.
  */
-TileAmrex::TileAmrex(amrex::MFIter& itor,
-                     amrex::MultiFab& unkRef,
-                     const unsigned int level)
+TileAmrex::TileAmrex(const unsigned int level,
+                     const int gridIdx,
+                     const int tileIdx,
+                     const amrex::Box&& interior,
+                     const amrex::Box&& dataArray,
+                     amrex::FArrayBox& unkFab,
+                     std::vector<amrex::FArrayBox*>&& fluxFabs)
     : Tile{},
       level_{level},
-      gridIdx_{ itor.index() },
-      nCcVars_{0},
-      dataPtr_{nullptr}
+      gridIdx_{gridIdx},
+      tileIdx_{tileIdx},
+      interiorBox_{std::move(interior)},
+      dataArrayBox_{std::move(dataArray)},
+      unkFab_{unkFab},
+      fluxFabs_{std::move(fluxFabs)}
 {
-    amrex::FArrayBox& fab = unkRef[gridIdx_];
-    int   nComp = fab.nComp();
-    assert(nComp >= 0);
-    nCcVars_ = static_cast<unsigned int>(nComp);
-
-    amrex::Box   interior = itor.validbox();
-    amrex::Box   GC       = itor.fabbox();
-    const int*   loVect   = interior.loVect();
-    const int*   hiVect   = interior.hiVect();
-    const int*   loGCVect = GC.loVect();
-    const int*   hiGCVect = GC.hiVect();
-
-    dataPtr_ = static_cast<Real*>(fab.dataPtr());
-
-    lo_[0]   = loVect[0];
-    hi_[0]   = hiVect[0];
-    loGC_[0] = loGCVect[0];
-    hiGC_[0] = hiGCVect[0];
-#if MILHOJA_NDIM >= 2
-    lo_[1]   = loVect[1];
-    hi_[1]   = hiVect[1];
-    loGC_[1] = loGCVect[1];
-    hiGC_[1] = hiGCVect[1];
-#else
-    lo_[1]   = 0;
-    hi_[1]   = 0;
-    loGC_[1] = 0;
-    hiGC_[1] = 0;
-#endif
-#if MILHOJA_NDIM == 3
-    lo_[2]   = loVect[2];
-    hi_[2]   = hiVect[2];
-    loGC_[2] = loGCVect[2];
-    hiGC_[2] = hiGCVect[2];
-#else
-    lo_[2]   = 0;
-    hi_[2]   = 0;
-    loGC_[2] = 0;
-    hiGC_[2] = 0;
-#endif
-
-// DEBUG TOOLS: Setup tile-specific data without having
-//              to get too much data from AMReX.
-//    loGC_[0] = gridIdx_ + -4;
-//    loGC_[1] = gridIdx_ +  4;
-//    loGC_[2] = gridIdx_ + 12;
-//    lo_[0]   = gridIdx_ +  0;
-//    lo_[1]   = gridIdx_ +  8;
-//    lo_[2]   = gridIdx_ + 16;
-//    hi_[0]   = gridIdx_ +  7;
-//    hi_[1]   = gridIdx_ + 15;
-//    hi_[2]   = gridIdx_ + 23;
-//    hiGC_[0] = gridIdx_ + 11;
-//    hiGC_[1] = gridIdx_ + 19;
-//    hiGC_[2] = gridIdx_ + 27;
+    for (auto i=0; i<fluxFabs_.size(); ++i) {
+        if (!(fluxFabs_[i])) {
+            throw std::invalid_argument("Null flux FAB pointer");
+        }
+    }
+//    std::cout << fluxFabs_.size() << " flux FABs for tile " << gridIdx_
+//              << " on level " << level_ << std::endl;
 
 #ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::TileAmrex] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d) / dataPtr %p\n",
-           gridIdx_, this, level_, 
-             lo_[0],   lo_[1],   lo_[2],
-             hi_[0],   hi_[1],   hi_[2],
-           loGC_[0], loGC_[1], loGC_[2],
-           hiGC_[0], hiGC_[1], hiGC_[2],
-           dataPtr_);
-
-    std::string   msg = "[TileAmrex] Created Tile object "
-                  + std::to_string(gridIdx_)
-                  + " from MFIter";
+    std::string msg =   "[TileAmrex] Created Tile "
+                      + "(level="   + std::to_string(level_)
+                      + " / grid ID=" + std::to_string(gridIdx_)
+                      + " / tile ID=" + std::to_string(tileIdx_) + ")";
     Logger::instance().log(msg);
 #endif
 }
@@ -117,116 +70,29 @@ TileAmrex::TileAmrex(amrex::MFIter& itor,
  * Deletes/nullifies private members.
  */
 TileAmrex::~TileAmrex(void) {
-    dataPtr_ = nullptr;
 #ifdef DEBUG_RUNTIME
-    std::string msg = "[TileAmrex] Destroying Tile object "
-                      + std::to_string(gridIdx_);
+    std::string msg =   "[TileAmrex] Destroyed Tile "
+                      + "(level="   + std::to_string(level_)
+                      + " / grid ID=" + std::to_string(gridIdx_)
+                      + " / tile ID=" + std::to_string(tileIdx_) + ")";
     Logger::instance().log(msg);
 #endif
 }
 
-/**
- * \todo Is there a valid use case for creating null Tiles?
- * If so, best to put that motivation in the documentation.  After
- * changes, is this the correct definition of null?  Include asserts
- * that confirm that correct ordering between lo, hi, loGC, and hiGC?
- *
- * \brief Checks whether a Tile is null.
- */
-bool   TileAmrex::isNull(void) const {
-    return (   (gridIdx_ < 0) //TODO this is never true?
-            && (level_ == 0)
-            && (!dataPtr_)
-            && (nCcVars_ <= 0) );
+unsigned int    TileAmrex::nCcVariables(void) const {
+    int    nCcVars{unkFab_.nComp()};
+    assert(nCcVars >= 0);
+    return static_cast<unsigned int>(nCcVars);
 }
 
-/**
- * These are Fortran friendly since we skip the IntVect.  It's also
- * Flash-X friendly since you get MDIM sized points.  Not clear if
- * this is really necessary.
- *
- * \todo Would it be better to simply get a pointer to the
- * start of the underlying amrex::IntVect data buffer and
- * return this?
- *
- * \param i   The index along the x axis
- * \param j   The y axis
- * \param k   The z axis
- */
-void   TileAmrex::lo(int* i, int* j, int* k) const {
-    *i = lo_[0];
-    *j = lo_[1];
-    *k = lo_[2];
-#ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::lo      ] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d)\n",
-           gridIdx_, this, level_, 
-                 *i,       *j,       *k,
-             hi_[0],   hi_[1],   hi_[2],
-           loGC_[0], loGC_[1], loGC_[2],
-           hiGC_[0], hiGC_[1], hiGC_[2]);
-#endif
-}
+unsigned int    TileAmrex::nFluxVariables(void) const {
+    if (fluxFabs_.size() == 0) {
+        return 0;
+    }
 
-
-/**
- * \param i   The index along the x axis
- * \param j   The y axis
- * \param k   The z axis
- */
-void   TileAmrex::hi(int* i, int* j, int* k) const {
-    *i = hi_[0];
-    *j = hi_[1];
-    *k = hi_[2];
-#ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::hi      ] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d)\n",
-           gridIdx_, this, level_, 
-             lo_[0],   lo_[1],   lo_[2],
-                 *i,       *j,       *k,
-           loGC_[0], loGC_[1], loGC_[2],
-           hiGC_[0], hiGC_[1], hiGC_[2]);
-#endif
-}
-
-/**
- * \param i   The index along the x axis
- * \param j   The y axis
- * \param k   The z axis
- */
-void   TileAmrex::loGC(int* i, int* j, int* k) const {
-    *i = loGC_[0];
-    *j = loGC_[1];
-    *k = loGC_[2];
-#ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::loGC    ] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d)\n",
-           gridIdx_, this, level_, 
-             lo_[0],   lo_[1],   lo_[2],
-             hi_[0],   hi_[1],   hi_[2],
-                 *i,       *j,       *k,
-           hiGC_[0], hiGC_[1], hiGC_[2]);
-#endif
-}
-
-/**
- * \param i   The index along the x axis
- * \param j   The y axis
- * \param k   The z axis
- */
-void   TileAmrex::hiGC(int* i, int* j, int* k) const {
-    *i = hiGC_[0];
-    *j = hiGC_[1];
-    *k = hiGC_[2];
-#ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::hiGC    ] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d)\n",
-           gridIdx_, this, level_, 
-             lo_[0],   lo_[1],   lo_[2],
-             hi_[0],   hi_[1],   hi_[2],
-           loGC_[0], loGC_[1], loGC_[2],
-                 *i,       *j,       *k);
-#endif
+    int    nFluxVars{fluxFabs_[0]->nComp()};
+    assert(nFluxVars >= 0);
+    return static_cast<unsigned int>(nFluxVars);
 }
 
 /**
@@ -235,7 +101,7 @@ void   TileAmrex::hiGC(int* i, int* j, int* k) const {
  * \return IntVect with index of lower left cell.
  */
 IntVect  TileAmrex::lo(void) const {
-    return IntVect(LIST_NDIM(lo_[0], lo_[1], lo_[2]));
+    return IntVect(interiorBox_.smallEnd());
 }
 
 /**
@@ -244,7 +110,7 @@ IntVect  TileAmrex::lo(void) const {
  * \return IntVect with index of upper right cell.
  */
 IntVect  TileAmrex::hi(void) const {
-    return IntVect(LIST_NDIM(hi_[0], hi_[1], hi_[2]));
+    return IntVect(interiorBox_.bigEnd());
 }
 
 /**
@@ -254,7 +120,7 @@ IntVect  TileAmrex::hi(void) const {
  *         guard cells.
  */
 IntVect  TileAmrex::loGC(void) const {
-    return IntVect(LIST_NDIM(loGC_[0], loGC_[1], loGC_[2]));
+    return IntVect(dataArrayBox_.smallEnd());
 }
 
 /**
@@ -264,7 +130,7 @@ IntVect  TileAmrex::loGC(void) const {
  *         guard cells.
  */
 IntVect  TileAmrex::hiGC(void) const {
-    return IntVect(LIST_NDIM(hiGC_[0], hiGC_[1], hiGC_[2]));
+    return IntVect(dataArrayBox_.bigEnd());
 }
 
 /**
@@ -277,17 +143,27 @@ IntVect  TileAmrex::hiGC(void) const {
  * \return Pointer to start of tile's data in host memory.
  */
 Real*   TileAmrex::dataPtr(void) {
-#ifdef DEBUG_RUNTIME
-    // This was useful for developing the Fortran/C interoperability layer
-    printf("TileAmrex::dataPtr] Tile %d (%p) / level=%d / lo=(%d,%d,%d) / hi=(%d,%d,%d) / loGC=(%d,%d,%d) / hiGC=(%d,%d,%d) / dataPtr %p\n",
-           gridIdx_, this, level_, 
-             lo_[0],   lo_[1],   lo_[2],
-             hi_[0],   hi_[1],   hi_[2],
-           loGC_[0], loGC_[1], loGC_[2],
-           hiGC_[0], hiGC_[1], hiGC_[2],
-           dataPtr_);
-#endif
-    return dataPtr_;
+    return static_cast<Real*>(unkFab_.dataPtr());
+}
+
+/**
+ * \brief Returns pointer to underlying data structure.
+ *
+ * \todo This routine should return the lo/hi and shape of the data associated
+ *       with the pointer.  AMReX dictates what we point to and this is
+ *       analogous to wrapping the data with FArray4D.
+ *
+ * \return Pointer to start of tile's data in host memory.
+ */
+std::vector<Real*>   TileAmrex::fluxDataPtrs(void) {
+    std::vector<Real*>   fluxPtrs{fluxFabs_.size(), nullptr};
+    for (auto i=0; i<fluxFabs_.size(); ++i) {
+        fluxPtrs[i] = static_cast<Real*>(fluxFabs_[i]->dataPtr());
+        if (!(fluxPtrs[i])) {
+            throw std::invalid_argument("Null flux data pointer");
+        }
+    }
+    return fluxPtrs;
 }
 
 /**
@@ -297,7 +173,45 @@ Real*   TileAmrex::dataPtr(void) {
  *         data and provides Fortran-style access.
  */
 FArray4D TileAmrex::data(void) {
-    return FArray4D{dataPtr(), loGC(), hiGC(), nCcVars_};
+    int   nCcVars = unkFab_.nComp();
+    assert(nCcVars >= 0);
+    return FArray4D{dataPtr(), loGC(), hiGC(), static_cast<unsigned int>(nCcVars)};
+}
+
+/**
+ * \brief Returns FArray4D to access underlying data.
+ *
+ * \return A FArray4D object which wraps the pointer to underlying
+ *         data and provides Fortran-style access.
+ */
+FArray4D TileAmrex::fluxData(const unsigned int dir) {
+    if (fluxFabs_.size() == 0) {
+        throw std::logic_error("No flux data available");
+    }
+
+#if MILHOJA_NDIM == 1
+    if (dir == Axis::J) {
+        throw std::logic_error("No J-axis flux for 1D problem");
+    }
+#endif
+#if MILHOJA_NDIM <= 2
+    if (dir == Axis::K) {
+        throw std::logic_error("No K-axis flux for MILHOJA_NDIMD problem");
+    }
+#endif
+
+    assert(fluxFabs_[dir]);
+    int     nFluxVars_amrex = fluxFabs_[dir]->nComp();
+    Real*   dataPtr = static_cast<Real*>(fluxFabs_[dir]->dataPtr());
+
+    assert(nFluxVars_amrex >= 0);
+    unsigned int nFluxVars = static_cast<unsigned int>(nFluxVars_amrex);
+
+    IntVect    loFlux = lo();
+    IntVect    hiFlux = hi();
+    hiFlux[dir] += 1;
+
+    return FArray4D{dataPtr, loFlux, hiFlux, nFluxVars};
 }
 
 }

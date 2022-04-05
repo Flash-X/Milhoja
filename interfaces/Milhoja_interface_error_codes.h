@@ -96,6 +96,7 @@ Grid-specific error codes
 #define MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS              311
 #define MILHOJA_ERROR_UNABLE_TO_FILL_GCS                   312
 #define MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS            313
+#define MILHOJA_ERROR_INVALID_N_FLUX_VARS                  314
 
 #if 0
 --------------------------------------------------------------------------------

@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
             cfg.nyb             = RPs.getUnsignedInt("Grid", "NYB");
             cfg.nzb             = RPs.getUnsignedInt("Grid", "NZB");
             cfg.nCcVars         = NUNKVAR;
+            cfg.nFluxVars       = NFLUXES;
             cfg.nGuard          = NGUARD;
             cfg.nBlocksX        = RPs.getUnsignedInt("Grid", "nBlocksX");
             cfg.nBlocksY        = RPs.getUnsignedInt("Grid", "nBlocksY");

@@ -62,6 +62,8 @@ contains
             errorMsg = "Unable to get the number of cell-centered variables"
         case (MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS)
             errorMsg = "Unable to get the number of flux variables"
+        case (MILHOJA_ERROR_INVALID_N_FLUX_VARS)
+            errorMsg = "Invalid number of flux variables given"
         case (MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE)
             errorMsg = "Unable to write data to plotfile"
         case (MILHOJA_ERROR_UNABLE_TO_GET_METADATA)

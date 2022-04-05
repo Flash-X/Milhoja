@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 
+#include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Runtime.h>

@@ -40,6 +40,8 @@ bool GridAmrex::domainDestroyed_   = false;
   * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
   * invalid.  We are forced to cast and then check since we want
   * nGuard_/nCcVars_ to be const.
+  *  \todo Flux work is verbose and paranoid for development.  Simplify once we
+  *        have more confidence in the implementation.
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
@@ -58,8 +60,9 @@ GridAmrex::GridAmrex(void)
       initBlock_noRuntime_{nullptr},
       initCpuAction_{}
 {
+    std::string   msg = "[GridAmrex] Initializing...";
     Logger&   logger = Logger::instance();
-    logger.log("[GridAmrex] Initializing...");
+    logger.log(msg);
 
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
@@ -105,8 +108,36 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    // Allocate and resize unk_
-    unk_.resize(max_level+1);
+    // Allocate and resize MultiFabs
+    // TileIterAmrex stores references to unk_ and fluxes_ at a given level.
+    // Therefore, these MFab arrays and the fluxes_[level] array must be set
+    // here and remain fixed until finalization of the Grid unit.
+    unk_.resize(max_level + 1);
+    if (unk_.size() == 0) {
+        throw std::logic_error("[GridAmrex::GridAmrex] CC data array emtpy");
+    }
+    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFabs";
+    logger.log(msg);
+
+    // When constructing a TileIterAmrex at a given level, we must pass in a
+    // vector of flux MultiFabs for the level.  If there are no flux variables,
+    // an empty vector is needed.  Therefore, always allocate this outer vector.
+    fluxes_.resize(max_level + 1);
+    for (auto level=0; level<fluxes_.size(); ++level) {
+        if (fluxes_[level].size() != 0) {
+            throw std::logic_error("[GridAmrex::GridAmrex] Flux arrays aren't emtpy");
+        }
+    }
+    if (nFluxVars_ > 0) {
+        for (auto level=0; level<fluxes_.size(); ++level) {
+            fluxes_[level].resize(MILHOJA_NDIM);
+            msg =   "[GridAmrex] Created " + std::to_string(fluxes_[level].size())
+                  + " empty flux MultiFabs at level " + std::to_string(level);
+            logger.log(msg);
+        }
+    } else {
+        logger.log("[GridAmrex] No flux MultiFabs needed");
+    }
 
     //----- LOG GRID CONFIGURATION INFORMATION
     int size = -1;
@@ -116,7 +147,6 @@ GridAmrex::GridAmrex(void)
     RealVect  domainLo = getProbLo();
     RealVect  domainHi = getProbHi();
 
-    std::string   msg{};
     msg =   "[GridAmrex] " + std::to_string(size)
           + " MPI processes in given communicator";
     logger.log(msg);
@@ -293,6 +323,9 @@ GridAmrex::~GridAmrex(void) {
 /**
  *  Finalize the Grid singleton by cleaning up all AMReX resources and
  *  finalizing AMReX.  This must be called before MPI is finalized.
+ *
+ *  \todo Flux work is verbose and paranoid for development.  Simplify once we
+ *        have more confidence in the implementation.
  */
 void  GridAmrex::finalize(void) {
     // We need to do error checking explicitly upfront rather than wait for the
@@ -308,8 +341,38 @@ void  GridAmrex::finalize(void) {
     Logger::instance().log("[GridAmrex] Finalizing ...");
 
     // Clean-up all AMReX structures before finalization.
+    std::string    msg{};
+    msg =   "[GridAmrex] Destroying cell-centered MultiFab array with "
+          + std::to_string(unk_.size()) + " level(s)";
+    Logger::instance().log(msg);
     std::vector<amrex::MultiFab>().swap(unk_);
-    
+    if (unk_.size() != 0) {
+        throw std::runtime_error("[GridAmrex::finalize] Didn't destroy CC array");
+    }
+
+    for (auto level=0; level<fluxes_.size(); ++level) {
+        if        ((nFluxVars_ == 0) && (fluxes_[level].size() >  0)) {
+            throw std::logic_error("[GridAmrex::finalize] Flux multifabs created");
+        } else if ((nFluxVars_ >  0) && (fluxes_[level].size() == 0)) {
+            throw std::logic_error("[GridAmrex::finalize] Flux multifabs not created");
+        } else if ((nFluxVars_ >  0) && (fluxes_[level].size() >  0)) {
+            msg =   "[GridAmrex] Destroying " + std::to_string(fluxes_[level].size())
+                  + " flux MultiFabs at level " + std::to_string(level);
+            Logger::instance().log(msg);
+            std::vector<amrex::MultiFab>().swap(fluxes_[level]);
+            if (fluxes_[level].size() != 0) {
+                throw std::runtime_error("[GridAmrex::finalize] Didn't destroy flux MFab array");
+            }
+        }
+    }
+    msg =   "[GridAmrex] Destroying flux array with "
+          + std::to_string(fluxes_.size()) + " level(s)";
+    Logger::instance().log(msg);
+    std::vector<std::vector<amrex::MultiFab>>().swap(fluxes_);
+    if (fluxes_.size() != 0) {
+        throw std::runtime_error("Didn't destroy flux array");
+    }
+
     // This is the ugliest part of the multiple inheritance design of this class
     // because we finalize AMReX before AmrCore is destroyed, which occurs
     // whenever the compiler decides to destroy the Grid backend singleton.
@@ -435,8 +498,8 @@ void GridAmrex::restrictAllLevels() {
 void  GridAmrex::fillGuardCells() {
     for (int level=0; level<=finest_level; ++level) {
 #ifdef GRID_LOG
-        Logger::instance().log("[GridAmrex] GCFill on level " +
-                           std::to_string(level) );
+        Logger::instance().log(  "[GridAmrex] GCFill on level "
+                               + std::to_string(level) );
 #endif
 
         fillPatch(unk_[level], level);
@@ -653,7 +716,9 @@ void    GridAmrex::writePlotfile(const std::string& filename,
   *
   */
 std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
-    return std::unique_ptr<TileIter>{new TileIterAmrex(unk_[level], level)};
+    return std::unique_ptr<TileIter>{new TileIterAmrex{unk_[level],
+                                                       fluxes_[level],
+                                                       level}};
 }
 
 /**
@@ -667,7 +732,7 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
   * \todo Sanity check level value
   */
 TileIter* GridAmrex::buildTileIter_forFortran(const unsigned int level) {
-    return (new TileIterAmrex(unk_[level], level));
+    return (new TileIterAmrex{unk_[level], fluxes_[level], level});
 }
 
 /**
@@ -836,8 +901,15 @@ void    GridAmrex::fillCellVolumes(const unsigned int level,
 }
 
 /**
+  * How does data get set?  We can get interpolation, but also for BCs.  How is
+  * interpolation done and what method is used?
   *
   * \todo Sanity check level value.
+  * \todo RemakeLevel seems to assume that this will also set the interior data.
+  * Is this true?  If so, is this what we want?
+  * \todo Does fillPatch require data in primitive form?  If so, document how,
+  * when, and where the p-to-c and reverse transformations are done.
+  * \todo Interpolation by AMReX's conservative linear interpolation routine?
   *
   */
 void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
@@ -887,6 +959,11 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
 /**
   * \brief Clear level
   *
+  * AmrCore calls this function to destroy all MultiFabs managed by this class
+  * at the given level.
+  * 
+  * It is intended that this function only be called by AMReX.
+  *
   * \todo Sanity check level value.
   *
   * \param level   Level being cleared
@@ -894,11 +971,33 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
 void    GridAmrex::ClearLevel(int level) {
     unk_[level].clear();
 
+    if (nFluxVars_ > 0) {
+        for (unsigned int i=0; i<fluxes_[level].size(); ++i) {
+            fluxes_[level][i].clear();
+        }
+    }
+
     Logger::instance().log("[GridAmrex] Cleared level " + std::to_string(level));
 }
 
 /**
   * \brief Remake Level
+  *
+  * AmrCore calls this routine to reestablish the data in each MultiFab defined at
+  * the given level (e.g., cell-centered, fluxes) onto a new MultiFab specified
+  * through the given box array and distribution map.  The remade cell-centered
+  * data MultiFab will have data in all interior cells as well as guardcells
+  * via the fillPatch() function.
+  *
+  * It is intended that this function only be called by AMReX.
+  *
+  * Note that the new MultiFab might contain new boxes recently added to the
+  * level.  Therefore fillPatch() might execute AMReX's conservative linear
+  * interpolation algorithm to set data in this level based on data at the
+  * coarser level.
+  *
+  * Since fillPatch() requires that data be in primitive form, this function
+  * also has the same requirement.
   *
   * \todo Sanity check level value.
   *
@@ -911,9 +1010,18 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
                               const amrex::BoxArray& ba,
                               const amrex::DistributionMapping& dm) {
     amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
+    // Move all unk data (interior and GC) to given ba/dm layout.
+    // Do *not* use sub-cycling.
     fillPatch(unkTmp, level);
-
     std::swap(unkTmp, unk_[level]);
+
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+        }
+    }
 
     Logger::instance().log("[GridAmrex] Remade level " + std::to_string(level));
 }
@@ -921,11 +1029,30 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
 /**
   * \brief Make new level from scratch
   *
-  * Refinement/derefinement routines can choose to refine a block if they
-  * determine that there is poorly-refined data in the GC.  Therefore, this
-  * routine fills the GC after setting the ICs so that the data is immediately
-  * ready for ErrorEst.
+  * AmrCore calls this function so that for the given refinement level we can
+  *  (1) create a MultiFab for each data type using the given box array and
+  *      distribution map,
+  *  (2) initialize all interior block data in the cell-centered MultiFab
+  *      with initial conditions via the initBlock routine passed to
+  *      initDomain(), and
+  *  (3) fill all GCs in the cell-centered MultiFab.
+  * The data in all flux MultiFabs is not initialized.
   *
+  * Step (3) is required as refinement/derefinement routines can choose to
+  * refine a block if they determine that there is poorly-refined data in the
+  * GC.  In other words, this routine leaves the ICs ready for immediate use by
+  * ErrorEst().
+  *
+  * While it is up to calling code to determine how and where to set the ICs,
+  * the initBlock function must, at the very least, set all data that will be
+  * used by ErrorEst to set the initial AMR refinement.
+  *
+  * \todo Clearly the initBlock routine should be capable of computing the ICs
+  * in the GCs.  Why not just make it a requirement that these routines be
+  * written in this way?  Note that Flash-X would have to change its
+  * requirements so that Simulation_initBlock routines comply.  If we go this
+  * way, then no IC data in the level would be set by interpolation.  That means
+  * that we really can set the ICs and compute the EoS here in the same go.
   * \todo Simulations should be allowed to use the GPU for setting the ICs.
   * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
   * team configuration should be used.  If the GPU-only configuration is
@@ -941,7 +1068,20 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
                                            const amrex::BoxArray& ba,
                                            const amrex::DistributionMapping& dm) {
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
-    unk_[level].setVal(0.0_wp);
+    std::string   msg =   "[GridAmrex] Made CC MultiFab from scratch at level "
+                        + std::to_string(level);
+    Logger::instance().log(msg);
+
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+            msg =   "[GridAmrex] Made flux MultiFab " + std::to_string(i) 
+                  + " from scratch at level " + std::to_string(level);
+            Logger::instance().log(msg);
+        }
+    }
 
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
@@ -960,14 +1100,26 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
 
     fillPatch(unk_[level], level);
 
-    std::string    msg =   "[GridAmrex] Created level "
-                         + std::to_string(level) + " from scratch with "
-                         + std::to_string(ba.size()) + " blocks";
+    msg =   "[GridAmrex] Created level "
+          + std::to_string(level) + " from scratch with "
+          + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
 }
 
 /**
   * \brief Make New Level from Coarse
+  *
+  * AmrCore calls this function so that for the given refinement level we can
+  *  (1) create a MultiFab for each data type using the given box array and
+  *      distribution map and
+  *  (2) set all data in the interior and guardcells of the cell-centered data
+  *      MultiFab using the data of the next coarsest level via fillPatch().
+  * The data in the flux MultiFabs is not initialized.
+  *
+  * Since fillPatch() requires that data be in primitive form, this function
+  * also has the same requirement.
+  *
+  * This routine should only be invoked by AMReX.
   *
   * \todo Fail if initDomain has not yet been called.
   * \todo Sanity check level value.
@@ -996,15 +1148,41 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  geom[level-1], geom[level],
                                  cphysbc, 0, fphysbc, 0,
                                  ref_ratio[level-1], mapper, bcs_, 0);
+    std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
+                        + std::to_string(level)
+                        + " from data in coarse level";
+    Logger::instance().log(msg);
 
-    std::string    msg =   "[GridAmrex] Created level "
-                         + std::to_string(level) + " from fine level with "
-                         + std::to_string(ba.size()) + " blocks";
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+            msg =   "[GridAmrex] Made Flux MultiFab " + std::to_string(i)
+                  + " at level " + std::to_string(level)
+                  + " from data in coarse level";
+            Logger::instance().log(msg);
+        }
+    }
+
+    msg =   "[GridAmrex] Created level "
+          + std::to_string(level) + " from coarse level with "
+          + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
 }
 
 /**
   * \brief Tag boxes for refinement
+  *
+  * This function effectively wraps the error estimation routine configured into
+  * the Grid class so that it can be used directly by AMReX.  In particular,
+  * AmrCore may use this subroutine many times during the process of grid
+  * refinement so that calling code may communicate which blocks in the given
+  * level require refinement.  The final refinement decisions are made by AMReX
+  * based on the information gathered with this callback.
+  *
+  * This routine iterates across all blocks in the given level and uses the
+  * error estimation routine to determine if the current block needs refinement.
   *
   * \todo Use tiling here?
   * \todo Sanity check level value.
