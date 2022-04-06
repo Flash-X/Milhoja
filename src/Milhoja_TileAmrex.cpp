@@ -20,8 +20,8 @@ namespace milhoja {
  * loGC/hiGC in one call?  This could replace the lo(int*), etc. calls.
  *
  * \param level      The 0-based refinement level of the tile
- * \param gridIndex  The integer index for the block that contains the tile
- * \param tileIndex  The local integer index for the tile in its block
+ * \param gridIdx    The integer index for the block that contains the tile
+ * \param tileIdx    The local integer index for the tile in its block
  * \param interior   The lo/hi global indices of the tile's interior cells
  * \param dataArray  The lo/hi global indices of the tile's cell-centered data array
  * \param unkFab     The FAB containing the cell-centered data at the given

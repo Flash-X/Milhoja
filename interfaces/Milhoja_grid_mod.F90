@@ -270,6 +270,7 @@ contains
     !!                             permitted at any time during the simulation
     !! @param nGuard               The number of guardcells
     !! @param nCcVars              The number of physical variables in the solution
+    !! @param nFluxVars            The number of flux variables needed
     !! @param errorEst             Procedure that is used to assess if a block should
     !!                             be refined, derefined, or stay at the same
     !!                             refinement
