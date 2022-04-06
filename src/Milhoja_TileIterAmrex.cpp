@@ -1,7 +1,5 @@
 #include "Milhoja_TileIterAmrex.h"
 
-//#include <iostream>
-
 #include "Milhoja_TileAmrex.h"
 
 namespace milhoja {
@@ -25,7 +23,6 @@ TileIterAmrex::TileIterAmrex(amrex::MultiFab& unk,
       fluxMFabs_{fluxes},
       mfi_{unkMFab_}
 {
-//    std::cout << "Number flux MFabs = " << fluxMFabs_.size() << std::endl;
 }
 
 TileIterAmrex::~TileIterAmrex() {
@@ -52,8 +49,6 @@ std::unique_ptr<Tile>   TileIterAmrex::buildCurrentTile(void) {
     std::vector<amrex::FArrayBox*>    fluxPtrs{fluxMFabs_.size(), nullptr};
     for (auto i=0; i<fluxMFabs_.size(); ++i) {
         fluxPtrs[i] = &(fluxMFabs_[i][gridIdx]);
-//        std::cout << "Flux pointer " << i << " for grid " << gridIdx 
-//                  << " on level " << level_ << std::endl;
     }
 
     return std::unique_ptr<Tile>{ new TileAmrex(level_, gridIdx, tileIdx,
@@ -78,8 +73,6 @@ Tile*   TileIterAmrex::buildCurrentTile_forFortran(void) {
     // See comments in same location in buildCurrentTile().
     std::vector<amrex::FArrayBox*>    fluxPtrs{fluxMFabs_.size(), nullptr};
     for (auto i=0; i<fluxMFabs_.size(); ++i) {
-//        std::cout << "Flux pointer " << i << " for grid " << gridIdx 
-//                  << " on level " << level_ << std::endl;
         fluxPtrs[i] = &(fluxMFabs_[i][gridIdx]);
     }
 

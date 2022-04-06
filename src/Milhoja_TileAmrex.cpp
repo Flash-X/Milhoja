@@ -49,17 +49,16 @@ TileAmrex::TileAmrex(const unsigned int level,
 {
     for (auto i=0; i<fluxFabs_.size(); ++i) {
         if (!(fluxFabs_[i])) {
-            throw std::invalid_argument("Null flux FAB pointer");
+            throw std::invalid_argument("[TileAmrex::TileAmrex] Null flux FAB pointer");
         }
     }
-//    std::cout << fluxFabs_.size() << " flux FABs for tile " << gridIdx_
-//              << " on level " << level_ << std::endl;
 
 #ifdef DEBUG_RUNTIME
-    std::string msg =   "[TileAmrex] Created Tile "
-                      + "(level="   + std::to_string(level_)
+    std::string msg =   "[TileAmrex] Created Tile (level="
+                      + std::to_string(level_)
                       + " / grid ID=" + std::to_string(gridIdx_)
-                      + " / tile ID=" + std::to_string(tileIdx_) + ")";
+                      + " / tile ID=" + std::to_string(tileIdx_) + ") with "
+                      + std::to_string(fluxFabs_.size()) + " flux FABs";
     Logger::instance().log(msg);
 #endif
 }
@@ -159,9 +158,6 @@ std::vector<Real*>   TileAmrex::fluxDataPtrs(void) {
     std::vector<Real*>   fluxPtrs{fluxFabs_.size(), nullptr};
     for (auto i=0; i<fluxFabs_.size(); ++i) {
         fluxPtrs[i] = static_cast<Real*>(fluxFabs_[i]->dataPtr());
-        if (!(fluxPtrs[i])) {
-            throw std::invalid_argument("Null flux data pointer");
-        }
     }
     return fluxPtrs;
 }

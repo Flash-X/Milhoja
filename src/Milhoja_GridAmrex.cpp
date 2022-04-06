@@ -40,8 +40,6 @@ bool GridAmrex::domainDestroyed_   = false;
   * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
   * invalid.  We are forced to cast and then check since we want
   * nGuard_/nCcVars_ to be const.
-  *  \todo Flux work is verbose and paranoid for development.  Simplify once we
-  *        have more confidence in the implementation.
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
@@ -113,26 +111,18 @@ GridAmrex::GridAmrex(void)
     // Therefore, these MFab arrays and the fluxes_[level] array must be set
     // here and remain fixed until finalization of the Grid unit.
     unk_.resize(max_level + 1);
-    if (unk_.size() == 0) {
-        throw std::logic_error("[GridAmrex::GridAmrex] CC data array emtpy");
-    }
-    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFabs";
+    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
     logger.log(msg);
 
     // When constructing a TileIterAmrex at a given level, we must pass in a
     // vector of flux MultiFabs for the level.  If there are no flux variables,
     // an empty vector is needed.  Therefore, always allocate this outer vector.
     fluxes_.resize(max_level + 1);
-    for (auto level=0; level<fluxes_.size(); ++level) {
-        if (fluxes_[level].size() != 0) {
-            throw std::logic_error("[GridAmrex::GridAmrex] Flux arrays aren't emtpy");
-        }
-    }
     if (nFluxVars_ > 0) {
         for (auto level=0; level<fluxes_.size(); ++level) {
             fluxes_[level].resize(MILHOJA_NDIM);
             msg =   "[GridAmrex] Created " + std::to_string(fluxes_[level].size())
-                  + " empty flux MultiFabs at level " + std::to_string(level);
+                  + " empty flux MultiFab(s) at level " + std::to_string(level);
             logger.log(msg);
         }
     } else {
@@ -323,9 +313,6 @@ GridAmrex::~GridAmrex(void) {
 /**
  *  Finalize the Grid singleton by cleaning up all AMReX resources and
  *  finalizing AMReX.  This must be called before MPI is finalized.
- *
- *  \todo Flux work is verbose and paranoid for development.  Simplify once we
- *        have more confidence in the implementation.
  */
 void  GridAmrex::finalize(void) {
     // We need to do error checking explicitly upfront rather than wait for the
@@ -346,9 +333,6 @@ void  GridAmrex::finalize(void) {
           + std::to_string(unk_.size()) + " level(s)";
     Logger::instance().log(msg);
     std::vector<amrex::MultiFab>().swap(unk_);
-    if (unk_.size() != 0) {
-        throw std::runtime_error("[GridAmrex::finalize] Didn't destroy CC array");
-    }
 
     for (auto level=0; level<fluxes_.size(); ++level) {
         if        ((nFluxVars_ == 0) && (fluxes_[level].size() >  0)) {
@@ -357,21 +341,15 @@ void  GridAmrex::finalize(void) {
             throw std::logic_error("[GridAmrex::finalize] Flux multifabs not created");
         } else if ((nFluxVars_ >  0) && (fluxes_[level].size() >  0)) {
             msg =   "[GridAmrex] Destroying " + std::to_string(fluxes_[level].size())
-                  + " flux MultiFabs at level " + std::to_string(level);
+                  + " flux MultiFab(s) at level " + std::to_string(level);
             Logger::instance().log(msg);
             std::vector<amrex::MultiFab>().swap(fluxes_[level]);
-            if (fluxes_[level].size() != 0) {
-                throw std::runtime_error("[GridAmrex::finalize] Didn't destroy flux MFab array");
-            }
         }
     }
     msg =   "[GridAmrex] Destroying flux array with "
           + std::to_string(fluxes_.size()) + " level(s)";
     Logger::instance().log(msg);
     std::vector<std::vector<amrex::MultiFab>>().swap(fluxes_);
-    if (fluxes_.size() != 0) {
-        throw std::runtime_error("Didn't destroy flux array");
-    }
 
     // This is the ugliest part of the multiple inheritance design of this class
     // because we finalize AMReX before AmrCore is destroyed, which occurs
@@ -1069,7 +1047,9 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
                                            const amrex::DistributionMapping& dm) {
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
     std::string   msg =   "[GridAmrex] Made CC MultiFab from scratch at level "
-                        + std::to_string(level);
+                        + std::to_string(level) + " with "
+                        + std::to_string(unk_[level].nComp()) + " variables and "
+                        + std::to_string(unk_[level].nGrow()) + " GC";
     Logger::instance().log(msg);
 
     if (nFluxVars_ > 0) {
@@ -1078,7 +1058,10 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
             fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
                                      dm, nFluxVars_, NO_GC_FOR_FLUX);
             msg =   "[GridAmrex] Made flux MultiFab " + std::to_string(i) 
-                  + " from scratch at level " + std::to_string(level);
+                  + " from scratch at level " + std::to_string(level)
+                  + " with " + std::to_string(fluxes_[level][i].nComp())
+                  + " variables and " + std::to_string(fluxes_[level][i].nGrow())
+                  + " GC";
             Logger::instance().log(msg);
         }
     }
@@ -1150,7 +1133,10 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  ref_ratio[level-1], mapper, bcs_, 0);
     std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
                         + std::to_string(level)
-                        + " from data in coarse level";
+                        + " from data in coarse level with "
+                        + std::to_string(unk_[level].nComp())
+                        + " variables and "
+                        + std::to_string(unk_[level].nGrow()) + " GC";
     Logger::instance().log(msg);
 
     if (nFluxVars_ > 0) {
@@ -1160,7 +1146,10 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                      dm, nFluxVars_, NO_GC_FOR_FLUX);
             msg =   "[GridAmrex] Made Flux MultiFab " + std::to_string(i)
                   + " at level " + std::to_string(level)
-                  + " from data in coarse level";
+                  + " from data in coarse level with "
+                  + std::to_string(fluxes_[level][i].nComp())
+                  + " variables and "
+                  + std::to_string(fluxes_[level][i].nGrow()) + " GC";
             Logger::instance().log(msg);
         }
     }
