@@ -1009,28 +1009,20 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
   *
   * AmrCore calls this function so that for the given refinement level we can
   *  (1) create a MultiFab for each data type using the given box array and
-  *      distribution map,
-  *  (2) initialize all interior block data in the cell-centered MultiFab
+  *      distribution map and
+  *  (2) initialize all block data in the cell-centered MultiFab
   *      with initial conditions via the initBlock routine passed to
-  *      initDomain(), and
-  *  (3) fill all GCs in the cell-centered MultiFab.
+  *      initDomain().
   * The data in all flux MultiFabs is not initialized.
   *
-  * Step (3) is required as refinement/derefinement routines can choose to
-  * refine a block if they determine that there is poorly-refined data in the
-  * GC.  In other words, this routine leaves the ICs ready for immediate use by
-  * ErrorEst().
+  * Step (2) implies that the given initBlock routine must set initial
+  * conditions not only in the interior of each block, but also in the
+  * guardcells.  This is required as refinement/derefinement routines can choose
+  * to refine a block if they determine that there is poorly-refined data in the
+  * GC.  In other words, this routine must leave the ICs ready for immediate use
+  * by ErrorEst().  This includes setting all data that will be used by ErrorEst
+  * to set the initial AMR refinement.
   *
-  * While it is up to calling code to determine how and where to set the ICs,
-  * the initBlock function must, at the very least, set all data that will be
-  * used by ErrorEst to set the initial AMR refinement.
-  *
-  * \todo Clearly the initBlock routine should be capable of computing the ICs
-  * in the GCs.  Why not just make it a requirement that these routines be
-  * written in this way?  Note that Flash-X would have to change its
-  * requirements so that Simulation_initBlock routines comply.  If we go this
-  * way, then no IC data in the level would be set by interpolation.  That means
-  * that we really can set the ICs and compute the EoS here in the same go.
   * \todo Simulations should be allowed to use the GPU for setting the ICs.
   * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
   * team configuration should be used.  If the GPU-only configuration is
@@ -1080,8 +1072,6 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
     } else {
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
-
-    fillPatch(unk_[level], level);
 
     msg =   "[GridAmrex] Created level "
           + std::to_string(level) + " from scratch with "
