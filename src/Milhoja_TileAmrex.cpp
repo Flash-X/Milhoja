@@ -192,7 +192,7 @@ FArray4D TileAmrex::fluxData(const unsigned int dir) {
 #endif
 #if MILHOJA_NDIM <= 2
     if (dir == Axis::K) {
-        throw std::logic_error("No K-axis flux for MILHOJA_NDIMD problem");
+        throw std::logic_error("No K-axis flux for problem");
     }
 #endif
 
