@@ -57,9 +57,12 @@ public:
     void         restrictAllLevels(void) override;
     void         fillGuardCells(void) override;
     void         updateGrid(void) override { amrex::AmrCore::regrid(0, 0.0_wp); }
-    unsigned int getNGuardcells(void) const override { return nGuard_; }
-    unsigned int getNCcVariables(void) const override { return nCcVars_; }
-    unsigned int getNFluxVariables(void) const override { return nFluxVars_; }
+    unsigned int getNGuardcells(void) const override
+                    { return static_cast<unsigned int>(nGuard_); }
+    unsigned int getNCcVariables(void) const override
+                    { return static_cast<unsigned int>(nCcVars_); }
+    unsigned int getNFluxVariables(void) const override
+                    { return static_cast<unsigned int>(nFluxVars_); }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
@@ -163,6 +166,8 @@ private:
     //
     // We would prefer to store these as unsigned int, but AmrCore works with
     // them as ints.  Therefore, we will eagerly cast and store these results.
+    // This implies that code in the class can cast back to unsigned int without
+    // first confirming that these variables are non-negative.
     const int   nGuard_;
     const int   nCcVars_;
     const int   nFluxVars_;

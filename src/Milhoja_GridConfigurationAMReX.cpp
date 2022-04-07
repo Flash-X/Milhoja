@@ -40,15 +40,8 @@ void GridConfigurationAMReX::load(void) const {
     amrex::ParmParse    ppGeo("geometry");
 
     std::vector<int>   isPeriodic(MILHOJA_MDIM, 0);
-    for (unsigned int i=0; i<MILHOJA_MDIM; ++i) {
-        if        (   (loBCs[i] != BCs::Periodic)
-                   && (loBCs[i] != BCs::External)) {
-            throw std::invalid_argument("[GridConfirmationAMReX::load] Invalid low BC");
-        } else if (   (hiBCs[i] != BCs::Periodic)
-                   && (hiBCs[i] != BCs::External)) {
-            throw std::invalid_argument("[GridConfirmationAMReX::load] Invalid high BC");
-        } else if (   (loBCs[i] == BCs::Periodic)
-                   && (hiBCs[i] == BCs::Periodic)) {
+    for (auto i=0; i<isPeriodic.size(); ++i) {
+        if ((loBCs[i] == BCs::Periodic) && (hiBCs[i] == BCs::Periodic)) {
             isPeriodic[i] = 1;
         } 
     }

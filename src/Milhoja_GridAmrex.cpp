@@ -73,12 +73,16 @@ GridAmrex::GridAmrex(void)
             } else if (cfg.loBCs[i] == BCs::External) {
 //                bcs_[0].setLo(i, amrex::BCType::ext_dir);
                 throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            } else {
+                throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown lo BC");
             }
             if        (cfg.hiBCs[i] == BCs::Periodic) {
                 bcs_[0].setHi(i, amrex::BCType::int_dir);
             } else if (cfg.hiBCs[i] == BCs::External) {
 //                bcs_[0].setHi(i, amrex::BCType::ext_dir);
                 throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            } else {
+                throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown hi BC");
             }
         }
 
@@ -184,11 +188,11 @@ GridAmrex::GridAmrex(void)
     logger.log(msg);
     for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
         if        (i == Axis::I) {
-            msg = "[GricAmrex] X-axis ";
+            msg = "[GridAmrex] X-axis ";
         } else if (i == Axis::J) {
-            msg = "[GricAmrex] Y-axis ";
+            msg = "[GridAmrex] Y-axis ";
         } else if (i == Axis::K) {
-            msg = "[GricAmrex] Z-axis ";
+            msg = "[GridAmrex] Z-axis ";
         }
 
         if        (bcs_[0].lo(i) == amrex::BCType::int_dir) {
@@ -950,7 +954,8 @@ void    GridAmrex::ClearLevel(int level) {
     unk_[level].clear();
 
     if (nFluxVars_ > 0) {
-        for (unsigned int i=0; i<fluxes_[level].size(); ++i) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
             fluxes_[level][i].clear();
         }
     }
@@ -1122,11 +1127,11 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  cphysbc, 0, fphysbc, 0,
                                  ref_ratio[level-1], mapper, bcs_, 0);
     std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
-                        + std::to_string(level)
-                        + " from data in coarse level with "
+                        + std::to_string(level) + " with "
                         + std::to_string(unk_[level].nComp())
                         + " variables and "
-                        + std::to_string(unk_[level].nGrow()) + " GC";
+                        + std::to_string(unk_[level].nGrow()) + " GC"
+                        + " using data in coarse level";
     Logger::instance().log(msg);
 
     if (nFluxVars_ > 0) {
@@ -1135,18 +1140,18 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
             fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
                                      dm, nFluxVars_, NO_GC_FOR_FLUX);
             msg =   "[GridAmrex] Made Flux MultiFab " + std::to_string(i)
-                  + " at level " + std::to_string(level)
-                  + " from data in coarse level with "
+                  + " at level " + std::to_string(level) + " with "
                   + std::to_string(fluxes_[level][i].nComp())
                   + " variables and "
-                  + std::to_string(fluxes_[level][i].nGrow()) + " GC";
+                  + std::to_string(fluxes_[level][i].nGrow()) + " GC"
+                  + " from data in coarse level";
             Logger::instance().log(msg);
         }
     }
 
-    msg =   "[GridAmrex] Created level "
-          + std::to_string(level) + " from coarse level with "
-          + std::to_string(ba.size()) + " blocks";
+    msg =   "[GridAmrex] Created level " + std::to_string(level)
+          + " with " + std::to_string(ba.size())
+          + " blocks using data from coarse level";
     Logger::instance().log(msg);
 }
 

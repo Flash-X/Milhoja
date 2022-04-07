@@ -8,7 +8,7 @@ namespace milhoja {
  * Construct an AMReX tile iterator for iterating over a subset of the tiles in
  * the given level.
  *
- * \param unk     The unk data structure at the given level
+ * \param unk     The cell-centered data structure at the given level
  * \param fluxes  The collection of flux data structures at the given level for
  *                all MILHOJA_NDIM dimensions in the problem.  If the problem
  *                does not have any flux variables, then the given vector should
@@ -43,7 +43,10 @@ std::unique_ptr<Tile>   TileIterAmrex::buildCurrentTile(void) {
 
     // We'd prefer to get references to the FABs here, but we cannot store
     // references in standard containers since the elements of containers must
-    // be alterable.  Therefore, we are forced to get pointers.  However, if
+    // be alterable.  Also, we cannot use LIST_NDIM in the TileAmrex
+    // constructor to pass in an NDIM-specific list of flux FAB refs as some
+    // simulations will use fluxes and others won't (NB: N fluxes is not known
+    // to the compiler).  Therefore, we are forced to get pointers.  However, if
     // calling code follows the use rules of Tiles, then these pointers will
     // never be dangling and the danger is less.
     std::vector<amrex::FArrayBox*>    fluxPtrs{fluxMFabs_.size(), nullptr};
