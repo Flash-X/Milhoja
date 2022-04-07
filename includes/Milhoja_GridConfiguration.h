@@ -24,13 +24,16 @@
  * population of this singleton be included in a curly brace block so that
  * application code outside the block cannot access the singleton.
  *
- * \todo Add in coordinate system
- * \todo Add in boundary conditions
+ * Configuration values that are associated with dimensioned variables above
+ * MILHOJA_NDIM are *not* validated and are ignored.  Calling code can,
+ * therefore, skip setting these values if so desired.
  */
 
 #include <mpi.h>
 
 #include "Milhoja_real.h"
+#include "Milhoja_coordinateSystem.h"
+#include "Milhoja_boundaryConditions.h"
 #include "Milhoja_actionRoutine.h"
 
 namespace milhoja {
@@ -49,14 +52,18 @@ public:
     void                         clear(void);
 
     // Specification of Problem Domain
+    milhoja::CoordSys               coordSys;
     milhoja::Real                   xMin, xMax;
     milhoja::Real                   yMin, yMax;
     milhoja::Real                   zMin, zMax;
 
     // Specification of Problem Physical Variables
     unsigned int                    nCcVars;
+    unsigned int                    nFluxVars;
 
     // Boundary Conditions
+    BCs                             loBCs[MILHOJA_MDIM];
+    BCs                             hiBCs[MILHOJA_MDIM];
 
     // Specification of Domain Decomposition
     unsigned int                    nGuard;

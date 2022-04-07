@@ -15,39 +15,40 @@ namespace milhoja {
  * physical data arrays. Tile inherits from DataItem. Tile is
  * an abstract class, each AMR package must implement its own
  * version of most of the member functions.
+ *
+ * \todo Create readonly versions of data getters?
  */
 class Tile : public DataItem {
 public:
     Tile(void);
     virtual ~Tile(void);
 
-    Tile(Tile&&) = delete;
-    Tile& operator=(Tile&&) = delete;
-    Tile(Tile&) = delete;
-    Tile(const Tile&) = delete;
-    Tile& operator=(Tile&) = delete;
+    Tile(Tile&)                  = delete;
+    Tile(const Tile&)            = delete;
+    Tile(Tile&&)                 = delete;
+    Tile& operator=(Tile&)       = delete;
     Tile& operator=(const Tile&) = delete;
+    Tile& operator=(Tile&&)      = delete;
 
-    // Pure virtual functions
-    virtual bool         isNull(void) const = 0;
-    virtual int          gridIndex(void) const = 0;
+    // Union of tile index information across all Grid backends.  Each backend
+    // should be able to construct the Tile's unique index from a subset of
+    // these.
     virtual unsigned int level(void) const = 0;
-    virtual unsigned int nVariables(void) const = 0;
-    virtual IntVect      lo(void) const = 0;
-    virtual IntVect      hi(void) const = 0;
-    virtual IntVect      loGC(void) const = 0;
-    virtual IntVect      hiGC(void) const = 0;
-    virtual void         lo(int* i, int* j, int* k) const = 0;
-    virtual void         hi(int* i, int* j, int* k) const = 0;
-    virtual void         loGC(int* i, int* j, int* k) const = 0;
-    virtual void         hiGC(int* i, int* j, int* k) const = 0;
+    virtual int          gridIndex(void) const = 0;
+    virtual int          tileIndex(void) const = 0;
 
-    // TODO: Create readonly versions of these?
-    virtual FArray4D     data(void) = 0;
-    virtual Real*        dataPtr(void) = 0;
+    virtual unsigned int        nCcVariables(void) const = 0;
+    virtual unsigned int        nFluxVariables(void) const = 0;
+    virtual RealVect            deltas(void) const;
+    virtual IntVect             lo(void) const = 0;
+    virtual IntVect             hi(void) const = 0;
+    virtual IntVect             loGC(void) const = 0;
+    virtual IntVect             hiGC(void) const = 0;
+    virtual FArray4D            data(void) = 0;
+    virtual Real*               dataPtr(void) = 0;
+    virtual FArray4D            fluxData(const unsigned int dir) = 0;
+    virtual std::vector<Real*>  fluxDataPtrs(void) = 0;
 
-    // Virtual functions with a default implementation.
-    virtual RealVect     deltas(void) const;
     virtual RealVect     getCenterCoords(void) const;
 };
 

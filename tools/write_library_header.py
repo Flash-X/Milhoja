@@ -187,6 +187,29 @@ if __name__ == '__main__':
         fptr.write(f'#define MILHOJA_K2D       {k2d}\n')
         fptr.write(f'#define MILHOJA_K3D       {k3d}\n')
         fptr.write( '\n')
+        fptr.write( '#define MILHOJA_CARTESIAN   0\n')
+        fptr.write( '#define MILHOJA_CYLINDRICAL 1\n')
+        fptr.write( '#define MILHOJA_SPHERICAL   2\n')
+        fptr.write( '\n')
+        fptr.write( '#define MILHOJA_PERIODIC    0\n')
+        fptr.write( '#define MILHOJA_EXTERNAL_BC 1\n')
+        fptr.write( '\n')
+        fptr.write( '#if 0\n')
+        fptr.write('LIST_NDIM   makes a comma-separated list of MILHOJA_NDIM elements from a list of 3\n')
+        fptr.write('CONCAT_NDIM makes a space-separated list of MILHOJA_NDIM elements from a list of 3\n')
+        fptr.write( '#endif\n')
+        if   ndim == 1:
+            fptr.write('#define   LIST_NDIM(x,y,z)    x\n')
+            fptr.write('#define CONCAT_NDIM(x,y,z)    x\n')
+        elif ndim == 2:
+            fptr.write('#define   LIST_NDIM(x,y,z)    x,y\n')
+            fptr.write('#define CONCAT_NDIM(x,y,z)    x y\n')
+        elif ndim == 3:
+            fptr.write('#define   LIST_NDIM(x,y,z)    x,y,z\n')
+            fptr.write('#define CONCAT_NDIM(x,y,z)    x y z\n')
+        else:
+            raise LogicError('Do not know how to write LIST/CONCAT_NDIM')
+        fptr.write( '\n')
         # Ultra-defensive, ultra-paranoid sanity check
         fptr.write( '#if (MILHOJA_NDIM != 1) && (MILHOJA_NDIM != 2) && (MILHOJA_NDIM != 3)\n')
         fptr.write( '#error "MILHOJA_NDIM not in {1,2,3}"\n')

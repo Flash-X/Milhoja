@@ -44,6 +44,10 @@ contains
             errorMsg = "Unable to get bounds"
         case (MILHOJA_ERROR_UNABLE_TO_GET_LEVEL)
             errorMsg = "Unable to get level"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS)
+            errorMsg = "Unable to get coordinate system"
+        case (MILHOJA_ERROR_UNABLE_TO_FILL_GCS)
+            errorMsg = "Unable to fill guardcells"
         case (MILHOJA_ERROR_UNABLE_TO_GET_DELTAS)
             errorMsg = "Unable to get mesh deltas"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN)
@@ -56,6 +60,10 @@ contains
             errorMsg = "Unable to get the number of guardcells"
         case (MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS)
             errorMsg = "Unable to get the number of cell-centered variables"
+        case (MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS)
+            errorMsg = "Unable to get the number of flux variables"
+        case (MILHOJA_ERROR_INVALID_N_FLUX_VARS)
+            errorMsg = "Invalid number of flux variables given"
         case (MILHOJA_ERROR_UNABLE_TO_WRITE_PLOTFILE)
             errorMsg = "Unable to write data to plotfile"
         case (MILHOJA_ERROR_UNABLE_TO_GET_METADATA)

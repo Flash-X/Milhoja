@@ -67,18 +67,6 @@ void    Driver::executeSimulation(void) {
     int    NXB{RPs.getInt("Grid", "NXB")};
     int    NYB{RPs.getInt("Grid", "NYB")};
     int    NZB{RPs.getInt("Grid", "NZB")};
-    milhoja::FArray4D   flX = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,               1,   1)},
-                            milhoja::IntVect{LIST_NDIM(NXB+MILHOJA_K1D, NYB, NZB)},
-                            NFLUXES);
-    milhoja::FArray4D   flY = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,   1,               1)},
-                            milhoja::IntVect{LIST_NDIM(NXB, NYB+MILHOJA_K2D, NZB)},
-                            NFLUXES);
-    milhoja::FArray4D   flZ = milhoja::FArray4D::buildScratchArray4D(
-                            milhoja::IntVect{LIST_NDIM(1,   1,   1)},
-                            milhoja::IntVect{LIST_NDIM(NXB, NYB, NZB+MILHOJA_K3D)},
-                            NFLUXES);
     milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
                             milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D, 1  -MILHOJA_K2D, 1  -MILHOJA_K3D)},
                             milhoja::IntVect{LIST_NDIM(NXB+MILHOJA_K1D, NYB+MILHOJA_K2D, NZB+MILHOJA_K3D)});
@@ -125,22 +113,26 @@ void    Driver::executeSimulation(void) {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             tileDesc = ti->buildCurrentTile();
 
-            const milhoja::IntVect       lo = tileDesc->lo();
-            const milhoja::IntVect       hi = tileDesc->hi();
-            milhoja::FArray4D            U  = tileDesc->data();
+            const milhoja::IntVect       lo  = tileDesc->lo();
+            const milhoja::IntVect       hi  = tileDesc->hi();
+            milhoja::FArray4D            U   = tileDesc->data();
+            milhoja::FArray4D            flX = tileDesc->fluxData(milhoja::Axis::I);
+#if MILHOJA_NDIM >= 2
+            milhoja::FArray4D            flY = tileDesc->fluxData(milhoja::Axis::J);
+#endif
+#if MILHOJA_NDIM == 3
+            milhoja::FArray4D            flZ = tileDesc->fluxData(milhoja::Axis::K);
+#endif
 
             const milhoja::IntVect       cLo = milhoja::IntVect{LIST_NDIM(lo.I()-MILHOJA_K1D,
                                                                           lo.J()-MILHOJA_K2D,
                                                                           lo.K()-MILHOJA_K3D)};
-            flX.reindex(lo);
-            flY.reindex(lo);
-            flZ.reindex(lo);
             auxC.reindex(cLo);
 
             hy::computeFluxesHll(Driver::dt, lo, hi,
                                  tileDesc->deltas(),
-                                 U, flX, flY, flZ, auxC);
-            hy::updateSolutionHll(lo, hi, U, flX, flY, flZ);
+                                 U, LIST_NDIM(flX, flY, flZ), auxC);
+            hy::updateSolutionHll(lo, hi, U, LIST_NDIM(flX, flY, flZ));
             Eos::idealGammaDensIe(lo, hi, U);
         }
         double       wtime_sec = MPI_Wtime() - tStart;

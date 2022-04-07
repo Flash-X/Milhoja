@@ -6,6 +6,11 @@
 !!
 !! @todo Build out full interface including iterator, AMR functionality,
 !!       and flux correction.
+!! @todo Some of these routines take arrays of length MDIM.  However, some
+!!       Fortran applications might only work with length NDIM arrays.
+!!       Therefore, this layer should be designed/implemented assuming at least
+!!       NDIM, but possibly up to MDIM (if possible).  This will possibly be
+!!       left until someone actually needs this (if ever).
 module milhoja_grid_mod
     use milhoja_types_mod, ONLY : MILHOJA_INT, &
                                   MILHOJA_REAL
@@ -16,6 +21,7 @@ module milhoja_grid_mod
     !!!!!----- PUBLIC INTERFACE
     public :: milhoja_grid_init
     public :: milhoja_grid_finalize
+    public :: milhoja_grid_getCoordinateSystem
     public :: milhoja_grid_getDomainBoundBox
     public :: milhoja_grid_getMaxFinestLevel
     public :: milhoja_grid_getCurrentFinestLevel
@@ -24,7 +30,9 @@ module milhoja_grid_mod
     public :: milhoja_grid_getDomainDecomposition
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
+    public :: milhoja_grid_getNFluxVariables
     public :: milhoja_grid_initDomain
+    public :: milhoja_grid_fillGuardCells
     public :: milhoja_grid_writePlotfile
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
@@ -67,28 +75,33 @@ module milhoja_grid_mod
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_init_C(F_globalComm,                       &
                                      C_logRank,                          &
+                                     C_coordSys,                         &
                                      C_xMin, C_xMax,                     &
                                      C_yMin, C_yMax,                     &
                                      C_zMin, C_zMax,                     &
+                                     C_loBCs, C_hiBCs,                   &
                                      C_nxb, C_nyb, C_nzb,                &
                                      C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
                                      C_maxRefinementLevel,               &
-                                     C_nGuard, C_nCcVars,                &
+                                     C_nGuard, C_nCcVars, C_nFluxVars,   &
                                      C_errorEst) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_FUNPTR
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use mpi,               ONLY : MPI_INTEGER_KIND
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_REAL
             implicit none
             integer(MPI_INTEGER_KIND), intent(IN), value :: F_globalComm
             integer(MILHOJA_INT),      intent(IN), value :: C_logRank
+            integer(MILHOJA_INT),      intent(IN), value :: C_coordSys
             real(MILHOJA_REAL),        intent(IN), value :: C_xMin, C_xMax
             real(MILHOJA_REAL),        intent(IN), value :: C_yMin, C_yMax
             real(MILHOJA_REAL),        intent(IN), value :: C_zMin, C_zMax
+            type(C_PTR),               intent(IN), value :: C_loBCs, C_hiBCs
             integer(MILHOJA_INT),      intent(IN), value :: C_nxb, C_nyb, C_nzb
             integer(MILHOJA_INT),      intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
             integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
             integer(MILHOJA_INT),      intent(IN), value :: C_nGuard
             integer(MILHOJA_INT),      intent(IN), value :: C_nCcVars
+            integer(MILHOJA_INT),      intent(IN), value :: C_nFluxVars
             type(C_FUNPTR),            intent(IN), value :: C_errorEst
             integer(MILHOJA_INT)                         :: C_ierr
         end function milhoja_grid_init_C
@@ -99,6 +112,14 @@ module milhoja_grid_mod
             implicit none
             integer(MILHOJA_INT) :: C_ierr
         end function milhoja_grid_finalize_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_coordinate_system_C(C_system) result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(OUT) :: C_system
+            integer(MILHOJA_INT)              :: C_ierr
+        end function milhoja_grid_coordinate_system_C
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_domain_bound_box_C(C_lo, C_hi) result(C_ierr) bind(c)
@@ -176,6 +197,14 @@ module milhoja_grid_mod
         end function milhoja_grid_n_cc_variables_C
 
         !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_n_flux_variables_C(C_nFluxVars) result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(OUT) :: C_nFluxVars
+            integer(MILHOJA_INT)              :: C_ierr
+        end function milhoja_grid_n_flux_variables_C
+
+        !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_init_domain_C(C_initBlockPtr) result(C_ierr) &
                                             bind(c)
             use iso_c_binding,     ONLY : C_FUNPTR
@@ -192,6 +221,13 @@ module milhoja_grid_mod
             integer(MILHOJA_INT), intent(IN), value :: C_step
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_grid_write_plotfile_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_fill_guardcells_C() result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT) :: C_ierr
+        end function milhoja_grid_fill_guardcells_C
     end interface
 
 contains
@@ -209,12 +245,18 @@ contains
     !!                             Milhoja should use
     !! @param logRank              The rank in the given communicator of the MPI process
     !!                             that should perform logging duties.
+    !! @param coordSys             The domain's coordinate system.  See
+    !!                             Milhoja.h for valid values.
     !! @param xMin                 Define the physical domain in X as [xMin, xMax]
     !! @param xMax                 See xMin
     !! @param yMin                 Define the physical domain in Y as [yMin, yMax]
     !! @param yMax                 See yMin
     !! @param zMin                 Define the physical domain in Z as [zMin, zMax]
     !! @param zMax                 See zMin
+    !! @param loBCs                Indicate how BCs should be handled at each of
+    !!                             the low domain faces.  See Milhoja.h for
+    !!                             valid values.
+    !! @param hiBCs                High-face version of loBCs.
     !! @param nxb                  The number of cells along X in each block in the
     !!                             domain decomposition
     !! @param nyb                  The number of cells along Y in each block in the
@@ -228,50 +270,65 @@ contains
     !!                             permitted at any time during the simulation
     !! @param nGuard               The number of guardcells
     !! @param nCcVars              The number of physical variables in the solution
+    !! @param nFluxVars            The number of flux variables needed
     !! @param errorEst             Procedure that is used to assess if a block should
     !!                             be refined, derefined, or stay at the same
     !!                             refinement
     !! @param ierr                 The milhoja error code
     subroutine milhoja_grid_init(globalCommF, logRank,         &
+                                 coordSys,                     &
                                  xMin, xMax,                   &
                                  yMin, yMax,                   &
                                  zMin, zMax,                   &
+                                 loBCs, hiBCs,                 &
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
-                                 nGuard, nCcVars,              &
+                                 nGuard, nCcVars, nFluxVars,   &
                                  errorEst,                     &
                                  ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
-                                  C_FUNLOC
+                                  C_FUNLOC, &
+                                  C_PTR, &
+                                  C_LOC
 
         use mpi,           ONLY : MPI_INTEGER_KIND
 
         integer(MPI_INTEGER_KIND),               intent(IN)  :: globalCommF
         integer(MILHOJA_INT),                    intent(IN)  :: logRank
+        integer(MILHOJA_INT),                    intent(IN)  :: coordSys
         real(MILHOJA_REAL),                      intent(IN)  :: xMin, xMax
         real(MILHOJA_REAL),                      intent(IN)  :: yMin, yMax
         real(MILHOJA_REAL),                      intent(IN)  :: zMin, zMax
+        integer(MILHOJA_INT), target,            intent(IN)  :: loBCs(1:MILHOJA_MDIM)
+        integer(MILHOJA_INT), target,            intent(IN)  :: hiBCs(1:MILHOJA_MDIM)
         integer(MILHOJA_INT),                    intent(IN)  :: nxb, nyb, nzb
         integer(MILHOJA_INT),                    intent(IN)  :: nBlocksX, nBlocksY, nBlocksZ
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
         integer(MILHOJA_INT),                    intent(IN)  :: nGuard
         integer(MILHOJA_INT),                    intent(IN)  :: nCcVars
+        integer(MILHOJA_INT),                    intent(IN)  :: nFluxVars
         procedure(milhoja_errorEstimateCallback)             :: errorEst
         integer(MILHOJA_INT),                    intent(OUT) :: ierr
 
+        type(C_PTR)    :: loBCs_Cptr
+        type(C_PTR)    :: hiBCs_Cptr
         type(C_FUNPTR) :: errorEst_Cptr
 
+        loBCs_Cptr     = C_LOC(loBCs)
+        hiBCs_Cptr     = C_LOC(hiBCs)
         errorEst_Cptr  = C_FUNLOC(errorEst)
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
+                                   coordSys,                     &
                                    xMin, xMax,                   &
                                    yMin, yMax,                   &
                                    zMin, zMax,                   &
+                                   loBCs_Cptr, hiBCs_Cptr,       &
                                    nxb, nyb, nzb,                &
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &
-                                   nGuard, nCcVars,              &
+                                   nGuard, nCcVars, nFluxVars,   &
                                    errorEst_Cptr)
     end subroutine milhoja_grid_init
 
@@ -288,6 +345,17 @@ contains
 
         ierr = milhoja_grid_finalize_C()
     end subroutine milhoja_grid_finalize
+
+    !> Obtain the coordinate system used to define the domain.
+    !!
+    !! @param system  An integer index of the system type.  Refer to Milhoja.h.
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_grid_getCoordinateSystem(system, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: system
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_coordinate_system_C(system)
+    end subroutine milhoja_grid_getCoordinateSystem
 
     !> Obtain the low and high coordinates in physical space of the rectangular
     !! box that bounds the problem's spatial domain.
@@ -394,6 +462,11 @@ contains
     !> Obtain the size of each block in the domain in terms of the number of
     !! cells along each edge.
     !!
+    !! NOTE: This routine does not presume to know what values to set for
+    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! for setting or ignoring such data.  This routine will not alter or
+    !! overwrite such variables.
+    !!
     !! @param nxb   The number of cells along the x axis
     !! @param nyb   The number of cells along the y axis
     !! @param nzb   The number of cells along the z axis
@@ -408,6 +481,11 @@ contains
     end subroutine milhoja_grid_getBlockSize
 
     !> Obtain the domain decomposition of the coarsest level.
+    !!
+    !! NOTE: This routine does not presume to know what values to set for
+    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! for setting or ignoring such data.  This routine will not alter or
+    !! overwrite such variables.
     !!
     !! @param nBlocksX   The number of blocks along the x axis
     !! @param nBlocksY   The number of blocks along the y axis
@@ -440,7 +518,7 @@ contains
 
     !> Obtain the number of cell-centered variables associated with each block.
     !!
-    !! @param nCcVars    The number of guardcells
+    !! @param nCcVars    The number of variables
     !! @param ierr  The milhoja error code
     subroutine milhoja_grid_getNCcVariables(nCcVars, ierr)
         integer(MILHOJA_INT), intent(OUT) :: nCcVars
@@ -448,6 +526,17 @@ contains
 
         ierr = milhoja_grid_n_cc_variables_C(nCcVars)
     end subroutine milhoja_grid_getNCcVariables
+
+    !> Obtain the number of flux variables associated with each block.
+    !!
+    !! @param nFluxVars    The number of variables
+    !! @param ierr  The milhoja error code
+    subroutine milhoja_grid_getNFluxVariables(nFluxVars, ierr)
+        integer(MILHOJA_INT), intent(OUT) :: nFluxVars
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_n_flux_variables_C(nFluxVars)
+    end subroutine milhoja_grid_getNFluxVariables
 
     !> Write the contents of the solution to file.  It is intended that this
     !! routine only be used for development, testing, and debugging.
@@ -466,6 +555,15 @@ contains
 
         ierr = milhoja_grid_write_plotfile_C(step)
     end subroutine milhoja_grid_writePlotfile
+
+    !>
+    !!
+    !!
+    subroutine milhoja_grid_fillGuardCells(ierr)
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_grid_fill_guardcells_C()
+    end subroutine milhoja_grid_fillGuardCells
 
 end module milhoja_grid_mod
 

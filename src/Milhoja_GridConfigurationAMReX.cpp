@@ -2,9 +2,10 @@
 
 #include <stdexcept>
 
+#include <AMReX_CoordSys.H>
 #include <AMReX_ParmParse.H>
 
-#include "Milhoja_macros.h"
+#include "Milhoja.h"
 #include "Milhoja_Logger.h"
 
 namespace milhoja {
@@ -37,8 +38,28 @@ void GridConfigurationAMReX::load(void) const {
     }
 
     amrex::ParmParse    ppGeo("geometry");
-    ppGeo.addarr("is_periodic", std::vector<int>{1, 1, 1} );
-    ppGeo.add("coord_sys", 0); //cartesian
+
+    std::vector<int>   isPeriodic(MILHOJA_MDIM, 0);
+    for (auto i=0; i<isPeriodic.size(); ++i) {
+        if ((loBCs[i] == BCs::Periodic) && (hiBCs[i] == BCs::Periodic)) {
+            isPeriodic[i] = 1;
+        } 
+    }
+    ppGeo.addarr("is_periodic", isPeriodic);
+
+    switch (coordSys) {
+    case CoordSys::Cartesian:
+        ppGeo.add("coord_sys", amrex::CoordSys::CoordType::cartesian);
+        break;
+    case CoordSys::Cylindrical:
+        ppGeo.add("coord_sys", amrex::CoordSys::CoordType::RZ);
+        break;
+    case CoordSys::Spherical:
+        ppGeo.add("coord_sys", amrex::CoordSys::CoordType::SPHERICAL);
+        break;
+    default:
+        throw std::invalid_argument("[GridConfigurationAMReX::load] coordSys invalid");
+    }
     ppGeo.addarr("prob_lo", std::vector<Real>{LIST_NDIM(xMin,
                                                         yMin,
                                                         zMin)});

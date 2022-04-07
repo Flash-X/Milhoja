@@ -93,6 +93,10 @@ Grid-specific error codes
 #define MILHOJA_ERROR_UNABLE_TO_GET_N_GUARDCELLS           308
 #define MILHOJA_ERROR_UNABLE_TO_GET_N_CC_VARS              309
 #define MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION   310
+#define MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS              311
+#define MILHOJA_ERROR_UNABLE_TO_FILL_GCS                   312
+#define MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS            313
+#define MILHOJA_ERROR_INVALID_N_FLUX_VARS                  314
 
 #if 0
 --------------------------------------------------------------------------------

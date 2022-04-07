@@ -12,6 +12,8 @@
 #include <mpi.h>
 
 #include "Milhoja.h"
+#include "Milhoja_coordinateSystem.h"
+#include "Milhoja_boundaryConditions.h"
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
 #include "Milhoja_Grid.h"
@@ -41,12 +43,18 @@ extern "C" {
      *                             Milhoja should use
      * \param logRank              The rank in the given communicator of the MPI process
      *                             that should perform logging duties.
+     * \param coordSys             The domain's coordinate system.  See
+     *                             Milhoja.h for valid values.
      * \param xMin                 Define the physical domain in X as [xMin, xMax]
      * \param xMax                 See xMin
      * \param yMin                 Define the physical domain in Y as [yMin, yMax]
      * \param yMax                 See yMin
      * \param zMin                 Define the physical domain in Z as [zMin, zMax]
      * \param zMax                 See zMin
+     * \param loBCs                Indicate how BCs should be handled at each of
+     *                             the low domain faces.  See Milhoja.h for
+     *                             valid values.
+     * \param hiBCs                High face version of loBCs
      * \param nxb                  The number of cells along X in each block in the
      *                             domain decomposition
      * \param nyb                  The number of cells along Y in each block in the
@@ -60,6 +68,7 @@ extern "C" {
      *                             permitted at any time during the simulation
      * \param nGuard               The number of guardcells
      * \param nCcVars              The number of physical variables in the solution
+     * \param nFluxVars            The number of flux variables needed
      * \param errorEst             Procedure that is used to assess if a block should
      *                             be refined, derefined, or stay at the same
      *                             refinement
@@ -67,23 +76,30 @@ extern "C" {
      */
     int    milhoja_grid_init_c(const MPI_Fint globalCommF,
                                const int logRank,
+                               const int coordSys,
                                const milhoja::Real xMin, const milhoja::Real xMax,
                                const milhoja::Real yMin, const milhoja::Real yMax,
                                const milhoja::Real zMin, const milhoja::Real zMax,
+                               const int* loBCs, const int* hiBCs,
                                const int nxb, const int nyb, const int nzb,
                                const int nBlocksX,
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int maxRefinementLevel,
-                               const int nGuard, const int nCcVars,
+                               const int nGuard,
+                               const int nCcVars, const int nFluxVars,
                                milhoja::ERROR_ROUTINE errorEst) {
         MPI_Comm    globalComm = MPI_Comm_f2c(globalCommF);
 
         if (   (nxb      < 0) || (nyb      < 0) || (nzb      < 0) 
             || (nBlocksX < 0) || (nBlocksY < 0) || (nBlocksZ < 0)
-            || (maxRefinementLevel < 0) || (nGuard < 0) || (nCcVars < 0)) {
+            || (maxRefinementLevel < 0) || (nGuard < 0)
+            || (nCcVars < 0) || (nFluxVars < 0)) {
             std::cerr << "[milhoja_grid_init_c] Invalid configuration value" << std::endl;
             return MILHOJA_ERROR_NEGATIVE_VALUE_FOR_UINT;
+        } else if (!loBCs || !hiBCs) {
+            std::cerr << "[milhoja_grid_init_c] BCs null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         unsigned int    nxb_ui                = static_cast<unsigned int>(nxb);
         unsigned int    nyb_ui                = static_cast<unsigned int>(nyb);
@@ -94,6 +110,7 @@ extern "C" {
         unsigned int    maxRefinementLevel_ui = static_cast<unsigned int>(maxRefinementLevel);
         unsigned int    nGuard_ui             = static_cast<unsigned int>(nGuard);
         unsigned int    nCcVars_ui            = static_cast<unsigned int>(nCcVars);
+        unsigned int    nFluxVars_ui          = static_cast<unsigned int>(nFluxVars);
 
         try {
             milhoja::Logger::initialize("milhoja.log", globalComm, logRank);
@@ -101,17 +118,23 @@ extern "C" {
             // Configure in local block so that code cannot accidentally access
             // configuration data after it is consumed by Grid at initialization.
             milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
-   
+
+            cfg.coordSys        = static_cast<milhoja::CoordSys>(coordSys); 
             cfg.xMin            = xMin;
             cfg.xMax            = xMax;
             cfg.yMin            = yMin;
             cfg.yMax            = yMax;
             cfg.zMin            = zMin;
             cfg.zMax            = zMax;
+            for (unsigned int i=0; i<MILHOJA_MDIM; ++i) {
+                cfg.loBCs[i] = static_cast<milhoja::BCs>(loBCs[i]);
+                cfg.hiBCs[i] = static_cast<milhoja::BCs>(hiBCs[i]);
+            }
             cfg.nxb             = nxb_ui;
             cfg.nyb             = nyb_ui;
             cfg.nzb             = nzb_ui;
             cfg.nCcVars         = nCcVars_ui;
+            cfg.nFluxVars       = nFluxVars_ui;
             cfg.nGuard          = nGuard_ui;
             cfg.nBlocksX        = nBlocksX_ui;
             cfg.nBlocksY        = nBlocksY_ui;
@@ -158,6 +181,32 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_grid_finalize_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Obtain the coordinate system used to define the domain.
+     *
+     * \param system   The pointer whose variable will store the system type
+     * \return The milhoja error code
+     */
+    int   milhoja_grid_coordinate_system_c(int* system) {
+        if (!system) {
+            std::cerr << "[milhoja_grid_coordinate_system_c] system is null" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            milhoja::Grid&      grid = milhoja::Grid::instance();
+            *system = static_cast<int>(grid.getCoordinateSystem());
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_coordinate_system_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_COORD_SYS;
         }
 
         return MILHOJA_SUCCESS;
@@ -353,6 +402,11 @@ extern "C" {
      * Obtain the size of all blocks in the domain in terms of number of cells
      * along each edge.
      *
+     * NOTE: This function does not presume to know what values to set for
+     * dimensions above MILHOJA_NDIM.  Therefore, calling code is responsible
+     * for setting or ignoring such data.  This function will not alter or
+     * overwrite such variables.
+     *
      * \todo Can we put into the C++ code a routine that just takes the
      * pointer?  Ideally that pointer could go all the way to the grid
      * backend and the backend could set the values into the Fortran variables
@@ -369,11 +423,6 @@ extern "C" {
     int    milhoja_grid_block_size_c(int* nxb, int* nyb, int* nzb) {
         using namespace milhoja;
 
-        if (!nxb || !nyb || !nzb) {
-            std::cerr << "[milhoja_grid_block_size_c] Invalid pointer" << std::endl;
-            return MILHOJA_ERROR_POINTER_IS_NULL;
-        }
-
         try {
             unsigned int   nxb_ui = 0;
             unsigned int   nyb_ui = 0;
@@ -381,9 +430,25 @@ extern "C" {
 
             Grid::instance().getBlockSize(&nxb_ui, &nyb_ui, &nzb_ui);
 
+            if (!nxb) {
+                std::cerr << "[milhoja_grid_block_size_c] nxb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nxb = static_cast<int>(nxb_ui);
+#if MILHOJA_NDIM >= 2
+            if (!nyb) {
+                std::cerr << "[milhoja_grid_block_size_c] nyb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nyb = static_cast<int>(nyb_ui);
+#endif
+#if MILHOJA_NDIM == 3
+            if (!nzb) {
+                std::cerr << "[milhoja_grid_block_size_c] nzb null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nzb = static_cast<int>(nzb_ui);
+#endif
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_BLOCK_SIZE;
@@ -397,6 +462,11 @@ extern "C" {
 
     /**
      * Obtain the block domain decomposition of the coarsest level.
+     *
+     * NOTE: This function does not presume to know what values to set for
+     * dimensions above MILHOJA_NDIM.  Therefore, calling code is responsible
+     * for setting or ignoring such data.  This function will not alter or
+     * overwrite such variables.
      *
      * \todo Can we put into the C++ code a routine that just takes
      * pointers?  Ideally the pointers could go all the way to the grid
@@ -430,9 +500,25 @@ extern "C" {
                                                     &nBlocksY_ui,
                                                     &nBlocksZ_ui);
 
+            if (!nBlocksX) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksX null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksX = static_cast<int>(nBlocksX_ui);
+#if MILHOJA_NDIM >= 2
+            if (!nBlocksY) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksY null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksY = static_cast<int>(nBlocksY_ui);
+#endif
+#if MILHOJA_NDIM == 3
+            if (!nBlocksZ) {
+                std::cerr << "[milhoja_grid_domain_decomposition_c] nBlocksZ null" << std::endl;
+                return MILHOJA_ERROR_POINTER_IS_NULL;
+            }
             *nBlocksZ = static_cast<int>(nBlocksZ_ui);
+#endif
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_DOMAIN_DECOMPOSITION;
@@ -523,6 +609,43 @@ extern "C" {
     }
 
     /**
+     * Obtain the number of flux variables.
+     *
+     * \todo Can we put into the C++ code a routine that just takes the
+     * pointer?  Ideally that pointer could go all the way to the grid
+     * backend and the backend could set the value into the Fortran variable
+     * directly in one go.  This would be premature optimization at the moment.
+     * \todo Check that nFluxVars_ui doesn't have a value so large that it
+     * overflows when cast to int.
+     *
+     * \param nFluxVars   The variable whose value is set to the number of
+     *                    variables
+     * \return The milhoja error code
+     */
+    int    milhoja_grid_n_flux_variables_c(int* nFluxVars) {
+        if (!nFluxVars) {
+            std::cerr << "[milhoja_grid_n_flux_variables_c] Invalid pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+
+        try {
+            unsigned int   nFluxVars_ui = 0;
+
+            nFluxVars_ui = milhoja::Grid::instance().getNFluxVariables();
+
+            *nFluxVars = static_cast<int>(nFluxVars_ui);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_n_flux_variables_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_GET_N_FLUX_VARS;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
      * \todo Allow calling code to specify filename.  No need for step in that
      *       case.
      */
@@ -553,5 +676,22 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
     }
+
+    /**
+     *
+     */
+     int    milhoja_grid_fill_guardcells_c(void) {
+        try {
+            milhoja::Grid::instance().fillGuardCells();
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_FILL_GCS;
+        } catch (...) {
+            std::cerr << "[milhoja_grid_fill_guardcells_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_FILL_GCS;
+        }
+
+        return MILHOJA_SUCCESS;
+     }
 }
 

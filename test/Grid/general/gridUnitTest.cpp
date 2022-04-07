@@ -7,7 +7,6 @@
 
 #include <Milhoja.h>
 #include <Milhoja_Grid.h>
-#include <Milhoja_macros.h>
 #include <Milhoja_edge.h>
 #include <Milhoja_Tile.h>
 #include <Milhoja_ThreadTeamDataType.h>

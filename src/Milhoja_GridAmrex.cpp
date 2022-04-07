@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <AMReX.H>
+#include <AMReX_CoordSys.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_Interpolater.H>
@@ -52,16 +53,39 @@ GridAmrex::GridAmrex(void)
       nzb_{GridConfiguration::instance().nzb},
       nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
+      nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
       errorEst_{GridConfiguration::instance().errorEstimation},
       initBlock_noRuntime_{nullptr},
       initCpuAction_{}
 {
+    std::string   msg = "[GridAmrex] Initializing...";
     Logger&   logger = Logger::instance();
-    logger.log("[GridAmrex] Initializing...");
+    logger.log(msg);
 
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
+
+        bcs_.resize(1);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            if        (cfg.loBCs[i] == BCs::Periodic) {
+                bcs_[0].setLo(i, amrex::BCType::int_dir);
+            } else if (cfg.loBCs[i] == BCs::External) {
+//                bcs_[0].setLo(i, amrex::BCType::ext_dir);
+                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            } else {
+                throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown lo BC");
+            }
+            if        (cfg.hiBCs[i] == BCs::Periodic) {
+                bcs_[0].setHi(i, amrex::BCType::int_dir);
+            } else if (cfg.hiBCs[i] == BCs::External) {
+//                bcs_[0].setHi(i, amrex::BCType::ext_dir);
+                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+            } else {
+                throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown hi BC");
+            }
+        }
+
         cfg.clear();
     }
 
@@ -86,14 +110,27 @@ GridAmrex::GridAmrex(void)
                              "have matching default values.");
     }
 
-    // Allocate and resize unk_
-    unk_.resize(max_level+1);
+    // Allocate and resize MultiFabs
+    // TileIterAmrex stores references to unk_ and fluxes_ at a given level.
+    // Therefore, these MFab arrays and the fluxes_[level] array must be set
+    // here and remain fixed until finalization of the Grid unit.
+    unk_.resize(max_level + 1);
+    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
+    logger.log(msg);
 
-    // Set periodic Boundary conditions
-    bcs_.resize(1);
-    for(int i=0; i<MILHOJA_NDIM; ++i) {
-        bcs_[0].setLo(i, amrex::BCType::int_dir);
-        bcs_[0].setHi(i, amrex::BCType::int_dir);
+    // When constructing a TileIterAmrex at a given level, we must pass in a
+    // vector of flux MultiFabs for the level.  If there are no flux variables,
+    // an empty vector is needed.  Therefore, always allocate this outer vector.
+    fluxes_.resize(max_level + 1);
+    if (nFluxVars_ > 0) {
+        for (auto level=0; level<fluxes_.size(); ++level) {
+            fluxes_[level].resize(MILHOJA_NDIM);
+            msg =   "[GridAmrex] Created " + std::to_string(fluxes_[level].size())
+                  + " empty flux MultiFab(s) at level " + std::to_string(level);
+            logger.log(msg);
+        }
+    } else {
+        logger.log("[GridAmrex] No flux MultiFabs needed");
     }
 
     //----- LOG GRID CONFIGURATION INFORMATION
@@ -104,12 +141,28 @@ GridAmrex::GridAmrex(void)
     RealVect  domainLo = getProbLo();
     RealVect  domainHi = getProbHi();
 
-    std::string   msg{};
     msg =   "[GridAmrex] " + std::to_string(size)
           + " MPI processes in given communicator";
     logger.log(msg);
 
     msg = "[GridAmrex] N dimensions = " + std::to_string(MILHOJA_NDIM);
+    logger.log(msg);
+
+    msg = "[GridAmrex] ";
+    switch (getCoordinateSystem()) {
+    case CoordSys::Cartesian:
+        msg += "Cartesian";
+        break;
+    case CoordSys::Cylindrical:
+        msg += "Cylindrical";
+        break;
+    case CoordSys::Spherical:
+        msg += "Spherical";
+        break;
+    default:
+        throw std::logic_error("[GridAmrex::GridAmrex] Unknown coordinate system");
+    }
+    msg += " Coordinate System";
     logger.log(msg);
 
     msg  = "[GridAmrex] Physical spatial domain specification";
@@ -131,6 +184,34 @@ GridAmrex::GridAmrex(void)
     logger.log(msg);
 #endif
 
+    msg = "[GridAmrex] Boundary Conditions Handling";
+    logger.log(msg);
+    for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+        if        (i == Axis::I) {
+            msg = "[GridAmrex] X-axis ";
+        } else if (i == Axis::J) {
+            msg = "[GridAmrex] Y-axis ";
+        } else if (i == Axis::K) {
+            msg = "[GridAmrex] Z-axis ";
+        }
+
+        if        (bcs_[0].lo(i) == amrex::BCType::int_dir) {
+            logger.log(msg + "lo = Periodic");
+        } else if (bcs_[0].lo(i) == amrex::BCType::ext_dir) {
+            logger.log(msg + "lo = External");
+        } else {
+            throw std::logic_error("[GridAmrex::GridAmrex] Invalid lo AMReX BC type");
+        }
+
+        if        (bcs_[0].hi(i) == amrex::BCType::int_dir) {
+            logger.log(msg + "hi = Periodic");
+        } else if (bcs_[0].hi(i) == amrex::BCType::ext_dir) {
+            logger.log(msg + "hi = External");
+        } else {
+            throw std::logic_error("[GridAmrex::GridAmrex] Invalid hi AMReX BC type");
+        }
+    }
+
     msg =   "[GridAmrex] Maximum Finest Level = "
           + std::to_string(max_level);
     logger.log(msg);
@@ -141,6 +222,10 @@ GridAmrex::GridAmrex(void)
 
     msg =   "[GridAmrex] N Cell-centered Variables = "
           + std::to_string(nCcVars_);
+    logger.log(msg);
+
+    msg =   "[GridAmrex] N Flux Variables = "
+          + std::to_string(nFluxVars_);
     logger.log(msg);
 
 #if   MILHOJA_NDIM == 1
@@ -247,8 +332,29 @@ void  GridAmrex::finalize(void) {
     Logger::instance().log("[GridAmrex] Finalizing ...");
 
     // Clean-up all AMReX structures before finalization.
+    std::string    msg{};
+    msg =   "[GridAmrex] Destroying cell-centered MultiFab array with "
+          + std::to_string(unk_.size()) + " level(s)";
+    Logger::instance().log(msg);
     std::vector<amrex::MultiFab>().swap(unk_);
-    
+
+    for (auto level=0; level<fluxes_.size(); ++level) {
+        if        ((nFluxVars_ == 0) && (fluxes_[level].size() >  0)) {
+            throw std::logic_error("[GridAmrex::finalize] Flux multifabs created");
+        } else if ((nFluxVars_ >  0) && (fluxes_[level].size() == 0)) {
+            throw std::logic_error("[GridAmrex::finalize] Flux multifabs not created");
+        } else if ((nFluxVars_ >  0) && (fluxes_[level].size() >  0)) {
+            msg =   "[GridAmrex] Destroying " + std::to_string(fluxes_[level].size())
+                  + " flux MultiFab(s) at level " + std::to_string(level);
+            Logger::instance().log(msg);
+            std::vector<amrex::MultiFab>().swap(fluxes_[level]);
+        }
+    }
+    msg =   "[GridAmrex] Destroying flux array with "
+          + std::to_string(fluxes_.size()) + " level(s)";
+    Logger::instance().log(msg);
+    std::vector<std::vector<amrex::MultiFab>>().swap(fluxes_);
+
     // This is the ugliest part of the multiple inheritance design of this class
     // because we finalize AMReX before AmrCore is destroyed, which occurs
     // whenever the compiler decides to destroy the Grid backend singleton.
@@ -374,8 +480,8 @@ void GridAmrex::restrictAllLevels() {
 void  GridAmrex::fillGuardCells() {
     for (int level=0; level<=finest_level; ++level) {
 #ifdef GRID_LOG
-        Logger::instance().log("[GridAmrex] GCFill on level " +
-                           std::to_string(level) );
+        Logger::instance().log(  "[GridAmrex] GCFill on level "
+                               + std::to_string(level) );
 #endif
 
         fillPatch(unk_[level], level);
@@ -384,34 +490,80 @@ void  GridAmrex::fillGuardCells() {
 
 /**
  * Obtain the size of the interior of all blocks.
+ *
+ * NOTE: This function does not presume to know what values to set for variables
+ * above MILHOJA_NDIM.  Therefore, calling code is responsible for setting or
+ * ignoring such data.  This routine will not alter or overwrite such variables.
  */
 void    GridAmrex::getBlockSize(unsigned int* nxb,
                                 unsigned int* nyb,
                                 unsigned int* nzb) const {
-    if (!nxb || !nyb || !nzb) {
-        std::string    msg = "[GridAmrex::getBlockSize] Invalid pointer";
+    if (!nxb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nxb null";
         throw std::invalid_argument(msg);
     }
-
     *nxb = nxb_;
+#if MILHOJA_NDIM >= 2
+    if (!nyb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nyb null";
+        throw std::invalid_argument(msg);
+    }
     *nyb = nyb_;
+#endif
+#if MILHOJA_NDIM == 3
+    if (!nzb) {
+        std::string    msg = "[GridAmrex::getBlockSize] nzb null";
+        throw std::invalid_argument(msg);
+    }
     *nzb = nzb_;
+#endif
 }
 
 /**
  * Obtain the block decomposition of the domain on the coarsest level.
+ *
+ * NOTE: This function does not presume to know what values to set for variables
+ * above MILHOJA_NDIM.  Therefore, calling code is responsible for setting or
+ * ignoring such data.  This routine will not alter or overwrite such variables.
  */
 void    GridAmrex::getDomainDecomposition(unsigned int* nBlocksX,
                                           unsigned int* nBlocksY,
                                           unsigned int* nBlocksZ) const {
-    if (!nBlocksX || !nBlocksY || !nBlocksZ) {
-        std::string    msg = "[GridAmrex::getDomainDecomposition] Invalid pointer";
+    if (!nBlocksX) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksX null";
         throw std::invalid_argument(msg);
     }
-
     *nBlocksX = nBlocksX_;
+#if MILHOJA_NDIM >= 2
+    if (!nBlocksY) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksY null";
+        throw std::invalid_argument(msg);
+    }
     *nBlocksY = nBlocksY_;
+#endif
+#if MILHOJA_NDIM == 3
+    if (!nBlocksZ) {
+        std::string    msg = "[GridAmrex::getDomainDecomposition] nBlocksZ null";
+        throw std::invalid_argument(msg);
+    }
     *nBlocksZ = nBlocksZ_;
+#endif
+}
+
+/**
+  * Obtain the coordinate system used to define the domain.
+  */
+CoordSys    GridAmrex::getCoordinateSystem(void) const {
+    switch(geom[0].Coord()) {
+    case amrex::CoordSys::CoordType::cartesian:
+        return CoordSys::Cartesian;
+    case amrex::CoordSys::CoordType::RZ:
+        return CoordSys::Cylindrical;
+    case amrex::CoordSys::CoordType::SPHERICAL:
+        return CoordSys::Spherical;
+    default:
+        throw std::logic_error("[GridAmrex::getCoordinateSystem] Unknown system");
+    }
 }
 
 /**
@@ -546,7 +698,9 @@ void    GridAmrex::writePlotfile(const std::string& filename,
   *
   */
 std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
-    return std::unique_ptr<TileIter>{new TileIterAmrex(unk_[level], level)};
+    return std::unique_ptr<TileIter>{new TileIterAmrex{unk_[level],
+                                                       fluxes_[level],
+                                                       level}};
 }
 
 /**
@@ -560,7 +714,7 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
   * \todo Sanity check level value
   */
 TileIter* GridAmrex::buildTileIter_forFortran(const unsigned int level) {
-    return (new TileIterAmrex(unk_[level], level));
+    return (new TileIterAmrex{unk_[level], fluxes_[level], level});
 }
 
 /**
@@ -729,8 +883,15 @@ void    GridAmrex::fillCellVolumes(const unsigned int level,
 }
 
 /**
+  * How does data get set?  We can get interpolation, but also for BCs.  How is
+  * interpolation done and what method is used?
   *
   * \todo Sanity check level value.
+  * \todo RemakeLevel seems to assume that this will also set the interior data.
+  * Is this true?  If so, is this what we want?
+  * \todo Does fillPatch require data in primitive form?  If so, document how,
+  * when, and where the p-to-c and reverse transformations are done.
+  * \todo Interpolation by AMReX's conservative linear interpolation routine?
   *
   */
 void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
@@ -780,6 +941,11 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
 /**
   * \brief Clear level
   *
+  * AmrCore calls this function to destroy all MultiFabs managed by this class
+  * at the given level.
+  * 
+  * It is intended that this function only be called by AMReX.
+  *
   * \todo Sanity check level value.
   *
   * \param level   Level being cleared
@@ -787,11 +953,34 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
 void    GridAmrex::ClearLevel(int level) {
     unk_[level].clear();
 
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].clear();
+        }
+    }
+
     Logger::instance().log("[GridAmrex] Cleared level " + std::to_string(level));
 }
 
 /**
   * \brief Remake Level
+  *
+  * AmrCore calls this routine to reestablish the data in each MultiFab defined at
+  * the given level (e.g., cell-centered, fluxes) onto a new MultiFab specified
+  * through the given box array and distribution map.  The remade cell-centered
+  * data MultiFab will have data in all interior cells as well as guardcells
+  * via the fillPatch() function.
+  *
+  * It is intended that this function only be called by AMReX.
+  *
+  * Note that the new MultiFab might contain new boxes recently added to the
+  * level.  Therefore fillPatch() might execute AMReX's conservative linear
+  * interpolation algorithm to set data in this level based on data at the
+  * coarser level.
+  *
+  * Since fillPatch() requires that data be in primitive form, this function
+  * also has the same requirement.
   *
   * \todo Sanity check level value.
   *
@@ -804,9 +993,18 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
                               const amrex::BoxArray& ba,
                               const amrex::DistributionMapping& dm) {
     amrex::MultiFab unkTmp{ba, dm, nCcVars_, nGuard_};
+    // Move all unk data (interior and GC) to given ba/dm layout.
+    // Do *not* use sub-cycling.
     fillPatch(unkTmp, level);
-
     std::swap(unkTmp, unk_[level]);
+
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+        }
+    }
 
     Logger::instance().log("[GridAmrex] Remade level " + std::to_string(level));
 }
@@ -814,12 +1012,26 @@ void   GridAmrex::RemakeLevel(int level, amrex::Real time,
 /**
   * \brief Make new level from scratch
   *
+  * AmrCore calls this function so that for the given refinement level we can
+  *  (1) create a MultiFab for each data type using the given box array and
+  *      distribution map and
+  *  (2) initialize all block data in the cell-centered MultiFab
+  *      with initial conditions via the initBlock routine passed to
+  *      initDomain().
+  * The data in all flux MultiFabs is not initialized.
+  *
+  * Step (2) implies that the given initBlock routine must set initial
+  * conditions not only in the interior of each block, but also in the
+  * guardcells.  This is required as refinement/derefinement routines can choose
+  * to refine a block if they determine that there is poorly-refined data in the
+  * GC.  In other words, this routine must leave the ICs ready for immediate use
+  * by ErrorEst().  This includes setting all data that will be used by ErrorEst
+  * to set the initial AMR refinement.
+  *
   * \todo Simulations should be allowed to use the GPU for setting the ICs.
   * Therefore, we need a means for expressing if the CPU-only or GPU-only thread
   * team configuration should be used.  If the GPU-only configuration is
   * allowed, then we should allow for more than one distributor thread.
-  * \todo Should this do a GC fill at the end?
-  * \todo Really necessary to zero data?  Check with Flash-X.
   * \todo Sanity check level value.
   *
   * \param level Level being made
@@ -831,7 +1043,25 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
                                            const amrex::BoxArray& ba,
                                            const amrex::DistributionMapping& dm) {
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
-    unk_[level].setVal(0.0_wp);
+    std::string   msg =   "[GridAmrex] Made CC MultiFab from scratch at level "
+                        + std::to_string(level) + " with "
+                        + std::to_string(unk_[level].nComp()) + " variables and "
+                        + std::to_string(unk_[level].nGrow()) + " GC";
+    Logger::instance().log(msg);
+
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+            msg =   "[GridAmrex] Made flux MultiFab " + std::to_string(i) 
+                  + " from scratch at level " + std::to_string(level)
+                  + " with " + std::to_string(fluxes_[level][i].nComp())
+                  + " variables and " + std::to_string(fluxes_[level][i].nGrow())
+                  + " GC";
+            Logger::instance().log(msg);
+        }
+    }
 
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
@@ -848,14 +1078,26 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
     }
 
-    std::string    msg =   "[GridAmrex] Created level "
-                         + std::to_string(level) + " from scratch with "
-                         + std::to_string(ba.size()) + " blocks";
+    msg =   "[GridAmrex] Created level "
+          + std::to_string(level) + " from scratch with "
+          + std::to_string(ba.size()) + " blocks";
     Logger::instance().log(msg);
 }
 
 /**
   * \brief Make New Level from Coarse
+  *
+  * AmrCore calls this function so that for the given refinement level we can
+  *  (1) create a MultiFab for each data type using the given box array and
+  *      distribution map and
+  *  (2) set all data in the interior and guardcells of the cell-centered data
+  *      MultiFab using the data of the next coarsest level via fillPatch().
+  * The data in the flux MultiFabs is not initialized.
+  *
+  * Since fillPatch() requires that data be in primitive form, this function
+  * also has the same requirement.
+  *
+  * This routine should only be invoked by AMReX.
   *
   * \todo Fail if initDomain has not yet been called.
   * \todo Sanity check level value.
@@ -884,15 +1126,47 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                  geom[level-1], geom[level],
                                  cphysbc, 0, fphysbc, 0,
                                  ref_ratio[level-1], mapper, bcs_, 0);
+    std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
+                        + std::to_string(level) + " with "
+                        + std::to_string(unk_[level].nComp())
+                        + " variables and "
+                        + std::to_string(unk_[level].nGrow()) + " GC"
+                        + " using data in coarse level";
+    Logger::instance().log(msg);
 
-    std::string    msg =   "[GridAmrex] Created level "
-                         + std::to_string(level) + " from fine level with "
-                         + std::to_string(ba.size()) + " blocks";
+    if (nFluxVars_ > 0) {
+        assert(fluxes_[level].size() == MILHOJA_NDIM);
+        for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
+            fluxes_[level][i].define(amrex::convert(ba, amrex::IntVect::TheDimensionVector(i)),
+                                     dm, nFluxVars_, NO_GC_FOR_FLUX);
+            msg =   "[GridAmrex] Made Flux MultiFab " + std::to_string(i)
+                  + " at level " + std::to_string(level) + " with "
+                  + std::to_string(fluxes_[level][i].nComp())
+                  + " variables and "
+                  + std::to_string(fluxes_[level][i].nGrow()) + " GC"
+                  + " from data in coarse level";
+            Logger::instance().log(msg);
+        }
+    }
+
+    msg =   "[GridAmrex] Created level " + std::to_string(level)
+          + " with " + std::to_string(ba.size())
+          + " blocks using data from coarse level";
     Logger::instance().log(msg);
 }
 
 /**
   * \brief Tag boxes for refinement
+  *
+  * This function effectively wraps the error estimation routine configured into
+  * the Grid class so that it can be used directly by AMReX.  In particular,
+  * AmrCore may use this subroutine many times during the process of grid
+  * refinement so that calling code may communicate which blocks in the given
+  * level require refinement.  The final refinement decisions are made by AMReX
+  * based on the information gathered with this callback.
+  *
+  * This routine iterates across all blocks in the given level and uses the
+  * error estimation routine to determine if the current block needs refinement.
   *
   * \todo Use tiling here?
   * \todo Sanity check level value.

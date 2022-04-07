@@ -1,6 +1,7 @@
 #ifndef HYDRO_H__
 #define HYDRO_H__
 
+#include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
@@ -27,17 +28,13 @@ namespace hy {
                           const milhoja::IntVect& hi,
                           const milhoja::RealVect& deltas,
                           const milhoja::FArray4D& U,
-                          milhoja::FArray4D& flX,
-                          milhoja::FArray4D& flY,
-                          milhoja::FArray4D& flZ,
+                          LIST_NDIM(milhoja::FArray4D& flX, milhoja::FArray4D& flY, milhoja::FArray4D& flZ),
                           milhoja::FArray3D& auxC);
 
     void updateSolutionHll(const milhoja::IntVect& lo,
                            const milhoja::IntVect& hi,
                            milhoja::FArray4D& U,
-                           const milhoja::FArray4D& flX,
-                           const milhoja::FArray4D& flY,
-                           const milhoja::FArray4D& flZ);
+                           LIST_NDIM(const milhoja::FArray4D& flX, const milhoja::FArray4D& flY, const milhoja::FArray4D& flZ));
 
     //----- GPU ACTION ROUTINES FOR ADVANCE SOLUTION HYDRO OPERATION
     // Kernels that compose compute flux

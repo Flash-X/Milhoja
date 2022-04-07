@@ -1,6 +1,35 @@
 The Grid Abstract Interface
 ===========================
 
+Calling code might have its own set of requirements that dictate what values, if
+any, certain variables should have for dimensions above MILHOJA_NDIM.  Therefore,
+this library should __not__ impose on the calling code what those values should
+be.  Therefore, the preferred interface design should either
+* not return any values above MILHOJA_NDIM or
+* not set values above MILHOJA_NDIM so that calling code can set such values
+  before calling the library without fear of overwriting.
+Implementations should avoid storing any data above MILHOJA_NDIM in the name of
+simplicity, cleanliness, and defensive programming.  If this is unavoidable,
+then garbage default values that should lead to failures or obviously wrong
+values should be used.  These same rules should be propagated through to the
+Fortran/C++ interoperability layer.
+
+Some of the affected variables are
+* [yz]Min/Max
+* n[yz]b
+* nBlocks[YZ]
+* deltas Y & Z
+* Y & Z cell/face/edge/node indices
+* Y & Z cell volumes/face areas/edge lengths
+
+Similarly, the configuration of the Grid shall ignore all variables related to
+dimensions above MILHOJA_NDIM.  Therefore, correct functionality shall arise
+even if calling code does not set such values.
+
+Implementations shall not include guardcells for dimensions above MILHOJA_NDIM
+and the number of cells along a dimension above MILHOJA_NDIM shall be constant
+for all levels.
+
 TODO: Add in table that defines index sets in each Grid backend, in the Milhoja
 C++ interface, in the C/C++ interoperability layer, and in the Fortran
 interface.  Obviously it would be nice to have the data collected in one place

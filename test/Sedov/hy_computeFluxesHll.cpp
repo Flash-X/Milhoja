@@ -3,8 +3,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <Milhoja.h>
-
 #include "Sedov.h"
 
 void hy::computeFluxesHll(const milhoja::Real dt,
@@ -12,9 +10,7 @@ void hy::computeFluxesHll(const milhoja::Real dt,
                           const milhoja::IntVect& hi,
                           const milhoja::RealVect& deltas,
                           const milhoja::FArray4D& Uin,
-                          milhoja::FArray4D& flX,
-                          milhoja::FArray4D& flY,
-                          milhoja::FArray4D& flZ,
+                          LIST_NDIM(milhoja::FArray4D& flX, milhoja::FArray4D& flY, milhoja::FArray4D& flZ),
                           milhoja::FArray3D& auxC) {
     using namespace milhoja;
 

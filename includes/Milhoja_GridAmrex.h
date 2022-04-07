@@ -8,6 +8,9 @@
  * \todo Can we get the total cells in the domain from AMReX?  If so, then using
  * this and the block size, we can get nBlocks[XYZ].  It think that these values
  * are only used for printing out the config as well.
+ * \todo For NDIM < 3, we are storing garbage data in nzb_/nBlocksZ_, etc.  This 
+ * seems dangerous and unnecessary.  Change implementation so that we only store
+ * values that the library can control.
  */
 
 #ifndef MILHOJA_GRID_AMREX_H__
@@ -54,14 +57,19 @@ public:
     void         restrictAllLevels(void) override;
     void         fillGuardCells(void) override;
     void         updateGrid(void) override { amrex::AmrCore::regrid(0, 0.0_wp); }
-    unsigned int getNGuardcells(void) const override { return nGuard_; }
-    unsigned int getNCcVariables(void) const override { return nCcVars_; }
+    unsigned int getNGuardcells(void) const override
+                    { return static_cast<unsigned int>(nGuard_); }
+    unsigned int getNCcVariables(void) const override
+                    { return static_cast<unsigned int>(nCcVars_); }
+    unsigned int getNFluxVariables(void) const override
+                    { return static_cast<unsigned int>(nFluxVars_); }
     void         getBlockSize(unsigned int* nxb,
                               unsigned int* nyb,
                               unsigned int* nzb) const override;
     void         getDomainDecomposition(unsigned int* nBlocksX,
                                         unsigned int* nBlocksY,
                                         unsigned int* nBlocksZ) const override;
+    CoordSys     getCoordinateSystem(void) const override;
     IntVect      getDomainLo(const unsigned int lev) const override;
     IntVect      getDomainHi(const unsigned int lev) const override;
     RealVect     getProbLo(void) const override;
@@ -105,10 +113,14 @@ private:
     // DEV NOTE: needed for polymorphic singleton
     friend Grid& Grid::instance();
 
+    //!< Assume that guardcells are not used when computing fluxes.
+    static constexpr   unsigned int NO_GC_FOR_FLUX = 0;
+
     void    fillPatch(amrex::MultiFab& mf, const int level);
 
-    std::vector<amrex::MultiFab> unk_; //!< Physical data, one MF per level
-    amrex::Vector<amrex::BCRec>  bcs_; //!< Boundary conditions
+    std::vector<amrex::MultiFab>                unk_;   //!< Physical data, one MF per level
+    std::vector<std::vector<amrex::MultiFab>>   fluxes_;  // Flux data
+    amrex::Vector<amrex::BCRec>                 bcs_;   //!< Boundary conditions
 
     //----- AMRCORE OVERRIDES
     void MakeNewLevelFromCoarse(int level, amrex::Real time,
@@ -154,8 +166,11 @@ private:
     //
     // We would prefer to store these as unsigned int, but AmrCore works with
     // them as ints.  Therefore, we will eagerly cast and store these results.
+    // This implies that code in the class can cast back to unsigned int without
+    // first confirming that these variables are non-negative.
     const int   nGuard_;
     const int   nCcVars_;
+    const int   nFluxVars_;
 
     ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
 

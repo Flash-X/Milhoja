@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Milhoja_Logger.h"
+#include "Milhoja_axis.h"
 
 #ifdef MILHOJA_GRID_AMREX
 #include "Milhoja_GridConfigurationAMReX.h"
@@ -66,6 +67,40 @@ bool GridConfiguration::isValid(void) const {
     } else if (mpiComm == MPI_COMM_NULL) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Null MPI communicator");
         isValid = false;
+    } else if (   (coordSys != CoordSys::Cartesian)
+               && (coordSys != CoordSys::Cylindrical)
+               && (coordSys != CoordSys::Spherical)) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid coordinate system");
+        isValid = false;
+    } else if (   ((loBCs[Axis::I] != BCs::Periodic) && (loBCs[Axis::I] != BCs::External))
+               || ((hiBCs[Axis::I] != BCs::Periodic) && (hiBCs[Axis::I] != BCs::External))
+#if MILHOJA_NDIM >= 2
+               || ((loBCs[Axis::J] != BCs::Periodic) && (loBCs[Axis::J] != BCs::External))
+               || ((hiBCs[Axis::J] != BCs::Periodic) && (hiBCs[Axis::J] != BCs::External))
+#endif
+#if MILHOJA_NDIM == 3
+               || ((loBCs[Axis::K] != BCs::Periodic) && (loBCs[Axis::K] != BCs::External))
+               || ((hiBCs[Axis::K] != BCs::Periodic) && (hiBCs[Axis::K] != BCs::External))
+#endif
+    ) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid BCs");
+        isValid = false;
+    } else if (   ((loBCs[Axis::I] == BCs::Periodic) && (hiBCs[Axis::I] != BCs::Periodic))
+               || ((loBCs[Axis::I] != BCs::Periodic) && (hiBCs[Axis::I] == BCs::Periodic)) ) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Mixed periodic BC in X");
+        isValid = false;
+#if MILHOJA_NDIM >= 2
+    } else if (   ((loBCs[Axis::J] == BCs::Periodic) && (hiBCs[Axis::J] != BCs::Periodic))
+               || ((loBCs[Axis::J] != BCs::Periodic) && (hiBCs[Axis::J] == BCs::Periodic)) ) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Mixed periodic BC in Y");
+        isValid = false;
+#endif
+#if MILHOJA_NDIM == 3
+    } else if (   ((loBCs[Axis::K] == BCs::Periodic) && (hiBCs[Axis::K] != BCs::Periodic))
+               || ((loBCs[Axis::K] != BCs::Periodic) && (hiBCs[Axis::K] == BCs::Periodic)) ) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Mixed periodic BC in Z");
+        isValid = false;
+#endif
     }
 
     return isValid;
@@ -80,13 +115,21 @@ void GridConfiguration::clear(void) {
         throw std::logic_error("[GridConfiguration::clear] Configuration already cleared");
     }
 
+    coordSys        = CoordSys::Cartesian;
     xMin            =  1.0;
     xMax            =  0.0;
     yMin            =  1.0;
     yMax            =  0.0;
     zMin            =  1.0;
     zMax            =  0.0;
+    loBCs[Axis::I]  = BCs::Periodic;
+    loBCs[Axis::J]  = BCs::Periodic;
+    loBCs[Axis::K]  = BCs::Periodic;
+    hiBCs[Axis::I]  = BCs::Periodic;
+    hiBCs[Axis::J]  = BCs::Periodic;
+    hiBCs[Axis::K]  = BCs::Periodic;
     nCcVars         =  0;
+    nFluxVars       =  0;
     nxb             =  0; 
     nyb             =  0; 
     nzb             =  0; 
