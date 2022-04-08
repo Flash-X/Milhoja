@@ -83,6 +83,7 @@ module milhoja_grid_mod
                                      C_nxb, C_nyb, C_nzb,                &
                                      C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
                                      C_maxRefinementLevel,               &
+                                     C_ccInterpolator,                   &
                                      C_nGuard, C_nCcVars, C_nFluxVars,   &
                                      C_errorEst) result(C_ierr) bind(c)
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
@@ -99,6 +100,7 @@ module milhoja_grid_mod
             integer(MILHOJA_INT),      intent(IN), value :: C_nxb, C_nyb, C_nzb
             integer(MILHOJA_INT),      intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
             integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
+            integer(MILHOJA_INT),      intent(IN), value :: C_ccInterpolator
             integer(MILHOJA_INT),      intent(IN), value :: C_nGuard
             integer(MILHOJA_INT),      intent(IN), value :: C_nCcVars
             integer(MILHOJA_INT),      intent(IN), value :: C_nFluxVars
@@ -268,6 +270,9 @@ contains
     !! @param nBlocksZ             The number of blocks along Z in the domain decomposition
     !! @param maxRefinementLevel   The 1-based index of the finest refinement level
     !!                             permitted at any time during the simulation
+    !! @param ccInterpolator       The interpolator to use for cell-centered
+    !!                             data.  See Milhoja.h for macros &
+    !!                             Milhoja_interpolator.h for more information.
     !! @param nGuard               The number of guardcells
     !! @param nCcVars              The number of physical variables in the solution
     !! @param nFluxVars            The number of flux variables needed
@@ -284,6 +289,7 @@ contains
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
+                                 ccInterpolator,               &
                                  nGuard, nCcVars, nFluxVars,   &
                                  errorEst,                     &
                                  ierr)
@@ -305,6 +311,7 @@ contains
         integer(MILHOJA_INT),                    intent(IN)  :: nxb, nyb, nzb
         integer(MILHOJA_INT),                    intent(IN)  :: nBlocksX, nBlocksY, nBlocksZ
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
+        integer(MILHOJA_INT),                    intent(IN)  :: ccInterpolator
         integer(MILHOJA_INT),                    intent(IN)  :: nGuard
         integer(MILHOJA_INT),                    intent(IN)  :: nCcVars
         integer(MILHOJA_INT),                    intent(IN)  :: nFluxVars
@@ -328,6 +335,7 @@ contains
                                    nxb, nyb, nzb,                &
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &
+                                   ccInterpolator,               &
                                    nGuard, nCcVars, nFluxVars,   &
                                    errorEst_Cptr)
     end subroutine milhoja_grid_init

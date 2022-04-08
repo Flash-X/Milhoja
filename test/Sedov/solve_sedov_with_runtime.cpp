@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
             cfg.nBlocksZ        = RPs.getUnsignedInt("Grid", "nBlocksZ");
             cfg.maxFinestLevel  = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
             cfg.errorEstimation = Simulation::errorEstBlank;
+            cfg.ccInterpolator  = milhoja::Interpolator::CellConservativeLinear;
             cfg.mpiComm         = GLOBAL_COMM;
 
             cfg.load();

@@ -66,6 +66,9 @@ extern "C" {
      * \param nBlocksZ             The number of blocks along Z in the domain decomposition
      * \param maxRefinementLevel   The 1-based index of the finest refinement level
      *                             permitted at any time during the simulation
+     * \param ccInterpolator       The interpolator to use for cell-centered
+     *                             data.  See Milhoja.h for macros &
+     *                             Milhoja_interpolator.h for more information.
      * \param nGuard               The number of guardcells
      * \param nCcVars              The number of physical variables in the solution
      * \param nFluxVars            The number of flux variables needed
@@ -86,6 +89,7 @@ extern "C" {
                                const int nBlocksY,
                                const int nBlocksZ,
                                const int maxRefinementLevel,
+                               const int ccInterpolator,
                                const int nGuard,
                                const int nCcVars, const int nFluxVars,
                                milhoja::ERROR_ROUTINE errorEst) {
@@ -141,6 +145,7 @@ extern "C" {
             cfg.nBlocksZ        = nBlocksZ_ui;
             cfg.maxFinestLevel  = maxRefinementLevel_ui;
             cfg.errorEstimation = errorEst;
+            cfg.ccInterpolator  = static_cast<milhoja::Interpolator>(ccInterpolator);
             cfg.mpiComm         = globalComm;
    
             cfg.load();

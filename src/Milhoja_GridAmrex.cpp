@@ -8,7 +8,6 @@
 #include <AMReX_CoordSys.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
-#include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
 #include "Milhoja_Logger.h"
@@ -51,6 +50,7 @@ GridAmrex::GridAmrex(void)
       nxb_{GridConfiguration::instance().nxb}, 
       nyb_{GridConfiguration::instance().nyb}, 
       nzb_{GridConfiguration::instance().nzb},
+      ccInterpolator_{nullptr},
       nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
       nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
@@ -63,6 +63,7 @@ GridAmrex::GridAmrex(void)
     logger.log(msg);
 
     // Satisfy grid configuration requirements and suggestions (See dev guide).
+    std::string   ccInterpolatorName{};
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
 
@@ -84,6 +85,32 @@ GridAmrex::GridAmrex(void)
             } else {
                 throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown hi BC");
             }
+        }
+
+        if        (cfg.ccInterpolator == Interpolator::CellConservativeLinear) {
+            ccInterpolator_ = &(amrex::cell_cons_interp);
+            ccInterpolatorName = "Conservative Linear";
+        } else if (cfg.ccInterpolator == Interpolator::CellConservativeProtected) {
+            ccInterpolator_ = &(amrex::protected_interp);
+            ccInterpolatorName = "Conservative Protected";
+        } else if (cfg.ccInterpolator == Interpolator::CellConservativeQuartic) {
+            ccInterpolator_ = &(amrex::quartic_interp);
+            ccInterpolatorName = "Conservative Quartic";
+        } else if (cfg.ccInterpolator == Interpolator::CellPiecewiseConstant) {
+            ccInterpolator_ = &(amrex::pc_interp);
+            ccInterpolatorName = "Piecewise Constant";
+        } else if (cfg.ccInterpolator == Interpolator::CellBilinear) {
+            ccInterpolator_ = &(amrex::cell_bilinear_interp);
+            ccInterpolatorName = "Bilinear";
+        } else if (cfg.ccInterpolator == Interpolator::CellQuadratic) {
+            ccInterpolator_ = &(amrex::quadratic_interp);
+            ccInterpolatorName = "Quadratic";
+        } else {
+            throw std::logic_error("[GridAmrex::GridAmrex] CC Interpolator not implemented yet");
+        }
+
+        if (!ccInterpolator_) {
+            throw std::invalid_argument("[GridAmrex::GridAmrex] Null interpolator");
         }
 
         cfg.clear();
@@ -211,6 +238,9 @@ GridAmrex::GridAmrex(void)
             throw std::logic_error("[GridAmrex::GridAmrex] Invalid hi AMReX BC type");
         }
     }
+
+    msg = "[GridAmrex] Using " + ccInterpolatorName + " interpolator for cell-centered data";
+    logger.log(msg);
 
     msg =   "[GridAmrex] Maximum Finest Level = "
           + std::to_string(max_level);
@@ -925,15 +955,12 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
         amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
             fphysbc(geom[level  ], bcs_, bndry_func);
 
-        // CellConservativeLinear interpolator from AMReX_Interpolator.H
-        amrex::Interpolater* mapper = &amrex::cell_cons_interp;
-
         amrex::FillPatchTwoLevels(mf, 0.0_wp,
                                   cmf, ctime, fmf, ftime,
                                   0, 0, mf.nComp(),
                                   geom[level-1], geom[level],
                                   cphysbc, 0, fphysbc, 0,
-                                  ref_ratio[level-1], mapper, bcs_, 0);
+                                  ref_ratio[level-1], ccInterpolator_, bcs_, 0);
     }
 }
 
@@ -1118,14 +1145,11 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
     amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
         fphysbc(geom[level  ], bcs_, bndry_func);
 
-    // CellConservativeLinear interpolator from AMReX_Interpolator.H
-    amrex::Interpolater* mapper = &amrex::cell_cons_interp;
-
     amrex::InterpFromCoarseLevel(unk_[level], 0.0_wp, unk_[level-1],
                                  0, 0, nCcVars_,
                                  geom[level-1], geom[level],
                                  cphysbc, 0, fphysbc, 0,
-                                 ref_ratio[level-1], mapper, bcs_, 0);
+                                 ref_ratio[level-1], ccInterpolator_, bcs_, 0);
     std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
                         + std::to_string(level) + " with "
                         + std::to_string(unk_[level].nComp())

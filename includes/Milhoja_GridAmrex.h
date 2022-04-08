@@ -19,9 +19,11 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_Interpolater.H>
 
 #include "Milhoja.h"
 #include "Milhoja_Grid.h"
+#include "Milhoja_interpolator.h"
 #include "Milhoja_actionRoutine.h"
 
 #ifndef MILHOJA_GRID_AMREX
@@ -156,6 +158,7 @@ private:
     // These cannot be obtained from AMReX
     const unsigned int    nBlocksX_, nBlocksY_, nBlocksZ_;
     const unsigned int    nxb_, nyb_, nzb_;
+    amrex::Interpolater*  ccInterpolator_;
 
     // These cannot be acquired from AMReX and play an important role here in
     // terms of constructing MultiFabs.

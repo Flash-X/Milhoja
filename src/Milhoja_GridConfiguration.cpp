@@ -103,6 +103,18 @@ bool GridConfiguration::isValid(void) const {
 #endif
     }
 
+#ifdef MILHOJA_GRID_AMREX
+    if (   (ccInterpolator != Interpolator::CellConservativeLinear)
+        && (ccInterpolator != Interpolator::CellConservativeProtected)
+        && (ccInterpolator != Interpolator::CellConservativeQuartic)
+        && (ccInterpolator != Interpolator::CellPiecewiseConstant)
+        && (ccInterpolator != Interpolator::CellBilinear)
+        && (ccInterpolator != Interpolator::CellQuadratic)) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid AMReX CC Interpolator");
+        isValid = false;
+   }
+#endif
+
     return isValid;
 }
 
@@ -139,6 +151,7 @@ void GridConfiguration::clear(void) {
     nBlocksZ        =  0; 
     maxFinestLevel  =  0;
     errorEstimation = nullptr;
+    ccInterpolator  = Interpolator::CellConservativeLinear;
     mpiComm         = MPI_COMM_NULL;
 
     // Limit possiblity that calling code can access the

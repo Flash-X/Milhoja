@@ -34,6 +34,7 @@
 #include "Milhoja_real.h"
 #include "Milhoja_coordinateSystem.h"
 #include "Milhoja_boundaryConditions.h"
+#include "Milhoja_interpolator.h"
 #include "Milhoja_actionRoutine.h"
 
 namespace milhoja {
@@ -73,6 +74,7 @@ public:
     // Adaptive Mesh Refinement
     unsigned int                    maxFinestLevel;
     milhoja::ERROR_ROUTINE          errorEstimation;
+    milhoja::Interpolator           ccInterpolator;
 
     // MPI
     MPI_Comm                        mpiComm;
