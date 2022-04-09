@@ -6,12 +6,14 @@
 
 #include <AMReX.H>
 #include <AMReX_CoordSys.H>
+#include <AMReX_PhysBCFunct.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_FillPatchUtil.H>
 
 #include "Milhoja_Logger.h"
 #include "Milhoja_GridConfiguration.h"
+#include "Milhoja_ExtBcFillAMReX.h"
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 #include "Milhoja_TileIterAmrex.h"
@@ -39,10 +41,16 @@ bool GridAmrex::domainDestroyed_   = false;
   * cfg.nGuard and cfg.nCcVars for overflow and fail if the stored values are
   * invalid.  We are forced to cast and then check since we want
   * nGuard_/nCcVars_ to be const.
+  * \todo We presently limit our BCs to a single BC handling scheme across all
+  *       components for each domain face, but AMReX allows for a scheme per
+  *       component for each face.  Should we expose this level of flexibility?
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
       AmrCore(),
+      unk_{static_cast<unsigned int>(max_level+1)},
+      fluxes_{static_cast<unsigned int>(max_level+1)},
+      bcs_{1},
       comm_{GridConfiguration::instance().mpiComm},
       nBlocksX_{GridConfiguration::instance().nBlocksX},
       nBlocksY_{GridConfiguration::instance().nBlocksY},
@@ -55,6 +63,7 @@ GridAmrex::GridAmrex(void)
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
       nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
       errorEst_{GridConfiguration::instance().errorEstimation},
+      extBcFcn_{GridConfiguration::instance().externalBcRoutine},
       initBlock_noRuntime_{nullptr},
       initCpuAction_{}
 {
@@ -62,26 +71,45 @@ GridAmrex::GridAmrex(void)
     Logger&   logger = Logger::instance();
     logger.log(msg);
 
+    // TileIterAmrex stores references to unk_ and fluxes_ at a given level.
+    // Therefore, these MFab arrays and the fluxes_[level] array must be as
+    // created at instantiation and remain fixed until finalization of the Grid
+    // unit.
+    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
+    logger.log(msg);
+
+    // When constructing a TileIterAmrex at a given level, we must pass in a
+    // vector of flux MultiFabs for the level.  If there are no flux variables,
+    // an empty vector is needed.  Therefore, always allocate this outer vector
+    // as done above.
+    if (nFluxVars_ > 0) {
+        for (auto level=0; level<fluxes_.size(); ++level) {
+            fluxes_[level].resize(MILHOJA_NDIM);
+            msg =   "[GridAmrex] Created " + std::to_string(fluxes_[level].size())
+                  + " empty flux MultiFab(s) at level " + std::to_string(level);
+            logger.log(msg);
+        }
+    } else {
+        logger.log("[GridAmrex] No flux MultiFabs needed");
+    }
+
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     std::string   ccInterpolatorName{};
     {
         GridConfiguration&  cfg = GridConfiguration::instance();
 
-        bcs_.resize(1);
         for (unsigned int i=0; i<MILHOJA_NDIM; ++i) {
             if        (cfg.loBCs[i] == BCs::Periodic) {
                 bcs_[0].setLo(i, amrex::BCType::int_dir);
             } else if (cfg.loBCs[i] == BCs::External) {
-//                bcs_[0].setLo(i, amrex::BCType::ext_dir);
-                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+                bcs_[0].setLo(i, amrex::BCType::ext_dir);
             } else {
                 throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown lo BC");
             }
             if        (cfg.hiBCs[i] == BCs::Periodic) {
                 bcs_[0].setHi(i, amrex::BCType::int_dir);
             } else if (cfg.hiBCs[i] == BCs::External) {
-//                bcs_[0].setHi(i, amrex::BCType::ext_dir);
-                throw std::invalid_argument("[GridAmrex::GridAmrex] External BCs not supported yet");
+                bcs_[0].setHi(i, amrex::BCType::ext_dir);
             } else {
                 throw std::invalid_argument("[GridAmrex::GridAmrex] Unknown hi BC");
             }
@@ -135,29 +163,6 @@ GridAmrex::GridAmrex(void)
     if( iv.I()!=d3.x || iv.J()!=d3.y || iv.K()!=d3.z ) {
       throw std::logic_error("amrex::Dim3 and milhoja::IntVect do not "
                              "have matching default values.");
-    }
-
-    // Allocate and resize MultiFabs
-    // TileIterAmrex stores references to unk_ and fluxes_ at a given level.
-    // Therefore, these MFab arrays and the fluxes_[level] array must be set
-    // here and remain fixed until finalization of the Grid unit.
-    unk_.resize(max_level + 1);
-    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
-    logger.log(msg);
-
-    // When constructing a TileIterAmrex at a given level, we must pass in a
-    // vector of flux MultiFabs for the level.  If there are no flux variables,
-    // an empty vector is needed.  Therefore, always allocate this outer vector.
-    fluxes_.resize(max_level + 1);
-    if (nFluxVars_ > 0) {
-        for (auto level=0; level<fluxes_.size(); ++level) {
-            fluxes_[level].resize(MILHOJA_NDIM);
-            msg =   "[GridAmrex] Created " + std::to_string(fluxes_[level].size())
-                  + " empty flux MultiFab(s) at level " + std::to_string(level);
-            logger.log(msg);
-        }
-    } else {
-        logger.log("[GridAmrex] No flux MultiFabs needed");
     }
 
     //----- LOG GRID CONFIGURATION INFORMATION
@@ -922,7 +927,6 @@ void    GridAmrex::fillCellVolumes(const unsigned int level,
   * \todo Does fillPatch require data in primitive form?  If so, document how,
   * when, and where the p-to-c and reverse transformations are done.
   * \todo Interpolation by AMReX's conservative linear interpolation routine?
-  *
   */
 void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
     if (level == 0) {
@@ -931,13 +935,15 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
         smf.push_back(&unk_[0]);
         stime.push_back(0.0_wp);
 
-        amrex::CpuBndryFuncFab      bndry_func(nullptr);
-        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
-            physbc(geom[level], bcs_, bndry_func);
-
+//        ExtBcFillAMReX   fill{level, extBcFcn_};
+        // Send a silly level so that we can see it in Flash5
+        ExtBcFillAMReX   fill{-123, extBcFcn_};
+        amrex::PhysBCFunct<ExtBcFillAMReX>  physFill{geom[level],
+                                                     bcs_,
+                                                     fill};
         amrex::FillPatchSingleLevel(mf, 0.0_wp, smf, stime,
                                     0, 0, mf.nComp(),
-                                    geom[level], physbc, 0);
+                                    geom[level], physFill, 0);
     }
     else {
         amrex::Vector<amrex::MultiFab*>     cmf;
@@ -949,18 +955,23 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
         fmf.push_back(&unk_[level]);
         ftime.push_back(0.0_wp);
 
-        amrex::CpuBndryFuncFab      bndry_func(nullptr);
-        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
-            cphysbc(geom[level-1], bcs_, bndry_func);
-        amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
-            fphysbc(geom[level  ], bcs_, bndry_func);
+        ExtBcFillAMReX   cFill{level-1, extBcFcn_};
+        amrex::PhysBCFunct<ExtBcFillAMReX>  cPhysFill{geom[level-1],
+                                                      bcs_,
+                                                      cFill};
+        ExtBcFillAMReX   fFill{level, extBcFcn_};
+        amrex::PhysBCFunct<ExtBcFillAMReX>  fPhysFill{geom[level],
+                                                      bcs_,
+                                                      fFill};
 
         amrex::FillPatchTwoLevels(mf, 0.0_wp,
                                   cmf, ctime, fmf, ftime,
                                   0, 0, mf.nComp(),
                                   geom[level-1], geom[level],
-                                  cphysbc, 0, fphysbc, 0,
-                                  ref_ratio[level-1], ccInterpolator_, bcs_, 0);
+                                  cPhysFill, 0,
+                                  fPhysFill, 0,
+                                  ref_ratio[level-1],
+                                  ccInterpolator_, bcs_, 0);
     }
 }
 
@@ -1139,16 +1150,20 @@ void   GridAmrex::MakeNewLevelFromCoarse(int level, amrex::Real time,
                                          const amrex::DistributionMapping& dm) {
     unk_[level].define(ba, dm, nCcVars_, nGuard_);
 
-    amrex::CpuBndryFuncFab  bndry_func(nullptr);
-    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
-        cphysbc(geom[level-1], bcs_, bndry_func);
-    amrex::PhysBCFunct<amrex::CpuBndryFuncFab>
-        fphysbc(geom[level  ], bcs_, bndry_func);
+    ExtBcFillAMReX   cFill{level-1, extBcFcn_};
+    amrex::PhysBCFunct<ExtBcFillAMReX>  cPhysFill{geom[level-1],
+                                                  bcs_,
+                                                  cFill};
+    ExtBcFillAMReX   fFill{level, extBcFcn_};
+    amrex::PhysBCFunct<ExtBcFillAMReX>  fPhysFill{geom[level],
+                                                  bcs_,
+                                                  fFill};
 
     amrex::InterpFromCoarseLevel(unk_[level], 0.0_wp, unk_[level-1],
                                  0, 0, nCcVars_,
                                  geom[level-1], geom[level],
-                                 cphysbc, 0, fphysbc, 0,
+                                 cPhysFill, 0,
+                                 fPhysFill, 0,
                                  ref_ratio[level-1], ccInterpolator_, bcs_, 0);
     std::string   msg =   "[GridAmrex] Made CC MultiFab at level "
                         + std::to_string(level) + " with "

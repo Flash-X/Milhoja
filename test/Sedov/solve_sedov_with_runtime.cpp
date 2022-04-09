@@ -35,25 +35,32 @@ int main(int argc, char* argv[]) {
         {
             milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
 
-            cfg.xMin            = RPs.getReal("Grid", "xMin");
-            cfg.xMax            = RPs.getReal("Grid", "xMax");
-            cfg.yMin            = RPs.getReal("Grid", "yMin");
-            cfg.yMax            = RPs.getReal("Grid", "yMax");
-            cfg.zMin            = RPs.getReal("Grid", "zMin");
-            cfg.zMax            = RPs.getReal("Grid", "zMax");
-            cfg.nxb             = RPs.getUnsignedInt("Grid", "NXB");
-            cfg.nyb             = RPs.getUnsignedInt("Grid", "NYB");
-            cfg.nzb             = RPs.getUnsignedInt("Grid", "NZB");
-            cfg.nCcVars         = NUNKVAR;
-            cfg.nFluxVars       = NFLUXES;
-            cfg.nGuard          = NGUARD;
-            cfg.nBlocksX        = RPs.getUnsignedInt("Grid", "nBlocksX");
-            cfg.nBlocksY        = RPs.getUnsignedInt("Grid", "nBlocksY");
-            cfg.nBlocksZ        = RPs.getUnsignedInt("Grid", "nBlocksZ");
-            cfg.maxFinestLevel  = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
-            cfg.errorEstimation = Simulation::errorEstBlank;
-            cfg.ccInterpolator  = milhoja::Interpolator::CellConservativeLinear;
-            cfg.mpiComm         = GLOBAL_COMM;
+            cfg.xMin                    = RPs.getReal("Grid", "xMin");
+            cfg.xMax                    = RPs.getReal("Grid", "xMax");
+            cfg.yMin                    = RPs.getReal("Grid", "yMin");
+            cfg.yMax                    = RPs.getReal("Grid", "yMax");
+            cfg.zMin                    = RPs.getReal("Grid", "zMin");
+            cfg.zMax                    = RPs.getReal("Grid", "zMax");
+            cfg.nxb                     = RPs.getUnsignedInt("Grid", "NXB");
+            cfg.nyb                     = RPs.getUnsignedInt("Grid", "NYB");
+            cfg.nzb                     = RPs.getUnsignedInt("Grid", "NZB");
+            cfg.nCcVars                 = NUNKVAR;
+            cfg.nFluxVars               = NFLUXES;
+            cfg.loBCs[milhoja::Axis::I] = milhoja::BCs::Periodic;
+            cfg.hiBCs[milhoja::Axis::I] = milhoja::BCs::Periodic;
+            cfg.loBCs[milhoja::Axis::J] = milhoja::BCs::Periodic;
+            cfg.hiBCs[milhoja::Axis::J] = milhoja::BCs::Periodic;
+            cfg.loBCs[milhoja::Axis::K] = milhoja::BCs::Periodic;
+            cfg.hiBCs[milhoja::Axis::K] = milhoja::BCs::Periodic;
+            cfg.externalBcRoutine       = nullptr;
+            cfg.nGuard                  = NGUARD;
+            cfg.nBlocksX                = RPs.getUnsignedInt("Grid", "nBlocksX");
+            cfg.nBlocksY                = RPs.getUnsignedInt("Grid", "nBlocksY");
+            cfg.nBlocksZ                = RPs.getUnsignedInt("Grid", "nBlocksZ");
+            cfg.maxFinestLevel          = RPs.getUnsignedInt("Grid", "finestRefinementLevel");
+            cfg.errorEstimation         = Simulation::errorEstBlank;
+            cfg.ccInterpolator          = milhoja::Interpolator::CellConservativeLinear;
+            cfg.mpiComm                 = GLOBAL_COMM;
 
             cfg.load();
         }

@@ -101,6 +101,17 @@ bool GridConfiguration::isValid(void) const {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Mixed periodic BC in Z");
         isValid = false;
 #endif
+    } else if (   (!externalBcRoutine)
+               && (   (loBCs[Axis::I] != BCs::Periodic) || (hiBCs[Axis::I] != BCs::Periodic)
+#if MILHOJA_NDIM >= 2
+                   || (loBCs[Axis::J] != BCs::Periodic) || (hiBCs[Axis::J] != BCs::Periodic)
+#endif
+#if MILHOJA_NDIM == 3
+                   || (loBCs[Axis::K] != BCs::Periodic) || (hiBCs[Axis::K] != BCs::Periodic)
+#endif
+                  ) ) {
+        Logger::instance().log("[GridConfiguration::isValid] ERROR - null BC routine");
+        isValid = false;
     }
 
 #ifdef MILHOJA_GRID_AMREX
@@ -127,32 +138,33 @@ void GridConfiguration::clear(void) {
         throw std::logic_error("[GridConfiguration::clear] Configuration already cleared");
     }
 
-    coordSys        = CoordSys::Cartesian;
-    xMin            =  1.0;
-    xMax            =  0.0;
-    yMin            =  1.0;
-    yMax            =  0.0;
-    zMin            =  1.0;
-    zMax            =  0.0;
-    loBCs[Axis::I]  = BCs::Periodic;
-    loBCs[Axis::J]  = BCs::Periodic;
-    loBCs[Axis::K]  = BCs::Periodic;
-    hiBCs[Axis::I]  = BCs::Periodic;
-    hiBCs[Axis::J]  = BCs::Periodic;
-    hiBCs[Axis::K]  = BCs::Periodic;
-    nCcVars         =  0;
-    nFluxVars       =  0;
-    nxb             =  0; 
-    nyb             =  0; 
-    nzb             =  0; 
-    nGuard          =  0;
-    nBlocksX        =  0; 
-    nBlocksY        =  0; 
-    nBlocksZ        =  0; 
-    maxFinestLevel  =  0;
-    errorEstimation = nullptr;
-    ccInterpolator  = Interpolator::CellConservativeLinear;
-    mpiComm         = MPI_COMM_NULL;
+    coordSys          = CoordSys::Cartesian;
+    xMin              =  1.0;
+    xMax              =  0.0;
+    yMin              =  1.0;
+    yMax              =  0.0;
+    zMin              =  1.0;
+    zMax              =  0.0;
+    loBCs[Axis::I]    = BCs::External;
+    hiBCs[Axis::I]    = BCs::Periodic;
+    loBCs[Axis::J]    = BCs::Periodic;
+    hiBCs[Axis::J]    = BCs::Periodic;
+    loBCs[Axis::K]    = BCs::Periodic;
+    hiBCs[Axis::K]    = BCs::Periodic;
+    externalBcRoutine = nullptr;
+    nCcVars           =  0;
+    nFluxVars         =  0;
+    nxb               =  0; 
+    nyb               =  0; 
+    nzb               =  0; 
+    nGuard            =  0;
+    nBlocksX          =  0; 
+    nBlocksY          =  0; 
+    nBlocksZ          =  0; 
+    maxFinestLevel    =  0;
+    errorEstimation   = nullptr;
+    ccInterpolator    = Interpolator::CellConservativeLinear;
+    mpiComm           = MPI_COMM_NULL;
 
     // Limit possiblity that calling code can access the
     // configuration at a later time.

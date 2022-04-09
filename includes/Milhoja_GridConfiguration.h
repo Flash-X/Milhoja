@@ -65,6 +65,7 @@ public:
     // Boundary Conditions
     BCs                             loBCs[MILHOJA_MDIM];
     BCs                             hiBCs[MILHOJA_MDIM];
+    milhoja::BC_ROUTINE             externalBcRoutine;
 
     // Specification of Domain Decomposition
     unsigned int                    nGuard;

@@ -54,6 +54,8 @@ extern "C" {
      * \param loBCs                Indicate how BCs should be handled at each of
      *                             the low domain faces.  See Milhoja.h for
      *                             valid values.
+     * \param externalBcRoutine    Function that grid backend will use to set
+     *                             non-periodic boundary condition data.
      * \param hiBCs                High face version of loBCs
      * \param nxb                  The number of cells along X in each block in the
      *                             domain decomposition
@@ -84,6 +86,7 @@ extern "C" {
                                const milhoja::Real yMin, const milhoja::Real yMax,
                                const milhoja::Real zMin, const milhoja::Real zMax,
                                const int* loBCs, const int* hiBCs,
+                               milhoja::BC_ROUTINE externalBcRoutine,
                                const int nxb, const int nyb, const int nzb,
                                const int nBlocksX,
                                const int nBlocksY,
@@ -123,30 +126,31 @@ extern "C" {
             // configuration data after it is consumed by Grid at initialization.
             milhoja::GridConfiguration&   cfg = milhoja::GridConfiguration::instance();
 
-            cfg.coordSys        = static_cast<milhoja::CoordSys>(coordSys); 
-            cfg.xMin            = xMin;
-            cfg.xMax            = xMax;
-            cfg.yMin            = yMin;
-            cfg.yMax            = yMax;
-            cfg.zMin            = zMin;
-            cfg.zMax            = zMax;
+            cfg.coordSys          = static_cast<milhoja::CoordSys>(coordSys); 
+            cfg.xMin              = xMin;
+            cfg.xMax              = xMax;
+            cfg.yMin              = yMin;
+            cfg.yMax              = yMax;
+            cfg.zMin              = zMin;
+            cfg.zMax              = zMax;
             for (unsigned int i=0; i<MILHOJA_MDIM; ++i) {
                 cfg.loBCs[i] = static_cast<milhoja::BCs>(loBCs[i]);
                 cfg.hiBCs[i] = static_cast<milhoja::BCs>(hiBCs[i]);
             }
-            cfg.nxb             = nxb_ui;
-            cfg.nyb             = nyb_ui;
-            cfg.nzb             = nzb_ui;
-            cfg.nCcVars         = nCcVars_ui;
-            cfg.nFluxVars       = nFluxVars_ui;
-            cfg.nGuard          = nGuard_ui;
-            cfg.nBlocksX        = nBlocksX_ui;
-            cfg.nBlocksY        = nBlocksY_ui;
-            cfg.nBlocksZ        = nBlocksZ_ui;
-            cfg.maxFinestLevel  = maxRefinementLevel_ui;
-            cfg.errorEstimation = errorEst;
-            cfg.ccInterpolator  = static_cast<milhoja::Interpolator>(ccInterpolator);
-            cfg.mpiComm         = globalComm;
+            cfg.externalBcRoutine = externalBcRoutine;
+            cfg.nxb               = nxb_ui;
+            cfg.nyb               = nyb_ui;
+            cfg.nzb               = nzb_ui;
+            cfg.nCcVars           = nCcVars_ui;
+            cfg.nFluxVars         = nFluxVars_ui;
+            cfg.nGuard            = nGuard_ui;
+            cfg.nBlocksX          = nBlocksX_ui;
+            cfg.nBlocksY          = nBlocksY_ui;
+            cfg.nBlocksZ          = nBlocksZ_ui;
+            cfg.maxFinestLevel    = maxRefinementLevel_ui;
+            cfg.errorEstimation   = errorEst;
+            cfg.ccInterpolator    = static_cast<milhoja::Interpolator>(ccInterpolator);
+            cfg.mpiComm           = globalComm;
    
             cfg.load();
             milhoja::Grid::initialize();
