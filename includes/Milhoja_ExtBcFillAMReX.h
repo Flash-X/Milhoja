@@ -21,11 +21,11 @@ namespace milhoja {
 class ExtBcFillAMReX {
 public:
     /**
-     * \param level       The refinement level of the BC data needed
-     * \externalBcRoutine The external routine that should handle non-periodic
-     *                    BC.  This pointer can be nullptr if all BC are
-     *                    periodic.  However, it is a logical error to call the
-     *                    function wrapped by the object in this case.
+     * \param level               The refinement level of the BC data needed
+     * \param externalBcRoutine   The external routine that should handle non-periodic
+     *                            BC.  This pointer can be nullptr if all BC are
+     *                            periodic.  However, it is a logical error to call the
+     *                            function wrapped by the object in this case.
      */
     ExtBcFillAMReX(const int level, BC_ROUTINE externalBcRoutine)
         : level_{level},
