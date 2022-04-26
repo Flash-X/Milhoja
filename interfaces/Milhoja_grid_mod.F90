@@ -50,10 +50,16 @@ module milhoja_grid_mod
 
         !> Fortran interface of the callback registered with the grid
         !! infrastructure for the purposes of setting non-periodic BCs.
-        subroutine milhoja_externalBcCallback(level) bind(c)
+        subroutine milhoja_externalBcCallback(C_lo, C_hi, C_level, &
+                                              C_startVar, C_nVars) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            integer(MILHOJA_INT), intent(IN), value :: level
+            type(C_PTR),          intent(IN), value :: C_lo
+            type(C_PTR),          intent(IN), value :: C_hi
+            integer(MILHOJA_INT), intent(IN), value :: C_level
+            integer(MILHOJA_INT), intent(IN), value :: C_startVar
+            integer(MILHOJA_INT), intent(IN), value :: C_nVars
         end subroutine milhoja_externalBcCallback
 
         !> Fortran interface of the callback registered with the grid

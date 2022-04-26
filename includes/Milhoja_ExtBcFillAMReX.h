@@ -50,8 +50,10 @@ public:
      * \todo Figure out what all the arguments are for and how they should be
      *       used.  Document them here carefully and determine the interface of
      *       BC_ROUTINE.
+     * \todo Can we make use of AMReX low-level functions to help identify
+     *       the regions that need BC?  Pass the domain?
      */
-    void operator() (amrex::Box const& bx,
+    void operator() (amrex::Box const& box,
                      amrex::FArrayBox& dest,
                      const int dcomp,
                      const int numcomp,
@@ -64,7 +66,10 @@ public:
             throw std::logic_error("[ExtBcFillAMReX::op()] Null BC function pointer");
         }
 
-        externalBcRoutine_(level_);
+        const int*   lo = box.loVect();
+        const int*   hi = box.hiVect();
+
+        externalBcRoutine_(lo, hi, level_, dcomp, numcomp);
     }
 
 private:

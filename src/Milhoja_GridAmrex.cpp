@@ -935,9 +935,7 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
         smf.push_back(&unk_[0]);
         stime.push_back(0.0_wp);
 
-//        ExtBcFillAMReX   fill{level, extBcFcn_};
-        // Send a silly level so that we can see it in Flash5
-        ExtBcFillAMReX   fill{-123, extBcFcn_};
+        ExtBcFillAMReX   fill{level, extBcFcn_};
         amrex::PhysBCFunct<ExtBcFillAMReX>  physFill{geom[level],
                                                      bcs_,
                                                      fill};
