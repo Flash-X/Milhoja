@@ -1,7 +1,6 @@
 #ifndef MILHOJA_EXT_BC_FILL_AMREX_H__
 #define MILHOJA_EXT_BC_FILL_AMREX_H__
 
-#include <iostream>
 #include <stdexcept>
 
 #include <AMReX.H>
