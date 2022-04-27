@@ -18,10 +18,12 @@
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_PhysBCFunct.H>
+#include <AMReX_Interpolater.H>
 
 #include "Milhoja.h"
 #include "Milhoja_Grid.h"
+#include "Milhoja_boundaryConditions.h"
+#include "Milhoja_interpolator.h"
 #include "Milhoja_actionRoutine.h"
 
 #ifndef MILHOJA_GRID_AMREX
@@ -118,10 +120,6 @@ private:
 
     void    fillPatch(amrex::MultiFab& mf, const int level);
 
-    std::vector<amrex::MultiFab>                unk_;   //!< Physical data, one MF per level
-    std::vector<std::vector<amrex::MultiFab>>   fluxes_;  // Flux data
-    amrex::Vector<amrex::BCRec>                 bcs_;   //!< Boundary conditions
-
     //----- AMRCORE OVERRIDES
     void MakeNewLevelFromCoarse(int level, amrex::Real time,
                                 const amrex::BoxArray& ba,
@@ -148,6 +146,10 @@ private:
     static bool    domainInitialized_;
     static bool    domainDestroyed_;
 
+    std::vector<amrex::MultiFab>                unk_;   //!< Physical data, one MF per level
+    std::vector<std::vector<amrex::MultiFab>>   fluxes_;  // Flux data
+    amrex::Vector<amrex::BCRec>                 bcs_;   //!< Boundary conditions
+
     // AMReX is given this communicator and therefore should own this.  However,
     // I have not yet found a getter to access it in this class.
     const MPI_Comm        comm_;
@@ -156,6 +158,7 @@ private:
     // These cannot be obtained from AMReX
     const unsigned int    nBlocksX_, nBlocksY_, nBlocksZ_;
     const unsigned int    nxb_, nyb_, nzb_;
+    amrex::Interpolater*  ccInterpolator_;
 
     // These cannot be acquired from AMReX and play an important role here in
     // terms of constructing MultiFabs.
@@ -172,10 +175,10 @@ private:
     const int   nCcVars_;
     const int   nFluxVars_;
 
-    ERROR_ROUTINE errorEst_; //!< Routine for marking blocks for refinement
-
-    ACTION_ROUTINE initBlock_noRuntime_; //!< Temporary cache for setting initial conditions without runtime
-    RuntimeAction  initCpuAction_;       //!< Temporary cache for setting initial conditions with runtime
+    ERROR_ROUTINE   errorEst_;            //!< Routine for marking blocks for refinement
+    BC_ROUTINE      extBcFcn_;
+    ACTION_ROUTINE  initBlock_noRuntime_; //!< Temporary cache for setting initial conditions without runtime
+    RuntimeAction   initCpuAction_;       //!< Temporary cache for setting initial conditions with runtime
 };
 
 }

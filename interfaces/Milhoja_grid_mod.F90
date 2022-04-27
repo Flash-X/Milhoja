@@ -49,6 +49,20 @@ module milhoja_grid_mod
         end subroutine milhoja_initBlock
 
         !> Fortran interface of the callback registered with the grid
+        !! infrastructure for the purposes of setting non-periodic BCs.
+        subroutine milhoja_externalBcCallback(C_lo, C_hi, C_level, &
+                                              C_startVar, C_nVars) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),          intent(IN), value :: C_lo
+            type(C_PTR),          intent(IN), value :: C_hi
+            integer(MILHOJA_INT), intent(IN), value :: C_level
+            integer(MILHOJA_INT), intent(IN), value :: C_startVar
+            integer(MILHOJA_INT), intent(IN), value :: C_nVars
+        end subroutine milhoja_externalBcCallback
+
+        !> Fortran interface of the callback registered with the grid
         !! infrastructure for the purposes of estimating error in all given
         !! cells due to insufficient mesh refinement.
         !!
@@ -56,7 +70,7 @@ module milhoja_grid_mod
         !!      for integer and real.  Should this be generic?  If so,
         !!      how do we make certain that the AMReX kinds match these
         !!      C-compatible kinds?
-        subroutine milhoja_errorEstimateCallBack(level, tags, time, &
+        subroutine milhoja_errorEstimateCallback(level, tags, time, &
                                                  tagval, clearval) bind(c)
             use iso_c_binding,     ONLY : C_CHAR, C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_REAL
@@ -80,9 +94,11 @@ module milhoja_grid_mod
                                      C_yMin, C_yMax,                     &
                                      C_zMin, C_zMax,                     &
                                      C_loBCs, C_hiBCs,                   &
+                                     C_externalBcRoutine,                &
                                      C_nxb, C_nyb, C_nzb,                &
                                      C_nBlocksX, C_nBlocksY, C_nBlocksZ, &
                                      C_maxRefinementLevel,               &
+                                     C_ccInterpolator,                   &
                                      C_nGuard, C_nCcVars, C_nFluxVars,   &
                                      C_errorEst) result(C_ierr) bind(c)
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
@@ -96,9 +112,11 @@ module milhoja_grid_mod
             real(MILHOJA_REAL),        intent(IN), value :: C_yMin, C_yMax
             real(MILHOJA_REAL),        intent(IN), value :: C_zMin, C_zMax
             type(C_PTR),               intent(IN), value :: C_loBCs, C_hiBCs
+            type(C_FUNPTR),            intent(IN), value :: C_externalBcRoutine
             integer(MILHOJA_INT),      intent(IN), value :: C_nxb, C_nyb, C_nzb
             integer(MILHOJA_INT),      intent(IN), value :: C_nBlocksX, C_nBlocksY, C_nBlocksZ
             integer(MILHOJA_INT),      intent(IN), value :: C_maxRefinementLevel
+            integer(MILHOJA_INT),      intent(IN), value :: C_ccInterpolator
             integer(MILHOJA_INT),      intent(IN), value :: C_nGuard
             integer(MILHOJA_INT),      intent(IN), value :: C_nCcVars
             integer(MILHOJA_INT),      intent(IN), value :: C_nFluxVars
@@ -257,6 +275,8 @@ contains
     !!                             the low domain faces.  See Milhoja.h for
     !!                             valid values.
     !! @param hiBCs                High-face version of loBCs.
+    !! @param externalBcRoutine    Function that grid backend will use to set
+    !!                             non-periodic boundary condition data.
     !! @param nxb                  The number of cells along X in each block in the
     !!                             domain decomposition
     !! @param nyb                  The number of cells along Y in each block in the
@@ -268,6 +288,9 @@ contains
     !! @param nBlocksZ             The number of blocks along Z in the domain decomposition
     !! @param maxRefinementLevel   The 1-based index of the finest refinement level
     !!                             permitted at any time during the simulation
+    !! @param ccInterpolator       The interpolator to use for cell-centered
+    !!                             data.  See Milhoja.h for macros &
+    !!                             Milhoja_interpolator.h for more information.
     !! @param nGuard               The number of guardcells
     !! @param nCcVars              The number of physical variables in the solution
     !! @param nFluxVars            The number of flux variables needed
@@ -281,9 +304,11 @@ contains
                                  yMin, yMax,                   &
                                  zMin, zMax,                   &
                                  loBCs, hiBCs,                 &
+                                 externalBcRoutine,            &
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
+                                 ccInterpolator,               &
                                  nGuard, nCcVars, nFluxVars,   &
                                  errorEst,                     &
                                  ierr)
@@ -302,9 +327,11 @@ contains
         real(MILHOJA_REAL),                      intent(IN)  :: zMin, zMax
         integer(MILHOJA_INT), target,            intent(IN)  :: loBCs(1:MILHOJA_MDIM)
         integer(MILHOJA_INT), target,            intent(IN)  :: hiBCs(1:MILHOJA_MDIM)
+        procedure(milhoja_externalBcCallback)                :: externalBcRoutine
         integer(MILHOJA_INT),                    intent(IN)  :: nxb, nyb, nzb
         integer(MILHOJA_INT),                    intent(IN)  :: nBlocksX, nBlocksY, nBlocksZ
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
+        integer(MILHOJA_INT),                    intent(IN)  :: ccInterpolator
         integer(MILHOJA_INT),                    intent(IN)  :: nGuard
         integer(MILHOJA_INT),                    intent(IN)  :: nCcVars
         integer(MILHOJA_INT),                    intent(IN)  :: nFluxVars
@@ -313,11 +340,13 @@ contains
 
         type(C_PTR)    :: loBCs_Cptr
         type(C_PTR)    :: hiBCs_Cptr
+        type(C_FUNPTR) :: externalBcRoutine_Cptr
         type(C_FUNPTR) :: errorEst_Cptr
 
-        loBCs_Cptr     = C_LOC(loBCs)
-        hiBCs_Cptr     = C_LOC(hiBCs)
-        errorEst_Cptr  = C_FUNLOC(errorEst)
+        loBCs_Cptr             = C_LOC(loBCs)
+        hiBCs_Cptr             = C_LOC(hiBCs)
+        externalBcRoutine_Cptr = C_FUNLOC(externalBcRoutine)
+        errorEst_Cptr          = C_FUNLOC(errorEst)
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
                                    coordSys,                     &
@@ -325,9 +354,11 @@ contains
                                    yMin, yMax,                   &
                                    zMin, zMax,                   &
                                    loBCs_Cptr, hiBCs_Cptr,       &
+                                   externalBcRoutine_Cptr,       &
                                    nxb, nyb, nzb,                &
                                    nBlocksX, nBlocksY, nBlocksZ, &
                                    maxRefinementLevel,           &
+                                   ccInterpolator,               &
                                    nGuard, nCcVars, nFluxVars,   &
                                    errorEst_Cptr)
     end subroutine milhoja_grid_init

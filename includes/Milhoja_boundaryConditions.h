@@ -24,6 +24,10 @@ namespace milhoja {
  */
 enum class BCs   {Periodic=MILHOJA_PERIODIC,
                   External=MILHOJA_EXTERNAL_BC};
+
+using BC_ROUTINE = void (*) (const int* lo, const int* hi,
+                             const int level,
+                             const int startVar, const int nVars);
 }
 
 #endif
