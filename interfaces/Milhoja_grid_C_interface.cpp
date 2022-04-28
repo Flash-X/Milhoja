@@ -28,16 +28,17 @@ extern "C" {
      * in the grid infrastructure.  Calling code must initialize MPI before
      * calling this routine.
      *
+     * Note that the Milhoja grid infrastructure can be used without using the
+     * runtime infrastructure.  However, the runtime cannot be used with the
+     * grid infrastructure.  Therefore, initializing the grid also initializes
+     * the general Milhoja infrastructure.  As a result, the grid must be
+     * initialized before the runtime; the runtime must be finalized before the
+     * grid.  This also makes conceptual sense since the runtime depends on the
+     * grid infrastructure.
+     *
      * \todo Milhoja_GridConfigurationAMReX presently expects
      * maxRefinementLevel to be 1-based.  Is this really what the C++ code
      * wants?
-     * \todo Does this unit or the runtime need to be initialized
-     *       first?  Document here and in runtime.  This routine is
-     *       initializing the Logger, which should be the first Milhoja
-     *       initialization.  Doing that here makes sense since calling code
-     *       could use the grid but not the runtime.  Therefore, it makes sense
-     *       that the grid be initialized before the runtime.  This makes sense
-     *       conceptually as well since the runtime depends on the grid.
      *
      * \param globalCommF          The Fortran version of the MPI communicator that
      *                             Milhoja should use
@@ -169,13 +170,8 @@ extern "C" {
      * Finalize the grid infrastructure.  It is assumed that calling code is
      * responsible for finalizing MPI and does so *after* calling this routine.
      *
-     * Calling code should finalize the grid before finalizing the runtime.
-     *
-     * \todo Confirm that grid must be finalized first.  Since we finalize the
-     * logger here, which is reasonable since calling code might use the grid
-     * but not the runtime, I believe that the opposite should be true so that
-     * the finalization of the runtime is logged.  Since the runtime depends on
-     * the grid, the opposite order also makes sense.
+     * Calling code should finalize the grid before finalizing the runtime.  See
+     * the documentation for milhoja_grid_init_c for more details.
      *
      * \return The milhoja error code
      */

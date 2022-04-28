@@ -48,8 +48,8 @@ bool GridAmrex::domainDestroyed_   = false;
 GridAmrex::GridAmrex(void)
     : Grid(),
       AmrCore(),
-      unk_{max_level+1},
-      fluxes_{max_level+1},
+      unk_{static_cast<std::vector<amrex::MultiFab>::size_type>(max_level+1)},
+      fluxes_{static_cast<std::vector<std::vector<amrex::MultiFab>>::size_type>(max_level+1)},
       bcs_{1},
       comm_{GridConfiguration::instance().mpiComm},
       nBlocksX_{GridConfiguration::instance().nBlocksX},

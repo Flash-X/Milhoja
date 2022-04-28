@@ -131,6 +131,8 @@ $(BUILDDIR)/Milhoja_errors_mod.o: $(INTERFACEDIR)/Milhoja_errors_mod.F90 $(INTER
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(MILHOJA_H) Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+$(BUILDDIR)/Milhoja_runtime_mod.o: $(INTERFACEDIR)/Milhoja_runtime_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_runtime_C_interface.o Makefile
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS) Makefile
 	ar -rcs $@ $(OBJS)

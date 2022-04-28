@@ -26,6 +26,8 @@ contains
         select case (errorCode)
         case (MILHOJA_SUCCESS)
             errorMsg = "No Milhoja error occurred"
+        case (MILHOJA_ERROR_N_THREADS_NEGATIVE)
+            errorMsg = "Given negative N threads"
         case (MILHOJA_ERROR_INVALID_LEVEL)
             errorMsg = "Invalid level value"
         case (MILHOJA_ERROR_NEGATIVE_VALUE_FOR_UINT)
@@ -36,6 +38,18 @@ contains
             errorMsg = "Pointer is *not* null"
         case (MILHOJA_ERROR_STEP_NEGATIVE)
             errorMsg = "Given step value is negative"
+        case (MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME)
+            errorMsg = "Unable to initialize the runtime"
+        case (MILHOJA_ERROR_UNABLE_TO_FINALIZE_RUNTIME)
+            errorMsg = "Unable to finalize the runtime"
+        case (MILHOJA_ERROR_N_THREAD_TEAMS_NEGATIVE)
+            errorMsg = "N thread teams is negative"
+        case (MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE)
+            errorMsg = "N threads/team is negative"
+        case (MILHOJA_ERROR_N_STREAMS_NEGATIVE)
+            errorMsg = "N streams is negative"
+        case (MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS)
+            errorMsg = "Unable to execute tasks with runtime"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
             errorMsg = "Unable to initialize grid backend"
         case (MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID)

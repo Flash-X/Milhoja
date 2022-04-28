@@ -5,6 +5,7 @@
  * Fortran/C/C++ interoperability documentation.
  */
 
+//#include <cstdio>
 #include <iostream>
 
 #include "Milhoja.h"
@@ -125,6 +126,18 @@ extern "C" {
             loGC[2] = loVecGC[2] + 1;
             hiGC[2] = hiVecGC[2] + 1;
 #endif
+
+            // This was useful for developing the Fortran/C interoperability layer
+//            printf("[milhoja_tile_get_metadata_c] Tile %d(%p)\n\tlo(%p)=(%d,%d,%d)\n\thi(%p)=(%d,%d,%d)\n\tloGC(%p)=(%d,%d,%d)\n\thiGC(%p)=(%d,%d,%d)\n\tTile=%p\n\tUptr=%p\n\tdataPtr=%p\n\tfluxXPtr=%p\n\tdataPtr=%p\n\tfluxYPtr=%p\n\tdataPtr=%p\n\tfluxZPtr=%p\n\tdataPtr=%p\n",
+//                   *gId, tileDesc, 
+//                   lo,     lo[0],   lo[1],   lo[2],
+//                   hi,     hi[0],   hi[1],   hi[2],
+//                   loGC, loGC[0], loGC[1], loGC[2],
+//                   hiGC, hiGC[0], hiGC[1], hiGC[2],
+//                   tileDesc, *data, data,
+//                   *fluxX, fluxX,
+//                   *fluxY, fluxY,
+//                   *fluxZ, fluxZ);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_GET_METADATA;

@@ -74,8 +74,6 @@ Runtime-specific error codes
 #define MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE    203
 #define MILHOJA_ERROR_N_STREAMS_NEGATIVE             204
 #define MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS        205
-#define MILHOJA_ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE 206
-#define MILHOJA_ERROR_N_TEAM_THREADS_NEGATIVE        207
 
 #if 0
 --------------------------------------------------------------------------------
