@@ -77,6 +77,7 @@
 
 #include <iostream>
 
+#include "Milhoja.h"
 #include "Milhoja_interface_error_codes.h"
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_Runtime.h"
@@ -194,5 +195,75 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
      }
+
+#if defined(MILHOJA_USE_CUDA_BACKEND)
+    /**
+     * Instruct the runtime to use the GPU-only thread team configuration with
+     * the given number of threads to apply the given task function to all
+     * blocks.
+     *
+     * \todo Allow calling code to specify action name for improved logging.
+     * \todo Need to add arguments for specifying the set of blocks.
+     * \todo Add stagger as an argument if it proves useful.
+     *
+     * \param taskFunction          The computational work to apply identically
+     *                              to each block
+     * \param nDistributorThreads   The number of distributor threads to use
+     * \param nThreads              The number of threads that the single thread
+     *                              team should activate.
+     * \param nTilesPerPacket       The maximum number of tiles allowed in each
+     *                              packet
+     * \param packet                Pointer to a prototype data packet to be 
+     *                              used to create new packets.
+     *
+     * \return The milhoja error code
+     */
+     int   milhoja_runtime_execute_tasks_gpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                               const int nDistributorThreads,
+                                               const int nThreads,
+                                               const int nTilesPerPacket,
+                                               void* packet) {
+        if        (nDistributorThreads < 0) {
+            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nDistributorThreads is negative" << std::endl;
+            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+        } else if (nThreads < 0) {
+            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nThreads is negative" << std::endl;
+            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+        } else if (nTilesPerPacket < 0) {
+            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nTilesPerPacket is negative" << std::endl;
+            return MILHOJA_ERROR_N_TILES_NEGATIVE;
+        }
+
+        unsigned int    nDistributorThreads_ui = static_cast<unsigned int>(nDistributorThreads);
+        unsigned int    stagger_usec_ui        = 0;
+        unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
+        unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
+
+        milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
+
+        milhoja::RuntimeAction     action;
+        action.name            = "Lazy GPU Action Name";
+        action.nInitialThreads = nThreads_ui;
+        action.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
+        action.nTilesPerPacket = nTilesPerPacket_ui;
+        action.routine         = taskFunction;
+
+        try {
+            milhoja::Runtime::instance().executeGpuTasks("Lazy GPU Bundle Name",
+                                                         nDistributorThreads_ui,
+                                                         stagger_usec_ui,
+                                                         action,
+                                                         *prototype);
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+        } catch (...) {
+            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+        }
+
+        return MILHOJA_SUCCESS;
+     }
+#endif
 }
 

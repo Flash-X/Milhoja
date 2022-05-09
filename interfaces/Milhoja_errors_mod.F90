@@ -50,6 +50,8 @@ contains
             errorMsg = "N streams is negative"
         case (MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS)
             errorMsg = "Unable to execute tasks with runtime"
+        case (MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET)
+            errorMsg = "Unable to instantiate a data packet"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
             errorMsg = "Unable to initialize grid backend"
         case (MILHOJA_ERROR_UNABLE_TO_FINALIZE_GRID)
@@ -82,6 +84,8 @@ contains
             errorMsg = "Unable to write data to plotfile"
         case (MILHOJA_ERROR_UNABLE_TO_GET_METADATA)
             errorMsg = "Unable to access tile metadata"
+        case (MILHOJA_ERROR_N_TILES_NEGATIVE)
+            errorMsg = "N tiles cannot be negative"
         case (MILHOJA_ERROR_UNABLE_TO_BUILD_ITERATOR)
             errorMsg = "Unable to build an iterator"
         case (MILHOJA_ERROR_UNABLE_TO_DESTROY_ITERATOR)

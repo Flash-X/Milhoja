@@ -74,6 +74,7 @@ Runtime-specific error codes
 #define MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE    203
 #define MILHOJA_ERROR_N_STREAMS_NEGATIVE             204
 #define MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS        205
+#define MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET        206
 
 #if 0
 --------------------------------------------------------------------------------
@@ -102,6 +103,7 @@ Tile-specific error codes
 --------------------------------------------------------------------------------
 #endif
 #define MILHOJA_ERROR_UNABLE_TO_GET_METADATA         400
+#define MILHOJA_ERROR_N_TILES_NEGATIVE               401
 
 #if 0
 --------------------------------------------------------------------------------
