@@ -15,7 +15,9 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_finalize
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_executeTasks_Cpu
+#if defined(MILHOJA_USE_CUDA_BACKEND)
     public :: milhoja_runtime_executeTasks_Gpu
+#endif
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
