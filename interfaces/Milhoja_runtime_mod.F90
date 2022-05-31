@@ -14,6 +14,7 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_init
     public :: milhoja_runtime_finalize
     public :: milhoja_runtime_taskFunction
+    public :: milhoja_runtime_reset
     public :: milhoja_runtime_executeTasks_Cpu
 #if defined(MILHOJA_USE_CUDA_BACKEND)
     public :: milhoja_runtime_executeTasks_Gpu
@@ -54,6 +55,13 @@ module milhoja_runtime_mod
             implicit none
             integer(MILHOJA_INT) :: C_ierr
         end function milhoja_runtime_finalize_c
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_runtime_reset_c() result(C_ierr) bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT) :: C_ierr
+        end function milhoja_runtime_reset_c
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_cpu_c(C_taskFunction,            &
@@ -124,6 +132,18 @@ contains
 
         ierr = milhoja_runtime_finalize_c()
     end subroutine milhoja_runtime_finalize
+
+    !> Reset the runtime backend.  This is a temporary workaround required
+    !! since the present memory manager is too simple.
+    !!
+    !! @todo Remove once a proper memory manager is implemented.
+    !!
+    !! @param ierr    The milhoja error code
+    subroutine milhoja_runtime_reset(ierr)
+        integer(MILHOJA_INT), intent(OUT) :: ierr
+
+        ierr = milhoja_runtime_reset_c()
+    end subroutine milhoja_runtime_reset
 
     !> Instruct the runtime to use the CPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all

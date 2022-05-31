@@ -81,6 +81,7 @@
 #include "Milhoja_interface_error_codes.h"
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_Runtime.h"
+#include "Milhoja_RuntimeBackend.h"
 
 extern "C" {
     /**
@@ -148,6 +149,31 @@ extern "C" {
         } catch (...) {
             std::cerr << "[milhoja_runtime_finalize_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_FINALIZE_RUNTIME;
+        }
+
+        return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * The runtime presently has a rudimentary memory manager.  In order to run
+     * simulations for a significant number of steps without exhausting GPU
+     * memory, simulations must reset the runtime/memory manager at each step.
+     * This is a temporary workaround until a proper memory manager is
+     * implemented.
+     *
+     * \todo Remove once we have a proper runtime memory manager.
+     *
+     * \return The milhoja error code
+     */
+    int   milhoja_runtime_reset_c(void) {
+        try {
+            milhoja::RuntimeBackend::instance().reset();
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME;
+        } catch (...) {
+            std::cerr << "[milhoja_runtime_reset_c] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME;
         }
 
         return MILHOJA_SUCCESS;
