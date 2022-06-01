@@ -52,6 +52,8 @@ contains
             errorMsg = "Unable to execute tasks with runtime"
         case (MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET)
             errorMsg = "Unable to instantiate a data packet"
+        case (MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM)
+            errorMsg = "Unable to release stream/async queue"
         case (MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME)
             errorMsg = "Unable to reset the runtime backend"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
