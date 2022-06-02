@@ -31,9 +31,14 @@ module milhoja_grid_mod
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_getNFluxVariables
-    public :: milhoja_grid_initDomain
+    public :: Milhoja_grid_initDomain
     public :: milhoja_grid_fillGuardCells
     public :: milhoja_grid_writePlotfile
+
+    interface milhoja_grid_initDomain
+        module procedure :: milhoja_grid_initDomain_noRuntime
+        module procedure :: milhoja_grid_initDomain_cpuOnly
+    end interface milhoja_grid_initDomain
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
@@ -223,14 +228,26 @@ module milhoja_grid_mod
         end function milhoja_grid_n_flux_variables_C
 
         !> Fortran interface on routine in C interface of same name.
-        function milhoja_grid_init_domain_C(C_initBlockPtr) result(C_ierr) &
-                                            bind(c)
+        function milhoja_grid_init_domain_no_runtime_C(C_initBlockPtr) &
+                                            result(C_ierr) bind(c)
             use iso_c_binding,     ONLY : C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
             type(C_FUNPTR),      intent(IN), value :: C_initBlockPtr
             integer(MILHOJA_INT)                   :: C_ierr
-        end function milhoja_grid_init_domain_C
+        end function milhoja_grid_init_domain_no_runtime_C
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_grid_init_domain_cpu_only_C(C_initBlockPtr, &
+                                                     C_nThreads) &
+                                            result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_initBlockPtr
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_grid_init_domain_cpu_only_C
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_grid_write_plotfile_C(C_step) result(C_ierr) bind(c)
@@ -477,7 +494,7 @@ contains
     !! @param initBlock    Procedure to use to compute and store the initial
     !!                     conditions on a single tile
     !! @param ierr         The milhoja error code
-    subroutine milhoja_grid_initDomain(initBlock, ierr)
+    subroutine milhoja_grid_initDomain_noRuntime(initBlock, ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
                                   C_FUNLOC
 
@@ -487,8 +504,32 @@ contains
         type(C_FUNPTR) :: initBlock_Cptr
 
         initBlock_Cptr = C_FUNLOC(initBlock)
-        ierr = milhoja_grid_init_domain_C(initBlock_Cptr)
-    end subroutine milhoja_grid_initDomain
+        ierr = milhoja_grid_init_domain_no_runtime_C(initBlock_Cptr)
+    end subroutine milhoja_grid_initDomain_noRuntime
+
+    !> Initialize the domain and set the initial conditions such that the mesh
+    !! refinement across the domain is consistent with the initial conditions.
+    !!
+    !! This routine applies the initial conditions within each MPI process using
+    !! the runtime with the CPU-only thread team configuration.
+    !!
+    !! @param initBlock    Procedure to use to compute and store the initial
+    !!                     conditions on a single tile
+    !! @param nThreads     Number of threads to be activated in the CPU thread team
+    !! @param ierr         The milhoja error code
+    subroutine milhoja_grid_initDomain_cpuOnly(initBlock, nThreads, ierr)
+        use iso_c_binding, ONLY : C_FUNPTR, &
+                                  C_FUNLOC
+
+        procedure(milhoja_initBlock)             :: initBlock
+        integer(MILHOJA_INT),        intent(IN)  :: nThreads
+        integer(MILHOJA_INT),        intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: initBlock_Cptr
+
+        initBlock_Cptr = C_FUNLOC(initBlock)
+        ierr = milhoja_grid_init_domain_cpu_only_C(initBlock_Cptr, nThreads)
+    end subroutine milhoja_grid_initDomain_cpuOnly
 
     !> Obtain the size of each block in the domain in terms of the number of
     !! cells along each edge.
