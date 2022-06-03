@@ -1,8 +1,8 @@
 /** C/C++ interoperability layer - compile C++ code with C linkage convention
  *
- * This C interface does not consititute a true C interface.  Indeed, it was
+ * The C interfaces do not consititute true C interfaces.  Indeed, it was
  * designed to be used by the Fortran/C interoperability layer.  For example,
- * milhoja_runtime_init_c takes an MPI communicator in the form of an int, which
+ * milhoja_grid_init_c takes an MPI communicator in the form of an int, which
  * is intimately related to Fortran.  In addition, the C interface uses int
  * instead of unsigned int.  This constraint would not be necessary for a C
  * interface, but is required for use by the Fortran/C layer.
@@ -23,7 +23,7 @@
  *   - Mesh element global spatial index set
  *        - Along any dimension in mesh that is <= NDIM,
  *             [NGUARD-1, nBlocks_i * nCells_i + NGUARD];
- *          otherwise, 1.  The full index set is therefore Ii x Ij x, Ik.
+ *          otherwise, 1.  The full index set is therefore Ii x Ij x Ik.
  *        - These are 1-based in the sense that the first interior cell
  *          is associated with index (1,1,1) as opposed to (0,0,0)
  *
@@ -47,9 +47,9 @@
  * function interfaces as Reals and not cast to float nor double.
  *
  * Each routine in the C interface shall be a function that returns an integer.
- * These functions shall return a zero value upon successful execution.  They
+ * These functions shall return MILHOJA_SUCCESS upon successful execution.  They
  * shall return a unique (across all functions in the complete C interface)
- * non-zero error code otherwise.
+ * error code different from MILHOJA_SUCCESS otherwise.
  *
  * All calls to Milhoja C++ code shall be wrapped in a try/catch block so that
  * any and all exceptions are caught and handled appropriately.  This mechanism
@@ -65,8 +65,8 @@
  * \todo Much of this is the design of this layer and should, therefore, be
  * moved to the developer's guide or a dedicated design document.
  *
- * \todo Should we have something like orchestration::Integer and
- * orchestration::SizeT so that we match the use of orchestration::Real?
+ * \todo Should we have something like milhoja::Integer and
+ * milhoja::SizeT so that we match the use of milhoja::Real?
  *
  * \todo In some places, we use pointers to C++ classes as well as function
  * pointers declared using C++ syntax.  Also, data types such as Real are
@@ -194,33 +194,33 @@ extern "C" {
      *
      * \return The milhoja error code
      */
-     int   milhoja_runtime_execute_tasks_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
-                                               const int nThreads) {
-        if (nThreads < 0) {
-            std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] nThreads is negative" << std::endl;
-            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
-        }
-        unsigned int    nThreads_ui = static_cast<unsigned int>(nThreads);
+    int   milhoja_runtime_execute_tasks_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              const int nThreads) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+       unsigned int    nThreads_ui = static_cast<unsigned int>(nThreads);
 
-        milhoja::RuntimeAction     action;
-        action.name            = "Lazy Action Name";
-        action.nInitialThreads = nThreads_ui;
-        action.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-        action.nTilesPerPacket = 0;
-        action.routine         = taskFunction;
+       milhoja::RuntimeAction     action;
+       action.name            = "Lazy Action Name";
+       action.nInitialThreads = nThreads_ui;
+       action.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       action.nTilesPerPacket = 0;
+       action.routine         = taskFunction;
 
-        try {
-            milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name", action);
-        } catch (const std::exception& exc) {
-            std::cerr << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
-        } catch (...) {
-            std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
-        }
+       try {
+           milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name", action);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
 
-        return MILHOJA_SUCCESS;
-     }
+       return MILHOJA_SUCCESS;
+    }
 
 #if defined(MILHOJA_USE_CUDA_BACKEND)
     /**
@@ -244,52 +244,52 @@ extern "C" {
      *
      * \return The milhoja error code
      */
-     int   milhoja_runtime_execute_tasks_gpu_c(milhoja::ACTION_ROUTINE taskFunction,
-                                               const int nDistributorThreads,
-                                               const int nThreads,
-                                               const int nTilesPerPacket,
-                                               void* packet) {
-        if        (nDistributorThreads < 0) {
-            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nDistributorThreads is negative" << std::endl;
-            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
-        } else if (nThreads < 0) {
-            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nThreads is negative" << std::endl;
-            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
-        } else if (nTilesPerPacket < 0) {
-            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nTilesPerPacket is negative" << std::endl;
-            return MILHOJA_ERROR_N_TILES_NEGATIVE;
-        }
+    int   milhoja_runtime_execute_tasks_gpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              const int nDistributorThreads,
+                                              const int nThreads,
+                                              const int nTilesPerPacket,
+                                              void* packet) {
+       if        (nDistributorThreads < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nDistributorThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
 
-        unsigned int    nDistributorThreads_ui = static_cast<unsigned int>(nDistributorThreads);
-        unsigned int    stagger_usec_ui        = 0;
-        unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
-        unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
+       unsigned int    nDistributorThreads_ui = static_cast<unsigned int>(nDistributorThreads);
+       unsigned int    stagger_usec_ui        = 0;
+       unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
+       unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
 
-        milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
+       milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
 
-        milhoja::RuntimeAction     action;
-        action.name            = "Lazy GPU Action Name";
-        action.nInitialThreads = nThreads_ui;
-        action.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
-        action.nTilesPerPacket = nTilesPerPacket_ui;
-        action.routine         = taskFunction;
+       milhoja::RuntimeAction     action;
+       action.name            = "Lazy GPU Action Name";
+       action.nInitialThreads = nThreads_ui;
+       action.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
+       action.nTilesPerPacket = nTilesPerPacket_ui;
+       action.routine         = taskFunction;
 
-        try {
-            milhoja::Runtime::instance().executeGpuTasks("Lazy GPU Bundle Name",
-                                                         nDistributorThreads_ui,
-                                                         stagger_usec_ui,
-                                                         action,
-                                                         *prototype);
-        } catch (const std::exception& exc) {
-            std::cerr << exc.what() << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
-        } catch (...) {
-            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] Unknown error caught" << std::endl;
-            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
-        }
+       try {
+           milhoja::Runtime::instance().executeGpuTasks("Lazy GPU Bundle Name",
+                                                        nDistributorThreads_ui,
+                                                        stagger_usec_ui,
+                                                        action,
+                                                        *prototype);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
 
-        return MILHOJA_SUCCESS;
-     }
+       return MILHOJA_SUCCESS;
+    }
 #endif
 }
 

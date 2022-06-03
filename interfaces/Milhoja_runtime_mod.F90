@@ -1,8 +1,7 @@
 !> A module in the Milhoja Fortran/C++ interoperability layer that provides
-!! calling code with a high-level interface for interacting with the runtime.
+!! calling code with a high-level Fortan interface for interacting with the runtime.
 !!
 !! @todo Add in executeTask routines for other thread team configurations.
-
 module milhoja_runtime_mod
     use milhoja_types_mod, ONLY : MILHOJA_INT, &
                                   MILHOJA_SIZE_T
@@ -23,11 +22,11 @@ module milhoja_runtime_mod
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
         !> Fortran interface of the runtime's task function.
-        subroutine milhoja_runtime_taskFunction(C_tId, C_dataItemPtr) bind(c)
+        subroutine milhoja_runtime_taskFunction(C_threadId, C_dataItemPtr) bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            integer(MILHOJA_INT), intent(IN), value :: C_tId
+            integer(MILHOJA_INT), intent(IN), value :: C_threadId
             type(C_PTR),          intent(IN), value :: C_dataItemPtr
         end subroutine milhoja_runtime_taskFunction
     end interface
@@ -123,8 +122,8 @@ contains
                                       nBytesInMemoryPools)
     end subroutine milhoja_runtime_init
 
-    !> Finalize the runtime.  Calling code should finalize the Milhoja 
-    !! Grid infrastructure before calling this routine.
+    !> Finalize the runtime.  Calling code should call this routine before
+    !! finalizing the Milhoja Grid infrastructure.
     !!
     !! @param ierr    The milhoja error code
     subroutine milhoja_runtime_finalize(ierr)

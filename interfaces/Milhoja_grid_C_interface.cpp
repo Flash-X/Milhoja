@@ -30,7 +30,7 @@ extern "C" {
      * calling this routine.
      *
      * Note that the Milhoja grid infrastructure can be used without using the
-     * runtime infrastructure.  However, the runtime cannot be used with the
+     * runtime infrastructure.  However, the runtime cannot be used without the
      * grid infrastructure.  Therefore, initializing the grid also initializes
      * the general Milhoja infrastructure.  As a result, the grid must be
      * initialized before the runtime; the runtime must be finalized before the
@@ -437,7 +437,7 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;
         } catch (...) {
-            std::cerr << "[milhoja_grid_init_domain_c] Unknown error caught" << std::endl;
+            std::cerr << "[milhoja_grid_init_domain_cpu_only_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;
         }
 

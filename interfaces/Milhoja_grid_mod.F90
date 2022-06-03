@@ -31,7 +31,7 @@ module milhoja_grid_mod
     public :: milhoja_grid_getNGuardcells
     public :: milhoja_grid_getNCcVariables
     public :: milhoja_grid_getNFluxVariables
-    public :: Milhoja_grid_initDomain
+    public :: milhoja_grid_initDomain
     public :: milhoja_grid_fillGuardCells
     public :: milhoja_grid_writePlotfile
 

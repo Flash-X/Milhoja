@@ -4,12 +4,6 @@
 #              (can use the variable NDIM from Makefile.setup)
 #  - GTESTDIR: Path to the Googletest build directory
 #  - CUDADIR: Path to Cuda installation
-#
-# If we are building the Fortran interface, then the Fortran compile flags must
-# include the openMP flag (-mp) so that local scope variables in Fortran
-# routines called by the runtime are allocated in static memory.  This makes the
-# routines thread safe.  I was not able to get thread safety with -Mnosave,
-# -acc=host, or -acc=multicore.
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/AMReX_$(NDIM)d
 GTESTDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/googletest
@@ -35,10 +29,10 @@ CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 F90COMP        = mpif90
 F90FLAGS_PROD  = \
 	-O3 -Mpreprocess -traceback -Mstack-init=snan \
-	-i4 -r8 -mp
+	-i4 -r8
 F90FLAGS_DEBUG = \
 	-g -O0 -Mpreprocess -traceback -Mstack-init=snan \
-	-i4 -r8 -Mbounds -Werror -Mchkptr -mp
+	-i4 -r8 -Mbounds -Werror -Mchkptr
 
 LDFLAGS_STD = -lpthread -lstdc++ -lcudart -L$(CUDADIR)/lib64
 
