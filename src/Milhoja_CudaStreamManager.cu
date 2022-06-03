@@ -134,6 +134,11 @@ CudaStreamManager::CudaStreamManager(void)
     for (int i=0; i<nMaxStreams_; ++i) {
          stream.accAsyncQueue = i + 1;
          stream.cudaStream = static_cast<cudaStream_t>(acc_get_cuda_stream(stream.accAsyncQueue));
+         if (stream.cudaStream == nullptr) {
+            std::string  errMsg = "[CudaStreamManager::CudaStreamManager] ";
+            errMsg += "CUDA stream is null\n";
+            throw std::runtime_error(errMsg);
+         }
 
          streams_.push_back( std::move(stream) );
     }

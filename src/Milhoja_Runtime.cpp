@@ -334,7 +334,9 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
     int rank = -1;
     MPI_Comm_rank(comm, &rank);
 
-    unsigned int  nxb, nyb, nzb;
+    unsigned int   nxb = 1;
+    unsigned int   nyb = 1;
+    unsigned int   nzb = 1;
     grid.getBlockSize(&nxb, &nyb, &nzb);
 
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()
@@ -961,7 +963,9 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
     int rank = -1;
     MPI_Comm_rank(comm, &rank);
 
-    unsigned int  nxb, nyb, nzb;
+    unsigned int   nxb = 1;
+    unsigned int   nyb = 1;
+    unsigned int   nzb = 1;
     grid.getBlockSize(&nxb, &nyb, &nzb);
 
     unsigned int  nPackets = ceil(  (double)grid.getNumberLocalBlocks()

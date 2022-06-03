@@ -17,6 +17,7 @@ TODO: Allow for macro renaming?  If the rename is propagated correctly to
 all functions that used the original name, then the change should be transparent
 to calling code.
 TODO: The above should be in the developers guide rather than here.
+TODO: Remove MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME once it is no longer needed.
 --------------------------------------------------------------------------------
 #endif
 
@@ -74,8 +75,9 @@ Runtime-specific error codes
 #define MILHOJA_ERROR_N_THREADS_PER_TEAM_NEGATIVE    203
 #define MILHOJA_ERROR_N_STREAMS_NEGATIVE             204
 #define MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS        205
-#define MILHOJA_ERROR_N_DISTRIBUTOR_THREADS_NEGATIVE 206
-#define MILHOJA_ERROR_N_TEAM_THREADS_NEGATIVE        207
+#define MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET        206
+#define MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM       207
+#define MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME        299
 
 #if 0
 --------------------------------------------------------------------------------
@@ -104,6 +106,7 @@ Tile-specific error codes
 --------------------------------------------------------------------------------
 #endif
 #define MILHOJA_ERROR_UNABLE_TO_GET_METADATA         400
+#define MILHOJA_ERROR_N_TILES_NEGATIVE               401
 
 #if 0
 --------------------------------------------------------------------------------

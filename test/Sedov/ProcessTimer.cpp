@@ -35,7 +35,9 @@ ProcessTimer::ProcessTimer(const std::string& filename,
     MPI_Comm_rank(comm_, &rank_);
     MPI_Comm_size(comm_, &nProcs_);
 
-    unsigned int    nxb, nyb, nzb;
+    unsigned int    nxb = 1;
+    unsigned int    nyb = 1;
+    unsigned int    nzb = 1;
     milhoja::Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
     // TODO: Get these from Grid instead of from RPs (as for n[xyz]b).

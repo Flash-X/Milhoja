@@ -23,7 +23,9 @@ DataPacket_gpu_2_stream::DataPacket_gpu_2_stream(void)
 {
     using namespace milhoja;
 
-    unsigned int    nxb, nyb, nzb;
+    unsigned int    nxb = 1;
+    unsigned int    nyb = 1;
+    unsigned int    nzb = 1;
     Grid::instance().getBlockSize(&nxb, &nyb, &nzb);
 
     N_ELEMENTS_PER_CC_PER_VARIABLE =   (nxb + 2 * NGUARD * MILHOJA_K1D)
