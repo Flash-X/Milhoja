@@ -1,32 +1,48 @@
 Requirements
 ============
-* MPI installation
+* a python installation
 * C++ compiler that supports C++11 and pthreads
 * Fortran compiler that supports F2003
+* MPI installation associated with the aforementioned C++ and Fortran compilers
 * googletest built with same compilers that will be used to build tests
-* AMReX [123]D libraries including Fortran interfaces built with same compilers that will be used to build tests
+* Source-only installation of [nlohmann's C++ JSON library](https://github.com/nlohmann/json)
+* AMReX [123]D libraries including Fortran interfaces built with same compilers/MPI implementation that will be used to build tests
+
+Building Milhoja as a library
+=================================
+
+This repository contains a library build system for constructing Milhoja as static libraries.  This is the official Milhoja build system and users interface with it primarily through the creation of site-specific Makefiles and the `configure.py` script found at the root of the repository.
+
+Some examples of site-specific Makefiles can be found in the `sites` folder.  The `gce` files are in use for CPU-only CI testing and the `summit` folder is used for general development and testing.  Users are free to construct their own Makefiles and these need not be included in this repository.
+
+Each Milhoja library is built to use
+* a single dimension for the domain of problems to be solved with Milhoja (e.g., 1, 2, 3),
+* a single runtime backend (e.g., CUDA),
+* a single Grid backend (e.g., AMReX), and
+* a single computational offloading model (e.g., OpenACC).
+
+In addition, libraries can be built in debug or production mode, where the Makefile in use defines what those two modes entail.  Please run `configure.py -h` for more information on using that tool.
+
+The configure script creates a file called `Makefile.configure`.  With this in place, the desired library can be constructed by running `make` from the root of the repository and installed in the specified location by running `make install`.
 
 Building Tests
 ==============
-If the user has a site directory configured as specified in the Build System Requirements document (build-system-reqs.txt), they should be able to run a number of unit tests, as follows:
+The test portion of this repository is considered to be external to Milhoja and has its own dedicated build system.  The tests and their infrastructure are potentially subject to more frequent and substantial changes than those of Milhoja.
 
-- python setup.py -t Grid -d {1,2,3} -p grid\_{1,2,3}D.par
-- python setup.py -t CudaBackend -d 2 -p par\_cudabackend.h
-- python setup.py -t Runtime/null -d 2 -p par\_runtime.h
-- python setup.py -t Runtime/cpu -d 2 -p par\_runtime.h
-- python setup.py -t Runtime/gpu -d 2 -p par\_runtime.h
-- python setup.py -t ThreadTeam -d 2 -p par\_threadteam.h
-- python setup.py -t Sedov/mpi -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
-- python setup.py -t Sedov/cpu -d {2,3} -p sedov\_{2,3}D\_cartesian\_cpu.par 
-- python setup.py -t Sedov/gpu/variant{1,2,3} -d {2,3} -p sedov\_{2,3}D\_cartesian\_gpu.par
+Unlike libraries, tests can only be built at present using Makefiles located in the `sites` folder.  It is, of course, recommended to build libraries and tests with the same compilers/MPI implementation and site-specific Makefile.
 
-Building the Runtime as a library
-=================================
+Tests are setup using the `setup.py` script in the root of the repository with commands such as
 
-By default (e.g. python setup.py Grid -d 2 -p grid\_2d.par), the Runtime is built as a library as an intermediate step, and then linked as a static library into the test executable. This need not be the case in the future.
+- setup.py Grid/{general,gcfill,multiple} -d {1,2,3} -s gce -l ~/local/Milhoja_{1,2,3}D_sandybridge_intel_mpich_debug -p grid\_{1,2,3}d.json
+- setup.py ThreadTeam -d 2 -s gce -l ~/local/Milhoja_2D_sandybridge_intel_mpich_debug -p threadteam.json
+- setup.py Runtime/null -d 2 -s gce -l ~/local/Milhoja_2D_sandybridge_intel_mpich_debug -p runtime.json
+- setup.py Runtime/cpu -d {2,3} -s gce -l ~/local/Milhoja_{2,3}D_sandybridge_intel_mpich_debug -p runtime.json
+- setup.py Runtime/gpu -d {2,3} -s summit -l ~/local/Milhoja_{2,3}D_nvhpc_cuda_openacc -p runtime.json
+- setup.py Sedov/mpi -d {2,3} -s gce -l ~/local/Milhoja_{2,3}D_sandybridge_intel_mpich_debug -p sedov\_{2,3}D\_cartesian\_cpu.par 
+- setup.py Sedov/cpu -d {2,3} -s gce -l ~/local/Milhoja_{2,3}D_sandybridge_intel_mpich_debug -p sedov\_{2,3}D\_cartesian\_cpu.par 
+- setup.py Sedov/gpu/variant{1,2,3} -d {2,3} -s summit -l ~/local/Milhoja_{2,3}D_nvhpc_cuda_openacc -p sedov\_{2,3}D\_cartesian\_gpu.par
 
-In order to build the Runtime as a standalone library that can be linked from multiple tests, or from an external application like FLASH, use the special keyword `library` in place of a test name. (e.g. python setup.py library -d 2 --par grid\_2d.par --prefix runtime\_2d\_AMReX\_Cuda) The `prefix` command line option specifies a subdirectory (of the repo root dir) where the user can install library with `make install`.
+Note that the name of a test is the path of the test relative to the `test` folder and that tests can use runtime parameters encoded in JSON-format files.  Please run `setup.py -h` for more information on using that tool.
 
-To link a prebuilt library into a test, use the command line field `--library` to specify a path. This reduces the total amount of compilation time if running multiple tests with the same Runtime configuration.
+The setup tool creates and populates a build folder of the specified name in the root of the repository.  The test is built by running `make` from within that folder.
 
-TODO: More investagation still needs to be done to determine the behavior if a test links a library configured with different runtime or setup parameters.
