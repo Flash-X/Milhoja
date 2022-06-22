@@ -12,4 +12,6 @@ To use the Makefiles in this folder without any need to alter them,
 * set the environment variable `MILHOJA_CODE_REPO` to the location of you Milhoja code repository and
 * set the environment variable `MILHOJA_TEST_REPO` to `/nfs/gce/projects/Milhoja/MilhojaTest`.
 
+This folder also includes JSON-format runtime parameter files with site-specific values that can be used with different Milhoja tests.  Note that files that end in `.json_base` typically contain parameters whose values still need to be assigned.
+
 Please note that running on GCE is complicated by the fact that the machines use different hardware and OS.  Therefore, use of the contents of this folder or the folder in the GCE installation is not mindless plug-and-play.
