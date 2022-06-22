@@ -6,6 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_CoordSys.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
@@ -793,7 +794,8 @@ Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
   */
 Real  GridAmrex::getCellVolume(const unsigned int level,
                                const IntVect& coord) const {
-    return geom[level].Volume(amrex::IntVect(coord));
+    const amrex::Geometry&   geomLevel = geom[level];
+    return geomLevel.Volume(amrex::IntVect(coord), geomLevel.data());
 }
 
 /** Obtain the coordinates along a given axis for either the left edge, center,

@@ -16,10 +16,11 @@ include Makefile.test
 # Default shell commands
 RM ?= /bin/rm
 
-# Use C++11 standard, flags differ by compiler
+# Milhoja uses just the C++11 standard, but AMReX requires C++14.
+# Flags can differ by compiler.
 # -MMD generates a dependecy list for each file as a side effect
 ifeq ($(CXXCOMPNAME),gnu)
-CXXFLAGS_STD = -std=c++11
+CXXFLAGS_STD = -std=c++14
 DEPFLAG = -MMD
 else ifeq ($(CXXCOMPNAME), pgi)
 CXXFLAGS_STD = -std=c++11
