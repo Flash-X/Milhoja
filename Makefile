@@ -56,11 +56,9 @@ CU_SRCS :=
 CU_HDRS :=
 CUFLAGS :=
 else ifeq ($(RUNTIME_BACKEND),CUDA)
-CXXFLAGS += -I$(INCDIR)/CudaBackend -DMILHOJA_USE_CUDA_BACKEND
-F90FLAGS +=                         -DMILHOJA_USE_CUDA_BACKEND
+CXXFLAGS += -I$(INCDIR)/CudaBackend
 CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
-           $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX) \
-           -DMILHOJA_USE_CUDA_BACKEND
+           $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
 CU_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cu)
 CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
 else
@@ -76,9 +74,7 @@ HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
 
 ifeq      ($(COMPUTATION_OFFLOADING),None)
 else ifeq ($(COMPUTATION_OFFLOADING),OpenACC)
-CXXFLAGS += $(OACC_FLAGS) -DMILHOJA_ENABLE_OPENACC_OFFLOAD
-F90FLAGS +=               -DMILHOJA_ENABLE_OPENACC_OFFLOAD
-CUFLAGS  +=               -DMILHOJA_ENABLE_OPENACC_OFFLOAD
+CXXFLAGS += $(OACC_FLAGS)
 else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif

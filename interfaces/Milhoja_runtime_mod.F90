@@ -1,3 +1,5 @@
+#include "Milhoja.h"
+
 !> A module in the Milhoja Fortran/C++ interoperability layer that provides
 !! calling code with a high-level Fortan interface for interacting with the runtime.
 !!
@@ -15,7 +17,7 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_reset
     public :: milhoja_runtime_executeTasks_Cpu
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)
     public :: milhoja_runtime_executeTasks_Gpu
 #endif
 
@@ -74,7 +76,7 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_cpu_c
 
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_gpu_c(C_taskFunction,        &
                                                      C_nDistributorThreads, &
@@ -169,7 +171,7 @@ contains
         ierr = milhoja_runtime_execute_tasks_cpu_c(taskFunction_Cptr, nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
 
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)
     !> Instruct the runtime to use the GPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
