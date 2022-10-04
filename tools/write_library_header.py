@@ -130,10 +130,12 @@ if __name__ == '__main__':
 
     # Runtime
     # A value of None means host-only
+    gpu_support_included = False
     if   runtime_backend.lower() == 'none':
         runtime_backend_macro = 'MILHOJA_NO_RUNTIME_BACKEND'
     elif runtime_backend.lower() == 'cuda':
         runtime_backend_macro = 'MILHOJA_CUDA_RUNTIME_BACKEND'
+        gpu_support_included = True
     else:
         print('PROGRAMMER LOGIC ERROR - runtime_backend')
         exit(100)
@@ -232,6 +234,9 @@ if __name__ == '__main__':
         fptr.write(f'#define {runtime_backend_macro}\n')
         fptr.write(f'#define {offload_macro}\n')
         fptr.write( '\n')
+        if gpu_support_included:
+            fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n')
+            fptr.write( '\n')
         fptr.write( '#endif\n\n')
 
     exit(0)
