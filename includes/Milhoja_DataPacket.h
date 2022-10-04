@@ -130,16 +130,17 @@
 
 #include <stdexcept>
 
-#if defined(ENABLE_CUDA_OFFLOAD) || defined(MILHOJA_USE_CUDA_BACKEND)
-#include <cuda_runtime.h>
-#endif
-
+#include "Milhoja.h"
 #include "Milhoja_IntVect.h"
 #include "Milhoja_RealVect.h"
 #include "Milhoja_FArray4D.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_DataItem.h"
 #include "Milhoja_Stream.h"
+
+#if defined(MILHOJA_CUDA_OFFLOADING) || defined(MILHOJA_CUDA_RUNTIME_BACKEND)
+#include <cuda_runtime.h>
+#endif
 
 namespace milhoja {
 
@@ -262,7 +263,7 @@ public:
      */
     std::size_t            returnToHostSizeInBytes(void) const { return nReturnToHostBytes_; };
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     /**
      * Obtain the main OpenACC asynchronous queue assigned to the packet, on
      * which communications are scheduled and computation can also be scheduled.
@@ -301,7 +302,7 @@ public:
     virtual void           releaseExtraQueue(const unsigned int id)
         { throw std::logic_error("[DataPacket::releaseExtraQueue] no extra queue"); }
 #endif
-#if defined(ENABLE_CUDA_OFFLOAD) || defined(MILHOJA_USE_CUDA_BACKEND)
+#if defined(MILHOJA_CUDA_OFFLOADING) || defined(MILHOJA_CUDA_RUNTIME_BACKEND)
     /**
      * Obtain the main CUDA stream assigned to the DataPacket for transferring the
      * packet to and from the host.  This can be called after pack() is called

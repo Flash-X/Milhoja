@@ -19,7 +19,9 @@
 #ifndef MILHOJA_STREAM_H__
 #define MILHOJA_STREAM_H__
 
-#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#include "Milhoja.h"
+
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
 #include <cuda_runtime.h>
 #endif
 
@@ -35,12 +37,12 @@ namespace milhoja {
 constexpr int NULL_ACC_ASYNC_QUEUE = -1;
 
 struct Stream {
-#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
     // cudaStream_t is a typedef of a pointer.  Therefore, this
     // default value is valid and moves should be quick.
     cudaStream_t   cudaStream = nullptr;
 #endif
-#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_OPENACC_OFFLOADING)
     int            accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
 #endif
 
@@ -48,22 +50,22 @@ struct Stream {
     ~Stream(void)  { };
 
     Stream(Stream&& stream) {
-#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
         cudaStream = stream.cudaStream;
         stream.cudaStream = nullptr;
 #endif
-#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_OPENACC_OFFLOADING)
         accAsyncQueue = stream.accAsyncQueue;
         stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
 #endif
     }
 
     Stream& operator=(Stream&& rhs) {
-#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
         cudaStream = rhs.cudaStream;
         rhs.cudaStream = nullptr;
 #endif
-#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_OPENACC_OFFLOADING)
         accAsyncQueue = rhs.accAsyncQueue;
         rhs.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
 #endif
@@ -77,12 +79,12 @@ struct Stream {
     Stream& operator=(const Stream&) = delete;
 
     bool   isValid(void) const {
-#if defined(MILHOJA_USE_CUDA_BACKEND) || defined(ENABLE_CUDA_OFFLOAD)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
         if (cudaStream == nullptr) {
             return false;
         }
 #endif
-#if defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if defined(MILHOJA_OPENACC_OFFLOADING)
         if (accAsyncQueue == NULL_ACC_ASYNC_QUEUE) {
             return false;
         }

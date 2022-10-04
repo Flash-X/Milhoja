@@ -3,16 +3,17 @@
 
 #include <cstddef>
 
-#ifdef MILHOJA_USE_CUDA_BACKEND
-#include <cuda_runtime.h>
-#endif
-
+#include "Milhoja.h"
 #include "Milhoja_Stream.h"
 #include "Milhoja_DataPacket.h"
 
+#ifdef MILHOJA_CUDA_RUNTIME_BACKEND
+#include <cuda_runtime.h>
+#endif
+
 namespace milhoja {
 
-#ifdef MILHOJA_USE_CUDA_BACKEND
+#ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
 #else
 // No notion of callback function otherwise.

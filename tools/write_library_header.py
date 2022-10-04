@@ -131,16 +131,16 @@ if __name__ == '__main__':
     # Runtime
     # A value of None means host-only
     if   runtime_backend.lower() == 'none':
-        runtime_backend_macro = None
+        runtime_backend_macro = 'MILHOJA_NO_RUNTIME_BACKEND'
     elif runtime_backend.lower() == 'cuda':
-        runtime_backend_macro = 'MILHOJA_USE_CUDA_BACKEND'
+        runtime_backend_macro = 'MILHOJA_CUDA_RUNTIME_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - runtime_backend')
         exit(100)
 
     # Grid
     if grid_backend.lower() == 'amrex':
-        grid_backend_macro = 'MILHOJA_GRID_AMREX'
+        grid_backend_macro = 'MILHOJA_AMREX_GRID_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')
         exit(100)
@@ -156,9 +156,9 @@ if __name__ == '__main__':
     # Offload
     # A value of None means host-only
     if   computation_offloading.lower() == 'none':
-        offload_macro = None
+        offload_macro = 'MILHOJA_NO_OFFLOADING'
     elif computation_offloading.lower() == 'openacc':
-        offload_macro = 'MILHOJA_ENABLE_OPENACC_OFFLOAD'
+        offload_macro = 'MILHOJA_OPENACC_OFFLOADING'
     else:
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)
@@ -229,32 +229,8 @@ if __name__ == '__main__':
         fptr.write(f'#define MILHOJA_MPI_REAL      {mpi_real_type}\n')
         fptr.write( '\n')
         fptr.write(f'#define {grid_backend_macro}\n')
-        if runtime_backend_macro != None:
-            # Rather than define the macro here, we prefer that the build system
-            # define the macro at the global level.  This avoids subtle errors
-            # where this header wasn't included but should have been or errors
-            # in which the header must be included before a preprocessor
-            # command.
-            #
-            # Under the assumption that calling code will include this header in
-            # at least one of its source code files, the calling code build will
-            # fail if they haven't chosen to build with the matching backend.
-            # It's important that they do so as one of their files could include
-            # in a Milhoja header that uses this macro.
-            msg  = f'Milhoja library built with {runtime_backend_macro}.  '
-            msg +=  'All calling code must also define this macro.'
-            fptr.write( '\n')
-            fptr.write(f'#ifndef {runtime_backend_macro}\n')
-            fptr.write(f'#error "{msg}"\n')
-            fptr.write( '#endif\n')
-        if offload_macro != None:
-            #  As for runtime_backend_macro
-            msg  = f'Milhoja library built with {offload_macro}.  '
-            msg +=  'All calling code must also define this macro.'
-            fptr.write( '\n')
-            fptr.write(f'#ifndef {offload_macro}\n')
-            fptr.write(f'#error "{msg}"\n')
-            fptr.write( '#endif\n')
+        fptr.write(f'#define {runtime_backend_macro}\n')
+        fptr.write(f'#define {offload_macro}\n')
         fptr.write( '\n')
         fptr.write( '#endif\n\n')
 

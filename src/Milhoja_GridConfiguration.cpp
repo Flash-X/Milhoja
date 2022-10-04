@@ -2,10 +2,11 @@
 
 #include <stdexcept>
 
+#include "Milhoja.h"
 #include "Milhoja_Logger.h"
 #include "Milhoja_axis.h"
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
 #include "Milhoja_GridConfigurationAMReX.h"
 #endif
 
@@ -27,10 +28,10 @@ GridConfiguration&   GridConfiguration::instance(void) {
         throw std::logic_error("[GridConfiguration::instance] Configuration already consumed");
     }
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
     static GridConfigurationAMReX   singleton;
 #else
-#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
+#error "Need to specify Grid implementation with MILHOJA_[NAME]_GRID_BACKEND macro"
 #endif
 
     return singleton;
@@ -114,7 +115,7 @@ bool GridConfiguration::isValid(void) const {
         isValid = false;
     }
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
     if (   (ccInterpolator != Interpolator::CellConservativeLinear)
         && (ccInterpolator != Interpolator::CellConservativeProtected)
         && (ccInterpolator != Interpolator::CellConservativeQuartic)

@@ -6,6 +6,7 @@
 #ifndef MILHOJA_FARRAY_3D_H__
 #define MILHOJA_FARRAY_3D_H__
 
+#include "Milhoja.h"
 #include "Milhoja_real.h"
 #include "Milhoja_IntVect.h"
 
@@ -42,7 +43,7 @@ public:
     /**
      * Get and set data in a Fortran-style way.
      */
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     Real& operator()(const int i, const int j, const int k) const {

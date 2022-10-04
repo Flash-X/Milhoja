@@ -2,18 +2,18 @@
 
 #include <stdexcept>
 
+#include "Milhoja.h"
 #include "Milhoja_Logger.h"
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 
-// TODO: move to a header?
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
 #include "Milhoja_GridAmrex.h"
 namespace milhoja {
     typedef GridAmrex GridBackend;
 }
 #else
-#error "Need to specify Grid implementation with MILHOJA_GRID_[NAME] macro"
+#error "Need to specify Grid backend with MILHOJA_[NAME]_GRID_BACKEND macro"
 #endif
 
 namespace milhoja {

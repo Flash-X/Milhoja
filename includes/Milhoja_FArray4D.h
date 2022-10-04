@@ -6,6 +6,7 @@
 #ifndef MILHOJA_FARRAY_4D_H__
 #define MILHOJA_FARRAY_4D_H__
 
+#include "Milhoja.h"
 #include "Milhoja_real.h"
 #include "Milhoja_IntVect.h"
 
@@ -67,7 +68,7 @@ public:
      * low-level infrastructure, should we just put in the directives protected 
      * by preprocessor so that the compiler just chooses the correct line?
      */
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     Real& operator()(const int i, const int j, const int k, const int n) const {
@@ -86,7 +87,7 @@ public:
      *
      * f->at(i,j,k,n) better than (*f)(i,j,k,n)?
      */
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     Real& at(const int i, const int j, const int k, const int n) const {

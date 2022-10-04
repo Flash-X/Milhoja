@@ -6,10 +6,11 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MultiFab.H>
 
+#include "Milhoja.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_TileIter.h"
 
-#ifndef MILHOJA_GRID_AMREX
+#ifndef MILHOJA_AMREX_GRID_BACKEND
 #error "This file need not be compiled if the AMReX backend isn't used"
 #endif
 
