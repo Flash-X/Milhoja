@@ -11,7 +11,7 @@
 
 #include "Milhoja.h"
 
-#ifndef MILHOJA_USE_CUDA_BACKEND
+#ifndef MILHOJA_CUDA_RUNTIME_BACKEND
 #error "This file need not be compiled if the CUDA backend isn't used"
 #endif
 

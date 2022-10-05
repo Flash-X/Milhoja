@@ -8,7 +8,7 @@
 #include "Milhoja_axis.h"
 #include "Milhoja_real.h"
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
 #include <AMReX_RealVect.H>
 #endif
 
@@ -49,7 +49,7 @@ class RealVect
     }
 #endif
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
     //! Constructor from amrex::RealVect
     explicit RealVect (const amrex::RealVect& ain)
         : LIST_NDIM(i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}

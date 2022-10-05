@@ -93,6 +93,13 @@ library being built.  This list shall be adjusted automatically by the build
 system internally so that the list of prerequisites is minimal (e.g., do not
 include CUDA backend files for a library build that doesn't use the runtime).
 
+8. Applications that use Milhoja shall be allowed to use a particular instance
+of a Milhoja library without having to use all functionality included in the
+library instance.  For example, an application should be allowed to use a
+Milhoja library instance that uses the CUDA runtime backend to only run
+computations with the runtime on CPUs.  This could help ease the burden of
+maintaining many different varieties of Milhoja libraries.
+
 Test Build System
 *****************
 

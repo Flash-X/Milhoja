@@ -11,7 +11,7 @@
 #include "Milhoja_IntVect.h"
 #include "Milhoja_Tile.h"
 
-#ifndef MILHOJA_GRID_AMREX
+#ifndef MILHOJA_AMREX_GRID_BACKEND
 #error "This file need not be compiled if the AMReX backend isn't used"
 #endif
 

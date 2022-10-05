@@ -1,6 +1,7 @@
 #ifndef DATA_PACKET_GPU_2_STREAM_H__
 #define DATA_PACKET_GPU_2_STREAM_H__
 
+#include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
 
 class DataPacket_gpu_2_stream : public milhoja::DataPacket {
@@ -21,7 +22,7 @@ public:
     void    pack(void) override;
     void    unpack(void) override;
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     int     extraAsynchronousQueue(const unsigned int id) override;
     void    releaseExtraQueue(const unsigned int id) override;
 #endif

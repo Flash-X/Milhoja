@@ -12,11 +12,12 @@
 
 #include <mpi.h>
 
+#include "Milhoja.h"
 #include "Milhoja_ThreadTeam.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#ifdef MILHOJA_GPUS_SUPPORTED
 #include "Milhoja_MoverUnpacker.h"
 #endif
 
@@ -42,7 +43,7 @@ public:
 
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction);
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#ifdef MILHOJA_GPUS_SUPPORTED
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
                          const unsigned int stagger_usec,
@@ -111,7 +112,7 @@ private:
 
     ThreadTeam**     teams_;
 
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#ifdef MILHOJA_GPUS_SUPPORTED
     MoverUnpacker    gpuToHost1_;
     MoverUnpacker    gpuToHost2_;
 #endif

@@ -8,9 +8,10 @@
  * Refer to the documentation of this class' base class for more information.
  */
 
+#include "Milhoja.h"
 #include "Milhoja_GridConfiguration.h"
 
-#ifndef MILHOJA_GRID_AMREX
+#ifndef MILHOJA_AMREX_GRID_BACKEND
 #error "This file need not be compiled if the AMReX backend isn't used"
 #endif
 

@@ -1,17 +1,18 @@
-#ifndef MILHOJA_USE_CUDA_BACKEND
-#error "No sense in running this test if CUDA backend not chosen"
-#endif
-
-#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
-#error "Please enable offloading with OpenACC"
-#endif
-
 #include <gtest/gtest.h>
 
+#include <Milhoja.h>
 #include <Milhoja_Logger.h>
 #include <Milhoja_RuntimeBackend.h>
 
 #include "cudaTestConstants.h"
+
+#ifndef MILHOJA_CUDA_RUNTIME_BACKEND
+#error "No sense in running this test if CUDA backend not chosen"
+#endif
+
+#ifndef MILHOJA_OPENACC_OFFLOADING
+#error "Please enable offloading with OpenACC"
+#endif
 
 __global__ void kernel(const std::size_t N, double* f, const unsigned int sleepTime_ns) {
     int i = blockIdx.x*blockDim.x + threadIdx.x;

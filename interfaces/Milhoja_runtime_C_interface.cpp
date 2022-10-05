@@ -222,7 +222,7 @@ extern "C" {
        return MILHOJA_SUCCESS;
     }
 
-#if defined(MILHOJA_USE_CUDA_BACKEND)
+#ifdef MILHOJA_GPUS_SUPPORTED
     /**
      * Instruct the runtime to use the GPU-only thread team configuration with
      * the given number of threads to apply the given task function to all

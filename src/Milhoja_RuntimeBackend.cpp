@@ -2,8 +2,9 @@
 
 #include <stdexcept>
 
+#include "Milhoja.h"
 #include "Milhoja_Logger.h"
-#ifdef MILHOJA_USE_CUDA_BACKEND
+#ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 #include "Milhoja_CudaBackend.h"
 #else
 #include "Milhoja_NullBackend.h"
@@ -83,7 +84,7 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
         throw std::logic_error("[RuntimeBackend::instance] No access after finalization");
     }
 
-#ifdef MILHOJA_USE_CUDA_BACKEND
+#ifdef MILHOJA_CUDA_RUNTIME_BACKEND
     static CudaBackend singleton{nStreams_, nBytesInMemoryPools_};
 #else
     static NullBackend singleton{};

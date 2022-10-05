@@ -8,7 +8,7 @@
 #include "Milhoja.h"
 #include "Milhoja_axis.h"
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
 #include <AMReX_IntVect.H>
 #endif
 
@@ -60,7 +60,7 @@ class IntVect
     }
 #endif
 
-#ifdef MILHOJA_GRID_AMREX
+#ifdef MILHOJA_AMREX_GRID_BACKEND
     //! Constructor from amrex::IntVect
     explicit IntVect (const amrex::IntVect& ain)
         : LIST_NDIM( i_{ain[0]},j_{ain[1]},k_{ain[2]}) {}
@@ -82,7 +82,7 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     //! Return first element of vector
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     int I() const {
@@ -90,7 +90,7 @@ class IntVect
     }
 
     //! Return second element of vector, or 0 if MILHOJA_NDIM<2
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     int J() const {
@@ -104,7 +104,7 @@ class IntVect
     }
 
     //! Return third element of vector, or 0 if MILHOJA_NDIM<3
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     #pragma acc routine seq
 #endif
     int K() const {

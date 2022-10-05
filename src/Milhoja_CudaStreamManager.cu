@@ -4,11 +4,12 @@
 #include <iostream>
 #include <stdexcept>
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#include "Milhoja.h"
+#include "Milhoja_Logger.h"
+
+#ifdef MILHOJA_OPENACC_OFFLOADING
 #include <openacc.h>
 #endif
-
-#include "Milhoja_Logger.h"
 
 namespace milhoja {
 
@@ -65,7 +66,7 @@ void    CudaStreamManager::finalize(void) {
         throw std::runtime_error(errMsg);
     }
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     Logger::instance().log(  "[CudaStreamManager] No longer using "
                            + std::to_string(streams_.size())
                            + " CUDA streams/OpenACC asynchronous queues");
@@ -129,7 +130,7 @@ CudaStreamManager::CudaStreamManager(void)
 
     pthread_mutex_lock(&idxMutex_);
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     Stream         stream{};
     for (int i=0; i<nMaxStreams_; ++i) {
          stream.accAsyncQueue = i + 1;
@@ -271,7 +272,7 @@ void   CudaStreamManager::releaseStream(Stream& stream) {
     if (stream.cudaStream == nullptr) {
         throw std::invalid_argument("[CudaStreamManager::releaseStream] "
                                     "Given stream has null CUDA stream");
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
     } else if (stream.accAsyncQueue == NULL_ACC_ASYNC_QUEUE) {
         throw std::invalid_argument("[CudaStreamManager::releaseStream] "
                                     "Given stream has null OpenACC asynchronous queue");

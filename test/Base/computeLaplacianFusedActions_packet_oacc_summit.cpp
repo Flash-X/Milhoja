@@ -1,5 +1,6 @@
 #include "computeLaplacianFused.h"
 
+#include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_DataPacket.h>
 
@@ -7,7 +8,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 
