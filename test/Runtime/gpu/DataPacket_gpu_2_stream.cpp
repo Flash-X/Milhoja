@@ -57,7 +57,7 @@ std::unique_ptr<milhoja::DataPacket>   DataPacket_gpu_2_stream::clone(void) cons
     return std::unique_ptr<milhoja::DataPacket>{new DataPacket_gpu_2_stream{}};
 }
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
 /**
  * Do not call this member function before calling pack() or more than once.
  */
@@ -72,7 +72,7 @@ void  DataPacket_gpu_2_stream::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
 /**
  * Pack must be called before calling this member function.  It cannot be called
  * after calling releaseExtraStream on the same ID.

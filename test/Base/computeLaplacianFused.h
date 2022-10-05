@@ -1,6 +1,7 @@
 #ifndef COMPUTE_LAPLACIAN_FUSED_H__
 #define COMPUTE_LAPLACIAN_FUSED_H__
 
+#include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
@@ -19,7 +20,7 @@ namespace ActionRoutines {
                                                milhoja::DataItem* dataItem);
 }
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
 namespace StaticPhysicsRoutines{
     #pragma acc routine vector
     void computeLaplacianFusedKernels_oacc_summit(const milhoja::IntVect* lo_d,

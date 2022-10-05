@@ -104,7 +104,7 @@ std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_1::clone(void) const
     return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_1{}};
 }
 
-#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_OPENACC_OFFLOADING)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -132,7 +132,7 @@ void  DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_ENABLE_OPENACC_OFFLOAD)
+#if ((MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)) && defined(MILHOJA_OPENACC_OFFLOADING)
 /**
  * Refer to the documentation of this member function for DataPacket.
  */

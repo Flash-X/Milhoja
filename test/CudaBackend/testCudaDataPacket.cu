@@ -1,7 +1,3 @@
-#ifndef MILHOJA_USE_CUDA_BACKEND
-#error "This file need not be compiled if the CUDA backend isn't used"
-#endif
-
 #include <gtest/gtest.h>
 
 #include <AMReX_Dim3.H>
@@ -9,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_FArrayBox.H>
 
+#include <Milhoja.h>
 #include <Milhoja_Tile.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_CudaStreamManager.h>
@@ -18,6 +15,10 @@
 #include "CudaDataPacket.h"
 
 #include "Flash_par.h"
+
+#ifndef MILHOJA_CUDA_RUNTIME_BACKEND
+#error "This file need not be compiled if the CUDA backend isn't used"
+#endif
 
 namespace {
 

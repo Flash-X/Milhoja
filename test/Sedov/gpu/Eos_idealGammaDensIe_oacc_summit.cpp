@@ -1,8 +1,10 @@
 #include "Eos.h"
 
+#include <Milhoja.h>
+
 #include "Sedov.h"
 
-#ifndef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
 #endif
 

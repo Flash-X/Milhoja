@@ -92,7 +92,7 @@ std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_2::clone(void) const
     return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_2{}};
 }
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
@@ -109,7 +109,7 @@ void  DataPacket_Hydro_gpu_2::releaseExtraQueue(const unsigned int id) {
 }
 #endif
 
-#ifdef MILHOJA_ENABLE_OPENACC_OFFLOAD
+#ifdef MILHOJA_OPENACC_OFFLOADING
 /**
  * Refer to the documentation of this member function for DataPacket.
  */
