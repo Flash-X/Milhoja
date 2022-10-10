@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     filename = Path(args.filename[0]).resolve()
     if filename.exists():
-        print_and_exit(f'{filename} already exists', 1)
+        print(f'{_ERROR}WARNING:{_NC} {filename} will be overwritten')
 
     ndim = args.dim
     if ndim not in _VALID_DIM:

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import os
 import sys
+import shutil
 import argparse
 
 from pathlib import Path
@@ -20,6 +22,8 @@ _DESCRIPTION = \
     "This script can be used to configure the library build system so that\n" \
     "it can be used to build a particular flavor of library.  In particular,\n" \
     "it writes Makefile.configure to the same folder as this script.\n\n" \
+    "This script will create an intermediate build folder called 'build'.\n" \
+    "If this folder already exists, it is wiped out without warning.\n" \
     "To build the static library, run 'make all' from the root of the\n" \
     "repository.  After a successful build, `make install` will install the\n" \
     "library, headers, and Fortran mod files in the folder specified by the\n" \
@@ -48,6 +52,7 @@ _NC    = '\033[0m'      # No Color/Not bold
 # This file is located in the repository root directory.  We assemble the build
 # relative to that directory.
 _HOME_DIR = Path(__file__).resolve().parent
+_BUILD_DIR = _HOME_DIR.joinpath('build')
 
 if __name__ == '__main__':
     """
@@ -94,9 +99,28 @@ if __name__ == '__main__':
     grid_backend           = args.grid
     computation_offloading = args.offload
 
+    # The Milhoja library build system requires that the intermediate build
+    # folder be clean
+    if   _BUILD_DIR.is_file():
+        print()
+        print(f'{_ERROR}WARNING:{_NC} {_BUILD_DIR} already existed and was wiped out')
+        print()
+        os.remove(_BUILD_DIR)
+    elif _BUILD_DIR.is_dir():
+        print()
+        print(f'{_ERROR}WARNING:{_NC} {_BUILD_DIR} already existed and was wiped out')
+        print()
+        shutil.rmtree(_BUILD_DIR)
+    _BUILD_DIR.mkdir()
+
+    # TODO: It would make more sense if the build system were copied into
+    # _BUILD_DIR.  I believe that this is a more typical approach.
+
     configMakefile = _HOME_DIR.joinpath('Makefile.configure')
     if configMakefile.exists():
-        print_and_exit(f'{configMakefile} already exists')
+        print()
+        print(f'{_ERROR}WARNING:{_NC} {configMakefile} already existed and was deleted')
+        print()
 
     print()
     print(f"Writing {configMakefile}")

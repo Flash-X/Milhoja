@@ -2,8 +2,7 @@
 */.DS_Store
 .ipynb_checkpoints
 ctags
-gatherDataCpp_*_*_*_*_*_*.dat
-gatherDataF2003_*_*_*_*_*_*.dat
+Makefile.configure
 docs/OrchestrationSystem.log
 docs/OrchestrationSystem.aux
 docs/OrchestrationSystem.pdf

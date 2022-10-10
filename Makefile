@@ -13,15 +13,18 @@ SHELL=/bin/sh
 
 .SUFFIXES:
 
-INCDIR       := ./includes
-SRCDIR       := ./src
-BUILDDIR     := ./build
-INTERFACEDIR := ./interfaces
-TARGET       := $(BUILDDIR)/libmilhoja.a
-MILHOJA_H    := $(BUILDDIR)/Milhoja.h
+INCDIR          := ./includes
+SRCDIR          := ./src
+BUILDDIR        := ./build
+INTERFACEDIR    := ./interfaces
+CONFIG_MAKEFILE := ./Makefile.configure
+TARGET          := $(BUILDDIR)/libmilhoja.a
+MILHOJA_H       := $(BUILDDIR)/Milhoja.h
 
-include ./Makefile.configure
+include $(CONFIG_MAKEFILE)
 include $(SITE_MAKEFILE)
+
+MAKEFILES := ./Makefile $(CONFIG_MAKEFILE) $(SITE_MAKEFILE)
 
 # Default shell commands
 RM ?= /bin/rm
@@ -94,9 +97,12 @@ clean:
 	$(RM) $(BUILDDIR)/*.d
 
 $(BUILDDIR):
+	@echo
+	@echo "Intermediate build folder $(BUILDDIR) missing.  Created."
+	@echo
 	@mkdir $(BUILDDIR)
 
-$(MILHOJA_H): | $(BUILDDIR)
+$(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 	@./tools/write_library_header.py --dim $(NDIM) \
                                      --runtime $(RUNTIME_BACKEND) \
                                      --grid $(GRID_BACKEND) \
@@ -104,13 +110,13 @@ $(MILHOJA_H): | $(BUILDDIR)
                                      --offload $(COMPUTATION_OFFLOADING) \
                                      $(MILHOJA_H)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) Makefile
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) Makefile
+$(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) Makefile
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
@@ -119,7 +125,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) Makefile
 # source files officially in the repo are in the high-level Fortran
 # interface and these are few, we can manually manage dependencies
 # and therefore write the build rules here.
-$(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 $(MILHOJA_H) Makefile
+$(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 $(MILHOJA_H) $(MAKEFILES)
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_errors_mod.o: $(INTERFACEDIR)/Milhoja_errors_mod.F90 $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(BUILDDIR)/Milhoja_types_mod.o Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
