@@ -61,9 +61,10 @@ test_gnu:
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
  - pushd $CI_BASE_PATH
- - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - ls
+ - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_REPO
+ - ls
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_REPO
  - git log -1 --oneline
