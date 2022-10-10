@@ -79,12 +79,12 @@ else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
-.PHONY: all install clean spotless
+.PHONY: all install clean
 all:     $(TARGET)
 install:
-	$(RM) -r $(LIB_MILHOJA_PREFIX)
-	mkdir -p $(LIB_MILHOJA_PREFIX)/include
-	mkdir    $(LIB_MILHOJA_PREFIX)/lib
+	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
+	mkdir $(LIB_MILHOJA_PREFIX)/include
+	mkdir $(LIB_MILHOJA_PREFIX)/lib
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
@@ -92,8 +92,6 @@ install:
 clean:
 	$(RM) $(BUILDDIR)/*.o
 	$(RM) $(BUILDDIR)/*.d
-spotless:
-	$(RM) -r $(BUILDDIR)
 
 $(BUILDDIR):
 	@mkdir $(BUILDDIR)
