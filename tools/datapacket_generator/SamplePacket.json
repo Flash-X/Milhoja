@@ -1,0 +1,21 @@
+{
+    "name": "HydroPacket3Test",
+    "general": {
+      "dt": "Real",
+      "n": "Real"
+    },
+    "tile": {
+      "meta": {
+        "deltas": "RealVect",
+        "lo": "IntVect",
+        "hi": "IntVect"
+      },
+      "device": {
+        "CC1": "FArray4D",
+        "CC2": "FArray4D",
+        "FCX": "FArray4D",
+        "FCY": "FArray4D",
+        "FCZ": "FArray4D"
+      }
+    }
+  }
