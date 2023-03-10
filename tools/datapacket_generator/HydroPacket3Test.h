@@ -22,26 +22,22 @@ public:
 	void releaseExtraQueue(const unsigned int id) override;
 #endif
 private:
+#if MILHOJA_NDIM==3
+	milhoja::Stream stream2_;
+	milhoja::Stream stream3_;
+#endif
 	milhoja::Real* dt;
 	milhoja::Real* n;
-	std::size_t N_ELEMENTS_PER_CC1_PER_VARIABLE;
-	std::size_t N_ELEMENTS_PER_CC1;
-	std::size_t CC1_BLOCK_SIZE_BYTES;
-	std::size_t N_ELEMENTS_PER_CC2_PER_VARIABLE;
-	std::size_t N_ELEMENTS_PER_CC2;
-	std::size_t CC2_BLOCK_SIZE_BYTES;
-	std::size_t N_ELEMENTS_PER_FCX_PER_VARIABLE;
-	std::size_t N_ELEMENTS_PER_FCX;
-	std::size_t FCX_BLOCK_SIZE_BYTES;
-	std::size_t N_ELEMENTS_PER_FCY_PER_VARIABLE;
-	std::size_t N_ELEMENTS_PER_FCY;
-	std::size_t FCY_BLOCK_SIZE_BYTES;
-	std::size_t N_ELEMENTS_PER_FCZ_PER_VARIABLE;
-	std::size_t N_ELEMENTS_PER_FCZ;
-	std::size_t FCZ_BLOCK_SIZE_BYTES;
-	std::size_t RealVect_SIZE_BYTES;
-	std::size_t IntVect_SIZE_BYTES;
-	std::size_t FArray4D_SIZE_BYTES;
-	std::size_t Real_SIZE_BYTES;
+	std::size_t CC1_BLOCK_SIZE;
+	std::size_t CC2_BLOCK_SIZE;
+	std::size_t FCX_BLOCK_SIZE;
+	std::size_t FCY_BLOCK_SIZE;
+	std::size_t FCZ_BLOCK_SIZE;
+	std::size_t deltas_BLOCK_SIZE;
+	std::size_t lo_BLOCK_SIZE;
+	std::size_t hi_BLOCK_SIZE;
+	std::size_t Real_BLOCK_SIZE;
+	std::size_t RealVect_BLOCK_SIZE;
+	std::size_t IntVect_BLOCK_SIZE;
 };
 #endif

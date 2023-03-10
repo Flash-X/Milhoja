@@ -1,21 +1,30 @@
 {
     "name": "HydroPacket3Test",
+    "problem": "Sedov",
     "general": {
       "dt": "Real",
       "n": "Real"
     },
     "tile": {
-      "meta": {
-        "deltas": "RealVect",
-        "lo": "IntVect",
-        "hi": "IntVect"
-      },
-      "device": {
-        "CC1": "FArray4D",
-        "CC2": "FArray4D",
-        "FCX": "FArray4D",
-        "FCY": "FArray4D",
-        "FCZ": "FArray4D"
-      }
+      "deltas": "RealVect",
+      "lo": "IntVect",
+      "hi": "IntVect",
+      "array_types": [
+        "CC1", "CC2", "FCX", "FCY", "FCZ"
+      ]
+    },
+    "copy-in": {
+      "CC1": ""
+    },
+    "copy-in-out": {
+
+    },
+    "copy-out": {
+      "CC2": ""
+    },
+    "scratch": {
+      "FCX": "",
+      "FCY": "",
+      "FCZ": ""
     }
-  }
+}
