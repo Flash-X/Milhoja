@@ -1,30 +1,37 @@
 {
-    "name": "HydroPacket3Test",
-    "problem": "Sedov",
-    "general": {
-      "dt": "Real",
-      "n": "Real"
+  "name": "HydroPacket3Test",
+  "tile-scratch": {
+    "FCX": {
+      "type": "Real",
+      "extents": ["nxb+1", "nyb", "nzb", "NFLUXES"]
     },
-    "tile": {
-      "deltas": "RealVect",
-      "lo": "IntVect",
-      "hi": "IntVect",
-      "array_types": [
-        "CC1", "CC2", "FCX", "FCY", "FCZ"
-      ]
+    "FCY": {
+      "type": "Real",
+      "extents": ["nxb", "nyb+1", "nzb", "NFLUXES"]
     },
-    "copy-in": {
-      "CC1": ""
-    },
-    "copy-in-out": {
-
-    },
-    "copy-out": {
-      "CC2": ""
-    },
-    "scratch": {
-      "FCX": "",
-      "FCY": "",
-      "FCZ": ""
+    "FCZ": {
+      "type": "Real",
+      "extents": ["nxb", "nyb", "nzb+1", "NFLUXES"]
     }
+  },
+  "general": {
+    "dt": "Real"
+  },
+  "tile-metadata": {
+    "deltas": "RealVect",
+    "lo": "IntVect",
+    "hi": "IntVect"
+  },
+  "tile-in": {
+    "CC1": {
+      "type": "Real",
+      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "NUNKVARS"]
+    }
+  },
+  "tile-out": {
+    "CC2": {
+      "type": "Real",
+      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "NUNKVARS"]
+    }
+  }
 }
