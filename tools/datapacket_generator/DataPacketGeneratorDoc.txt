@@ -1,0 +1,49 @@
+Data packet generator documentation
+
+A call to the data packet generator requires a JSON object of the format
+specified in this documentation.
+
+Keep in mind:
+    If a scalar is being identified as a key, you must include the data type as the value of that key.
+    If a vector or array type is being used as a key, that key must include keys in a dictionary. It must include
+        1) The type that the array will store (eg, Real) and 
+        2) The extents / dimensionality of that array.
+
+All available json sections
+
+Packet Metadata:
+
+[Required]	
+- name	= the name of the data packet to be generated.
+
+[Optional]
+- project = tbd
+
+Other Sections:
+
+[Required]
+
+general:
+    Non tile specific data goes in here. Number of tiles, dt, PacketContents, or any calculation constants should go here.
+    Note: Number of tiles and PacketContents are generated automatically. You should not specify them in the packet.
+    However, you must specify dt.
+
+[optional]
+
+tile-in
+    The array type data that we want to copy into the gpu.
+    Common option is CC1
+
+tile-out
+    The array types that we want to contain the outputs of the calculations done in the gpu.
+    Common option is CC2
+
+tile-metadata
+    All of the data to be included per tile. Common options include hi, lo, and deltas.
+
+tile-scratch
+    All scratch arrays to be included per tile. Common options include FC[XYZ].
+
+Note when specifying arrays:
+When specifying array types, 2 things must be included. The type that the array stores and the extents of the array.
+The number of unknown variables or fluxes must be specified at the end of the array.

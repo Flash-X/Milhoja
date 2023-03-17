@@ -4,27 +4,16 @@
 # JSON file and generates cpp code for a data packet
 # based on the contents of the json file.
 # 
-# TODO: Create a document that outlines possible options in the json input.
-# Right now, the JSON input file has a few options for creating a new packet.
-# When adding a variable to any section, you must also specify a milhoja type name. Look in the milhoja repo for possible types
-# Possible sections for JSON input:
-#   name -              Packet identifier. Must be included.
-#   general -           list of all variables not associated with any tile.
-#   tile -              Includes suboption array_types and metadata.
-#       metadata -      Per tile variables.
-#       array_types -   all array types to be included in a tile, supported types include FACE[XYZ], CC1/CC2.
-#   copy-in -           Any array type you want to add to the copy-in section of the packet.
-#   copy-in-out         Any array type you want to add to the copy-in-out section of the packet.
-#   copy-out -          Any array type you want to add to the copy-out section of the packet.
-#   scratch -           Any array type you want to add to the scratch mem section in the gpu.
+# TODO: We should also be adding support for generating fortran file packets in the future.
+# 
+# TODO: Work on documentation for packet json format. Refer to DataPacketGeneratorDoc for documentation
 
 import sys
 import json
-import copy
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
-# All possible sections
+# All possible sections.
 GENERAL = "general"
 T_SCRATCH = "tile-scratch"
 T_MDATA = "tile-metadata"
@@ -44,16 +33,13 @@ TILE_DESC = "tileDesc_h"
 vars_and_types = {}
 level = 0
 
-# Let's have dictionaries for each section in the json file instead of whatever is going on up there ^
 # TODO: Maybe we can create dictionaries derived from sections in the json? Something to think about
 known_sections = set()
 
-# It might be beneficial to write helper methods or a wrapper class for files
+# TODO: It might be beneficial to write helper methods or a wrapper class for files
 # to help with consistently writing to the file, so we
 # don't have to put {indent} or \n in every line we write.
 
-# header_section_stack = []
-# code_section_stack = []
 def get_indentation(level):
     return "\t" * level
 
@@ -105,19 +91,82 @@ def generate_cpp_file(parameters):
         file.write(f"}}\n\n")
         return
 
-    # TODO: Generate unpack method
+    # TODO: Some parts of the unpack method need to be more generalized.
     def generate_unpack(file, params):
         packet_name = params["name"]
+        func_name = "unpack"
         level = 1
         indent = level * "\t"
         file.write(f"void {packet_name}::unpack(void) {{\n")
         file.write(f"{indent}using namespace milhoja;\n")
-        file.write(f"{indent}if (tiles_.size() <= 0) {{\n")
+        file.writelines([
+            f"{indent}if (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
+            f"{indent}if (!stream.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
+            f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
+            f"{indent}if ( startVariable_ < UNK_VARS_BEGIN || startVariable_ > UNK_VARS_BEGIN || endVariable_ < UNK_VARS_BEGIN || endVariable_ > UNK_VARS_END )\n"
+            f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
+            f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
+            f"{indent}assert(!stream_.isValid());\n\n"
+            f"{indent}for ({SIZE_T} n=0; n < tiles_.size(); ++n) {{\n"
+        ])
+
+        indent = 2 * '\t'
+
+        # TODO: CC location remains consistent across data packets?
+        # Also location_ gets modified outside of the data packet
+        # so this stays for now
+        file.writelines([
+            f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
+            f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
+            f"{indent}const Real* data_p = nullptr;\n",
+            f"{indent}switch (location_) {{\n",
+            f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
+            f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
+            f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
+        ])
+
+        # data_h and data_p checks
+        file.writelines([
+            f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid pointer to data in host memory.\");\n",
+            f"{indent}if (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n"
+        ])
+
+        # TODO: Should we use nunkvars from tile-in?
+        file.writelines([
+            f"{indent}assert(UNK_VARS_BEGIN == 0);\n"
+            f"{indent}assert(UNK_VARS_END == NUNKVAR - 1);\n"
+        ])
+
+        dict_to_use = {}
+        if params.get(T_IN): dict_to_use = params.get(T_IN)
+        elif params.get(T_OUT): dict_to_use = params.get(T_OUT)
+
+        # TODO: this only uses the first item in tile-in or tile-out. we need to adjust it to use all array types specified in
+        # either.
+        if dict_to_use:
+            it = iter(dict_to_use)
+            item = next(it)
+            nunkvars = dict_to_use[item]['extents'][-1]
+            type = dict_to_use[item]['type']
+            # TODO: The way the constructor and header files we need to do some division to 
+            # get the origin num vars per CC per variable. This is a way to do it without creating
+            # another variable. Low priority
+            file.writelines([
+                f"{indent}{SIZE_T} offset = {item}{BLOCK_SIZE} * (1 / {nunkvars}) * (1 / sizeof({type})) * static_cast<{SIZE_T}>(startVariable_);\n",
+                f"{indent}{type}* start_h = data_h + offset;\n"
+                f"{indent}const {type}* start_p = data_p + offset;\n"
+                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({item}{BLOCK_SIZE} * (1 / {nunkvars}));\n"
+                f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
+            ])
+
+        indent = '\t'
+
         file.write(f"{indent}}}\n")
-        file.write(f"}}\n\n")
+
+        file.write(f"}}\n")
         return
 
-    # TODO: How can we make pack method generation easier?
+    # TODO: Improve pack generation code
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents. We also want to consider letting the user add numeric constants to general
     def generate_pack(file, params):
         packet_name = params["name"]
@@ -128,6 +177,7 @@ def generate_cpp_file(parameters):
         file.write(f"void {packet_name}::pack(void) {{\n")
         file.write(f"{indent}using namespace milhoja;\n")
         
+        # Error checking
         file.writelines([
             f"{indent}std::string errMsg = isNull();\n",
             f"{indent}if (errMsg != \"\") {{\n",
@@ -138,8 +188,6 @@ def generate_cpp_file(parameters):
             f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
-        # cc1_block_size_exists = False
-        # cc2_block_size_exists = False
         # # generate scratch section
         file.write(f"{indent}// Scratch section\n")
 
@@ -327,7 +375,7 @@ def generate_cpp_file(parameters):
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<FArray4D*>((void*)ptr_d);\n"
                 f"{indent}{type}fHi = IntVect{{LIST_NDIM({ ', '.join(list_ndim) })}};\n"
-                f"{indent}FArray4D {item}_d{{static_cast<{params[T_SCRATCH][item]['type']}*>((void*) {item}{SCRATCH}), lo, fHi, NFLUXES)}};\n"
+                f"{indent}FArray4D {item}_d{{static_cast<{params[T_SCRATCH][item]['type']}*>((void*) {item}{SCRATCH}), lo, fHi, {params[T_SCRATCH][item]['extents'][-1]})}};\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray4D));\n",
                 f"{indent}ptr_p += sizeof(FArray4D);\n"
                 f"{indent}ptr_d += sizeof(FArray4D);\n"
@@ -511,17 +559,20 @@ def generate_header_file(parameters):
 
     return
 
-def generate_packet_from_json(file):
-    with open(file, "r") as file:
+def generate_packet_from_path(fp):
+    with open(fp, "r") as file:
         data = json.load(file)
         generate_header_file(data)
         generate_cpp_file(data)
 
-    return
+def generate_packet_from_json_string(json_string):
+    data = json.load(json_string)
+    generate_header_file(data)
+    generate_cpp_file(data)
 
 if __name__ == "__main__":
     #Check if some file path was passed in
     if len(sys.argv) < 2:
         print("Usage: python packet_generator.py [data_file]")
         
-    generate_packet_from_json(sys.argv[1])
+    generate_packet_from_path(sys.argv[1])
