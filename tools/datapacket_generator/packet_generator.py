@@ -18,7 +18,9 @@ GENERAL = "general"
 T_SCRATCH = "tile-scratch"
 T_MDATA = "tile-metadata"
 T_IN = "tile-in"
+T_IN_OUT = "tile-in-out"
 T_OUT = "tile-out"
+
 # 
 
 # type constants
@@ -27,6 +29,10 @@ BLOCK_SIZE = "_BLOCK_SIZE_HELPER"
 N_TILES = "nTiles"
 SCRATCH = "_scratch_d"
 TILE_DESC = "tileDesc_h"
+DATA_P = "_data_p"
+DATA_D = "_data_d"
+IN_OUT = "in_out"
+OUT = "out"
 # 
 
 # these might not be necessary
@@ -47,7 +53,7 @@ def generate_cpp_file(parameters):
 
     def generate_constructor(file, params):
             # function definition
-            file.write("%s::%s(Real* dt = nullptr) : milhoja::DataPacket(){}, \n" % (params["name"], params["name"]))
+            file.write("%s::%s(milhoja::Real dt = nullptr) : milhoja::DataPacket(){}, \n" % (params["name"], params["name"]))
             level = 1
             index = 1
             indent = "\t" * level
@@ -88,7 +94,11 @@ def generate_cpp_file(parameters):
     def generate_destructor(file, params):
         packet_name = params["name"]
         file.write(f"~{packet_name}::{packet_name}(void) {{\n")
-        file.write(f"}}\n\n")
+        indent = '\t'
+        if params["ndim"] == 3:
+            file.write(f"{indent}if (stream2_.isValid() || stream3_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");")
+
+        file.write(f"\n}}\n\n")
         return
 
     # TODO: Some parts of the unpack method need to be more generalized.
@@ -123,6 +133,7 @@ def generate_cpp_file(parameters):
             f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
             f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
             f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
+            f"{indent}}}\n"
         ])
 
         # data_h and data_p checks
@@ -138,7 +149,7 @@ def generate_cpp_file(parameters):
         ])
 
         dict_to_use = {}
-        if params.get(T_IN): dict_to_use = params.get(T_IN)
+        if params.get(T_IN_OUT): dict_to_use = params.get(T_IN_OUT)
         elif params.get(T_OUT): dict_to_use = params.get(T_OUT)
 
         # TODO: this only uses the first item in tile-in or tile-out. we need to adjust it to use all array types specified in
@@ -168,8 +179,10 @@ def generate_cpp_file(parameters):
 
     # TODO: Improve pack generation code
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents. We also want to consider letting the user add numeric constants to general
+    # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
     def generate_pack(file, params):
         packet_name = params["name"]
+        ndim = params["ndim"]
         func_name = "pack"
         level = 1
         indent = level * "\t"
@@ -188,58 +201,93 @@ def generate_cpp_file(parameters):
             f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
-        # # generate scratch section
+        # # Scratch section generation.
         file.write(f"{indent}// Scratch section\n")
 
-        # Note CC2 (aka tile-out) also doubles as a scratch section.
+        array_section_map = {}
+
+        # TODO: Note: Tile-out does NOT double as a scratch section, the pdf was just incorrect. Let's fix the pdf.
         nScratchArrs = 0
         file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = 0")
-        for item in [T_SCRATCH, T_OUT]:
-            for var in params.get(item, []):
-                nScratchArrs += 1
-                file.write(f" + {var}{BLOCK_SIZE}")
+        for var in params.get(T_SCRATCH, []):
+            nScratchArrs += 1
+            file.write(f" + {var}{BLOCK_SIZE}")
+            array_section_map[var] = {"section": SCRATCH, **params[T_SCRATCH][var]}
         file.write(f";\n{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
 
+        bytesToGpu = set()
+        returnToHost = set()
+        bytesPerPacket = set()
+        bytesPerPacket.add("(nTiles * nScratchPerTileBytes)")
+
+        # # Copy-in section generation.
         # Non tile specific data
         file.write(f"\n{indent}// non tile specific data\n")
         file.write(f"{indent}{SIZE_T} {N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({N_TILES}) ")
+        file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({SIZE_T}) ")
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
-        file.write(f"+ {N_TILES} * sizeof(PacketContents);\n")
+        file.write(f"+ {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
+        bytesToGpu.add("nCopyInBytes")
+        bytesPerPacket.add("nCopyInBytes")
 
-        # Tile specific data.
-        # TODO: Can we specify FArray4D in the JSON file?
-        #       Maybe convert cpp variable names to macros or constants.
-        #       
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = (nScratchArrays + 1) * sizeof(FArray4D)")
+        # nBlockMetadata, we do 5 * sizeof(FArray4D) since there are 5 associated scratch arrays per tile. Maybe this is something we can change.
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = 5 * sizeof(FArray4D)")
         for item in params.get(T_MDATA, []):
             file.write(f" + {item}{BLOCK_SIZE}")
         file.write(f";\n")
+        bytesToGpu.add("(nTiles * nBlockMetadataPerTileBytes)")
+        bytesPerPacket.add("(nTiles * nBlockMetadataPerTileBytes)")
 
-        # Remember tile-in-out is just considered tile-out.
-        # Also remember that we are pointing to the next free available byte in memory.
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = 0")
-        if T_IN in params:
-            for item in params[T_IN]:
+        # copy in data
+        cin = params.get(T_IN, {})
+        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = 0")
+        if cin:
+            for item in cin:
                 file.write(f" + {item}{BLOCK_SIZE}")
+                array_section_map[item] = {'section': DATA_D, **cin[item]}
+            bytesToGpu.add("(nTiles * nCopyInDataPerTileBytes)")
+            bytesPerPacket.add("(nTiles * nCopyInDataPerTileBytes)")
         file.write(f";\n")
 
-        # # TODO: copy in block data?
+        # copy in out data
+        cinout = params.get(T_IN_OUT, {})
+        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = 0")
+        if cinout:
+            for item in cinout:
+                file.write(f" + {item}{BLOCK_SIZE}")
+                array_section_map[item] = {'section': T_IN_OUT, **cinout[item]}
+            bytesToGpu.add("(nTiles * nCopyInOutDataPerTileBytes)")
+            returnToHost.add("(nTiles * nCopyInOutDataPerTileBytes)")
+            bytesPerPacket.add("(nTiles * nCopyInOutDataPerTileBytes)")
+        file.write(f";\n")
 
-        # # generate cout
-        file.write(f"{indent}// Copy out section\n")
+        # copy out
+        cout = params.get(T_OUT, {})
+        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = 0")
+        if cout:
+            for item in cout:
+                file.write(f" + {item}{BLOCK_SIZE}")
+                array_section_map[item] = {'section': T_OUT, **cout[item]}
+            bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
+            returnToHost.add("(nTiles * nCopyOutDataPerTileBytes)")
+            bytesPerPacket.add("(nTiles * nCopyOutDataPerTileBytes)")
+        file.write(f";\n")
+
+        # 
         file.writelines([
-            f"{indent}nCopyToGpuBytes_ = nCopyInBytes + ({N_TILES} * nBlockMetaDataPerTileBytes) + ({N_TILES} * nCopyInOutDataPerTileBytes);\n",
-            f"{indent}nReturnToHostBytes_ = {N_TILES} * nCopyInOutDataPerTileBytes;\n",
-            f"{indent}{SIZE_T} nBytesPerPacket = {N_TILES} * nScratchPerTileBytes + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInOutDataPerTileBytes);\n\n"
+            f"{indent}// Copy out section\n",
+            f"{indent}nCopyToGpuBytes_ = {' + '.join(bytesToGpu)};\n",
+            f"{indent}nReturnToHostBytes_ = {' + '.join(returnToHost)};\n",
+            f"{indent}{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n"
         ])
 
+        # request streams
         file.writelines([
             f"{indent}stream_ = RuntimeBackend::instance().requestStream(true);\n",
             f"{indent}if (!stream_.isValid()) {{\n",
             f"{indent * 2}throw std::runtime_error(\"[{packet_name}::pack] Unable to acquire stream\");\n{indent}}}\n"
-            f"# if MILHOJA_NDIM == 3\n",
+            f"# if MILHOJA_NDIM == 3\n", # we can get rid of the compiler directives eventually.
             f"{indent}stream2_ = RuntimeBackend::instance().requestStream(true);\n",
             f"{indent}stream3_ = RuntimeBackend::instance().requestStream(true);\n",
             f"{indent}if (!stream2_.isValid() || !stream3_.isValid()) {{\n",
@@ -247,25 +295,34 @@ def generate_cpp_file(parameters):
         ])
 
         # # acquire gpu mem
+        # Note that copyin, copyinout, and copyout all have a default of 0. So to keep code generation easy
+        # we set them to the default of 0 even if they don't exist in the json.
         file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {N_TILES} * nScratchPerTileBytes, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
             f"{indent}char* scratchStart_d = static_cast<char*>(packet_d_);\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} nScratchPerTileBytes;\n",
-            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes + {N_TILES} * nBlockMetadataPerTileBytes;\n",
-            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes + {N_TILES} * nBlockMetadataPerTileBytes;\n",
-            f"{indent}if (pinnedPtrs_) {{\n",
-            f"{indent * 2}throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
-            f"{indent}}}\n",
-            f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n"
+            f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
+            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
+            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
         ])
+
+        if T_OUT in params:
+            file.writelines([
+                f"{indent}char* copyOutStart_p = copyInOutStart_p;\n",
+                f"{indent}char* copyOutStart_d = copyInOutStart_d;\n"
+            ])
+
+        file.writelines([
+            f"{indent}if (pinnedPtrs_) throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
+            f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n"
+        ]) 
 
         # scratch section? Again?
 
         # copy-in section
         file.writelines([
-            f"{indent}static_assert(sizeof(char) == 1, \"Invalid char size\")\n", # we might not need this anymore
+            f"{indent}static_assert(sizeof(char) == 1, \"Invalid char size\");\n", # we might not need this anymore
             f"{indent}char* ptr_p = copyInStart_p_;\n",
             f"{indent}char* ptr_d = copyInStart_d_;\n",
         ])
@@ -289,19 +346,33 @@ def generate_cpp_file(parameters):
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n"
             ])
 
-        file.writelines([
-            f"{indent}char* CC_data_p = copyInOutStart_p_;\n",
-            f"{indent}char* CC_data_d = copyInOutStart_d_;\n",
-            f"{indent}char* CC{SCRATCH} = scratchStart_d;\n",
-        ])
+        tile_ptrs = {}
+        if T_IN in params:
+            file.write(f"{indent}char* { '_'.join(params[T_IN].keys()) }{DATA_P} = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+            file.write(f"{indent}char* { '_'.join(params[T_IN].keys()) }{DATA_D} = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+            tile_ptrs[next(iter(params[T_IN]))] = T_IN_OUT
 
-        cc_dict = {}
-        
-        # Note tile-out is also considered scratch data.
-        scr = sorted(list(params.get(T_SCRATCH, {}).keys()) + list(params.get(T_OUT, {}).keys()))
-        for i in range(1, len(scr)):
-            if i == 1:
-                file.write(f"{indent}char* {scr[i]}{SCRATCH} = CC{SCRATCH} + {scr[i-1]}{BLOCK_SIZE};\n")
+        # There's probably going to only be 1 item per tile-in, tile-in-out, and tile-out.
+        # TODO: The variants for each packet don't have CC1 set co copyInOut.
+        # TODO: Why is pinnedPtrs_[n].CC1_data set to nullptr and other times it isn't? Might want to email jared about this
+        # TODO: When do we change where the start of CC1 and CC2 data is located?
+        # for item in params.get(T_IN_OUT, {}):
+        if T_IN_OUT in params:
+            file.write(f"{indent}char* { '_'.join(params[T_IN_OUT].keys()) }{DATA_P} = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+            file.write(f"{indent}char* { '_'.join(params[T_IN_OUT].keys()) }{DATA_D} = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+            tile_ptrs[next(iter(params[T_IN_OUT]))] = T_IN_OUT
+         
+        # for item in params.get(T_OUT, {}):
+        if T_OUT in params:
+            file.write(f"{indent}char* { '_'.join(params[T_OUT].keys()) }{DATA_P} = copyOutStart_p;\n")
+            file.write(f"{indent}char* { '_'.join(params[T_OUT].keys()) }{DATA_D} = copyOutStart_d;\n")
+            tile_ptrs[next(iter(params[T_OUT]))] = T_OUT
+
+        # Create all scratch ptrs.
+        scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
+        for i in range(0, len(scr)):
+            if i == 0:  # we can probably use an iterator here instead
+                file.write(f"{indent}char* {scr[i]}{SCRATCH} = scratchStart_d;\n")
             else:
                 file.write(f"{indent}char* {scr[i]}{SCRATCH} = {scr[i-1]}{SCRATCH} + {scr[i-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
@@ -321,14 +392,33 @@ def generate_cpp_file(parameters):
             f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n"
         ])
 
-        for item in params.get(T_IN, []):
-            file.writelines([
-                f"{indent}std::memcpy((void*)CC_data_p, (void*)data_h, {item}{BLOCK_SIZE});\n",
-                f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN][item]['type']}*>((void*)CC_data_p);\n",
-                f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n"
-            ])
+        if T_IN in params:
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{DATA_P}, (void*)data_h, 0")
+            for item in params[T_IN]:
+                file.write(f" + {item}{BLOCK_SIZE}")
+        elif T_IN_OUT in params:
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{DATA_P}, (void*)data_h, 0")
+            for item in params[T_IN_OUT]:
+                file.write(f" + {item}{BLOCK_SIZE}")
+        file.write(f");\n")
 
+        # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
+        if T_IN_OUT in params:
+            nxt = next(iter(params[T_IN_OUT]))
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_IN_OUT].keys()) }{DATA_P});\n")
+        else:
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
+
+        if T_OUT in params:
+            nxt = next(iter(params[T_OUT]))
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_OUT].keys()) }{DATA_P});\n\n")
+        else:
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
+
+        possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ']
+        # Add metadata to ptr
         for item in params.get(T_MDATA, []):
+            possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
@@ -336,55 +426,58 @@ def generate_cpp_file(parameters):
                 f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
             ])
 
-        # CCs?
-        type = 'FArray4D'
-        ccs = list(params.get(T_IN)) + list(params.get(T_OUT, []))
-        ccs = {**params.get(T_IN, {}), **params.get(T_OUT, {})}
-        for item in ccs:
-            cc_var = "CC_data_d" if item == "CC1" else f"CC{SCRATCH}"
-            file.writelines([
-                f"{indent}tilePtrs_p->{item}_d = static_cast<FArray4D*>((void*)ptr_d);\n",
-                f"{indent}{type} CC_d{{static_cast<{ccs[item]['type']}*>((void*){cc_var}), loGC, hiGC, {ccs[item]['extents'][-1]}}};\n", # end of extents array is nunkvars.
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&CC_d, sizeof(FArray4D));\n",
-                f"{indent}ptr_p += sizeof(FArray4D);\n",
-                f"{indent}ptr_d += sizeof(FArray4D);\n\n"
-            ])
-            type = ''
+        # Tile ptrs
+        array_section_map = dict(sorted(array_section_map.items()))
+        # print(array_section_map)
+        print_type = True
+        for item in array_section_map:
+            section = array_section_map[item]['section']
+            file.write(f"{indent}tilePtrs->{item}_d = static_cast<FArray4D*>((void*)ptr_d);\n"), # set tile ptrs cc ptr.)
+            if section == SCRATCH:
+                if 'CC' in item:    # Cell centered data has specific format requirements
+                    type = array_section_map[item]['type']
+                    unk = array_section_map[item]['extents'][-1]
+                    file.writelines([
+                        f"{indent}FArray4D {item}_d{{ static_cast<{type}*>((void*){item}{SCRATCH}), loGC, hiGC, {unk}}};\n",
+                        f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray4D));\n",
+                        f"{indent}ptr_p += sizeof(FArray4D);\n",
+                        f"{indent}ptr_d += sizeof(FArray4D);\n",
+                        f"{indent}{item}{SCRATCH} += nScratchPerTileBytes;\n\n"
+                    ])
+                else:   # Face array.
+                    # I don't like doing this
+                    fHi = "{LIST_NDIM(hi.I()+1, hi.J(), hi.K())}"
+                    if item == 'FCY': fHi = "{LIST_NDIM(hi.I(), hi.J()+1, hi.K())}"
+                    elif item == 'FCZ': fHi = "{LIST_NDIM(hi.I(), hi.J(), hi.K())+1}" 
 
-        for item in params.get(T_IN):
-            file.writelines([
-                f"{indent}CC_data_p += {item}{BLOCK_SIZE};\n",
-                f"{indent}CC_data_d += {item}{BLOCK_SIZE};\n\n"
-            ])
+                    type = array_section_map[item]['type']
+                    unk = array_section_map[item]['extents'][-1]
+                    file.writelines([
+                        f"{indent}IntVect {item}_fHi = IntVect{ fHi };\n",
+                        f"{indent}Farray4D {item}_d{{ static_cast<{type}*>((void*){item}{SCRATCH}), lo, {item}_fHi, {unk}}};\n"
+                        f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray4D));\n",
+                        f"{indent}ptr_p += sizeof(FArray4D);\n",
+                        f"{indent}ptr_d += sizeof(FArray4D);\n",
+                        f"{indent}{item}{SCRATCH} += nScratchPerTileBytes;\n\n"
+                    ])
+            else:
+                print(section)
+                type = array_section_map[item]['type']
+                unk = array_section_map[item]['extents'][-1]
+                file.writelines([   # careful with naming here.
+                    f"{indent}FArray4D {item}_d{{ static_cast<{type}*>((void*){item}{DATA_D}), loGC, hiGC, {unk}}};\n",
+                    f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray4D));\n",
+                    f"{indent}ptr_p += sizeof(FArray4D);\n",
+                    f"{indent}ptr_d += sizeof(FArray4D);\n",
+                    f"{indent}{item}{DATA_P} += {item}{BLOCK_SIZE};\n"
+                    f"{indent}{item}{DATA_D} += {item}{BLOCK_SIZE};\n\n"
+                ])
+            print_type = False
+            possible_tile_ptrs.remove(item)
 
-        for item in params.get(T_OUT):
-            file.write(f"{indent}CC{SCRATCH} += nScratchPerTileBytes;\n")
-
-        # Generate FACE[XYZ]
-        # TODO: Add array dimensionality specification?
-        possible_xyz = set(['FCX', 'FCY', 'FCZ'])
-        type = "IntVect"
-        for item in sorted(list(params.get(T_SCRATCH, []))):
-            list_ndim = []
-            if item in possible_xyz: possible_xyz.remove(item)
-            # I don't really like doing this
-            if item == "FCX": list_ndim = ['hi.I()+1', 'hi.J()', 'hi.K()']
-            elif item == "FCY": list_ndim = ['hi.I()', 'hi.J()+1', 'hi.K()']
-            elif item == "FCX": list_ndim = ['hi.I()', 'hi.J()', 'hi.K()+1']
-
-            file.writelines([
-                f"{indent}tilePtrs_p->{item}_d = static_cast<FArray4D*>((void*)ptr_d);\n"
-                f"{indent}{type}fHi = IntVect{{LIST_NDIM({ ', '.join(list_ndim) })}};\n"
-                f"{indent}FArray4D {item}_d{{static_cast<{params[T_SCRATCH][item]['type']}*>((void*) {item}{SCRATCH}), lo, fHi, {params[T_SCRATCH][item]['extents'][-1]})}};\n"
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray4D));\n",
-                f"{indent}ptr_p += sizeof(FArray4D);\n"
-                f"{indent}ptr_d += sizeof(FArray4D);\n"
-                f"{indent}{item}{SCRATCH} += nScratchPerTileBytes;\n\n"
-            ])
-            type = ""
-        # Not sure about this....
-        for item in possible_xyz:
-            file.write(f"{indent}tilePtrs_p->{item}_d = nullptr;\n")
+        # if there are unremoved items we set them to nullptr.
+        for item in possible_tile_ptrs:
+            file.write(f"{indent}tilePtrs_p->{item}_d = nullptr")
 
         indent = "\t"
 
@@ -427,6 +520,7 @@ def generate_cpp_file(parameters):
 
 
     name = parameters["name"]
+    ndim = parameters["ndim"]
     with open(name + ".cpp", "w") as code:
         code.write(GENERATED_CODE_MESSAGE)
         # Most of the necessary includes are included in the datapacket header file.
@@ -441,10 +535,15 @@ def generate_cpp_file(parameters):
         code.write("#include <Driver.h>\n")
 
         generate_constructor(code, parameters)   
+        
         generate_destructor(code, parameters) 
+        
         generate_unpack(code, parameters)
         generate_pack(code, parameters)
-        generate_release_queues(code, parameters)
+        
+        if ndim == 3:
+            generate_release_queues(code, parameters)
+
         generate_clone(code, parameters)
 
 # Creates a header file based on the given parameters.
@@ -458,6 +557,7 @@ def generate_header_file(parameters):
 
     with open(parameters["name"] + ".h", "w") as header:
         name = parameters["name"]
+        ndim = parameters["ndim"]
         defined = name.upper()
         level = 0
         header.write(GENERATED_CODE_MESSAGE)
@@ -478,7 +578,7 @@ def generate_header_file(parameters):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(indent + f"{name}(Real* dt = nullptr);\n")
+        header.write(indent + f"{name}(milhoja::Real dt = nullptr);\n")
         header.write(indent + f"~{name}(void);\n")
 
         # Constructors & = operations
@@ -495,22 +595,34 @@ def generate_header_file(parameters):
             f"{indent}void unpack(void) override;\n"
         ])
 
+        if ndim == 3:
+            header.writelines([
+                f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
+                f"{indent}void releaseExtraQueue(const unsigned int id) override;\n"
+            ])
+            
         # queue methods
-        header.writelines([
-            f"#if MILHOJA_NDIM == 3 && defined(MILHOJA_OPENACC_OFFLOADING)\n",
-            f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
-            f"{indent}void releaseExtraQueue(const unsigned int id) override;\n"
-            f"#endif\n"
-        ])
+        # header.writelines([
+        #     f"#if MILHOJA_NDIM == 3 && defined(MILHOJA_OPENACC_OFFLOADING)\n",
+        #     f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
+        #     f"{indent}void releaseExtraQueue(const unsigned int id) override;\n"
+        #     f"#endif\n"
+        # ])
     
         # private information
         header.write("private:\n")
-        header.writelines([
-            f"#if MILHOJA_NDIM==3\n",
-            f"{indent}milhoja::Stream stream2_;\n",
-            f"{indent}milhoja::Stream stream3_;\n",
-            "#endif\n"
-        ])
+        if ndim == 3: # check ndim for adding extra streams
+            header.writelines([
+                f"{indent}milhoja::Stream stream2_;\n",
+                f"{indent}milhoja::Stream stream3_;\n"
+            ])
+
+        # header.writelines([
+        #     f"#if MILHOJA_NDIM==3\n",
+        #     f"{indent}milhoja::Stream stream2_;\n",
+        #     f"{indent}milhoja::Stream stream3_;\n",
+        #     "#endif\n"
+        # ])
 
         # let's assume everything in the "general" section is some kind of pointer? Not sure.
         if GENERAL in parameters:
@@ -538,15 +650,21 @@ def generate_header_file(parameters):
                 header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
 
-        if T_OUT in parameters:
-            known_sections.add(T_OUT)
-            for item in parameters[T_OUT]:
+        if T_IN_OUT in parameters:
+            known_sections.add(T_IN_OUT)
+            for item in parameters[T_IN_OUT]:
                 header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
 
         if T_OUT in parameters:
             known_sections.add(T_OUT)
             for item in parameters[T_OUT]:
+                header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
+                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+
+        if T_SCRATCH in parameters:
+            known_sections.add(T_SCRATCH)
+            for item in parameters[T_SCRATCH]:
                 header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
 
@@ -559,20 +677,21 @@ def generate_header_file(parameters):
 
     return
 
-def generate_packet_from_path(fp):
+# Takes in a file path to load a json file and generates the cpp and header files
+def generate_packet_with_filepath(fp):
     with open(fp, "r") as file:
         data = json.load(file)
         generate_header_file(data)
         generate_cpp_file(data)
 
-def generate_packet_from_json_string(json_string):
-    data = json.load(json_string)
-    generate_header_file(data)
-    generate_cpp_file(data)
+# gneerate packet data using existing dict
+def generate_packet_with_dict(json_dict):
+    generate_header_file(json_dict)
+    generate_cpp_file(json_dict)
 
 if __name__ == "__main__":
     #Check if some file path was passed in
     if len(sys.argv) < 2:
         print("Usage: python packet_generator.py [data_file]")
         
-    generate_packet_from_path(sys.argv[1])
+    generate_packet_with_filepath(sys.argv[1])
