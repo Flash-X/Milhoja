@@ -1,0 +1,38 @@
+{
+  "name": "DataPacket_Hydro_gpu_1",
+  "ndim": 3,
+  "tile-scratch": {
+    "FCX": {
+      "type": "Real",
+      "extents": ["nxb+1", "nyb", "nzb", "NFLUXES"]
+    },
+    "FCY": {
+      "type": "Real",
+      "extents": ["nxb", "nyb+1", "nzb", "NFLUXES"]
+    },
+    "FCZ": {
+      "type": "Real",
+      "extents": ["nxb", "nyb", "nzb+1", "NFLUXES"]
+    }
+  },
+  "general": {
+    "dt": "Real"
+  },
+  "tile-metadata": {
+    "deltas": "RealVect",
+    "lo": "IntVect",
+    "hi": "IntVect"
+  },
+  "tile-in": {
+    "CC1": {
+      "type": "Real",
+      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "(NUNKVAR - 1)"]
+    }
+  },
+  "tile-out": {
+    "CC2": {
+      "type": "Real",
+      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "(NUNKVAR - 2)"]
+    }
+  }
+}

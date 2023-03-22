@@ -15,6 +15,7 @@ Packet Metadata:
 
 [Required]	
 - name	= the name of the data packet to be generated.
+- ndim  = the number of dimensions being used.
 
 [Optional]
 - project = tbd
@@ -34,6 +35,10 @@ tile-in
     The array type data that we want to copy into the gpu.
     Common option is CC1
 
+tile-in-out
+    The array type data that should be used for both copying in and copying out.
+    CC1 is common.
+
 tile-out
     The array types that we want to contain the outputs of the calculations done in the gpu.
     Common option is CC2
@@ -46,4 +51,4 @@ tile-scratch
 
 Note when specifying arrays:
 When specifying array types, 2 things must be included. The type that the array stores and the extents of the array.
-The number of unknown variables or fluxes must be specified at the end of the array.
+The number of unknown variables or fluxes must be specified in the last position of the array.
