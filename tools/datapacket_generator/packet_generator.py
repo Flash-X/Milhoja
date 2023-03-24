@@ -110,7 +110,7 @@ def generate_cpp_file(parameters):
 
         if extra_streams > 0:
             file.writelines([
-                f"{indent}for (unsigned int i=0; i < {extra_streams}; ++i)\n",
+                f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i)\n",
                 f"{indent*2}if (streams_[i].isValid()) \n",
                 f"{indent*3}throw std::logic_error(\"[{packet_name}::~{packet_name}] One or more extra streams not released.\");\n"
             ])
@@ -506,7 +506,7 @@ def generate_cpp_file(parameters):
         e_streams = params.get(EXTRA_STREAMS, 0)
         if e_streams > 0:
             file.writelines([
-                f"{indent}for (unsigned int i=0; i < {e_streams}; ++i) {{\n",
+                f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i) {{\n",
                 f"{indent*2}streams_[i] = RuntimeBackend::instance().requestStream(true);\n",
                 f"{indent*2}if (!streams_[i].isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\"); \n"
                 f"{indent}}}\n"
@@ -542,7 +542,7 @@ def generate_cpp_file(parameters):
             func_name = "extraAsynchronousQueue"
             file.writelines([
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
-                f"{indent}if ((id < 2) || (id > {extra_streams} + 1))\n"
+                f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
                 f"{indent}if (!streams_[id-2].isValid())\n"
                 f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
@@ -554,7 +554,7 @@ def generate_cpp_file(parameters):
             func_name = "releaseExtraQueue"
             file.writelines([
                 f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
-                f"{indent}if ((id < 2) || (id > {extra_streams} + 1))\n"
+                f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
                 f"{indent}if (!streams_[id-2].isValid())\n"
                 f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
@@ -668,10 +668,14 @@ def generate_header_file(parameters):
                 f"{indent}void releaseExtraQueue(const unsigned int id) override;\n",
                 # f"#endif\n",
                 f"private:\n",
-                f"{indent}milhoja::Stream streams_[{extra_streams}];\n"
+                f"{indent}constexpr unsigned int EXTRA_STREAMS = {extra_streams};\n"
+                f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
         else:
-            header.write("private:\n")
+            header.writelines([
+                "private:\n",
+            ])
+
 
         # if ndim == 3:
         #     header.writelines([
