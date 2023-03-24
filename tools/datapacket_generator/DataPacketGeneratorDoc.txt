@@ -1,13 +1,13 @@
-Data packet generator documentation
+Data packet generator initial documentation
 
 A call to the data packet generator requires a JSON object of the format
 specified in this documentation.
 
-Keep in mind:
-    If a scalar is being identified as a key, you must include the data type as the value of that key.
-    If a vector or array type is being used as a key, that key must include keys in a dictionary. It must include
-        1) The type that the array will store (eg, Real) and 
-        2) The extents / dimensionality of that array.
+The overall goal of this data packet generator is to generate a cpp and fortran class
+that contains a data packet specified by the user for use on the GPU. 
+The user should be able to specify constants and arrays with any name for use on the gpu.
+The array types should be generic, there can be n arrays in any section, that can hold any
+data type, have any dimensionality, and any extents.
 
 All available json sections
 
@@ -15,10 +15,11 @@ Packet Metadata:
 
 [Required]	
 - name	= the name of the data packet to be generated.
-- ndim  = the number of dimensions being used.
+- ndim  = the number of dimensions being used. defaults to 3.
 
 [Optional]
 - project = tbd
+- n-extra-streams = the number of extra streams to use in the packet. Every datapacket has at least one stream.
 
 Other Sections:
 
@@ -32,23 +33,30 @@ general:
 [optional]
 
 tile-in
-    The array type data that we want to copy into the gpu.
-    Common option is CC1
+    The set of array types that we want to be included in the input section per Tile
+    for the packet.
 
 tile-in-out
-    The array type data that should be used for both copying in and copying out.
-    CC1 is common.
+    The array type data that should be used for both copying into and copying out of the gpu per tile.
 
 tile-out
     The array types that we want to contain the outputs of the calculations done in the gpu.
-    Common option is CC2
 
 tile-metadata
-    All of the data to be included per tile. Common options include hi, lo, and deltas.
+    All of the metadata to be included per tile.
 
 tile-scratch
-    All scratch arrays to be included per tile. Common options include FC[XYZ].
+    All scratch arrays to be included per tile.
 
-Note when specifying arrays:
+If a scalar is being identified as a key, you must include the data type as the value for that key.
+
+Array Type Specification:
+
 When specifying array types, 2 things must be included. The type that the array stores and the extents of the array.
 The number of unknown variables or fluxes must be specified in the last position of the array.
+
+"array_type_name": {
+    "type": "data_type"
+    "dim": [number] (default is 4 if not specified.)
+    "extents": ["", "", "", unknowns] (Extents can be any size but the number of unknowns must be placed at the end.)
+}

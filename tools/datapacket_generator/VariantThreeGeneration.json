@@ -1,6 +1,7 @@
 {
   "name": "DataPacket_Hydro_gpu_3",
   "ndim": 3,
+  "n-extra-streams": 2,
   "tile-scratch": {
     "CC2": {
       "type": "Real",
