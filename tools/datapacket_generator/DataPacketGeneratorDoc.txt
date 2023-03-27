@@ -1,25 +1,32 @@
 Data packet generator initial documentation
 
-A call to the data packet generator requires a JSON object of the format
-specified in this documentation.
-
 The overall goal of this data packet generator is to generate a cpp and fortran class
 that contains a data packet specified by the user for use on the GPU. 
 The user should be able to specify constants and arrays with any name for use on the gpu.
 The array types should be generic, there can be n arrays in any section, that can hold any
 data type, have any dimensionality, and any extents.
 
-All available json sections
+A call to the data packet generator requires a JSON object of the format
+specified in this documentation.
+
+The user can call the datapacket generator like so:
+
+    python packet_generator.py [datapacket_file.json]
+
+or, if imported, the user can call one of the various functions inside the python file,
+as long as an open file and python dict is passed in. 
+
+All available json sections are described below. Any default values for keys are
+put in [brackets] if it exists.
 
 Packet Metadata:
 
 [Required]	
 - name	= the name of the data packet to be generated.
-- ndim  = the number of dimensions being used. defaults to 3.
+- ndim  = the number of dimensions being used. [3] (Should we force the user to specify ndims?)
 
 [Optional]
-- project = tbd
-- n-extra-streams = the number of extra streams to use in the packet. Every datapacket has at least one stream.
+- n-extra-streams = the number of extra streams to use in the packet. Every datapacket has at least one stream. [0]
 
 Other Sections:
 
@@ -54,6 +61,8 @@ Array Type Specification:
 
 When specifying array types, 2 things must be included. The type that the array stores and the extents of the array.
 The number of unknown variables or fluxes must be specified in the last position of the array.
+
+Anything in extents should be specified as a string to make generation easier.
 
 "array_type_name": {
     "type": "data_type"

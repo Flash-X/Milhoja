@@ -7,7 +7,7 @@
 # TODO: We should also be adding support for generating fortran file packets in the future.
 # 
 # TODO: Work on documentation for packet json format. Refer to DataPacketGeneratorDoc for documentation
-
+# 
 # TODO: Add nTiles and PacketContents to general / non-tile specific data section on packet generation startup.
 
 import sys
@@ -33,7 +33,6 @@ SCRATCH = "_scratch_d"
 TILE_DESC = "tileDesc_h"
 DATA_P = "_data_p"
 DATA_D = "_data_d"
-IN_OUT = "in_out"
 OUT = "out"
 START_P = "_start_p"
 START_D = "_start_d"
@@ -55,14 +54,10 @@ nstreams = 1
 # to help with consistently writing to the file, so we
 # don't have to put {indent} or \n in every line we write.
 
-def get_indentation(level):
-    return "\t" * level
-
 def generate_cpp_file(parameters):
-
     def generate_constructor(file, params):
             # function definition
-            file.write("%s::%s(milhoja::Real dt = nullptr) : milhoja::DataPacket(){}, \n" % (params["name"], params["name"]))
+            file.write(f"{params['name']}::{params['name']}(milhoja::Real dt = nullptr) : milhoja::DataPacket(){{}}, \n")
             level = 1
             index = 1
             indent = "\t" * level
@@ -179,11 +174,12 @@ def generate_cpp_file(parameters):
             # TODO: The way the constructor and header files we need to do some division to 
             # get the origin num vars per CC per variable. This is a way to do it without creating
             # another variable. Low priority
+            num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
             file.writelines([
-                f"{indent}{SIZE_T} offset = {item}{BLOCK_SIZE} * (1 / {nunkvars}) * (1 / sizeof({type})) * static_cast<{SIZE_T}>(startVariable_);\n",
+                f"{indent}{SIZE_T} offset = {num_elems_per_cc_per_var} * static_cast<{SIZE_T}>(startVariable_);\n",
                 f"{indent}{type}* start_h = data_h + offset;\n"
                 f"{indent}const {type}* start_p = data_p + offset;\n"
-                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({item}{BLOCK_SIZE} * (1 / {nunkvars}));\n"
+                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var}) * sizeof({type});\n"
                 f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
             ])
 
@@ -211,11 +207,11 @@ def generate_cpp_file(parameters):
         # Error checking
         file.writelines([
             f"{indent}std::string errMsg = isNull();\n",
-            f"{indent}if (errMsg != \"\") {{\n",
+            f"{indent}if (errMsg != \"\")\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] \" + errMsg);\n"
-            f"{indent} else if (tiles_.size() == 0) {{\n",
+            f"{indent}else if (tiles_.size() == 0)\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
-            f"{indent}}}\n"
+            f"{indent}\n"
             f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
@@ -280,7 +276,7 @@ def generate_cpp_file(parameters):
         if cout:
             for item in cout:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
+            # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
             returnToHost.add("(nTiles * nCopyOutDataPerTileBytes)")
             bytesPerPacket.add("(nTiles * nCopyOutDataPerTileBytes)")
         file.write(f";\n")
@@ -475,7 +471,6 @@ def generate_cpp_file(parameters):
                         f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
                     ])
             else:
-                print(section)
                 type = device_array_pointers[item]['type']
                 unk = device_array_pointers[item]['extents'][-1]
                 file.writelines([   # careful with naming here.
@@ -524,6 +519,7 @@ def generate_cpp_file(parameters):
         file.write(f"}}\n\n")
         return
     
+    # Generate clone method
     def generate_clone(file, params):
         packet_name = params["name"]
         file.writelines([
@@ -536,7 +532,8 @@ def generate_cpp_file(parameters):
         packet_name = params['name']
         extra_streams = params.get(EXTRA_STREAMS, 0)
         indent = '\t'
-        # extra async queues        
+        # extra async queues
+        # only generate extra functions if we have more than 1 stream
         if extra_streams > 0:
             # get extra async queue
             func_name = "extraAsynchronousQueue"
@@ -562,28 +559,11 @@ def generate_cpp_file(parameters):
                 f"}}\n\n"
             ])
 
-        # file.writelines([
-        #     f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
-        #     f"\tif (id != 2 && id != 3) throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id\");\n"
-        #     f"\tmilhoja::Stream stream = id == 2 ? stream2_ : stream3_;\n",
-        #     f"\tif(!stream.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Queue \" + std::to_string(id) + \" is not valid.\");\n",
-        #     f"\treturn stream.accAsyncQueue;\n"
-        #     f"}}\n\n"
-        # ])
-
-        # release extra queue
-        
-        # file.writelines([
-        #     f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
-        #     f"\tif (id != 2 && id != 3) throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id\");\n",
-        #     f"\tmilhoja::Stream stream = id == 2 ? stream2_ : stream3_;\n",
-        #     f"\tif (!stream.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Queue \" + std::to_string(id) + \" is not valid.\");\n",
-        #     f"\tmilhoja::RuntimeBackend::instance().releaseStream(stream);\n"
-        #     f"}}\n\n"
-        # ])
-
+    if not parameters:
+        raise ValueError("Parameters is empty or null.")
+    
     name = parameters["name"]
-    ndim = parameters["ndim"]
+    ndim = parameters["ndim"] # TODO: should we really force the user to specify the number of dims in the json packet?
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
         code.write(GENERATED_CODE_MESSAGE)
@@ -599,21 +579,20 @@ def generate_cpp_file(parameters):
         code.write("#include <Driver.h>\n")
 
         generate_constructor(code, parameters)   
-        
-        generate_destructor(code, parameters) 
-        
-        generate_unpack(code, parameters)
-        generate_pack(code, parameters)
-        
+        generate_destructor(code, parameters)
         generate_release_queues(code, parameters)
-
         # generate clone method
         generate_clone(code, parameters)
+        generate_pack(code, parameters)
+        generate_unpack(code, parameters)
 
 # Creates a header file based on the given parameters.
 # Lots of boilerplate and class member generation.
 # TODO: Pack and unpack functions use a specific variable involving CC1 and CC2. How can we specify this in tile-in and tile-out?
+# TODO: Should the user have to specify the molhoja dim in the json file?
 def generate_header_file(parameters):
+    if not parameters:
+        raise ValueError("Parameters is null.")
 
     # Every packet json should have a name associated with it.
     if "name" not in parameters or not isinstance(parameters["name"], str):
@@ -638,7 +617,7 @@ def generate_header_file(parameters):
         # class definition
         header.write(f"class {name} : public milhoja::DataPacket {{ \n")
         level += 1
-        indent = get_indentation(level)
+        indent = '\t' * level
 
         # public information
         header.write("public:\n")
@@ -660,7 +639,10 @@ def generate_header_file(parameters):
             f"{indent}void unpack(void) override;\n"
         ])
 
-        # Do we need to check if ndim is 3? 
+        # TODO: Do we need to check if ndim is 3? In the ideal situation the
+        # user will add whatever they need to generate the packet so we probably don't
+        # need to check the number of dimensions. 
+        # Add extra streams array if necessary.
         if extra_streams > 0: # don't need to release extra queues if we only have 1 stream.
             header.writelines([
                 # f"#if defined(MILHOJA_OPENACC_OFFLOADING)\n", # we probably don't need to do this eventually.
@@ -676,20 +658,8 @@ def generate_header_file(parameters):
                 "private:\n",
             ])
 
-
-        # if ndim == 3:
-        #     header.writelines([
-        #         f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
-        #         f"{indent}void releaseExtraQueue(const unsigned int id) override;\n"
-        #     ])
-    
-        # private information
-        # TODO: Have an array of streams instead of generating streams based on ndims.
-        # header.write("private:\n")
-        # for i in range(2, ndim+1):
-        #     header.write(f"{indent}milhoja::Stream stream{i}_;\n")
-
-        # let's assume everything in the "general" section is some kind of pointer? Not sure.
+        # Everything in the packet consists of pointers to byte regions
+        # so we make every variable a pointer
         if GENERAL in parameters:
             known_sections.add(GENERAL)
             general = parameters[GENERAL] # general section is the general copy in data information
@@ -699,8 +669,8 @@ def generate_header_file(parameters):
                 header.write(f"{indent}{SIZE_T} {block_size_var};\n")
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
 
-        # Generate private variables. We need to create a variable
-        # for all necessary sizes
+        # Generate private variables for each section. Here we are creating a size helper
+        # variable for each item in each section based on the name of the item.
 
         if T_MDATA in parameters:
             known_sections.add(T_MDATA)
@@ -739,7 +709,7 @@ def generate_header_file(parameters):
                 device_array_pointers[item] = {"section": SCRATCH, **parameters[T_SCRATCH][item]}
 
         level -= 1
-        indent = get_indentation(level)
+        indent = '\t' * level
         header.write("};\n")
 
         # end start define
@@ -751,8 +721,9 @@ def generate_header_file(parameters):
 def generate_packet_with_filepath(fp):
     with open(fp, "r") as file:
         data = json.load(file)
-        generate_header_file(data)
-        generate_cpp_file(data)
+        generate_packet_with_dict(data)
+        # generate_header_file(data)
+        # generate_cpp_file(data)
 
 # gneerate packet data using existing dict
 def generate_packet_with_dict(json_dict):
@@ -763,5 +734,7 @@ if __name__ == "__main__":
     #Check if some file path was passed in
     if len(sys.argv) < 2:
         print("Usage: python packet_generator.py [data_file]")
-        
-    generate_packet_with_filepath(sys.argv[1])
+    elif '.json' not in sys.argv[1]:
+        print("Specified file path does not have a json extension.")
+    else:    
+        generate_packet_with_filepath(sys.argv[1])
