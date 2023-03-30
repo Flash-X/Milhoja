@@ -94,7 +94,7 @@ def generate_cpp_file(parameters):
             # We should not do this 
             if GENERAL in params:
                 if 'dt' in params[GENERAL]:
-                    file.write(f"{indent}this->dt = Driver::dt;\n") # temporary hack until we figure out how to fix dt
+                    file.write(f"{indent}this->dt = &Driver::dt;\n") # temporary hack until we figure out how to fix dt
 
             file.write("}\n\n")
 
@@ -419,13 +419,13 @@ def generate_cpp_file(parameters):
         # TODO: We need to change this code to work with multiple array types in each section of the json
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_IN_OUT].keys()) }{DATA_P});\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_IN_OUT].keys()) }{START_P});\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_OUT].keys()) }{DATA_P});\n\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_OUT].keys()) }{START_P});\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
@@ -481,8 +481,8 @@ def generate_cpp_file(parameters):
                     f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                     f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                     f"{indent}ptr_d += sizeof(FArray{d}D);\n",
-                    f"{indent}{item}{DATA_P} += {item}{BLOCK_SIZE};\n"
-                    f"{indent}{item}{DATA_D} += {item}{BLOCK_SIZE};\n\n"
+                    f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n"
+                    f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n"
                 ])
             possible_tile_ptrs.remove(item)
 
