@@ -15,6 +15,10 @@ import json
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
+datatype_to_include_map = {
+    "IntVect": ""
+}
+
 # All possible keys.
 EXTRA_STREAMS = 'n-extra-streams'
 GENERAL = "general"
@@ -57,7 +61,7 @@ nstreams = 1
 def generate_cpp_file(parameters):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}(milhoja::Real dt = nullptr) : milhoja::DataPacket(){{}}, \n")
+            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt = nullptr) : milhoja::DataPacket(){{}}, \n")
             level = 1
             index = 1
             indent = "\t" * level
@@ -86,11 +90,11 @@ def generate_cpp_file(parameters):
                         type = params[section][item]['type']
                         file.write(f"{indent}{item}{BLOCK_SIZE} = {' * '.join(extents)} * sizeof({type});\n")
             
-            # We might need to stick all potential constants in the constructor header.\
+            # We might need to stick all potential constants in the constructor header.
             # We should not do this 
             if GENERAL in params:
                 if 'dt' in params[GENERAL]:
-                    file.write(f"{indent}this.dt = dt;\n")
+                    file.write(f"{indent}this.dt = Driver::dt;\n") # temporary hack until we figure out how to fix dt
 
             file.write("}\n\n")
 
@@ -335,10 +339,9 @@ def generate_cpp_file(parameters):
         ])
 
         for item in params.get(GENERAL, []):
-            insert = "Driver::dt" if item == 'dt' else item # TODO: Get rid of this eventually once we pass in dt as a constructor arg.
             file.writelines([
                 # f"{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{insert}, {item}{BLOCK_SIZE});\n",
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n"
             ])
@@ -622,7 +625,7 @@ def generate_header_file(parameters):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(indent + f"{name}(milhoja::Real dt = nullptr);\n")
+        header.write(indent + f"{name}(milhoja::Real* dt = nullptr);\n")
         header.write(indent + f"~{name}(void);\n")
 
         # Constructors & = operations
