@@ -468,7 +468,7 @@ def generate_cpp_file(parameters):
                     unk = device_array_pointers[item]['extents'][-1]
                     file.writelines([
                         f"{indent}IntVect {item}_fHi = IntVect{{ {', '.join(face_hi_array)} }};\n",
-                        f"{indent}FAarray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
+                        f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
                         f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
