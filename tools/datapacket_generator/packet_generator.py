@@ -127,7 +127,7 @@ def generate_cpp_file(parameters):
         file.write(f"{indent}using namespace milhoja;\n")
         file.writelines([
             f"{indent}if (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
-            f"{indent}if (!stream.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
+            f"{indent}if (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
             f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
             f"{indent}if ( startVariable_ < UNK_VARS_BEGIN || startVariable_ > UNK_VARS_BEGIN || endVariable_ < UNK_VARS_BEGIN || endVariable_ > UNK_VARS_END )\n"
             f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
@@ -178,12 +178,13 @@ def generate_cpp_file(parameters):
             # TODO: The way the constructor and header files we need to do some division to 
             # get the origin num vars per CC per variable. This is a way to do it without creating
             # another variable. Low priority
-            num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
+            # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
+            num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / ({nunkvars} * sizeof({type})) '
             file.writelines([
                 f"{indent}{SIZE_T} offset = {num_elems_per_cc_per_var} * static_cast<{SIZE_T}>(startVariable_);\n",
                 f"{indent}{type}* start_h = data_h + offset;\n"
                 f"{indent}const {type}* start_p = data_p + offset;\n"
-                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var}) * sizeof({type});\n"
+                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
                 f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
             ])
 
@@ -388,7 +389,7 @@ def generate_cpp_file(parameters):
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
             
         # tile specific metadata.
-        file.write(f"{indent}for ({SIZE_T} n=0; i < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
+        file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
         indent = "\t" * 2
         # TODO: We need to change this to use the actual types specified in the json when we remove PacketContents.
         file.writelines([
@@ -445,14 +446,14 @@ def generate_cpp_file(parameters):
         for item in device_array_pointers:
             section = device_array_pointers[item]['section']
             d = device_array_pointers[item].get('dim', 4) # get dimensionality of array. Defaults to 4.
-            file.write(f"{indent}tilePtrs->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n"), # set tile ptrs cc ptr.)
+            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n"), # set tile ptrs cc ptr.)
             if section == SCRATCH:
                 if 'CC' in item:    # Cell centered data has specific format requirements
                     type = device_array_pointers[item]['type']
                     unk = device_array_pointers[item]['extents'][-1]
                     file.writelines([
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                        f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                         f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
@@ -467,8 +468,8 @@ def generate_cpp_file(parameters):
                     unk = device_array_pointers[item]['extents'][-1]
                     file.writelines([
                         f"{indent}IntVect {item}_fHi = IntVect{{ {', '.join(face_hi_array)} }};\n",
-                        f"{indent}Farray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
-                        f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                        f"{indent}FAarray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
+                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                         f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
@@ -478,7 +479,7 @@ def generate_cpp_file(parameters):
                 unk = device_array_pointers[item]['extents'][-1]
                 file.writelines([   # careful with naming here.
                     f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                    f"{indent}std::memcpy((void)*ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                    f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                     f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                     f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                     f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n"
