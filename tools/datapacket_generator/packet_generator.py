@@ -94,7 +94,7 @@ def generate_cpp_file(parameters):
             # We should not do this 
             if GENERAL in params:
                 if 'dt' in params[GENERAL]:
-                    file.write(f"{indent}this.dt = Driver::dt;\n") # temporary hack until we figure out how to fix dt
+                    file.write(f"{indent}this->dt = Driver::dt;\n") # temporary hack until we figure out how to fix dt
 
             file.write("}\n\n")
 
@@ -102,7 +102,7 @@ def generate_cpp_file(parameters):
     def generate_destructor(file, params):
         packet_name = params["name"]
         extra_streams = params.get(EXTRA_STREAMS, 0)
-        file.write(f"~{packet_name}::{packet_name}(void) {{\n")
+        file.write(f"{packet_name}::~{packet_name}(void) {{\n")
         indent = '\t'
         # if params["ndim"] == 3:
         #     file.write(f"{indent}if (stream2_.isValid() || stream3_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");")
