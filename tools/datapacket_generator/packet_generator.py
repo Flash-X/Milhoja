@@ -98,7 +98,7 @@ def generate_cpp_file(parameters):
 
             file.write("}\n\n")
 
-    # TODO: Do we need anything in this destructor?
+    # TODO: Eventually come back and fix the streams to use the array implementation.
     def generate_destructor(file, params):
         packet_name = params["name"]
         extra_streams = params.get(EXTRA_STREAMS, 0)
@@ -106,13 +106,15 @@ def generate_cpp_file(parameters):
         indent = '\t'
         # if params["ndim"] == 3:
         #     file.write(f"{indent}if (stream2_.isValid() || stream3_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");")
+        for i in range(2, extra_streams+2):
+            file.write(f"{indent}if (stream{i}_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");\n")
 
-        if extra_streams > 0:
-            file.writelines([
-                f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i)\n",
-                f"{indent*2}if (streams_[i].isValid()) \n",
-                f"{indent*3}throw std::logic_error(\"[{packet_name}::~{packet_name}] One or more extra streams not released.\");\n"
-            ])
+        # if extra_streams > 0:
+        #     file.writelines([
+        #         f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i)\n",
+        #         f"{indent*2}if (streams_[i].isValid()) \n",
+        #         f"{indent*3}throw std::logic_error(\"[{packet_name}::~{packet_name}] One or more extra streams not released.\");\n"
+        #     ])
 
         file.write(f"}}\n\n")
         return
@@ -467,7 +469,7 @@ def generate_cpp_file(parameters):
                     type = device_array_pointers[item]['type']
                     unk = device_array_pointers[item]['extents'][-1]
                     file.writelines([
-                        f"{indent}IntVect {item}_fHi = IntVect{{ {', '.join(face_hi_array)} }};\n",
+                        f"{indent}IntVect {item}_fHi = IntVect{{ LIST_NDIM({', '.join(face_hi_array)}) }};\n",
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
                         f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
@@ -502,14 +504,20 @@ def generate_cpp_file(parameters):
             f"{indent * 2}throw std::runtime_error(\"[{packet_name}::pack] Unable to acquire stream\");\n{indent}}}\n"
         ])
 
+        # TODO: CHange to use the array implementation.
         e_streams = params.get(EXTRA_STREAMS, 0)
         if e_streams > 0:
-            file.writelines([
-                f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i) {{\n",
-                f"{indent*2}streams_[i] = RuntimeBackend::instance().requestStream(true);\n",
-                f"{indent*2}if (!streams_[i].isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\"); \n"
-                f"{indent}}}\n"
-            ])
+            for i in range(2, e_streams+2):
+                file.writelines([
+                    f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
+                    f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
+                ])
+            # file.writelines([
+            #     f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i) {{\n",
+            #     f"{indent*2}streams_[i] = RuntimeBackend::instance().requestStream(true);\n",
+            #     f"{indent*2}if (!streams_[i].isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\"); \n"
+            #     f"{indent}}}\n"
+            # ])
 
 
             # file.writelines([
@@ -532,6 +540,11 @@ def generate_cpp_file(parameters):
             f"}}\n\n"
         ])
 
+    # TODO: Right now the code generates stream{n}_ for n extra streams.
+    #       Ideally, we would store all of those in an array and use indexing to check the specific id.
+    #       This is what hydro variant2 actually does, but since variant 1 and variant 3 use this system,
+    #       I will manually generate and check all streams until we can write our own task functions,
+    #       since releasing extra queues is called outside of the datapacket object.
     def generate_release_queues(file, params):
         packet_name = params['name']
         extra_streams = params.get(EXTRA_STREAMS, 0)
@@ -545,11 +558,19 @@ def generate_cpp_file(parameters):
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
-                f"{indent}if (!streams_[id-2].isValid())\n"
-                f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
-                f"{indent}return streams_[id-2].accAsyncQueue;\n"
-                f"}}\n\n"
+                # f"{indent}if (!streams_[id-2].isValid())\n"
+                # f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
+                # f"{indent}return streams_[id-2].accAsyncQueue;\n"
+                # f"}}\n\n"
             ])
+
+            file.write(f"{indent}switch(id) {{\n")
+            for i in range(2, extra_streams+2):
+                file.writelines([
+                    f"{indent * 2}case {i}: if(!stream{i}.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} return stream{i}_;\n"
+                ])
+            file.write(f"{indent}}}\n}}\n\n")
+
 
             # Release extra queue
             func_name = "releaseExtraQueue"
@@ -557,15 +578,23 @@ def generate_cpp_file(parameters):
                 f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
-                f"{indent}if (!streams_[id-2].isValid())\n"
-                f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
-                f"{indent}milhoja::RuntimeBackend::instance().releaseStream(streams_[id-2]);\n"
-                f"}}\n\n"
+                # f"{indent}if (!streams_[id-2].isValid())\n"
+                # f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
+                # f"{indent}milhoja::RuntimeBackend::instance().releaseStream(streams_[id-2]);\n"
+                # f"}}\n\n"
             ])
+
+            file.write(f"{indent}switch(id) {{\n")
+            for i in range(2, extra_streams+2):
+                file.writelines([
+                    f"{indent * 2}case {i}: if(!stream{i}.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n"
+                ])
+            file.write(f"{indent}}}\n}}\n\n")
 
     if not parameters:
         raise ValueError("Parameters is empty or null.")
     
+    # TODO: We should be generating the include files using a map based on all different types given in the json packet. 
     name = parameters["name"]
     ndim = parameters["ndim"] # TODO: should we really force the user to specify the number of dims in the json packet?
     with open(name + ".cpp", "w") as code:
@@ -661,8 +690,11 @@ def generate_header_file(parameters):
                 # f"#endif\n",
                 f"private:\n",
                 f"{indent}static const unsigned int EXTRA_STREAMS = {extra_streams};\n"
-                f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
+                # f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
+            # TODO: Do this for now until we generate our own task functions
+            for i in range(2, extra_streams+2):
+                header.write(f"{indent}milhoja::Stream stream{i}_;\n")
         else:
             header.writelines([
                 "private:\n",
