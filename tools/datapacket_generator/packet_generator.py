@@ -61,7 +61,7 @@ nstreams = 1
 def generate_cpp_file(parameters):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt = nullptr) : milhoja::DataPacket{{}}, \n")
+            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt) : milhoja::DataPacket{{}}, \n")
             level = 1
             index = 1
             indent = "\t" * level
@@ -575,11 +575,17 @@ def generate_cpp_file(parameters):
         code.write(f"#include <cassert>\n") # do we need certain includes?
         code.write(f"#include <cstring>\n") # for advancing by 1 byte (char *)
         code.write(f"#include <stdexcept>\n")
+        code.write(f"#include <stdexcept>\n")
         code.write(f"#include <Milhoja.h>\n")
+        code.write(f"#include <Milhoja_FArray4D.h>\n")
+        code.write(f"#include <Milhoja_IntVect.h>\n")
+        code.write(f"#include <Milhoja_RealVect.h>\n")
+        code.write(f"#include <Milhoja_Grid.h>\n")
+        code.write(f"#include <Milhoja_RuntimeBackend.h>\n")
         # This is assuming all of the types being passed are milhoja types
 
         if "problem" in parameters: code.write( "#include \"%s.h\"\n" % parameters["problem"] )
-        code.write("#include <Driver.h>\n")
+        code.write("#include \"Driver.h\"\n")
 
         generate_constructor(code, parameters)   
         generate_destructor(code, parameters)
