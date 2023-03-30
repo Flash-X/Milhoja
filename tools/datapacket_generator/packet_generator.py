@@ -61,7 +61,7 @@ nstreams = 1
 def generate_cpp_file(parameters):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt = nullptr) : milhoja::DataPacket(){{}}, \n")
+            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt = nullptr) : milhoja::DataPacket{{}}, \n")
             level = 1
             index = 1
             indent = "\t" * level
@@ -653,7 +653,7 @@ def generate_header_file(parameters):
                 f"{indent}void releaseExtraQueue(const unsigned int id) override;\n",
                 # f"#endif\n",
                 f"private:\n",
-                f"{indent}constexpr unsigned int EXTRA_STREAMS = {extra_streams};\n"
+                f"{indent}static const unsigned int EXTRA_STREAMS = {extra_streams};\n"
                 f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
         else:
