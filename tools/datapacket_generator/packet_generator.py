@@ -184,7 +184,7 @@ def generate_cpp_file(parameters):
             # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
             num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / ({nunkvars} * sizeof({type})) '
             file.writelines([
-                f"{indent}{SIZE_T} offset = {num_elems_per_cc_per_var} * static_cast<{SIZE_T}>(startVariable_);\n",
+                f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
                 f"{indent}{type}* start_h = data_h + offset;\n"
                 f"{indent}const {type}* start_p = data_p + offset;\n"
                 f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
@@ -249,8 +249,9 @@ def generate_cpp_file(parameters):
         bytesToGpu.add("nCopyInBytes")
         bytesPerPacket.add("nCopyInBytes")
 
+        number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = 5 * sizeof(FArray4D)")
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D)")
         for item in params.get(T_MDATA, []):
             file.write(f" + {item}{BLOCK_SIZE}")
         file.write(f";\n")
@@ -573,7 +574,7 @@ def generate_cpp_file(parameters):
                 file.writelines([
                     f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} return stream{i}_.accAsyncQueue;\n"
                 ])
-            file.write(f"{indent}}}\n}}\n\n")
+            file.write(f"{indent}}}\n{indent}return 0;\n}}\n\n")
 
             # Release extra queue
             func_name = "releaseExtraQueue"
@@ -608,7 +609,6 @@ def generate_cpp_file(parameters):
         code.write(f"#include \"{name}.h\"\n")
         code.write(f"#include <cassert>\n") # do we need certain includes?
         code.write(f"#include <cstring>\n") # for advancing by 1 byte (char *)
-        code.write(f"#include <stdexcept>\n")
         code.write(f"#include <stdexcept>\n")
         code.write(f"#include <Milhoja.h>\n")
         code.write(f"#include <Milhoja_FArray4D.h>\n")
