@@ -336,11 +336,7 @@ def generate_cpp_file(parameters):
         file.writelines([
             f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
             f"{indent}ptr_p += sizeof({SIZE_T});\n",
-            f"{indent}ptr_d += sizeof({SIZE_T});\n",
-            f"{indent}contents_p_ = static_cast<PacketContents*>((void*)ptr_p);\n",
-            f"{indent}contents_d_ = static_cast<PacketContents*>((void*)ptr_d);\n",
-            f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
-            f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
+            f"{indent}ptr_d += sizeof({SIZE_T});\n"
         ])
 
         for item in params.get(GENERAL, []):
@@ -350,6 +346,14 @@ def generate_cpp_file(parameters):
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n"
             ])
+
+        # packet contents comes after general section in hydro variants.
+        file.writelines([
+            f"{indent}contents_p_ = static_cast<PacketContents*>((void*)ptr_p);\n",
+            f"{indent}contents_d_ = static_cast<PacketContents*>((void*)ptr_d);\n",
+            f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
+            f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
+        ])
 
         for idx,item in enumerate(params.get(T_IN, {})):
             if idx == 0:
