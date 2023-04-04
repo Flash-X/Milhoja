@@ -182,7 +182,7 @@ def generate_cpp_file(parameters):
             # get the origin num vars per CC per variable. This is a way to do it without creating
             # another variable. Low priority
             # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
-            num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / ({nunkvars} * sizeof({type})) '
+            num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / {nunkvars}'
             file.writelines([
                 f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
                 f"{indent}{type}* start_h = data_h + offset;\n"
@@ -194,7 +194,6 @@ def generate_cpp_file(parameters):
         
         indent = '\t'
         file.write(f"{indent}}}\n")
-        file.write(f"{indent}nullify();\n")
 
         file.write(f"}}\n\n")
         return
@@ -342,7 +341,7 @@ def generate_cpp_file(parameters):
         for item in params.get(GENERAL, []):
             file.writelines([
                 # f"{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+                f"{indent}std::memcpy((void*)ptr_p, (void*){item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n"
             ])
