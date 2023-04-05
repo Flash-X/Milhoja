@@ -106,10 +106,10 @@ def generate_cpp_file(parameters):
         indent = '\t'
         # if params["ndim"] == 3:
         #     file.write(f"{indent}if (stream2_.isValid() || stream3_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");")
-        file.write("#if MILHOJA_NDIM==3\n")
+        # file.write("#if MILHOJA_NDIM==3\n")
         for i in range(2, extra_streams+2):
             file.write(f"{indent}if (stream{i}_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");\n")
-        file.write("#endif\n")
+        # file.write("#endif\n")
         # if extra_streams > 0:
         #     file.writelines([
         #         f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i)\n",
@@ -313,8 +313,8 @@ def generate_cpp_file(parameters):
         # TODO: Should we even bother separating T_IN_OUT and T_OUT?
         if T_OUT in params:
             file.writelines([
-                f"{indent}char* copyOutStart_p = copyInOutStart_p;\n",
-                f"{indent}char* copyOutStart_d = copyInOutStart_d;\n"
+                f"{indent}char* copyOutStart_p = copyInOutStart_p_;\n",
+                f"{indent}char* copyOutStart_d = copyInOutStart_d_;\n"
             ])
 
         file.writelines([
@@ -512,13 +512,13 @@ def generate_cpp_file(parameters):
         # TODO: CHange to use the array implementation.
         e_streams = params.get(EXTRA_STREAMS, 0)
         if e_streams > 0:
-            file.write("#if MILHOJA_NDIM==3\n")
+            # file.write("#if MILHOJA_NDIM==3\n")
             for i in range(2, e_streams+2):
                 file.writelines([
                     f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
                     f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
                 ])
-            file.write("#endif\n")
+            # file.write("#endif\n")
             # file.writelines([
             #     f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i) {{\n",
             #     f"{indent*2}streams_[i] = RuntimeBackend::instance().requestStream(true);\n",
@@ -561,7 +561,7 @@ def generate_cpp_file(parameters):
         if extra_streams > 0:
             # get extra async queue
             func_name = "extraAsynchronousQueue"
-            file.write("#if MILHOJA_NDIM==3\n")
+            # file.write("#if MILHOJA_NDIM==3\n")
             file.writelines([
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
@@ -597,7 +597,7 @@ def generate_cpp_file(parameters):
                     f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n"
                 ])
             file.write(f"{indent}}}\n}}\n\n")
-            file.write("#endif\n")
+            # file.write("#endif\n")
 
     if not parameters:
         raise ValueError("Parameters is empty or null.")
@@ -691,19 +691,19 @@ def generate_header_file(parameters):
         # Add extra streams array if necessary.
         if extra_streams > 0: # don't need to release extra queues if we only have 1 stream.
             header.writelines([
-                f"#if MILHOJA_NDIM==3 && defined(MILHOJA_OPENACC_OFFLOADING)\n", # we probably don't need to do this eventually.
+                # f"#if MILHOJA_NDIM==3 && defined(MILHOJA_OPENACC_OFFLOADING)\n", # we probably don't need to do this eventually.
                 f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
                 f"{indent}void releaseExtraQueue(const unsigned int id) override;\n",
-                f"#endif\n",
+                # f"#endif\n",
                 f"private:\n",
                 f"{indent}static const unsigned int EXTRA_STREAMS = {extra_streams};\n"
                 # f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
             # TODO: Do this for now until we generate our own task functions
-            header.write("#if MILHOJA_NDIM==3\n")
+            # header.write("#if MILHOJA_NDIM==3\n")
             for i in range(2, extra_streams+2):
                 header.write(f"{indent}milhoja::Stream stream{i}_;\n")
-            header.write("#endif\n")
+            # header.write("#endif\n")
         else:
             header.writelines([
                 "private:\n",

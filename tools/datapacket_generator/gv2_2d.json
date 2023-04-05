@@ -2,6 +2,7 @@
   "name": "DataPacket_Hydro_gpu_2",
   "ndim": 3,
   "n-extra-streams": 3,
+  "problem": "Sedov",
   "tile-scratch": {
     "FCX": {
       "type": "Real",

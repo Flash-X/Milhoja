@@ -1,7 +1,8 @@
 {
   "name": "DataPacket_Hydro_gpu_1",
   "ndim": 3,
-  "n-extra-streams": 2,
+  "n-extra-streams": 1,
+  "problem": "Sedov",
   "tile-scratch": {
     "FCX": {
       "type": "Real",
@@ -12,11 +13,6 @@
       "type": "Real",
       "dim": 4,
       "extents": ["nxb", "nyb+1", "nzb", "NFLUXES"]
-    },
-    "FCZ": {
-      "type": "Real",
-      "dim": 4,
-      "extents": ["nxb", "nyb", "nzb+1", "NFLUXES"]
     }
   },
   "general": {
