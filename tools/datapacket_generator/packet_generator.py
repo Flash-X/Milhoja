@@ -119,7 +119,7 @@ def generate_cpp_file(parameters):
         #         f"{indent*2}if (streams_[i].isValid()) \n",
         #         f"{indent*3}throw std::logic_error(\"[{packet_name}::~{packet_name}] One or more extra streams not released.\");\n"
         #     ])
-
+        file.write(f"{indent}nullify();\n")
         file.write(f"}}\n\n")
         return
 
