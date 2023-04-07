@@ -344,7 +344,7 @@ def generate_cpp_file(parameters):
         for item in params.get(GENERAL, []):
             file.writelines([
                 # f"{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                f"{indent}std::memcpy((void*)ptr_p, (void*){item}, {item}{BLOCK_SIZE});\n",
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n"
             ])
