@@ -29,7 +29,8 @@ T_IN_OUT = "tile-in-out"
 T_OUT = "tile-out"
 # 
 
-# type constants
+# type constants / naming keys.
+NEW = "new_"
 SIZE_T = "std::size_t"
 BLOCK_SIZE = "_BLOCK_SIZE_HELPER"
 N_TILES = "nTiles"
@@ -61,7 +62,8 @@ nstreams = 1
 def generate_cpp_file(parameters):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}(milhoja::Real* dt) : milhoja::DataPacket{{}}, \n")
+            file.write(f"{params['name']}::{params['name']}(const milhoja::Real {NEW}dt) : milhoja::DataPacket{{}}, \n")
+            extra_streams = params[EXTRA_STREAMS]
             level = 1
             index = 1
             indent = "\t" * level
@@ -76,6 +78,7 @@ def generate_cpp_file(parameters):
             file.write(f"{indent}using namespace milhoja;\n")
             for var in ['nxb','nyb','nzb']:
                 code.write(f"{indent}unsigned int {var} = 1;\n")
+
             file.write(f"{indent}Grid::instance().getBlockSize(&nxb, &nyb, &nzb);\n")
 
             # TODO: I think we need to be careful here. Do we automatically assume that 'extents' and 'type' exist
@@ -88,13 +91,13 @@ def generate_cpp_file(parameters):
                     else:
                         extents = params[section][item]['extents']
                         type = params[section][item]['type']
-                        file.write(f"{indent}{item}{BLOCK_SIZE} = {' * '.join(extents)} * sizeof({type});\n")
+                        math = ' * '.join(f'({item})' for item in extents)
+                        file.write(f"{indent}{item}{BLOCK_SIZE} = {math} * sizeof({type});\n")
             
-            # We might need to stick all potential constants in the constructor header.
-            # We should not do this 
-            if GENERAL in params:
-                if 'dt' in params[GENERAL]:
-                    file.write(f"{indent}this->dt = &Driver::dt;\n") # temporary hack until we figure out how to fix dt
+            # TODO: What if we need to add other variables?
+            # We need to add them to the constructor args.
+            for item in params.get(GENERAL, {}):
+                file.write(f"{indent}{item} = {NEW}{item};\n")
 
             file.write("}\n\n")
 
@@ -543,7 +546,7 @@ def generate_cpp_file(parameters):
         packet_name = params["name"]
         file.writelines([
             f"std::unique_ptr<milhoja::DataPacket> {packet_name}::clone(void) const {{\n",
-            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ new {packet_name}{{}} }};\n"
+            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ new {packet_name}{{dt}} }};\n"
             f"}}\n\n"
         ])
 
@@ -668,7 +671,7 @@ def generate_header_file(parameters):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(indent + f"{name}(milhoja::Real* dt = nullptr);\n")
+        header.write(indent + f"{name}(const milhoja::Real {NEW}dt);\n")
         header.write(indent + f"~{name}(void);\n")
 
         # Constructors & = operations
@@ -716,7 +719,7 @@ def generate_header_file(parameters):
             general = parameters[GENERAL] # general section is the general copy in data information
             for item in general:
                 block_size_var = f"{item}{BLOCK_SIZE}"
-                header.write(f"{indent}milhoja::{general[item]}* {item};\n")    # add a new variable for each item
+                header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
                 header.write(f"{indent}{SIZE_T} {block_size_var};\n")
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
 
