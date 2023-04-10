@@ -9,9 +9,12 @@
 # TODO: Work on documentation for packet json format. Refer to DataPacketGeneratorDoc for documentation
 # 
 # TODO: Add nTiles and PacketContents to general / non-tile specific data section on packet generation startup.
+# 
+# TODO: Restructure pack generation into 2 phases: pointer determination & copy data phases.
 
 import sys
 import json
+from milhoja_include_map import includes as imap
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
@@ -55,9 +58,16 @@ known_sections = set()
 device_array_pointers = {}
 nstreams = 1
 
+all_pointers = set()
+types = set()
+includes = set()
+
 # TODO: It might be beneficial to write helper methods or a wrapper class for files
 # to help with consistently writing to the file, so we
-# don't have to put {indent} or \n in every line we write.
+# don't have to put {indent} or \n in every line we write.\
+
+def is_enumerable_type(var):
+    return isinstance(var, (dict, list))
 
 def generate_cpp_file(parameters):
     def generate_constructor(file, params):
@@ -84,6 +94,7 @@ def generate_cpp_file(parameters):
             # TODO: I think we need to be careful here. Do we automatically assume that 'extents' and 'type' exist
             # when given dictionary instead of a scalar? Do we want to force the user to include those 2 keys when 
             # specifying an array type?
+            # TODO: We can just use dict.get instead of storing the known sections.
             for section in known_sections:
                 for item in params[section]:
                     if not isinstance(params[section][item], (dict, list)):
@@ -222,11 +233,17 @@ def generate_cpp_file(parameters):
             f"{indent}else if (tiles_.size() == 0)\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
             f"{indent}\n"
-            f"{indent}Grid& grid = Grid::instance();\n"
+            f"{indent}Grid& grid = Grid::instance();\n\n"
         ])
 
+        # SIZE DETERMINATION SECTION
+        file.write(f"{indent}/// SIZE DETERMINATION\n")
         # # Scratch section generation.
         file.write(f"{indent}// Scratch section\n")
+
+        bytesToGpu = set()
+        returnToHost = set()
+        bytesPerPacket = set()
 
         nScratchArrs = 0
         file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = 0")
@@ -234,10 +251,6 @@ def generate_cpp_file(parameters):
             nScratchArrs += 1
             file.write(f" + {var}{BLOCK_SIZE}")
         file.write(f";\n{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
-
-        bytesToGpu = set()
-        returnToHost = set()
-        bytesPerPacket = set()
         bytesPerPacket.add("(nTiles * nScratchPerTileBytes)")
 
         # # Copy-in section generation.
@@ -304,6 +317,9 @@ def generate_cpp_file(parameters):
         # Note that copyin, copyinout, and copyout all have a default of 0. So to keep code generation easy
         # we set them to the default of 0 even if they don't exist in the json.
         file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {N_TILES} * nScratchPerTileBytes, &packet_p_, nBytesPerPacket, &packet_d_);\n")
+        file.write(f"{indent}/// END\n\n")
+
+        file.write(f"{indent}/// POINTER DETERMINATION\n\n")
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
             f"{indent}char* scratchStart_d = static_cast<char*>(packet_d_);\n",
@@ -313,7 +329,6 @@ def generate_cpp_file(parameters):
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
         ])
 
-        # TODO: Should we even bother separating T_IN_OUT and T_OUT?
         if T_OUT in params:
             file.writelines([
                 f"{indent}char* copyOutStart_p = copyInOutStart_p_;\n",
@@ -325,7 +340,7 @@ def generate_cpp_file(parameters):
             f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n"
         ]) 
 
-        # scratch section? Again?
+        # Scratch section does not get transferred from gpu
 
         # copy-in section
         file.writelines([
@@ -366,6 +381,7 @@ def generate_cpp_file(parameters):
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
 
+        # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: The variants for each packet don't have CC1 set co copyInOut.
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
@@ -498,12 +514,14 @@ def generate_cpp_file(parameters):
             possible_tile_ptrs.remove(item)
 
         # if there are unremoved items we set them to nullptr.
+        # TODO: This needs to change when removing PacketContents
         for item in possible_tile_ptrs:
             file.write(f"{indent}tilePtrs_p->{item}_d = nullptr;\n")
 
         indent = "\t"
 
         file.write(f"{indent}}}\n")
+        file.write(f"{indent}/// END\n\n")
 
         # request stream at end
         file.writelines([
@@ -616,10 +634,6 @@ def generate_cpp_file(parameters):
         code.write(f"#include <cassert>\n") # do we need certain includes?
         code.write(f"#include <cstring>\n") # for advancing by 1 byte (char *)
         code.write(f"#include <stdexcept>\n")
-        code.write(f"#include <Milhoja.h>\n")
-        code.write(f"#include <Milhoja_FArray4D.h>\n")
-        code.write(f"#include <Milhoja_IntVect.h>\n")
-        code.write(f"#include <Milhoja_RealVect.h>\n")
         code.write(f"#include <Milhoja_Grid.h>\n")
         code.write(f"#include <Milhoja_RuntimeBackend.h>\n")
         # This is assuming all of the types being passed are milhoja types
@@ -639,6 +653,7 @@ def generate_cpp_file(parameters):
 # Lots of boilerplate and class member generation.
 # TODO: Pack and unpack functions use a specific variable involving CC1 and CC2. How can we specify this in tile-in and tile-out?
 # TODO: Should the user have to specify the molhoja dim in the json file?
+# TODO: Get all necessary include statements from JSON file.
 def generate_header_file(parameters):
     if not parameters:
         raise ValueError("Parameters is null.")
@@ -649,10 +664,10 @@ def generate_header_file(parameters):
 
     with open(parameters["name"] + ".h", "w") as header:
         name = parameters["name"]
-        ndim = parameters.get("ndim", 3)
         extra_streams = parameters.get(EXTRA_STREAMS, 0)
         defined = name.upper()
         level = 0
+        private_variables = []
         header.write(GENERATED_CODE_MESSAGE)
         
         # define statements
@@ -660,8 +675,94 @@ def generate_header_file(parameters):
         header.write(f"#define {defined}\n")
         # boilerplate includes
         header.write("#include <Milhoja.h>\n")
-        header.write("#include <Milhoja_real.h>\n")
         header.write("#include <Milhoja_DataPacket.h>\n")
+
+        # Everything in the packet consists of pointers to byte regions
+        # so we make every variable a pointer
+        # TODO: What if we want to put array types in any section?
+        # TODO: Create a helper function that checks if the item is a string/scalar or an array type
+        #       to perform certain functions 
+        if GENERAL in parameters:
+            known_sections.add(GENERAL)
+            general = parameters[GENERAL] # general section is the general copy in data information
+            for item in general:
+                block_size_var = f"{item}{BLOCK_SIZE}"
+                var = f"\tmilhoja::{general[item]} {item};\n"
+                size_var = f"\t{SIZE_T} {block_size_var};\n"
+                is_enumerable = is_enumerable_type(general[item])
+                types.add(general[item] if not is_enumerable else general[item]['type'])
+                if is_enumerable: types.add( f"FArray{len(general[item]['extents'])}D" )
+                # header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
+                # header.write(f"{indent}{SIZE_T} {block_size_var};\n")
+                # header.write(f"#include {includes[ general[item] ]}\n")
+                private_variables.append(var)
+                private_variables.append(size_var)
+                vars_and_types[block_size_var] = f"milhoja::{general[item]}"
+
+        # Generate private variables for each section. Here we are creating a size helper
+        # variable for each item in each section based on the name of the item.
+
+        # TODO: We can scrunch all of these separate loops into one once we remove the very specific code for
+        #       the CC1, CC2, Scratch pointer section.
+        if T_MDATA in parameters:
+            known_sections.add(T_MDATA)
+            for item in parameters[T_MDATA]:
+                new_variable = f"{item}{BLOCK_SIZE}"
+                # header.write(f"#include {includes[ parameters[T_MDATA][item] ]}\n")
+                # header.write(f"{indent}{SIZE_T} {new_variable};\n")
+                is_enumerable = is_enumerable_type(parameters[T_MDATA][item])
+                types.add(parameters[T_MDATA][item] if not is_enumerable_type(parameters[T_MDATA][item]) else parameters[T_MDATA][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[T_MDATA][item]['extents'])}D" )
+                private_variables.append(f"\t{SIZE_T} {new_variable};\n")
+                vars_and_types[new_variable] = SIZE_T
+                # all_tile_pointers[item] = {"section": T_MDATA, **parameters[T_MDATA][item]}
+
+        if T_IN in parameters:
+            known_sections.add(T_IN)
+            for item in parameters[T_IN]:
+                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
+                is_enumerable = is_enumerable_type(parameters[T_IN][item])
+                types.add(parameters[T_IN][item] if not is_enumerable_type(parameters[T_IN][item]) else parameters[T_IN][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[T_IN][item]['extents'])}D" )
+                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+                device_array_pointers[item] = {"section": DATA_D, **parameters[T_IN][item]}
+
+        if T_IN_OUT in parameters:
+            known_sections.add(T_IN_OUT)
+            for item in parameters[T_IN_OUT]:
+                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
+                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                is_enumerable = is_enumerable_type(parameters[T_IN_OUT][item])
+                types.add(parameters[T_IN_OUT][item] if not is_enumerable_type(parameters[T_IN_OUT][item]) else parameters[T_IN_OUT][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[T_IN_OUT][item]['extents'])}D" )
+                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+                device_array_pointers[item] = {"section": T_IN_OUT, **parameters[T_IN_OUT][item]}
+
+        if T_OUT in parameters:
+            known_sections.add(T_OUT)
+            for item in parameters[T_OUT]:
+                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
+                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                is_enumerable = is_enumerable_type(parameters[T_OUT][item])
+                types.add(parameters[T_OUT][item] if not is_enumerable_type(parameters[T_OUT][item]) else parameters[T_OUT][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[T_OUT][item]['extents'])}D" )
+                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+                device_array_pointers[item] = {"section": T_OUT, **parameters[T_OUT][item]}
+
+        if T_SCRATCH in parameters:
+            known_sections.add(T_SCRATCH)
+            for item in parameters[T_SCRATCH]:
+                # type = parameters[T_SCRATCH][item] if is_enumerable_type(item) else parameters[T_SCRATCH][item]['type']
+                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
+                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                is_enumerable = is_enumerable_type(parameters[T_SCRATCH][item])
+                types.add(parameters[T_SCRATCH][item] if not is_enumerable_type(parameters[T_SCRATCH][item]) else parameters[T_SCRATCH][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[T_SCRATCH][item]['extents'])}D" )
+                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+                device_array_pointers[item] = {"section": SCRATCH, **parameters[T_SCRATCH][item]}
+
+        header.write( ''.join( f"#include {imap[item]}\t\n" for item in types) )
 
         # class definition
         header.write(f"class {name} : public milhoja::DataPacket {{ \n")
@@ -675,12 +776,14 @@ def generate_header_file(parameters):
         header.write(indent + f"~{name}(void);\n")
 
         # Constructors & = operations
-        header.writelines([f"{indent}{name}({name}&)                  = delete;\n",
-                           f"{indent}{name}(const {name}&)            = delete;\n",
-                           f"{indent}{name}({name}&& packet)          = delete;\n",
-                           f"{indent}{name}& operator=({name}&)       = delete;\n",
-                           f"{indent}{name}& operator=(const {name}&) = delete;\n",
-                           f"{indent}{name}& operator=({name}&& rhs)  = delete;\n"])
+        header.writelines([\
+            f"{indent}{name}({name}&)                  = delete;\n",
+            f"{indent}{name}(const {name}&)            = delete;\n",
+            f"{indent}{name}({name}&& packet)          = delete;\n",
+            f"{indent}{name}& operator=({name}&)       = delete;\n",
+            f"{indent}{name}& operator=(const {name}&) = delete;\n",
+            f"{indent}{name}& operator=({name}&& rhs)  = delete;\n"
+        ])
 
         # pack & unpack methods
         header.writelines([
@@ -712,55 +815,7 @@ def generate_header_file(parameters):
                 "private:\n",
             ])
 
-        # Everything in the packet consists of pointers to byte regions
-        # so we make every variable a pointer
-        if GENERAL in parameters:
-            known_sections.add(GENERAL)
-            general = parameters[GENERAL] # general section is the general copy in data information
-            for item in general:
-                block_size_var = f"{item}{BLOCK_SIZE}"
-                header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
-                header.write(f"{indent}{SIZE_T} {block_size_var};\n")
-                vars_and_types[block_size_var] = f"milhoja::{general[item]}"
-
-        # Generate private variables for each section. Here we are creating a size helper
-        # variable for each item in each section based on the name of the item.
-
-        if T_MDATA in parameters:
-            known_sections.add(T_MDATA)
-            for item in parameters[T_MDATA]:
-                new_variable = f"{item}{BLOCK_SIZE}"
-                header.write(f"{indent}{SIZE_T} {new_variable};\n")
-                vars_and_types[new_variable] = SIZE_T
-                # all_tile_pointers[item] = {"section": T_MDATA, **parameters[T_MDATA][item]}
-
-        if T_IN in parameters:
-            known_sections.add(T_IN)
-            for item in parameters[T_IN]:
-                header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": DATA_D, **parameters[T_IN][item]}
-
-        if T_IN_OUT in parameters:
-            known_sections.add(T_IN_OUT)
-            for item in parameters[T_IN_OUT]:
-                header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": T_IN_OUT, **parameters[T_IN_OUT][item]}
-
-        if T_OUT in parameters:
-            known_sections.add(T_OUT)
-            for item in parameters[T_OUT]:
-                header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": T_OUT, **parameters[T_OUT][item]}
-
-        if T_SCRATCH in parameters:
-            known_sections.add(T_SCRATCH)
-            for item in parameters[T_SCRATCH]:
-                header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": SCRATCH, **parameters[T_SCRATCH][item]}
+        header.write(''.join(private_variables))
 
         level -= 1
         indent = '\t' * level

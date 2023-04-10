@@ -1,6 +1,6 @@
 {
   "name": "DataPacket_Hydro_gpu_3",
-  "ndim": 3,
+  "ndim": 2,
   "problem": "Sedov",
   "n-extra-streams": 0,
   "tile-scratch": {
