@@ -323,7 +323,7 @@ def generate_cpp_file(parameters):
 
         file.write(f"{indent}/// POINTER DETERMINATION\n\n")
         # array to store all pointers to copy in later.
-        num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) });"
+        num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
         file.writelines([
             f"{indent}int number_of_pointers = {num_of_arrays};\n",
             f"{indent}int {PINDEX} = 0;\n"
@@ -362,7 +362,7 @@ def generate_cpp_file(parameters):
         # automatically generate nTiles data PacketContents
         file.writelines([
             # f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
-            f"{indent}{PTRS}[{PINDEX}] = {{&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T})}};\n"
+            f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T})}};\n"
             f"{indent}++{PINDEX};\n"
             f"{indent}ptr_p += sizeof({SIZE_T});\n",
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
@@ -804,7 +804,8 @@ def generate_header_file(parameters):
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
                 device_array_pointers[item] = {"section": SCRATCH, **parameters[T_SCRATCH][item]}
 
-        header.write( ''.join( f"#include {imap[item]}\t\n" for item in types) )
+        # we only want to include things if they are found in the include dict.
+        header.write( ''.join( f"#include {imap[item]}\t\n" for item in types if item in imap) )
 
         header.writelines([
             f"\nstruct DataPointer {{\n",
