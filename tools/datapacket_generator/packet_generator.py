@@ -371,9 +371,9 @@ def generate_cpp_file(parameters):
         for item in params.get(GENERAL, []):
             file.writelines([
                 # f"{indent}{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                f"{indent}{PTRS}[{PINDEX}] = {{&{item}, (void*)ptr_p, sizeof({params[GENERAL][item]})}};\n"
+                f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
                 f"{indent}++{PINDEX};\n"
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
@@ -459,7 +459,7 @@ def generate_cpp_file(parameters):
                 f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN_OUT])}{START_P}, {size}}};\n"
                 f"{indent}++{PINDEX};\n"
             ])
-        file.write(f");\n")
+        # file.write(f");\n")
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
@@ -482,7 +482,7 @@ def generate_cpp_file(parameters):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
-                f"{indent}{PTRS}[{PINDEX}] = {{&{item}, (void*)ptr_p, sizeof({params[T_MDATA][item]})}};\n"
+                f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
                 f"{indent}++{PINDEX};\n"
                 # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
@@ -504,7 +504,7 @@ def generate_cpp_file(parameters):
                     file.writelines([
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
                         # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        f"{indent}{PTRS}[{PINDEX}] = {{&{item}_d, (void*)ptr_p, sizeof({type})}};\n"
+                        f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
                         f"{indent}++{PINDEX};\n"
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
@@ -524,7 +524,7 @@ def generate_cpp_file(parameters):
                         f"{indent}IntVect {item}_fHi = IntVect{{ LIST_NDIM({', '.join(face_hi_array)}) }};\n",
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
                         # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        f"{indent}{PTRS}[{PINDEX}] = {{&{item}_d, (void*)ptr_p, sizeof({type})}};\n"
+                        f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
                         f"{indent}++{PINDEX};\n"
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
@@ -538,7 +538,7 @@ def generate_cpp_file(parameters):
                 file.writelines([   # careful with naming here.
                     f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
                     # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                    f"{indent}{PTRS}[{PINDEX}] = {{&{item}_d, (void*)ptr_p, sizeof({type})}};\n"
+                    f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D)}};\n"
                     f"{indent}++{PINDEX};\n"
                     f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                     f"{indent}ptr_d += sizeof(FArray{d}D);\n",
