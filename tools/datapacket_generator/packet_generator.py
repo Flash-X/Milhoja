@@ -14,6 +14,7 @@
 
 import sys
 import json
+import argparse
 from milhoja_include_map import includes as imap
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
@@ -56,7 +57,6 @@ vars_and_types = {}
 level = 0
 
 # TODO: Maybe we can create dictionaries derived from sections in the json? Something to think about
-known_sections = set()
 device_array_pointers = {}
 nstreams = 1
 
@@ -71,7 +71,13 @@ includes = set()
 def is_enumerable_type(var):
     return isinstance(var, (dict, list))
 
-def generate_cpp_file(parameters):
+def generate_fortran_header_file(parameters):
+    ...
+
+def generate_fortran_code_file(parameters):
+    ...
+
+def generate_cpp_code_file(parameters):
     def generate_constructor(file, params):
             # function definition
             file.write(f"{params['name']}::{params['name']}(const milhoja::Real {NEW}dt) : milhoja::DataPacket{{}}, \n")
@@ -97,15 +103,16 @@ def generate_cpp_file(parameters):
             # when given dictionary instead of a scalar? Do we want to force the user to include those 2 keys when 
             # specifying an array type?
             # TODO: We can just use dict.get instead of storing the known sections.
-            for section in known_sections:
-                for item in params[section]:
-                    if not isinstance(params[section][item], (dict, list)):
-                        file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
-                    else:
-                        extents = params[section][item]['extents']
-                        type = params[section][item]['type']
-                        math = ' * '.join(f'({item})' for item in extents)
-                        file.write(f"{indent}{item}{BLOCK_SIZE} = {math} * sizeof({type});\n")
+            for section in params:
+                if isinstance(params[section], dict):
+                    for item in params[section]:
+                        if not isinstance(params[section][item], (dict, list)):
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
+                        else:
+                            extents = params[section][item]['extents']
+                            type = params[section][item]['type']
+                            math = ' * '.join(f'({item})' for item in extents)
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = {math} * sizeof({type});\n")
             
             # TODO: What if we need to add other variables?
             # We need to add them to the constructor args.
@@ -324,11 +331,11 @@ def generate_cpp_file(parameters):
         file.write(f"{indent}/// POINTER DETERMINATION\n\n")
         # array to store all pointers to copy in later.
         num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
-        file.writelines([
-            f"{indent}int number_of_pointers = {num_of_arrays};\n",
-            f"{indent}int {PINDEX} = 0;\n"
-            f"{indent}DataPointer {PTRS}[number_of_pointers];\n\n"
-        ])
+        # file.writelines([
+        #     f"{indent}int number_of_pointers = {num_of_arrays};\n",
+        #     f"{indent}int {PINDEX} = 0;\n"
+        #     f"{indent}DataPointer {PTRS}[number_of_pointers];\n\n"
+        # ])
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
@@ -361,9 +368,9 @@ def generate_cpp_file(parameters):
 
         # automatically generate nTiles data PacketContents
         file.writelines([
-            # f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
-            f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T})}};\n"
-            f"{indent}++{PINDEX};\n"
+            f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
+            # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T})}};\n"
+            # f"{indent}++{PINDEX};\n"
             f"{indent}ptr_p += sizeof({SIZE_T});\n",
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
         ])
@@ -371,9 +378,9 @@ def generate_cpp_file(parameters):
         for item in params.get(GENERAL, []):
             file.writelines([
                 # f"{indent}{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
-                f"{indent}++{PINDEX};\n"
-                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
+                # f"{indent}++{PINDEX};\n"
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
@@ -446,19 +453,19 @@ def generate_cpp_file(parameters):
 
         # TODO: THis code here is a problem if we want to have any number of arrays in each section.
         if T_IN in params:
-            # file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, 0")
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, 0")
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
-            file.writelines([
-                f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN])}{START_P}, {size}}};\n"
-                f"{indent}++{PINDEX};\n"
-            ])
+            # file.writelines([
+            #     f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN])}{START_P}, {size}}};\n"
+            #     f"{indent}++{PINDEX};\n"
+            # ])
         elif T_IN_OUT in params:
-            # file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, 0")
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, 0")
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
-            file.writelines([
-                f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN_OUT])}{START_P}, {size}}};\n"
-                f"{indent}++{PINDEX};\n"
-            ])
+            # file.writelines([
+            #     f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN_OUT])}{START_P}, {size}}};\n"
+            #     f"{indent}++{PINDEX};\n"
+            # ])
         # file.write(f");\n")
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
@@ -482,9 +489,9 @@ def generate_cpp_file(parameters):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
-                f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
-                f"{indent}++{PINDEX};\n"
-                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
+                # f"{indent}++{PINDEX};\n"
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
                 f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
             ])
@@ -503,9 +510,9 @@ def generate_cpp_file(parameters):
                     file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
                     file.writelines([
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                        # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
-                        f"{indent}++{PINDEX};\n"
+                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                        # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
+                        # f"{indent}++{PINDEX};\n"
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                         f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
@@ -523,9 +530,9 @@ def generate_cpp_file(parameters):
                     file.writelines([
                         f"{indent}IntVect {item}_fHi = IntVect{{ LIST_NDIM({', '.join(face_hi_array)}) }};\n",
                         f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
-                        # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
-                        f"{indent}++{PINDEX};\n"
+                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                        # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
+                        # f"{indent}++{PINDEX};\n"
                         f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                         f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                         f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
@@ -537,9 +544,9 @@ def generate_cpp_file(parameters):
                 file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
                 file.writelines([   # careful with naming here.
                     f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                    # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                    f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D)}};\n"
-                    f"{indent}++{PINDEX};\n"
+                    f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                    # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D)}};\n"
+                    # f"{indent}++{PINDEX};\n"
                     f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                     f"{indent}ptr_d += sizeof(FArray{d}D);\n",
                     f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n"
@@ -558,11 +565,11 @@ def generate_cpp_file(parameters):
         file.write(f"{indent}/// END\n\n")
         
         file.write(f"{indent}/// COPY INTO GPU MEMORY\n\n")
-        file.writelines([
-            f"{indent}for(int i = 0; i < number_of_pointers; ++i) {{\n",
-            f"{indent*2}std::memcpy({PTRS}[i].destination, {PTRS}[i].source, {PTRS}[i].size);\n"
-            f"{indent}}}\n\n"
-        ])
+        # file.writelines([
+        #     f"{indent}for(int i = 0; i < number_of_pointers; ++i) {{\n",
+        #     f"{indent*2}std::memcpy({PTRS}[i].destination, {PTRS}[i].source, {PTRS}[i].size);\n"
+        #     f"{indent}}}\n\n"
+        # ])
         file.write(f"{indent}/// END\n\n")
 
         # request stream at end
@@ -696,7 +703,7 @@ def generate_cpp_file(parameters):
 # TODO: Pack and unpack functions use a specific variable involving CC1 and CC2. How can we specify this in tile-in and tile-out?
 # TODO: Should the user have to specify the molhoja dim in the json file?
 # TODO: Get all necessary include statements from JSON file.
-def generate_header_file(parameters):
+def generate_cpp_header_file(parameters):
     if not parameters:
         raise ValueError("Parameters is null.")
 
@@ -725,7 +732,6 @@ def generate_header_file(parameters):
         # TODO: Create a helper function that checks if the item is a string/scalar or an array type
         #       to perform certain functions 
         if GENERAL in parameters:
-            known_sections.add(GENERAL)
             general = parameters[GENERAL] # general section is the general copy in data information
             for item in general:
                 block_size_var = f"{item}{BLOCK_SIZE}"
@@ -747,62 +753,22 @@ def generate_header_file(parameters):
         # TODO: We can scrunch all of these separate loops into one once we remove the very specific code for
         #       the CC1, CC2, Scratch pointer section.
         if T_MDATA in parameters:
-            known_sections.add(T_MDATA)
             for item in parameters[T_MDATA]:
                 new_variable = f"{item}{BLOCK_SIZE}"
-                # header.write(f"#include {includes[ parameters[T_MDATA][item] ]}\n")
-                # header.write(f"{indent}{SIZE_T} {new_variable};\n")
                 is_enumerable = is_enumerable_type(parameters[T_MDATA][item])
                 types.add(parameters[T_MDATA][item] if not is_enumerable_type(parameters[T_MDATA][item]) else parameters[T_MDATA][item]['type'])
                 if is_enumerable: types.add( f"FArray{len(parameters[T_MDATA][item]['extents'])}D" )
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
-                # all_tile_pointers[item] = {"section": T_MDATA, **parameters[T_MDATA][item]}
 
-        if T_IN in parameters:
-            known_sections.add(T_IN)
-            for item in parameters[T_IN]:
-                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                is_enumerable = is_enumerable_type(parameters[T_IN][item])
-                types.add(parameters[T_IN][item] if not is_enumerable_type(parameters[T_IN][item]) else parameters[T_IN][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[T_IN][item]['extents'])}D" )
+        for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
+            for item in parameters.get(sect, {}):
                 private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                is_enumerable = is_enumerable_type(parameters[sect][item])
+                types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
+                if is_enumerable: types.add( f"FArray{len(parameters[sect][item]['extents'])}D" )
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": DATA_D, **parameters[T_IN][item]}
-
-        if T_IN_OUT in parameters:
-            known_sections.add(T_IN_OUT)
-            for item in parameters[T_IN_OUT]:
-                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
-                is_enumerable = is_enumerable_type(parameters[T_IN_OUT][item])
-                types.add(parameters[T_IN_OUT][item] if not is_enumerable_type(parameters[T_IN_OUT][item]) else parameters[T_IN_OUT][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[T_IN_OUT][item]['extents'])}D" )
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": T_IN_OUT, **parameters[T_IN_OUT][item]}
-
-        if T_OUT in parameters:
-            known_sections.add(T_OUT)
-            for item in parameters[T_OUT]:
-                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
-                is_enumerable = is_enumerable_type(parameters[T_OUT][item])
-                types.add(parameters[T_OUT][item] if not is_enumerable_type(parameters[T_OUT][item]) else parameters[T_OUT][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[T_OUT][item]['extents'])}D" )
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": T_OUT, **parameters[T_OUT][item]}
-
-        if T_SCRATCH in parameters:
-            known_sections.add(T_SCRATCH)
-            for item in parameters[T_SCRATCH]:
-                # type = parameters[T_SCRATCH][item] if is_enumerable_type(item) else parameters[T_SCRATCH][item]['type']
-                # header.write(f"{indent}{SIZE_T} {item}{BLOCK_SIZE};\n")
-                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
-                is_enumerable = is_enumerable_type(parameters[T_SCRATCH][item])
-                types.add(parameters[T_SCRATCH][item] if not is_enumerable_type(parameters[T_SCRATCH][item]) else parameters[T_SCRATCH][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[T_SCRATCH][item]['extents'])}D" )
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": SCRATCH, **parameters[T_SCRATCH][item]}
+                device_array_pointers[item] = {"section": DATA_D, **parameters[sect][item]}
 
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {imap[item]}\t\n" for item in types if item in imap) )
@@ -866,7 +832,11 @@ def generate_header_file(parameters):
                 "private:\n",
             ])
 
-        header.write(''.join(private_variables))
+        header.writelines([
+            f"\tstatic constexpr std::size_t ALIGN_SIZE=16;\n",
+            f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE }}\n",
+            ''.join(private_variables)
+        ])
 
         level -= 1
         indent = '\t' * level
@@ -878,23 +848,29 @@ def generate_header_file(parameters):
     return
 
 # Takes in a file path to load a json file and generates the cpp and header files
-def generate_packet_with_filepath(fp):
+def generate_packet_with_filepath(fp, args):
     with open(fp, "r") as file:
         data = json.load(file)
-        generate_packet_with_dict(data)
+        generate_packet_with_dict(data, args)
         # generate_header_file(data)
         # generate_cpp_file(data)
 
 # gneerate packet data using existing dict
-def generate_packet_with_dict(json_dict):
-    generate_header_file(json_dict)
-    generate_cpp_file(json_dict)
+def generate_packet_with_dict(json_dict, args):
+    
+    if args.cpp:
+        generate_cpp_header_file(json_dict)
+        generate_cpp_code_file(json_dict)
+
+    if args.fortran:
+        generate_fortran_header_file(json_dict)
+        generate_fortran_code_file(json_dict)
 
 if __name__ == "__main__":
-    #Check if some file path was passed in
-    if len(sys.argv) < 2:
-        print("Usage: python packet_generator.py [data_file]")
-    elif '.json' not in sys.argv[1]:
-        print("Specified file path does not have a json extension.")
-    else:    
-        generate_packet_with_filepath(sys.argv[1])
+    parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
+    parser.add_argument("JSON", help="The JSON file to generate from.")
+    parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
+    parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
+    args = parser.parse_args()
+
+    generate_packet_with_filepath(args.JSON, args)
