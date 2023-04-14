@@ -78,7 +78,7 @@ def parse_extents(extents, size=''):
         return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
     
     elif isinstance(extents, list):
-        return '(' + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
+        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
     else:
         print("Extents is not a string or list of numbers. Please refer to the documentation.")
 

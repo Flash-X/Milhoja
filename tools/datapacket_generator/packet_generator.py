@@ -109,7 +109,7 @@ def generate_cpp_code_file(parameters):
                         if not isinstance(params[section][item], (dict, list)):
                             file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
                         else:
-                            extents = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
+                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
             
             # TODO: What if we need to add other variables?
@@ -197,6 +197,7 @@ def generate_cpp_code_file(parameters):
         if dict_to_use:
             it = iter(dict_to_use)
             item = next(it)
+            data_type = dict_to_use[item]['type']
             extents, nunkvars, empty = mdata.parse_extents(dict_to_use[item]['extents'])
             # TODO: The way the constructor and header files we need to do some division to 
             # get the origin num vars per CC per variable. This is a way to do it without creating
@@ -205,8 +206,8 @@ def generate_cpp_code_file(parameters):
             num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / {nunkvars}'
             file.writelines([
                 f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
-                f"{indent}{type}* start_h = data_h + offset;\n"
-                f"{indent}const {type}* start_p = data_p + offset;\n"
+                f"{indent}{data_type}* start_h = data_h + offset;\n"
+                f"{indent}const {data_type}* start_p = data_p + offset;\n"
                 f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
                 f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
             ])
