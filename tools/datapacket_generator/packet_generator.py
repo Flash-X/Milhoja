@@ -446,14 +446,14 @@ def generate_cpp_code_file(parameters):
 
         # TODO: THis code here is a problem if we want to have any number of arrays in each section.
         if T_IN in params:
-            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, 0")
-            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
+            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) ) + ");"
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size}\n")
             file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }} );\n")
         elif T_IN_OUT in params:
-            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, 0")
-            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
+            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) ) + ");"
+            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, {size}\n")
             file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }} );\n")
-        file.write(f");\n")
+        # file.write(f");\n")
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
