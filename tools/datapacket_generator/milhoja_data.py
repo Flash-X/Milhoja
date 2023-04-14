@@ -18,6 +18,13 @@ ispace_map = {
     'fcz': "((nxb) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb+1) + 2 * {guard}) * {unk}"
 }
 
+constructor_args = {
+    'cc': "loGC, hiGC",
+    'fcx': "lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }",
+    'fcy': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }",
+    'fcz': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }"
+}
+
 # Government sanctioned constants.
 constants = {
     "NGUARD",
@@ -41,7 +48,7 @@ def parse_extents(extents, size=''):
         try:
             nguard = int(nguard)
         except:
-            print("Nguard is a string...")
+            # print("Nguard is a string...")
             # if nguard is in the constants use as is
             if nguard not in constants:
                 # our constants is contained in nguard, then we can use the string as is but print an error.
@@ -56,7 +63,7 @@ def parse_extents(extents, size=''):
         try:
             nunkvar = int(nunkvar)
         except:
-            print("Nguard is a string...")
+            # print("Nguard is a string...")
             # if nguard is in the constants use as is
             if nunkvar not in constants:
                 # our constants is contained in nguard, then we can use the string as is but print an error.
@@ -68,10 +75,10 @@ def parse_extents(extents, size=''):
                     exit(-1)
                 warnings.warn("[packet_generator.py] Constant found in string, continuing...")
         
-        return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar
+        return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
     
     elif isinstance(extents, list):
-        return '(' + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1]
+        return '(' + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
     else:
         print("Extents is not a string or list of numbers. Please refer to the documentation.")
 

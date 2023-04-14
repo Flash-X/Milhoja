@@ -15,7 +15,7 @@
 import sys
 import json
 import argparse
-from milhoja_include_map import includes as imap
+import milhoja_data as mdata
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
@@ -109,10 +109,8 @@ def generate_cpp_code_file(parameters):
                         if not isinstance(params[section][item], (dict, list)):
                             file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
                         else:
-                            extents = params[section][item]['extents']
-                            type = params[section][item]['type']
-                            math = ' * '.join(f'({item})' for item in extents)
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = {math} * sizeof({type});\n")
+                            extents = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
             
             # TODO: What if we need to add other variables?
             # We need to add them to the constructor args.
@@ -199,8 +197,7 @@ def generate_cpp_code_file(parameters):
         if dict_to_use:
             it = iter(dict_to_use)
             item = next(it)
-            nunkvars = dict_to_use[item]['extents'][-1]
-            type = dict_to_use[item]['type']
+            extents, nunkvars, empty = mdata.parse_extents(dict_to_use[item]['extents'])
             # TODO: The way the constructor and header files we need to do some division to 
             # get the origin num vars per CC per variable. This is a way to do it without creating
             # another variable. Low priority
@@ -499,59 +496,31 @@ def generate_cpp_code_file(parameters):
         # TODO: This is not going to work for generic names for arrays. We need to 
         # add specifications to the json file.
         for item in device_array_pointers:
+            d = 4 # assume d = 4 for now.
             section = device_array_pointers[item]['section']
+            type = device_array_pointers[item]['type']
+            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
+            c_args = mdata.constructor_args[indexer]
+            print(extents, nunkvars, indexer)
             # d = device_array_pointers[item].get('dim', 4) # get dimensionality of array. Defaults to 4.
             # file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n") # set tile ptrs cc ptr.)
-            if section == SCRATCH:
-                if 'CC' in item:    # Cell centered data has specific format requirements
-                    type = device_array_pointers[item]['type']
-                    unk = device_array_pointers[item]['extents'][-1]
-                    d = len(device_array_pointers[item]['extents'])
-                    file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
-                    file.writelines([
-                        f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
-                        # f"{indent}++{PINDEX};\n"
-                        f"{indent}ptr_p += sizeof(FArray{d}D);\n",
-                        f"{indent}ptr_d += sizeof(FArray{d}D);\n",
-                        f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
-                    ])
-                else:   # Face array.
-                    face_hi_array = ['hi.I()', 'hi.J()', 'hi.K()']
-                    for idx, ext in enumerate(device_array_pointers[item]['extents']):
-                        if '+1' in ext:
-                            face_hi_array[idx] += '+1'
 
-                    type = device_array_pointers[item]['type']
-                    unk = device_array_pointers[item]['extents'][-1]
-                    d = len(device_array_pointers[item]['extents'])
-                    file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
-                    file.writelines([
-                        f"{indent}IntVect {item}_fHi = IntVect{{ LIST_NDIM({', '.join(face_hi_array)}) }};\n",
-                        f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), lo, {item}_fHi, {unk}}};\n"
-                        f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                        # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
-                        # f"{indent}++{PINDEX};\n"
-                        f"{indent}ptr_p += sizeof(FArray{d}D);\n",
-                        f"{indent}ptr_d += sizeof(FArray{d}D);\n",
-                        f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n"
-                    ])
+            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
+            file.writelines([
+                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
+                # f"{indent}++{PINDEX};\n"
+                f"{indent}ptr_p += sizeof(FArray{d}D);\n",
+                f"{indent}ptr_d += sizeof(FArray{d}D);\n",
+            ])
+
+            if section == T_SCRATCH:
+                file.write(f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n")
             else:
-                type = device_array_pointers[item]['type']
-                unk = device_array_pointers[item]['extents'][-1]
-                d = len(device_array_pointers[item]['extents'])
-                file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
-                file.writelines([   # careful with naming here.
-                    f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), loGC, hiGC, {unk}}};\n",
-                    f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                    # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D)}};\n"
-                    # f"{indent}++{PINDEX};\n"
-                    f"{indent}ptr_p += sizeof(FArray{d}D);\n",
-                    f"{indent}ptr_d += sizeof(FArray{d}D);\n",
-                    f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n"
-                    f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n"
-                ])
+                file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
+                
             possible_tile_ptrs.remove(item)
 
         # if there are unremoved items we set them to nullptr.
@@ -731,6 +700,7 @@ def generate_cpp_header_file(parameters):
         # TODO: What if we want to put array types in any section?
         # TODO: Create a helper function that checks if the item is a string/scalar or an array type
         #       to perform certain functions 
+        # TODO: Assume FArray4D by default for now.
         if GENERAL in parameters:
             general = parameters[GENERAL] # general section is the general copy in data information
             for item in general:
@@ -739,7 +709,7 @@ def generate_cpp_header_file(parameters):
                 size_var = f"\t{SIZE_T} {block_size_var};\n"
                 is_enumerable = is_enumerable_type(general[item])
                 types.add(general[item] if not is_enumerable else general[item]['type'])
-                if is_enumerable: types.add( f"FArray{len(general[item]['extents'])}D" )
+                if is_enumerable: types.add( f"FArray4D" )
                 # header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
                 # header.write(f"{indent}{SIZE_T} {block_size_var};\n")
                 # header.write(f"#include {includes[ general[item] ]}\n")
@@ -757,7 +727,7 @@ def generate_cpp_header_file(parameters):
                 new_variable = f"{item}{BLOCK_SIZE}"
                 is_enumerable = is_enumerable_type(parameters[T_MDATA][item])
                 types.add(parameters[T_MDATA][item] if not is_enumerable_type(parameters[T_MDATA][item]) else parameters[T_MDATA][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[T_MDATA][item]['extents'])}D" )
+                if is_enumerable: types.add( f"FArray4D" )
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
 
@@ -766,12 +736,12 @@ def generate_cpp_header_file(parameters):
                 private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
                 is_enumerable = is_enumerable_type(parameters[sect][item])
                 types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
-                if is_enumerable: types.add( f"FArray{len(parameters[sect][item]['extents'])}D" )
+                if is_enumerable: types.add( f"FArray4D" )
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
-                device_array_pointers[item] = {"section": DATA_D, **parameters[sect][item]}
+                device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
 
         # we only want to include things if they are found in the include dict.
-        header.write( ''.join( f"#include {imap[item]}\t\n" for item in types if item in imap) )
+        header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
 
         header.writelines([
             f"\nstruct DataPointer {{\n",
@@ -834,7 +804,7 @@ def generate_cpp_header_file(parameters):
 
         header.writelines([
             f"\tstatic constexpr std::size_t ALIGN_SIZE=16;\n",
-            f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE }}\n",
+            f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return size + ( ALIGN_SIZE - size % ALIGN_SIZE ) % ALIGN_SIZE; }}\n",
             ''.join(private_variables)
         ])
 
