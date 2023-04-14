@@ -327,12 +327,10 @@ def generate_cpp_code_file(parameters):
 
         file.write(f"{indent}/// POINTER DETERMINATION\n\n")
         # array to store all pointers to copy in later.
-        num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
-        # file.writelines([
-        #     f"{indent}int number_of_pointers = {num_of_arrays};\n",
-        #     f"{indent}int {PINDEX} = 0;\n"
-        #     f"{indent}DataPointer {PTRS}[number_of_pointers];\n\n"
-        # ])
+        # num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
+        file.writelines([
+            f"{indent}copyargs.clear();\n\n"
+        ])
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
@@ -366,17 +364,14 @@ def generate_cpp_code_file(parameters):
         # automatically generate nTiles data PacketContents
         file.writelines([
             f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
-            # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T})}};\n"
-            # f"{indent}++{PINDEX};\n"
+            f"//{indent}copyargs.push_back( {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }} );\n"
             f"{indent}ptr_p += sizeof({SIZE_T});\n",
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
         ])
 
         for item in params.get(GENERAL, []):
             file.writelines([
-                # f"{indent}{item} = static_cast<{params['general'][item]}*>((void*)ptr_d)"
-                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
-                # f"{indent}++{PINDEX};\n"
+                f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
@@ -452,18 +447,12 @@ def generate_cpp_code_file(parameters):
         if T_IN in params:
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, 0")
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
-            # file.writelines([
-            #     f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN])}{START_P}, {size}}};\n"
-            #     f"{indent}++{PINDEX};\n"
-            # ])
+            file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }} );\n")
         elif T_IN_OUT in params:
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, 0")
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
-            # file.writelines([
-            #     f"{indent}{PTRS}[{PINDEX}] = {{(void*)data_h, (void*){'_'.join(params[T_IN_OUT])}{START_P}, {size}}};\n"
-            #     f"{indent}++{PINDEX};\n"
-            # ])
-        # file.write(f");\n")
+            file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }} );\n")
+        file.write(f");\n")
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
@@ -486,8 +475,7 @@ def generate_cpp_code_file(parameters):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
-                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE}}};\n"
-                # f"{indent}++{PINDEX};\n"
+                f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }} );\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
                 f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
@@ -501,16 +489,12 @@ def generate_cpp_code_file(parameters):
             type = device_array_pointers[item]['type']
             extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
             c_args = mdata.constructor_args[indexer]
-            print(extents, nunkvars, indexer)
-            # d = device_array_pointers[item].get('dim', 4) # get dimensionality of array. Defaults to 4.
-            # file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n") # set tile ptrs cc ptr.)
 
             file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
             file.writelines([
                 f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
+                f"//{indent}copyargs.push_back( {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }} );\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                # f"{indent}{PTRS}[{PINDEX}] = {{(void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n"
-                # f"{indent}++{PINDEX};\n"
                 f"{indent}ptr_p += sizeof(FArray{d}D);\n",
                 f"{indent}ptr_d += sizeof(FArray{d}D);\n",
             ])
@@ -520,7 +504,7 @@ def generate_cpp_code_file(parameters):
             else:
                 file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
-                
+
             possible_tile_ptrs.remove(item)
 
         # if there are unremoved items we set them to nullptr.
@@ -742,11 +726,12 @@ def generate_cpp_header_file(parameters):
 
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
+        header.write("#include <vector>\n")
 
         header.writelines([
-            f"\nstruct DataPointer {{\n",
-            f"\tvoid* source = nullptr;\n",
-            f"\tvoid* destination = nullptr;\n",
+            f"\nstruct MemCopyArgs {{\n",
+            f"\tvoid* src = nullptr;\n",
+            f"\tvoid* dest = nullptr;\n",
             f"\t{SIZE_T} size = 0;\n"
             f"}};\n\n"
         ])
@@ -800,6 +785,7 @@ def generate_cpp_header_file(parameters):
         else:
             header.writelines([
                 "private:\n",
+                "\tstd::vector<MemCopyArgs> copyargs;\n"
             ])
 
         header.writelines([
