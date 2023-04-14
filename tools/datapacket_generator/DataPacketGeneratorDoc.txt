@@ -69,5 +69,15 @@ Anything in extents should be specified as a string to make generation easier.
 "array_type_name": {
     "type": "data_type"
     "dim": [number] (default is 4 if not specified.)
-    "extents": ["", "", "", unknowns] (Extents can be any size but the number of unknowns must be placed at the end.)
+    "extents": *
 }
+
+*   There are 2 options for extents, one is a string containing the type of indexer 
+    as well as the number of guard cells and number of unknown variables. You can set
+    numbers, or use a preset macro such as NGUARD, NUNKVARS, or NFLUXES. 
+
+        ex: "cc(NGUARD, NUNKVARS)"
+
+    Or, you can directly specify the extents of the array using a list of 4 numbers.
+
+        ex: [16, 16, 1, 4]
