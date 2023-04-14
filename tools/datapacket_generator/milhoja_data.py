@@ -68,10 +68,10 @@ def parse_extents(extents, size=''):
                     exit(-1)
                 warnings.warn("[packet_generator.py] Constant found in string, continuing...")
         
-        return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size)
+        return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar
     
     elif isinstance(extents, list):
-        return '(' + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }'
+        return '(' + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1]
     else:
         print("Extents is not a string or list of numbers. Please refer to the documentation.")
 
