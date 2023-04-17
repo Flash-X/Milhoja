@@ -203,11 +203,14 @@ def generate_cpp_code_file(parameters):
             # get the origin num vars per CC per variable. This is a way to do it without creating
             # another variable. Low priority
             # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
-            num_elems_per_cc_per_var = f'{item}{BLOCK_SIZE} / {nunkvars}'
+            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             file.writelines([
                 f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
                 f"{indent}{data_type}* start_h = data_h + offset;\n"
                 f"{indent}const {data_type}* start_p = data_p + offset;\n"
+            ])
+            num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
+            file.writelines([
                 f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
                 f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
             ])
