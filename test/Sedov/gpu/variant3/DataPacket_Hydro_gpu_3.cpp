@@ -22,7 +22,7 @@
  * Construct a DataPacket containing no Tile objects and with no resources
  * assigned to it.
  */
-DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
+DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(milhoja::Real new_dt)
     : milhoja::DataPacket{},
 #if MILHOJA_NDIM == 3
       stream2_{},
@@ -74,6 +74,8 @@ DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(void)
                                   * sizeof(Real);
     POINT_SIZE_BYTES     =          sizeof(IntVect);
     ARRAY4_SIZE_BYTES    =          sizeof(FArray4D);
+
+    dt = new_dt;
 }
 
 /**
@@ -93,7 +95,7 @@ DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
  *
  */
 std::unique_ptr<milhoja::DataPacket>   DataPacket_Hydro_gpu_3::clone(void) const {
-    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_3{}};
+    return std::unique_ptr<milhoja::DataPacket>{new DataPacket_Hydro_gpu_3{dt}};
 }
 
 #if MILHOJA_NDIM == 3 && defined(MILHOJA_OPENACC_OFFLOADING)
@@ -281,7 +283,7 @@ void  DataPacket_Hydro_gpu_3::pack(void) {
     ptr_d += sizeof(std::size_t);
 
     dt_d_ = static_cast<Real*>((void*)ptr_d); 
-    std::memcpy((void*)ptr_p, (void*)&Driver::dt, DRIVER_DT_SIZE_BYTES);
+    std::memcpy((void*)ptr_p, (void*)&dt, DRIVER_DT_SIZE_BYTES);
     ptr_p += sizeof(DRIVER_DT_SIZE_BYTES);
     ptr_d += sizeof(DRIVER_DT_SIZE_BYTES);
 

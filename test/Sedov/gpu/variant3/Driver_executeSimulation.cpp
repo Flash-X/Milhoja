@@ -110,7 +110,7 @@ void    Driver::executeSimulation(void) {
     milhoja::Real     dtAfter{RPs.getReal("Driver", "dtAfter")};
     unsigned int      writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
 
-    const DataPacket_Hydro_gpu_3    packetPrototype;
+//    const DataPacket_Hydro_gpu_3    packetPrototype;
     while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -155,6 +155,7 @@ void    Driver::executeSimulation(void) {
 //                                              nStep,
 //                                              GLOBAL_COMM);
 
+	    const DataPacket_Hydro_gpu_3    packetPrototype{Driver::dt};
 		runtime.executeGpuTasks("Advance Hydro Solution",
                                               nDistThreads,
                                               stagger_usec,

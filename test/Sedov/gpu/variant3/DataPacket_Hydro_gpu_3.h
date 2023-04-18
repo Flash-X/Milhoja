@@ -9,7 +9,7 @@ class DataPacket_Hydro_gpu_3 : public milhoja::DataPacket {
 public:
     std::unique_ptr<milhoja::DataPacket>  clone(void) const override;
 
-    DataPacket_Hydro_gpu_3(void);
+    DataPacket_Hydro_gpu_3(const milhoja::Real new_dt);
     ~DataPacket_Hydro_gpu_3(void);
 
     DataPacket_Hydro_gpu_3(DataPacket_Hydro_gpu_3&)                  = delete;
@@ -33,6 +33,7 @@ private:
     milhoja::Stream  stream3_;
 #endif
     milhoja::Real*   dt_d_;
+    milhoja::Real	 dt=0;
 
     std::size_t    N_ELEMENTS_PER_CC_PER_VARIABLE;
     std::size_t    N_ELEMENTS_PER_FCX_PER_VARIABLE;
