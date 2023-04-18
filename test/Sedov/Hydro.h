@@ -19,6 +19,7 @@ namespace Hydro {
                                                  milhoja::DataItem* dataItem_h);
     void advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                  milhoja::DataItem* dataItem_h);
+    void debug_packet_oacc_summit_3(const int tId, milhoja::DataItem* dataItem_h);
 };
 
 namespace hy {
