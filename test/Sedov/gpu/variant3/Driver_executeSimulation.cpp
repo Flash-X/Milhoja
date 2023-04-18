@@ -145,15 +145,22 @@ void    Driver::executeSimulation(void) {
 //                                        hydroAdvance_gpu,
 //                                        packetPrototype,
 //                                        nTilesPerCpuTurn);
-        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
+//        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
+//                                              nDistThreads,
+//                                              stagger_usec,
+//                                              hydroAdvance_cpu,
+//                                              hydroAdvance_gpu,
+//                                              packetPrototype,
+//                                              nTilesPerCpuTurn,
+//                                              nStep,
+//                                              GLOBAL_COMM);
+
+		runtime.executeGpuTasks("Advance Hydro Solution",
                                               nDistThreads,
                                               stagger_usec,
-                                              hydroAdvance_cpu,
                                               hydroAdvance_gpu,
-                                              packetPrototype,
-                                              nTilesPerCpuTurn,
-                                              nStep,
-                                              GLOBAL_COMM);
+                                              packetPrototype);
+
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
