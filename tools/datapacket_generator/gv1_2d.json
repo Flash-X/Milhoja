@@ -6,13 +6,11 @@
   "tile-scratch": {
     "FCX": {
       "type": "Real",
-      "dim": 4,
-      "extents": ["nxb+1", "nyb", "nzb", "NFLUXES"]
+      "extents": "fcx(0, NFLUXES)"
     },
     "FCY": {
       "type": "Real",
-      "dim": 4,
-      "extents": ["nxb", "nyb+1", "nzb", "NFLUXES"]
+      "extents": "fcy(0, NFLUXES)"
     }
   },
   "general": {
@@ -26,15 +24,13 @@
   "tile-in": {
     "CC1": {
       "type": "Real",
-      "dim": 4,
-      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "(NUNKVAR - 1)"]
+      "extents": "cc(NGUARD, NUNKVAR-1)"
     }
   },
   "tile-out": {
     "CC2": {
       "type": "Real",
-      "dim": 4,
-      "extents": ["(nxb+2*NGUARD * MILHOJA_K1D)", "(nyb+2*NGUARD * MILHOJA_K2D)", "(nzb+2*NGUARD * MILHOJA_K3D)", "(NUNKVAR - 2)"]
+      "extents": "cc(NGUARD, NUNKVAR-2)"
     }
   }
 }
