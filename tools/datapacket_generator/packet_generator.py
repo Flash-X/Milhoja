@@ -312,15 +312,21 @@ def generate_cpp_code_file(parameters):
         file.write(f"{indent}if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInPerTile padding failure\");\n\n")
 
         # copy in out data
+        # TODO: There may be some extra bytes if the user only uses tile-in-out or tile-out due to padding.
         cinout = params.get(T_IN_OUT, {})
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = 0")
+        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = (0")
         if cinout:
             for item in cinout:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            bytesToGpu.append("(nTiles * nCopyInOutDataPerTileBytes)")
-            returnToHost.append("(nTiles * nCopyInOutDataPerTileBytes)")
-            bytesPerPacket.append("(nTiles * nCopyInOutDataPerTileBytes)")
+            file.write(f") * nTiles")
+        else:
+            file.write(")")
         file.write(f";\n")
+        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);\n")
+        bytesToGpu.append("nCopyInOutDataPerTileBytes")
+        returnToHost.append("nCopyInOutDataPerTileBytesPadded")
+        bytesPerPacket.append("nCopyInOutDataPerTileBytesPadded")
+        file.write(f"{indent}if (nCopyInOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInOutPerTile padding failure\");\n\n")
 
         # copy out
         cout = params.get(T_OUT, {})
@@ -334,7 +340,7 @@ def generate_cpp_code_file(parameters):
         file.write(f";\n")
         file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n")
         # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
-        returnToHost.append("nCopyOutDataPerTileBytesPadded")
+        returnToHost.append("nCopyOutDataPerTileBytes")
         bytesPerPacket.append("nCopyOutDataPerTileBytesPadded")
         file.write(f"{indent}if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyOutPerTile padding failure\");\n\n")
 
