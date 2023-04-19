@@ -324,14 +324,19 @@ def generate_cpp_code_file(parameters):
 
         # copy out
         cout = params.get(T_OUT, {})
-        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = 0")
+        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = (0")
         if cout:
             for item in cout:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
-            returnToHost.append("(nTiles * nCopyOutDataPerTileBytes)")
-            bytesPerPacket.append("(nTiles * nCopyOutDataPerTileBytes)")
+            file.write(f") * nTiles")
+        else:
+            file.write(f")")
         file.write(f";\n")
+        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n")
+        # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
+        returnToHost.append("nCopyOutDataPerTileBytesPadded")
+        bytesPerPacket.append("nCopyOutDataPerTileBytesPadded")
+        file.write(f"{indent}if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyOutPerTile padding failure\");\n\n")
 
         # 
         file.writelines([
