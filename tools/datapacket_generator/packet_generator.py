@@ -118,11 +118,11 @@ def generate_cpp_code_file(parameters):
                 file.write(f"{indent}{item} = {NEW}{item};\n")
 
             # TODO: Should we set the variable mask in the constructor?
-            start = params['start']
-            end = params['end']
-            if isinstance(start, str): warnings.warn("start is a string. continuing...")
-            if isinstance(end, str): warnings.warn("end is a string. continuing...")
-            # file.write(f"{indent}setVariableMask({start}, {end});\n")
+            # start = params['start']
+            # end = params['end']
+            # if isinstance(start, str): warnings.warn("start is a string. continuing...")
+            # if isinstance(end, str): warnings.warn("end is a string. continuing...")
+            # # file.write(f"{indent}setVariableMask({start}, {end});\n")
 
             file.write("}\n\n")
 
@@ -273,7 +273,7 @@ def generate_cpp_code_file(parameters):
         file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad({N_TILES} * nScratchPerTileBytes);\n")
         # bytesPerPacket.append("(nTiles * nScratchPerTileBytes)")
         bytesPerPacket.append("nScratchPerTileBytesPadded")
-        file.write(f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n")
+        file.write(f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n\n")
 
         # # Copy-in section generation.
         # Non tile specific data
@@ -285,7 +285,7 @@ def generate_cpp_code_file(parameters):
         file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
         bytesToGpu.append("nCopyInBytesPadded")
         bytesPerPacket.append("nCopyInBytesPadded")
-        file.write(f"{indent}if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyIn padding failure\");\n")
+        file.write(f"{indent}if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyIn padding failure\");\n\n")
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
@@ -298,13 +298,18 @@ def generate_cpp_code_file(parameters):
 
         # copy in data
         cin = params.get(T_IN, {})
-        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = 0")
+        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = (0")
         if cin:
             for item in cin:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            bytesToGpu.append("(nTiles * nCopyInDataPerTileBytes)")
-            bytesPerPacket.append("(nTiles * nCopyInDataPerTileBytes)")
+            file.write(f") * {N_TILES}")
+        else:
+            file.write(f")")
         file.write(f";\n")
+        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);\n")
+        bytesToGpu.append("nCopyInDataPerTileBytesPadded")
+        bytesPerPacket.append("nCopyInDataPerTileBytesPadded")
+        file.write(f"{indent}if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInPerTile padding failure\");\n\n")
 
         # copy in out data
         cinout = params.get(T_IN_OUT, {})
@@ -358,8 +363,8 @@ def generate_cpp_code_file(parameters):
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             # f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
             F"{indent}copyInStart_d_ = scratchStart_d + nScratchPerTileBytesPadded;\n"
-            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
-            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
+            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + nCopyInDataPerTileBytesPadded;\n",
+            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + nCopyInDataPerTileBytesPadded;\n",
         ])
 
         if T_OUT in params:
