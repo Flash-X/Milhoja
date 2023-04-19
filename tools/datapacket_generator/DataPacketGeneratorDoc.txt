@@ -24,8 +24,8 @@ Packet Metadata:
 [Required]	
 - name	= the name of the data packet to be generated.
 - ndim  = the number of dimensions being used. [3] (Should we force the user to specify ndims?)
-- start = index where the unknown variables start ( variable masking )
-- end = index where the unknown variables end ( variable masking )
+- start = index where the unknown variables start ( variable masking ). Can be an int or a known runtime constant. Strings print out a warning (for now).
+- end = index where the unknown variables end ( variable masking ). Can be an int or known runtime constant. Strings print out a warning (for now).
 
 [Optional]
 - n-extra-streams = the number of extra streams to use in the packet. Every datapacket has at least one stream. [0]

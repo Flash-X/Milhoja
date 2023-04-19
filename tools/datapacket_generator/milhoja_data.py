@@ -34,7 +34,7 @@ constants = {
 
 # A helper method that parses the extents array in the JSON file.
 # returns the final string to be used in the code.
-def parse_extents(extents, size=''):
+def parse_extents(extents, size='') -> str:
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
         if extents[-1] == ')': extents = extents[:-1]
@@ -56,9 +56,9 @@ def parse_extents(extents, size=''):
                     if constant in nguard:
                         break # if we find one of the constants in the string
                 else: #no break
-                    print(f"[packet_generator.py] {nguard} not found in string. Aborting.", file=sys.stderr)
+                    print(f"{nguard} not found in string. Aborting.", file=sys.stderr)
                     exit(-1)
-                warnings.warn("[packet_generator.py] Constant found in string, continuing...")
+                warnings.warn("Constant found in string, continuing...")
 
         try:
             nunkvar = int(nunkvar)
@@ -71,9 +71,9 @@ def parse_extents(extents, size=''):
                     if constant in nunkvar:
                         break # if we find one of the constants in the string
                 else: #no break
-                    print("[packet_generator.py] Constant not found in string. Aborting.", file=sys.stderr)
+                    print("Constant not found in string. Aborting.", file=sys.stderr)
                     exit(-1)
-                warnings.warn("[packet_generator.py] Constant found in string, continuing...")
+                warnings.warn("Constant found in string, continuing...")
         
         return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
     
@@ -81,5 +81,4 @@ def parse_extents(extents, size=''):
         return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
     else:
         print("Extents is not a string or list of numbers. Please refer to the documentation.")
-
-    return
+        exit(-1)

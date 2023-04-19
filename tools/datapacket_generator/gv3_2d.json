@@ -1,8 +1,11 @@
 {
   "name": "DataPacket_Hydro_gpu_3",
   "ndim": 2,
+  "byte-align": 16,
   "problem": "Sedov",
   "n-extra-streams": 0,
+  "start": "UNK_VARS_BEGIN",
+  "end": "EINT_VAR",
   "tile-scratch": {
     "CC2": {
       "type": "Real",

@@ -16,12 +16,9 @@ import sys
 import json
 import argparse
 import milhoja_data as mdata
+import warnings
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
-
-datatype_to_include_map = {
-    "IntVect": ""
-}
 
 # All possible keys.
 EXTRA_STREAMS = 'n-extra-streams'
@@ -47,6 +44,9 @@ START_P = "_start_p"
 START_D = "_start_d"
 PTRS = "pointers"
 PINDEX = f"{PTRS}_index"
+
+SCRATCH_BYTES = "nScratchBytes"
+CIN_BYTES = "nCopyInBytes"
 # 
 
 # TODO: Variant 2 uses an array of extra queues instead of just using 2 extra ones if dim is 3.
@@ -116,6 +116,13 @@ def generate_cpp_code_file(parameters):
             # We need to add them to the constructor args.
             for item in params.get(GENERAL, {}):
                 file.write(f"{indent}{item} = {NEW}{item};\n")
+
+            # TODO: Should we set the variable mask in the constructor?
+            start = params['start']
+            end = params['end']
+            if isinstance(start, str): warnings.warn("start is a string. continuing...")
+            if isinstance(end, str): warnings.warn("end is a string. continuing...")
+            file.write(f"{indent}setVariableMask({start}, {end});\n")
 
             file.write("}\n\n")
 
@@ -243,17 +250,19 @@ def generate_cpp_code_file(parameters):
             f"{indent}else if (tiles_.size() == 0)\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
             f"{indent}\n"
-            f"{indent}Grid& grid = Grid::instance();\n\n"
+            f"{indent}Grid& grid = Grid::instance();\n"
         ])
+
+        file.write(f"{indent}{SIZE_T} {N_TILES} = tiles_.size();\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
         # # Scratch section generation.
         file.write(f"{indent}// Scratch section\n")
 
-        bytesToGpu = set()
-        returnToHost = set()
-        bytesPerPacket = set()
+        bytesToGpu = []
+        returnToHost = []
+        bytesPerPacket = []
 
         nScratchArrs = 0
         file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = 0")
@@ -261,18 +270,19 @@ def generate_cpp_code_file(parameters):
             nScratchArrs += 1
             file.write(f" + {var}{BLOCK_SIZE}")
         file.write(f";\n{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
-        bytesPerPacket.add("(nTiles * nScratchPerTileBytes)")
+        file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad(nTiles * nScratchPerTileBytes);\n")
+        # bytesPerPacket.append("(nTiles * nScratchPerTileBytes)")
+        bytesPerPacket.append("nScratchPerTileBytesPadded")
 
         # # Copy-in section generation.
         # Non tile specific data
         file.write(f"\n{indent}// non tile specific data\n")
-        file.write(f"{indent}{SIZE_T} {N_TILES} = tiles_.size();\n")
         file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({SIZE_T}) ")
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
         file.write(f"+ {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
-        bytesToGpu.add("nCopyInBytes")
-        bytesPerPacket.add("nCopyInBytes")
+        bytesToGpu.append("nCopyInBytes")
+        bytesPerPacket.append("nCopyInBytes")
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
@@ -280,8 +290,8 @@ def generate_cpp_code_file(parameters):
         for item in params.get(T_MDATA, []):
             file.write(f" + {item}{BLOCK_SIZE}")
         file.write(f";\n")
-        bytesToGpu.add("(nTiles * nBlockMetadataPerTileBytes)")
-        bytesPerPacket.add("(nTiles * nBlockMetadataPerTileBytes)")
+        bytesToGpu.append("(nTiles * nBlockMetadataPerTileBytes)")
+        bytesPerPacket.append("(nTiles * nBlockMetadataPerTileBytes)")
 
         # copy in data
         cin = params.get(T_IN, {})
@@ -289,8 +299,8 @@ def generate_cpp_code_file(parameters):
         if cin:
             for item in cin:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            bytesToGpu.add("(nTiles * nCopyInDataPerTileBytes)")
-            bytesPerPacket.add("(nTiles * nCopyInDataPerTileBytes)")
+            bytesToGpu.append("(nTiles * nCopyInDataPerTileBytes)")
+            bytesPerPacket.append("(nTiles * nCopyInDataPerTileBytes)")
         file.write(f";\n")
 
         # copy in out data
@@ -299,9 +309,9 @@ def generate_cpp_code_file(parameters):
         if cinout:
             for item in cinout:
                 file.write(f" + {item}{BLOCK_SIZE}")
-            bytesToGpu.add("(nTiles * nCopyInOutDataPerTileBytes)")
-            returnToHost.add("(nTiles * nCopyInOutDataPerTileBytes)")
-            bytesPerPacket.add("(nTiles * nCopyInOutDataPerTileBytes)")
+            bytesToGpu.append("(nTiles * nCopyInOutDataPerTileBytes)")
+            returnToHost.append("(nTiles * nCopyInOutDataPerTileBytes)")
+            bytesPerPacket.append("(nTiles * nCopyInOutDataPerTileBytes)")
         file.write(f";\n")
 
         # copy out
@@ -311,8 +321,8 @@ def generate_cpp_code_file(parameters):
             for item in cout:
                 file.write(f" + {item}{BLOCK_SIZE}")
             # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
-            returnToHost.add("(nTiles * nCopyOutDataPerTileBytes)")
-            bytesPerPacket.add("(nTiles * nCopyOutDataPerTileBytes)")
+            returnToHost.append("(nTiles * nCopyOutDataPerTileBytes)")
+            bytesPerPacket.append("(nTiles * nCopyOutDataPerTileBytes)")
         file.write(f";\n")
 
         # 
@@ -326,23 +336,25 @@ def generate_cpp_code_file(parameters):
         # # acquire gpu mem
         # Note that copyin, copyinout, and copyout all have a default of 0. So to keep code generation easy
         # we set them to the default of 0 even if they don't exist in the json.
-        file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {N_TILES} * nScratchPerTileBytes, &packet_p_, nBytesPerPacket, &packet_d_);\n")
+        # file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {N_TILES} * nScratchPerTileBytes, &packet_p_, nBytesPerPacket, &packet_d_);\n")
+        file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.write(f"{indent}/// END\n\n")
 
         file.write(f"{indent}/// POINTER DETERMINATION\n\n")
         # array to store all pointers to copy in later.
         # num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
-        file.writelines([
-            f"//{indent}unsigned int copy_size = stuff\n"
-            f"{indent}unsigned int copy_index = 0;\n"
-            f"{indent}MemCopyArgs copyargs[1000];\n\n"
-        ])
+        # file.writelines([
+        #     f"//{indent}unsigned int copy_size = stuff\n"
+        #     f"{indent}unsigned int copy_index = 0;\n"
+        #     f"{indent}MemCopyArgs copyargs[1000];\n\n"
+        # ])
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
             f"{indent}char* scratchStart_d = static_cast<char*>(packet_d_);\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
+            # f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
+            F"{indent}copyInStart_d_ = scratchStart_d + nScratchPerTileBytesPadded;\n"
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
         ])
@@ -372,14 +384,14 @@ def generate_cpp_code_file(parameters):
             f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
             f"//{indent}copyargs[copy_index] = {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }};\n"
             f"//{indent}copy_index++;\n"
-            f"//{indent}copyargs.push_back( {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }} );\n"
+            #f"//{indent}copyargs.push_back( {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }} );\n"
             f"{indent}ptr_p += sizeof({SIZE_T});\n",
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
         ])
 
         for item in params.get(GENERAL, []):
             file.writelines([
-                f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
+                #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
                 f"//{indent}copy_index++;\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
@@ -457,13 +469,13 @@ def generate_cpp_code_file(parameters):
         if T_IN in params:
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n")
-            file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }} );\n")
+            #file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }} );\n")
             file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }};\n")
             file.write(f"//{indent}copy_index++;\n")
         elif T_IN_OUT in params:
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, {size});\n")
-            file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }} );\n")
+            #file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }} );\n")
             file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }};\n")
             file.write(f"//{indent}copy_index++;\n")
         # file.write(f");\n")
@@ -489,7 +501,7 @@ def generate_cpp_code_file(parameters):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
-                f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }} );\n"
+                #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }} );\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }};\n",
                 f"//{indent}copy_index++;\n",
@@ -509,7 +521,7 @@ def generate_cpp_code_file(parameters):
             file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
             file.writelines([
                 f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
-                f"//{indent}copyargs.push_back( {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }} );\n"
+                #f"//{indent}copyargs.push_back( {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n",
                 f"//{indent}copy_index++;\n",
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
@@ -805,9 +817,10 @@ def generate_cpp_header_file(parameters):
                 #"\tMemCopyArgs* copyargs;\n"
             ])
 
+        # TODO: Uhhh this pad function does not work. ((0 + 16 - 1) / 16) * 16 = 15, 15 % 16 != 0 which means this throws an error in the modern packet.
         header.writelines([
             f"\tstatic constexpr std::size_t ALIGN_SIZE=16;\n",
-            f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return size + ( ALIGN_SIZE - size % ALIGN_SIZE ) % ALIGN_SIZE; }}\n",
+            f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
             ''.join(private_variables)
         ])
 
