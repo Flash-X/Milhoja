@@ -270,9 +270,10 @@ def generate_cpp_code_file(parameters):
             nScratchArrs += 1
             file.write(f" + {var}{BLOCK_SIZE}")
         file.write(f";\n{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
-        file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad(nTiles * nScratchPerTileBytes);\n")
+        file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad({N_TILES} * nScratchPerTileBytes);\n")
         # bytesPerPacket.append("(nTiles * nScratchPerTileBytes)")
         bytesPerPacket.append("nScratchPerTileBytesPadded")
+        file.write(f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n")
 
         # # Copy-in section generation.
         # Non tile specific data
@@ -281,8 +282,10 @@ def generate_cpp_code_file(parameters):
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
         file.write(f"+ {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
-        bytesToGpu.append("nCopyInBytes")
-        bytesPerPacket.append("nCopyInBytes")
+        file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
+        bytesToGpu.append("nCopyInBytesPadded")
+        bytesPerPacket.append("nCopyInBytesPadded")
+        file.write(f"{indent}if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyIn padding failure\");\n")
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
@@ -355,8 +358,8 @@ def generate_cpp_code_file(parameters):
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             # f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
             F"{indent}copyInStart_d_ = scratchStart_d + nScratchPerTileBytesPadded;\n"
-            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
-            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
+            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
+            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + ({N_TILES} * nCopyInDataPerTileBytes);\n",
         ])
 
         if T_OUT in params:
