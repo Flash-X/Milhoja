@@ -289,12 +289,14 @@ def generate_cpp_code_file(parameters):
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D)")
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D)")
         for item in params.get(T_MDATA, []):
             file.write(f" + {item}{BLOCK_SIZE}")
-        file.write(f";\n")
-        bytesToGpu.append("(nTiles * nBlockMetadataPerTileBytes)")
-        bytesPerPacket.append("(nTiles * nBlockMetadataPerTileBytes)")
+        file.write(f" );\n")
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
+        bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
+        bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
+        file.write(f"{indent}if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Metadata padding failure\");\n\n")
 
         # copy in data
         cin = params.get(T_IN, {})
@@ -374,8 +376,8 @@ def generate_cpp_code_file(parameters):
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             # f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
             F"{indent}copyInStart_d_ = scratchStart_d + nScratchPerTileBytesPadded;\n"
-            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + nCopyInDataPerTileBytesPadded;\n",
-            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + ({N_TILES} * nBlockMetadataPerTileBytes) + nCopyInDataPerTileBytesPadded;\n",
+            f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
+            f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
         ])
 
         if T_OUT in params:
