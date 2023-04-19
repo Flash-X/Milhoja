@@ -122,7 +122,7 @@ def generate_cpp_code_file(parameters):
             end = params['end']
             if isinstance(start, str): warnings.warn("start is a string. continuing...")
             if isinstance(end, str): warnings.warn("end is a string. continuing...")
-            file.write(f"{indent}setVariableMask({start}, {end});\n")
+            # file.write(f"{indent}setVariableMask({start}, {end});\n")
 
             file.write("}\n\n")
 
