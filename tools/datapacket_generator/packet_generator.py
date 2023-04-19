@@ -430,8 +430,8 @@ def generate_cpp_code_file(parameters):
 
         for idx,item in enumerate(params.get(T_IN, {})):
             if idx == 0:
-                file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
-                file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+                file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
+                file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
             else:
                 l = list(params[T_IN])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
