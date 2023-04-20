@@ -63,6 +63,7 @@ nstreams = 1
 all_pointers = set()
 types = set()
 includes = set()
+constructor_args = []
 
 # TODO: It might be beneficial to write helper methods or a wrapper class for files
 # to help with consistently writing to the file, so we
@@ -80,7 +81,7 @@ def generate_fortran_code_file(parameters):
 def generate_cpp_code_file(parameters):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}(const milhoja::Real {NEW}dt) : milhoja::DataPacket{{}}, \n")
+            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'const {item[1]} {item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
             extra_streams = params[EXTRA_STREAMS]
             level = 1
             index = 1
@@ -277,7 +278,7 @@ def generate_cpp_code_file(parameters):
 
         # # Copy-in section generation.
         # Non tile specific data
-        file.write(f"\n{indent}// non tile specific data\n")
+        file.write(f"{indent}// non tile specific data\n")
         file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({SIZE_T}) ")
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
@@ -743,14 +744,17 @@ def generate_cpp_header_file(parameters):
                 var = f"\tmilhoja::{general[item]} {item};\n"
                 size_var = f"\t{SIZE_T} {block_size_var};\n"
                 is_enumerable = is_enumerable_type(general[item])
-                types.add(general[item] if not is_enumerable else general[item]['type'])
+                item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
                 # header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
                 # header.write(f"{indent}{SIZE_T} {block_size_var};\n")
                 # header.write(f"#include {includes[ general[item] ]}\n")
-                private_variables.append(var)
+                # private_variables.append(var)
                 private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
+                types.add(item_type)
+                if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
+                constructor_args.append([item, item_type])
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item.
@@ -778,13 +782,13 @@ def generate_cpp_header_file(parameters):
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
 
-        header.writelines([
-            f"\nstruct MemCopyArgs {{\n",
-            f"\tvoid* src = nullptr;\n",
-            f"\tvoid* dest = nullptr;\n",
-            f"\t{SIZE_T} size = 0;\n"
-            f"}};\n\n"
-        ])
+        # header.writelines([
+        #     f"\nstruct MemCopyArgs {{\n",
+        #     f"\tvoid* src = nullptr;\n",
+        #     f"\tvoid* dest = nullptr;\n",
+        #     f"\t{SIZE_T} size = 0;\n"
+        #     f"}};\n\n"
+        # ])
 
         # class definition
         header.write(f"class {name} : public milhoja::DataPacket {{ \n")
@@ -794,11 +798,12 @@ def generate_cpp_header_file(parameters):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(indent + f"{name}(const milhoja::Real {NEW}dt);\n")
+        header.write(f"{indent}{name}({', '.join(f'const {item[1]} {NEW}{item[0]}' for item in constructor_args)})")
+        # header.write(indent + f"{name}(const milhoja::Real {NEW}dt);\n")
         header.write(indent + f"~{name}(void);\n")
 
         # Constructors & = operations
-        header.writelines([\
+        header.writelines([
             f"{indent}{name}({name}&)                  = delete;\n",
             f"{indent}{name}(const {name}&)            = delete;\n",
             f"{indent}{name}({name}&& packet)          = delete;\n",
@@ -840,8 +845,9 @@ def generate_cpp_header_file(parameters):
 
         # TODO: Uhhh this pad function does not work. ((0 + 16 - 1) / 16) * 16 = 15, 15 % 16 != 0 which means this throws an error in the modern packet.
         header.writelines([
-            f"\tstatic constexpr std::size_t ALIGN_SIZE=16;\n",
+            f"\tstatic constexpr std::size_t ALIGN_SIZE={parameters.get('byte-align', 16)};\n",
             f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
+            ''.join( f'\t{item[1]} {item[0]};\n' for item in constructor_args),
             ''.join(private_variables)
         ])
 
