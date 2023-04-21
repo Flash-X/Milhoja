@@ -72,13 +72,13 @@ constructor_args = []
 def is_enumerable_type(var):
     return isinstance(var, (dict, list))
 
-def generate_fortran_header_file(parameters):
+def generate_fortran_header_file(parameters, args):
     ...
 
-def generate_fortran_code_file(parameters):
+def generate_fortran_code_file(parameters, args):
     ...
 
-def generate_cpp_code_file(parameters):
+def generate_cpp_code_file(parameters, args):
     def generate_constructor(file, params):
             # function definition
             file.write(f"{params['name']}::{params['name']}({ ', '.join( f'const {item[1]} {item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
@@ -233,7 +233,7 @@ def generate_cpp_code_file(parameters):
     # TODO: Improve pack generation code
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents. We also want to consider letting the user add numeric constants to general
     # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
-    def generate_pack(file, params):
+    def generate_pack(file, params, args):
         packet_name = params["name"]
         ndim = params["ndim"]
         func_name = "pack"
@@ -370,6 +370,14 @@ def generate_cpp_code_file(parameters):
         #     f"{indent}unsigned int copy_index = 0;\n"
         #     f"{indent}MemCopyArgs copyargs[1000];\n\n"
         # ])
+
+        # If sizes are not specified then we just create the packet according to the order in the JSON
+        if args.sizes:
+            s = open(args.sizes, "r")
+            sizes = json.load(s)
+            s.close()
+        else:
+            sizes = None
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
@@ -402,7 +410,10 @@ def generate_cpp_code_file(parameters):
         ])
 
         # automatically generate nTiles data PacketContents
+        # TODO: Maybe we should just add nTiles to general automatically instead of hardcoding the lines in the file.
+        # NOTE: Due to the way the task function works, nTiles always needs to be at the beginning (for now)
         file.writelines([
+            # f"{indent}{SIZE_T} nTiles{BLOCK_SIZE} = sizeof({SIZE_T});\n",
             f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
             f"//{indent}copyargs[copy_index] = {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }};\n"
             f"//{indent}copy_index++;\n"
@@ -411,7 +422,7 @@ def generate_cpp_code_file(parameters):
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
         ])
 
-        for item in params.get(GENERAL, []):
+        for item in sorted(params.get(GENERAL, []), key=lambda x: sizes[params[GENERAL][x]] if sizes else 1, reverse=True):
             file.writelines([
                 #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
@@ -429,7 +440,7 @@ def generate_cpp_code_file(parameters):
             f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
         ])
 
-        for idx,item in enumerate(params.get(T_IN, {})):
+        for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes[params[T_IN][x]['type']] if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
@@ -443,7 +454,7 @@ def generate_cpp_code_file(parameters):
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
         # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
-        for idx,item in enumerate(params.get(T_IN_OUT, {})):
+        for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes[params[T_IN_OUT][x]['type']] if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
@@ -452,7 +463,7 @@ def generate_cpp_code_file(parameters):
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
          
-        for idx,item in enumerate(params.get(T_OUT, {})):
+        for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes[params[T_OUT][x]['type']] if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyOutStart_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
@@ -463,7 +474,7 @@ def generate_cpp_code_file(parameters):
 
         # Create all scratch ptrs.
         # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
-        scr = list(params.get(T_SCRATCH, {}).keys())
+        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes[params[T_SCRATCH][x]['type']] if sizes else 1, reverse=True ) )
         for idx,item in enumerate(scr):
             if idx == 0:  # we can probably use an iterator here instead
                 file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
@@ -488,6 +499,7 @@ def generate_cpp_code_file(parameters):
         ])
 
         # TODO: THis code here is a problem if we want to have any number of arrays in each section.
+        # TODO: Is there a way we can sort this with the other arrays?
         if T_IN in params:
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n")
@@ -517,9 +529,10 @@ def generate_cpp_code_file(parameters):
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
+        # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
         # Add metadata to ptr
-        for item in params.get(T_MDATA, []):
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes[params[T_MDATA][x]] if sizes else 1, reverse=True):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
@@ -531,9 +544,7 @@ def generate_cpp_code_file(parameters):
                 f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
             ])
 
-        # TODO: This is not going to work for generic names for arrays. We need to 
-        # add specifications to the json file.
-        for item in device_array_pointers:
+        for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
             d = 4 # assume d = 4 for now.
             section = device_array_pointers[item]['section']
             type = device_array_pointers[item]['type']
@@ -580,8 +591,7 @@ def generate_cpp_code_file(parameters):
         # request stream at end
         file.writelines([
             f"{indent}stream_ = RuntimeBackend::instance().requestStream(true);\n",
-            f"{indent}if (!stream_.isValid()) {{\n",
-            f"{indent * 2}throw std::runtime_error(\"[{packet_name}::pack] Unable to acquire stream\");\n{indent}}}\n"
+            f"{indent}if (!stream_.isValid()) throw std::runtime_error(\"[{packet_name}::pack] Unable to acquire stream\");\n",
         ])
 
         # TODO: CHange to use the array implementation.
@@ -700,15 +710,13 @@ def generate_cpp_code_file(parameters):
         generate_release_queues(code, parameters)
         # generate clone method
         generate_clone(code, parameters)
-        generate_pack(code, parameters)
+        generate_pack(code, parameters, args)
         generate_unpack(code, parameters)
 
 # Creates a header file based on the given parameters.
 # Lots of boilerplate and class member generation.
 # TODO: Pack and unpack functions use a specific variable involving CC1 and CC2. How can we specify this in tile-in and tile-out?
-# TODO: Should the user have to specify the molhoja dim in the json file?
-# TODO: Get all necessary include statements from JSON file.
-def generate_cpp_header_file(parameters):
+def generate_cpp_header_file(parameters, args):
     if not parameters:
         raise ValueError("Parameters is null.")
 
@@ -872,18 +880,22 @@ def generate_packet_with_filepath(fp, args):
 def generate_packet_with_dict(json_dict, args):
     
     if args.cpp:
-        generate_cpp_header_file(json_dict)
-        generate_cpp_code_file(json_dict)
+        generate_cpp_header_file(json_dict, args)
+        generate_cpp_code_file(json_dict, args)
 
     if args.fortran:
-        generate_fortran_header_file(json_dict)
-        generate_fortran_code_file(json_dict)
+        generate_fortran_header_file(json_dict, args)
+        generate_fortran_code_file(json_dict, args)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
     parser.add_argument("JSON", help="The JSON file to generate from.")
     parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
     parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
+    parser.add_argument("--sizes", "-p", help="Path to data type size information.")
     args = parser.parse_args()
+
+    if args.sizes: print(args.sizes)
+    else: print("No sizes path found...")
 
     generate_packet_with_filepath(args.JSON, args)

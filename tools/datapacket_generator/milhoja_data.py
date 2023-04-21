@@ -1,6 +1,14 @@
 import sys
 import warnings
 
+known_types = {
+    'deltas': 'RealVect',
+    'lo': "IntVect",
+    'hi': "IntVect",
+    'loGC': "IntVect",
+    'hiGC': "IntVect"
+}
+
 imap = {
     'IntVect':  '<Milhoja_IntVect.h>',
     'Real':     '<Milhoja_real.h>',

@@ -21,12 +21,14 @@
     }
   },
   "general": {
-    "dt": "Real"
+    "dt": "Real",
+    "hey": "int"
   },
   "tile-metadata": {
     "deltas": "RealVect",
     "lo": "IntVect",
     "hi": "IntVect"
+    
   },
   "tile-in-out": {
     "CC1": {
