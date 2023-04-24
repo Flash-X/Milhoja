@@ -409,20 +409,10 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}char* ptr_d = copyInStart_d_;\n\n",
         ])
 
-        # automatically generate nTiles data PacketContents
-        # TODO: Maybe we should just add nTiles to general automatically instead of hardcoding the lines in the file.
-        # NOTE: Due to the way the task function works, nTiles always needs to be at the beginning (for now)
-        file.writelines([
-            # f"{indent}{SIZE_T} nTiles{BLOCK_SIZE} = sizeof({SIZE_T});\n",
-            f"{indent}std::memcpy((void*)ptr_p, (void*)&{N_TILES}, sizeof({SIZE_T}));\n",
-            f"//{indent}copyargs[copy_index] = {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }};\n"
-            f"//{indent}copy_index++;\n"
-            #f"//{indent}copyargs.push_back( {{ (void*)&{N_TILES}, (void*)ptr_p, sizeof({SIZE_T}) }} );\n"
-            f"{indent}ptr_p += sizeof({SIZE_T});\n",
-            f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
-        ])
-
-        for item in sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True):
+        general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
+        file.write(f"{indent}{SIZE_T} nTiles{BLOCK_SIZE} = sizeof({SIZE_T});\n")
+        general.insert(0, "nTiles")
+        for item in general:
             file.writelines([
                 #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
@@ -440,14 +430,22 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
         ])
 
+        # SUPER DUPER TODO: We need to fix the data copy in section to use every array specified in T_IN and T_IN_OUT. 
+        # Right now it only combines all data into one array
+        previous = ""
+        data_copy_string = ""
         for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
+                data_copy_string += f"std::memcpy((void*){item}{START_P}, (void*)data_h, {item}{BLOCK_SIZE});\n"
+                previous = f"{item}{START_P} + {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
+                data_copy_string += f"std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
+                previous = f"{item}{START_P} + {item}{BLOCK_SIZE}"
 
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: The variants for each packet don't have CC1 set co copyInOut.
@@ -461,7 +459,7 @@ def generate_cpp_code_file(parameters, args):
             else:
                 l = list(params[T_IN_OUT])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
          
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
@@ -470,7 +468,7 @@ def generate_cpp_code_file(parameters, args):
             else:
                 l = list(params[T_OUT])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
 
         # Create all scratch ptrs.
         # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
@@ -503,13 +501,11 @@ def generate_cpp_code_file(parameters, args):
         if T_IN in params:
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n")
-            #file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }} );\n")
             file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }};\n")
             file.write(f"//{indent}copy_index++;\n")
         elif T_IN_OUT in params:
             size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
             file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, {size});\n")
-            #file.write(f"//{indent}copyargs.push_back( {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }} );\n")
             file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }};\n")
             file.write(f"//{indent}copy_index++;\n")
         # file.write(f");\n")
@@ -519,27 +515,25 @@ def generate_cpp_code_file(parameters, args):
         # TODO: We need to change this code to work with multiple array types in each section of the json
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_IN_OUT].keys()) }{START_P});\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ params[T_IN_OUT][nxt].keys() }{START_P});\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ '_'.join(params[T_OUT].keys()) }{START_P});\n\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ params[T_OUT][nxt].keys() }{START_P});\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
-        possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \
-                             + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
+        # possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \
+        #                      + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
         # Add metadata to ptr
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(params[T_MDATA][x], 0) if sizes else 1, reverse=True):
-            possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
-                #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }} );\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }};\n",
                 f"//{indent}copy_index++;\n",
@@ -557,7 +551,6 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
             file.writelines([
                 f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
-                #f"//{indent}copyargs.push_back( {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n",
                 f"//{indent}copy_index++;\n",
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
@@ -570,13 +563,6 @@ def generate_cpp_code_file(parameters, args):
             else:
                 file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
-
-            possible_tile_ptrs.remove(item)
-
-        # # if there are unremoved items we set them to nullptr.
-        # # TODO: This needs to change when removing PacketContents
-        # for item in possible_tile_ptrs:
-        #     file.write(f"{indent}tilePtrs_p->{item}_d = nullptr;\n")
 
         indent = "\t"
 
