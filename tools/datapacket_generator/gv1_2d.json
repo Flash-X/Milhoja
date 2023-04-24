@@ -28,6 +28,8 @@
   },
   "tile-out": {
     "CC2": {
+      "start": "UNK_VARS_BEGIN",
+      "end": "EINT_VAR",
       "type": "Real",
       "extents": "cc(NGUARD, NUNKVAR-2)"
     }
