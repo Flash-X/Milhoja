@@ -438,14 +438,19 @@ def generate_cpp_code_file(parameters, args):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
-                data_copy_string += f"std::memcpy((void*){item}{START_P}, (void*)data_h, {item}{BLOCK_SIZE});\n"
-                previous = f"{item}{START_P} + {item}{BLOCK_SIZE}"
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)data_h, {item}{BLOCK_SIZE});\n"
+                # data_copy_string += f"{indent*2}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n"
+                if previous == "":
+                    previous = f"data_h + {item}{BLOCK_SIZE} "
+                else:
+                    previous += f"+ {item}{BLOCK_SIZE}"
+                # f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n"
             else:
                 l = list(params[T_IN])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
-                data_copy_string += f"std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
-                previous = f"{item}{START_P} + {item}{BLOCK_SIZE}"
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
+                previous += f"+ {item}{BLOCK_SIZE}"
 
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: The variants for each packet don't have CC1 set co copyInOut.
@@ -456,10 +461,18 @@ def generate_cpp_code_file(parameters, args):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+                data_h = "data_h" if previous == "" else previous
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){data_h}, {item}{BLOCK_SIZE});\n"
+                if previous == "":
+                    previous = f"data_h + {item}{BLOCK_SIZE} "
+                else:
+                    previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN_OUT])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
+                previous += f" + {item}{BLOCK_SIZE}"
          
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
@@ -496,23 +509,12 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n\n"
         ])
 
-        # TODO: THis code here is a problem if we want to have any number of arrays in each section.
-        # TODO: Is there a way we can sort this with the other arrays?
-        if T_IN in params:
-            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN, {}) )
-            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n")
-            file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN])}{START_P}, (void*)ptr_p, {size} }};\n")
-            file.write(f"//{indent}copy_index++;\n")
-        elif T_IN_OUT in params:
-            size = "0 + " + ' + '.join( f'{item}{BLOCK_SIZE}' for item in params.get(T_IN_OUT, {}) )
-            file.write(f"{indent}std::memcpy((void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)data_h, {size});\n")
-            file.write(f"//{indent}copyargs[copy_index] = {{ (void*){'_'.join(params[T_IN_OUT])}{START_P}, (void*)ptr_p, {size} }};\n")
-            file.write(f"//{indent}copy_index++;\n")
-        # file.write(f");\n")
+        # Memcpy copy-in/copy-in-out data with data_h as source
+        file.write(data_copy_string)
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
-        # TODO: We need to change this code to work with multiple array types in each section of the json
+        # TODO: Revisit when packet contents si removed
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n")
