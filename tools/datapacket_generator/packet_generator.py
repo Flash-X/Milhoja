@@ -515,20 +515,20 @@ def generate_cpp_code_file(parameters, args):
         # TODO: We need to change this code to work with multiple array types in each section of the json
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ params[T_IN_OUT][nxt].keys() }{START_P});\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ params[T_OUT][nxt].keys() }{START_P});\n\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
-        # possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \
+        # possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \ 
         #                      + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
         # Add metadata to ptr
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
