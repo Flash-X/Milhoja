@@ -100,14 +100,12 @@ def generate_cpp_code_file(parameters, args):
 
             file.write(f"{indent}Grid::instance().getBlockSize(&nxb, &nyb, &nzb);\n")
 
-            # TODO: I think we need to be careful here. Do we automatically assume that 'extents' and 'type' exist
-            # when given dictionary instead of a scalar? Do we want to force the user to include those 2 keys when 
-            # specifying an array type?
-            # TODO: We can just use dict.get instead of storing the known sections.
             for section in params:
-                if isinstance(params[section], dict):
+                if isinstance(params[section], dict) or isinstance(params[section], list):
                     for item in params[section]:
-                        if not isinstance(params[section][item], (dict, list)):
+                        if section == T_MDATA:
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({mdata.known_types[item]});\n")
+                        elif not isinstance(params[section][item], (dict, list)):
                             file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
                         else:
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
