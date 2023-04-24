@@ -809,7 +809,7 @@ def generate_cpp_header_file(parameters, args):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(f"{indent}{name}({', '.join(f'const {item[1]} {NEW}{item[0]}' for item in constructor_args)})")
+        header.write(f"{indent}{name}({', '.join(f'const {item[1]} {NEW}{item[0]}' for item in constructor_args)});\n")
         # header.write(indent + f"{name}(const milhoja::Real {NEW}dt);\n")
         header.write(indent + f"~{name}(void);\n")
 
@@ -854,7 +854,6 @@ def generate_cpp_header_file(parameters, args):
                 #"\tMemCopyArgs* copyargs;\n"
             ])
 
-        # TODO: Uhhh this pad function does not work. ((0 + 16 - 1) / 16) * 16 = 15, 15 % 16 != 0 which means this throws an error in the modern packet.
         header.writelines([
             f"\tstatic constexpr std::size_t ALIGN_SIZE={parameters.get('byte-align', 16)};\n",
             f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
