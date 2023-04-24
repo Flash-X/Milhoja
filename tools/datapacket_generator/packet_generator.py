@@ -531,9 +531,9 @@ def generate_cpp_code_file(parameters, args):
         # possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \
         #                      + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
         # Add metadata to ptr
-        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(params[T_MDATA][x], 0) if sizes else 1, reverse=True):
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
             file.writelines([
-                f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
+                f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>((void*)ptr_d);\n",
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }};\n",
                 f"//{indent}copy_index++;\n",
@@ -754,16 +754,15 @@ def generate_cpp_header_file(parameters, args):
                 constructor_args.append([item, item_type])
 
         # Generate private variables for each section. Here we are creating a size helper
-        # variable for each item in each section based on the name of the item.
-
-        # TODO: We can scrunch all of these separate loops into one once we remove the very specific code for
-        #       the CC1, CC2, Scratch pointer section.
+        # variable for each item in each section based on the name of the item
         if T_MDATA in parameters:
             for item in parameters[T_MDATA]:
                 new_variable = f"{item}{BLOCK_SIZE}"
-                is_enumerable = is_enumerable_type(parameters[T_MDATA][item])
-                types.add(parameters[T_MDATA][item] if not is_enumerable_type(parameters[T_MDATA][item]) else parameters[T_MDATA][item]['type'])
-                if is_enumerable: types.add( f"FArray4D" )
+                if mdata.known_types[item]:
+                    types.add( mdata.known_types[item] )
+                else:
+                    print("Found bad data in tile-metadata. Ignoring...")
+                    continue
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
 
