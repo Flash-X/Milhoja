@@ -81,7 +81,7 @@ def generate_fortran_code_file(parameters, args):
 def generate_cpp_code_file(parameters, args):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'const {item[1]} {item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
+            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'const {item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
             extra_streams = params[EXTRA_STREAMS]
             level = 1
             index = 1
