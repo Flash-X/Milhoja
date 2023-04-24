@@ -422,7 +422,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_d += sizeof({SIZE_T});\n\n"
         ])
 
-        for item in sorted(params.get(GENERAL, []), key=lambda x: sizes[params[GENERAL][x]] if sizes else 1, reverse=True):
+        for item in sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True):
             file.writelines([
                 #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
@@ -440,7 +440,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
         ])
 
-        for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes[params[T_IN][x]['type']] if sizes else 1, reverse=True ) ):
+        for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
@@ -454,7 +454,7 @@ def generate_cpp_code_file(parameters, args):
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
         # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
-        for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes[params[T_IN_OUT][x]['type']] if sizes else 1, reverse=True ) ):
+        for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
@@ -463,7 +463,7 @@ def generate_cpp_code_file(parameters, args):
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
          
-        for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes[params[T_OUT][x]['type']] if sizes else 1, reverse=True ) ):
+        for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyOutStart_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
@@ -474,7 +474,7 @@ def generate_cpp_code_file(parameters, args):
 
         # Create all scratch ptrs.
         # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
-        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes[params[T_SCRATCH][x]['type']] if sizes else 1, reverse=True ) )
+        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
         for idx,item in enumerate(scr):
             if idx == 0:  # we can probably use an iterator here instead
                 file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
@@ -530,9 +530,12 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
-        possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
+        # There's the obvious way of just using an if statement based on the section... but is there a better way?
+        # possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
+        possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \
+                             + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
         # Add metadata to ptr
-        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes[params[T_MDATA][x]] if sizes else 1, reverse=True):
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(params[T_MDATA][x], 0) if sizes else 1, reverse=True):
             possible_tile_ptrs.remove(item)
             file.writelines([
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{params[T_MDATA][item]}*>((void*)ptr_d);\n",
@@ -570,10 +573,10 @@ def generate_cpp_code_file(parameters, args):
 
             possible_tile_ptrs.remove(item)
 
-        # if there are unremoved items we set them to nullptr.
-        # TODO: This needs to change when removing PacketContents
-        for item in possible_tile_ptrs:
-            file.write(f"{indent}tilePtrs_p->{item}_d = nullptr;\n")
+        # # if there are unremoved items we set them to nullptr.
+        # # TODO: This needs to change when removing PacketContents
+        # for item in possible_tile_ptrs:
+        #     file.write(f"{indent}tilePtrs_p->{item}_d = nullptr;\n")
 
         indent = "\t"
 
