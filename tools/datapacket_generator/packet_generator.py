@@ -148,6 +148,7 @@ def generate_cpp_code_file(parameters, args):
         return
 
     # TODO: Some parts of the unpack method need to be more generalized.
+    # TODO: Unpack does not work with multiple arrays to be returned to the host.
     def generate_unpack(file, params):
         packet_name = params["name"]
         func_name = "unpack"
@@ -233,7 +234,6 @@ def generate_cpp_code_file(parameters, args):
     # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
     def generate_pack(file, params, args):
         packet_name = params["name"]
-        ndim = params["ndim"]
         func_name = "pack"
         level = 1
         indent = level * "\t"
@@ -678,7 +678,6 @@ def generate_cpp_code_file(parameters, args):
     
     # TODO: We should be generating the include files using a map based on all different types given in the json packet. 
     name = parameters["name"]
-    ndim = parameters["ndim"] # TODO: should we really force the user to specify the number of dims in the json packet?
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
         code.write(GENERATED_CODE_MESSAGE)
