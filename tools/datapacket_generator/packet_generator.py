@@ -160,8 +160,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
             f"{indent}if (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
             f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
-            f"{indent}if ( startVariable_ < UNK_VARS_BEGIN || startVariable_ > UNK_VARS_BEGIN || endVariable_ < UNK_VARS_BEGIN || endVariable_ > UNK_VARS_END )\n"
-            f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
             f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
             f"{indent}assert(!stream_.isValid());\n\n"
             f"{indent}for ({SIZE_T} n=0; n < tiles_.size(); ++n) {{\n"
@@ -192,35 +190,70 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Should we use nunkvars from tile-in?
         file.writelines([
             f"{indent}assert(UNK_VARS_BEGIN == 0);\n"
-            f"{indent}assert(UNK_VARS_END == NUNKVAR - 1);\n"
+            f"{indent}assert(UNK_VARS_END == NUNKVAR - 1);\n\n"
         ])
 
-        dict_to_use = {}
-        if params.get(T_IN_OUT): dict_to_use = params.get(T_IN_OUT)
-        elif params.get(T_OUT): dict_to_use = params.get(T_OUT)
+        # dict_to_use = {}
+        # if params.get(T_IN_OUT): dict_to_use = params.get(T_IN_OUT)
+        # elif params.get(T_OUT): dict_to_use = params.get(T_OUT)
 
         # TODO: this only uses the first item in tile-in or tile-out. we need to adjust it to use all array types specified in
         # either.
-        if dict_to_use:
-            it = iter(dict_to_use)
-            item = next(it)
-            data_type = dict_to_use[item]['type']
-            extents, nunkvars, empty = mdata.parse_extents(dict_to_use[item]['extents'])
-            # TODO: The way the constructor and header files we need to do some division to 
-            # get the origin num vars per CC per variable. This is a way to do it without creating
-            # another variable. Low priority
-            # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
-            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
-            file.writelines([
-                f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
-                f"{indent}{data_type}* start_h = data_h + offset;\n"
-                f"{indent}const {data_type}* start_p = data_p + offset;\n"
-            ])
-            num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
-            file.writelines([
-                f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
-                f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
-            ])
+        idx = 0
+        last_item = {}
+        for section in [T_IN_OUT, T_OUT]:
+            dict = params.get(section, {})
+            for item in dict:
+                start = dict[item]['start']
+                end = dict[item]['end']
+                data_type = dict[item]['type']
+                extents, nunkvars, indexer = mdata.parse_extents(dict[item]['extents'])
+                num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+
+                file.writelines([
+                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {start} > UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END )\n",
+                    f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n\n"
+                ])
+                
+                file.writelines([
+                    f"{indent}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
+                ])
+
+                if idx == 0:
+                    file.write(f"{indent}{data_type}* start_h = data_h + offset_{item};\n")
+                    file.write(f"{indent}const {data_type}* start_p_{item} = data_p + offset_{item};\n")
+                else:
+                    file.write(f"{indent}start_h += offset_{last_item};\n")
+                    file.write(f"{indent}const {data_type}* start_p_{item} = start_p_{last_item} + offset_{item};\n")
+
+                # num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
+                file.writelines([
+                    f"{indent}{SIZE_T} nBytes = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+                    f"{indent}std::memcpy((void*)start_h, (void*)start_p_{item}, nBytes);\n\n"                
+                ])
+                idx += 1
+                last_item = item
+
+        # if dict_to_use:
+        #     it = iter(dict_to_use)
+        #     item = next(it)
+        #     data_type = dict_to_use[item]['type']
+        #     extents, nunkvars, empty = mdata.parse_extents(dict_to_use[item]['extents'])
+        #     # TODO: The way the constructor and header files we need to do some division to 
+        #     # get the origin num vars per CC per variable. This is a way to do it without creating
+        #     # another variable. Low priority
+        #     # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
+        #     num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+        #     file.writelines([
+        #         f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
+        #         f"{indent}{data_type}* start_h = data_h + offset;\n"
+        #         f"{indent}const {data_type}* start_p = data_p + offset;\n"
+        #     ])
+        #     num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
+        #     file.writelines([
+        #         f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
+        #         f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
+        #     ])
 
         
         indent = '\t'
