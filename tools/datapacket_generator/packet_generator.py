@@ -617,7 +617,7 @@ def generate_cpp_code_file(parameters, args):
         packet_name = params["name"]
         file.writelines([
             f"std::unique_ptr<milhoja::DataPacket> {packet_name}::clone(void) const {{\n",
-            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ {', '.join( f'{item[0]}' for item in constructor_args)} }};\n"
+            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ new {packet_name}{{{', '.join( f'{item[0]}' for item in constructor_args)}}} }};\n"
             f"}}\n\n"
         ])
 
