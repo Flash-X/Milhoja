@@ -111,17 +111,8 @@ def generate_cpp_code_file(parameters, args):
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
             
-            # TODO: What if we need to add other variables?
-            # We need to add them to the constructor args.
             for item in params.get(GENERAL, {}):
                 file.write(f"{indent}{item} = {NEW}{item};\n")
-
-            # TODO: Should we set the variable mask in the constructor?
-            # start = params['start']
-            # end = params['end']
-            # if isinstance(start, str): warnings.warn("start is a string. continuing...")
-            # if isinstance(end, str): warnings.warn("end is a string. continuing...")
-            # # file.write(f"{indent}setVariableMask({start}, {end});\n")
 
             file.write("}\n\n")
 
@@ -148,7 +139,6 @@ def generate_cpp_code_file(parameters, args):
         return
 
     # TODO: Some parts of the unpack method need to be more generalized.
-    # TODO: Unpack does not work with multiple arrays to be returned to the host.
     def generate_unpack(file, params):
         packet_name = params["name"]
         func_name = "unpack"
@@ -193,12 +183,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}assert(UNK_VARS_END == NUNKVAR - 1);\n\n"
         ])
 
-        # dict_to_use = {}
-        # if params.get(T_IN_OUT): dict_to_use = params.get(T_IN_OUT)
-        # elif params.get(T_OUT): dict_to_use = params.get(T_OUT)
-
-        # TODO: this only uses the first item in tile-in or tile-out. we need to adjust it to use all array types specified in
-        # either.
         idx = 0
         last_item = {}
         for section in [T_IN_OUT, T_OUT]:
@@ -233,28 +217,6 @@ def generate_cpp_code_file(parameters, args):
                 ])
                 idx += 1
                 last_item = item
-
-        # if dict_to_use:
-        #     it = iter(dict_to_use)
-        #     item = next(it)
-        #     data_type = dict_to_use[item]['type']
-        #     extents, nunkvars, empty = mdata.parse_extents(dict_to_use[item]['extents'])
-        #     # TODO: The way the constructor and header files we need to do some division to 
-        #     # get the origin num vars per CC per variable. This is a way to do it without creating
-        #     # another variable. Low priority
-        #     # num_elems_per_cc_per_var = ' * '.join(dict_to_use[item]['extents'][:-1])
-        #     num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
-        #     file.writelines([
-        #         f"{indent}{SIZE_T} offset = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>(startVariable_);\n",
-        #         f"{indent}{data_type}* start_h = data_h + offset;\n"
-        #         f"{indent}const {data_type}* start_p = data_p + offset;\n"
-        #     ])
-        #     num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
-        #     file.writelines([
-        #         f"{indent}{SIZE_T} nBytes = (endVariable_ - startVariable_ + 1) * ({num_elems_per_cc_per_var});\n"
-        #         f"{indent}std::memcpy((void*)start_h, (void*)start_p, nBytes);\n"                
-        #     ])
-
         
         indent = '\t'
         file.write(f"{indent}}}\n")
@@ -263,7 +225,7 @@ def generate_cpp_code_file(parameters, args):
         return
 
     # TODO: Improve pack generation code
-    # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents. We also want to consider letting the user add numeric constants to general
+    # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents.
     # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
     def generate_pack(file, params, args):
         packet_name = params["name"]
@@ -296,14 +258,12 @@ def generate_cpp_code_file(parameters, args):
         returnToHost = []
         bytesPerPacket = []
 
-        nScratchArrs = 0
-        file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = 0")
-        for var in params.get(T_SCRATCH, []):
-            nScratchArrs += 1
-            file.write(f" + {var}{BLOCK_SIZE}")
-        file.write(f";\n{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
+        scratch = params.get(T_SCRATCH, {})
+        nScratchArrs = len(scratch)
+        size = ' + '.join(f'{item}{BLOCK_SIZE}' for item in scratch) if scratch else "0"
+        file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = {size};\n")
+        file.write(f"{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
         file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad({N_TILES} * nScratchPerTileBytes);\n")
-        # bytesPerPacket.append("(nTiles * nScratchPerTileBytes)")
         bytesPerPacket.append("nScratchPerTileBytesPadded")
         file.write(f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n\n")
 
@@ -311,6 +271,7 @@ def generate_cpp_code_file(parameters, args):
         # Non tile specific data
         file.write(f"{indent}// non tile specific data\n")
         file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({SIZE_T}) ")
+
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
         file.write(f"+ {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
@@ -321,10 +282,9 @@ def generate_cpp_code_file(parameters, args):
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D)")
-        for item in params.get(T_MDATA, []):
-            file.write(f" + {item}{BLOCK_SIZE}")
-        file.write(f" );\n")
+        t_mdata = params.get(T_MDATA, [])
+        size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D){size} );\n")
         file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
         bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
@@ -332,14 +292,8 @@ def generate_cpp_code_file(parameters, args):
 
         # copy in data
         cin = params.get(T_IN, {})
-        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = (0")
-        if cin:
-            for item in cin:
-                file.write(f" + {item}{BLOCK_SIZE}")
-            file.write(f") * {N_TILES}")
-        else:
-            file.write(f")")
-        file.write(f";\n")
+        size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cin) if cin else "0"
+        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = ({size}) * nTiles;\n")
         file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);\n")
         bytesToGpu.append("nCopyInDataPerTileBytesPadded")
         bytesPerPacket.append("nCopyInDataPerTileBytesPadded")
@@ -348,14 +302,8 @@ def generate_cpp_code_file(parameters, args):
         # copy in out data
         # TODO: There may be some extra bytes if the user only uses tile-in-out or tile-out due to padding.
         cinout = params.get(T_IN_OUT, {})
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = (0")
-        if cinout:
-            for item in cinout:
-                file.write(f" + {item}{BLOCK_SIZE}")
-            file.write(f") * nTiles")
-        else:
-            file.write(")")
-        file.write(f";\n")
+        size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cinout) if cinout else "0"
+        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * nTiles;\n")
         file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);\n")
         bytesToGpu.append("nCopyInOutDataPerTileBytes")
         returnToHost.append("nCopyInOutDataPerTileBytesPadded")
@@ -364,14 +312,8 @@ def generate_cpp_code_file(parameters, args):
 
         # copy out
         cout = params.get(T_OUT, {})
-        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = (0")
-        if cout:
-            for item in cout:
-                file.write(f" + {item}{BLOCK_SIZE}")
-            file.write(f") * nTiles")
-        else:
-            file.write(f")")
-        file.write(f";\n")
+        size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cout ) if cout else "0"
+        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = ({size}) * nTiles;\n")
         file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n")
         # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
         returnToHost.append("nCopyOutDataPerTileBytes")
@@ -389,7 +331,6 @@ def generate_cpp_code_file(parameters, args):
         # # acquire gpu mem
         # Note that copyin, copyinout, and copyout all have a default of 0. So to keep code generation easy
         # we set them to the default of 0 even if they don't exist in the json.
-        # file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {N_TILES} * nScratchPerTileBytes, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.write(f"{indent}/// END\n\n")
 
@@ -484,7 +425,6 @@ def generate_cpp_code_file(parameters, args):
                 previous += f"+ {item}{BLOCK_SIZE}"
 
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
-        # TODO: The variants for each packet don't have CC1 set co copyInOut.
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
         # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
@@ -560,9 +500,6 @@ def generate_cpp_code_file(parameters, args):
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
-        # possible_tile_ptrs = ['deltas', 'lo', 'hi', 'CC1', 'CC2', 'FCX', 'FCY', 'FCZ'] # we will eventually completely get rid of this.
-        # possible_tile_ptrs = [*params.get(T_MDATA, {}).keys()] + [*params.get(T_SCRATCH, {}).keys()] \ 
-        #                      + [*params.get(T_IN, {}).keys()] + [*params.get(T_IN_OUT, {}).keys()] + [*params.get(T_OUT, {}).keys()]
         # Add metadata to ptr
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
             file.writelines([
