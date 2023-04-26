@@ -402,8 +402,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
         ])
 
-        # SUPER DUPER TODO: We need to fix the data copy in section to use every array specified in T_IN and T_IN_OUT. 
-        # Right now it only combines all data into one array
         previous = ""
         data_copy_string = ""
         for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
@@ -440,8 +438,8 @@ def generate_cpp_code_file(parameters, args):
                     previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN_OUT])
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
                 data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
                 previous += f" + {item}{BLOCK_SIZE}"
          
@@ -451,8 +449,8 @@ def generate_cpp_code_file(parameters, args):
                 file.write(f"{indent}char* {item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
             else:
                 l = list(params[T_OUT])
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {item}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
 
         # Create all scratch ptrs.
         # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
@@ -485,7 +483,7 @@ def generate_cpp_code_file(parameters, args):
 
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
-        # TODO: Revisit when packet contents si removed
+        # TODO: Revisit when packet contents is removed
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n")
