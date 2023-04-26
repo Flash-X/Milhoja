@@ -163,12 +163,12 @@ def generate_cpp_code_file(parameters, args):
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
-            f"{indent}const Real* data_p = nullptr;\n",
+            f"{indent}const Real* data_p = nullptr;\n\n",
             f"{indent}switch (location_) {{\n",
             f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
             f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
             f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
-            f"{indent}}}\n"
+            f"{indent}}}\n\n"
         ])
 
         # data_h and data_p checks
@@ -185,6 +185,7 @@ def generate_cpp_code_file(parameters, args):
 
         idx = 0
         last_item = {}
+        file.write(f'{indent}{SIZE_T} nBytes;\n')
         for section in [T_IN_OUT, T_OUT]:
             dict = params.get(section, {})
             for item in dict:
@@ -212,7 +213,7 @@ def generate_cpp_code_file(parameters, args):
 
                 # num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
                 file.writelines([
-                    f"{indent}{SIZE_T} nBytes = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+                    f"{indent}nBytes = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
                     f"{indent}std::memcpy((void*)start_h, (void*)start_p_{item}, nBytes);\n\n"                
                 ])
                 idx += 1
@@ -300,7 +301,6 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"{indent}if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInPerTile padding failure\");\n\n")
 
         # copy in out data
-        # TODO: There may be some extra bytes if the user only uses tile-in-out or tile-out due to padding.
         cinout = params.get(T_IN_OUT, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cinout) if cinout else "0"
         file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * nTiles;\n")
@@ -419,7 +419,7 @@ def generate_cpp_code_file(parameters, args):
                 l = list(params[T_IN])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous}), {item}{BLOCK_SIZE});\n"
                 previous += f"+ {item}{BLOCK_SIZE}"
 
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
@@ -431,7 +431,7 @@ def generate_cpp_code_file(parameters, args):
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 data_h = "data_h" if previous == "" else previous
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){data_h}, {item}{BLOCK_SIZE});\n"
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({data_h}), {item}{BLOCK_SIZE});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -440,7 +440,7 @@ def generate_cpp_code_file(parameters, args):
                 l = list(params[T_IN_OUT])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*){previous}, {item}{BLOCK_SIZE});\n"
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous}), {item}{BLOCK_SIZE});\n"
                 previous += f" + {item}{BLOCK_SIZE}"
          
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
@@ -567,7 +567,6 @@ def generate_cpp_code_file(parameters, args):
             #     f"{indent*2}if (!streams_[i].isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\"); \n"
             #     f"{indent}}}\n"
             # ])
-
 
             # file.writelines([
             #     f"# if MILHOJA_NDIM == 3\n", # we can get rid of the compiler directives eventually.
