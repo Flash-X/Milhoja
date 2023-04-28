@@ -33,62 +33,62 @@ void Hydro::debug_packet_oacc_summit_1(const int tId,
 
     packet_h->setDataLocation(PacketDataLocation::CC2);
     packet_h->setVariableMask(UNK_VARS_BEGIN, EINT_VAR);
-    std::cout << "Just making sure this is the correct packet" << std::endl;
+//    std::cout << "Just making sure this is the correct packet" << std::endl;
 //
     #pragma acc data deviceptr(nTiles_d, contents_d, dt_d)
     {
-        //----- COMPUTE FLUXES
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              auxC_d = ptrs->CC2_d;
-
-            hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                 U_d, auxC_d);
-        }
-        // Wait for data to arrive and then launch these two for concurrent
-        // execution
-        #pragma acc wait(queue_h)
-
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flX_d  = ptrs->FCX_d;
-            FArray4D*			   flY_d = ptrs->FCY_d;
-
-			int     i_s = ptrs->lo_d->I();
-		    int     j_s = ptrs->lo_d->J();
-		    int     k_s = ptrs->lo_d->K();
-
-		    int     i_e = ptrs->hi_d->I();
-		    int     j_e = ptrs->hi_d->J();
-		    int     k_e = ptrs->hi_d->K();
-
-
-		    #pragma acc loop vector collapse(3)
-		    for         (int k=k_s; k<=k_e;             ++k) {
-		        for     (int j=j_s; j<=j_e;             ++j) {
-		            for (int i=i_s; i<=i_e; 			++i) {
-		                U_d->at(i, j, k, DENS_VAR) = 20.3;
-		                auxC_d->at(i, j, k, DENS_VAR) = U_d->at(i, j, k, DENS_VAR);
-		                flX_d->at(i, j, k, HY_DENS_FLUX) = 1;
-		                flX_d->at(i, j, k, HY_XMOM_FLUX) = 2;
-//        		        flX_d->at(i, j, k, HY_YMOM_FLUX) = 3;
-//                		flX_d->at(i, j, k, HY_ZMOM_FLUX) = 4;
-//                		flX_d->at(i, j, k, HY_ENER_FLUX) = 5;
-		                flY_d->at(i, j, k, HY_DENS_FLUX) = 6; 
-		            }
-		        }
-	    	}
+//        //----- COMPUTE FLUXES
+//        #pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            FArray4D*              auxC_d = ptrs->CC2_d;
+//
+//            hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+//                                                 U_d, auxC_d);
+//        }
+//        // Wait for data to arrive and then launch these two for concurrent
+//        // execution
+//        #pragma acc wait(queue_h)
+//
+//        #pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flX_d  = ptrs->FCX_d;
+//            FArray4D*			   flY_d = ptrs->FCY_d;
+//
+//			int     i_s = ptrs->lo_d->I();
+//		    int     j_s = ptrs->lo_d->J();
+//		    int     k_s = ptrs->lo_d->K();
+//
+//		    int     i_e = ptrs->hi_d->I();
+//		    int     j_e = ptrs->hi_d->J();
+//		    int     k_e = ptrs->hi_d->K();
+//
+//
+//		    #pragma acc loop vector collapse(3)
+//		    for         (int k=k_s; k<=k_e;             ++k) {
+//		        for     (int j=j_s; j<=j_e;             ++j) {
+//		            for (int i=i_s; i<=i_e; 			++i) {
+//		                U_d->at(i, j, k, DENS_VAR) = 20.3;
+//		                auxC_d->at(i, j, k, DENS_VAR) = U_d->at(i, j, k, DENS_VAR);
+//		                flX_d->at(i, j, k, HY_DENS_FLUX) = 1;
+//		                flX_d->at(i, j, k, HY_XMOM_FLUX) = 2;
+////        		        flX_d->at(i, j, k, HY_YMOM_FLUX) = 3;
+////                		flX_d->at(i, j, k, HY_ZMOM_FLUX) = 4;
+////                		flX_d->at(i, j, k, HY_ENER_FLUX) = 5;
+//		                flY_d->at(i, j, k, HY_DENS_FLUX) = 6; 
+//		            }
+//		        }
+//	    	}
 
 			//write to auxC_d? write to FCX_d
 //            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
 //                                               ptrs->deltas_d,
 //                                               U_d, flX_d, auxC_d);
-        }
+//        }
 //        #pragma acc parallel loop gang default(none) async(queue2_h)
 //        for (std::size_t n=0; n<*nTiles_d; ++n) {
 //            const PacketContents*  ptrs = contents_d + n;
@@ -156,6 +156,42 @@ void Hydro::debug_packet_oacc_summit_1(const int tId,
 //
 //            Eos::idealGammaDensIe_oacc_summit(ptrs->lo_d, ptrs->hi_d, U_d);
 //        }
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const PacketContents*  ptrs = contents_d + n;
+            const FArray4D*        U_d    = ptrs->CC2_d;
+
+            int     i_s = ptrs->lo_d->I();
+            int     j_s = ptrs->lo_d->J();
+            int     k_s = ptrs->lo_d->K();
+
+			int     i_e = ptrs->hi_d->I();
+	    	int     j_e = ptrs->hi_d->J();
+	    	int     k_e = ptrs->hi_d->K();
+
+		    Real    densOld = 0.0_wp;
+		    Real    densNew = 0.0_wp;
+    		Real    densNew_inv = 0.0_wp;
+
+		    #pragma acc loop vector collapse(3)
+		    for         (int k=k_s; k<=k_e; ++k) {
+	    	    for     (int j=j_s; j<=j_e; ++j) {
+	        	    for (int i=i_s; i<=i_e; ++i) {
+
+	            	    U_d->at(i, j, k, DENS_VAR) = 800.5;
+						U_d->at(i, j, k, VELX_VAR) = i + j + k;
+						U_d->at(i, j, k, VELY_VAR) = i;
+						U_d->at(i, j, k, VELZ_VAR) = j;
+						U_d->at(i, j, k, ENER_VAR) = k;
+						U_d->at(i, j, k, TEMP_VAR) = 299.23;
+						U_d->at(i, j, k, EINT_VAR) = 10.8;
+						U_d->at(i, j, k, PRES_VAR) = n;
+
+		    		}
+				}
+		    }
+        }
+
     } // OpenACC data block
 
     #pragma acc wait(queue_h)

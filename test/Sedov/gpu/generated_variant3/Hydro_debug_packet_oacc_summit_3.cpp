@@ -61,95 +61,95 @@ void Hydro::debug_packet_oacc_summit_3(const int tId,
     #pragma acc data deviceptr(nTiles_d, contents_d, dt_d)
     {
         //----- COMPUTE FLUXES
-		#pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            FArray4D*              auxC_d = ptrs->CC2_d;
-
-            hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
-                                                 U_d, auxC_d);
-        }
-
-        // The X, Y, and Z fluxes each depend on the speed of sound, but can
-        // be computed independently and therefore concurrently.
-#if   MILHOJA_NDIM == 1
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flX_d  = ptrs->FCX_d;
-
-            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flX_d, auxC_d);
-        }
-        // No need for barrier since all kernels are launched on the same
-        // queue for 1D case.
-#elif MILHOJA_NDIM == 2
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flX_d  = ptrs->FCX_d;
-            FArray4D*              flY_d  = ptrs->FCY_d;
-
-            // It seems like for small 2D blocks, fusing kernels is more
-            // efficient than fusing actions (i.e. running the two kernels
-            // concurrently).  Too much work for the GPU?  Too much overhead
-            // from the stream sync (i.e. OpenACC wait)?
-            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flX_d, auxC_d);
-            hy::computeFluxesHll_Y_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flY_d, auxC_d);
-        }
-#elif MILHOJA_NDIM == 3
-        // Wait for data to arrive and then launch these three for concurrent
-        // execution
-        #pragma acc wait(queue_h)
-
-        #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flX_d  = ptrs->FCX_d;
-
-            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flX_d, auxC_d);
-        }
-        #pragma acc parallel loop gang default(none) async(queue2_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flY_d  = ptrs->FCY_d;
-
-            hy::computeFluxesHll_Y_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flY_d, auxC_d);
-        }
-        #pragma acc parallel loop gang default(none) async(queue3_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
-            const PacketContents*  ptrs = contents_d + n;
-            const FArray4D*        U_d    = ptrs->CC1_d;
-            const FArray4D*        auxC_d = ptrs->CC2_d;
-            FArray4D*              flZ_d  = ptrs->FCZ_d;
-
-            hy::computeFluxesHll_Z_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
-                                               ptrs->deltas_d,
-                                               U_d, flZ_d, auxC_d);
-        }
-        // BARRIER - fluxes must all be computed before updated the solution
-        #pragma acc wait(queue_h,queue2_h,queue3_h)
-        packet_h->releaseExtraQueue(2);
-        packet_h->releaseExtraQueue(3);
-#endif
+//		#pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            FArray4D*              auxC_d = ptrs->CC2_d;
+//
+//            hy::computeSoundSpeedHll_oacc_summit(ptrs->lo_d, ptrs->hi_d,
+//                                                 U_d, auxC_d);
+//        }
+//
+//        // The X, Y, and Z fluxes each depend on the speed of sound, but can
+//        // be computed independently and therefore concurrently.
+//#if   MILHOJA_NDIM == 1
+//        #pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flX_d  = ptrs->FCX_d;
+//
+//            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flX_d, auxC_d);
+//        }
+//        // No need for barrier since all kernels are launched on the same
+//        // queue for 1D case.
+//#elif MILHOJA_NDIM == 2
+//        #pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flX_d  = ptrs->FCX_d;
+//            FArray4D*              flY_d  = ptrs->FCY_d;
+//
+//            // It seems like for small 2D blocks, fusing kernels is more
+//            // efficient than fusing actions (i.e. running the two kernels
+//            // concurrently).  Too much work for the GPU?  Too much overhead
+//            // from the stream sync (i.e. OpenACC wait)?
+//            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flX_d, auxC_d);
+//            hy::computeFluxesHll_Y_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flY_d, auxC_d);
+//        }
+//#elif MILHOJA_NDIM == 3
+//        // Wait for data to arrive and then launch these three for concurrent
+//        // execution
+//        #pragma acc wait(queue_h)
+//
+//        #pragma acc parallel loop gang default(none) async(queue_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flX_d  = ptrs->FCX_d;
+//
+//            hy::computeFluxesHll_X_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flX_d, auxC_d);
+//        }
+//        #pragma acc parallel loop gang default(none) async(queue2_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flY_d  = ptrs->FCY_d;
+//
+//            hy::computeFluxesHll_Y_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flY_d, auxC_d);
+//        }
+//        #pragma acc parallel loop gang default(none) async(queue3_h)
+//        for (std::size_t n=0; n<*nTiles_d; ++n) {
+//            const PacketContents*  ptrs = contents_d + n;
+//            const FArray4D*        U_d    = ptrs->CC1_d;
+//            const FArray4D*        auxC_d = ptrs->CC2_d;
+//            FArray4D*              flZ_d  = ptrs->FCZ_d;
+//
+//            hy::computeFluxesHll_Z_oacc_summit(dt_d, ptrs->lo_d, ptrs->hi_d,
+//                                               ptrs->deltas_d,
+//                                               U_d, flZ_d, auxC_d);
+//        }
+//        // BARRIER - fluxes must all be computed before updated the solution
+//        #pragma acc wait(queue_h,queue2_h,queue3_h)
+//        packet_h->releaseExtraQueue(2);
+//        packet_h->releaseExtraQueue(3);
+//#endif
 
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
@@ -173,37 +173,37 @@ void Hydro::debug_packet_oacc_summit_3(const int tId,
 	    	    for     (int j=j_s; j<=j_e; ++j) {
 	        	    for (int i=i_s; i<=i_e; ++i) {
 
-	        	    	densOld = U_d->at(i, j, k, DENS_VAR);
-#if MILHOJA_NDIM == 1
-		                densNew =   densOld
-		                          + ptrs->FCX_d->at(i,   j, k, HY_DENS_FLUX)
-		                          - ptrs->FCX_d->at(i+1, j, k, HY_DENS_FLUX);
-#elif MILHOJA_NDIM == 2
-		                densNew =   densOld
-		                          + ptrs->FCX_d->at(i,   j,   k, HY_DENS_FLUX)
-		                          - ptrs->FCX_d->at(i+1, j,   k, HY_DENS_FLUX)
-		                          + ptrs->FCY_d->at(i,   j,   k, HY_DENS_FLUX)
-		                          - ptrs->FCY_d->at(i,   j+1, k, HY_DENS_FLUX);
-#elif MILHOJA_NDIM == 3
-		                densNew =   densOld 
-		                          + ptrs->FCX_d->at(i,   j,   k,   HY_DENS_FLUX)
-		                          - ptrs->FCX_d->at(i+1, j,   k,   HY_DENS_FLUX)
-		                          + ptrs->FCY_d->at(i,   j,   k,   HY_DENS_FLUX)
-		                          - ptrs->FCY_d->at(i,   j+1, k,   HY_DENS_FLUX)
-		                          + ptrs->FCZ_d->at(i,   j,   k,   HY_DENS_FLUX)
-		                          - ptrs->FCZ_d->at(i,   j,   k+1, HY_DENS_FLUX);
-#endif
-		                U_d->at(i, j, k, DENS_VAR) = densNew;
+//	        	    	densOld = U_d->at(i, j, k, DENS_VAR);
+//#if MILHOJA_NDIM == 1
+//		                densNew =   densOld
+//		                          + ptrs->FCX_d->at(i,   j, k, HY_DENS_FLUX)
+//		                          - ptrs->FCX_d->at(i+1, j, k, HY_DENS_FLUX);
+//#elif MILHOJA_NDIM == 2
+//		                densNew =   densOld
+//		                          + ptrs->FCX_d->at(i,   j,   k, HY_DENS_FLUX)
+//		                          - ptrs->FCX_d->at(i+1, j,   k, HY_DENS_FLUX)
+//		                          + ptrs->FCY_d->at(i,   j,   k, HY_DENS_FLUX)
+//		                          - ptrs->FCY_d->at(i,   j+1, k, HY_DENS_FLUX);
+//#elif MILHOJA_NDIM == 3
+//		                densNew =   densOld 
+//		                          + ptrs->FCX_d->at(i,   j,   k,   HY_DENS_FLUX)
+//		                          - ptrs->FCX_d->at(i+1, j,   k,   HY_DENS_FLUX)
+//		                          + ptrs->FCY_d->at(i,   j,   k,   HY_DENS_FLUX)
+//		                          - ptrs->FCY_d->at(i,   j+1, k,   HY_DENS_FLUX)
+//		                          + ptrs->FCZ_d->at(i,   j,   k,   HY_DENS_FLUX)
+//		                          - ptrs->FCZ_d->at(i,   j,   k+1, HY_DENS_FLUX);
+//#endif
+//		                U_d->at(i, j, k, DENS_VAR) = densNew;
 //		                densNew_inv = 1.0_wp / densNew;
 
-//	            	    U_d->at(i, j, k, DENS_VAR) = 800.5;
-//						U_d->at(i, j, k, VELX_VAR) = i + j + k;
-//						U_d->at(i, j, k, VELY_VAR) = i;
-//						U_d->at(i, j, k, VELZ_VAR) = j;
-//						U_d->at(i, j, k, ENER_VAR) = k;
-//						U_d->at(i, j, k, TEMP_VAR) = 299.23;
-//						U_d->at(i, j, k, EINT_VAR) = 10.8;
-//						U_d->at(i, j, k, PRES_VAR) = n;
+	            	    U_d->at(i, j, k, DENS_VAR) = 800.5;
+						U_d->at(i, j, k, VELX_VAR) = i + j + k;
+						U_d->at(i, j, k, VELY_VAR) = i;
+						U_d->at(i, j, k, VELZ_VAR) = j;
+						U_d->at(i, j, k, ENER_VAR) = k;
+						U_d->at(i, j, k, TEMP_VAR) = 299.23;
+						U_d->at(i, j, k, EINT_VAR) = 10.8;
+						U_d->at(i, j, k, PRES_VAR) = n;
 
 		    		}
 				}
