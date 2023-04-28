@@ -202,7 +202,7 @@ def generate_cpp_code_file(parameters, args):
                 num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
 
                 file.writelines([
-                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {start} > UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END || {end} - {start} + 1 > {nunkvars})\n",
+                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END || {end} - {start} + 1 > {nunkvars})\n",
                     f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n\n"
                 ])
                 
