@@ -23,8 +23,11 @@
   "tile-metadata": [ "deltas", "lo", "hi" ],
   "tile-in-out": {
     "CC1": {
-      "start": "UNK_VARS_BEGIN",
-      "end": "EINT_VAR",
+      "multifab": "hydro-cc",
+      "start-in": "UNK_VARS_BEGIN",
+      "end-in": "GAMC_VAR",
+      "start-out": "UNK_VARS_BEGIN",
+      "end-out": "EINT_VAR",
       "type": "Real",
       "extents": "cc(NGUARD, NUNKVAR-1)"
     }

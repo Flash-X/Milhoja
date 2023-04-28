@@ -22,6 +22,8 @@
   },
   "tile-in": {
     "CC1": {
+      "start": "UNK_VARS_BEGIN",
+      "end": "GAMC_VAR",
       "type": "Real",
       "extents": "cc(NGUARD, NUNKVAR-1)"
     }
