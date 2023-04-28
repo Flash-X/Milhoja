@@ -1,5 +1,7 @@
 import sys
 import warnings
+from typing import Tuple
+from typing import Union
 
 known_types = {
     'deltas': 'RealVect',
@@ -42,7 +44,7 @@ constants = {
 
 # A helper method that parses the extents array in the JSON file.
 # returns the final string to be used in the code.
-def parse_extents(extents, size='') -> str:
+def parse_extents(extents, size='') -> Tuple[str, Union[str, int], str]:
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
         if extents[-1] == ')': extents = extents[:-1]

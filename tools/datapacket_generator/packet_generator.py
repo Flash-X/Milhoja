@@ -30,7 +30,7 @@ T_IN_OUT = "tile-in-out"
 T_OUT = "tile-out"
 # 
 
-# type constants / naming keys.
+# type constants / naming keys / suffixes.
 NEW = "new_"
 SIZE_T = "std::size_t"
 BLOCK_SIZE = "_BLOCK_SIZE_HELPER"
@@ -47,6 +47,10 @@ PINDEX = f"{PTRS}_index"
 
 SCRATCH_BYTES = "nScratchBytes"
 CIN_BYTES = "nCopyInBytes"
+
+HOST = "_h"
+PINNED = "_p"
+DATA = "_d"
 # 
 
 # TODO: Variant 2 uses an array of extra queues instead of just using 2 extra ones if dim is 3.
@@ -188,15 +192,17 @@ def generate_cpp_code_file(parameters, args):
         file.write(f'{indent}{SIZE_T} nBytes;\n')
         for section in [T_IN_OUT, T_OUT]:
             dict = params.get(section, {})
+            start_key = 'start' if section == T_OUT else 'start-out'
+            end_key = 'end' if section == T_OUT else 'end-out'
             for item in dict:
-                start = dict[item]['start']
-                end = dict[item]['end']
+                start = dict[item][start_key]
+                end = dict[item][end_key]
                 data_type = dict[item]['type']
                 extents, nunkvars, indexer = mdata.parse_extents(dict[item]['extents'])
                 num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
 
                 file.writelines([
-                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {start} > UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END )\n",
+                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {start} > UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END || {end} - {start} + 1 > {nunkvars})\n",
                     f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n\n"
                 ])
                 
@@ -405,21 +411,30 @@ def generate_cpp_code_file(parameters, args):
         previous = ""
         data_copy_string = ""
         for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
+            start = params[T_IN][item]['start']
+            end = params[T_IN][item]['end']
+            data_type = params[T_IN][item]['type']
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'])
+            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+            offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
+            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)data_h, {item}{BLOCK_SIZE});\n"
-                # data_copy_string += f"{indent*2}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n"
+                data_copy_string += offset
+                data_copy_string += copy_in_size
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)(data_h + offset_{item}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
                     previous += f"+ {item}{BLOCK_SIZE}"
-                # f"{indent}std::memcpy((void*){'_'.join(params[T_IN])}{START_P}, (void*)data_h, {size} );\n"
             else:
                 l = list(params[T_IN])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous}), {item}{BLOCK_SIZE});\n"
+                data_copy_string += offset
+                data_copy_string += copy_in_size
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f"+ {item}{BLOCK_SIZE}"
 
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
@@ -427,11 +442,20 @@ def generate_cpp_code_file(parameters, args):
         # for item in params.get(T_IN_OUT, {}):
         # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
         for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
+            start = params[T_IN_OUT][item]['start-in']
+            end = params[T_IN_OUT][item]['end-in']
+            data_type = params[T_IN_OUT][item]['type']
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'])
+            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+            offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
+            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
-                data_h = "data_h" if previous == "" else previous
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({data_h}), {item}{BLOCK_SIZE});\n"
+                data_h = f"data_ + offset_{item}" if previous == "" else previous
+                data_copy_string += offset
+                data_copy_string += copy_in_size
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({data_h}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -440,7 +464,9 @@ def generate_cpp_code_file(parameters, args):
                 l = list(params[T_IN_OUT])
                 file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous}), {item}{BLOCK_SIZE});\n"
+                data_copy_string += offset
+                data_copy_string += copy_in_size
+                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f" + {item}{BLOCK_SIZE}"
          
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
@@ -528,6 +554,9 @@ def generate_cpp_code_file(parameters, args):
 
             if section == T_SCRATCH:
                 file.write(f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n")
+            elif section == T_IN or section == T_IN_OUT:
+                file.write(f"{indent}{item}{START_P} += nBytes_{item};\n")
+                file.write(f"{indent}{item}{START_D} += nBytes_{item};\n\n")
             else:
                 file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
                 file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
@@ -845,7 +874,7 @@ if __name__ == "__main__":
     parser.add_argument("JSON", help="The JSON file to generate from.")
     parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
     parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
-    parser.add_argument("--sizes", "-p", help="Path to data type size information.")
+    parser.add_argument("--sizes", "-s", help="Path to data type size information.")
     args = parser.parse_args()
 
     if args.sizes: print(args.sizes)
