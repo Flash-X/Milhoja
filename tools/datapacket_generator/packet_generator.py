@@ -110,7 +110,7 @@ def generate_cpp_code_file(parameters, args):
                         if section == T_MDATA:
                             file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({mdata.known_types[item]});\n")
                         elif not isinstance(params[section][item], (dict, list)):
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({params[section][item]});\n")
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({params[section][item]}));\n")
                         else:
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
