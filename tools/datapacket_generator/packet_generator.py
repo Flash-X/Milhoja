@@ -452,7 +452,7 @@ def generate_cpp_code_file(parameters, args):
             if idx == 0:
                 file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
-                data_h = f"data_ + offset_{item}" if previous == "" else previous
+                data_h = f"data_h + offset_{item}" if previous == "" else previous
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({data_h}), nBytes_{item});\n"
