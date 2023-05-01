@@ -254,7 +254,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
-        file.write(f"{indent}{SIZE_T} {N_TILES} = tiles_.size();\n\n")
+        file.write(f"{indent}{N_TILES} = tiles_.size();\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
@@ -277,7 +277,7 @@ def generate_cpp_code_file(parameters, args):
         # # Copy-in section generation.
         # Non tile specific data
         file.write(f"{indent}// non tile specific data\n")
-        file.write(f"{indent}{SIZE_T} nCopyInBytes = sizeof({SIZE_T}) ")
+        file.write(f"{indent}{SIZE_T} nCopyInBytes = nTiles{BLOCK_SIZE} ")
 
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
@@ -350,7 +350,7 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"{indent}/// POINTER DETERMINATION\n")
         file.writelines([
             f"{indent}static_assert(sizeof(char) == 1);\n",
-            f"{indent}char* ptr_d = static_cast<char*>(packet_d);\n\n"
+            f"{indent}char* ptr_d = static_cast<char*>(packet_d_);\n\n"
         ])
 
         # determine scratch pointers
@@ -384,9 +384,8 @@ def generate_cpp_code_file(parameters, args):
 
         # copy-in section
         file.writelines([
-            f"{indent}static_assert(sizeof(char) == 1, \"Invalid char size\");\n", # we might not need this anymore
             f"{indent}char* ptr_p = copyInStart_p_;\n",
-            f"{indent}char* ptr_d = copyInStart_d_;\n\n",
+            f"{indent}ptr_d = copyInStart_d_;\n\n",
         ])
 
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
@@ -488,6 +487,7 @@ def generate_cpp_code_file(parameters, args):
         #     else:
         #         file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
+        file.write(f"{indent}char* char_ptr;\n")
             
         # tile specific metadata.
         file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
@@ -712,6 +712,7 @@ def generate_cpp_header_file(parameters, args):
 
         # manually generate nTiles getter here
         pinned_and_data_ptrs += f"\tmilhoja::Real nTiles;\n\tvoid* nTiles_p_;\n\tvoid* nTiles_d_;\n"
+        private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
@@ -729,7 +730,7 @@ def generate_cpp_header_file(parameters, args):
                 item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
                 # private_variables.append(var)
-                # private_variables.append(size_var)
+                private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
                 types.add(item_type)
                 if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
@@ -738,7 +739,7 @@ def generate_cpp_header_file(parameters, args):
                 pinned_and_data_ptrs += "\t"
                 if type in mdata.imap: 
                     pinned_and_data_ptrs += "milhoja::"
-                pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"char* {item}{START_P};\n\tchar* {item}{START_D};\n"
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -752,7 +753,7 @@ def generate_cpp_header_file(parameters, args):
                     continue
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
-                pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"\tchar* {item}{START_P};\n\tchar* {item}{START_D};\n"
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -764,8 +765,8 @@ def generate_cpp_header_file(parameters, args):
                 device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
 
                 if sect != T_SCRATCH:
-                    pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
-                pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
+                    pinned_and_data_ptrs += f"\tchar* {item}{START_P};\n"
+                pinned_and_data_ptrs += f"\tchar* {item}{START_D};\n"
 
 
         # we only want to include things if they are found in the include dict.
