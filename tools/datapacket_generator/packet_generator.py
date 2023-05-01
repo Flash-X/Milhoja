@@ -392,7 +392,6 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
-        file.write(f"{indent}{SIZE_T} nTiles{BLOCK_SIZE} = sizeof({SIZE_T});\n")
         general.insert(0, "nTiles")
         for item in general:
             file.writelines([
