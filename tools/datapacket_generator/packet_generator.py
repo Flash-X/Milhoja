@@ -353,13 +353,14 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}char* ptr_d = static_cast<char*>(packet_d_);\n\n"
         ])
 
-        # determine scratch pointers
+        ### determine scratch pointers
         scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
         for item in scr:
             file.writelines([
-                f"{indent}{item}_start_d_ = static_cast<void*>(ptr_d);\n",
+                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
                 f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
             ])
+        ###
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
@@ -711,7 +712,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\tmilhoja::Real nTiles;\n\tvoid* nTiles_p_;\n\tvoid* nTiles_d_;\n"
+        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles_p_;\n\tvoid* nTiles_d_;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
 
         # Everything in the packet consists of pointers to byte regions
@@ -739,7 +740,7 @@ def generate_cpp_header_file(parameters, args):
                 pinned_and_data_ptrs += "\t"
                 if type in mdata.imap: 
                     pinned_and_data_ptrs += "milhoja::"
-                pinned_and_data_ptrs += f"char* {item}{START_P};\n\tchar* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -753,7 +754,7 @@ def generate_cpp_header_file(parameters, args):
                     continue
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
-                pinned_and_data_ptrs += f"\tchar* {item}{START_P};\n\tchar* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -765,8 +766,8 @@ def generate_cpp_header_file(parameters, args):
                 device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
 
                 if sect != T_SCRATCH:
-                    pinned_and_data_ptrs += f"\tchar* {item}{START_P};\n"
-                pinned_and_data_ptrs += f"\tchar* {item}{START_D};\n"
+                    pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
 
 
         # we only want to include things if they are found in the include dict.
