@@ -255,7 +255,7 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         file.write(f"{indent}{N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(std::size_t);\n\n")
+        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = pad(sizeof(std::size_t));\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
@@ -365,11 +365,50 @@ def generate_cpp_code_file(parameters, args):
             ])
         ###
         file.write(f"{indent}// end scratch\n\n")
+
+        file.writelines([
+            f"{indent}location_ = PacketDataLocation::CC1;\n",
+            f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
+            f"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n",
+            f"{indent}char* ptr_p = copyInStart_p_;\n"
+            f"{indent}ptr_d = copyInStart_d_;\n\n"
+        ])
+
+        ### determine general pointers
+        general_copy_in_string = ""
+        general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
+        general.insert(0, "nTiles")
+        for item in general:
+            file.writelines([
+                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
+                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n"
+                f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
+                f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
+            ])
+            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n"
+        ###
+
+        ### determine metadata pointers
+
+        ###
+
+        ### determine copy in pointers
+
+        ###
+
+        ### determine copy-in-out pointers
+
+        ### 
+
+        ### determine copy out pointers
+
+        ###
         
         file.writelines([
-            f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
-            f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            F"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n"
+            # f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
+            # f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
+            # F"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n"
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
         ])
@@ -388,21 +427,21 @@ def generate_cpp_code_file(parameters, args):
         # Scratch section does not get transferred from gpu
 
         # copy-in section
-        file.writelines([
-            f"{indent}char* ptr_p = copyInStart_p_;\n",
-            f"{indent}ptr_d = copyInStart_d_;\n\n",
-        ])
+        # file.writelines([
+        #     f"{indent}char* ptr_p = copyInStart_p_;\n",
+        #     f"{indent}ptr_d = copyInStart_d_;\n\n",
+        # ])
 
-        general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
-        general.insert(0, "nTiles")
-        for item in general:
-            file.writelines([
-                f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
-                f"//{indent}copy_index++;\n"
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
-                f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
-                f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
-            ])
+        # general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
+        # general.insert(0, "nTiles")
+        # for item in general:
+        #     file.writelines([
+        #         f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
+        #         f"//{indent}copy_index++;\n"
+        #         f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
+        #         f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
+        #         f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
+        #     ])
 
         # packet contents comes after general section in hydro variants.
         file.writelines([
@@ -492,6 +531,8 @@ def generate_cpp_code_file(parameters, args):
         #         file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
+
+        file.write(general_copy_in_string + "\n")
             
         # tile specific metadata.
         file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
@@ -715,7 +756,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles_p_;\n\tvoid* nTiles_d_;\n"
+        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
 
         # Everything in the packet consists of pointers to byte regions
