@@ -354,16 +354,17 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         ### determine scratch pointers
-        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
-        for item in scr:
-            file.writelines([
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
-            ])
+        # scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
+        # for item in scr:
+        #     file.writelines([
+        #         f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
+        #         f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
+        #     ])
         ###
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
+            f"{indent}char* scratchStart_d = static_cast<char*>(packet_d_);\n"
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             F"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n"
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
@@ -480,13 +481,13 @@ def generate_cpp_code_file(parameters, args):
                 file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
 
         # Create all scratch ptrs.
-        # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
-        # scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
-        # for idx,item in enumerate(scr):
-        #     if idx == 0:  # we can probably use an iterator here instead
-        #         file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
-        #     else:
-        #         file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
+        scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
+        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
+        for idx,item in enumerate(scr):
+            if idx == 0:  # we can probably use an iterator here instead
+                file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
+            else:
+                file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
             
@@ -555,7 +556,7 @@ def generate_cpp_code_file(parameters, args):
             ])
 
             if section == T_SCRATCH:
-                file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
+                file.write(f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n")
             elif section == T_IN or section == T_IN_OUT:
                 file.write(f"{indent}{item}{START_P} += nBytes_{item};\n")
                 file.write(f"{indent}{item}{START_D} += nBytes_{item};\n\n")
