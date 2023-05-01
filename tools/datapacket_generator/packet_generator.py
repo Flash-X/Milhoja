@@ -35,13 +35,13 @@ NEW = "new_"
 SIZE_T = "std::size_t"
 BLOCK_SIZE = "_BLOCK_SIZE_HELPER"
 N_TILES = "nTiles"
-SCRATCH = "_scratch_d"
+SCRATCH = "_scratch_d_"
 TILE_DESC = "tileDesc_h"
-DATA_P = "_data_p"
-DATA_D = "_data_d"
+DATA_P = "_data_p_"
+DATA_D = "_data_d_"
 OUT = "out"
-START_P = "_start_p"
-START_D = "_start_d"
+START_P = "_start_p_"
+START_D = "_start_d_"
 PTRS = "pointers"
 PINDEX = f"{PTRS}_index"
 
@@ -340,29 +340,31 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.write(f"{indent}/// END\n\n")
 
-        file.write(f"{indent}/// POINTER DETERMINATION\n\n")
-        # array to store all pointers to copy in later.
-        # num_of_arrays = f"1 + {len(params.get(GENERAL, {}))} + ({N_TILES} * { len(params.get(T_SCRATCH, {})) + len(params.get(T_MDATA, {})) + len(params.get(T_IN, {})) + len(params.get(T_IN_OUT)) + len(params.get(T_OUT, {})) })"
-        # file.writelines([
-        #     f"//{indent}unsigned int copy_size = stuff\n"
-        #     f"{indent}unsigned int copy_index = 0;\n"
-        #     f"{indent}MemCopyArgs copyargs[1000];\n\n"
-        # ])
-
-        # If sizes are not specified then we just create the packet according to the order in the JSON
         if args.sizes:
             s = open(args.sizes, "r")
             sizes = json.load(s)
             s.close()
         else:
             sizes = None
+
+        file.write(f"{indent}/// POINTER DETERMINATION\n")
+        file.writelines([
+            f"{indent}static_assert(sizeof(char) == 1);\n",
+            f"{indent}char* ptr_d = static_cast<char*>(packet_d);\n\n"
+        ])
+
+        # determine scratch pointers
+        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
+        for item in scr:
+            file.writelines([
+                f"{indent}{item}_start_d_ = static_cast<void*>(ptr_d);\n",
+                f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
+            ])
         
         file.writelines([
             f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
-            f"{indent}char* scratchStart_d = static_cast<char*>(packet_d_);\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            # f"{indent}copyInStart_d_ = scratchStart_d + {N_TILES} * nScratchPerTileBytes;\n",
-            F"{indent}copyInStart_d_ = scratchStart_d + nScratchPerTileBytesPadded;\n"
+            F"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n"
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
         ])
@@ -392,7 +394,6 @@ def generate_cpp_code_file(parameters, args):
         general.insert(0, "nTiles")
         for item in general:
             file.writelines([
-                #f"//{indent}copyargs.push_back( {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }} );\n"
                 f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
                 f"//{indent}copy_index++;\n"
                 f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
@@ -480,12 +481,12 @@ def generate_cpp_code_file(parameters, args):
 
         # Create all scratch ptrs.
         # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
-        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
-        for idx,item in enumerate(scr):
-            if idx == 0:  # we can probably use an iterator here instead
-                file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
-            else:
-                file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
+        # scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
+        # for idx,item in enumerate(scr):
+        #     if idx == 0:  # we can probably use an iterator here instead
+        #         file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
+        #     else:
+        #         file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
             
         # tile specific metadata.
@@ -553,7 +554,7 @@ def generate_cpp_code_file(parameters, args):
             ])
 
             if section == T_SCRATCH:
-                file.write(f"{indent}{item}{START_D} += nScratchPerTileBytes;\n\n")
+                file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
             elif section == T_IN or section == T_IN_OUT:
                 file.write(f"{indent}{item}{START_P} += nBytes_{item};\n")
                 file.write(f"{indent}{item}{START_D} += nBytes_{item};\n\n")
@@ -589,21 +590,6 @@ def generate_cpp_code_file(parameters, args):
                     f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
                     f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
                 ])
-            # file.write("#endif\n")
-            # file.writelines([
-            #     f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i) {{\n",
-            #     f"{indent*2}streams_[i] = RuntimeBackend::instance().requestStream(true);\n",
-            #     f"{indent*2}if (!streams_[i].isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\"); \n"
-            #     f"{indent}}}\n"
-            # ])
-
-            # file.writelines([
-            #     f"# if MILHOJA_NDIM == 3\n", # we can get rid of the compiler directives eventually.
-            #     f"{indent}stream2_ = RuntimeBackend::instance().requestStream(true);\n",
-            #     f"{indent}stream3_ = RuntimeBackend::instance().requestStream(true);\n",
-            #     f"{indent}if (!stream2_.isValid() || !stream3_.isValid()) {{\n",
-            #     f"{indent * 2}throw std::runtime_error(\" [{packet_name}::pack] Unable to acquire extra streams\");\n{indent}}}\n#endif\n"
-            # ])
         
         file.write(f"}}\n\n")
         return
@@ -715,6 +701,7 @@ def generate_cpp_header_file(parameters, args):
         level = 0
         private_variables = []
         header.write(GENERATED_CODE_MESSAGE)
+        pinned_and_data_ptrs = ""
         
         # define statements
         header.write(f"#ifndef {defined}\n")
@@ -722,6 +709,9 @@ def generate_cpp_header_file(parameters, args):
         # boilerplate includes
         header.write("#include <Milhoja.h>\n")
         header.write("#include <Milhoja_DataPacket.h>\n")
+
+        # manually generate nTiles getter here
+        pinned_and_data_ptrs += f"\tmilhoja::Real nTiles;\n\tvoid* nTiles_p_;\n\tvoid* nTiles_d_;\n"
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
@@ -738,15 +728,17 @@ def generate_cpp_header_file(parameters, args):
                 is_enumerable = is_enumerable_type(general[item])
                 item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
-                # header.write(f"{indent}milhoja::{general[item]} {item};\n")    # add a new variable for each item
-                # header.write(f"{indent}{SIZE_T} {block_size_var};\n")
-                # header.write(f"#include {includes[ general[item] ]}\n")
                 # private_variables.append(var)
-                private_variables.append(size_var)
+                # private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
                 types.add(item_type)
                 if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
                 constructor_args.append([item, item_type])
+                # be careful here we can't assume all items in general are based in milhoja
+                pinned_and_data_ptrs += "\t"
+                if type in mdata.imap: 
+                    pinned_and_data_ptrs += "milhoja::"
+                pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -760,6 +752,7 @@ def generate_cpp_header_file(parameters, args):
                     continue
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -769,6 +762,11 @@ def generate_cpp_header_file(parameters, args):
                 if is_enumerable: types.add( f"FArray4D" )
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
                 device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
+
+                if sect != T_SCRATCH:
+                    pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
+
 
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
@@ -838,7 +836,8 @@ def generate_cpp_header_file(parameters, args):
             f"\tstatic constexpr std::size_t ALIGN_SIZE={parameters.get('byte-align', 16)};\n",
             f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
             ''.join( f'\t{item[1]} {item[0]};\n' for item in constructor_args),
-            ''.join(private_variables)
+            ''.join(private_variables),
+            ''.join(pinned_and_data_ptrs)
         ])
 
         level -= 1
