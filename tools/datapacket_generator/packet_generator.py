@@ -254,7 +254,8 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
-        file.write(f"{indent}{N_TILES} = tiles_.size();\n\n")
+        file.write(f"{indent}{N_TILES} = tiles_.size();\n")
+        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(std::size_t);\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
