@@ -557,7 +557,6 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # Add metadata to ptr
-        # NOTE: static_cast<void*>() causes a compiler error here so I use c-style casting
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
             file.writelines([
                 f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
