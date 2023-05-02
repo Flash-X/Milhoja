@@ -220,7 +220,7 @@ def generate_cpp_code_file(parameters, args):
                 # num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
                 file.writelines([
                     f"{indent}nBytes = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-                    f"{indent}std::memcpy((void*)start_h, (void*)start_p_{item}, nBytes);\n\n"                
+                    f"{indent}std::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"                
                 ])
                 idx += 1
                 last_item = item
@@ -389,8 +389,8 @@ def generate_cpp_code_file(parameters, args):
             ])
             general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n"
         file.writelines([
-            f"{indent}contents_p_ = static_cast<PacketContents*>((void*)ptr_p);\n",
-            f"{indent}contents_d_ = static_cast<PacketContents*>((void*)ptr_d);\n",
+            f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
+            f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
             f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
             f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
         ])
@@ -442,7 +442,7 @@ def generate_cpp_code_file(parameters, args):
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 # data_copy_string += f"{indent*2}char_ptr "
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)(data_h + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -453,7 +453,7 @@ def generate_cpp_code_file(parameters, args):
                 # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f"+ {item}{BLOCK_SIZE}"
         file.write("\t// end copy in;\n\n")
         ###
@@ -495,7 +495,7 @@ def generate_cpp_code_file(parameters, args):
                 data_h = f"data_h + offset_{item}" if previous == "" else previous
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({data_h}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({data_h}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -506,7 +506,7 @@ def generate_cpp_code_file(parameters, args):
                 # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f" + {item}{BLOCK_SIZE}"
         file.write(f"\t// end copy in out\n\n")
         ### 
@@ -570,13 +570,13 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Revisit when packet contents is removed
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>({ nxt }{START_P}) );\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>({ nxt }{START_P}) );\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
@@ -587,9 +587,9 @@ def generate_cpp_code_file(parameters, args):
             extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
             c_args = mdata.constructor_args[indexer]
 
-            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)device_array_start_d_);\n")
+            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>( static_cast<void*>(device_array_start_d_) );\n")
             file.writelines([
-                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
+                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>({item}{START_D}) ), {c_args}, {nunkvars}}};\n"
                 # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                 f"{indent}std::memcpy(static_cast<void*>(device_array_start_p_), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n",
                 # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
