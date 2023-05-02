@@ -536,12 +536,6 @@ def generate_cpp_code_file(parameters, args):
 
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
-
-        # file.writelines([
-        #     f"{indent}ptr_p = {'copyInStart_p_' if T_IN in params else 'copyInOutStart_p_'};\n",
-        #     f"{indent}ptr_d = {'copyInStart_d_' if T_IN in params else 'copyInOutStart_d_'};\n"
-        # ])
-
         file.write(general_copy_in_string + "\n")
             
         # tile specific metadata.
@@ -560,19 +554,15 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n\n"
         ])
 
-        # Memcpy copy-in/copy-in-out data with data_h as source
-        # file.write(data_copy_string)
-
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # Add metadata to ptr
+        # NOTE: static_cast<void*>() causes a compiler error here so I use c-style casting
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
             file.writelines([
                 f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>(static_cast<void*>(char_ptr));\n",
-                f"{indent}std::memcpy(static_cast<void*>(char_ptr), (void*)&{item}, {item}{BLOCK_SIZE});\n\n",
-                # f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
-                # f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
+                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{item}), {item}{BLOCK_SIZE});\n\n",
             ])
 
         file.write(data_copy_string)
