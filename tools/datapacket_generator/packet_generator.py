@@ -387,14 +387,56 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
             general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n"
+        file.writelines([
+            f"{indent}contents_p_ = static_cast<PacketContents*>((void*)ptr_p);\n",
+            f"{indent}contents_d_ = static_cast<PacketContents*>((void*)ptr_d);\n",
+            f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
+            f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
+        ])
         ###
+        
 
         ### determine metadata pointers
-
+        metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True)
+        for item in metadata:
+            file.writelines([
+                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
+                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
+                f"{indent}ptr_p += nTiles * {item}{BLOCK_SIZE};\n",
+                f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
+            ])
         ###
 
         ### determine copy in pointers
-
+        # previous = ""
+        # data_copy_string = ""
+        # for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
+        #     start = params[T_IN][item]['start']
+        #     end = params[T_IN][item]['end']
+        #     data_type = params[T_IN][item]['type']
+        #     extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'])
+        #     num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+        #     offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
+        #     copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+        #     if idx == 0:
+        #         file.write(f"{indent}{item}{START_P} = static_cast<void*>(copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded);\n")
+        #         file.write(f"{indent}{item}{START_D} = static_cast<void*>(copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded);\n")
+        #         data_copy_string += offset
+        #         data_copy_string += copy_in_size
+        #         # data_copy_string += f"{indent*2}char_ptr "
+        #         data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)(data_h + offset_{item}), nBytes_{item});\n"
+        #         if previous == "":
+        #             previous = f"data_h + {item}{BLOCK_SIZE} "
+        #         else:
+        #             previous += f"+ {item}{BLOCK_SIZE}"
+        #     else:
+        #         l = list(params[T_IN])
+        #         file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+        #         file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+        #         data_copy_string += offset
+        #         data_copy_string += copy_in_size
+        #         data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
+        #         previous += f"+ {item}{BLOCK_SIZE}"
         ###
 
         ### determine copy-in-out pointers
@@ -406,11 +448,9 @@ def generate_cpp_code_file(parameters, args):
         ###
         
         file.writelines([
-            # f"{indent}location_ = PacketDataLocation::CC1;\n" # TODO: We need to change this
-            # f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            # F"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n"
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
+            # f"{indent}ptr_p = copyInOutStart_p_;\n"
         ])
 
         if T_OUT in params:
@@ -424,33 +464,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n"
         ]) 
 
-        # Scratch section does not get transferred from gpu
-
-        # copy-in section
-        # file.writelines([
-        #     f"{indent}char* ptr_p = copyInStart_p_;\n",
-        #     f"{indent}ptr_d = copyInStart_d_;\n\n",
-        # ])
-
-        # general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
-        # general.insert(0, "nTiles")
-        # for item in general:
-        #     file.writelines([
-        #         f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, sizeof({item}{BLOCK_SIZE}) }};\n"
-        #         f"//{indent}copy_index++;\n"
-        #         f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
-        #         f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
-        #         f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
-        #     ])
-
-        # packet contents comes after general section in hydro variants.
-        file.writelines([
-            f"{indent}contents_p_ = static_cast<PacketContents*>((void*)ptr_p);\n",
-            f"{indent}contents_d_ = static_cast<PacketContents*>((void*)ptr_d);\n",
-            f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
-            f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n\n"
-        ])
-
         previous = ""
         data_copy_string = ""
         for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
@@ -462,10 +475,11 @@ def generate_cpp_code_file(parameters, args):
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
             if idx == 0:
-                file.write(f"{indent}char* {item}{START_P} = copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
-                file.write(f"{indent}char* {item}{START_D} = copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded;\n")
+                file.write(f"{indent}{item}{START_P} = static_cast<void*>(copyInStart_p_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded);\n")
+                file.write(f"{indent}{item}{START_D} = static_cast<void*>(copyInStart_d_ + nCopyInBytes + nBlockMetadataPerTileBytesPadded);\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
+                # data_copy_string += f"{indent*2}char_ptr "
                 data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)(data_h + offset_{item}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
@@ -473,8 +487,8 @@ def generate_cpp_code_file(parameters, args):
                     previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN])
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
@@ -493,8 +507,8 @@ def generate_cpp_code_file(parameters, args):
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
             if idx == 0:
-                file.write(f"{indent}char* {item}{START_P} = copyInOutStart_p_;\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
-                file.write(f"{indent}char* {item}{START_D} = copyInOutStart_d_;\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+                file.write(f"{indent}{item}{START_P} = static_cast<void*>(copyInOutStart_p_);\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
+                file.write(f"{indent}{item}{START_D} = static_cast<void*>(copyInOutStart_d_);\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 data_h = f"data_h + offset_{item}" if previous == "" else previous
                 data_copy_string += offset
                 data_copy_string += copy_in_size
@@ -505,8 +519,8 @@ def generate_cpp_code_file(parameters, args):
                     previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN_OUT])
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 data_copy_string += f"{indent*2}std::memcpy((void*){item}{START_P}, (void*)({previous} + offset_{item}), nBytes_{item});\n"
@@ -514,23 +528,20 @@ def generate_cpp_code_file(parameters, args):
          
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             if idx == 0:
-                file.write(f"{indent}char* {item}{START_P} = copyOutStart_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
-                file.write(f"{indent}char* {item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
+                file.write(f"{indent}{item}{START_P} = copyOutStart_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
+                file.write(f"{indent}{item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
             else:
                 l = list(params[T_OUT])
-                file.write(f"{indent}char* {item}{START_P} = {l[idx-1]}{START_P} + {l[idx-1]}{BLOCK_SIZE};\n")
-                file.write(f"{indent}char* {item}{START_D} = {l[idx-1]}{START_D} + {l[idx-1]}{BLOCK_SIZE};\n")
+                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
 
-        # Create all scratch ptrs.
-        # scr = sorted(list(params.get(T_SCRATCH, {}).keys()))
-        # scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
-        # for idx,item in enumerate(scr):
-        #     if idx == 0:  # we can probably use an iterator here instead
-        #         file.write(f"{indent}char* {scr[idx]}{START_D} = scratchStart_d;\n")
-        #     else:
-        #         file.write(f"{indent}char* {scr[idx]}{START_D} = {scr[idx-1]}{START_D} + {scr[idx-1]}{BLOCK_SIZE};\n")
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
+
+        file.writelines([
+            f"{indent}ptr_p = {'copyInStart_p_' if T_IN in params else 'copyInOutStart_p_'};\n",
+            f"{indent}ptr_d = {'copyInStart_d_' if T_IN in params else 'copyInOutStart_d_'};\n"
+        ])
 
         file.write(general_copy_in_string + "\n")
             
@@ -551,8 +562,49 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         # Memcpy copy-in/copy-in-out data with data_h as source
-        file.write(data_copy_string)
+        # file.write(data_copy_string)
 
+        # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
+        # There's the obvious way of just using an if statement based on the section... but is there a better way?
+        # Add metadata to ptr
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
+            file.writelines([
+                f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>(static_cast<void*>(char_ptr));\n",
+                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n\n",
+                # f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
+                # f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
+            ])
+
+        for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
+            d = 4 # assume d = 4 for now.
+            section = device_array_pointers[item]['section']
+            type = device_array_pointers[item]['type']
+            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
+            c_args = mdata.constructor_args[indexer]
+
+            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
+            file.writelines([
+                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
+                f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
+                f"{indent}ptr_p += sizeof(FArray{d}D);\n",
+                f"{indent}ptr_d += sizeof(FArray{d}D);\n",
+            ])
+
+            if section == T_SCRATCH:
+                # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
+                file.write(f"{indent}{item}{START_D} = {item}{START_D} + {item}{BLOCK_SIZE};\n\n")
+            elif section == T_IN or section == T_IN_OUT:
+                file.write(f"{indent}{item}{START_P} += nBytes_{item};\n")
+                file.write(f"{indent}{item}{START_D} += nBytes_{item};\n\n")
+            else:
+                file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
+                file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
+
+        file.write(data_copy_string)
+    
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
         # TODO: Revisit when packet contents is removed
@@ -567,45 +619,6 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>((void*){ nxt }{START_P});\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
-
-        # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
-        # There's the obvious way of just using an if statement based on the section... but is there a better way?
-        # Add metadata to ptr
-        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
-            file.writelines([
-                f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>((void*)ptr_d);\n",
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
-                f"//{indent}copyargs[copy_index] = {{ (void*)&{item}, (void*)ptr_p, {item}{BLOCK_SIZE} }};\n",
-                f"//{indent}copy_index++;\n",
-                f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
-                f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
-            ])
-
-        for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
-            d = 4 # assume d = 4 for now.
-            section = device_array_pointers[item]['section']
-            type = device_array_pointers[item]['type']
-            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
-            c_args = mdata.constructor_args[indexer]
-
-            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>((void*)ptr_d);\n")
-            file.writelines([
-                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>((void*){item}{START_D}), {c_args}, {nunkvars}}};\n"
-                f"//{indent}copyargs[copy_index] = {{ (void*)&{item}_d, (void*)ptr_p, sizeof(FArray{d}D) }};\n",
-                f"//{indent}copy_index++;\n",
-                f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                f"{indent}ptr_p += sizeof(FArray{d}D);\n",
-                f"{indent}ptr_d += sizeof(FArray{d}D);\n",
-            ])
-
-            if section == T_SCRATCH:
-                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
-            elif section == T_IN or section == T_IN_OUT:
-                file.write(f"{indent}{item}{START_P} += nBytes_{item};\n")
-                file.write(f"{indent}{item}{START_D} += nBytes_{item};\n\n")
-            else:
-                file.write(f"{indent}{item}{START_P} += {item}{BLOCK_SIZE};\n")
-                file.write(f"{indent}{item}{START_D} += {item}{BLOCK_SIZE};\n\n")
 
         indent = "\t"
 
