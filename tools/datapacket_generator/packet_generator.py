@@ -570,7 +570,7 @@ def generate_cpp_code_file(parameters, args):
             file.writelines([
                 f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                 f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>(static_cast<void*>(char_ptr));\n",
-                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n\n",
+                f"{indent}std::memcpy(static_cast<void*>(char_ptr), (void*)&{item}, {item}{BLOCK_SIZE});\n\n",
                 # f"{indent}ptr_p += {item}{BLOCK_SIZE};\n"
                 # f"{indent}ptr_d += {item}{BLOCK_SIZE};\n\n"
             ])
