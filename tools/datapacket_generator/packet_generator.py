@@ -68,6 +68,7 @@ all_pointers = set()
 types = set()
 includes = set()
 constructor_args = []
+farray_items = []
 
 # TODO: It might be beneficial to write helper methods or a wrapper class for files
 # to help with consistently writing to the file, so we
@@ -409,6 +410,13 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
             ])
         file.write(f"{indent}char* device_array_start_p_ = ptr_p;\n{indent}char* device_array_start_d_ = ptr_d;\n")
+        for item in sorted(farray_items):
+            file.writelines([
+                f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
+                f"{indent}char* {item}_farray_start_d_ = ptr_d;\n"
+                f"{indent}ptr_p += nTiles * sizeof(FArray4D);\n",
+                f"{indent}ptr_d += nTiles * sizeof(FArray4D);\n\n"
+            ])
         file.write("\t// end metadata;\n\n")
         ###
 
@@ -485,13 +493,9 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
                 f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
-                # f"{indent}ptr_p += {N_TILES} * sizeof(FArray4D);\n",
-                # f"{indent}ptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
             ])
 
             if idx == 0:
-                # file.write(f"{indent}{item}{START_P} = static_cast<void*>(copyInOutStart_p_);\n")#+ nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
-                # file.write(f"{indent}{item}{START_D} = static_cast<void*>(copyInOutStart_d_);\n")# + nCopyInBytes + ({N_TILES} * nBlockMetadataPerTileBytes);\n")
                 data_h = f"data_h + offset_{item}" if previous == "" else previous
                 data_copy_string += offset
                 data_copy_string += copy_in_size
@@ -502,8 +506,6 @@ def generate_cpp_code_file(parameters, args):
                     previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN_OUT])
-                # file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
-                # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
@@ -584,28 +586,31 @@ def generate_cpp_code_file(parameters, args):
             d = 4 # assume d = 4 for now.
             section = device_array_pointers[item]['section']
             type = device_array_pointers[item]['type']
+            location = device_array_pointers[item]['location']
             extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
             c_args = mdata.constructor_args[indexer]
 
-            file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<FArray{d}D*>( static_cast<void*>(device_array_start_d_) );\n")
+            file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
+            file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")
             file.writelines([
-                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>({item}{START_D}) ), {c_args}, {nunkvars}}};\n"
+                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ), {c_args}, {nunkvars}}};\n"
+                f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
                 # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                f"{indent}std::memcpy(static_cast<void*>(device_array_start_p_), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n",
+                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
                 # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                f"{indent}device_array_start_p_ += sizeof(FArray{d}D);\n",
-                f"{indent}device_array_start_d_ += sizeof(FArray{d}D);\n",
+                # f"{indent}device_array_start_p_ += sizeof(FArray{d}D);\n",
+                # f"{indent}device_array_start_d_ += sizeof(FArray{d}D);\n",
             ])
 
-            if section == T_SCRATCH:
-                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
-                # file.write(f"{indent}{item}{START_D} = {item}{START_D} + {item}{BLOCK_SIZE};\n\n")
-            elif section == T_IN or section == T_IN_OUT:
-                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + nBytes_{item} );\n")
-                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + nBytes_{item} );\n\n")
-            else:
-                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + {item}{BLOCK_SIZE} );\n")
-                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
+            # if section == T_SCRATCH:
+            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
+            #     # file.write(f"{indent}{item}{START_D} = {item}{START_D} + {item}{BLOCK_SIZE};\n\n")
+            # elif section == T_IN or section == T_IN_OUT:
+            #     file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + nBytes_{item} );\n")
+            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + nBytes_{item} );\n\n")
+            # else:
+            #     file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + {item}{BLOCK_SIZE} );\n")
+            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
 
         indent = "\t"
 
@@ -802,6 +807,7 @@ def generate_cpp_header_file(parameters, args):
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
+                if 'location' in parameters[sect][item]: farray_items.append(parameters[sect][item]['location']) 
                 private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
                 is_enumerable = is_enumerable_type(parameters[sect][item])
                 types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
