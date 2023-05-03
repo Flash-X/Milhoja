@@ -450,7 +450,8 @@ def generate_cpp_code_file(parameters, args):
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 # data_copy_string += f"{indent*2}char_ptr "
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -461,7 +462,8 @@ def generate_cpp_code_file(parameters, args):
                 # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f"+ {item}{BLOCK_SIZE}"
         file.write("\t// end copy in;\n\n")
         ###
@@ -499,7 +501,8 @@ def generate_cpp_code_file(parameters, args):
                 data_h = f"data_h + offset_{item}" if previous == "" else previous
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({data_h}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
                 if previous == "":
                     previous = f"data_h + {item}{BLOCK_SIZE} "
                 else:
@@ -508,7 +511,8 @@ def generate_cpp_code_file(parameters, args):
                 l = list(params[T_IN_OUT])
                 data_copy_string += offset
                 data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>({item}{START_P}), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
+                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
                 previous += f" + {item}{BLOCK_SIZE}"
         file.write(f"\t// end copy in out\n\n")
         ### 
@@ -538,6 +542,9 @@ def generate_cpp_code_file(parameters, args):
 
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
+        file.write(f"{indent}/// END\n\n")
+
+        file.write(f"{indent}/// MEM COPY SECTION\n")
         file.write(general_copy_in_string + "\n")
             
         # tile specific metadata.
@@ -615,14 +622,6 @@ def generate_cpp_code_file(parameters, args):
         indent = "\t"
 
         file.write(f"{indent}}}\n")
-        file.write(f"{indent}/// END\n\n")
-        
-        file.write(f"{indent}/// COPY INTO GPU MEMORY\n\n")
-        # file.writelines([
-        #     f"{indent}for(int i = 0; i < number_of_pointers; ++i) {{\n",
-        #     f"{indent*2}std::memcpy({PTRS}[i].destination, {PTRS}[i].source, {PTRS}[i].size);\n"
-        #     f"{indent}}}\n\n"
-        # ])
         file.write(f"{indent}/// END\n\n")
 
         # request stream at end
@@ -708,7 +707,6 @@ def generate_cpp_code_file(parameters, args):
     if not parameters:
         raise ValueError("Parameters is empty or null.")
     
-    # TODO: We should be generating the include files using a map based on all different types given in the json packet. 
     name = parameters["name"]
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
@@ -735,7 +733,6 @@ def generate_cpp_code_file(parameters, args):
 
 # Creates a header file based on the given parameters.
 # Lots of boilerplate and class member generation.
-# TODO: Pack and unpack functions use a specific variable involving CC1 and CC2. How can we specify this in tile-in and tile-out?
 def generate_cpp_header_file(parameters, args):
     if not parameters:
         raise ValueError("Parameters is null.")
@@ -822,14 +819,6 @@ def generate_cpp_header_file(parameters, args):
 
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
-
-        # header.writelines([
-        #     f"\nstruct MemCopyArgs {{\n",
-        #     f"\tvoid* src = nullptr;\n",
-        #     f"\tvoid* dest = nullptr;\n",
-        #     f"\t{SIZE_T} size = 0;\n"
-        #     f"}};\n\n"
-        # ])
 
         # class definition
         header.write(f"class {name} : public milhoja::DataPacket {{ \n")
