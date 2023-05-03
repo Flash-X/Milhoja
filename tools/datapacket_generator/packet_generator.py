@@ -442,8 +442,6 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
                 f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
-                # f"{indent}ptr_p += {N_TILES} * sizeof(FArray4D);\n",
-                # f"{indent}ptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
             ])
 
             if idx == 0:
@@ -458,8 +456,6 @@ def generate_cpp_code_file(parameters, args):
                     previous += f"+ {item}{BLOCK_SIZE}"
             else:
                 l = list(params[T_IN])
-                # file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
-                # file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
                 data_copy_string += offset
                 data_copy_string += copy_in_size
                 data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
@@ -579,13 +575,13 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Revisit when packet contents is removed
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>({ nxt }{START_P}) );\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>({ nxt }{START_P}) );\n\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
@@ -604,20 +600,7 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
                 # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                 f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
-                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}_d, sizeof(FArray{d}D));\n",
-                # f"{indent}device_array_start_p_ += sizeof(FArray{d}D);\n",
-                # f"{indent}device_array_start_d_ += sizeof(FArray{d}D);\n",
             ])
-
-            # if section == T_SCRATCH:
-            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
-            #     # file.write(f"{indent}{item}{START_D} = {item}{START_D} + {item}{BLOCK_SIZE};\n\n")
-            # elif section == T_IN or section == T_IN_OUT:
-            #     file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + nBytes_{item} );\n")
-            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + nBytes_{item} );\n\n")
-            # else:
-            #     file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({item}{START_P}) + {item}{BLOCK_SIZE} );\n")
-            #     file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({item}{START_D}) + {item}{BLOCK_SIZE} );\n\n")
 
         indent = "\t"
 
