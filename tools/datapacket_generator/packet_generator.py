@@ -517,8 +517,8 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"\t// copy out section\n")
         if T_OUT in params:
             file.writelines([
-                f"{indent}char* copyOutStart_p = copyInOutStart_p_ + copyInOutDataPerTileBytesPadded;\n",
-                f"{indent}char* copyOutStart_d = copyInOutStart_d_ + copyInOutDataPerTileBytesPadded;\n"
+                f"{indent}char* copyOutStart_p = copyInOutStart_p_ + nCopyInOutDataPerTileBytesPadded;\n",
+                f"{indent}char* copyOutStart_d = copyInOutStart_d_ + nCopyInOutDataPerTileBytesPadded;\n"
                 f"{indent}ptr_p = copyOutStart_p;\n"
                 f"{indent}ptr_d = copyOutStart_d;\n\n"
             ])
