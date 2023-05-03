@@ -4,10 +4,12 @@
   "problem": "Sedov",
   "tile-scratch": {
     "FCX": {
+      "location": "FCX",
       "type": "Real",
       "extents": "fcx(0, NFLUXES)"
     },
     "FCY": {
+      "location": "FCY",
       "type": "Real",
       "extents": "fcy(0, NFLUXES)"
     }
@@ -22,6 +24,7 @@
   },
   "tile-in": {
     "CC1": {
+      "location": "CC1",
       "start": "UNK_VARS_BEGIN",
       "end": "GAMC_VAR",
       "type": "Real",
@@ -30,6 +33,7 @@
   },
   "tile-out": {
     "CC2": {
+      "location": "CC2",
       "start": "UNK_VARS_BEGIN",
       "end": "EINT_VAR",
       "type": "Real",

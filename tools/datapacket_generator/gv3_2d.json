@@ -5,14 +5,17 @@
   "n-extra-streams": 0,
   "tile-scratch": {
     "CC2": {
+      "location": "CC2",
       "type": "Real",
       "extents": "cc(NGUARD, 1)"
     },
     "FCX": {
+      "location": "FCX",
       "type": "Real",
       "extents": "fcx(0, NFLUXES)"
     },
     "FCY": {
+      "location": "FCY",
       "type": "Real",
       "extents": "fcy(0, NFLUXES)"
     }
@@ -23,6 +26,7 @@
   "tile-metadata": [ "deltas", "lo", "hi" ],
   "tile-in-out": {
     "CC1": {
+      "location": "CC1",
       "multifab": "hydro-cc",
       "start-in": "UNK_VARS_BEGIN",
       "end-in": "GAMC_VAR",
