@@ -593,7 +593,7 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
             file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")
             file.writelines([
-                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ), {c_args}, {nunkvars}}};\n"
+                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
                 f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
                 # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                 f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
