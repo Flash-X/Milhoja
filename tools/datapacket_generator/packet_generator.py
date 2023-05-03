@@ -517,17 +517,16 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"\t// copy out section\n")
         if T_OUT in params:
             file.writelines([
-                f"{indent}char* copyOutStart_p = copyInOutStart_p_;\n",
-                f"{indent}char* copyOutStart_d = copyInOutStart_d_;\n\n"
+                f"{indent}char* copyOutStart_p = copyInOutStart_p_ + copyInOutPerTileBytesPadded;\n",
+                f"{indent}char* copyOutStart_d = copyInOutStart_d_ + copyInOutPerTileBytesPadded;\n"
+                f"{indent}ptr_p = copyOutStart_p;\n"
+                f"{indent}ptr_d = copyOutStart_d;\n\n"
             ])
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
-            if idx == 0:
-                file.write(f"{indent}{item}{START_P} = copyOutStart_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
-                file.write(f"{indent}{item}{START_D} = copyOutStart_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
-            else:
-                l = list(params[T_OUT])
-                file.write(f"{indent}{item}{START_P} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_P}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
-                file.write(f"{indent}{item}{START_D} = static_cast<void*>( static_cast<char*>({l[idx-1]}{START_D}) + {N_TILES} * {l[idx-1]}{BLOCK_SIZE} );\n")
+            file.write(f"{indent}{item}{START_P} = ptr_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
+            file.write(f"{indent}{item}{START_D} = ptr_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
+            file.write(f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n")
+            file.write(f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n")
         file.write(f"\t// end copy out\n\n")
         ###
 
@@ -575,12 +574,14 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Revisit when packet contents is removed
         if T_IN_OUT in params:
             nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n")
+            file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
+            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
         if T_OUT in params:
             nxt = next(iter(params[T_OUT]))
+            file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
         else:
             file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
