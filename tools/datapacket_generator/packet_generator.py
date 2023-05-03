@@ -409,7 +409,6 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_p += nTiles * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
             ])
-        file.write(f"{indent}char* device_array_start_p_ = ptr_p;\n{indent}char* device_array_start_d_ = ptr_d;\n")
         for item in sorted(farray_items):
             file.writelines([
                 f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
