@@ -283,7 +283,7 @@ def generate_cpp_code_file(parameters, args):
 
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
-        file.write(f"+ {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
+        file.write(f" + {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
         file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
         bytesToGpu.append("nCopyInBytesPadded")
         bytesPerPacket.append("nCopyInBytesPadded")
@@ -444,23 +444,11 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
 
-            if idx == 0:
-                data_copy_string += offset
-                data_copy_string += copy_in_size
-                # data_copy_string += f"{indent*2}char_ptr "
-                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
-                if previous == "":
-                    previous = f"data_h + {item}{BLOCK_SIZE} "
-                else:
-                    previous += f"+ {item}{BLOCK_SIZE}"
-            else:
-                l = list(params[T_IN])
-                data_copy_string += offset
-                data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
-                previous += f"+ {item}{BLOCK_SIZE}"
+            data_copy_string += offset
+            data_copy_string += copy_in_size
+            data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+            data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
+
         file.write("\t// end copy in;\n\n")
         ###
 
@@ -470,7 +458,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}ptr_p = copyInOutStart_p_;\n"
             f"{indent}ptr_d = copyInOutStart_d_;\n\n"
-            # f"{indent}ptr_p = copyInOutStart_p_;\n"
         ])
         ### determine copy-in-out pointers
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
@@ -493,23 +480,12 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
 
-            if idx == 0:
-                data_h = f"data_h + offset_{item}" if previous == "" else previous
-                data_copy_string += offset
-                data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
-                if previous == "":
-                    previous = f"data_h + {item}{BLOCK_SIZE} "
-                else:
-                    previous += f"+ {item}{BLOCK_SIZE}"
-            else:
-                l = list(params[T_IN_OUT])
-                data_copy_string += offset
-                data_copy_string += copy_in_size
-                data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({previous} + offset_{item}), nBytes_{item});\n"
-                previous += f" + {item}{BLOCK_SIZE}"
+            data_h = f"data_h + offset_{item}" if previous == "" else previous
+            data_copy_string += offset
+            data_copy_string += copy_in_size
+            data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+            data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
+
         file.write(f"\t// end copy in out\n\n")
         ### 
 
@@ -731,6 +707,7 @@ def generate_cpp_header_file(parameters, args):
         defined = name.upper()
         level = 0
         private_variables = []
+        getters = []
         header.write(GENERATED_CODE_MESSAGE)
         pinned_and_data_ptrs = ""
         
@@ -744,6 +721,7 @@ def generate_cpp_header_file(parameters, args):
         # manually generate nTiles getter here
         pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
+        getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
@@ -771,12 +749,14 @@ def generate_cpp_header_file(parameters, args):
                 if type in mdata.imap: 
                     pinned_and_data_ptrs += "milhoja::"
                 pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
         if T_MDATA in parameters:
             for item in parameters[T_MDATA]:
                 new_variable = f"{item}{BLOCK_SIZE}"
+                item_type = mdata.known_types[item]
                 if mdata.known_types[item]:
                     types.add( mdata.known_types[item] )
                 else:
@@ -785,12 +765,14 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
                 if 'location' in parameters[sect][item]: farray_items.append(parameters[sect][item]['location']) 
                 private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
                 is_enumerable = is_enumerable_type(parameters[sect][item])
+                item_type = parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type']
                 types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
                 if is_enumerable: types.add( f"FArray4D" )
                 vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
@@ -799,6 +781,8 @@ def generate_cpp_header_file(parameters, args):
                 if sect != T_SCRATCH:
                     pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
+
+                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
 
 
         # we only want to include things if they are found in the include dict.
@@ -829,7 +813,8 @@ def generate_cpp_header_file(parameters, args):
         # pack & unpack methods
         header.writelines([
             f"{indent}void pack(void) override;\n",
-            f"{indent}void unpack(void) override;\n"
+            f"{indent}void unpack(void) override;\n",
+            f"".join(getters)
         ])
 
         # TODO: Do we need to check if ndim is 3? In the ideal situation the
