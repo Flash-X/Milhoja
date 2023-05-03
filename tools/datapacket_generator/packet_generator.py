@@ -749,7 +749,8 @@ def generate_cpp_header_file(parameters, args):
                 if type in mdata.imap: 
                     pinned_and_data_ptrs += "milhoja::"
                 pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
-                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
+                ext = "milhoja::" if item_type in mdata.imap else ""
+                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -765,7 +766,8 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
-                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
+                ext = "milhoja::" if item_type in mdata.imap else ""
+                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -781,8 +783,8 @@ def generate_cpp_header_file(parameters, args):
                 if sect != T_SCRATCH:
                     pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
-
-                getters.append(f"\t{item_type}* {item}_getter(void) const {{ return static_cast<{item_type}*>({item}{START_D}); }}\n")
+                ext = "milhoja::" if item_type in mdata.imap else ""
+                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
 
         # we only want to include things if they are found in the include dict.
