@@ -255,7 +255,7 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         file.write(f"{indent}{N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = pad(sizeof(std::size_t));\n\n")
+        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(std::size_t);\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
@@ -399,7 +399,6 @@ def generate_cpp_code_file(parameters, args):
         ])
         file.write("\t// end general\n\n")
         ###
-        
 
         ### determine metadata pointers
         file.write("\t// metadata section;\n")
