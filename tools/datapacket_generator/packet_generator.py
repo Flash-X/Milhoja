@@ -86,7 +86,7 @@ def generate_fortran_code_file(parameters, args):
 def generate_cpp_code_file(parameters, args):
     def generate_constructor(file, params):
             # function definition
-            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'const {item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
+            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
             extra_streams = params[EXTRA_STREAMS]
             level = 1
             index = 1
@@ -552,22 +552,6 @@ def generate_cpp_code_file(parameters, args):
 
         file.write(data_copy_string)
         file.write(out_location)
-        # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
-        # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
-        # TODO: Revisit when packet contents is removed
-        # if T_IN_OUT in params:
-        #     nxt = next(iter(params[T_IN_OUT]))
-        #     file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
-        #     file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
-        # else:
-        #     file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
-
-        # if T_OUT in params:
-        #     nxt = next(iter(params[T_OUT]))
-        #     file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
-        #     file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
-        # else:
-        #     file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
         for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
             d = 4 # assume d = 4 for now.
@@ -726,7 +710,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
+        pinned_and_data_ptrs += f"\tconst {SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
         getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
@@ -740,7 +724,7 @@ def generate_cpp_header_file(parameters, args):
             general = parameters[GENERAL] # general section is the general copy in data information
             for item in general:
                 block_size_var = f"{item}{BLOCK_SIZE}"
-                var = f"\tmilhoja::{general[item]} {item};\n"
+                var = f"\tconst milhoja::{general[item]} {item};\n"
                 size_var = f"\t{SIZE_T} {block_size_var};\n"
                 is_enumerable = is_enumerable_type(general[item])
                 item_type = general[item] if not is_enumerable else general[item]['type']
@@ -749,7 +733,7 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
                 types.add(item_type)
-                if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
+                if item_type in mdata.imap: item_type = f"const milhoja::{item_type}"
                 constructor_args.append([item, item_type])
                 # be careful here we can't assume all items in general are based in milhoja
                 pinned_and_data_ptrs += "\t"
@@ -805,7 +789,7 @@ def generate_cpp_header_file(parameters, args):
         # public information
         header.write("public:\n")
         header.write(f"{indent}std::unique_ptr<milhoja::DataPacket> clone(void) const override;\n")
-        header.write(f"{indent}{name}({', '.join(f'const {item[1]} {NEW}{item[0]}' for item in constructor_args)});\n")
+        header.write(f"{indent}{name}({', '.join(f'{item[1]} {NEW}{item[0]}' for item in constructor_args)});\n")
         # header.write(indent + f"{name}(const milhoja::Real {NEW}dt);\n")
         header.write(indent + f"~{name}(void);\n")
 
