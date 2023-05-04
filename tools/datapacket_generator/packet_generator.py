@@ -129,9 +129,6 @@ def generate_cpp_code_file(parameters, args):
         extra_streams = params.get(EXTRA_STREAMS, 0)
         file.write(f"{packet_name}::~{packet_name}(void) {{\n")
         indent = '\t'
-        # if params["ndim"] == 3:
-        #     file.write(f"{indent}if (stream2_.isValid() || stream3_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");")
-        # file.write("#if MILHOJA_NDIM==3\n")
         for i in range(2, extra_streams+2):
             file.write(f"{indent}if (stream{i}_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");\n")
         # file.write("#endif\n")
@@ -382,6 +379,8 @@ def generate_cpp_code_file(parameters, args):
         general_copy_in_string = ""
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
         general.insert(0, "nTiles")
+        # Note: We add nTiles to general to make generation easier but nTiles cannot be const because it is set in pack().
+        # I could probably set nTiles in the constructor... I'd have to make sure that setting it in the constructor works fine.
         for item in general:
             file.writelines([
                 # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
@@ -390,7 +389,8 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
-            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<void*>(&{item}), {item}{BLOCK_SIZE});\n"
+            const = "const " if item != "nTiles" else ""
+            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}), {item}{BLOCK_SIZE});\n"
         file.writelines([
             f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
             f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
