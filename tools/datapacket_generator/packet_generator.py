@@ -93,13 +93,12 @@ def generate_cpp_code_file(parameters, args):
             indent = "\t" * level
             # we probably don't need to initialize all of the vars since we're generating everything
             for variable in vars_and_types:
-                comma = '' if index == len(vars_and_types) else ','
-                file.write(f"{indent}{variable}{{0}}{comma}\n")
-                index += 1
+                file.write(f"{indent}{variable}{{0}},\n")
             # file.write(f"{indent}{N_TILES}")
-            for item in params.get(GENERAL, []):
-                file.write(f"{indent}{item}(new_{item})\n")
-            file.write("{\n")
+            file.write(f",\n".join(f"{indent}{item}{{new_{item}}}" for item in params.get(GENERAL, [])))
+            # for item in params.get(GENERAL, []):
+            #     file.write(f"{indent}{item}{{new_{item}}}\n")
+            file.write("\n{\n")
 
             # some misc constructor code for calculating block sizes.
             file.write(f"{indent}using namespace milhoja;\n")
