@@ -467,6 +467,7 @@ def generate_cpp_code_file(parameters, args):
             start = params[T_IN_OUT][item]['start-in']
             end = params[T_IN_OUT][item]['end-in']
             data_type = params[T_IN_OUT][item]['type']
+            location = params[T_IN_OUT][item]['location']
             extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'])
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
@@ -479,17 +480,20 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
 
+
             data_h = f"data_h + offset_{item}" if previous == "" else previous
             data_copy_string += offset
             data_copy_string += copy_in_size
             data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
             data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
+            data_copy_string += f"{indent*2}pinnedPtrs[n].{location}_data = char_ptr\n\n"
 
         file.write(f"\t// end copy in out\n\n")
         ### 
 
         ### determine copy out pointers
         file.write(f"\t// copy out section\n")
+        out_location = ""
         if T_OUT in params:
             file.writelines([
                 f"{indent}char* copyOutStart_p = copyInOutStart_p_ + nCopyInOutDataPerTileBytesPadded;\n",
@@ -498,10 +502,13 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d = copyOutStart_d;\n\n"
             ])
         for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
+            location = params[T_OUT][item]['location']
             file.write(f"{indent}{item}{START_P} = ptr_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
             file.write(f"{indent}{item}{START_D} = ptr_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
             file.write(f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n")
             file.write(f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n")
+            out_location += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+            out_location += f"{indent*2}pinnedPtrs[n].{location}_data = char_ptr;\n\n"
         file.write(f"\t// end copy out\n\n")
         ###
 
@@ -544,22 +551,23 @@ def generate_cpp_code_file(parameters, args):
             ])
 
         file.write(data_copy_string)
+        file.write(out_location)
         # be careful here, is pinnedptrs tied to tile-in-out or tile-out? What about tile-in?
         # We need to change this so that we aren't accidentally assigning CC1_data to a cc2 ptr.
         # TODO: Revisit when packet contents is removed
-        if T_IN_OUT in params:
-            nxt = next(iter(params[T_IN_OUT]))
-            file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
-        else:
-            file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
+        # if T_IN_OUT in params:
+        #     nxt = next(iter(params[T_IN_OUT]))
+        #     file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
+        #     file.write(f"{indent}pinnedPtrs_[n].CC1_data = static_cast<{params[T_IN_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
+        # else:
+        #     file.write(f"{indent}pinnedPtrs_[n].CC1_data = nullptr;\n")
 
-        if T_OUT in params:
-            nxt = next(iter(params[T_OUT]))
-            file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
-        else:
-            file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
+        # if T_OUT in params:
+        #     nxt = next(iter(params[T_OUT]))
+        #     file.write(f"{indent}char_ptr = static_cast<char*>({nxt}{START_P}) + n * {nxt}{BLOCK_SIZE};\n")
+        #     file.write(f"{indent}pinnedPtrs_[n].CC2_data = static_cast<{params[T_OUT][nxt]['type']}*>( static_cast<void*>(char_ptr) );\n\n")
+        # else:
+        #     file.write(f"{indent}pinnedPtrs_[n].CC2_data = nullptr;\n\n")
 
         for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
             d = 4 # assume d = 4 for now.
