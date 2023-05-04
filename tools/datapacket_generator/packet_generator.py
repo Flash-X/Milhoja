@@ -96,6 +96,9 @@ def generate_cpp_code_file(parameters, args):
                 comma = '' if index == len(vars_and_types) else ','
                 file.write(f"{indent}{variable}{{0}}{comma}\n")
                 index += 1
+            # file.write(f"{indent}{N_TILES}")
+            for item in params.get(GENERAL, []):
+                file.write(f"{indent}{item}(new_{item})\n")
             file.write("{\n")
 
             # some misc constructor code for calculating block sizes.
@@ -116,8 +119,8 @@ def generate_cpp_code_file(parameters, args):
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
             
-            for item in params.get(GENERAL, {}):
-                file.write(f"{indent}{item} = {NEW}{item};\n")
+            # for item in params.get(GENERAL, {}):
+                # file.write(f"{indent}{item} = {NEW}{item};\n")
 
             file.write("}\n\n")
 
@@ -710,7 +713,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\tconst {SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
+        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
         getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
@@ -733,8 +736,8 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
                 types.add(item_type)
-                if item_type in mdata.imap: item_type = f"const milhoja::{item_type}"
-                constructor_args.append([item, item_type])
+                if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
+                constructor_args.append([item, "const " + item_type])
                 # be careful here we can't assume all items in general are based in milhoja
                 pinned_and_data_ptrs += "\t"
                 if type in mdata.imap: 
