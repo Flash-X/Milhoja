@@ -486,7 +486,7 @@ def generate_cpp_code_file(parameters, args):
             data_copy_string += copy_in_size
             data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
             data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
-            data_copy_string += f"{indent*2}pinnedPtrs[n].{location}_data = char_ptr\n\n"
+            data_copy_string += f"{indent*2}pinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
 
         file.write(f"\t// end copy in out\n\n")
         ### 
@@ -508,7 +508,7 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n")
             file.write(f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n")
             out_location += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-            out_location += f"{indent*2}pinnedPtrs[n].{location}_data = char_ptr;\n\n"
+            out_location += f"{indent*2}pinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
         file.write(f"\t// end copy out\n\n")
         ###
 
