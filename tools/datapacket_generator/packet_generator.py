@@ -652,7 +652,8 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}switch(id) {{\n")
             for i in range(2, extra_streams+2):
                 file.writelines([
-                    f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n"
+                    f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} \
+                    milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n"
                 ])
             file.write(f"{indent}}}\n}}\n\n")
             # file.write("#endif\n")
