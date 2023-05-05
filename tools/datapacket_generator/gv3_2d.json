@@ -39,7 +39,7 @@
       "start-out": "UNK_VARS_BEGIN",
       "end-out": "EINT_VAR",
       "type": "Real",
-      "extents": "cc(NGUARD, NUNKVAR-1)"
+      "extents": "cc(NGUARD)"
     }
   }
 }
