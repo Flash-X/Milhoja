@@ -21,11 +21,7 @@
   "general": {
     "dt": "Real"
   },
-  "tile-metadata": {
-    "deltas": "RealVect",
-    "lo": "IntVect",
-    "hi": "IntVect"
-  },
+  "tile-metadata": [ "deltas", "lo", "hi" ],
   "tile-in": {
     "CC1": {
       "location": "CC1",
