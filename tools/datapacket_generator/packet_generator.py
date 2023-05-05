@@ -369,8 +369,10 @@ def generate_cpp_code_file(parameters, args):
         ###
         file.write(f"{indent}// end scratch\n\n")
 
-        if T_IN_OUT in params: location = "CC1"
-        else: location = "CC2"
+        location = "CC1"
+        if T_IN not in params and T_IN_OUT not in params: 
+            print("No input data! Abort")
+            exit(-1)
 
         file.writelines([
             f"{indent}location_ = PacketDataLocation::{location};\n",
