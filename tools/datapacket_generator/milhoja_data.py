@@ -44,21 +44,19 @@ constants = {
 
 # A helper method that parses the extents array in the JSON file.
 # returns the final string to be used in the code.
-def parse_extents(extents, size='') -> Tuple[str, Union[str, int], str]:
+def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
         if extents[-1] == ')': extents = extents[:-1]
         else: print(f"{extents} is not closed properly.")
         sp = extents.split('(')
         indexer = sp[0]
-        sp = sp[1].split(',')
-        nguard = sp[0].upper().strip()
-        nunkvar = sp[1].upper().strip()
+        # sp = sp[1].split(',')
+        nguard = sp[1].strip()
 
         try:
             nguard = int(nguard)
         except:
-            # print("Nguard is a string...")
             # if nguard is in the constants use as is
             if nguard not in constants:
                 # our constants is contained in nguard, then we can use the string as is but print an error.
@@ -69,23 +67,9 @@ def parse_extents(extents, size='') -> Tuple[str, Union[str, int], str]:
                     print(f"{nguard} not found in string. Aborting.", file=sys.stderr)
                     exit(-1)
                 warnings.warn("Constant found in string, continuing...")
-
-        try:
-            nunkvar = int(nunkvar)
-        except:
-            # print("Nguard is a string...")
-            # if nguard is in the constants use as is
-            if nunkvar not in constants:
-                # our constants is contained in nguard, then we can use the string as is but print an error.
-                for constant in constants:
-                    if constant in nunkvar:
-                        break # if we find one of the constants in the string
-                else: #no break
-                    print("Constant not found in string. Aborting.", file=sys.stderr)
-                    exit(-1)
-                warnings.warn("Constant found in string, continuing...")
         
-        return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
+        # return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
+        return ispace_map[indexer].format(guard=nguard, unk=f"({end}+{start}+1)", size=size), f"({end}+{start}+1)", indexer
     
     elif isinstance(extents, list):
         return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None

@@ -6,18 +6,24 @@
   "tile-scratch": {
     "CC2": {
       "location": "CC2",
+      "start": 0,
+      "end": 0,
       "type": "Real",
-      "extents": "cc(NGUARD, 1)"
+      "extents": "cc(NGUARD)"
     },
     "FCX": {
       "location": "FCX",
+      "start": 0,
+      "end": 4,
       "type": "Real",
-      "extents": "fcx(0, NFLUXES)"
+      "extents": "fcx(0)"
     },
     "FCY": {
       "location": "FCY",
+      "start": 0,
+      "end": 4,
       "type": "Real",
-      "extents": "fcy(0, NFLUXES)"
+      "extents": "fcy(0)"
     }
   },
   "general": {

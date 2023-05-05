@@ -5,13 +5,17 @@
   "tile-scratch": {
     "FCX": {
       "location": "FCX",
+      "start": 0,
+      "end": 4,
       "type": "Real",
-      "extents": "fcx(0, NFLUXES)"
+      "extents": "fcx(0)"
     },
     "FCY": {
       "location": "FCY",
+      "start": 0,
+      "end": 4,
       "type": "Real",
-      "extents": "fcy(0, NFLUXES)"
+      "extents": "fcy(0)"
     }
   },
   "general": {
@@ -28,7 +32,7 @@
       "start": "UNK_VARS_BEGIN",
       "end": "GAMC_VAR",
       "type": "Real",
-      "extents": "cc(NGUARD, NUNKVAR-1)"
+      "extents": "cc(NGUARD)"
     }
   },
   "tile-out": {

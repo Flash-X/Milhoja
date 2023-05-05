@@ -94,10 +94,7 @@ def generate_cpp_code_file(parameters, args):
             # we probably don't need to initialize all of the vars since we're generating everything
             for variable in vars_and_types:
                 file.write(f"{indent}{variable}{{0}},\n")
-            # file.write(f"{indent}{N_TILES}")
             file.write(f",\n".join(f"{indent}{item}{{new_{item}}}" for item in params.get(GENERAL, [])))
-            # for item in params.get(GENERAL, []):
-            #     file.write(f"{indent}{item}{{new_{item}}}\n")
             file.write("\n{\n")
 
             # some misc constructor code for calculating block sizes.
@@ -112,15 +109,15 @@ def generate_cpp_code_file(parameters, args):
                     for item in params[section]:
                         if section == T_MDATA:
                             file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({mdata.known_types[item]});\n")
+                        elif section == T_IN_OUT:
+                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
                         elif not isinstance(params[section][item], (dict, list)):
                             file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({params[section][item]}));\n")
                         else:
-                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['type'])
+                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start'], params[section][item]['end'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
             
-            # for item in params.get(GENERAL, {}):
-                # file.write(f"{indent}{item} = {NEW}{item};\n")
-
             file.write("}\n\n")
 
     # TODO: Eventually come back and fix the streams to use the array implementation.
@@ -192,13 +189,15 @@ def generate_cpp_code_file(parameters, args):
         file.write(f'{indent}{SIZE_T} nBytes;\n')
         for section in [T_IN_OUT, T_OUT]:
             dict = params.get(section, {})
+            nunk_start = 'start-in' if section == T_IN_OUT else 'start'
+            nunk_end = 'end-in' if section == T_IN_OUT else 'end'
             start_key = 'start' if section == T_OUT else 'start-out'
             end_key = 'end' if section == T_OUT else 'end-out'
             for item in dict:
                 start = dict[item][start_key]
                 end = dict[item][end_key]
                 data_type = dict[item]['type']
-                extents, nunkvars, indexer = mdata.parse_extents(dict[item]['extents'])
+                extents, nunkvars, indexer = mdata.parse_extents(dict[item]['extents'], dict[item][nunk_start], dict[item][nunk_end])
                 num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
 
                 file.writelines([
@@ -432,7 +431,7 @@ def generate_cpp_code_file(parameters, args):
             start = params[T_IN][item]['start']
             end = params[T_IN][item]['end']
             data_type = params[T_IN][item]['type']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'])
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'], params[T_IN][item]['start'], params[T_IN][item]['end'])
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
@@ -469,7 +468,7 @@ def generate_cpp_code_file(parameters, args):
             end = params[T_IN_OUT][item]['end-in']
             data_type = params[T_IN_OUT][item]['type']
             location = params[T_IN_OUT][item]['location']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'])
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'])
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
@@ -559,7 +558,9 @@ def generate_cpp_code_file(parameters, args):
             section = device_array_pointers[item]['section']
             type = device_array_pointers[item]['type']
             location = device_array_pointers[item]['location']
-            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'])
+            start = "start-in" if section == T_IN_OUT else "start"
+            end = "end-in" if section == T_IN_OUT else "end"
+            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end])
             c_args = mdata.constructor_args[indexer]
 
             file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
