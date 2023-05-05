@@ -159,19 +159,21 @@ def generate_cpp_code_file(parameters, args):
 
         indent = 2 * '\t'
 
+        location = "CC1" if T_IN_OUT in params else "CC2"
+
         # TODO: CC location remains consistent across data packets?
         # Also location_ gets modified outside of the data packet
         # so this stays for now
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
-            f"{indent}const Real* data_p = nullptr;\n\n",
-            f"{indent}data_p = pinnedPtrs_[n].{location}_data;\n"
+            # f"{indent}const Real* data_p = nullptr;\n\n",
+            f"{indent}const Real* data_p = pinnedPtrs_[n].{location}_data;\n"
             # f"{indent}switch (location_) {{\n",
             # f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
             # f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
             # f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
-            f"{indent}}}\n\n"
+            # f"{indent}}}\n\n"
         ])
 
         # data_h and data_p checks
