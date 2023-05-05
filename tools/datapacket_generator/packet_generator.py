@@ -69,6 +69,7 @@ types = set()
 includes = set()
 constructor_args = []
 farray_items = []
+location = ""
 
 # TODO: It might be beneficial to write helper methods or a wrapper class for files
 # to help with consistently writing to the file, so we
@@ -165,10 +166,11 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
             f"{indent}const Real* data_p = nullptr;\n\n",
-            f"{indent}switch (location_) {{\n",
-            f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
-            f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
-            f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
+            f"{indent}data_p = pinnedPtrs_[n].{location}_data;\n"
+            # f"{indent}switch (location_) {{\n",
+            # f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
+            # f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
+            # f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
             f"{indent}}}\n\n"
         ])
 
@@ -365,8 +367,11 @@ def generate_cpp_code_file(parameters, args):
         ###
         file.write(f"{indent}// end scratch\n\n")
 
+        if T_IN_OUT in params: location = "CC1"
+        else: location = "CC2"
+
         file.writelines([
-            f"{indent}location_ = PacketDataLocation::CC1;\n",
+            f"{indent}location_ = PacketDataLocation::{location};\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             f"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + nScratchPerTileBytesPadded;\n",
             f"{indent}char* ptr_p = copyInStart_p_;\n"
@@ -643,10 +648,6 @@ def generate_cpp_code_file(parameters, args):
                 f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
-                # f"{indent}if (!streams_[id-2].isValid())\n"
-                # f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
-                # f"{indent}milhoja::RuntimeBackend::instance().releaseStream(streams_[id-2]);\n"
-                # f"}}\n\n"
             ])
 
             file.write(f"{indent}switch(id) {{\n")
