@@ -109,7 +109,13 @@ def generate_cpp_code_file(parameters, args):
                 if isinstance(params[section], dict) or isinstance(params[section], list):
                     for item in params[section]:
                         if section == T_MDATA:
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = sizeof({mdata.known_types[item]});\n")
+                            size = f"sizeof({mdata.tilePtrs_known_types[item]})"
+                            if args.use_finterface:
+                                if mdata.tilePtrs_known_types[item] in mdata.cpp_equiv:
+                                    size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]})"
+                                else:
+                                    size = f"sizeof({mdata.tilePtrs_known_types[item]})"
+                            file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
                         elif section == T_IN_OUT:
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
@@ -129,13 +135,6 @@ def generate_cpp_code_file(parameters, args):
         indent = '\t'
         for i in range(2, extra_streams+2):
             file.write(f"{indent}if (stream{i}_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");\n")
-        # file.write("#endif\n")
-        # if extra_streams > 0:
-        #     file.writelines([
-        #         f"{indent}for (unsigned int i=0; i < EXTRA_STREAMS; ++i)\n",
-        #         f"{indent*2}if (streams_[i].isValid()) \n",
-        #         f"{indent*3}throw std::logic_error(\"[{packet_name}::~{packet_name}] One or more extra streams not released.\");\n"
-        #     ])
         file.write(f"{indent}nullify();\n")
         file.write(f"}}\n\n")
         return
@@ -283,9 +282,15 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"{indent}// non tile specific data\n")
         file.write(f"{indent}{SIZE_T} nCopyInBytes = nTiles{BLOCK_SIZE} ")
 
+        # TODO: This will eventually go away once PacketContents is removed.
+        packet_pointers = params.get(T_MDATA, []) + list(params.get(T_IN, {})) + list(params.get(T_IN_OUT, {})) + list(params.get(T_OUT, {}))
+        p_contents_size = f"{N_TILES} * sizeof(PacketContents)"
+        if args.use_finterface:
+            p_contents_size = f"{N_TILES} * (" + " + ".join(f'{item}{BLOCK_SIZE}' for item in packet_pointers) + ")"
+
         for item in params.get(GENERAL, []):
             file.write(f"+ {item}{BLOCK_SIZE} ")
-        file.write(f" + {N_TILES} * sizeof(PacketContents);\n") # we can eventually get rid of packet contents so this will have to change.
+        file.write(f" + {p_contents_size};\n") # we can eventually get rid of packet contents so this will have to change.
         file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
         bytesToGpu.append("nCopyInBytesPadded")
         bytesPerPacket.append("nCopyInBytesPadded")
@@ -410,7 +415,7 @@ def generate_cpp_code_file(parameters, args):
 
         ### determine metadata pointers
         file.write("\t// metadata section;\n")
-        metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True)
+        metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tilePtrs_known_types[x], 0) if sizes else 1, reverse=True)
         for item in metadata:
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
@@ -536,15 +541,27 @@ def generate_cpp_code_file(parameters, args):
         # tile specific metadata.
         file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
         indent = "\t" * 2
-        # TODO: We need to change this to use the actual types specified in the json when we remove PacketContents.
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}if (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
-            f"{indent}const RealVect deltas = {TILE_DESC}->deltas();\n"
-            f"{indent}const IntVect lo = {TILE_DESC}->lo();\n"
-            f"{indent}const IntVect hi = {TILE_DESC}->hi();\n"
-            f"{indent}const IntVect loGC = {TILE_DESC}->loGC();\n"
-            f"{indent}const IntVect hiGC = {TILE_DESC}->hiGC();\n"
+        ])
+        # finterface classes always use all of these pointers in tilePtrs,
+        # so we always generate them.
+        if not args.use_finterface:
+            file.writelines([
+                f"{indent}const RealVect deltas = {TILE_DESC}->deltas();\n"
+                f"{indent}const IntVect lo = {TILE_DESC}->lo();\n"
+                f"{indent}const IntVect hi = {TILE_DESC}->hi();\n"
+                f"{indent}const IntVect loGC = {TILE_DESC}->loGC();\n"
+                f"{indent}const IntVect hiGC = {TILE_DESC}->hiGC();\n"
+            ])
+        else:
+            for item in params.get(T_MDATA, []):
+                item_type = mdata.tilePtrs_known_types[item]
+                # if item_type not in 
+                file.write(f"{indent}const {item_type} {item} = {TILE_DESC}->{item}();\n")
+
+        file.writelines([
             f"{indent}Real* data_h = {TILE_DESC}->dataPtr();\n"
             f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n\n"
         ])
@@ -552,34 +569,44 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # Add metadata to ptr
-        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.known_types[x], 0) if sizes else 1, reverse=True):
-            file.writelines([
-                f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.known_types[item]}*>(static_cast<void*>(char_ptr));\n",
-                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{item}), {item}{BLOCK_SIZE});\n\n",
-            ])
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tilePtrs_known_types[x], 0) if sizes else 1, reverse=True):
+            src = "&" + item
+            file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
+            if args.use_finterface:
+                if "Vect" in mdata.tilePtrs_known_types[item]: #array type
+                    offset = " + 1" if mdata.tilePtrs_known_types[item] == "IntVect" else ""
+                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]} {item}_h = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
+                    src = f"{item}_h"
+                else: # primitive
+                    ty = mdata.tilePtrs_known_types[item].replace('unsigned ', '')
+                    file.write(f"{indent}{ty} {item}_h = static_cast<{ty}>({item});\n")
+                    src = f"&{item}_h"
+            else:
+                file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tilePtrs_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
+            file.write(f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
 
         file.write(data_copy_string)
         file.write(out_location)
 
-        for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
-            d = 4 # assume d = 4 for now.
-            section = device_array_pointers[item]['section']
-            type = device_array_pointers[item]['type']
-            location = device_array_pointers[item]['location']
-            start = "start-in" if section == T_IN_OUT else "start"
-            end = "end-in" if section == T_IN_OUT else "end"
-            extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end])
-            c_args = mdata.constructor_args[indexer]
+        if not args.use_finterface:
+            for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
+                d = 4 # assume d = 4 for now.
+                section = device_array_pointers[item]['section']
+                type = device_array_pointers[item]['type']
+                location = device_array_pointers[item]['location']
+                start = "start-in" if section == T_IN_OUT else "start"
+                end = "end-in" if section == T_IN_OUT else "end"
+                extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end])
+                c_args = mdata.constructor_args[indexer]
 
-            file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
-            file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")
-            file.writelines([
-                f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
-                f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
-                # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
-            ])
+                file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
+                file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")
+                file.writelines([
+                    f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
+                    f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
+                    # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                    f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
+                ])
 
         indent = "\t"
 
@@ -595,7 +622,6 @@ def generate_cpp_code_file(parameters, args):
         # TODO: CHange to use the array implementation.
         e_streams = params.get(EXTRA_STREAMS, 0)
         if e_streams > 0:
-            # file.write("#if MILHOJA_NDIM==3\n")
             for i in range(2, e_streams+2):
                 file.writelines([
                     f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
@@ -633,10 +659,6 @@ def generate_cpp_code_file(parameters, args):
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
                 f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
-                # f"{indent}if (!streams_[id-2].isValid())\n"
-                # f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid.\");\n"
-                # f"{indent}return streams_[id-2].accAsyncQueue;\n"
-                # f"}}\n\n"
             ])
 
             file.write(f"{indent}switch(id) {{\n")
@@ -756,16 +778,20 @@ def generate_cpp_header_file(parameters, args):
         if T_MDATA in parameters:
             for item in parameters[T_MDATA]:
                 new_variable = f"{item}{BLOCK_SIZE}"
-                item_type = mdata.known_types[item]
-                if mdata.known_types[item]:
-                    types.add( mdata.known_types[item] )
+                item_type = mdata.tilePtrs_known_types[item]
+                if mdata.tilePtrs_known_types[item]:
+                    types.add( mdata.tilePtrs_known_types[item] )
                 else:
                     print("Found bad data in tile-metadata. Ignoring...")
                     continue
                 private_variables.append(f"\t{SIZE_T} {new_variable};\n")
                 vars_and_types[new_variable] = SIZE_T
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                if args.use_finterface: 
+                    if item_type in mdata.cpp_equiv:
+                        item_type = mdata.cpp_equiv[item_type]
                 ext = "milhoja::" if item_type in mdata.imap else ""
+                item_type = item_type.replace("unsigned ", "")
                 getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
@@ -885,6 +911,7 @@ if __name__ == "__main__":
     parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
     parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
     parser.add_argument("--sizes", "-s", help="Path to data type size information.")
+    parser.add_argument("--use_finterface", "-u", action="store_true", help="Use Fortran interface classes")
     args = parser.parse_args()
 
     if args.sizes: print(args.sizes)
