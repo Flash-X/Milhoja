@@ -575,7 +575,7 @@ def generate_cpp_code_file(parameters, args):
             if args.use_finterface:
                 if "Vect" in mdata.tilePtrs_known_types[item]: #array type
                     offset = " + 1" if mdata.tilePtrs_known_types[item] == "IntVect" else ""
-                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]} {item}_h = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
+                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
                     src = f"{item}_h"
                 else: # primitive
                     ty = mdata.tilePtrs_known_types[item].replace('unsigned ', '')
