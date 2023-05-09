@@ -13,6 +13,7 @@
 # TODO: Restructure pack generation into 2 phases: pointer determination & copy data phases.
 
 import sys
+import os.path
 import json
 import argparse
 import milhoja_data as mdata
@@ -733,8 +734,8 @@ def generate_cpp_header_file(parameters, args):
         pinned_and_data_ptrs = ""
         
         # define statements
-        header.write(f"#ifndef {defined}\n")
-        header.write(f"#define {defined}\n")
+        header.write(f"#ifndef {defined}_\n")
+        header.write(f"#define {defined}_\n")
         # boilerplate includes
         header.write("#include <Milhoja.h>\n")
         header.write("#include <Milhoja_DataPacket.h>\n")
@@ -890,6 +891,7 @@ def generate_cpp_header_file(parameters, args):
 def generate_packet_with_filepath(fp, args):
     with open(fp, "r") as file:
         data = json.load(file)
+        data["name"] = os.path.basename(file.name).replace(".json", "")
         generate_packet_with_dict(data, args)
         # generate_header_file(data)
         # generate_cpp_file(data)
