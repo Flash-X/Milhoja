@@ -3,12 +3,18 @@ import warnings
 from typing import Tuple
 from typing import Union
 
-known_types = {
+tilePtrs_known_types = {
+    'levels': 'unsigned int',
     'deltas': 'RealVect',
     'lo': "IntVect",
     'hi': "IntVect",
     'loGC': "IntVect",
     'hiGC': "IntVect"
+}
+
+cpp_equiv = {
+    "RealVect": "Real",
+    "IntVect": "int"
 }
 
 imap = {
