@@ -1,5 +1,4 @@
 {
-    "name": "DataPacket_Spark_gpu",
     "byte-align": 16,
     "problem": "Sedov",
     "n-extra-streams": 0,
