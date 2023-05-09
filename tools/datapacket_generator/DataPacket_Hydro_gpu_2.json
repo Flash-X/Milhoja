@@ -1,5 +1,4 @@
 {
-  "name": "DataPacket_Hydro_gpu_2",
   "n-extra-streams": 3,
   "problem": "Sedov",
   "tile-scratch": {
