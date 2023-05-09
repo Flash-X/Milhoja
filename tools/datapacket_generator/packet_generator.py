@@ -689,7 +689,7 @@ def generate_cpp_code_file(parameters, args):
     if not parameters:
         raise ValueError("Parameters is empty or null.")
     
-    name = parameters["name"]
+    name = parameters["file_name"]
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
         code.write(GENERATED_CODE_MESSAGE)
@@ -723,7 +723,7 @@ def generate_cpp_header_file(parameters, args):
     if "name" not in parameters or not isinstance(parameters["name"], str):
         raise RuntimeError("Packet does not include a name.")
 
-    with open(parameters["name"] + ".h", "w") as header:
+    with open(parameters["file_name"] + ".h", "w") as header:
         name = parameters["name"]
         extra_streams = parameters.get(EXTRA_STREAMS, 0)
         defined = name.upper()
@@ -891,10 +891,10 @@ def generate_cpp_header_file(parameters, args):
 def generate_packet_with_filepath(fp, args):
     with open(fp, "r") as file:
         data = json.load(file)
+        data["file_name"] = file.name.replace(".json", "")
+        print(data['file_name'])
         data["name"] = os.path.basename(file.name).replace(".json", "")
         generate_packet_with_dict(data, args)
-        # generate_header_file(data)
-        # generate_cpp_file(data)
 
 # gneerate packet data using existing dict
 def generate_packet_with_dict(json_dict, args):
@@ -916,7 +916,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_finterface", "-u", action="store_true", help="Use Fortran interface classes")
     args = parser.parse_args()
 
-    if args.sizes: print(args.sizes)
-    else: print("No sizes path found...")
+    # if args.sizes: print(args.sizes)
+    # else: print("No sizes path found...")
 
     generate_packet_with_filepath(args.JSON, args)
