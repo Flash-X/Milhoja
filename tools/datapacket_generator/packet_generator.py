@@ -257,7 +257,7 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         file.write(f"{indent}{N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(std::size_t);\n\n")
+        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(int);\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
@@ -390,8 +390,8 @@ def generate_cpp_code_file(parameters, args):
         ### determine general pointers
         file.write("\t// general section;\n")
         general_copy_in_string = ""
+        params.get(GENERAL, {})["nTiles"] = f"{SIZE_T}"
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
-        general.insert(0, "nTiles")
         # Note: We add nTiles to general to make generation easier but nTiles cannot be const because it is set in pack().
         # I could probably set nTiles in the constructor... I'd have to make sure that setting it in the constructor works fine.
         for item in general:
@@ -740,7 +740,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
+        pinned_and_data_ptrs += f"\tint nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
         getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
