@@ -740,8 +740,8 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P};\n\tvoid* nTiles{START_D};\n"
-        private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE};\n")
+        pinned_and_data_ptrs += f"\t{SIZE_T} nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
+        private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
         getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
         # Everything in the packet consists of pointers to byte regions
@@ -755,7 +755,7 @@ def generate_cpp_header_file(parameters, args):
             for item in general:
                 block_size_var = f"{item}{BLOCK_SIZE}"
                 var = f"\tconst milhoja::{general[item]} {item};\n"
-                size_var = f"\t{SIZE_T} {block_size_var};\n"
+                size_var = f"\t{SIZE_T} {block_size_var} = 0;\n"
                 is_enumerable = is_enumerable_type(general[item])
                 item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
@@ -769,7 +769,7 @@ def generate_cpp_header_file(parameters, args):
                 pinned_and_data_ptrs += "\t"
                 if type in mdata.imap: 
                     pinned_and_data_ptrs += "milhoja::"
-                pinned_and_data_ptrs += f"void* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"void* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
                 ext = "milhoja::" if item_type in mdata.imap else ""
                 getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
@@ -784,9 +784,9 @@ def generate_cpp_header_file(parameters, args):
                 else:
                     print("Found bad data in tile-metadata. Ignoring...")
                     continue
-                private_variables.append(f"\t{SIZE_T} {new_variable};\n")
+                private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
                 vars_and_types[new_variable] = SIZE_T
-                pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n\tvoid* {item}{START_D};\n"
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
                 if args.use_finterface: 
                     if item_type in mdata.cpp_equiv:
                         item_type = mdata.cpp_equiv[item_type]
@@ -797,7 +797,7 @@ def generate_cpp_header_file(parameters, args):
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
                 if 'location' in parameters[sect][item]: farray_items.append(parameters[sect][item]['location']) 
-                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE};\n")
+                private_variables.append(f"\t{SIZE_T} {item}{BLOCK_SIZE} = 0;\n")
                 is_enumerable = is_enumerable_type(parameters[sect][item])
                 item_type = parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type']
                 types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
@@ -806,8 +806,8 @@ def generate_cpp_header_file(parameters, args):
                 device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
 
                 if sect != T_SCRATCH:
-                    pinned_and_data_ptrs += f"\tvoid* {item}{START_P};\n"
-                pinned_and_data_ptrs += f"\tvoid* {item}{START_D};\n"
+                    pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n"
+                pinned_and_data_ptrs += f"\tvoid* {item}{START_D} = nullptr;\n"
                 ext = "milhoja::" if item_type in mdata.imap else ""
                 getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
