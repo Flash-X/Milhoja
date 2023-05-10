@@ -45,6 +45,7 @@ START_P = "_start_p_"
 START_D = "_start_d_"
 PTRS = "pointers"
 PINDEX = f"{PTRS}_index"
+GETTER = "_devptr"
 
 SCRATCH_BYTES = "nScratchBytes"
 CIN_BYTES = "nCopyInBytes"
@@ -745,7 +746,7 @@ def generate_cpp_header_file(parameters, args):
         # manually generate nTiles getter here
         pinned_and_data_ptrs += f"\tint nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
-        getters.append(f"\t{SIZE_T}* nTiles_getter(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
+        getters.append(f"\t{SIZE_T}* nTiles{GETTER}(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
@@ -774,7 +775,7 @@ def generate_cpp_header_file(parameters, args):
                     pinned_and_data_ptrs += "milhoja::"
                 pinned_and_data_ptrs += f"void* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
                 ext = "milhoja::" if item_type in mdata.imap else ""
-                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -795,7 +796,7 @@ def generate_cpp_header_file(parameters, args):
                         item_type = mdata.cpp_equiv[item_type]
                 ext = "milhoja::" if item_type in mdata.imap else ""
                 item_type = item_type.replace("unsigned ", "")
-                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -812,7 +813,7 @@ def generate_cpp_header_file(parameters, args):
                     pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n"
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_D} = nullptr;\n"
                 ext = "milhoja::" if item_type in mdata.imap else ""
-                getters.append(f"\t{ext}{item_type}* {item}_getter(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
 
         # we only want to include things if they are found in the include dict.
