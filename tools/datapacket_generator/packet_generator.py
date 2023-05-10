@@ -548,8 +548,10 @@ def generate_cpp_code_file(parameters, args):
         ])
         # finterface classes always use all of these pointers in tilePtrs,
         # so we always generate them.
+        # TODO: This is awkward
         if not args.use_finterface:
             file.writelines([
+                f"{indent}const unsigned int level = {TILE_DESC}->level();\n"
                 f"{indent}const RealVect deltas = {TILE_DESC}->deltas();\n"
                 f"{indent}const IntVect lo = {TILE_DESC}->lo();\n"
                 f"{indent}const IntVect hi = {TILE_DESC}->hi();\n"
@@ -889,6 +891,9 @@ def generate_cpp_header_file(parameters, args):
 
 # Takes in a file path to load a json file and generates the cpp and header files
 def generate_packet_with_filepath(fp, args):
+    if ".json" not in os.path.basename(fp):
+        print("Provided file is not a JSON file.")
+        exit(-1)
     with open(fp, "r") as file:
         data = json.load(file)
         data["file_name"] = file.name.replace(".json", "")
