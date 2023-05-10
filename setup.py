@@ -4,6 +4,8 @@ import os
 import sys
 import shutil
 import argparse
+sys.path.append("./tools/datapacket_generator")
+import packet_generator
 
 import subprocess as sbp
 

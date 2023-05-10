@@ -110,12 +110,12 @@ def generate_cpp_code_file(parameters, args):
                 if isinstance(params[section], dict) or isinstance(params[section], list):
                     for item in params[section]:
                         if section == T_MDATA:
-                            size = f"sizeof({mdata.tilePtrs_known_types[item]})"
+                            size = f"sizeof({mdata.tile_known_types[item]})"
                             if args.use_finterface:
-                                if mdata.tilePtrs_known_types[item] in mdata.cpp_equiv:
-                                    size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]})"
+                                if mdata.tile_known_types[item] in mdata.cpp_equiv:
+                                    size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
                                 else:
-                                    size = f"sizeof({mdata.tilePtrs_known_types[item]})"
+                                    size = f"sizeof({mdata.tile_known_types[item]})"
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
                         elif section == T_IN_OUT:
                             extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
@@ -416,7 +416,7 @@ def generate_cpp_code_file(parameters, args):
 
         ### determine metadata pointers
         file.write("\t// metadata section;\n")
-        metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tilePtrs_known_types[x], 0) if sizes else 1, reverse=True)
+        metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True)
         for item in metadata:
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
@@ -558,7 +558,7 @@ def generate_cpp_code_file(parameters, args):
             ])
         else:
             for item in params.get(T_MDATA, []):
-                item_type = mdata.tilePtrs_known_types[item]
+                item_type = mdata.tile_known_types[item]
                 # if item_type not in 
                 file.write(f"{indent}const {item_type} {item} = {TILE_DESC}->{item}();\n")
 
@@ -570,20 +570,20 @@ def generate_cpp_code_file(parameters, args):
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         # There's the obvious way of just using an if statement based on the section... but is there a better way?
         # Add metadata to ptr
-        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tilePtrs_known_types[x], 0) if sizes else 1, reverse=True):
+        for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True):
             src = "&" + item
             file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
             if args.use_finterface:
-                if "Vect" in mdata.tilePtrs_known_types[item]: #array type
-                    offset = " + 1" if mdata.tilePtrs_known_types[item] == "IntVect" else ""
-                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tilePtrs_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
+                if "Vect" in mdata.tile_known_types[item]: #array type
+                    offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
+                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
                     src = f"{item}_h"
                 else: # primitive
-                    ty = mdata.tilePtrs_known_types[item].replace('unsigned ', '')
+                    ty = mdata.tile_known_types[item].replace('unsigned ', '')
                     file.write(f"{indent}{ty} {item}_h = static_cast<{ty}>({item});\n")
                     src = f"&{item}_h"
             else:
-                file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tilePtrs_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
+                file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tile_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
             file.write(f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
 
         file.write(data_copy_string)
@@ -779,9 +779,9 @@ def generate_cpp_header_file(parameters, args):
         if T_MDATA in parameters:
             for item in parameters[T_MDATA]:
                 new_variable = f"{item}{BLOCK_SIZE}"
-                item_type = mdata.tilePtrs_known_types[item]
-                if mdata.tilePtrs_known_types[item]:
-                    types.add( mdata.tilePtrs_known_types[item] )
+                item_type = mdata.tile_known_types[item]
+                if mdata.tile_known_types[item]:
+                    types.add( mdata.tile_known_types[item] )
                 else:
                     print("Found bad data in tile-metadata. Ignoring...")
                     continue
@@ -892,7 +892,6 @@ def generate_packet_with_filepath(fp, args):
     with open(fp, "r") as file:
         data = json.load(file)
         data["file_name"] = file.name.replace(".json", "")
-#        print(data['file_name'])
         data["name"] = os.path.basename(file.name).replace(".json", "")
         generate_packet_with_dict(data, args)
 

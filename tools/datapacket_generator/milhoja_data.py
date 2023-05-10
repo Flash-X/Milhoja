@@ -3,13 +3,19 @@ import warnings
 from typing import Tuple
 from typing import Union
 
-tilePtrs_known_types = {
+tile_known_types = {
     'levels': 'unsigned int',
+    'gridIndex': 'int',
+    'tileIndex': 'int',
+    'nCcVariables': 'unsigned int',
+    'nFluxVariables': 'unsigned int',
     'deltas': 'RealVect',
     'lo': "IntVect",
     'hi': "IntVect",
     'loGC': "IntVect",
-    'hiGC': "IntVect"
+    'hiGC': "IntVect",
+    'data': 'FArray4D',
+    'dataPtr': 'Real*',
 }
 
 cpp_equiv = {
