@@ -746,7 +746,7 @@ def generate_cpp_header_file(parameters, args):
         # manually generate nTiles getter here
         pinned_and_data_ptrs += f"\tint nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
-        getters.append(f"\t{SIZE_T}* nTiles{GETTER}(void) const {{ return static_cast<{SIZE_T}*>(nTiles{START_D}); }}\n")
+        getters.append(f"\tint* nTiles{GETTER}(void) const {{ return static_cast<int*>(nTiles{START_D}); }}\n")
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
