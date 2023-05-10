@@ -892,7 +892,7 @@ def generate_packet_with_filepath(fp, args):
     with open(fp, "r") as file:
         data = json.load(file)
         data["file_name"] = file.name.replace(".json", "")
-        print(data['file_name'])
+#        print(data['file_name'])
         data["name"] = os.path.basename(file.name).replace(".json", "")
         generate_packet_with_dict(data, args)
 
