@@ -4,8 +4,6 @@ import os
 import sys
 import shutil
 import argparse
-sys.path.append("./tools/datapacket_generator")
-import packet_generator
 
 import subprocess as sbp
 
@@ -154,11 +152,15 @@ if __name__ == '__main__':
     # TODO: Do we want packets to always be generated? Or do we want to allow the option for handwritten packets
     # TODO: Sizes.json is generated when building the libraries. Where should sizes.json be located?
     packet_name = path[-1] # name of packet should be the name of the directory its found in
-    packet_args = ['python', f'{ os.path.join("tools", "datapacket_generator", "packet_generator.py") }']
-    if args.cpp: packet_args.append('-c')
-    if args.fortran: packet_args.append('-f')
-    if args.sort: packet_args.append(f'-s{os.path.join("tools", "datapacket_generator", "sizes.json")}')
-    if args.use_finterface: packet_args.append('-u')
+    packet_args = ['python', f'{ os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "packet_generator.py") }']
+    if args.cpp:
+        packet_args.append('-c')
+    if args.fortran:
+        packet_args.append('-f')
+    if args.sort:
+        packet_args.append(f'-s{os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "sizes.json")}')
+    if args.use_finterface:
+        packet_args.append('-u')
     packet_args.append(f'{ os.path.join(testDir, packet_name)}.json')
     rcode = sbp.run(
         packet_args,
