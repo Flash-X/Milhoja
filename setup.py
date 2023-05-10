@@ -86,6 +86,10 @@ if __name__ == '__main__':
     parser.add_argument('--debug',         action="store_true", help='Set up in debug mode.')
     parser.add_argument('--coverage','-c', action="store_true", help='Enable code coverage.')
     parser.add_argument('--multithreaded', action="store_true", help='Enable multithreaded distributor.')
+    parser.add_argument('--sort',          action="store_true", help='Sort items in the generated data packet.')
+    parser.add_argument('--fortran',       action="store_true", help='Generate a fortran packet.')
+    parser.add_argument('--cpp',           action="store_true", help='Generate a cpp packet.')
+    parser.add_argument('--use-finterface',action="store_true", help='Use fortran binding classes in data packet.')
 
     def print_and_exit(msg):
         print(file=sys.stderr)
@@ -110,7 +114,8 @@ if __name__ == '__main__':
 
     test_name = args.test
     testDir = _HOME_DIR.joinpath('test')
-    for each in test_name.split('/'):
+    path = test_name.split('/')
+    for each in path:
         testDir = testDir.joinpath(each)
     if not testDir.is_dir():
         print_and_exit(f'Test directory {testDir} does not exist')
@@ -141,6 +146,29 @@ if __name__ == '__main__':
     #####----- ASSEMBLE BUILD FOLDER & CONTENTS
     print("Orchestration Runtime setup")
     print("---------------------------")
+
+    ##-- GENERATE DATA PACKET FILES
+    # TODO: where will sizes.json be located?
+    # TODO: Do we want packets to always be generated? Or do we want to allow the option for handwritten packets
+    # TODO: Sizes.json is generated when building the libraries. Where should sizes.json be located?
+    packet_name = path[-1] # name of packet should be the name of the directory its found in
+    packet_args = ['python', f'{ os.path.join("tools", "datapacket_generator", "packet_generator.py") }']
+    if args.cpp: packet_args.append('-c')
+    if args.fortran: packet_args.append('-f')
+    if args.sort: packet_args.append(f'-s{os.path.join("tools", "datapacket_generator", "sizes.json")}')
+    if args.use_finterface: packet_args.append('-u')
+    packet_args.append(f'{ os.path.join(testDir, packet_name)}.json')
+    rcode = sbp.run(
+        packet_args,
+        stdout=sbp.DEVNULL if not args.debug else None, #hide outputs
+        stderr=sbp.STDOUT if not args.debug else None
+    )
+#    print(sbp.list2cmdline(rcode.args))
+    if rcode.returncode != 0:
+        print("Data packet generation failed. Continuing...")
+    else:
+        print(f"Generated packet files from {packet_name}.json")
+#    assert rcode.returncode == 0, "Data packet generation failed"
 
     ##-- MAKE BUILD DIRECTORY
     # Make in root of repo
