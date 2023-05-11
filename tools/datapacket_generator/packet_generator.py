@@ -147,7 +147,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
             f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
             f"{indent}assert(!stream_.isValid());\n\n"
-            f"{indent}for ({SIZE_T} n=0; n < tiles_.size(); ++n) {{\n"
+            f"{indent}for (int n=0; n < tiles_.size(); ++n) {{\n"
         ])
 
         indent = 2 * '\t'
@@ -286,7 +286,8 @@ def generate_cpp_code_file(parameters, args):
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
         t_mdata = params.get(T_MDATA, [])
         size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D){size} );\n")
+        scratch_arrays = "0" if not args.use_finterface else f"( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D) )"
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( {scratch_arrays}{size} );\n")
         file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
         bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
