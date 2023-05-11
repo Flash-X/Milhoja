@@ -557,7 +557,7 @@ def generate_cpp_code_file(parameters, args):
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True):
             src = "&" + item
             file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
-            if args.use_finterface:
+            if not args.use_finterface:
                 if "Vect" in mdata.tile_known_types[item]: #array type
                     offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
                     file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
