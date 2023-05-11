@@ -534,7 +534,7 @@ def generate_cpp_code_file(parameters, args):
         # finterface classes always use all of these pointers in tilePtrs,
         # so we always generate them.
         # TODO: This is awkward
-        if not args.use_finterface:
+        if args.use_finterface:
             file.writelines([
                 f"{indent}const unsigned int level = {TILE_DESC}->level();\n"
                 f"{indent}const RealVect deltas = {TILE_DESC}->deltas();\n"
