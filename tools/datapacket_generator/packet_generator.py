@@ -54,10 +54,6 @@ HOST = "_h"
 PINNED = "_p"
 DATA = "_d"
 # 
-
-# TODO: Variant 2 uses an array of extra queues instead of just using 2 extra ones if dim is 3.
-# Is there a way we can specify that in the json packet? Is it worth it?
-
 # these might not be necessary
 vars_and_types = {}
 level = 0
@@ -72,10 +68,6 @@ includes = set()
 constructor_args = []
 farray_items = []
 location = ""
-
-# TODO: It might be beneficial to write helper methods or a wrapper class for files
-# to help with consistently writing to the file, so we
-# don't have to put {indent} or \n in every line we write.\
 
 def is_enumerable_type(var):
     return isinstance(var, (dict, list))
@@ -162,19 +154,11 @@ def generate_cpp_code_file(parameters, args):
 
         location = "CC1" if T_IN_OUT in params else "CC2"
 
-        # TODO: CC location remains consistent across data packets?
-        # Also location_ gets modified outside of the data packet
-        # so this stays for now
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
             # f"{indent}const Real* data_p = nullptr;\n\n",
             f"{indent}const Real* data_p = pinnedPtrs_[n].{location}_data;\n"
-            # f"{indent}switch (location_) {{\n",
-            # f"{indent}\tcase PacketDataLocation::CC1: data_p = pinnedPtrs_[n].CC1_data; break;\n",
-            # f"{indent}\tcase PacketDataLocation::CC2: data_p = pinnedPtrs_[n].CC2_data; break;\n",
-            # f"{indent}\tdefault: throw std::logic_error(\"[{packet_name}::{func_name}] Data not in CC1 or CC2.\");\n"
-            # f"{indent}}}\n\n"
         ])
 
         # data_h and data_p checks
@@ -345,9 +329,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n"
         ])
 
-        # # acquire gpu mem
-        # Note that copyin, copyinout, and copyout all have a default of 0. So to keep code generation easy
-        # we set them to the default of 0 even if they don't exist in the json.
         file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n")
         file.write(f"{indent}/// END\n\n")
         # END SIZE  DETERMINATION
@@ -366,7 +347,7 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         file.write(f"{indent}// scratch section\n")
-        ### determine scratch pointers
+        ### DETERMINE SCRATCH POINTERS
         scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
         for item in scr:
             file.writelines([
@@ -389,7 +370,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_d = copyInStart_d_;\n\n"
         ])
 
-        ### determine general pointers
+        ### DETERMINE GENERAL POINTERS
         file.write("\t// general section;\n")
         general_copy_in_string = ""
         params.get(GENERAL, {})["nTiles"] = f"{SIZE_T}"
@@ -415,7 +396,7 @@ def generate_cpp_code_file(parameters, args):
         file.write("\t// end general\n\n")
         ###
 
-        ### determine metadata pointers
+        ### DETERMINE METADATA POINTERS
         file.write("\t// metadata section;\n")
         metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True)
         for item in metadata:
@@ -425,17 +406,18 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_p += nTiles * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
             ])
-        for item in sorted(farray_items):
-            file.writelines([
-                f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
-                f"{indent}char* {item}_farray_start_d_ = ptr_d;\n"
-                f"{indent}ptr_p += nTiles * sizeof(FArray4D);\n",
-                f"{indent}ptr_d += nTiles * sizeof(FArray4D);\n\n"
-            ])
+        if args.use_finterface:
+            for item in sorted(farray_items):
+                file.writelines([
+                    f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
+                    f"{indent}char* {item}_farray_start_d_ = ptr_d;\n"
+                    f"{indent}ptr_p += nTiles * sizeof(FArray4D);\n",
+                    f"{indent}ptr_d += nTiles * sizeof(FArray4D);\n\n"
+                ])
         file.write("\t// end metadata;\n\n")
         ###
 
-        ### determine copy in pointers
+        ### DETERMINE COPY IN POINTERS
         file.write("\t// copy in section;\n")
         file.writelines([
             f"{indent}ptr_p = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded;\n"
@@ -474,7 +456,8 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}ptr_p = copyInOutStart_p_;\n"
             f"{indent}ptr_d = copyInOutStart_d_;\n\n"
         ])
-        ### determine copy-in-out pointers
+
+        ### DETERMINE COPY-IN-OUT POINTERS
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
@@ -507,7 +490,7 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"\t// end copy in out\n\n")
         ### 
 
-        ### determine copy out pointers
+        ### DETERMINE COPY OUT POINTERS
         file.write(f"\t// copy out section\n")
         out_location = ""
         if T_OUT in params:
@@ -571,8 +554,6 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
-        # There's the obvious way of just using an if statement based on the section... but is there a better way?
-        # Add metadata to ptr
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True):
             src = "&" + item
             file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
@@ -592,7 +573,8 @@ def generate_cpp_code_file(parameters, args):
         file.write(data_copy_string)
         file.write(out_location)
 
-        if not args.use_finterface:
+        # only store farray pointers if user is using the fortran binding classes
+        if args.use_finterface:
             for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
                 d = 4 # assume d = 4 for now.
                 section = device_array_pointers[item]['section']
