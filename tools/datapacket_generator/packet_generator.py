@@ -5,12 +5,6 @@
 # based on the contents of the json file.
 # 
 # TODO: We should also be adding support for generating fortran file packets in the future.
-# 
-# TODO: Work on documentation for packet json format. Refer to DataPacketGeneratorDoc for documentation
-# 
-# TODO: Add nTiles and PacketContents to general / non-tile specific data section on packet generation startup.
-# 
-# TODO: Restructure pack generation into 2 phases: pointer determination & copy data phases.
 
 import sys
 import os.path
@@ -72,11 +66,14 @@ location = ""
 def is_enumerable_type(var):
     return isinstance(var, (dict, list))
 
-def generate_fortran_header_file(parameters, args):
-    ...
-
 def generate_fortran_code_file(parameters, args):
-    ...
+    with open(parameters["file_name"] + ".f90", "w") as file:
+        file.write(GENERATED_CODE_MESSAGE)
+        file.write("#include \"Milhoja.h\"")
+
+def generate_fortran_header_file(parameters, args):
+    with open(parameters["file_name"] + ".h", "w"):
+        ...
 
 def generate_cpp_code_file(parameters, args):
     def generate_constructor(file, params):
@@ -104,7 +101,7 @@ def generate_cpp_code_file(parameters, args):
                     for item in params[section]:
                         if section == T_MDATA:
                             size = f"sizeof({mdata.tile_known_types[item]})"
-                            if args.use_finterface:
+                            if not args.use_finterface:
                                 if mdata.tile_known_types[item] in mdata.cpp_equiv:
                                     size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
                                 else:
@@ -511,6 +508,7 @@ def generate_cpp_code_file(parameters, args):
             out_location += f"{indent*2}pinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
         file.write(f"\t// end copy out\n\n")
         ###
+        file.write(f"{indent}/// END\n\n")
 
         file.writelines([
             f"{indent}if (pinnedPtrs_) throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
@@ -519,7 +517,6 @@ def generate_cpp_code_file(parameters, args):
 
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
-        file.write(f"{indent}/// END\n\n")
 
         file.write(f"{indent}/// MEM COPY SECTION\n")
         file.write(general_copy_in_string + "\n")
@@ -901,7 +898,7 @@ if __name__ == "__main__":
     parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
     parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
     parser.add_argument("--sizes", "-s", help="Path to data type size information.")
-    parser.add_argument("--use_finterface", "-u", action="store_true", help="Use Fortran interface classes")
+    parser.add_argument("--use-finterface", "-u", action="store_true", help="Use Fortran interface classes")
     args = parser.parse_args()
 
     # if args.sizes: print(args.sizes)
