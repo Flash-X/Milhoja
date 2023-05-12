@@ -1,5 +1,5 @@
 // This code was generated with packet_generator.py.
-#include "DataPacket_Hydro_gpu_2.h"
+#include "/autofs/nccs-svm1_home1/wkwiecinski/OrchestrationRuntime/test/Sedov/gpu/DataPacket_Hydro_gpu_1/DataPacket_Hydro_gpu_1.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
@@ -7,7 +7,7 @@
 #include <Milhoja_RuntimeBackend.h>
 #include "Sedov.h"
 #include "Driver.h"
-DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(const milhoja::Real new_dt) : milhoja::DataPacket{}, 
+DataPacket_Hydro_gpu_1::DataPacket_Hydro_gpu_1(const milhoja::Real new_dt) : milhoja::DataPacket{}, 
 	dt_BLOCK_SIZE_HELPER{0},
 	deltas_BLOCK_SIZE_HELPER{0},
 	lo_BLOCK_SIZE_HELPER{0},
@@ -33,77 +33,71 @@ DataPacket_Hydro_gpu_2::DataPacket_Hydro_gpu_2(const milhoja::Real new_dt) : mil
 	CC2_BLOCK_SIZE_HELPER = (nxb + 2 * NGUARD * MILHOJA_K1D) * (nyb + 2 * NGUARD * MILHOJA_K2D) * (nzb + 2 * NGUARD * MILHOJA_K3D) * ((EINT_VAR+UNK_VARS_BEGIN+1)) * sizeof(Real);
 }
 
-DataPacket_Hydro_gpu_2::~DataPacket_Hydro_gpu_2(void) {
+DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1(void) {
 	if (stream2_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released");
-	if (stream3_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released");
-	if (stream4_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released");
 	nullify();
 }
 
-int DataPacket_Hydro_gpu_2::extraAsynchronousQueue(const unsigned int id) {
+int DataPacket_Hydro_gpu_1::extraAsynchronousQueue(const unsigned int id) {
 	if ((id < 2) || (id > EXTRA_STREAMS + 1))
-		throw std::invalid_argument("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] Invalid id.");
+		throw std::invalid_argument("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] Invalid id.");
 	switch(id) {
-		case 2: if(!stream2_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] Extra queue invalid. (2)"); } return stream2_.accAsyncQueue;
-		case 3: if(!stream3_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] Extra queue invalid. (3)"); } return stream3_.accAsyncQueue;
-		case 4: if(!stream4_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::extraAsynchronousQueue] Extra queue invalid. (4)"); } return stream4_.accAsyncQueue;
+		case 2: if(!stream2_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_1::extraAsynchronousQueue] Extra queue invalid. (2)"); } return stream2_.accAsyncQueue;
 	}
 	return 0;
 }
 
-void DataPacket_Hydro_gpu_2::releaseExtraQueue(const unsigned int id) {
+void DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
 	if ((id < 2) || (id > EXTRA_STREAMS + 1))
-		throw std::invalid_argument("[DataPacket_Hydro_gpu_2::releaseExtraQueue] Invalid id.");
+		throw std::invalid_argument("[DataPacket_Hydro_gpu_1::releaseExtraQueue] Invalid id.");
 	switch(id) {
-		case 2: if(!stream2_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::releaseExtraQueue] Extra queue invalid. (2)"); }                     milhoja::RuntimeBackend::instance().releaseStream(stream2_); break;
-		case 3: if(!stream3_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::releaseExtraQueue] Extra queue invalid. (3)"); }                     milhoja::RuntimeBackend::instance().releaseStream(stream3_); break;
-		case 4: if(!stream4_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_2::releaseExtraQueue] Extra queue invalid. (4)"); }                     milhoja::RuntimeBackend::instance().releaseStream(stream4_); break;
+		case 2: if(!stream2_.isValid()) { throw std::logic_error("[DataPacket_Hydro_gpu_1::releaseExtraQueue] Extra queue invalid. (2)"); }                     milhoja::RuntimeBackend::instance().releaseStream(stream2_); break;
 	}
 }
 
-std::unique_ptr<milhoja::DataPacket> DataPacket_Hydro_gpu_2::clone(void) const {
-	return std::unique_ptr<milhoja::DataPacket>{ new DataPacket_Hydro_gpu_2{dt} };
+std::unique_ptr<milhoja::DataPacket> DataPacket_Hydro_gpu_1::clone(void) const {
+	return std::unique_ptr<milhoja::DataPacket>{ new DataPacket_Hydro_gpu_1{dt} };
 }
 
-void DataPacket_Hydro_gpu_2::pack(void) {
+void DataPacket_Hydro_gpu_1::pack(void) {
 	using namespace milhoja;
 	std::string errMsg = isNull();
 	if (errMsg != "")
-		throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] " + errMsg);
+		throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] " + errMsg);
 	else if (tiles_.size() == 0)
-		throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] No tiles added.");
+		throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] No tiles added.");
 	
 	Grid& grid = Grid::instance();
 	nTiles = tiles_.size();
-	nTiles_BLOCK_SIZE_HELPER = sizeof(std::size_t);
+	nTiles_BLOCK_SIZE_HELPER = sizeof(int);
 
 	/// SIZE DETERMINATION
 	// Scratch section
 	std::size_t nScratchPerTileBytes = FCX_BLOCK_SIZE_HELPER + FCY_BLOCK_SIZE_HELPER;
 	unsigned int nScratchArrays = 2;
 	std::size_t nScratchPerTileBytesPadded = pad(nTiles * nScratchPerTileBytes);
-	if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] Scratch padding failure");
+	if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] Scratch padding failure");
 
 	// non tile specific data
 	std::size_t nCopyInBytes = nTiles_BLOCK_SIZE_HELPER + dt_BLOCK_SIZE_HELPER  + nTiles * sizeof(PacketContents);
 	std::size_t nCopyInBytesPadded = pad(nCopyInBytes);
-	if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] CopyIn padding failure");
+	if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] CopyIn padding failure");
 
 	std::size_t nBlockMetadataPerTileBytes = nTiles * ( (nScratchArrays + 2) * sizeof(FArray4D) + deltas_BLOCK_SIZE_HELPER + lo_BLOCK_SIZE_HELPER + hi_BLOCK_SIZE_HELPER );
 	std::size_t nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);
-	if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] Metadata padding failure");
+	if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] Metadata padding failure");
 
 	std::size_t nCopyInDataPerTileBytes = (CC1_BLOCK_SIZE_HELPER) * nTiles;
 	std::size_t nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);
-	if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] CopyInPerTile padding failure");
+	if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] CopyInPerTile padding failure");
 
 	std::size_t nCopyInOutDataPerTileBytes = (0) * nTiles;
 	std::size_t nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);
-	if (nCopyInOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] CopyInOutPerTile padding failure");
+	if (nCopyInOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] CopyInOutPerTile padding failure");
 
 	std::size_t nCopyOutDataPerTileBytes = (CC2_BLOCK_SIZE_HELPER) * nTiles;
 	std::size_t nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);
-	if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_2] CopyOutPerTile padding failure");
+	if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error("[DataPacket_Hydro_gpu_1] CopyOutPerTile padding failure");
 
 	// Copy out section
 	nCopyToGpuBytes_ = nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded + nCopyInOutDataPerTileBytes;
@@ -130,15 +124,15 @@ void DataPacket_Hydro_gpu_2::pack(void) {
 	ptr_d = copyInStart_d_;
 
 	// general section;
-	nTiles_start_p_ = static_cast<void*>(ptr_p);
-	nTiles_start_d_ = static_cast<void*>(ptr_d);
-	ptr_p += sizeof(nTiles_BLOCK_SIZE_HELPER);
-	ptr_d += sizeof(nTiles_BLOCK_SIZE_HELPER);
-
 	dt_start_p_ = static_cast<void*>(ptr_p);
 	dt_start_d_ = static_cast<void*>(ptr_d);
 	ptr_p += sizeof(dt_BLOCK_SIZE_HELPER);
 	ptr_d += sizeof(dt_BLOCK_SIZE_HELPER);
+
+	nTiles_start_p_ = static_cast<void*>(ptr_p);
+	nTiles_start_d_ = static_cast<void*>(ptr_d);
+	ptr_p += sizeof(nTiles_BLOCK_SIZE_HELPER);
+	ptr_d += sizeof(nTiles_BLOCK_SIZE_HELPER);
 
 	contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );
 	contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );
@@ -215,26 +209,26 @@ void DataPacket_Hydro_gpu_2::pack(void) {
 	ptr_d += nTiles * CC2_BLOCK_SIZE_HELPER;
 	// end copy out
 
-	if (pinnedPtrs_) throw std::logic_error("DataPacket_Hydro_gpu_2::pack Pinned pointers already exist");
+	if (pinnedPtrs_) throw std::logic_error("DataPacket_Hydro_gpu_1::pack Pinned pointers already exist");
 	pinnedPtrs_ = new BlockPointersPinned[nTiles];
 	PacketContents* tilePtrs_p = contents_p_;
 	char* char_ptr;
 	/// END
 
 	/// MEM COPY SECTION
-	std::memcpy(nTiles_start_p_, static_cast<void*>(&nTiles), nTiles_BLOCK_SIZE_HELPER);
 	std::memcpy(dt_start_p_, static_cast<const void*>(&dt), dt_BLOCK_SIZE_HELPER);
+	std::memcpy(nTiles_start_p_, static_cast<void*>(&nTiles), nTiles_BLOCK_SIZE_HELPER);
 
 	for (std::size_t n=0; n < nTiles; ++n, ++tilePtrs_p) {
 		Tile* tileDesc_h = tiles_[n].get();
-		if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Bad tileDesc.");
+		if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Bad tileDesc.");
 		const RealVect deltas = tileDesc_h->deltas();
 		const IntVect lo = tileDesc_h->lo();
 		const IntVect hi = tileDesc_h->hi();
 		const IntVect loGC = tileDesc_h->loGC();
 		const IntVect hiGC = tileDesc_h->hiGC();
 		Real* data_h = tileDesc_h->dataPtr();
-		if (data_h == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_2::pack] Invalid ptr to data in host memory.");
+		if (data_h == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_1::pack] Invalid ptr to data in host memory.");
 
 		char_ptr = static_cast<char*>(deltas_start_p_) + n * deltas_BLOCK_SIZE_HELPER;
 		tilePtrs_p->deltas_d = static_cast<RealVect*>(static_cast<void*>(char_ptr));
@@ -283,20 +277,16 @@ void DataPacket_Hydro_gpu_2::pack(void) {
 	/// END
 
 	stream_ = RuntimeBackend::instance().requestStream(true);
-	if (!stream_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire stream");
+	if (!stream_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire stream");
 	stream2_ = RuntimeBackend::instance().requestStream(true);
-	if (!stream2_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire extra stream.");
-	stream3_ = RuntimeBackend::instance().requestStream(true);
-	if (!stream3_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire extra stream.");
-	stream4_ = RuntimeBackend::instance().requestStream(true);
-	if (!stream4_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_2::pack] Unable to acquire extra stream.");
+	if (!stream2_.isValid()) throw std::runtime_error("[DataPacket_Hydro_gpu_1::pack] Unable to acquire extra stream.");
 }
 
-void DataPacket_Hydro_gpu_2::unpack(void) {
+void DataPacket_Hydro_gpu_1::unpack(void) {
 	using namespace milhoja;
-	if (tiles_.size() <= 0) throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] Empty data packet.");
-	if (!stream_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] Stream not acquired.");
-	if (pinnedPtrs_ == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] No pinned pointers set.");
+	if (tiles_.size() <= 0) throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] Empty data packet.");
+	if (!stream_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] Stream not acquired.");
+	if (pinnedPtrs_ == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] No pinned pointers set.");
 	RuntimeBackend::instance().releaseStream(stream_);
 	assert(!stream_.isValid());
 
@@ -304,14 +294,14 @@ void DataPacket_Hydro_gpu_2::unpack(void) {
 		Tile* tileDesc_h = tiles_[n].get();
 		Real* data_h = tileDesc_h->dataPtr();
 		const Real* data_p = pinnedPtrs_[n].CC2_data;
-		if (data_h == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] Invalid pointer to data in host memory.");
-		if (data_p == nullptr) throw std::runtime_error("[DataPacket_Hydro_gpu_2::unpack] Invalid pointer to data in pinned memory.");
+		if (data_h == nullptr) throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] Invalid pointer to data in host memory.");
+		if (data_p == nullptr) throw std::runtime_error("[DataPacket_Hydro_gpu_1::unpack] Invalid pointer to data in pinned memory.");
 		assert(UNK_VARS_BEGIN == 0);
 		assert(UNK_VARS_END == NUNKVAR - 1);
 
 		std::size_t nBytes;
 		if ( UNK_VARS_BEGIN < UNK_VARS_BEGIN || EINT_VAR < UNK_VARS_BEGIN || EINT_VAR > UNK_VARS_END || EINT_VAR - UNK_VARS_BEGIN + 1 > (EINT_VAR+UNK_VARS_BEGIN+1))
-				throw std::logic_error("[DataPacket_Hydro_gpu_2::unpack] Invalid variable mask");
+				throw std::logic_error("[DataPacket_Hydro_gpu_1::unpack] Invalid variable mask");
 
 		std::size_t offset_CC2 = ((CC2_BLOCK_SIZE_HELPER / ( ((EINT_VAR+UNK_VARS_BEGIN+1)) * sizeof(Real)) )) * static_cast<std::size_t>(UNK_VARS_BEGIN);
 		Real* start_h = data_h + offset_CC2;

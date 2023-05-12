@@ -1,0 +1,44 @@
+{
+  "byte-align": 16,
+  "problem": "Sedov",
+  "n-extra-streams": 0,
+  "tile-scratch": {
+    "CC2": {
+      "location": "CC2",
+      "start": 0,
+      "end": 0,
+      "type": "Real",
+      "extents": "cc(NGUARD)"
+    },
+    "FCX": {
+      "location": "FCX",
+      "start": 0,
+      "end": 4,
+      "type": "Real",
+      "extents": "fcx(0)"
+    },
+    "FCY": {
+      "location": "FCY",
+      "start": 0,
+      "end": 4,
+      "type": "Real",
+      "extents": "fcy(0)"
+    }
+  },
+  "general": {
+    "dt": "Real"
+  },
+  "tile-metadata": [ "deltas", "lo", "hi" ],
+  "tile-in-out": {
+    "CC1": {
+      "location": "CC1",
+      "multifab": "hydro-cc",
+      "start-in": "UNK_VARS_BEGIN",
+      "end-in": "GAMC_VAR",
+      "start-out": "UNK_VARS_BEGIN",
+      "end-out": "EINT_VAR",
+      "type": "Real",
+      "extents": "cc(NGUARD)"
+    }
+  }
+}

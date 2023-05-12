@@ -3,10 +3,11 @@ BINARYNAME          = sedov_gpu.x
 TESTROOTDIR         = $(BASEDIR)/test
 SEDOVDIR            = $(TESTROOTDIR)/Sedov
 SEDOVGPUDIR         = $(SEDOVDIR)/gpu
-TESTDIR             = $(SEDOVGPUDIR)/generated_variant2
+SEDOVGPUV3DIR       = $(SEDOVGPUDIR)/generated_variant3
+TESTDIR             = $(SEDOVGPUV3DIR)/gpuonly
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(SEDOVGPUV3DIR) -I$(TESTDIR)
 CUFLAGS_TEST        = -I$(SEDOVDIR)
 LDFLAGS_TEST        =
 
@@ -25,17 +26,12 @@ SRCS_TEST = \
 	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/hy_computeFluxesHll_Z_oacc_summit.cpp \
-	$(TESTDIR)/hy_updateDensityHll_oacc_summit.cpp \
-	$(TESTDIR)/hy_updateVelxHll_oacc_summit.cpp \
-	$(TESTDIR)/hy_updateVelyHll_oacc_summit.cpp \
-	$(TESTDIR)/hy_updateVelzHll_oacc_summit.cpp \
-	$(TESTDIR)/hy_updateEnergyHll_oacc_summit.cpp \
-	$(SEDOVGPUDIR)/hy_computeEintHll_oacc_summit.cpp \
+	$(SEDOVGPUV3DIR)/hy_updateSolutionHll_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
-	$(TESTDIR)/DataPacket_Hydro_gpu_2.cpp \
-	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
-	$(TESTDIR)/Driver_executeSimulation.cpp \
+	$(SEDOVGPUV3DIR)/DataPacket_Hydro_gpu_3.cpp \
+	$(SEDOVGPUV3DIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
+	$(TESTDIR)/Driver_executeSimulation_gpuonly.cpp \
 	$(SEDOVDIR)/solve_sedov_with_runtime.cpp
