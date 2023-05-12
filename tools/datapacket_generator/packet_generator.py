@@ -240,7 +240,7 @@ def generate_cpp_code_file(parameters, args):
         ])
 
         file.write(f"{indent}{N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}{N_TILES}{BLOCK_SIZE} = sizeof(int);\n\n")
+        file.write(f"{indent}nTiles{BLOCK_SIZE} = sizeof(int);\n\n")
 
         # SIZE DETERMINATION SECTION
         file.write(f"{indent}/// SIZE DETERMINATION\n")
