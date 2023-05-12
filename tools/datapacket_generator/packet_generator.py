@@ -66,15 +66,6 @@ location = ""
 def is_enumerable_type(var):
     return isinstance(var, (dict, list))
 
-def generate_fortran_code_file(parameters, args):
-    with open(parameters["file_name"] + ".f90", "w") as file:
-        file.write(GENERATED_CODE_MESSAGE)
-        file.write("#include \"Milhoja.h\"")
-
-def generate_fortran_header_file(parameters, args):
-    with open(parameters["file_name"] + ".h", "w"):
-        ...
-
 def generate_cpp_code_file(parameters, args):
     def generate_constructor(file, params):
             # function definition
@@ -149,12 +140,12 @@ def generate_cpp_code_file(parameters, args):
 
         indent = 2 * '\t'
 
+        # TODO: This doesn't work with the location key in JSON
         location = "CC1" if T_IN_OUT in params else "CC2"
 
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
-            # f"{indent}const Real* data_p = nullptr;\n\n",
             f"{indent}const Real* data_p = pinnedPtrs_[n].{location}_data;\n"
         ])
 
@@ -880,14 +871,8 @@ def generate_packet_with_filepath(fp, args):
 
 # gneerate packet data using existing dict
 def generate_packet_with_dict(json_dict, args):
-    
-    if args.cpp:
-        generate_cpp_header_file(json_dict, args)
-        generate_cpp_code_file(json_dict, args)
-
-    if args.fortran:
-        generate_fortran_header_file(json_dict, args)
-        generate_fortran_code_file(json_dict, args)
+    generate_cpp_header_file(json_dict, args)
+    generate_cpp_code_file(json_dict, args)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")

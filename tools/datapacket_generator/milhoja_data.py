@@ -35,9 +35,12 @@ imap = {
 
 ispace_map = {
     'cc': "(nxb + 2 * {guard} * MILHOJA_K1D) * (nyb + 2 * {guard} * MILHOJA_K2D) * (nzb + 2 * {guard} * MILHOJA_K3D) * ({unk}) * sizeof({size})",
-    'fcx': "((nxb+1) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcy': "((nxb) + 2 * {guard}) * ((nyb+1) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcz': "((nxb) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb+1) + 2 * {guard}) * {unk} * sizeof({size})"
+    'fcx': "((nxb + 2 * {guard} * MILHOJA_K1D) + 1) * (nyb + 2 * {guard} * MILHOJA_K2D) * (nzb + 2 * {guard} * MILHOJA_K3D) * {unk} * sizeof({size})",
+    'fcy': "((nxb + 2 * {guard} * MILHOJA_K1D)) * ((nyb + 2 * {guard} * MILHOJA_K2D) + 1) * (nzb + 2 * {guard} * MILHOJA_K3D) * {unk} * sizeof({size})",
+    'fcz': "((nxb + 2 * {guard} * MILHOJA_K1D)) * ((nyb + 2 * {guard} * MILHOJA_K2D)) * ((nzb + 2 * {guard} * MILHOJA_K3D) + 1) * {unk} * sizeof({size})"
+    # 'fcx': "((nxb+1) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
+    # 'fcy': "((nxb) + 2 * {guard}) * ((nyb+1) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
+    # 'fcz': "((nxb) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb+1) + 2 * {guard}) * {unk} * sizeof({size})"
 }
 
 constructor_args = {
