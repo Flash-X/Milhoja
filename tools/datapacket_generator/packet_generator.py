@@ -15,6 +15,10 @@ import warnings
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
+HOST = "_h_"
+PINNED = "_p_"
+DATA = "_d_"
+
 # All possible keys.
 EXTRA_STREAMS = 'n-extra-streams'
 GENERAL = "general"
@@ -29,7 +33,7 @@ T_OUT = "tile-out"
 NEW = "new_"
 SIZE_T = "std::size_t"
 BLOCK_SIZE = "_BLOCK_SIZE_HELPER"
-N_TILES = "nTiles"
+N_TILES = f"nTiles{HOST}"
 SCRATCH = "_scratch_d_"
 TILE_DESC = "tileDesc_h"
 DATA_P = "_data_p_"
@@ -43,10 +47,6 @@ GETTER = "_devptr"
 
 SCRATCH_BYTES = "nScratchBytes"
 CIN_BYTES = "nCopyInBytes"
-
-HOST = "_h_"
-PINNED = "_p_"
-DATA = "_d_"
 # 
 # these might not be necessary
 vars_and_types = {}
@@ -284,7 +284,7 @@ def generate_cpp_code_file(parameters, args):
         t_mdata = params.get(T_MDATA, [])
         size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
         scratch_arrays = "0" if not args.use_finterface else f"( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D) )"
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = nTiles * ( {scratch_arrays}{size} );\n")
+        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n")
         file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
         bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
@@ -293,7 +293,7 @@ def generate_cpp_code_file(parameters, args):
         # copy in data
         cin = params.get(T_IN, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cin) if cin else "0"
-        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = ({size}) * nTiles;\n")
+        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = ({size}) * {N_TILES};\n")
         file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);\n")
         bytesToGpu.append("nCopyInDataPerTileBytesPadded")
         bytesPerPacket.append("nCopyInDataPerTileBytesPadded")
@@ -302,7 +302,7 @@ def generate_cpp_code_file(parameters, args):
         # copy in out data
         cinout = params.get(T_IN_OUT, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cinout) if cinout else "0"
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * nTiles;\n")
+        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * {N_TILES};\n")
         file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);\n")
         bytesToGpu.append("nCopyInOutDataPerTileBytes")
         returnToHost.append("nCopyInOutDataPerTileBytesPadded")
@@ -312,9 +312,8 @@ def generate_cpp_code_file(parameters, args):
         # copy out
         cout = params.get(T_OUT, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cout ) if cout else "0"
-        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = ({size}) * nTiles;\n")
+        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = ({size}) * {N_TILES};\n")
         file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n")
-        # bytesToGpu.add("(nTiles * nCopyOutDataPerTileBytes)")
         returnToHost.append("nCopyOutDataPerTileBytes")
         bytesPerPacket.append("nCopyOutDataPerTileBytesPadded")
         file.write(f"{indent}if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyOutPerTile padding failure\");\n\n")
@@ -350,7 +349,7 @@ def generate_cpp_code_file(parameters, args):
         for item in scr:
             file.writelines([
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n"
+                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n"
             ])
         ###
         file.write(f"{indent}// end scratch\n\n")
@@ -383,7 +382,7 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
-            const = "const " if item != "nTiles" else ""
+            const = "const " if item != N_TILES else ""
             general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n"
         file.writelines([
             f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
@@ -401,16 +400,16 @@ def generate_cpp_code_file(parameters, args):
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_p += nTiles * {item}{BLOCK_SIZE};\n",
-                f"{indent}ptr_d += nTiles * {item}{BLOCK_SIZE};\n\n"
+                f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
+                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
         if args.use_finterface:
             for item in sorted(farray_items):
                 file.writelines([
                     f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
                     f"{indent}char* {item}_farray_start_d_ = ptr_d;\n"
-                    f"{indent}ptr_p += nTiles * sizeof(FArray4D);\n",
-                    f"{indent}ptr_d += nTiles * sizeof(FArray4D);\n\n"
+                    f"{indent}ptr_p += {N_TILES} * sizeof(FArray4D);\n",
+                    f"{indent}ptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
                 ])
         file.write("\t// end metadata;\n\n")
         ###
@@ -620,7 +619,7 @@ def generate_cpp_code_file(parameters, args):
         packet_name = params["name"]
         file.writelines([
             f"std::unique_ptr<milhoja::DataPacket> {packet_name}::clone(void) const {{\n",
-            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ new {packet_name}{{{', '.join( f'{item[0]}' for item in constructor_args)}}} }};\n"
+            f"\treturn std::unique_ptr<milhoja::DataPacket>{{ new {packet_name}{{{', '.join( f'{item[0]}{HOST}' for item in constructor_args)}}} }};\n"
             f"}}\n\n"
         ])
 
@@ -724,7 +723,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\tint nTiles{HOST};\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
+        pinned_and_data_ptrs += f"\tint {N_TILES};\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
         getters.append(f"\tint* nTiles{GETTER}(void) const {{ return static_cast<int*>(nTiles{START_D}); }}\n")
 
