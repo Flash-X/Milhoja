@@ -44,9 +44,9 @@ GETTER = "_devptr"
 SCRATCH_BYTES = "nScratchBytes"
 CIN_BYTES = "nCopyInBytes"
 
-HOST = "_h"
-PINNED = "_p"
-DATA = "_d"
+HOST = "_h_"
+PINNED = "_p_"
+DATA = "_d_"
 # 
 # these might not be necessary
 vars_and_types = {}
@@ -86,7 +86,7 @@ def generate_cpp_code_file(parameters, args):
             # we probably don't need to initialize all of the vars since we're generating everything
             for variable in vars_and_types:
                 file.write(f"{indent}{variable}{{0}},\n")
-            file.write(f",\n".join(f"{indent}{item}{{new_{item}}}" for item in params.get(GENERAL, [])))
+            file.write(f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])))
             file.write("\n{\n")
 
             # some misc constructor code for calculating block sizes.
@@ -384,7 +384,7 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
             const = "const " if item != "nTiles" else ""
-            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}), {item}{BLOCK_SIZE});\n"
+            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n"
         file.writelines([
             f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
             f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
@@ -724,7 +724,7 @@ def generate_cpp_header_file(parameters, args):
         header.write("#include <Milhoja_DataPacket.h>\n")
 
         # manually generate nTiles getter here
-        pinned_and_data_ptrs += f"\tint nTiles;\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
+        pinned_and_data_ptrs += f"\tint nTiles{HOST};\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
         getters.append(f"\tint* nTiles{GETTER}(void) const {{ return static_cast<int*>(nTiles{START_D}); }}\n")
 
@@ -738,12 +738,10 @@ def generate_cpp_header_file(parameters, args):
             general = parameters[GENERAL] # general section is the general copy in data information
             for item in general:
                 block_size_var = f"{item}{BLOCK_SIZE}"
-                var = f"\tconst milhoja::{general[item]} {item};\n"
                 size_var = f"\t{SIZE_T} {block_size_var} = 0;\n"
                 is_enumerable = is_enumerable_type(general[item])
                 item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
-                # private_variables.append(var)
                 private_variables.append(size_var)
                 vars_and_types[block_size_var] = f"milhoja::{general[item]}"
                 types.add(item_type)
@@ -856,7 +854,7 @@ def generate_cpp_header_file(parameters, args):
         header.writelines([
             f"\tstatic constexpr std::size_t ALIGN_SIZE={parameters.get('byte-align', 16)};\n",
             f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
-            ''.join( f'\t{item[1]} {item[0]};\n' for item in constructor_args),
+            ''.join( f'\t{item[1]} {item[0]}{HOST};\n' for item in constructor_args),
             ''.join(private_variables),
             ''.join(pinned_and_data_ptrs)
         ])
