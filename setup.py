@@ -87,9 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--coverage','-c', action="store_true", help='Enable code coverage.')
     parser.add_argument('--multithreaded', action="store_true", help='Enable multithreaded distributor.')
     parser.add_argument('--sort',          action="store_true", help='Sort items in the generated data packet.')
-    parser.add_argument('--fortran',       action="store_true", help='Generate a fortran packet.')
-    parser.add_argument('--cpp',           action="store_true", help='Generate a cpp packet.')
-    parser.add_argument('--use-finterface',action="store_true", help='Use fortran binding classes in data packet.')
+    parser.add_argument('--language',      type=str, help='Generate a packet that works with the specified language.')
 
     def print_and_exit(msg):
         print(file=sys.stderr)
@@ -153,14 +151,10 @@ if __name__ == '__main__':
     # TODO: Sizes.json is generated when building the libraries. Where should sizes.json be located?
     packet_name = path[-1] # name of packet should be the name of the directory its found in
     packet_args = ['python', f'{ os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "packet_generator.py") }']
-    if args.cpp:
-        packet_args.append('-c')
-    if args.fortran:
-        packet_args.append('-f')
+    if args.language:
+        packet_args.append(f'-l{args.language.strip()}')
     if args.sort:
         packet_args.append(f'-s{os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "sizes.json")}')
-    if args.use_finterface:
-        packet_args.append('-u')
     packet_args.append(f'{ os.path.join(testDir, packet_name)}.json')
     rcode = sbp.run(
         packet_args,
