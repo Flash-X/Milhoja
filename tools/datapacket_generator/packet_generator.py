@@ -10,7 +10,7 @@ import sys
 import os.path
 import json
 import argparse
-import milhoja_data as mdata
+import milhoja_utility as mdata
 import warnings
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
@@ -518,10 +518,9 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}if (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
         ])
-        # finterface classes always use all of these pointers in tilePtrs,
-        # so we always generate them.
-        # TODO: This is awkward
+
         if args.cpp:
+            # lo, hi, loGC and hiGC are used to create the FArrays, so we need to add whatever is not in T_MDATA.
             dependencies = set(params[T_MDATA]).symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
             for item in set(params.get(T_MDATA, [])).union(dependencies):
                 item_type = mdata.tile_known_types[item]

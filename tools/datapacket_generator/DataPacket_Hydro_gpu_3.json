@@ -3,7 +3,7 @@
   "problem": "Sedov",
   "n-extra-streams": 0,
   "tile-scratch": {
-    "CC2": {
+    "auxC": {
       "location": "CC2",
       "start": 0,
       "end": 0,
@@ -30,7 +30,7 @@
   },
   "tile-metadata": [ "deltas", "lo", "hi" ],
   "tile-in-out": {
-    "CC1": {
+    "U": {
       "location": "CC1",
       "multifab": "hydro-cc",
       "start-in": "UNK_VARS_BEGIN",

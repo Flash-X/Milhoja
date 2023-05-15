@@ -33,6 +33,8 @@ imap = {
     'FArray4D': '<Milhoja_FArray4D.h>'
 }
 
+# NOTE: The modern packet uses fcx, fcy, and fcz shown here, and the older handwritten packets use the commented face keys.
+#       Both seem to work? It's used in calculating sizes, so there shouldn't be an issue outside of wasted space...
 ispace_map = {
     'cc': "(nxb + 2 * {guard} * MILHOJA_K1D) * (nyb + 2 * {guard} * MILHOJA_K2D) * (nzb + 2 * {guard} * MILHOJA_K3D) * ({unk}) * sizeof({size})",
     'fcx': "((nxb + 2 * {guard} * MILHOJA_K1D) + 1) * (nyb + 2 * {guard} * MILHOJA_K2D) * (nzb + 2 * {guard} * MILHOJA_K3D) * {unk} * sizeof({size})",
@@ -43,7 +45,7 @@ ispace_map = {
     # 'fcz': "((nxb) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb+1) + 2 * {guard}) * {unk} * sizeof({size})"
 }
 
-constructor_args = {
+finterface_constructor_args = {
     'cc': "loGC, hiGC",
     'fcx': "lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }",
     'fcy': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }",
