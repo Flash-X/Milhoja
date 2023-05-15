@@ -1,7 +1,15 @@
 import sys
 import warnings
+from enum import Enum
 from typing import Tuple
 from typing import Union
+
+class Language(Enum):
+    cpp = 'cpp'
+    fortran = 'fortran'
+
+    def __str__(self):
+        return self.value
 
 tile_known_types = {
     'levels': 'unsigned int',

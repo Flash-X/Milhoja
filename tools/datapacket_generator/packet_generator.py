@@ -92,7 +92,7 @@ def generate_cpp_code_file(parameters, args):
                     for item in params[section]:
                         if section == T_MDATA:
                             size = f"sizeof({mdata.tile_known_types[item]})"
-                            if not args.cpp:
+                            if args.language != 'cpp':
                                 if mdata.tile_known_types[item] in mdata.cpp_equiv:
                                     size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
                                 else:
@@ -259,7 +259,7 @@ def generate_cpp_code_file(parameters, args):
         # TODO: This will eventually go away once PacketContents is removed.
         packet_pointers = params.get(T_MDATA, []) + list(params.get(T_IN, {})) + list(params.get(T_IN_OUT, {})) + list(params.get(T_OUT, {}))
         p_contents_size = f"{N_TILES} * sizeof(PacketContents)"
-        if args.cpp:
+        if args.language == 'cpp':
             p_contents_size = f"{N_TILES} * (" + " + ".join(f'{item}{BLOCK_SIZE}' for item in packet_pointers) + ")"
 
         for item in params.get(GENERAL, []):
@@ -274,7 +274,7 @@ def generate_cpp_code_file(parameters, args):
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
         t_mdata = params.get(T_MDATA, [])
         size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
-        scratch_arrays = "0" if not args.cpp else f"( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D) )"
+        scratch_arrays = "0" if args.language != 'cpp' else f"( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D) )"
         file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n")
         file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
@@ -394,7 +394,7 @@ def generate_cpp_code_file(parameters, args):
                 f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
-        if args.cpp:
+        if args.language == 'cpp':
             for item in sorted(farray_items):
                 file.writelines([
                     f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
@@ -519,7 +519,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
         ])
 
-        if args.cpp:
+        if args.language == 'cpp':
             # lo, hi, loGC and hiGC are used to create the FArrays, so we need to add whatever is not in T_MDATA.
             dependencies = set(params[T_MDATA]).symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
             for item in set(params.get(T_MDATA, [])).union(dependencies):
@@ -540,7 +540,7 @@ def generate_cpp_code_file(parameters, args):
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True):
             src = "&" + item
             file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
-            if not args.cpp:
+            if args.language != 'cpp':
                 if "Vect" in mdata.tile_known_types[item]: #array type
                     offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
                     file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
@@ -557,7 +557,7 @@ def generate_cpp_code_file(parameters, args):
         file.write(out_location)
 
         # only store farray pointers if user is using the fortran binding classes
-        if args.cpp:
+        if args.language == 'cpp':
             for item in sorted(device_array_pointers, key=lambda x: sizes[device_array_pointers[x]['type']] if sizes else 1, reverse=True ):
                 d = 4 # assume d = 4 for now.
                 section = device_array_pointers[item]['section']
@@ -754,7 +754,7 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
                 vars_and_types[new_variable] = SIZE_T
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
-                if args.cpp: 
+                if args.language == 'cpp': 
                     if item_type in mdata.cpp_equiv:
                         item_type = mdata.cpp_equiv[item_type]
                 ext = "milhoja::" if item_type in mdata.imap else ""
@@ -872,9 +872,12 @@ def generate_packet_with_dict(json_dict, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
     parser.add_argument("JSON", help="The JSON file to generate from.")
-    parser.add_argument('--cpp', '-c', action="store_true", help="Generate a cpp packet.")
-    parser.add_argument("--fortran", '-f', action="store_true", help="Generate a fortran packet.")
+    parser.add_argument('--language', '-l', type=mdata.Language, choices=list(mdata.Language), help="Generate a packet to work with this language.")
     parser.add_argument("--sizes", "-s", help="Path to data type size information.")
     args = parser.parse_args()
+
+    if args.language is None:
+        print("Language not specified. Packet will not be generated.")
+        exit(0)
 
     generate_packet_with_filepath(args.JSON, args)
