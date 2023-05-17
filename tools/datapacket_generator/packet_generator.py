@@ -105,7 +105,7 @@ def generate_cpp_code_file(parameters, args):
                             size = f"sizeof({mdata.tile_known_types[item]})"
                             if args.language != mdata.Language.cpp:
                                 if mdata.tile_known_types[item] in mdata.cpp_equiv:
-                                    size = f"MILHOJA_NDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
+                                    size = f"MILHOJA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
                                 else:
                                     size = f"sizeof({mdata.tile_known_types[item]})"
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
@@ -554,7 +554,7 @@ def generate_cpp_code_file(parameters, args):
             if args.language != mdata.Language.cpp:
                 if "Vect" in mdata.tile_known_types[item]: #array type
                     offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
-                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_NDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
+                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
                     src = f"{item}_h"
                 else: # primitive
                     ty = mdata.tile_known_types[item].replace('unsigned ', '')
