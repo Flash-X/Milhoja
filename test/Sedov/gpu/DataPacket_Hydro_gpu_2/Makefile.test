@@ -35,7 +35,7 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
-	$(TESTDIR)/DataPacket_Hydro_gpu_2.cpp \
+	DataPacket_Hydro_gpu_2.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_2.cpp \
 	$(TESTDIR)/Driver_executeSimulation.cpp \
 	$(SEDOVDIR)/solve_sedov_with_runtime.cpp
