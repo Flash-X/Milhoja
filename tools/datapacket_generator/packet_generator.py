@@ -554,7 +554,7 @@ def generate_cpp_code_file(parameters, args):
             if args.language != mdata.Language.cpp:
                 if "Vect" in mdata.tile_known_types[item]: #array type
                     offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
-                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}}\n')
+                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}};\n')
                     src = f"{item}_h"
                 else: # primitive
                     ty = mdata.tile_known_types[item].replace('unsigned ', '')
@@ -724,7 +724,7 @@ def generate_cpp_header_file(parameters, args):
         pinned_and_data_ptrs += f"\tint {N_TILES};\n\tvoid* nTiles{START_P} = 0;\n\tvoid* nTiles{START_D} = 0;\n"
         private_variables.append(f"\t{SIZE_T} nTiles{BLOCK_SIZE} = 0;\n")
         getters.append(f"\tint* nTiles{GETTER}(void) const {{ return static_cast<int*>(nTiles{START_D}); }}\n")
-        getters.append(f"\tint {N_TILES}_host(void) const {{ return {N_TILES}; }}\n")
+        getters.append(f"\tint nTiles_host(void) const {{ return {N_TILES}; }}\n")
 
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
@@ -767,7 +767,7 @@ def generate_cpp_header_file(parameters, args):
                 private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
                 vars_and_types[new_variable] = SIZE_T
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
-                if args.language == mdata.Language.cpp:
+                if args.language != mdata.Language.cpp:
                     if item_type in mdata.cpp_equiv:
                         item_type = mdata.cpp_equiv[item_type]
                 ext = "milhoja::" if item_type in mdata.imap else ""
