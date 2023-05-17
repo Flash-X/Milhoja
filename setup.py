@@ -86,8 +86,6 @@ if __name__ == '__main__':
     parser.add_argument('--debug',         action="store_true", help='Set up in debug mode.')
     parser.add_argument('--coverage','-c', action="store_true", help='Enable code coverage.')
     parser.add_argument('--multithreaded', action="store_true", help='Enable multithreaded distributor.')
-    parser.add_argument('--sort',          action="store_true", help='Sort items in the generated data packet.')
-    parser.add_argument('--language',      type=str, help='Generate a packet that works with the specified language.')
 
     def print_and_exit(msg):
         print(file=sys.stderr)
@@ -145,29 +143,6 @@ if __name__ == '__main__':
     print("Orchestration Runtime setup")
     print("---------------------------")
 
-    ##-- GENERATE DATA PACKET FILES
-    # TODO: where will sizes.json be located?
-    # TODO: Do we want packets to always be generated? Or do we want to allow the option for handwritten packets
-    # TODO: Sizes.json is generated when building the libraries. Where should sizes.json be located?
-    packet_name = path[-1] # name of packet should be the name of the directory its found in
-    packet_args = ['python', f'{ os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "packet_generator.py") }']
-    if args.language:
-        packet_args.append(f'-l{args.language.strip()}')
-    if args.sort:
-        packet_args.append(f'-s{os.path.join(f"{_HOME_DIR}", "tools", "datapacket_generator", "sizes.json")}')
-    packet_args.append(f'{ os.path.join(testDir, packet_name)}.json')
-    rcode = sbp.run(
-        packet_args,
-        stdout=sbp.DEVNULL if not args.debug else None, #hide outputs
-        stderr=sbp.STDOUT if not args.debug else None
-    )
-#    print(sbp.list2cmdline(rcode.args))
-    if rcode.returncode != 0:
-        print("Data packet generation failed. Continuing...")
-    else:
-        print(f"Generated packet files from {packet_name}.json")
-#    assert rcode.returncode == 0, "Data packet generation failed"
-
     ##-- MAKE BUILD DIRECTORY
     # Make in root of repo
     print(f"Creating build directory: {buildDir.name}")
@@ -198,6 +173,17 @@ if __name__ == '__main__':
     assert(not testMakefile_dest.exists())
     shutil.copy(testMakefile_src, testMakefile_dest)
 
+    ##-- DATAPACKET MAKEFILE
+    print(f"Copying Makefile.datapacket from test {test_name}")
+    packetMakefile_src  =  testDir.joinpath('Makefile.datapacket')
+    packetMakefile_dest = buildDir.joinpath('Makefile.datapacket')
+    assert(not packetMakefile_dest.exists())
+    if not packetMakefile_src.is_file():
+        with open(packetMakefile_dest, "w") as fptr:
+            fptr.write("")
+    else:
+        shutil.copy(packetMakefile_src, packetMakefile_dest)
+
     ##-- GENERATE Makefile.setup
     print("Writing Makefile.setup")
     setupMakefile = buildDir.joinpath('Makefile.setup')
@@ -207,6 +193,7 @@ if __name__ == '__main__':
         fptr.write("$(warning BASEDIR=$(BASEDIR) but repository root directory is {})\n".format(_HOME_DIR))
         fptr.write("endif\n\n")
         fptr.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
+        fptr.write("GENDIR=$(BASEDIR)/tools/datapacket_generator\n")
         if args.debug:
             fptr.write(f"DEBUG = true\n")
         else:
