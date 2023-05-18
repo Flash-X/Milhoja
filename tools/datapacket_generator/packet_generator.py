@@ -95,8 +95,9 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}using namespace milhoja;\n")
             for var in ['nxb','nyb','nzb']:
                 code.write(f"{indent}unsigned int {var} = 1;\n")
-
             file.write(f"{indent}Grid::instance().getBlockSize(&nxb, &nyb, &nzb);\n")
+
+#            file.write(f"{indent}")
 
             for section in params:
                 if isinstance(params[section], dict) or isinstance(params[section], list):
@@ -378,7 +379,6 @@ def generate_cpp_code_file(parameters, args):
         # I could probably set nTiles in the constructor... I'd have to make sure that setting it in the constructor works fine.
         for item in general:
             file.writelines([
-                # f"{indent}std::memcpy((void*)ptr_p, (void*)&{item}, {item}{BLOCK_SIZE});\n",
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n"
                 f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
@@ -386,12 +386,13 @@ def generate_cpp_code_file(parameters, args):
             ])
             const = "const " if item != N_TILES else ""
             general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n"
-        file.writelines([
-            f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
-            f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
-            f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
-            f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
-        ])
+        if args.language == mdata.Language.cpp:
+            file.writelines([
+                f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
+                f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
+                f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
+                f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
+            ])
         file.write("\t// end general\n\n")
         ###
 
@@ -665,6 +666,18 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}}}\n}}\n\n")
             # file.write("#endif\n")
 
+    def generate_tile_size_host(file, params):
+        packet_name = params["name"]
+        file.write(f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n")
+        file.writelines([
+            f"\t*nxbGC = static_cast<int>(nxb_ + 2 * nGuard_ * MILHOJA_K1D);\n",
+            f"\t*nybGC = static_cast<int>(nyb_ + 2 * nGuard_ * MILHOJA_K2D);\n",
+            f"\t*nzbGC = static_cast<int>(nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n",
+            f"\t*nCcVars = nCcVars_ - 8;\n"
+            f"\t*nFluxVars = nFluxVars_;\n"
+        ])
+        file.write(f"}}\n\n")
+
     if not parameters:
         raise ValueError("Parameters is empty or null.")
 
@@ -690,6 +703,7 @@ def generate_cpp_code_file(parameters, args):
         generate_release_queues(code, parameters)
         # generate clone method
         generate_clone(code, parameters)
+        generate_tile_size_host(code, parameters)
         generate_pack(code, parameters, args)
         generate_unpack(code, parameters)
 
@@ -814,7 +828,8 @@ def generate_cpp_header_file(parameters, args):
             f"{indent}{name}({name}&& packet)          = delete;\n",
             f"{indent}{name}& operator=({name}&)       = delete;\n",
             f"{indent}{name}& operator=(const {name}&) = delete;\n",
-            f"{indent}{name}& operator=({name}&& rhs)  = delete;\n"
+            f"{indent}{name}& operator=({name}&& rhs)  = delete;\n",
+            f"{indent}void tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const;\n"
         ])
 
         # pack & unpack methods
