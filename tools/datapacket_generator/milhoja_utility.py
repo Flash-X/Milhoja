@@ -51,10 +51,10 @@ fortran_size_map = {
 }
 
 cpp_size_map = {
-    'cc': "(nxb + 2 * {guard} * MILHOJA_K1D) * (nyb + 2 * {guard} * MILHOJA_K2D) * (nzb + 2 * {guard} * MILHOJA_K3D) * ({unk}) * sizeof({size})",
-    'fcx': "((nxb+1) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcy': "((nxb) + 2 * {guard}) * ((nyb+1) + 2 * {guard}) * ((nzb) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcz': "((nxb) + 2 * {guard}) * ((nyb) + 2 * {guard}) * ((nzb+1) + 2 * {guard}) * {unk} * sizeof({size})"
+    'cc': "(nxb_ + 2 * {guard} * MILHOJA_K1D) * (nyb_ + 2 * {guard} * MILHOJA_K2D) * (nzb_ + 2 * {guard} * MILHOJA_K3D) * ({unk}) * sizeof({size})",
+    'fcx': "((nxb_+1) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * {unk} * sizeof({size})",
+    'fcy': "((nxb_) + 2 * {guard}) * ((nyb_+1) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * {unk} * sizeof({size})",
+    'fcz': "((nxb_) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_+1) + 2 * {guard}) * {unk} * sizeof({size})"
 }
 
 finterface_constructor_args = {
