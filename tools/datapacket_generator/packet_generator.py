@@ -96,7 +96,15 @@ def generate_cpp_code_file(parameters, args):
             for var in ['nxb','nyb','nzb']:
                 code.write(f"{indent}unsigned int {var} = 1;\n")
             file.write(f"{indent}Grid::instance().getBlockSize(&nxb, &nyb, &nzb);\n")
-
+            if args.language == mdata.Language.fortran:
+                file.writelines([
+                    f"\tint   nxbGC_h     = -1;\n",
+                    f"\tint   nybGC_h     = -1;\n",
+                    f"\tint   nzbGC_h     = -1;\n",
+                    f"\tint   nCcVars_h   = -1;\n",
+                    f"\tint   nFluxVars_h = -1;\n",
+                    f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
+                ])
 #            file.write(f"{indent}")
 
             for section in params:
@@ -111,13 +119,19 @@ def generate_cpp_code_file(parameters, args):
                                     size = f"sizeof({mdata.tile_known_types[item]})"
                             file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
                         elif section == T_IN_OUT:
-                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
+                            extents, nunkvar, indexer = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
+                            if args.language == mdata.Language.cpp:
+                                file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
+                            else:
+                                file.write(f"{indent}{item}{BLOCK_SIZE} = { mdata.fortran_size_map[indexer].format(unk=nunkvar, size=params[section][item]['type']) };\n")
                         elif not isinstance(params[section][item], (dict, list)):
                             file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({params[section][item]}));\n")
                         else:
-                            extents, nunkvar, empty = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start'], params[section][item]['end'], params[section][item]['type'])
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
+                            extents, nunkvar, indexer = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start'], params[section][item]['end'], params[section][item]['type'])
+                            if args.language == mdata.Language.cpp:
+                                file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
+                            else:
+                                file.write(f"{indent}{item}{BLOCK_SIZE} = { mdata.fortran_size_map[indexer].format(unk=nunkvar, size=params[section][item]['type']) };\n")
             
             file.write("}\n\n")
 
@@ -670,11 +684,16 @@ def generate_cpp_code_file(parameters, args):
         packet_name = params["name"]
         file.write(f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n")
         file.writelines([
-            f"\t*nxbGC = static_cast<int>(nxb_ + 2 * nGuard_ * MILHOJA_K1D);\n",
-            f"\t*nybGC = static_cast<int>(nyb_ + 2 * nGuard_ * MILHOJA_K2D);\n",
-            f"\t*nzbGC = static_cast<int>(nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n",
-            f"\t*nCcVars = nCcVars_ - 8;\n"
-            f"\t*nFluxVars = nFluxVars_;\n"
+            f"\tusing namespace milhoja;\n",
+	        f"\tunsigned int nxb_ = 1;\n",
+	        f"\tunsigned int nyb_ = 1;\n",
+    	    f"\tunsigned int nzb_ = 1;\n",
+	        f"\tGrid::instance().getBlockSize(&nxb, &nyb, &nzb);\n\n",
+            f"\t*nxbGC = static_cast<int>(nxb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K1D);\n",
+            f"\t*nybGC = static_cast<int>(nyb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K2D);\n",
+            f"\t*nzbGC = static_cast<int>(nzb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K3D);\n",
+            f"\t*nCcVars = milhoja::Grid::instance().getNCcVariables() - 8;\n"
+            f"\t*nFluxVars = milhoja::Grid::instance().getNFluxVariables();\n"
         ])
         file.write(f"}}\n\n")
 
