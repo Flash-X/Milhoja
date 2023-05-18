@@ -184,6 +184,14 @@ if __name__ == '__main__':
     else:
         shutil.copy(packetMakefile_src, packetMakefile_dest)
 
+    ##-- CHECK JSON file
+    print(f"Checking JSON file in {test_name}")
+    jsonPath = testDir.joinpath(f'{os.path.basename(test_name)}.json')
+    if not jsonPath.is_file():
+        print(f"Generating empty json {jsonPath}")
+        with open(jsonPath, "w") as fptr:
+    	    fptr.write("{\n}")
+
     ##-- GENERATE Makefile.setup
     print("Writing Makefile.setup")
     setupMakefile = buildDir.joinpath('Makefile.setup')
