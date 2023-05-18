@@ -30,7 +30,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_1(const int tId,
 
 //    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
 //    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
-	const std::size_t* nTiles_d = static_cast<std::size_t*>( dynamic_cast<DataPacket_Hydro_gpu_1*>(packet_h)->nTiles_devptr() );
+	const int* nTiles_d = static_cast<int*>( dynamic_cast<DataPacket_Hydro_gpu_1*>(packet_h)->nTiles_devptr() );
 //    ptr_d += sizeof(std::size_t);
 	const Real* dt_d = static_cast<Real*>( dynamic_cast<DataPacket_Hydro_gpu_1*>(packet_h)->dt_devptr() );
 //    const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
