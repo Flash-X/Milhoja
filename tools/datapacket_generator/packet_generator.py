@@ -871,6 +871,9 @@ def generate_packet_with_filepath(fp, args):
     if ".json" not in os.path.basename(fp):
         print("Provided file is not a JSON file.")
         exit(-1)
+    elif os.path.getsize(fp) < 5:
+        print("JSON file is empty, packet will not be generated.")
+        return
     with open(fp, "r") as file:
         data = json.load(file)
         data["file_name"] = file.name.replace(".json", "")
