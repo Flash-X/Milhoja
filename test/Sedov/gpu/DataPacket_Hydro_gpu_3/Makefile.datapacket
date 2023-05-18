@@ -1,5 +1,5 @@
 DataPacket_Hydro_gpu_3.cpp: $(TESTDIR)/DataPacket_Hydro_gpu_3.json $(MAKEFILES)
 	@echo "Creating $@ from $<"
-	~/OrchestrationRuntime/tools/datapacket_generator/packet_generator.py -s $(TESTDIR)/sizes.json -l cpp $<
+	$(BASEDIR)/tools/datapacket_generator/packet_generator.py -s $(TESTDIR)/sizes.json -l cpp $<
 	mv $(TESTDIR)/DataPacket*.cpp .
 	mv $(TESTDIR)/DataPacket*.h .
