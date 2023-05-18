@@ -93,9 +93,9 @@ def generate_cpp_code_file(parameters, args):
 
             # some misc constructor code for calculating block sizes.
             file.write(f"{indent}using namespace milhoja;\n")
-            for var in ['nxb','nyb','nzb']:
+            for var in ['nxb_','nyb_','nzb_']:
                 code.write(f"{indent}unsigned int {var} = 1;\n")
-            file.write(f"{indent}Grid::instance().getBlockSize(&nxb, &nyb, &nzb);\n")
+            file.write(f"{indent}Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n")
             if args.language == mdata.Language.fortran:
                 file.writelines([
                     f"\tint   nxbGC_h     = -1;\n",
@@ -688,7 +688,7 @@ def generate_cpp_code_file(parameters, args):
 	        f"\tunsigned int nxb_ = 1;\n",
 	        f"\tunsigned int nyb_ = 1;\n",
     	    f"\tunsigned int nzb_ = 1;\n",
-	        f"\tGrid::instance().getBlockSize(&nxb, &nyb, &nzb);\n\n",
+	        f"\tGrid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n\n",
             f"\t*nxbGC = static_cast<int>(nxb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K1D);\n",
             f"\t*nybGC = static_cast<int>(nyb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K2D);\n",
             f"\t*nzbGC = static_cast<int>(nzb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K3D);\n",
