@@ -52,7 +52,7 @@ SCRATCH_BYTES = "nScratchBytes"
 CIN_BYTES = "nCopyInBytes"
 # 
 # these might not be necessary
-vars_and_types = {}
+initialize = {}
 level = 0
 
 # TODO: Maybe we can create dictionaries derived from sections in the json? Something to think about
@@ -71,12 +71,11 @@ def is_enumerable_type(var):
 
 def generate_cpp_code_file(parameters, args):
     """
-    This is a function
+    Generates the .cpp file for the data packet.
 
     Parameters
-        parameters - THis is something
-    Returns
-        returns something
+        parameters - The json file parameters.
+        args - The arguments passed in from the command line.
     """
     def generate_constructor(file, params):
             # function definition
@@ -86,15 +85,13 @@ def generate_cpp_code_file(parameters, args):
             index = 1
             indent = "\t" * level
             # we probably don't need to initialize all of the vars since we're generating everything
-            for variable in vars_and_types:
-                file.write(f"{indent}{variable}{{0}},\n")
+            for variable in initialize:
+                file.write(f"{indent}{variable}{{ {initialize[variable]} }},\n")
             file.write(f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])))
             file.write("\n{\n")
 
             # some misc constructor code for calculating block sizes.
             file.write(f"{indent}using namespace milhoja;\n")
-            for var in ['nxb_','nyb_','nzb_']:
-                code.write(f"{indent}unsigned int {var} = 1;\n")
             file.write(f"{indent}Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n")
             if args.language == mdata.Language.fortran:
                 file.writelines([
@@ -160,7 +157,8 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
             f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
             f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
-            f"{indent}assert(!stream_.isValid());\n\n"
+            f"{indent}assert(!stream_.isValid());\n\n",
+            f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
             f"{indent}for (int n=0; n < tiles_.size(); ++n) {{\n"
         ])
 
@@ -181,15 +179,9 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}if (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n"
         ])
 
-        # TODO: Should we use nunkvars from tile-in?
-        file.writelines([
-            f"{indent}assert(UNK_VARS_BEGIN == 0);\n"
-            f"{indent}assert(UNK_VARS_END == NUNKVAR - 1);\n\n"
-        ])
-
         idx = 0
         last_item = {}
-        file.write(f'{indent}{SIZE_T} nBytes;\n')
+        file.write(f'{indent}{SIZE_T} nBytes;\n\n')
         for section in [T_IN_OUT, T_OUT]:
             dict = params.get(section, {})
             nunk_start = 'start-in' if section == T_IN_OUT else 'start'
@@ -200,12 +192,14 @@ def generate_cpp_code_file(parameters, args):
                 start = dict[item][start_key]
                 end = dict[item][end_key]
                 data_type = dict[item]['type']
-                extents, nunkvars, indexer = mdata.parse_extents(dict[item]['extents'], dict[item][nunk_start], dict[item][nunk_end])
-                num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+                nunkvars = "nCcVars_"
+                num_elems_per_cc_per_var = f'ELEMS_PER_CC_PER_VAR'
 
                 file.writelines([
-                    f"{indent}if ( {start} < UNK_VARS_BEGIN || {end} < UNK_VARS_BEGIN || {end} > UNK_VARS_END || {end} - {start} + 1 > {nunkvars})\n",
-                    f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n\n"
+                    f"{indent}if ( {start} < 0 || {end} < 0 || {end} >= {nunkvars} || {start} >= {nunkvars})\n",
+                    f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
+                    f"{indent}if ( {start} > {end} )\n",
+                    f"{indent}{indent}throw std::logic_error(\"{packet_name}::{func_name}] Start > End\");\n\n"
                 ])
                 
                 file.writelines([
@@ -253,7 +247,6 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}else if (tiles_.size() == 0)\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
             f"{indent}\n"
-            f"{indent}Grid& grid = Grid::instance();\n"
         ])
 
         file.write(f"{indent}{N_TILES} = tiles_.size();\n")
@@ -685,15 +678,11 @@ def generate_cpp_code_file(parameters, args):
         file.write(f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n")
         file.writelines([
             f"\tusing namespace milhoja;\n",
-	        f"\tunsigned int nxb_ = 1;\n",
-	        f"\tunsigned int nyb_ = 1;\n",
-    	    f"\tunsigned int nzb_ = 1;\n",
-	        f"\tGrid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n\n",
-            f"\t*nxbGC = static_cast<int>(nxb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K1D);\n",
-            f"\t*nybGC = static_cast<int>(nyb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K2D);\n",
-            f"\t*nzbGC = static_cast<int>(nzb_ + 2 * milhoja::Grid::instance().getNGuardcells() * MILHOJA_K3D);\n",
-            f"\t*nCcVars = milhoja::Grid::instance().getNCcVariables() - 8;\n"
-            f"\t*nFluxVars = milhoja::Grid::instance().getNFluxVariables();\n"
+            f"\t*nxbGC = static_cast<int>(nxb_ + 2 * nGuard_ * MILHOJA_K1D);\n",
+            f"\t*nybGC = static_cast<int>(nyb_ + 2 * nGuard_ * MILHOJA_K2D);\n",
+            f"\t*nzbGC = static_cast<int>(nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n",
+            f"\t*nCcVars = nCcVars_ - 8;\n"
+            f"\t*nFluxVars = nFluxVars_;\n"
         ])
         file.write(f"}}\n\n")
 
@@ -774,7 +763,7 @@ def generate_cpp_header_file(parameters, args):
                 item_type = general[item] if not is_enumerable else general[item]['type']
                 if is_enumerable: types.add( f"FArray4D" )
                 private_variables.append(size_var)
-                vars_and_types[block_size_var] = f"milhoja::{general[item]}"
+                initialize[block_size_var] = 0
                 types.add(item_type)
                 if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
                 constructor_args.append([item, "const " + item_type])
@@ -798,7 +787,7 @@ def generate_cpp_header_file(parameters, args):
                     print("Found bad data in tile-metadata. Ignoring...")
                     continue
                 private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
-                vars_and_types[new_variable] = SIZE_T
+                initialize[new_variable] = 0
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
                 if args.language != mdata.Language.cpp:
                     if item_type in mdata.cpp_equiv:
@@ -815,7 +804,7 @@ def generate_cpp_header_file(parameters, args):
                 item_type = parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type']
                 types.add(parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type'])
                 if is_enumerable: types.add( f"FArray4D" )
-                vars_and_types[f"{item}{BLOCK_SIZE}"] = SIZE_T
+                initialize[f"{item}{BLOCK_SIZE}"] = 0
                 device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
 
                 if sect != T_SCRATCH:
@@ -824,6 +813,18 @@ def generate_cpp_header_file(parameters, args):
                 ext = "milhoja::" if item_type in mdata.imap else ""
                 getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
+        private_variables.append(f"\tunsigned int nxb_;\n")
+        initialize['nxb_'] = "1"
+        private_variables.append(f"\tunsigned int nyb_;\n")
+        initialize['nyb_'] = "1"
+        private_variables.append(f"\tunsigned int nzb_;\n")
+        initialize['nzb_'] = "1"
+        private_variables.append(f"\tconst unsigned int nGuard_;\n")
+        initialize['nGuard_'] = "milhoja::Grid::instance().getNGuardcells()"
+        private_variables.append(f"\tconst unsigned int nCcVars_;\n")
+        initialize['nCcVars_'] = "milhoja::Grid::instance().getNCcVariables()"
+        private_variables.append(f"\tconst unsigned int nFluxVars_;\n")
+        initialize['nFluxVars_'] = "milhoja::Grid::instance().getNFluxVariables()"
 
         # we only want to include things if they are found in the include dict.
         header.write( ''.join( f"#include {mdata.imap[item]}\t\n" for item in types if item in mdata.imap) )
@@ -914,7 +915,6 @@ def generate_packet_with_filepath(fp, args):
         data["name"] = os.path.basename(file.name).replace(".json", "")
         generate_packet_with_dict(data, args)
 
-# gneerate packet data using existing dict
 def generate_packet_with_dict(json_dict, args):
     generate_cpp_header_file(json_dict, args)
     generate_cpp_code_file(json_dict, args)
