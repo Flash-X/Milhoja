@@ -712,6 +712,7 @@ def generate_cpp_code_file(parameters, args):
         code.write(f"#include <stdexcept>\n")
         code.write(f"#include <Milhoja_Grid.h>\n")
         code.write(f"#include <Milhoja_RuntimeBackend.h>\n")
+        code.write(f"#include \"Simulation.h\"\n")
         # This is assuming all of the types being passed are milhoja types
 
         if "problem" in parameters: code.write( "#include \"%s.h\"\n" % parameters["problem"] )
