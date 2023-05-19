@@ -715,7 +715,6 @@ def generate_cpp_code_file(parameters, args):
         # This is assuming all of the types being passed are milhoja types
 
         if "problem" in parameters: code.write( "#include \"%s.h\"\n" % parameters["problem"] )
-        code.write("#include \"Driver.h\"\n")
 
         generate_constructor(code, parameters)
         generate_destructor(code, parameters)
