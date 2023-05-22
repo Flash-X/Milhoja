@@ -275,13 +275,12 @@ def generate_cpp_code_file(parameters, args):
 
         # TODO: This will eventually go away once PacketContents is removed.
         packet_pointers = params.get(T_MDATA, []) + list(params.get(T_IN, {})) + list(params.get(T_IN_OUT, {})) + list(params.get(T_OUT, {}))
-        p_contents_size = f"{N_TILES} * sizeof(PacketContents)"
-        if args.language == mdata.Language.cpp:
-            p_contents_size = f"{N_TILES} * (" + " + ".join(f'{item}{BLOCK_SIZE}' for item in packet_pointers) + ")"
+        p_contents_size = f" + {N_TILES} * sizeof(PacketContents)"
+        if args.language == mdata.Language.fortran:
+            p_contents_size = ""
 
-        for item in params.get(GENERAL, []):
-            file.write(f"+ {item}{BLOCK_SIZE} ")
-        file.write(f" + {p_contents_size};\n") # we can eventually get rid of packet contents so this will have to change.
+        file.write(f" + { ' + '.join(f'{item}{BLOCK_SIZE}' for item in params.get(GENERAL, [])) }")
+        file.write(f"{p_contents_size};\n") # we can eventually get rid of packet contents so this will have to change.
         file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
         bytesToGpu.append("nCopyInBytesPadded")
         bytesPerPacket.append("nCopyInBytesPadded")
