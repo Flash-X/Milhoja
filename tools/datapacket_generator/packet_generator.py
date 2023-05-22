@@ -6,7 +6,6 @@ Packet generator for Milhoja. Script takes in a
 JSON file and generates cpp code for a data packet
 based on the contents of the json file.
 
-TODO: We should also be adding support for generating fortran file packets in the future.
 """
 
 import sys
@@ -67,6 +66,7 @@ farray_items = []
 location = ""
 
 def is_enumerable_type(var):
+    """Returns True if var is enumerable."""
     return isinstance(var, (dict, list))
 
 def generate_cpp_code_file(parameters, args):
@@ -74,15 +74,13 @@ def generate_cpp_code_file(parameters, args):
     Generates the .cpp file for the data packet.
 
     Parameters
-        parameters - The json file parameters.
+        parameters - The json file parameters.\n
         args - The arguments passed in from the command line.
     """
     def generate_constructor(file, params):
             # function definition
             file.write(f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
-            extra_streams = params[EXTRA_STREAMS]
             level = 1
-            index = 1
             indent = "\t" * level
             # we probably don't need to initialize all of the vars since we're generating everything
             for variable in initialize:
@@ -102,7 +100,6 @@ def generate_cpp_code_file(parameters, args):
                     f"\tint   nFluxVars_h = -1;\n",
                     f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
                 ])
-#            file.write(f"{indent}")
 
             for section in params:
                 if isinstance(params[section], dict) or isinstance(params[section], list):
@@ -184,8 +181,6 @@ def generate_cpp_code_file(parameters, args):
         file.write(f'{indent}{SIZE_T} nBytes;\n\n')
         for section in [T_IN_OUT, T_OUT]:
             dict = params.get(section, {})
-            nunk_start = 'start-in' if section == T_IN_OUT else 'start'
-            nunk_end = 'end-in' if section == T_IN_OUT else 'end'
             start_key = 'start' if section == T_OUT else 'start-out'
             end_key = 'end' if section == T_OUT else 'end-out'
             for item in dict:
@@ -231,6 +226,9 @@ def generate_cpp_code_file(parameters, args):
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents.
     # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
     def generate_pack(file, params, args):
+        """
+        Generate the pack function for the data packet.
+        """
         packet_name = params["name"]
         func_name = "pack"
         level = 1
@@ -903,6 +901,13 @@ def generate_cpp_header_file(parameters, args):
 
 # Takes in a file path to load a json file and generates the cpp and header files
 def generate_packet_with_filepath(fp, args):
+    """
+    Takes the file path of the JSON file and loads the dictionary from it.
+
+    Parameters
+        fp - The path to the JSON file\n
+        args - command line arguments
+    """
     if ".json" not in os.path.basename(fp):
         print("Provided file is not a JSON file.")
         exit(-1)
@@ -916,6 +921,8 @@ def generate_packet_with_filepath(fp, args):
         generate_packet_with_dict(data, args)
 
 def generate_packet_with_dict(json_dict, args):
+    """
+    """
     generate_cpp_header_file(json_dict, args)
     generate_cpp_code_file(json_dict, args)
 
