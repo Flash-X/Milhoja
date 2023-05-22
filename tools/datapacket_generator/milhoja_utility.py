@@ -74,6 +74,19 @@ constants = {
 # A helper method that parses the extents array in the JSON file.
 # returns the final string to be used in the code.
 def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
+    """
+    Parses the extents string found in the packet JSON file.
+
+    Parameters:
+        extents - The string to parse\n
+        start - the starting index of the array\n
+        end - the ending index of the array\n
+        size - the variable type
+    Returns:
+        str - extents string\n
+        str - nunkvars string\n
+        str - indexer type\n
+    """
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
         if extents[-1] == ')': extents = extents[:-1]
@@ -96,6 +109,8 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
                     print(f"{nguard} not found in string. Aborting.", file=sys.stderr)
                     exit(-1)
                 warnings.warn("Constant found in string, continuing...")
+            if nguard == "NGUARD":
+                    nguard = "nGuard_"
         
         # return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
         return cpp_size_map[indexer].format(guard=nguard, unk=f"({end}+{start}+1)", size=size), f"({end}+{start}+1)", indexer
