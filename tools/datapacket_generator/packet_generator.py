@@ -212,7 +212,7 @@ def generate_cpp_code_file(parameters, args):
 
                 # num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
                 file.writelines([
-                    f"{indent}nBytes = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+                    f"{indent}nBytes = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
                     f"{indent}std::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"                
                 ])
                 idx += 1
@@ -438,7 +438,7 @@ def generate_cpp_code_file(parameters, args):
             extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'], params[T_IN][item]['start'], params[T_IN][item]['end'])
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
-            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
 
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
@@ -468,6 +468,7 @@ def generate_cpp_code_file(parameters, args):
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         # for item in params.get(T_IN_OUT, {}):
         # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
+        # Super TODO: What if nBytes is larger than the block size helper?
         for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
             start = params[T_IN_OUT][item]['start-in']
             end = params[T_IN_OUT][item]['end-in']
@@ -476,7 +477,7 @@ def generate_cpp_code_file(parameters, args):
             extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'])
             num_elems_per_cc_per_var = "ELEMS_PER_CC_PER_VAR"#f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
-            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
 
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",

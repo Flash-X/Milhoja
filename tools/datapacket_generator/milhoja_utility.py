@@ -44,17 +44,17 @@ imap = {
 # NOTE: The modern packet uses fcx, fcy, and fcz shown here, and the older handwritten packets use the commented face keys.
 #       Both seem to work? It's used in calculating sizes, so there shouldn't be an issue outside of wasted space...
 fortran_size_map = {
-    'cc': "nxbGC_h * nybGC_h * nzbGC_h * {unk} * sizeof({size})",
-    'fcx': "(nxbGC_h + 1) * nybGC_h * nzbGC_h * {unk} * sizeof({size});",
-    'fcy': "nxbGC_h * (nybGC_h + 1) * nzbGC_h * {unk} * sizeof({size});",
-    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h + 1) * {unk} * sizeof({size});"
+    'cc': "nxbGC_h * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size})",
+    'fcx': "(nxbGC_h + 1) * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size});",
+    'fcy': "nxbGC_h * (nybGC_h + 1) * nzbGC_h * ( {unk} ) * sizeof({size});",
+    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h + 1) * ( {unk} ) * sizeof({size});"
 }
 
 cpp_size_map = {
-    'cc': "(nxb_ + 2 * {guard} * MILHOJA_K1D) * (nyb_ + 2 * {guard} * MILHOJA_K2D) * (nzb_ + 2 * {guard} * MILHOJA_K3D) * ({unk}) * sizeof({size})",
-    'fcx': "((nxb_+1) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcy': "((nxb_) + 2 * {guard}) * ((nyb_+1) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * {unk} * sizeof({size})",
-    'fcz': "((nxb_) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_+1) + 2 * {guard}) * {unk} * sizeof({size})"
+    'cc': "(nxb_ + 2 * {guard} * MILHOJA_K1D) * (nyb_ + 2 * {guard} * MILHOJA_K2D) * (nzb_ + 2 * {guard} * MILHOJA_K3D) * ( {unk} ) * sizeof({size})",
+    'fcx': "((nxb_+1) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * ( {unk} ) * sizeof({size})",
+    'fcy': "((nxb_) + 2 * {guard}) * ((nyb_+1) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * ( {unk} ) * sizeof({size})",
+    'fcz': "((nxb_) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_+1) + 2 * {guard}) * ( {unk} ) * sizeof({size})"
 }
 
 finterface_constructor_args = {
@@ -113,7 +113,7 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
                     nguard = "nGuard_"
         
         # return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
-        return cpp_size_map[indexer].format(guard=nguard, unk=f"({end}+{start}+1)", size=size), f"({end}+{start}+1)", indexer
+        return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
     
     elif isinstance(extents, list):
         return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
