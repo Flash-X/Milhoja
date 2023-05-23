@@ -12,6 +12,7 @@ import os.path
 import json
 import argparse
 import milhoja_utility as mdata
+import warnings
 from typing import TextIO
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
@@ -56,7 +57,6 @@ initialize = {}
 device_array_pointers = {}
 
 all_pointers = set()
-types = set()
 includes = set()
 constructor_args = []
 farray_items = []
@@ -789,25 +789,22 @@ def generate_cpp_header_file(parameters: dict, args):
     if not parameters:
         raise ValueError("Parameters is null.")
 
-    # Every packet json should have a name associated with it.
-    if "name" not in parameters or not isinstance(parameters["name"], str):
-        raise RuntimeError("Packet does not include a name.")
-
     with open(parameters["file_name"] + ".h", "w") as header:
         name = parameters["name"]
         extra_streams = parameters.get(EXTRA_STREAMS, 0)
         defined = name.upper()
         private_variables = []
         getters = []
+        types = set()
         header.write(GENERATED_CODE_MESSAGE)
         pinned_and_data_ptrs = ""
 
-        # define statements
-        header.write(f"#ifndef {defined}_\n")
-        header.write(f"#define {defined}_\n")
-        # boilerplate includes
-        header.write("#include <Milhoja.h>\n")
-        header.write("#include <Milhoja_DataPacket.h>\n")
+        header.writelines([
+            f"#ifndef {defined}_\n",
+            f"#define {defined}_\n",
+            "#include <Milhoja.h>\n",
+            "#include <Milhoja_DataPacket.h>\n",
+        ])
 
         # manually generate nTiles getter here
         pinned_and_data_ptrs += f"\tint {N_TILES};\n\tvoid* nTiles{START_P} = nullptr;\n\tvoid* nTiles{START_D} = nullptr;\n"
@@ -818,50 +815,46 @@ def generate_cpp_header_file(parameters: dict, args):
         # Everything in the packet consists of pointers to byte regions
         # so we make every variable a pointer
         # TODO: What if we want to put array types in any section?
-        # TODO: Create a helper function that checks if the item is a string/scalar or an array type
-        #       to perform certain functions
         # TODO: Assume FArray4D by default for now.
-        if GENERAL in parameters:
-            general = parameters[GENERAL] # general section is the general copy in data information
-            for item in general:
-                block_size_var = f"{item}{BLOCK_SIZE}"
-                size_var = f"\t{SIZE_T} {block_size_var} = 0;\n"
-                is_enumerable = is_enumerable_type(general[item])
-                item_type = general[item] if not is_enumerable else general[item]['type']
-                if is_enumerable: types.add( f"FArray4D" )
-                private_variables.append(size_var)
-                initialize[block_size_var] = 0
-                types.add(item_type)
-                if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
-                constructor_args.append([item, "const " + item_type])
-                # be careful here we can't assume all items in general are based in milhoja
-                pinned_and_data_ptrs += "\t"
-                if type in mdata.imap:
-                    pinned_and_data_ptrs += "milhoja::"
-                pinned_and_data_ptrs += f"void* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
-                ext = "milhoja::" if item_type in mdata.imap else ""
-                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+        general = parameters.get(GENERAL, [])
+        for item in general:
+            block_size_var = f"{item}{BLOCK_SIZE}"
+            size_var = f"\t{SIZE_T} {block_size_var} = 0;\n"
+            is_enumerable = is_enumerable_type(general[item])
+            item_type = general[item] if not is_enumerable else general[item]['type']
+            if is_enumerable: types.add( f"FArray4D" )
+            private_variables.append(size_var)
+            initialize[block_size_var] = 0
+            types.add(item_type)
+            if item_type in mdata.imap: item_type = f"milhoja::{item_type}"
+            constructor_args.append([item, "const " + item_type])
+            # be careful here we can't assume all items in general are based in milhoja
+            pinned_and_data_ptrs += "\t"
+            if type in mdata.imap:
+                pinned_and_data_ptrs += "milhoja::"
+            pinned_and_data_ptrs += f"void* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
+            ext = "milhoja::" if item_type in mdata.imap else ""
+            getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
-        if T_MDATA in parameters:
-            for item in parameters[T_MDATA]:
-                new_variable = f"{item}{BLOCK_SIZE}"
-                item_type = mdata.tile_known_types[item]
-                if mdata.tile_known_types[item]:
-                    types.add( mdata.tile_known_types[item] )
-                else:
-                    print("Found bad data in tile-metadata. Ignoring...")
-                    continue
-                private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
-                initialize[new_variable] = 0
-                pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
-                if args.language != mdata.Language.cpp:
-                    if item_type in mdata.cpp_equiv:
-                        item_type = mdata.cpp_equiv[item_type]
-                ext = "milhoja::" if item_type in mdata.imap else ""
-                item_type = item_type.replace("unsigned ", "")
-                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+        for item in parameters.get(T_MDATA, []):
+            new_variable = f"{item}{BLOCK_SIZE}"
+            item_type = mdata.tile_known_types[item]
+
+            if not mdata.tile_known_types[item]:
+                warnings.warn("Bad data found in tile-metadata. Continuing...")
+                continue
+            types.add( mdata.tile_known_types[item] )
+
+            private_variables.append(f"\t{SIZE_T} {new_variable} = 0;\n")
+            initialize[new_variable] = 0
+            pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
+            if args.language != mdata.Language.cpp and item_type in mdata.cpp_equiv:
+                item_type = mdata.cpp_equiv[item_type]
+            ext = "milhoja::" if item_type in mdata.imap else ""
+            item_type = item_type.replace("unsigned ", "")
+            getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -931,8 +924,8 @@ def generate_cpp_header_file(parameters: dict, args):
                 f"{indent}void releaseExtraQueue(const unsigned int id) override;\n",
                 f"private:\n",
                 f"{indent}static const unsigned int EXTRA_STREAMS = {extra_streams};\n"
-                # f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
+            # We have to do this because of the way streams are accessed in the task functions.
             for i in range(2, extra_streams+2):
                 header.write(f"{indent}milhoja::Stream stream{i}_;\n")
         else:
@@ -945,16 +938,10 @@ def generate_cpp_header_file(parameters: dict, args):
             f"\tstatic constexpr std::size_t pad(const std::size_t size) {{ return ((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE; }}\n",
             ''.join( f'\t{item[1]} {item[0]}{HOST};\n' for item in constructor_args),
             ''.join(private_variables),
-            ''.join(pinned_and_data_ptrs)
+            ''.join(pinned_and_data_ptrs),
+            "};\n",
+            "#endif\n"
         ])
-
-        indent = '\t'
-        header.write("};\n")
-
-        # end start define
-        header.write("#endif\n")
-
-    return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
