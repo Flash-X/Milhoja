@@ -8,12 +8,11 @@ based on the contents of the json file.
 
 """
 
-import sys
 import os.path
 import json
 import argparse
 import milhoja_utility as mdata
-import warnings
+from typing import TextIO
 
 GENERATED_CODE_MESSAGE = "// This code was generated with packet_generator.py.\n"
 
@@ -52,11 +51,9 @@ CIN_BYTES = "nCopyInBytes"
 # 
 # these might not be necessary
 initialize = {}
-level = 0
 
 # TODO: Maybe we can create dictionaries derived from sections in the json? Something to think about
 device_array_pointers = {}
-nstreams = 1
 
 all_pointers = set()
 types = set()
@@ -66,24 +63,34 @@ farray_items = []
 location = ""
 
 def is_enumerable_type(var):
-    """Returns True if var is enumerable."""
+    """Returns True if var is a dict or list."""
     return isinstance(var, (dict, list))
 
-def generate_cpp_code_file(parameters, args):
+def generate_cpp_code_file(parameters: dict, args):
     """
     Generates the .cpp file for the data packet.
 
     Parameters
         parameters - The json file parameters.\n
-        args - The arguments passed in from the command line.
+        args - The namespace containing the arguments passed in from the command line
+    Returns:
+        None
     """
     # TODO: Move all size gereration to constructor or at beginning of pack function.
     #       They should not be split up
-    def generate_constructor(file, params):
+    def generate_constructor(file: TextIO, params: dict):
+            """
+            Generates the constructor function for the data packet based on the JSON file.
+
+            Parameters
+                file -   The file to write to.\n
+                params - The JSON dictionary.
+            Returns:
+                None
+            """
             # function definition
             file.write(f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
-            level = 1
-            indent = "\t" * level
+            indent = "\t"
             # we probably don't need to initialize all of the vars since we're generating everything
             for variable in initialize:
                 file.write(f"{indent}{variable}{{ {initialize[variable]} }},\n")
@@ -132,7 +139,16 @@ def generate_cpp_code_file(parameters, args):
             file.write("}\n\n")
 
     # TODO: Eventually come back and fix the streams to use the array implementation.
-    def generate_destructor(file, params):
+    def generate_destructor(file: TextIO, params: dict):
+        """
+        Generates the destructor for the data packet.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary
+        Returns:
+            None
+        """
         packet_name = params["name"]
         extra_streams = params.get(EXTRA_STREAMS, 0)
         file.write(f"{packet_name}::~{packet_name}(void) {{\n")
@@ -144,11 +160,19 @@ def generate_cpp_code_file(parameters, args):
         return
 
     # TODO: Some parts of the unpack method need to be more generalized.
-    def generate_unpack(file, params):
+    def generate_unpack(file: TextIO, params: dict):
+        """
+        Generates the unpack function for the data packet.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary
+        Returns:
+            None
+        """
         packet_name = params["name"]
         func_name = "unpack"
-        level = 1
-        indent = level * "\t"
+        indent = "\t"
         file.write(f"void {packet_name}::unpack(void) {{\n")
         file.write(f"{indent}using namespace milhoja;\n")
         file.writelines([
@@ -227,15 +251,20 @@ def generate_cpp_code_file(parameters, args):
     # TODO: Improve pack generation code
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents.
     # TODO: We should have constants for variable names in the cpp file generation so they can be easily changed.
-    def generate_pack(file, params, args):
+    def generate_pack(file: TextIO, params: dict, args):
         """
         Generate the pack function for the data packet.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary\n
+            args - The namespace containing the arguments from the command line
+        Returns:
+            None
         """
         packet_name = params["name"]
         func_name = "pack"
-        level = 1
-        indent = level * "\t"
-        tab = "\t"
+        indent = "\t"
         file.write(f"void {packet_name}::pack(void) {{\n")
         file.write(f"{indent}using namespace milhoja;\n")
         
@@ -621,7 +650,16 @@ def generate_cpp_code_file(parameters, args):
         return
     
     # Generate clone method
-    def generate_clone(file, params):
+    def generate_clone(file: TextIO, params: dict):
+        """
+        Generates the object cloning method for the data packet.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary
+        Returns:
+            None
+        """
         packet_name = params["name"]
         file.writelines([
             f"std::unique_ptr<milhoja::DataPacket> {packet_name}::clone(void) const {{\n",
@@ -634,7 +672,18 @@ def generate_cpp_code_file(parameters, args):
     #       This is what hydro variant2 actually does, but since variant 1 and variant 3 use this system,
     #       I will manually generate and check all streams until we can write our own task functions,
     #       since releasing extra queues is called outside of the datapacket object.
-    def generate_release_queues(file, params):
+    def generate_release_queues(file: TextIO, params: dict):
+        """
+        Generates the release queue methods for the data packet.
+        No methods are generated if the number of specified extra streams (n-extra-streams) is 0.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary
+
+        Returns:
+            None
+        """
         packet_name = params['name']
         extra_streams = params.get(EXTRA_STREAMS, 0)
         indent = '\t'
@@ -674,7 +723,17 @@ def generate_cpp_code_file(parameters, args):
             file.write(f"{indent}}}\n}}\n\n")
             # file.write("#endif\n")
 
-    def generate_tile_size_host(file, params):
+    def generate_tile_size_host(file: TextIO, params: dict):
+        """
+        Generate the tile size host function for calculating sizes.
+
+        Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary
+
+        Returns:
+            None
+        """
         packet_name = params["name"]
         file.write(f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n")
         file.writelines([
@@ -690,7 +749,6 @@ def generate_cpp_code_file(parameters, args):
     if not parameters:
         raise ValueError("Parameters is empty or null.")
 
-   	
     name = parameters["file_name"]
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
@@ -716,9 +774,18 @@ def generate_cpp_code_file(parameters, args):
         generate_pack(code, parameters, args)
         generate_unpack(code, parameters)
 
-# Creates a header file based on the given parameters.
-# Lots of boilerplate and class member generation.
-def generate_cpp_header_file(parameters, args):
+def generate_cpp_header_file(parameters: dict, args):
+    """
+    Generates the header file for the data packet.
+
+    Parameters:
+            file - The file to write to\n
+            params - The JSON dictionary\n
+            args - The namespace containing the command line arguments
+
+    Returns:
+        None
+    """
     if not parameters:
         raise ValueError("Parameters is null.")
 
@@ -730,7 +797,6 @@ def generate_cpp_header_file(parameters, args):
         name = parameters["name"]
         extra_streams = parameters.get(EXTRA_STREAMS, 0)
         defined = name.upper()
-        level = 0
         private_variables = []
         getters = []
         header.write(GENERATED_CODE_MESSAGE)
@@ -832,8 +898,7 @@ def generate_cpp_header_file(parameters, args):
 
         # class definition
         header.write(f"class {name} : public milhoja::DataPacket {{ \n")
-        level += 1
-        indent = '\t' * level
+        indent = '\t'
 
         # public information
         header.write("public:\n")
@@ -860,29 +925,19 @@ def generate_cpp_header_file(parameters, args):
             f"".join(getters)
         ])
 
-        # TODO: Do we need to check if ndim is 3? In the ideal situation the
-        # user will add whatever they need to generate the packet so we probably don't
-        # need to check the number of dimensions. 
-        # Add extra streams array if necessary.
         if extra_streams > 0: # don't need to release extra queues if we only have 1 stream.
             header.writelines([
-                # f"#if MILHOJA_NDIM==3 && defined(MILHOJA_OPENACC_OFFLOADING)\n", # we probably don't need to do this eventually.
                 f"{indent}int extraAsynchronousQueue(const unsigned int id) override;\n",
                 f"{indent}void releaseExtraQueue(const unsigned int id) override;\n",
-                # f"#endif\n",
                 f"private:\n",
                 f"{indent}static const unsigned int EXTRA_STREAMS = {extra_streams};\n"
                 # f"{indent}milhoja::Stream streams_[EXTRA_STREAMS];\n"
             ])
-            # TODO: Do this for now until we generate our own task functions
-            # header.write("#if MILHOJA_NDIM==3\n")
             for i in range(2, extra_streams+2):
                 header.write(f"{indent}milhoja::Stream stream{i}_;\n")
-            # header.write("#endif\n")
         else:
             header.writelines([
                 "private:\n",
-                #"\tMemCopyArgs* copyargs;\n"
             ])
 
         header.writelines([
@@ -893,41 +948,13 @@ def generate_cpp_header_file(parameters, args):
             ''.join(pinned_and_data_ptrs)
         ])
 
-        level -= 1
-        indent = '\t' * level
+        indent = '\t'
         header.write("};\n")
 
         # end start define
         header.write("#endif\n")
 
     return
-
-# Takes in a file path to load a json file and generates the cpp and header files
-def generate_packet_with_filepath(fp, args):
-    """
-    Takes the file path of the JSON file and loads the dictionary from it.
-
-    Parameters
-        fp - The path to the JSON file\n
-        args - command line arguments
-    """
-    if ".json" not in os.path.basename(fp):
-        print("Provided file is not a JSON file.")
-        exit(-1)
-    elif os.path.getsize(fp) < 5:
-        print("JSON file is empty, packet will not be generated.")
-        return
-    with open(fp, "r") as file:
-        data = json.load(file)
-        data["file_name"] = file.name.replace(".json", "")
-        data["name"] = os.path.basename(file.name).replace(".json", "")
-        generate_packet_with_dict(data, args)
-
-def generate_packet_with_dict(json_dict, args):
-    """
-    """
-    generate_cpp_header_file(json_dict, args)
-    generate_cpp_code_file(json_dict, args)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
@@ -940,4 +967,15 @@ if __name__ == "__main__":
         print("Language not specified. Packet will not be generated.")
         exit(0)
 
-    generate_packet_with_filepath(args.JSON, args)
+    if ".json" not in os.path.basename(args.JSON):
+        print("Provided file is not a JSON file.")
+        exit(-1)
+    elif os.path.getsize(args.JSON) < 5:
+        print("JSON file is empty, packet will not be generated.")
+        exit(0)
+    with open(args.JSON, "r") as file:
+        data = json.load(file)
+        data["file_name"] = file.name.replace(".json", "")
+        data["name"] = os.path.basename(file.name).replace(".json", "")
+        generate_cpp_header_file(data, args)
+        generate_cpp_code_file(data, args)
