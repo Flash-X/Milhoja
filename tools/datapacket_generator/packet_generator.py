@@ -77,6 +77,8 @@ def generate_cpp_code_file(parameters, args):
         parameters - The json file parameters.\n
         args - The arguments passed in from the command line.
     """
+    # TODO: Move all size gereration to constructor or at beginning of pack function.
+    #       They should not be split up
     def generate_constructor(file, params):
             # function definition
             file.write(f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
@@ -156,7 +158,7 @@ def generate_cpp_code_file(parameters, args):
             f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
             f"{indent}assert(!stream_.isValid());\n\n",
             f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
-            f"{indent}for (int n=0; n < tiles_.size(); ++n) {{\n"
+            f"{indent}for (auto n=0; n < tiles_.size(); ++n) {{\n"
         ])
 
         indent = 2 * '\t'
@@ -472,7 +474,7 @@ def generate_cpp_code_file(parameters, args):
             data_type = params[T_IN_OUT][item]['type']
             location = params[T_IN_OUT][item]['location']
             extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'])
-            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+            num_elems_per_cc_per_var = "ELEMS_PER_CC_PER_VAR"#f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ({end} - {start} + 1) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
 
@@ -523,6 +525,7 @@ def generate_cpp_code_file(parameters, args):
 
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
+        file.write(f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);")
 
         file.write(f"{indent}/// MEM COPY SECTION\n")
         file.write(general_copy_in_string + "\n")
