@@ -97,63 +97,9 @@ def generate_cpp_code_file(parameters: dict, args):
                 f"".join(f"{indent}{variable}{{ {initialize[variable] } }}\n" for variable in initialize),
                 f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
                 "\n{\n",
-                f"{indent}using namespace milhoja;\n",
-                f"{indent}Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
+                f"{indent}milhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
+                "}\n\n"
             ])
-
-            # some misc constructor code for calculating block sizes.
-            if args.language == mdata.Language.fortran:
-                file.writelines([
-                    f"\tint   nxbGC_h     = -1;\n",
-                    f"\tint   nybGC_h     = -1;\n",
-                    f"\tint   nzbGC_h     = -1;\n",
-                    f"\tint   nCcVars_h   = -1;\n",
-                    f"\tint   nFluxVars_h = -1;\n",
-                    f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
-                ])
-
-            # sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
-            # for item in sections:
-            #     print(item)
-            #     if isinstance(item, list): # mdata section
-            #         size = f"sizeof({mdata.tile_known_types[item]})"
-            #         if args.language != mdata.Language.cpp and mdata.tile_known_types[item] in mdata.cpp_equiv:
-            #             size = f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
-            #         file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
-            #     elif isinstance(item, dict): # other dict
-            #         start = "start" if "start" in item else "start-in"
-            #         end = "end" if "end" in item else "end-in"
-            #         extents, nunkvar, indexer = mdata.parse_extents(item['extents'], item[start], item[end], item['type'])
-            #     else: # Non array type
-            #         file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({item}));\n")
-
-            for section in params:
-                if isinstance(params[section], dict) or isinstance(params[section], list):
-                    for item in params[section]:
-                        if section == T_MDATA:
-                            size = f"sizeof({mdata.tile_known_types[item]})"
-                            if args.language != mdata.Language.cpp:
-                                if mdata.tile_known_types[item] in mdata.cpp_equiv:
-                                    size = f"MILHOJA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
-                                else:
-                                    size = f"sizeof({mdata.tile_known_types[item]})"
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
-                        elif section == T_IN_OUT:
-                            extents, nunkvar, indexer = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start-in'], params[section][item]['end-in'], params[section][item]['type'])
-                            if args.language == mdata.Language.cpp:
-                                file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
-                            else:
-                                file.write(f"{indent}{item}{BLOCK_SIZE} = { mdata.fortran_size_map[indexer].format(unk=nunkvar, size=params[section][item]['type']) };\n")
-                        elif not isinstance(params[section][item], (dict, list)):
-                            file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({params[section][item]}));\n")
-                        else:
-                            extents, nunkvar, indexer = mdata.parse_extents(params[section][item]['extents'], params[section][item]['start'], params[section][item]['end'], params[section][item]['type'])
-                            if args.language == mdata.Language.cpp:
-                                file.write(f"{indent}{item}{BLOCK_SIZE} = {extents};\n")
-                            else:
-                                file.write(f"{indent}{item}{BLOCK_SIZE} = { mdata.fortran_size_map[indexer].format(unk=nunkvar, size=params[section][item]['type']) };\n")
-            
-            file.write("}\n\n")
 
     # TODO: Eventually come back and fix the streams to use the array implementation.
     def generate_destructor(file: TextIO, params: dict):
@@ -170,8 +116,7 @@ def generate_cpp_code_file(parameters: dict, args):
         extra_streams = params.get(EXTRA_STREAMS, 0)
         file.write( f"{p_name}::~{p_name}(void) {{\n" )
         file.writelines([ f"\tif (stream{i}_.isValid()) throw std::logic_error(\"[{p_name}::~{p_name}] Stream {i} not released\");\n" for i in range(2, extra_streams+2) ])
-        file.write( f"\tnullify();\n}}\n\n" )
-            
+        file.write( f"\tnullify();\n}}\n\n" ) 
 
     # TODO: Some parts of the unpack method need to be more generalized.
     def generate_unpack(file: TextIO, params: dict):
@@ -252,26 +197,60 @@ def generate_cpp_code_file(parameters: dict, args):
         packet_name = params["name"]
         func_name = "pack"
         indent = "\t"
-        file.write(f"void {packet_name}::pack(void) {{\n")
-        file.write(f"{indent}using namespace milhoja;\n")
         
         # Error checking
         file.writelines([
+            f"void {packet_name}::pack(void) {{\n",
+            f"{indent}using namespace milhoja;\n",
             f"{indent}std::string errMsg = isNull();\n",
             f"{indent}if (errMsg != \"\")\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] \" + errMsg);\n"
             f"{indent}else if (tiles_.size() == 0)\n",
             f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
-            f"{indent}\n"
+            f"{indent}\n",
+            f"{indent}/// SIZE DETERMINATION\n"
         ])
 
-        file.write(f"{indent}{N_TILES} = tiles_.size();\n")
-        file.write(f"{indent}nTiles{BLOCK_SIZE} = sizeof(int);\n\n")
-
         # SIZE DETERMINATION SECTION
-        file.write(f"{indent}/// SIZE DETERMINATION\n")
+
+        file.writelines([
+            f"{indent}{N_TILES} = tiles_.size();\n"
+            f"{indent}nTiles{BLOCK_SIZE} = sizeof(int);\n\n"
+        ])
+        # some misc constructor code for calculating block sizes.
+        if args.language == mdata.Language.fortran:
+            file.writelines([
+                f"\tint   nxbGC_h     = -1;\n",
+                f"\tint   nybGC_h     = -1;\n",
+                f"\tint   nzbGC_h     = -1;\n",
+                f"\tint   nCcVars_h   = -1;\n",
+                f"\tint   nFluxVars_h = -1;\n",
+                f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
+            ])    
+        def generate_size_string(subitem_dict, args):
+            if isinstance(subitem_dict, str): 
+                return f"pad(sizeof({subitem_dict}))"
+            start = START if START in subitem_dict else f"{START}-in"
+            end = END if END in subitem_dict else f"{END}-in"
+            extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'])
+            if args.language == mdata.Language.cpp:
+                return f"{extents}"
+            return f"{ mdata.fortran_size_map[indexer].format(unk=nunkvar, size=subitem_dict['type']) }"
+
+        def generate_mdata_size(mdata_item):
+            if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
+                return f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
+            return f"sizeof({mdata.tile_known_types[mdata_item]})"
+
+        sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
+        for item in sections:
+            if isinstance(item, list): # mdata section
+                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_mdata_size(subitem)};\n" for subitem in item ])
+            elif isinstance(item, dict): # other dict
+                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_size_string(item[subitem], args)};\n" for subitem in item ])  
+
         # # Scratch section generation.
-        file.write(f"{indent}// Scratch section\n")
+        file.write(f"\n{indent}// Scratch section\n")
 
         bytesToGpu = []
         returnToHost = []
@@ -677,20 +656,16 @@ def generate_cpp_code_file(parameters: dict, args):
         # extra async queues
         # only generate extra functions if we have more than 1 stream
         if extra_streams > 0:
-            # get extra async queue
             func_name = "extraAsynchronousQueue"
-            # file.write("#if MILHOJA_NDIM==3\n")
             file.writelines([
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
-                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
+                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
+                f"{indent}switch(id) {{\n"
             ])
-
-            file.write(f"{indent}switch(id) {{\n")
-            for i in range(2, extra_streams+2):
-                file.writelines([
-                    f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} return stream{i}_.accAsyncQueue;\n"
-                ])
+            file.writelines([ 
+                f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Stream {i} invalid.\"); }} return stream{i}_.accAsyncQueue;\n" for i in range(2, extra_streams+2)
+            ])
             file.write(f"{indent}}}\n{indent}return 0;\n}}\n\n")
 
             # Release extra queue
@@ -698,17 +673,13 @@ def generate_cpp_code_file(parameters: dict, args):
             file.writelines([
                 f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
                 f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
-                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n"
+                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
+                f"{indent}switch(id) {{\n"
             ])
-
-            file.write(f"{indent}switch(id) {{\n")
-            for i in range(2, extra_streams+2):
-                file.writelines([
-                    f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} \
-                    milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n"
-                ])
+            file.writelines([
+                f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n" for i in range(2, extra_streams+2)
+            ])
             file.write(f"{indent}}}\n}}\n\n")
-            # file.write("#endif\n")
 
     def generate_tile_size_host(file: TextIO, params: dict):
         """
@@ -722,16 +693,16 @@ def generate_cpp_code_file(parameters: dict, args):
             None
         """
         packet_name = params["name"]
-        file.write(f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n")
         file.writelines([
+            f"void {packet_name}::tileSize_host(int* nxbGC, int* nybGC, int* nzbGC, int* nCcVars, int* nFluxVars) const {{\n",
             f"\tusing namespace milhoja;\n",
             f"\t*nxbGC = static_cast<int>(nxb_ + 2 * nGuard_ * MILHOJA_K1D);\n",
             f"\t*nybGC = static_cast<int>(nyb_ + 2 * nGuard_ * MILHOJA_K2D);\n",
             f"\t*nzbGC = static_cast<int>(nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n",
-            f"\t*nCcVars = nCcVars_ - 8;\n"
-            f"\t*nFluxVars = nFluxVars_;\n"
+            f"\t*nCcVars = nCcVars_ - 8;\n",
+            f"\t*nFluxVars = nFluxVars_;\n",
+            f"}}\n\n"
         ])
-        file.write(f"}}\n\n")
 
     if not parameters:
         raise ValueError("Parameters is empty or null.")
@@ -747,15 +718,13 @@ def generate_cpp_code_file(parameters: dict, args):
         code.write(f"#include <stdexcept>\n")
         code.write(f"#include <Milhoja_Grid.h>\n")
         code.write(f"#include <Milhoja_RuntimeBackend.h>\n")
-        code.write(f"#include \"Simulation.h\"\n")
+        code.write(f"#include \"Simulation.h\"\n") # TODO: Simulation.h should not be required.
         # This is assuming all of the types being passed are milhoja types
-
         if "problem" in parameters: code.write( "#include \"%s.h\"\n" % parameters["problem"] )
 
         generate_constructor(code, parameters)
         generate_destructor(code, parameters)
         generate_release_queues(code, parameters)
-        # generate clone method
         generate_clone(code, parameters)
         generate_tile_size_host(code, parameters)
         generate_pack(code, parameters, args)
