@@ -88,18 +88,18 @@ def generate_cpp_code_file(parameters: dict, args):
             Returns:
                 None
             """
-            # function definition
-            file.write(f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n")
             indent = "\t"
-            # we probably don't need to initialize all of the vars since we're generating everything
-            for variable in initialize:
-                file.write(f"{indent}{variable}{{ {initialize[variable]} }},\n")
-            file.write(f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])))
-            file.write("\n{\n")
+            # function definition
+            file.writelines([
+                f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n",
+                f"".join(f"{indent}{variable}{{ {initialize[variable] } }}\n" for variable in initialize),
+                f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
+                "\n{\n",
+                f"{indent}using namespace milhoja;\n",
+                f"{indent}Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
+            ])
 
             # some misc constructor code for calculating block sizes.
-            file.write(f"{indent}using namespace milhoja;\n")
-            file.write(f"{indent}Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n")
             if args.language == mdata.Language.fortran:
                 file.writelines([
                     f"\tint   nxbGC_h     = -1;\n",
@@ -109,6 +109,21 @@ def generate_cpp_code_file(parameters: dict, args):
                     f"\tint   nFluxVars_h = -1;\n",
                     f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
                 ])
+
+            # sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
+            # for item in sections:
+            #     print(item)
+            #     if isinstance(item, list): # mdata section
+            #         size = f"sizeof({mdata.tile_known_types[item]})"
+            #         if args.language != mdata.Language.cpp and mdata.tile_known_types[item] in mdata.cpp_equiv:
+            #             size = f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[item]]})"
+            #         file.write(f"{indent}{item}{BLOCK_SIZE} = {size};\n")
+            #     elif isinstance(item, dict): # other dict
+            #         start = "start" if "start" in item else "start-in"
+            #         end = "end" if "end" in item else "end-in"
+            #         extents, nunkvar, indexer = mdata.parse_extents(item['extents'], item[start], item[end], item['type'])
+            #     else: # Non array type
+            #         file.write(f"{indent}{item}{BLOCK_SIZE} = pad(sizeof({item}));\n")
 
             for section in params:
                 if isinstance(params[section], dict) or isinstance(params[section], list):
@@ -149,15 +164,15 @@ def generate_cpp_code_file(parameters: dict, args):
         Returns:
             None
         """
-        packet_name = params["name"]
+        p_name = params["name"]
         extra_streams = params.get(EXTRA_STREAMS, 0)
-        file.write(f"{packet_name}::~{packet_name}(void) {{\n")
-        indent = '\t'
-        for i in range(2, extra_streams+2):
-            file.write(f"{indent}if (stream{i}_.isValid()) throw std::logic_error(\"[DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3] One or more extra streams not released\");\n")
-        file.write(f"{indent}nullify();\n")
-        file.write(f"}}\n\n")
-        return
+
+        file.writelines([
+            f"{p_name}::~{p_name}(void) {{\n",
+            "".join( f"\tif (stream{i}_.isValid()) throw std::logic_error(\"[{p_name}::~{p_name}] Stream {i} not released\");\n" for i in range(2, extra_streams+2) ),
+            f"\tnullify();\n",
+            f"}}\n\n"
+        ])
 
     # TODO: Some parts of the unpack method need to be more generalized.
     def generate_unpack(file: TextIO, params: dict):
