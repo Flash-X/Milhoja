@@ -94,9 +94,10 @@ def generate_cpp_code_file(parameters: dict, args):
         # function definition
         file.writelines([
             f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n",
-            f"".join(f"{indent}{variable}{{ {initialize[variable] } }}\n" for variable in initialize),
+            f"".join(f"{indent}{variable}{{ {initialize[variable] } }},\n" for variable in initialize),
             f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
             "\n{\n",
+            f"{indent}using namespace milhoja;\n",
             f"{indent}milhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
         ])
         # some misc constructor code for calculating block sizes.
