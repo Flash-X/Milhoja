@@ -81,25 +81,57 @@ def generate_cpp_code_file(parameters: dict, args):
     # TODO: Move all size gereration to constructor or at beginning of pack function.
     #       They should not be split up
     def generate_constructor(file: TextIO, params: dict):
-            """
-            Generates the constructor function for the data packet based on the JSON file.
+        """
+        Generates the constructor function for the data packet based on the JSON file.
 
-            Parameters
-                file -   The file to write to.\n
-                params - The JSON dictionary.
-            Returns:
-                None
-            """
-            indent = "\t"
-            # function definition
+        Parameters
+            file -   The file to write to.\n
+            params - The JSON dictionary.
+        Returns:
+            None
+        """
+        indent = "\t"
+        # function definition
+        file.writelines([
+            f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n",
+            f"".join(f"{indent}{variable}{{ {initialize[variable] } }}\n" for variable in initialize),
+            f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
+            "\n{\n",
+            f"{indent}milhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
+        ])
+        # some misc constructor code for calculating block sizes.
+        if args.language == mdata.Language.fortran:
             file.writelines([
-                f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n",
-                f"".join(f"{indent}{variable}{{ {initialize[variable] } }}\n" for variable in initialize),
-                f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
-                "\n{\n",
-                f"{indent}milhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
-                "}\n\n"
-            ])
+                f"\tint   nxbGC_h     = -1;\n",
+                f"\tint   nybGC_h     = -1;\n",
+                f"\tint   nzbGC_h     = -1;\n",
+                f"\tint   nCcVars_h   = -1;\n",
+                f"\tint   nFluxVars_h = -1;\n",
+                f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
+            ])    
+        def generate_size_string(subitem_dict, args):
+            if isinstance(subitem_dict, str): 
+                return f"pad(sizeof({subitem_dict}))"
+            start = START if START in subitem_dict else f"{START}-in"
+            end = END if END in subitem_dict else f"{END}-in"
+            extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'])
+            if args.language == mdata.Language.cpp:
+                return f"{extents}"
+            return f"{ mdata.fortran_size_map[indexer].format(unk=nunkvar, size=subitem_dict['type']) }"
+
+        def generate_mdata_size(mdata_item):
+            if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
+                return f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
+            return f"sizeof({mdata.tile_known_types[mdata_item]})"
+
+        sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
+        for item in sections:
+            if isinstance(item, list): # mdata section
+                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_mdata_size(subitem)};\n" for subitem in item ])
+            elif isinstance(item, dict): # other dict
+                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_size_string(item[subitem], args)};\n" for subitem in item ])  
+
+        file.write("}\n\n")
 
     # TODO: Eventually come back and fix the streams to use the array implementation.
     def generate_destructor(file: TextIO, params: dict):
@@ -215,39 +247,8 @@ def generate_cpp_code_file(parameters: dict, args):
 
         file.writelines([
             f"{indent}{N_TILES} = tiles_.size();\n"
-            f"{indent}nTiles{BLOCK_SIZE} = sizeof(int);\n\n"
+            f"{indent}nTiles{BLOCK_SIZE} = sizeof(int);\n"
         ])
-        # some misc constructor code for calculating block sizes.
-        if args.language == mdata.Language.fortran:
-            file.writelines([
-                f"\tint   nxbGC_h     = -1;\n",
-                f"\tint   nybGC_h     = -1;\n",
-                f"\tint   nzbGC_h     = -1;\n",
-                f"\tint   nCcVars_h   = -1;\n",
-                f"\tint   nFluxVars_h = -1;\n",
-                f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
-            ])    
-        def generate_size_string(subitem_dict, args):
-            if isinstance(subitem_dict, str): 
-                return f"pad(sizeof({subitem_dict}))"
-            start = START if START in subitem_dict else f"{START}-in"
-            end = END if END in subitem_dict else f"{END}-in"
-            extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'])
-            if args.language == mdata.Language.cpp:
-                return f"{extents}"
-            return f"{ mdata.fortran_size_map[indexer].format(unk=nunkvar, size=subitem_dict['type']) }"
-
-        def generate_mdata_size(mdata_item):
-            if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
-                return f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
-            return f"sizeof({mdata.tile_known_types[mdata_item]})"
-
-        sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
-        for item in sections:
-            if isinstance(item, list): # mdata section
-                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_mdata_size(subitem)};\n" for subitem in item ])
-            elif isinstance(item, dict): # other dict
-                file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_size_string(item[subitem], args)};\n" for subitem in item ])  
 
         # # Scratch section generation.
         file.write(f"\n{indent}// Scratch section\n")
