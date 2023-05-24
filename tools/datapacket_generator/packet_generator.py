@@ -166,13 +166,10 @@ def generate_cpp_code_file(parameters: dict, args):
         """
         p_name = params["name"]
         extra_streams = params.get(EXTRA_STREAMS, 0)
-
-        file.writelines([
-            f"{p_name}::~{p_name}(void) {{\n",
-            "".join( f"\tif (stream{i}_.isValid()) throw std::logic_error(\"[{p_name}::~{p_name}] Stream {i} not released\");\n" for i in range(2, extra_streams+2) ),
-            f"\tnullify();\n",
-            f"}}\n\n"
-        ])
+        file.write( f"{p_name}::~{p_name}(void) {{\n" )
+        file.writelines([ f"\tif (stream{i}_.isValid()) throw std::logic_error(\"[{p_name}::~{p_name}] Stream {i} not released\");\n" for i in range(2, extra_streams+2) ])
+        file.write( f"\tnullify();\n}}\n\n" )
+            
 
     # TODO: Some parts of the unpack method need to be more generalized.
     def generate_unpack(file: TextIO, params: dict):
