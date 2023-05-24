@@ -29,6 +29,8 @@ T_MDATA = "tile-metadata"
 T_IN = "tile-in"
 T_IN_OUT = "tile-in-out"
 T_OUT = "tile-out"
+START = "start"
+END = "end"
 # 
 
 # type constants / naming keys / suffixes.
@@ -185,9 +187,12 @@ def generate_cpp_code_file(parameters: dict, args):
         packet_name = params["name"]
         func_name = "unpack"
         indent = "\t"
-        file.write(f"void {packet_name}::unpack(void) {{\n")
-        file.write(f"{indent}using namespace milhoja;\n")
+        num_elems_per_cc_per_var = f'ELEMS_PER_CC_PER_VAR'
+        nunkvars = "nCcVars_"
+        
         file.writelines([
+            f"void {packet_name}::unpack(void) {{\n",
+            f"{indent}using namespace milhoja;\n",
             f"{indent}if (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
             f"{indent}if (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
             f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
@@ -196,69 +201,39 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
             f"{indent}for (auto n=0; n < tiles_.size(); ++n) {{\n"
         ])
-
         indent = 2 * '\t'
-
-        # TODO: This doesn't work with the location key in JSON
-        location = "CC1" if T_IN_OUT in params else "CC2"
-
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
-            f"{indent}const Real* data_p = pinnedPtrs_[n].{location}_data;\n"
-        ])
-
-        # data_h and data_p checks
-        file.writelines([
+            f"{indent}const Real* data_p = pinnedPtrs_[n].{ 'CC1' if T_IN_OUT in params else 'CC2' }_data;\n", # TODO: This doesn't work with the location key in JSON
             f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid pointer to data in host memory.\");\n",
-            f"{indent}if (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n"
+            f"{indent}if (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n",
+            f"{indent}{SIZE_T} nBytes;\n\n"
         ])
 
-        idx = 0
-        last_item = {}
-        file.write(f'{indent}{SIZE_T} nBytes;\n\n')
-        for section in [T_IN_OUT, T_OUT]:
-            dict = params.get(section, {})
-            start_key = 'start' if section == T_OUT else 'start-out'
-            end_key = 'end' if section == T_OUT else 'end-out'
-            for item in dict:
-                start = dict[item][start_key]
-                end = dict[item][end_key]
-                data_type = dict[item]['type']
-                nunkvars = "nCcVars_"
-                num_elems_per_cc_per_var = f'ELEMS_PER_CC_PER_VAR'
-
-                file.writelines([
-                    f"{indent}if ( {start} < 0 || {end} < 0 || {end} >= {nunkvars} || {start} >= {nunkvars})\n",
-                    f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
-                    f"{indent}if ( {start} > {end} )\n",
-                    f"{indent}{indent}throw std::logic_error(\"{packet_name}::{func_name}] Start > End\");\n\n"
-                ])
-                
-                file.writelines([
-                    f"{indent}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
-                ])
-
-                if idx == 0:
-                    file.write(f"{indent}{data_type}* start_h = data_h + offset_{item};\n")
-                    file.write(f"{indent}const {data_type}* start_p_{item} = data_p + offset_{item};\n")
-                else:
-                    file.write(f"{indent}start_h += offset_{last_item};\n")
-                    file.write(f"{indent}const {data_type}* start_p_{item} = start_p_{last_item} + offset_{item};\n")
-
-                # num_elems_per_cc_per_var = f'(({item}{BLOCK_SIZE}) / ({nunkvars}))'
-                file.writelines([
-                    f"{indent}nBytes = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-                    f"{indent}std::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"                
-                ])
-                idx += 1
-                last_item = item
-        
+        output = {**params.get(T_IN_OUT, {}), **params.get(T_OUT, {}) }
+        for item in output:
+            start_key = START if START in output[item] else f"{START}-out"
+            end_key = END if END in output[item] else f"{END}-out"
+            start = output[item][start_key]
+            end = output[item][end_key]
+            data_type = output[item]['type']
+            file.writelines([
+                f"{indent}if ( {start} < 0 || {end} < 0 || {end} >= {nunkvars} || {start} >= {nunkvars})\n",
+                f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
+                f"{indent}if ( {start} > {end} )\n",
+                f"{indent}{indent}throw std::logic_error(\"{packet_name}::{func_name}] Start > End\");\n\n",
+                f"{indent}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
+                f"{indent}{data_type}* start_h = data_h + offset_{item};\n",
+                f"{indent}const {data_type}* start_p_{item} = data_p + offset_{item};\n",
+                f"{indent}nBytes = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n",
+                f"{indent}std::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"
+            ])
         indent = '\t'
-        file.write(f"{indent}}}\n")
-
-        file.write(f"}}\n\n")
-        return
+        file.writelines([
+            f"{indent}}}\n",
+            f"}}\n\n"
+        ])
 
     # TODO: Improve pack generation code
     # TODO: {N_TILES} are a guaranteed part of general, same with PacketContents.
@@ -567,7 +542,7 @@ def generate_cpp_code_file(parameters: dict, args):
 
         file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
         file.write(f"{indent}char* char_ptr;\n")
-        file.write(f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);")
+        file.write(f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n")
 
         file.write(f"{indent}/// MEM COPY SECTION\n")
         file.write(general_copy_in_string + "\n")

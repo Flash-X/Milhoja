@@ -71,8 +71,6 @@ constants = {
     "NUNKVAR"
 }
 
-# A helper method that parses the extents array in the JSON file.
-# returns the final string to be used in the code.
 def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
     """
     Parses the extents string found in the packet JSON file.
