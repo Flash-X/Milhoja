@@ -122,7 +122,7 @@ def generate_cpp_code_file(parameters: dict, args):
 
         def generate_mdata_size(mdata_item):
             if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
-                return f"MILJOHA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
+                return f"MILHOJA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
             return f"sizeof({mdata.tile_known_types[mdata_item]})"
 
         sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
