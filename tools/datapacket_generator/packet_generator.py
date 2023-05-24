@@ -259,110 +259,115 @@ def generate_cpp_code_file(parameters: dict, args):
         scratch = params.get(T_SCRATCH, {})
         nScratchArrs = len(scratch)
         size = ' + '.join(f'{item}{BLOCK_SIZE}' for item in scratch) if scratch else "0"
-        file.write(f"{indent}{SIZE_T} nScratchPerTileBytes = {size};\n")
-        file.write(f"{indent}unsigned int nScratchArrays = {nScratchArrs};\n")
-        file.write(f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad({N_TILES} * nScratchPerTileBytes);\n")
+        file.writelines([
+            f"{indent}{SIZE_T} nScratchPerTileBytes = {size};\n",
+            f"{indent}unsigned int nScratchArrays = {nScratchArrs};\n",
+            f"{indent}{SIZE_T} nScratchPerTileBytesPadded = pad({N_TILES} * nScratchPerTileBytes);\n",
+            f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n\n"
+        ])
         bytesPerPacket.append("nScratchPerTileBytesPadded")
-        file.write(f"{indent}if (nScratchPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Scratch padding failure\");\n\n")
 
         # # Copy-in section generation.
         # Non tile specific data
-        file.write(f"{indent}// non tile specific data\n")
-        file.write(f"{indent}{SIZE_T} nCopyInBytes = nTiles{BLOCK_SIZE} ")
-
-        # TODO: This will eventually go away once PacketContents is removed.
-        packet_pointers = params.get(T_MDATA, []) + list(params.get(T_IN, {})) + list(params.get(T_IN_OUT, {})) + list(params.get(T_OUT, {}))
-        p_contents_size = f" + {N_TILES} * sizeof(PacketContents)"
+        file.writelines([
+            f"{indent}// non tile specific data\n",
+            f"{indent}{SIZE_T} nCopyInBytes = nTiles{BLOCK_SIZE} "
+        ])
+        p_contents_size = f" + {N_TILES} * sizeof(PacketContents)" if args.language == mdata.Language.cpp else ""
         if args.language == mdata.Language.fortran:
             p_contents_size = ""
-
-        file.write(f" + { ' + '.join(f'{item}{BLOCK_SIZE}' for item in params.get(GENERAL, [])) }")
-        file.write(f"{p_contents_size};\n") # we can eventually get rid of packet contents so this will have to change.
-        file.write(f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n")
+        file.writelines([ 
+            f" + { ' + '.join(f'{item}{BLOCK_SIZE}' for item in params.get(GENERAL, [])) }",
+            f"{p_contents_size};\n", # we can eventually get rid of packet contents so this will have to change.
+            f"{indent}{SIZE_T} nCopyInBytesPadded = pad(nCopyInBytes);\n",
+            f"{indent}if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyIn padding failure\");\n\n"
+        ])
         bytesToGpu.append("nCopyInBytesPadded")
         bytesPerPacket.append("nCopyInBytesPadded")
-        file.write(f"{indent}if (nCopyInBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyIn padding failure\");\n\n")
 
         number_of_arrays = len(params.get(T_IN, {})) + len(params.get(T_IN_OUT, {})) + len(params.get(T_OUT, {}))
         # TODO: If we want to allow any specification for dimensionality of arrays we need to change this
         t_mdata = params.get(T_MDATA, [])
         size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
         scratch_arrays = "0" if args.language != mdata.Language.cpp else f"( (nScratchArrays + {number_of_arrays}) * sizeof(FArray4D) )"
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n")
-        file.write(f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n")
+        file.writelines([
+            f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n",
+            f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n",
+            f"{indent}if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Metadata padding failure\");\n\n"
+        ])
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
         bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
-        file.write(f"{indent}if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Metadata padding failure\");\n\n")
 
+        # TODO: Is there a way we can combine T_IN, T_IN_OUT, and T_OUT loops into 1?
         # copy in data
         cin = params.get(T_IN, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cin) if cin else "0"
-        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytes = ({size}) * {N_TILES};\n")
-        file.write(f"{indent}{SIZE_T} nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);\n")
+        file.writelines([
+            f"{indent}{SIZE_T} nCopyInDataPerTileBytes = ({size}) * {N_TILES};\n",
+            f"{indent}{SIZE_T} nCopyInDataPerTileBytesPadded = pad(nCopyInDataPerTileBytes);\n",
+            f"{indent}if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInPerTile padding failure\");\n\n"
+        ])
         bytesToGpu.append("nCopyInDataPerTileBytesPadded")
         bytesPerPacket.append("nCopyInDataPerTileBytesPadded")
-        file.write(f"{indent}if (nCopyInDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInPerTile padding failure\");\n\n")
 
         # copy in out data
         cinout = params.get(T_IN_OUT, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cinout) if cinout else "0"
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * {N_TILES};\n")
-        file.write(f"{indent}{SIZE_T} nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);\n")
+        file.writelines([
+            f"{indent}{SIZE_T} nCopyInOutDataPerTileBytes = ({size}) * {N_TILES};\n",
+            f"{indent}{SIZE_T} nCopyInOutDataPerTileBytesPadded = pad(nCopyInOutDataPerTileBytes);\n",
+            f"{indent}if (nCopyInOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInOutPerTile padding failure\");\n\n"
+        ])
         bytesToGpu.append("nCopyInOutDataPerTileBytes")
         returnToHost.append("nCopyInOutDataPerTileBytesPadded")
         bytesPerPacket.append("nCopyInOutDataPerTileBytesPadded")
-        file.write(f"{indent}if (nCopyInOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyInOutPerTile padding failure\");\n\n")
 
         # copy out
         cout = params.get(T_OUT, {})
         size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in cout ) if cout else "0"
-        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = ({size}) * {N_TILES};\n")
-        file.write(f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n")
+        file.writelines([
+            f"{indent}{SIZE_T} nCopyOutDataPerTileBytes = ({size}) * {N_TILES};\n",
+            f"{indent}{SIZE_T} nCopyOutDataPerTileBytesPadded = pad(nCopyOutDataPerTileBytes);\n",
+            f"{indent}if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyOutPerTile padding failure\");\n\n"
+        ])
         returnToHost.append("nCopyOutDataPerTileBytes")
         bytesPerPacket.append("nCopyOutDataPerTileBytesPadded")
-        file.write(f"{indent}if (nCopyOutDataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] CopyOutPerTile padding failure\");\n\n")
 
         # 
         file.writelines([
             f"{indent}// Copy out section\n",
             f"{indent}nCopyToGpuBytes_ = {' + '.join(bytesToGpu)};\n",
             f"{indent}nReturnToHostBytes_ = {' + '.join(returnToHost)};\n",
-            f"{indent}{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n"
+            f"{indent}{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n",
+            f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n",
+            f"{indent}/// END\n\n"
         ])
 
-        file.write(f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - nScratchPerTileBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n")
-        file.write(f"{indent}/// END\n\n")
         # END SIZE  DETERMINATION
 
+        sizes = None
         if args.sizes:
             s = open(args.sizes, "r")
             sizes = json.load(s)
             s.close()
-        else:
-            sizes = None
 
-        file.write(f"{indent}/// POINTER DETERMINATION\n")
         file.writelines([
+            f"{indent}/// POINTER DETERMINATION\n",
             f"{indent}static_assert(sizeof(char) == 1);\n",
-            f"{indent}char* ptr_d = static_cast<char*>(packet_d_);\n\n"
+            f"{indent}char* ptr_d = static_cast<char*>(packet_d_);\n\n",
+            f"{indent}// scratch section\n"
         ])
 
-        file.write(f"{indent}// scratch section\n")
         ### DETERMINE SCRATCH POINTERS
         scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
-        for item in scr:
-            file.writelines([
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n"
-            ])
-        ###
+        file.writelines([ f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n" for item in scr ])
         file.write(f"{indent}// end scratch\n\n")
+        ###
 
         location = "CC1"
         if T_IN not in params and T_IN_OUT not in params: 
             print("No input data! Abort")
             exit(-1)
-
         file.writelines([
             f"{indent}location_ = PacketDataLocation::{location};\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
@@ -415,13 +420,13 @@ def generate_cpp_code_file(parameters: dict, args):
                     f"{indent}ptr_p += {N_TILES} * sizeof(FArray4D);\n",
                     f"{indent}ptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
                 ])
-        file.write("\t// end metadata;\n\n")
         ###
 
         ### DETERMINE COPY IN POINTERS
-        file.write("\t// copy in section;\n")
         file.writelines([
-            f"{indent}ptr_p = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded;\n"
+            "\t// end metadata;\n\n",
+            "\t// copy in section;\n",
+            f"{indent}ptr_p = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded;\n",
             f"{indent}ptr_d = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded;\n\n"
         ])
         previous = ""
@@ -434,24 +439,21 @@ def generate_cpp_code_file(parameters: dict, args):
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-
             file.writelines([
                 f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
                 f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
                 f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
-
             data_copy_string += offset
             data_copy_string += copy_in_size
             data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
             data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
-
-        file.write("\t// end copy in;\n\n")
         ###
 
         file.writelines([
-            f"\t// copy in out section\n"
+            "\t// end copy in;\n\n",
+            f"\t// copy in out section\n",
             f"{indent}copyInOutStart_p_ = copyInStart_p_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}copyInOutStart_d_ = copyInStart_d_ + nCopyInBytesPadded + nBlockMetadataPerTileBytesPadded + nCopyInDataPerTileBytesPadded;\n",
             f"{indent}ptr_p = copyInOutStart_p_;\n"
@@ -480,7 +482,6 @@ def generate_cpp_code_file(parameters: dict, args):
                 f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
                 f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
-
 
             data_h = f"data_h + offset_{item}" if previous == "" else previous
             data_copy_string += offset
@@ -516,32 +517,27 @@ def generate_cpp_code_file(parameters: dict, args):
 
         file.writelines([
             f"{indent}if (pinnedPtrs_) throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
-            f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n"
-        ]) 
-
-        file.write(f"{indent}PacketContents* tilePtrs_p = contents_p_;\n")
-        file.write(f"{indent}char* char_ptr;\n")
-        file.write(f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n")
-
-        file.write(f"{indent}/// MEM COPY SECTION\n")
-        file.write(general_copy_in_string + "\n")
+            f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n",
+            f"{indent}PacketContents* tilePtrs_p = contents_p_;\n",
+            f"{indent}char* char_ptr;\n",
+            f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
+            f"{indent}/// MEM COPY SECTION\n",
+            general_copy_in_string + "\n"
+        ])
             
         # tile specific metadata.
-        file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n, ++tilePtrs_p) {{\n")
+        file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n{', ++tilePtrs_p' if args.language == mdata.Language.cpp else ''}) {{\n")
         indent = "\t" * 2
         file.writelines([
             f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
             f"{indent}if (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
         ])
 
+        metadata_list = params.get(T_MDATA, [])
         if args.language == mdata.Language.cpp:
-            # lo, hi, loGC and hiGC are used to create the FArrays, so we need to add whatever is not in T_MDATA.
             dependencies = set(params[T_MDATA]).symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
-            for item in set(params.get(T_MDATA, [])).union(dependencies):
-                item_type = mdata.tile_known_types[item]
-                file.write(f"{indent}const {item_type} {item} = {TILE_DESC}->{item}();\n")
-        else:
-            for item in params.get(T_MDATA, []):
+            metadata_list = set(params.get(T_MDATA, [])).union(dependencies)
+        for item in metadata_list:
                 item_type = mdata.tile_known_types[item]
                 # if item_type not in 
                 file.write(f"{indent}const {item_type} {item} = {TILE_DESC}->{item}();\n")
@@ -567,7 +563,6 @@ def generate_cpp_code_file(parameters: dict, args):
             else:
                 file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tile_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
             file.write(f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
-
         file.write(data_copy_string)
         file.write(out_location)
 
@@ -611,7 +606,6 @@ def generate_cpp_code_file(parameters: dict, args):
                     f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
                     f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
                 ])
-        
         file.write(f"}}\n\n")
         return
     
