@@ -41,13 +41,12 @@ imap = {
     'FArray4D': '<Milhoja_FArray4D.h>'
 }
 
-# NOTE: The modern packet uses fcx, fcy, and fcz shown here, and the older handwritten packets use the commented face keys.
-#       Both seem to work? It's used in calculating sizes, so there shouldn't be an issue outside of wasted space...
+# NOTE: These are the fortran spaces, while cpp size map is specifically for use with cpp.
 fortran_size_map = {
     'cc': "nxbGC_h * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size})",
-    'fcx': "(nxbGC_h + 1) * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size});",
-    'fcy': "nxbGC_h * (nybGC_h + 1) * nzbGC_h * ( {unk} ) * sizeof({size});",
-    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h + 1) * ( {unk} ) * sizeof({size});"
+    'fcx': "(nxbGC_h + 1) * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size})",
+    'fcy': "nxbGC_h * (nybGC_h + 1) * nzbGC_h * ( {unk} ) * sizeof({size})",
+    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h + 1) * ( {unk} ) * sizeof({size})"
 }
 
 cpp_size_map = {
@@ -91,7 +90,6 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
         else: print(f"{extents} is not closed properly.")
         sp = extents.split('(')
         indexer = sp[0]
-        # sp = sp[1].split(',')
         nguard = sp[1].strip()
 
         try:
@@ -108,9 +106,10 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
                     exit(-1)
                 warnings.warn("Constant found in string, continuing...")
             if nguard == "NGUARD":
-                    nguard = "nGuard_"
+                nguard = "nGuard_"
+            elif nguard == "NFLUXES":
+                nguard = "nCcVars_"
         
-        # return ispace_map[indexer].format(guard=nguard, unk=nunkvar, size=size), nunkvar, indexer
         return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
     
     elif isinstance(extents, list):

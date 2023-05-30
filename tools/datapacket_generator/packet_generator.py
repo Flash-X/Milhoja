@@ -12,6 +12,7 @@ import os.path
 import json
 import argparse
 import milhoja_utility as mdata
+import json_sections
 import warnings
 from typing import TextIO
 
@@ -22,13 +23,13 @@ PINNED = "_p_"
 DATA = "_d_"
 
 # All possible keys.
+GENERAL = json_sections.GENERAL
+T_SCRATCH = json_sections.T_SCRATCH
+T_MDATA = json_sections.T_MDATA
+T_IN = json_sections.T_IN
+T_IN_OUT = json_sections.T_IN_OUT
+T_OUT = json_sections.T_OUT
 EXTRA_STREAMS = 'n-extra-streams'
-GENERAL = "general"
-T_SCRATCH = "tile-scratch"
-T_MDATA = "tile-metadata"
-T_IN = "tile-in"
-T_IN_OUT = "tile-in-out"
-T_OUT = "tile-out"
 START = "start"
 END = "end"
 # 
@@ -896,7 +897,7 @@ def generate_cpp_header_file(parameters: dict, args):
         ])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X problems.")
+    parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X simulations.")
     parser.add_argument("JSON", help="The JSON file to generate from.")
     parser.add_argument('--language', '-l', type=mdata.Language, choices=list(mdata.Language), help="Generate a packet to work with this language.")
     parser.add_argument("--sizes", "-s", help="Path to data type size information.")
