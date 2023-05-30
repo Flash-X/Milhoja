@@ -4,6 +4,8 @@
 
 """
 
+import os
+
 import argparse
 import json
 import json_sections as sects
@@ -51,7 +53,7 @@ def generate_hydro_advance_c2f(data):
         host_pointers = {
             'C_packet_h': {'ctype': 'type(C_PTR)'}, 
             'C_dataQ_h': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'}, 
-            **{ 'C_queue{i}_h': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(2, n_extra_streams+2) },
+            **{ f'C_queue{i}_h': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(2, n_extra_streams+2) },
             **{ item: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ['C_nTiles_h', 'C_nxbGC_h', 'C_nybGC_h', 'C_nzbGC_h', 'C_nCcVar_h', 'C_nFluxVar_h']}
         }
         
@@ -76,17 +78,17 @@ def generate_hydro_advance_c2f(data):
                             'ctype': 'type(C_PTR)',
                             'shape': shape
                         }
-                    elif item in [sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH]:
+                    elif item in {sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH}:
                         ftype = data[item][key]['type'].lower()
                         if ftype=='int': ftype='integer'
-                        start = 'start' if 'start' in data[item][key] else 'start-in'
-                        end = 'end' if 'end' in data[item][key] else 'end-in'
+                        start = data[item][key]['start' if 'start' in data[item][key] else 'start-in']
+                        end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
                         # NOTE: Since this file will never be generated when using CPP, we can always
                         #       use the fortran_size_map.
-                        shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], data[item][key][start], data[item][key][end], '')
+                        shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], start, end, '')
                         shape = mutil.fortran_size_map[indexer].format(unk=nunkvar, size='')
                         shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
-                        shape.append(nunkvar)
+                        if start + end != 0: shape.append(nunkvar)
                         shape.append('F_nTiles_h')
                         
                         gpu_pointers[f'C_{key}_start_d'] = {
@@ -123,19 +125,18 @@ def generate_hydro_advance_c2f(data):
                 for item in host_pointers if 'ftype' in host_pointers[item]
         ] + ['\n'])
 
+        for item in ['C_nTiles_h', 'C_nxbGC_h', 'C_nybGC_h', 'C_nzbGC_h', 'C_nCcVar_h', 'C_nFluxVar_h']:
+            host_pointers.pop(item)
+        bundle = {**host_pointers, **gpu_pointers}
         fp.writelines([
-            f"""\tCALL C_F_POINTER({item}, F_{item[ len('C_'): ]}{f', shape=[{ ", ".join(f"{ext}" for ext in bundle[item]["shape"])  }]' if 'shape' in bundle[item] else ''})\n"""
-                for item in bundle if 'ftype' in bundle[item]
+            f"""\tCALL C_F_POINTER({item}, F_{item[ len('C_'): ]}{f', shape=[{ ", ".join(f"{ext}" for ext in gpu_pointers[item]["shape"])  }]' if 'shape' in gpu_pointers[item] else ''})\n"""
+                for item in gpu_pointers if 'ftype' in gpu_pointers[item]
         ] + ['\n'])
 
         # CALL STATIC FORTRAN LAYER
         fp.write('\tCALL dr_hydroAdvance_packet_gpu_oacc(')
         fp.write( f', &\n'.join( f'\t\tF_' + ptr[ len('C_'): ] if 'ftype' in bundle[ptr] else ptr for ptr in bundle ) )
         fp.write(')\n')
-
-        # print(host_pointers)
-        # print(gpu_pointers)
-
         fp.write('end subroutine dr_hydro_advance_packet_oacc_c2f')
 
 if __name__ == "__main__":
