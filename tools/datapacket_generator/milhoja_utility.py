@@ -113,7 +113,7 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
         return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
     
     elif isinstance(extents, list):
-        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else " * sizeof({size})" }', extents[-1], None
+        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None
     else:
         print("Extents is not a string or list of numbers. Please refer to the documentation.")
         exit(-1)
