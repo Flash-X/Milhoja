@@ -116,10 +116,8 @@ def generate_cpp_code_file(parameters: dict, args):
                 return f"pad(sizeof({subitem_dict}))"
             start = START if START in subitem_dict else f"{START}-in"
             end = END if END in subitem_dict else f"{END}-in"
-            extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'])
-            if args.language == mdata.Language.cpp:
-                return f"{extents}"
-            return f"{ mdata.fortran_size_map[indexer].format(unk=nunkvar, size=subitem_dict['type']) }"
+            extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'], args.language)
+            return extents
 
         def generate_mdata_size(mdata_item):
             if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
@@ -438,7 +436,7 @@ def generate_cpp_code_file(parameters: dict, args):
             start = params[T_IN][item]['start']
             end = params[T_IN][item]['end']
             data_type = params[T_IN][item]['type']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'], params[T_IN][item]['start'], params[T_IN][item]['end'])
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'], params[T_IN][item]['start'], params[T_IN][item]['end'], args.language)
             num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
@@ -474,7 +472,7 @@ def generate_cpp_code_file(parameters: dict, args):
             end = params[T_IN_OUT][item]['end-in']
             data_type = params[T_IN_OUT][item]['type']
             location = params[T_IN_OUT][item]['location']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'])
+            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'], args.language)
             num_elems_per_cc_per_var = "ELEMS_PER_CC_PER_VAR"#f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
             copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
@@ -578,8 +576,10 @@ def generate_cpp_code_file(parameters: dict, args):
                 location = device_array_pointers[item]['location']
                 start = "start-in" if section == T_IN_OUT else "start"
                 end = "end-in" if section == T_IN_OUT else "end"
-                extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end])
-                c_args = mdata.finterface_constructor_args[indexer]
+                extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end], args.language)
+                c_args = ""
+                # This is temporary until we get data locations sorted out
+                c_args = mdata.finterface_constructor_args[indexer] if indexer else mdata.finterface_constructor_args[location.lower()]
 
                 file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
                 file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")

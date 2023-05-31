@@ -70,7 +70,7 @@ constants = {
     "NUNKVAR"
 }
 
-def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
+def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[str, str, str]:
     """
     Parses the extents string found in the packet JSON file.
 
@@ -110,7 +110,10 @@ def parse_extents(extents, start, end, size='') -> Tuple[str, str, str]:
             elif nguard == "NFLUXES":
                 nguard = "nCcVars_"
         
-        return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
+        if language == Language.cpp:
+            return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
+        elif language == Language.fortran:
+            return fortran_size_map[indexer].format(unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
     
     elif isinstance(extents, list):
         return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None

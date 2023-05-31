@@ -23,6 +23,13 @@
       "end": 4,
       "type": "Real",
       "extents": "fcy(0)"
+    },
+    "FCZ": {
+      "location": "FCZ",
+      "start": 0,
+      "end": 0,
+      "type": "Real",
+      "extents": [1, 1, 1, 1]
     }
   },
   "general": {
@@ -33,10 +40,10 @@
     "U": {
       "location": "CC1",
       "multifab": "hydro-cc",
-      "start-in": "UNK_VARS_BEGIN",
-      "end-in": "GAMC_VAR",
-      "start-out": "UNK_VARS_BEGIN",
-      "end-out": "EINT_VAR",
+      "start-in": "0",
+      "end-in": "8",
+      "start-out": "0",
+      "end-out": "7",
       "type": "Real",
       "extents": "cc(NGUARD)"
     }
