@@ -85,10 +85,12 @@ def generate_hydro_advance_c2f(data):
                         end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
                         # NOTE: Since this file will never be generated when using CPP, we can always
                         #       use the fortran_size_map.
-                        shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], start, end, '')
-                        shape = mutil.fortran_size_map[indexer].format(unk=nunkvar, size='')
-                        shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
-                        if start + end != 0: shape.append(nunkvar)
+                        shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], start, end, size='', language=mutil.Language.fortran)
+                        if isinstance(data[item][key]['extents'], list):
+                            shape = data[item][key]['extents']
+                        else:
+                            shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                            if start + end != 0: shape.append(nunkvar)
                         shape.append('F_nTiles_h')
                         
                         gpu_pointers[f'C_{key}_start_d'] = {
