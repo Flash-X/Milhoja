@@ -17,7 +17,7 @@ default:
  tags:
  - public
  - shared_ssh
- - '20.04'
+ - '20'
 
 stages:
   - test
