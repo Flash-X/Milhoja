@@ -101,10 +101,9 @@ def generate_hydro_advance_c2f(data):
         # get pointers for every section
         fp.write( ', &\n'.join(f'{item}' for item in bundle ) )
         # fp.writelines( [ f'{item}, &\n' for item in {**host_pointers, **gpu_pointers} ] )
-        fp.write('\n')
         fp.writelines([
             ') bind(c)\n',
-            '\tuse iso_c_binding, ONLY : C_PTR, & C_F_POINTER\n',
+            '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
             '\tuse openacc, ONLY : acc_handle_kind\n',
             '\tuse milhoja_types_mod, ONLY : MILHOJA_INT\n',
             '\tuse dr_hydroAdvance_bundle_mod, ONLY : dr_hydroAdvance_packet_gpu_oacc\n',
