@@ -123,8 +123,9 @@ def generate_cpp_code_file(parameters: dict, args):
                 return f"MILHOJA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
             return f"sizeof({mdata.tile_known_types[mdata_item]})"
 
-        sections = [ params[section] for section in params if isinstance(params[section], dict) or isinstance(params[section], list) ]
+        sections = [ T_SCRATCH, GENERAL, T_MDATA, T_IN, T_IN_OUT, T_OUT ]
         for item in sections:
+            item = params.get(item)
             if isinstance(item, list): # mdata section
                 file.writelines([ f"{indent}{subitem}{BLOCK_SIZE} = {generate_mdata_size(subitem)};\n" for subitem in item ])
             elif isinstance(item, dict): # other dict
@@ -330,15 +331,12 @@ def generate_cpp_code_file(parameters: dict, args):
         ])
 
         ### DETERMINE SCRATCH POINTERS
-        scr = list( sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True ) )
+        scr = sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True )
         file.writelines([ f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n" for item in scr ])
         file.write(f"{indent}// end scratch\n\n")
         ###
 
         location = "CC1"
-        if T_IN not in params and T_IN_OUT not in params: 
-            print("No input data! Abort")
-            exit(-1)
         file.writelines([
             f"{indent}location_ = PacketDataLocation::{location};\n",
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
@@ -757,7 +755,7 @@ def generate_cpp_header_file(parameters: dict, args):
                 pinned_and_data_ptrs += "milhoja::"
             pinned_and_data_ptrs += f"void* {item}{START_P} = nullptr;\n\tvoid* {item}{START_D} = nullptr;\n"
             ext = "milhoja::" if item_type in mdata.imap else ""
-            getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+            getters.append(f"\t{ext}{item_type}* {item}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         # Generate private variables for each section. Here we are creating a size helper
         # variable for each item in each section based on the name of the item
@@ -777,7 +775,7 @@ def generate_cpp_header_file(parameters: dict, args):
                 item_type = mdata.cpp_equiv[item_type]
             ext = "milhoja::" if item_type in mdata.imap else ""
             item_type = item_type.replace("unsigned ", "")
-            getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+            getters.append(f"\t{ext}{item_type}* {item}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
             for item in parameters.get(sect, {}):
@@ -794,7 +792,7 @@ def generate_cpp_header_file(parameters: dict, args):
                     pinned_and_data_ptrs += f"\tvoid* {item}{START_P} = nullptr;\n"
                 pinned_and_data_ptrs += f"\tvoid* {item}{START_D} = nullptr;\n"
                 ext = "milhoja::" if item_type in mdata.imap else ""
-                getters.append(f"\t{ext}{item_type}* {item}{GETTER}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
+                getters.append(f"\t{ext}{item_type}* {item}(void) const {{ return static_cast<{ext}{item_type}*>({item}{START_D}); }}\n")
 
         private_variables.append(f"\tunsigned int nxb_;\n")
         initialize['nxb_'] = "1"
