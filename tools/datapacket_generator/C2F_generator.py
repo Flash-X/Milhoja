@@ -31,10 +31,10 @@ LICENSE_BLOCK = """
 
 def generate_hydro_advance_c2f(data):
     """
-    Generates the c to fortran code
+    Generates the code responsible for passing a data packet from the C layer to the Fortran code layer.
 
     Parameters:
-        json - the json file used to generate the data packet.
+        json - the json file used to generate the data packet associated with this file.
     Returns:
         None
     """
