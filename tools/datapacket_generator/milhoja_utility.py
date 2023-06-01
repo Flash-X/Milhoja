@@ -111,9 +111,9 @@ def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[
                 nguard = "nCcVars_"
         
         if language == Language.cpp:
-            return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
+            return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size), f"( ({end}) - ({start}) + 1 )", indexer
         elif language == Language.fortran:
-            return fortran_size_map[indexer].format(unk=f"( ({end}) + ({start}) + 1 )", size=size), f"( ({end}) + ({start}) + 1 )", indexer
+            return fortran_size_map[indexer].format(unk=f"( ({end}) - ({start}) + 1 )", size=size), f"( ({end}) - ({start}) + 1 )", indexer
     
     elif isinstance(extents, list):
         return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None
