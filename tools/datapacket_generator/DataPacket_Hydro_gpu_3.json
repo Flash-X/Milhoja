@@ -2,7 +2,7 @@
   "byte-align": 16,
   "problem": "Sedov",
   "n-extra-streams": 2,
-  "argument-order": [ "nTiles", "dt","deltas", "lo", "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
+  "argument-order": [ "dt","deltas", "lo", "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
   "tile-scratch": {
     "auxC": {
       "location": "CC2",
@@ -41,10 +41,10 @@
     "U": {
       "location": "CC1",
       "multifab": "hydro-cc",
-      "start-in": "0",
-      "end-in": "8",
-      "start-out": "0",
-      "end-out": "7",
+      "start-in": 0,
+      "end-in": 8,
+      "start-out": 0,
+      "end-out": 7,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }

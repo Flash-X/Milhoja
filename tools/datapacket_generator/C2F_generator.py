@@ -51,12 +51,14 @@ def generate_hydro_advance_c2f(data):
             'subroutine dr_hydro_advance_packet_oacc_c2f('
         ])
 
-        n_extra_streams = 0 if 'n-extra-streams' not in data else data['n-extra-streams'] 
+        n_extra_streams = data.get('n-extra-streams', 0)
         host_pointers = {
             'packet': {'ctype': 'type(C_PTR)'}, 
             **{ f'queue{i}': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(1, n_extra_streams+2) },
         }
         
+        # nTiles will always be a part of the argument list at the front.
+        arg_order.insert(0, 'nTiles')
         gpu_pointers = { 'nTiles': { 'ftype': 'integer', 'ctype': 'type(C_PTR)' } }
         keys = [sects.GENERAL, sects.T_MDATA, sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH]
         for item in keys:
