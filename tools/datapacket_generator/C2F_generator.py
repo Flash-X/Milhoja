@@ -40,6 +40,7 @@ def generate_hydro_advance_c2f(data):
     """
     with open("dr_hydro_advance_packet_oacc_C2F.F90", 'w') as fp:
         extents_set = {}
+        arg_order = data[sects.ORDER]
         fp.writelines([
             '!! This code was generated using C2F_generator.py.\n',
             LICENSE_BLOCK,
@@ -52,13 +53,11 @@ def generate_hydro_advance_c2f(data):
 
         n_extra_streams = 0 if 'n-extra-streams' not in data else data['n-extra-streams'] 
         host_pointers = {
-            'C_packet_h': {'ctype': 'type(C_PTR)'}, 
-            'C_dataQ_h': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'}, 
-            **{ f'C_queue{i}_h': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(2, n_extra_streams+2) },
-            # **{ item: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ['C_nTiles_h', 'C_nxbGC_h', 'C_nybGC_h', 'C_nzbGC_h', 'C_nCcVar_h', 'C_nFluxVar_h']}
+            'packet': {'ctype': 'type(C_PTR)'}, 
+            **{ f'queue{i}': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(1, n_extra_streams+2) },
         }
         
-        gpu_pointers = { 'C_nTiles_d': { 'ftype': 'integer', 'ctype': 'type(C_PTR)' } }
+        gpu_pointers = { 'nTiles': { 'ftype': 'integer', 'ctype': 'type(C_PTR)' } }
         keys = [sects.GENERAL, sects.T_MDATA, sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH]
         for item in keys:
             if item in data:
@@ -66,7 +65,7 @@ def generate_hydro_advance_c2f(data):
                     if item == sects.GENERAL:
                         ftype = data[item][key].lower()
                         if ftype=='int': 'integer'
-                        gpu_pointers[f'C_{key}_start_d'] = {
+                        gpu_pointers[f'{key}'] = {
                             'ftype': ftype,
                             'ctype': 'type(C_PTR)'
                         }
@@ -74,7 +73,7 @@ def generate_hydro_advance_c2f(data):
                         ftype = mutil.cpp_equiv[mutil.tile_known_types[key]].lower()
                         if ftype=='int': ftype='integer'
                         shape = [3, 'F_nTiles_h']
-                        gpu_pointers[f'C_{key}_start_d'] = {
+                        gpu_pointers[f'{key}'] = {
                             'ftype': ftype,
                             'ctype': 'type(C_PTR)',
                             'shape': shape
@@ -86,31 +85,38 @@ def generate_hydro_advance_c2f(data):
                         end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
                         # NOTE: Since this file will never be generated when using CPP, we can always
                         #       use the fortran_size_map.
-                        if 'C_nTiles_h' not in extents_set:
-                            extents_set['C_nTiles_h'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
+                        if 'nTiles' not in extents_set:
+                            extents_set['nTiles'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
                         shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], start, end, size='', language=mutil.Language.fortran)
                         if isinstance(data[item][key]['extents'], list):
                             shape = data[item][key]['extents']
                         else:
-                            ext = [ f"C_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
-                            extents_set = { **extents_set, **{ item.rsplit(' ')[0]: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ext if item not in extents_set } }
-                            shape = shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                            ext = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                            extents_set = { **extents_set, **{ item.rsplit(' ')[0][2:-2]: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ext if item not in extents_set } }
+                            shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
                             if start + end != 0: shape.append(nunkvar)
                         shape.append('F_nTiles_h')
                         
-                        gpu_pointers[f'C_{key}_start_d'] = {
+                        gpu_pointers[f'{key}'] = {
                             'ftype': ftype,
                             'ctype': 'type(C_PTR)',
                             'shape': shape
                         } 
+        
+        # If the supplied argument order does not contain every argument in each section of the JSON,
+        # or if the JSON sections contain extra items not contained in the argument list, then 
+        # we abort the generation of this C2F layer for translating the packets.
+        if arg_order ^ gpu_pointers.keys():
+            print("The argument order list and supplied arguments in the JSON do not match. Exiting")
+            fp.close()
+            exit(-1)
 
-        print(extents_set)
         host_pointers = {**host_pointers, **extents_set}
-
         bundle = {**host_pointers, **gpu_pointers}
+
         # get pointers for every section
-        fp.write( ', &\n'.join(f'{item}' for item in bundle ) )
-        # fp.writelines( [ f'{item}, &\n' for item in {**host_pointers, **gpu_pointers} ] )
+        fp.write( ', &\n'.join(f'C_{item}_h' for item in host_pointers ) + ', &\n')
+        fp.write( ', &\n'.join(f'C_{item}_d' for item in arg_order ) )
         fp.writelines([
             ') bind(c)\n',
             '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
@@ -120,17 +126,18 @@ def generate_hydro_advance_c2f(data):
             '\timplicit none\n\n'
         ])
 
-        fp.writelines( [ f'\t{ bundle[item]["ctype"] }, intent(IN), value :: {item}\n' for item in bundle ] + ['\n'] )
-        fp.writelines( [ (f"""\t{host_pointers[item]['ftype']}{"" if "kind" not in host_pointers[item] else f"(kind={ host_pointers[item]['kind'] })" } :: {'F_' + item[ len("C_"): ]}\n""" ) \
+        fp.writelines( [ f'\t{ bundle[item]["ctype"] }, intent(IN), value :: C_{item}_h\n' for item in host_pointers ] + ['\n'] )
+        fp.writelines( [ f'\t{ bundle[item]["ctype"] }, intent(IN), value :: C_{item}_d\n' for item in gpu_pointers ] + ['\n'] )
+        fp.writelines( [ (f"""\t{host_pointers[item]['ftype']}{"" if "kind" not in host_pointers[item] else f"(kind={ host_pointers[item]['kind'] })" } :: F_{item}_h\n""" ) \
                         for item in host_pointers if 'ftype' in host_pointers[item]] + ['\n'] )
 
         fp.writelines([
-            (f"""\t{gpu_pointers[item]['ftype']}, pointer :: {'F_' + item[ len("C_"): ]}{'' if 'shape' not in gpu_pointers[item] else '(' + ','.join(':' for idx in range(0, len(gpu_pointers[item]["shape"]))) + ')' }\n""")
+            (f"""\t{gpu_pointers[item]['ftype']}, pointer :: F_{item}_d{'' if 'shape' not in gpu_pointers[item] else '(' + ','.join(':' for idx in range(0, len(gpu_pointers[item]["shape"]))) + ')' }\n""")
                 for item in gpu_pointers
         ] + ['\n'])
 
         fp.writelines([
-            (f"""\t{'F_' + item[ len("C_"): ]} = INT({item}{f', kind={host_pointers[item]["kind"]}' if "kind" in host_pointers[item] else ''})\n""") 
+            (f"""\tF_{item}_h = INT(C_{item}_h{f', kind={host_pointers[item]["kind"]}' if "kind" in host_pointers[item] else ''})\n""") 
                 for item in host_pointers if 'ftype' in host_pointers[item]
         ] + ['\n'])
 
@@ -138,13 +145,16 @@ def generate_hydro_advance_c2f(data):
             host_pointers.pop(item)
         bundle = {**host_pointers, **gpu_pointers}
         fp.writelines([
-            f"""\tCALL C_F_POINTER({item}, F_{item[ len('C_'): ]}{f', shape=[{ ", ".join(f"{ext}" for ext in gpu_pointers[item]["shape"])  }]' if 'shape' in gpu_pointers[item] else ''})\n"""
+            f"""\tCALL C_F_POINTER(C_{item}_d, F_{item}_d{f', shape=[{ ", ".join(f"{ext}" for ext in gpu_pointers[item]["shape"])  }]' if 'shape' in gpu_pointers[item] else ''})\n"""
                 for item in gpu_pointers if 'ftype' in gpu_pointers[item]
         ] + ['\n'])
 
         # CALL STATIC FORTRAN LAYER
-        fp.write('\tCALL dr_hydroAdvance_packet_gpu_oacc(')
-        fp.write( f', &\n'.join( f'\t\tF_' + ptr[ len('C_'): ] if 'ftype' in bundle[ptr] else ptr for ptr in bundle ) )
+        fp.writelines([ '\tCALL dr_hydroAdvance_packet_gpu_oacc(',
+                        f', &\n'.join( f'\t\tF_{ptr}_h' if 'ftype' in bundle[ptr] else f'C_{ptr}_h' for ptr in host_pointers ),
+                        f', &\n',
+                        f', &\n'.join( f'\t\tF_{ptr}_d' if 'ftype' in bundle[ptr] else f'C_{ptr}_h' for ptr in arg_order )
+        ])
         fp.write(')\n')
         fp.write('end subroutine dr_hydro_advance_packet_oacc_c2f')
 

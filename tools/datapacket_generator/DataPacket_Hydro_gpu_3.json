@@ -1,9 +1,8 @@
 {
   "byte-align": 16,
   "problem": "Sedov",
-  "n-extra-streams": 0,
-  "argument-order": [ "nTiles", "dt","deltas", "lo_start_d",
-                      "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
+  "n-extra-streams": 2,
+  "argument-order": [ "nTiles", "dt","deltas", "lo", "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
   "tile-scratch": {
     "auxC": {
       "location": "CC2",
