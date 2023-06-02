@@ -6,6 +6,8 @@ Packet generator for Milhoja. Script takes in a
 JSON file and generates cpp code for a data packet
 based on the contents of the json file.
 
+TODO: parse_extents really should only be called once per item in the JSON if necessary, not multiple times.
+
 """
 
 import os.path
@@ -251,11 +253,9 @@ def generate_cpp_code_file(parameters: dict, args):
 
         # # Scratch section generation.
         file.write(f"\n{indent}// Scratch section\n")
-
         bytesToGpu = []
         returnToHost = []
         bytesPerPacket = []
-
         scratch = params.get(T_SCRATCH, {})
         nScratchArrs = len(scratch)
 
@@ -342,11 +342,11 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
             f"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + {T_SCRATCH.replace('-', '')}DataBytesPadded;\n",
             f"{indent}char* ptr_p = copyInStart_p_;\n"
-            f"{indent}ptr_d = copyInStart_d_;\n\n"
+            f"{indent}ptr_d = copyInStart_d_;\n\n",
+            f"\t// general section;\n"
         ])
 
         ### DETERMINE GENERAL POINTERS
-        file.write("\t// general section;\n")
         general_copy_in_string = ""
         params.get(GENERAL, {})["nTiles"] = f"{SIZE_T}"
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
@@ -398,26 +398,28 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}ptr_p = copyInStart_p_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n",
             f"{indent}ptr_d = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n\n"
         ])
-        previous = ""
-        data_copy_string = ""
-        for idx,item in enumerate( sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ) ):
-            start = params[T_IN][item]['start']
-            end = params[T_IN][item]['end']
-            data_type = params[T_IN][item]['type']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN][item]['extents'], params[T_IN][item]['start'], params[T_IN][item]['end'], args.language)
-            num_elems_per_cc_per_var = f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
-            offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
-            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-            file.writelines([
-                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
-                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
+
+        def write_section_pointers(section, item_key, start_key, end_key, copy_string, language, fp):
+            start = params[section][item_key][start_key]
+            end = params[section][item_key][end_key]
+            data_type = params[section][item_key]['type']
+            extents, nunkvars, empty = mdata.parse_extents(params[section][item_key]['extents'], start, end, language)
+            num_elems_per_cc_per_var = f'({item_key}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+            fp.writelines([
+                f"\t{item_key}{START_P} = static_cast<void*>(ptr_p);\n",
+                f"\t{item_key}{START_D} = static_cast<void*>(ptr_d);\n",
+                f"\tptr_p += {N_TILES} * {item_key}{BLOCK_SIZE};\n",
+                f"\tptr_d += {N_TILES} * {item_key}{BLOCK_SIZE};\n\n"
             ])
-            data_copy_string += offset
-            data_copy_string += copy_in_size
-            data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-            data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item}), nBytes_{item});\n"
+            copy_string += f"\t\t{SIZE_T} offset_{item_key} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
+            copy_string += f"\t\t{SIZE_T} nBytes_{item_key} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
+            copy_string += f"\t\tchar_ptr = static_cast<char*>({item_key}{START_P}) + n * {item_key}{BLOCK_SIZE};\n"
+            copy_string += f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item_key}), nBytes_{item_key});\n"
+            return copy_string
+
+        data_copy_string = ""
+        for item in sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ):
+            data_copy_string += write_section_pointers( T_IN, item, 'start', 'end', data_copy_string, args.language, file )
         ###
 
         file.writelines([
@@ -432,33 +434,10 @@ def generate_cpp_code_file(parameters: dict, args):
         ### DETERMINE COPY-IN-OUT POINTERS
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: When do we change where the start of CC1 and CC2 data is located?
-        # for item in params.get(T_IN_OUT, {}):
-        # TODO: We need to change this, T_OUT, and T_IN to work like the scratch section
-        # Super TODO: What if nBytes is larger than the block size helper?
-        for idx,item in enumerate( sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
-            start = params[T_IN_OUT][item]['start-in']
-            end = params[T_IN_OUT][item]['end-in']
-            data_type = params[T_IN_OUT][item]['type']
+        for item in sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ):
+            data_copy_string += write_section_pointers( T_IN_OUT, item, 'start-in', 'end-in', data_copy_string, args.language, file )
             location = params[T_IN_OUT][item]['location']
-            extents, nunkvars, empty = mdata.parse_extents(params[T_IN_OUT][item]['extents'], params[T_IN_OUT][item]['start-in'], params[T_IN_OUT][item]['end-in'], args.language)
-            num_elems_per_cc_per_var = "ELEMS_PER_CC_PER_VAR"#f'({item}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
-            offset = f"{indent*2}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
-            copy_in_size = f"{indent*2}{SIZE_T} nBytes_{item} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-
-            file.writelines([
-                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
-                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
-            ])
-
-            data_h = f"data_h + offset_{item}" if previous == "" else previous
-            data_copy_string += offset
-            data_copy_string += copy_in_size
-            data_copy_string += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-            data_copy_string += f"{indent*2}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({data_h}), nBytes_{item});\n"
-            data_copy_string += f"{indent*2}pinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
-
+            data_copy_string += f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
         file.write(f"\t// end copy in out\n\n")
         ### 
 
@@ -472,14 +451,10 @@ def generate_cpp_code_file(parameters: dict, args):
                 f"{indent}ptr_p = copyOutStart_p;\n"
                 f"{indent}ptr_d = copyOutStart_d;\n\n"
             ])
-        for idx,item in enumerate( sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ) ):
+        for item in sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ):
+            out_location += write_section_pointers(T_OUT, item, 'start', 'end', out_location, args.language, file)
             location = params[T_OUT][item]['location']
-            file.write(f"{indent}{item}{START_P} = ptr_p;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
-            file.write(f"{indent}{item}{START_D} = ptr_d;\n")# + {N_TILES} * copyInOutDataPerTileBytes;\n")
-            file.write(f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n")
-            file.write(f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n")
-            out_location += f"{indent*2}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-            out_location += f"{indent*2}pinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
+            out_location += f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
         file.write(f"\t// end copy out\n\n")
         ###
         file.write(f"{indent}/// END\n\n")
@@ -491,7 +466,8 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}char* char_ptr;\n",
             f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
             f"{indent}/// MEM COPY SECTION\n",
-            general_copy_in_string + "\n"
+            general_copy_in_string,
+            "\n"
         ])
             
         # tile specific metadata.
@@ -503,6 +479,8 @@ def generate_cpp_code_file(parameters: dict, args):
         ])
 
         metadata_list = params.get(T_MDATA, [])
+        # NOTE: This is required for cpp packets since the data arrays require all 4 of lo, hi, loGC and hiGC
+        # This is not required for fortran packets since the data arrays are not converted to FArray4Ds.
         if args.language == mdata.Language.cpp:
             dependencies = set(params[T_MDATA]).symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
             metadata_list = set(params.get(T_MDATA, [])).union(dependencies)
