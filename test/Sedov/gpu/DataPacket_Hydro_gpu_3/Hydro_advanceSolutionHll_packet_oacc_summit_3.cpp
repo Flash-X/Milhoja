@@ -28,9 +28,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 
 //    const char*  ptr_d = static_cast<char*>(packet_h->copyToGpuStart_gpu());
 //    const std::size_t*  nTiles_d = static_cast<std::size_t*>((void*)ptr_d);
-	const int* nTiles_d = static_cast<int*>( dynamic_cast<DataPacket_Hydro_gpu_3*>(packet_h)->nTiles_devptr() );
+	const int* nTiles_d = static_cast<int*>( dynamic_cast<DataPacket_Hydro_gpu_3*>(packet_h)->nTiles() );
 //    ptr_d += sizeof(std::size_t);
-	const Real* dt_d = static_cast<Real*>( dynamic_cast<DataPacket_Hydro_gpu_3*>(packet_h)->dt_devptr() );
+	const Real* dt_d = static_cast<Real*>( dynamic_cast<DataPacket_Hydro_gpu_3*>(packet_h)->dt() );
 //    const Real*         dt_d     = static_cast<Real*>((void*)ptr_d);
     // This task function neither reads from nor writes to GAME.  While it does
     // read from GAMC, this variable is not written to as part of the task
