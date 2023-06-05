@@ -53,6 +53,11 @@ PINDEX = f"{PTRS}_index"
 GETTER = "_devptr"
 
 SCRATCH_BYTES = "nScratchBytes"
+
+#PARSE EXTENTS KEYS:
+EXPANDED = 'expanded_extents'
+NUNK = 'nunkvar'
+INDEXER = 'indexer'
 # 
 # these might not be necessary
 initialize = {}
@@ -115,9 +120,17 @@ def generate_cpp_code_file(parameters: dict, args):
         def generate_size_string(subitem_dict, args):
             if isinstance(subitem_dict, str): 
                 return f"pad(sizeof({subitem_dict}))"
+            # print(subitem_dict)
             start = START if START in subitem_dict else f"{START}-in"
             end = END if END in subitem_dict else f"{END}-in"
             extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'], args.language)
+
+            # Add the items from parse_extents so we only need to call it once.
+            subitem_dict[EXPANDED] = extents
+            subitem_dict[NUNK] = nunkvar
+            subitem_dict[INDEXER] = indexer
+
+            # print(subitem_dict)
             return extents
 
         def generate_mdata_size(mdata_item):
@@ -403,7 +416,9 @@ def generate_cpp_code_file(parameters: dict, args):
             start = params[section][item_key][start_key]
             end = params[section][item_key][end_key]
             data_type = params[section][item_key]['type']
-            extents, nunkvars, empty = mdata.parse_extents(params[section][item_key]['extents'], start, end, language)
+            # extents = params[section][item_key][EXPANDED]
+            nunkvars = params[section][item_key][NUNK]
+            # extents, nunkvars, empty = mdata.parse_extents(params[section][item_key]['extents'], start, end, language)
             num_elems_per_cc_per_var = f'({item_key}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
             fp.writelines([
                 f"\t{item_key}{START_P} = static_cast<void*>(ptr_p);\n",
@@ -500,8 +515,8 @@ def generate_cpp_code_file(parameters: dict, args):
             src = "&" + item
             file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
             if args.language != mdata.Language.cpp:
-                if "Vect" in mdata.tile_known_types[item]: #array type
-                    offset = " + 1" if mdata.tile_known_types[item] == "IntVect" else ""
+                if "vect" in mdata.tile_known_types[item].lower(): #array type
+                    offset = " + 1" if 'int' in mdata.tile_known_types[item].lower() else ""
                     file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}};\n')
                     src = f"{item}_h"
                 else: # primitive
@@ -511,8 +526,7 @@ def generate_cpp_code_file(parameters: dict, args):
             else:
                 file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tile_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
             file.write(f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
-        file.write(data_copy_string)
-        file.write(out_location)
+        file.writelines([data_copy_string, out_location])
 
         # only store farray pointers if user is using the fortran binding classes
         if args.language == mdata.Language.cpp:
@@ -523,6 +537,7 @@ def generate_cpp_code_file(parameters: dict, args):
                 location = device_array_pointers[item]['location']
                 start = "start-in" if section == T_IN_OUT else "start"
                 end = "end-in" if section == T_IN_OUT else "end"
+                # print(device_array_pointers)
                 extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end], args.language)
                 # This is temporary until we get data locations sorted out
                 c_args = mdata.finterface_constructor_args[indexer] if indexer else mdata.finterface_constructor_args[location.lower()]
@@ -535,11 +550,8 @@ def generate_cpp_code_file(parameters: dict, args):
                     # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
                     f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
                 ])
-
         indent = "\t"
-
-        file.write(f"{indent}}}\n")
-        file.write(f"{indent}/// END\n\n")
+        file.writelines([f"\t}}\n", f"\t/// END\n\n"])
 
         # request stream at end
         file.writelines([
@@ -624,7 +636,7 @@ def generate_cpp_code_file(parameters: dict, args):
 
     def generate_tile_size_host(file: TextIO, params: dict):
         """
-        Generate the tile size host function for calculating sizes.
+        Generate the tile size host function for calculating extents and sizes.
 
         Parameters:
             file - The file to write to\n
