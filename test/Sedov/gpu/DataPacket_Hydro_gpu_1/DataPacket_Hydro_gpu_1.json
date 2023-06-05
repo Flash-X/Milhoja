@@ -1,6 +1,5 @@
 {
   "n-extra-streams": 1,
-  "problem": "Sedov",
   "tile-scratch": {
     "FCX": {
       "location": "FCX",
@@ -24,8 +23,8 @@
   "tile-in": {
     "CC1": {
       "location": "CC1",
-      "start": "UNK_VARS_BEGIN",
-      "end": "GAMC_VAR",
+      "start": 0,
+      "end": 8,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }
@@ -33,8 +32,8 @@
   "tile-out": {
     "CC2": {
       "location": "CC2",
-      "start": "UNK_VARS_BEGIN",
-      "end": "EINT_VAR",
+      "start": 0,
+      "end": 7,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }

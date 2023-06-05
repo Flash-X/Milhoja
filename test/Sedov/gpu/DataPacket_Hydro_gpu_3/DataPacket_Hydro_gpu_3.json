@@ -1,6 +1,5 @@
 {
   "byte-align": 16,
-  "problem": "Sedov",
   "n-extra-streams": 0,
   "tile-scratch": {
     "CC2": {
@@ -33,10 +32,10 @@
     "CC1": {
       "location": "CC1",
       "multifab": "hydro-cc",
-      "start-in": "UNK_VARS_BEGIN",
-      "end-in": "GAMC_VAR",
-      "start-out": "UNK_VARS_BEGIN",
-      "end-out": "EINT_VAR",
+      "start-in": 0,
+      "end-in": 8,
+      "start-out": 0,
+      "end-out": 7,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }
