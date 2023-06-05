@@ -114,7 +114,6 @@ def generate_hydro_advance_c2f(data):
             exit(-1)
 
         host_pointers = {**host_pointers, **extents_set}
-        bundle = {**host_pointers, **gpu_pointers}
 
         # get pointers for every section
         fp.write( ', &\n'.join(f'C_{item}_h' for item in host_pointers ) + ', &\n')
@@ -128,8 +127,8 @@ def generate_hydro_advance_c2f(data):
             '\timplicit none\n\n'
         ])
 
-        fp.writelines( [ f'\t{ bundle[item]["ctype"] }, intent(IN), value :: C_{item}_h\n' for item in host_pointers ] + ['\n'] )
-        fp.writelines( [ f'\t{ bundle[item]["ctype"] }, intent(IN), value :: C_{item}_d\n' for item in gpu_pointers ] + ['\n'] )
+        fp.writelines( [ f'\t{ host_pointers[item]["ctype"] }, intent(IN), value :: C_{item}_h\n' for item in host_pointers ] + ['\n'] )
+        fp.writelines( [ f'\t{ gpu_pointers[item]["ctype"] }, intent(IN), value :: C_{item}_d\n' for item in gpu_pointers ] + ['\n'] )
         fp.writelines( [ (f"""\t{host_pointers[item]['ftype']}{"" if "kind" not in host_pointers[item] else f"(kind={ host_pointers[item]['kind'] })" } :: F_{item}_h\n""" ) \
                         for item in host_pointers if 'ftype' in host_pointers[item]] + ['\n'] )
 
@@ -145,7 +144,6 @@ def generate_hydro_advance_c2f(data):
 
         for item in extents_set:
             host_pointers.pop(item)
-        bundle = {**host_pointers, **gpu_pointers}
         fp.writelines([
             f"""\tCALL C_F_POINTER(C_{item}_d, F_{item}_d{f', shape=[{ ", ".join(f"{ext}" for ext in gpu_pointers[item]["shape"])  }]' if 'shape' in gpu_pointers[item] else ''})\n"""
                 for item in gpu_pointers if 'ftype' in gpu_pointers[item]
@@ -153,9 +151,9 @@ def generate_hydro_advance_c2f(data):
 
         # CALL STATIC FORTRAN LAYER
         fp.writelines([ '\tCALL dr_hydroAdvance_packet_gpu_oacc(',
-                        f', &\n'.join( f'\t\tF_{ptr}_h' if 'ftype' in bundle[ptr] else f'C_{ptr}_h' for ptr in host_pointers ),
+                        f', &\n'.join( f'\t\tF_{ptr}_h' if 'ftype' in host_pointers[ptr] else f'C_{ptr}_h' for ptr in host_pointers ),
                         f', &\n',
-                        f', &\n'.join( f'\t\tF_{ptr}_d' if 'ftype' in bundle[ptr] else f'C_{ptr}_h' for ptr in arg_order )
+                        f', &\n'.join( f'\t\tF_{ptr}_d' if 'ftype' in gpu_pointers[ptr] else f'C_{ptr}_h' for ptr in arg_order )
         ])
         fp.write(')\n')
         fp.write('end subroutine dr_hydro_advance_packet_oacc_c2f')
