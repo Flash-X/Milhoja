@@ -417,6 +417,7 @@ def generate_cpp_code_file(parameters: dict, args):
             copy_string += f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item_key}), nBytes_{item_key});\n"
             return copy_string
 
+        # TILE-IN POINTERS
         data_copy_string = ""
         for item in sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ):
             data_copy_string += write_section_pointers( T_IN, item, 'start', 'end', data_copy_string, args.language, file )
@@ -523,13 +524,12 @@ def generate_cpp_code_file(parameters: dict, args):
                 start = "start-in" if section == T_IN_OUT else "start"
                 end = "end-in" if section == T_IN_OUT else "end"
                 extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end], args.language)
-                c_args = ""
                 # This is temporary until we get data locations sorted out
                 c_args = mdata.finterface_constructor_args[indexer] if indexer else mdata.finterface_constructor_args[location.lower()]
 
-                file.write(f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n")
-                file.write(f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n")
                 file.writelines([
+                    f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n",
+                    f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n",
                     f"{indent}FArray{d}D {item}_d{{ static_cast<{type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
                     f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
                     # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
@@ -548,13 +548,11 @@ def generate_cpp_code_file(parameters: dict, args):
         ])
 
         # TODO: CHange to use the array implementation.
-        e_streams = params.get(EXTRA_STREAMS, 0)
-        if e_streams > 0:
-            for i in range(2, e_streams+2):
-                file.writelines([
-                    f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
-                    f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
-                ])
+        for i in range(2, params.get(EXTRA_STREAMS, 0)+2):
+            file.writelines([
+                f"{indent}stream{i}_ = RuntimeBackend::instance().requestStream(true);\n",
+                f"{indent}if (!stream{i}_.isValid()) throw std::runtime_error(\"[{packet_name}::{func_name}] Unable to acquire extra stream.\");\n"
+            ])
         file.write(f"}}\n\n")
         return
     
@@ -653,17 +651,12 @@ def generate_cpp_code_file(parameters: dict, args):
     name = parameters["file_name"]
     with open(name + ".cpp", "w") as code:
         # We might need to include specific headers based on the contents of the json packet
-        code.write(GENERATED_CODE_MESSAGE)
-        # Most of the necessary includes are included in the datapacket header file.
-        code.write(f"#include \"{os.path.basename(name)}.h\"\n")
-        code.write(f"#include <cassert>\n") # do we need certain includes?
-        code.write(f"#include <cstring>\n") # for advancing by 1 byte (char *)
-        code.write(f"#include <stdexcept>\n")
-        code.write(f"#include <Milhoja_Grid.h>\n")
-        code.write(f"#include <Milhoja_RuntimeBackend.h>\n")
-        code.write(f"#include \"Simulation.h\"\n") # TODO: Simulation.h should not be required.
-        # This is assuming all of the types being passed are milhoja types
-        if "problem" in parameters: code.write( "#include \"%s.h\"\n" % parameters["problem"] )
+        code.writelines([
+            GENERATED_CODE_MESSAGE, f"#include \"{os.path.basename(name)}.h\"\n",
+            f"#include <cassert>\n", f"#include <cstring>\n",
+            f"#include <stdexcept>\n", f"#include <Milhoja_Grid.h>\n",
+            f"#include <Milhoja_RuntimeBackend.h>\n"
+        ])
 
         generate_constructor(code, parameters)
         generate_destructor(code, parameters)
