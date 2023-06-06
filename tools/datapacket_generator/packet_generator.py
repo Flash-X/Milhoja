@@ -153,7 +153,13 @@ def generate_cpp_code_file(parameters: dict, args):
             f"\tif (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
             f"\tif (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
             "\tRuntimeBackend::instance().releaseStream(stream_);\n"
-            "\tassert(!stream_.isValid());\n\n",
+            "\tassert(!stream_.isValid());\n",
+            f"\tint   nxbGC_h     = -1;\n",
+            f"\tint   nybGC_h     = -1;\n",
+            f"\tint   nzbGC_h     = -1;\n",
+            f"\tint   nCcVars_h   = -1;\n",
+            f"\tint   nFluxVars_h = -1;\n",
+            f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n\n"
             # "\tunsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n"
         ])
 
@@ -235,7 +241,6 @@ def generate_cpp_code_file(parameters: dict, args):
             def generate_size_string(subitem_dict, args):
                 if isinstance(subitem_dict, str): 
                     return f"pad(sizeof({subitem_dict}))"
-                # print(subitem_dict)
                 return subitem_dict[EXPANDED]
 
             def generate_mdata_size(mdata_item):
@@ -757,7 +762,6 @@ def generate_cpp_header_file(parameters: dict, args):
                     parameters[sect][item][NUNK] = nunkvar
                     parameters[sect][item][INDEXER] = indexer
                     parameters[sect][item][NUM_ELEMS] = num_elems
-                    print(num_elems)
                     if 'location' in parameters[sect][item]: farray_items.append(parameters[sect][item]['location'])
                     types.add(item_type)
                     device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
