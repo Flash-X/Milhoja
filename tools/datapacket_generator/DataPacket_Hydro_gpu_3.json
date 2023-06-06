@@ -1,7 +1,7 @@
 {
   "byte-align": 16,
   "problem": "Sedov",
-  "n-extra-streams": 2,
+  "n-extra-streams": 0,
   "argument-order": [ "dt","deltas", "lo", "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
   "tile-scratch": {
     "auxC": {

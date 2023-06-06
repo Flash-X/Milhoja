@@ -31,6 +31,12 @@ T_MDATA = json_sections.T_MDATA
 T_IN = json_sections.T_IN
 T_IN_OUT = json_sections.T_IN_OUT
 T_OUT = json_sections.T_OUT
+
+EXPANDED = json_sections.EXPANDED
+NUNK = json_sections.NUNK
+INDEXER = json_sections.INDEXER
+NUM_ELEMS = json_sections.NUM_ELEMS
+
 EXTRA_STREAMS = 'n-extra-streams'
 START = "start"
 END = "end"
@@ -55,11 +61,6 @@ PINDEX = f"{PTRS}_index"
 GETTER = "_devptr"
 
 SCRATCH_BYTES = "nScratchBytes"
-
-#PARSE EXTENTS KEYS:
-EXPANDED = 'expanded_extents'
-NUNK = 'nunkvar'
-INDEXER = 'indexer'
 # 
 # these might not be necessary
 initialize = {}
@@ -142,29 +143,28 @@ def generate_cpp_code_file(parameters: dict, args):
         """
         packet_name = params["name"]
         func_name = "unpack"
-        indent = "\t"
-        num_elems_per_cc_per_var = 'ELEMS_PER_CC_PER_VAR'
+        # num_elems_per_cc_per_var = 'ELEMS_PER_CC_PER_VAR'
         nunkvars = "nCcVars_"
         
         file.writelines([
             f"void {packet_name}::unpack(void) {{\n",
-            f"{indent}using namespace milhoja;\n",
-            f"{indent}if (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
-            f"{indent}if (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
-            f"{indent}if (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
-            f"{indent}RuntimeBackend::instance().releaseStream(stream_);\n"
-            f"{indent}assert(!stream_.isValid());\n\n",
-            f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
-            f"{indent}for (auto n=0; n < tiles_.size(); ++n) {{\n"
+            "\tusing namespace milhoja;\n",
+            f"\tif (tiles_.size() <= 0) throw std::logic_error(\"[{packet_name}::{func_name}] Empty data packet.\");\n",
+            f"\tif (!stream_.isValid()) throw std::logic_error(\"[{packet_name}::{func_name}] Stream not acquired.\");\n",
+            f"\tif (pinnedPtrs_ == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] No pinned pointers set.\");\n"
+            "\tRuntimeBackend::instance().releaseStream(stream_);\n"
+            "\tassert(!stream_.isValid());\n\n",
+            # "\tunsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n"
         ])
-        indent = 2 * '\t'
+
         file.writelines([
-            f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
-            f"{indent}Real* data_h = tileDesc_h->dataPtr();\n",
-            f"{indent}const Real* data_p = pinnedPtrs_[n].{ 'CC1' if T_IN_OUT in params else 'CC2' }_data;\n", # TODO: This doesn't work with the location key in JSON
-            f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid pointer to data in host memory.\");\n",
-            f"{indent}if (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n",
-            f"{indent}{SIZE_T} nBytes;\n\n"
+            "\tfor (auto n=0; n < tiles_.size(); ++n) {\n",
+            "\t\tTile* tileDesc_h = tiles_[n].get();\n",
+            "\t\tReal* data_h = tileDesc_h->dataPtr();\n",
+            f"\t\tconst Real* data_p = pinnedPtrs_[n].{ 'CC1' if T_IN_OUT in params else 'CC2' }_data;\n", # TODO: This doesn't work with the location key in JSON
+            f"\t\tif (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid pointer to data in host memory.\");\n",
+            f"\t\tif (data_p == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Invalid pointer to data in pinned memory.\");\n",
+            f"\t\t{SIZE_T} nBytes;\n\n"
         ])
 
         output = {**params.get(T_IN_OUT, {}), **params.get(T_OUT, {}) }
@@ -174,21 +174,21 @@ def generate_cpp_code_file(parameters: dict, args):
             start = output[item][start_key]
             end = output[item][end_key]
             data_type = output[item]['type']
+            num_elems_per_cc_per_var = ' * '.join(output[item][NUM_ELEMS])
             file.writelines([
-                f"{indent}if ( {start} < 0 || {end} < 0 || {end} >= {nunkvars} || {start} >= {nunkvars})\n",
-                f"{indent}{indent}throw std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
-                f"{indent}if ( {start} > {end} )\n",
-                f"{indent}{indent}throw std::logic_error(\"{packet_name}::{func_name}] Start > End\");\n\n",
-                f"{indent}{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
-                f"{indent}{data_type}* start_h = data_h + offset_{item};\n",
-                f"{indent}const {data_type}* start_p_{item} = data_p + offset_{item};\n",
-                f"{indent}nBytes = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n",
-                f"{indent}std::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"
+                f"\t\tif ( {start} < 0 || {end} < 0 || {end} >= {nunkvars} || {start} >= {nunkvars})\n",
+                f"\t\t\tthrow std::logic_error(\"[{packet_name}::{func_name}] Invalid variable mask\");\n"
+                f"\t\tif ( {start} > {end} )\n",
+                f"\t\t\tthrow std::logic_error(\"{packet_name}::{func_name}] Start > End\");\n\n",
+                f"\t\t{SIZE_T} offset_{item} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
+                f"\t\t{data_type}* start_h = data_h + offset_{item};\n",
+                f"\t\tconst {data_type}* start_p_{item} = data_p + offset_{item};\n",
+                f"\t\tnBytes = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n",
+                f"\t\tstd::memcpy(static_cast<void*>(start_h), static_cast<const void*>(start_p_{item}), nBytes);\n\n"
             ])
-        indent = '\t'
         file.writelines([
-            f"{indent}}}\n",
-            f"}}\n\n"
+            "\t}\n",
+            "}\n\n"
         ])
 
     # TODO: Improve pack generation code
@@ -236,15 +236,7 @@ def generate_cpp_code_file(parameters: dict, args):
                 if isinstance(subitem_dict, str): 
                     return f"pad(sizeof({subitem_dict}))"
                 # print(subitem_dict)
-                start = START if START in subitem_dict else f"{START}-in"
-                end = END if END in subitem_dict else f"{END}-in"
-                extents, nunkvar, indexer = mdata.parse_extents(subitem_dict['extents'], subitem_dict[start], subitem_dict[end], subitem_dict['type'], args.language)
-                # Add the items from parse_extents so we only need to call it once.
-                subitem_dict[EXPANDED] = extents
-                subitem_dict[NUNK] = nunkvar
-                subitem_dict[INDEXER] = indexer
-                # print(subitem_dict)
-                return extents
+                return subitem_dict[EXPANDED]
 
             def generate_mdata_size(mdata_item):
                 if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
@@ -362,7 +354,7 @@ def generate_cpp_code_file(parameters: dict, args):
         ])
 
         ### DETERMINE GENERAL POINTERS
-        general_copy_in_string = ""
+        general_copy_in = []
         params.get(GENERAL, {})["nTiles"] = f"{SIZE_T}"
         general = sorted(params.get(GENERAL, []), key=lambda x: sizes.get(params[GENERAL][x], 0) if sizes else 1, reverse=True)
         # Note: We add nTiles to general to make generation easier but nTiles cannot be const because it is set in pack().
@@ -375,7 +367,7 @@ def generate_cpp_code_file(parameters: dict, args):
                 f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
             const = "const " if item != N_TILES else ""
-            general_copy_in_string += f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n"
+            general_copy_in.append(f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n")
         if args.language == mdata.Language.cpp:
             file.writelines([
                 f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
@@ -414,30 +406,29 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}ptr_d = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n\n"
         ])
 
-        def write_section_pointers(section, item_key, start_key, end_key, copy_string, language, fp):
+        def write_section_pointers(section, item_key, start_key, end_key, copy_string, fp):
             start = params[section][item_key][start_key]
             end = params[section][item_key][end_key]
             data_type = params[section][item_key]['type']
-            # extents = params[section][item_key][EXPANDED]
             nunkvars = params[section][item_key][NUNK]
-            # extents, nunkvars, empty = mdata.parse_extents(params[section][item_key]['extents'], start, end, language)
-            num_elems_per_cc_per_var = f'({item_key}{BLOCK_SIZE} / ( ({nunkvars}) * sizeof({data_type})) )'
+            num_elems_per_cc_per_var = ' * '.join( params[section][item_key][NUM_ELEMS] )
             fp.writelines([
                 f"\t{item_key}{START_P} = static_cast<void*>(ptr_p);\n",
                 f"\t{item_key}{START_D} = static_cast<void*>(ptr_d);\n",
                 f"\tptr_p += {N_TILES} * {item_key}{BLOCK_SIZE};\n",
                 f"\tptr_d += {N_TILES} * {item_key}{BLOCK_SIZE};\n\n"
             ])
-            copy_string += f"\t\t{SIZE_T} offset_{item_key} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n"
-            copy_string += f"\t\t{SIZE_T} nBytes_{item_key} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n"
-            copy_string += f"\t\tchar_ptr = static_cast<char*>({item_key}{START_P}) + n * {item_key}{BLOCK_SIZE};\n"
-            copy_string += f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item_key}), nBytes_{item_key});\n"
-            return copy_string
+            copy_string.extend([
+                f"\t\t{SIZE_T} offset_{item_key} = ({num_elems_per_cc_per_var}) * static_cast<{SIZE_T}>({start});\n",
+                f"\t\t{SIZE_T} nBytes_{item_key} = ( ({end}) - ({start}) + 1 ) * ({num_elems_per_cc_per_var}) * sizeof({data_type});\n",
+                f"\t\tchar_ptr = static_cast<char*>({item_key}{START_P}) + n * {item_key}{BLOCK_SIZE};\n",
+                f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(data_h + offset_{item_key}), nBytes_{item_key});\n"
+            ])
 
         # TILE-IN POINTERS
-        data_copy_string = ""
+        data_copy = []
         for item in sorted( params.get(T_IN, {}), key=lambda x: sizes.get(params[T_IN][x]['type'], 0) if sizes else 1, reverse=True ):
-            data_copy_string += write_section_pointers( T_IN, item, 'start', 'end', data_copy_string, args.language, file )
+            write_section_pointers( T_IN, item, 'start', 'end', data_copy, file )
         ###
 
         file.writelines([
@@ -453,15 +444,15 @@ def generate_cpp_code_file(parameters: dict, args):
         # TODO: We don't need to worry about data location since generated code should automatically know the data location.
         # TODO: When do we change where the start of CC1 and CC2 data is located?
         for item in sorted( params.get(T_IN_OUT, {}), key=lambda x: sizes.get(params[T_IN_OUT][x]['type'], 0) if sizes else 1, reverse=True ):
-            data_copy_string += write_section_pointers( T_IN_OUT, item, 'start-in', 'end-in', data_copy_string, args.language, file )
             location = params[T_IN_OUT][item]['location']
-            data_copy_string += f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
+            write_section_pointers( T_IN_OUT, item, 'start-in', 'end-in', data_copy, file )
+            data_copy.append(f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n")
         file.write(f"\t// end copy in out\n\n")
         ### 
 
         ### DETERMINE COPY OUT POINTERS
         file.write(f"\t// copy out section\n")
-        out_location = ""
+        out_location = []
         if T_OUT in params:
             file.writelines([
                 f"{indent}char* copyOutStart_p = copyInOutStart_p_ + {T_IN_OUT.replace('-', '')}DataBytesPadded;\n",
@@ -470,30 +461,29 @@ def generate_cpp_code_file(parameters: dict, args):
                 f"{indent}ptr_d = copyOutStart_d;\n\n"
             ])
         for item in sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ):
-            out_location += write_section_pointers(T_OUT, item, 'start', 'end', out_location, args.language, file)
             location = params[T_OUT][item]['location']
-            out_location += f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n"
+            write_section_pointers(T_OUT, item, 'start', 'end', out_location, file)
+            out_location.append(f"\t\tpinnedPtrs_[n].{location}_data = static_cast<Real*>( static_cast<void*>(char_ptr) );\n\n")
         file.write(f"\t// end copy out\n\n")
         ###
-        file.write(f"{indent}/// END\n\n")
+        file.write(f"\t/// END\n\n")
 
         file.writelines([
-            f"{indent}if (pinnedPtrs_) throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
-            f"{indent}pinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n",
-            f"{indent}PacketContents* tilePtrs_p = contents_p_;\n",
-            f"{indent}char* char_ptr;\n",
-            f"{indent}unsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
-            f"{indent}/// MEM COPY SECTION\n",
-            general_copy_in_string,
-            "\n"
-        ])
+            f"\tif (pinnedPtrs_) throw std::logic_error(\"{packet_name}::pack Pinned pointers already exist\");\n",
+            f"\tpinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n",
+            "\tPacketContents* tilePtrs_p = contents_p_;\n",
+            "\tchar* char_ptr;\n",
+            "\tunsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
+            "\t/// MEM COPY SECTION\n",
+            ] + general_copy_in
+            + ["\n"]
+        )
             
         # tile specific metadata.
-        file.write(f"{indent}for ({SIZE_T} n=0; n < {N_TILES}; ++n{', ++tilePtrs_p' if args.language == mdata.Language.cpp else ''}) {{\n")
-        indent = "\t" * 2
+        file.write(f"\tfor ({SIZE_T} n=0; n < {N_TILES}; ++n{', ++tilePtrs_p' if args.language == mdata.Language.cpp else ''}) {{\n")
         file.writelines([
-            f"{indent}Tile* tileDesc_h = tiles_[n].get();\n",
-            f"{indent}if (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
+            f"\t\tTile* tileDesc_h = tiles_[n].get();\n",
+            f"\t\tif (tileDesc_h == nullptr) throw std::runtime_error(\"[{packet_name}::{func_name}] Bad tileDesc.\");\n",
         ])
 
         metadata_list = params.get(T_MDATA, [])
@@ -505,30 +495,30 @@ def generate_cpp_code_file(parameters: dict, args):
         for item in metadata_list:
                 item_type = mdata.tile_known_types[item]
                 # if item_type not in 
-                file.write(f"{indent}const {item_type} {item} = {TILE_DESC}->{item}();\n")
+                file.write(f"\t\tconst {item_type} {item} = {TILE_DESC}->{item}();\n")
 
         file.writelines([
-            f"{indent}Real* data_h = {TILE_DESC}->dataPtr();\n"
-            f"{indent}if (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n\n"
+            f"\t\tReal* data_h = {TILE_DESC}->dataPtr();\n"
+            f"\t\tif (data_h == nullptr) throw std::logic_error(\"[{packet_name}::{func_name}] Invalid ptr to data in host memory.\");\n\n"
         ])
 
         # TODO: Could we possibly merge T_MDATA and the device_array_pointers sections?
         for item in sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True):
             src = f"&{item}"
-            file.write(f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
+            file.write(f"\t\tchar_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n" )
             if args.language != mdata.Language.cpp:
                 if "vect" in mdata.tile_known_types[item].lower(): #array type
                     offset = " + 1" if 'int' in mdata.tile_known_types[item].lower() else ""
-                    file.write(f'{indent}{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}};\n')
+                    file.write(f'\t\t{mdata.cpp_equiv[mdata.tile_known_types[item]]} {item}_h[MILHOJA_MDIM] = {{{item}.I(){offset}, {item}.J(){offset}, {item}.K(){offset}}};\n')
                     src = f"{item}_h"
                 else: # primitive
                     ty = mdata.tile_known_types[item].replace('unsigned ', '')
-                    file.write(f"{indent}{ty} {item}_h = static_cast<{ty}>({item});\n")
+                    file.write(f"\t\t{ty} {item}_h = static_cast<{ty}>({item});\n")
                     src = f"&{item}_h"
             else:
-                file.write(f"{indent}tilePtrs_p->{item}_d = static_cast<{mdata.tile_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
-            file.write(f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
-        file.writelines([data_copy_string, out_location])
+                file.write(f"\t\ttilePtrs_p->{item}_d = static_cast<{mdata.tile_known_types[item]}*>(static_cast<void*>(char_ptr));\n")
+            file.write(f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>({src}), {item}{BLOCK_SIZE});\n\n")
+        file.writelines(data_copy + out_location)
 
         # only store farray pointers if user is using the fortran binding classes
         if args.language == mdata.Language.cpp:
@@ -537,20 +527,18 @@ def generate_cpp_code_file(parameters: dict, args):
                 section = device_array_pointers[item]['section']
                 data_type = device_array_pointers[item]['type']
                 location = device_array_pointers[item]['location']
-                start = START_IN if section == T_IN_OUT else START
-                end = END_IN if section == T_IN_OUT else END
-                # print(device_array_pointers)
-                extents, nunkvars, indexer = mdata.parse_extents(device_array_pointers[item]['extents'], device_array_pointers[item][start], device_array_pointers[item][end], args.language)
+                nunkvars = device_array_pointers[item][NUNK]
+                indexer = device_array_pointers[item][INDEXER]
                 # This is temporary until we get data locations sorted out
                 c_args = mdata.finterface_constructor_args[indexer] if indexer else mdata.finterface_constructor_args[location.lower()]
 
                 file.writelines([
-                    f"{indent}char_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n",
-                    f"{indent}tilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n",
-                    f"{indent}FArray{d}D {item}_d{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
-                    f"{indent}char_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
-                    # f"{indent}char_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
-                    f"{indent}std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
+                    f"\t\tchar_ptr = {location}_farray_start_d_ + n * sizeof(FArray4D);\n",
+                    f"\t\ttilePtrs_p->{location}_d = static_cast<FArray{d}D*>( static_cast<void*>(char_ptr) );\n",
+                    f"\t\tFArray{d}D {item}_d{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>({item}{START_D}) + n * {item}{BLOCK_SIZE} ) ), {c_args}, {nunkvars}}};\n"
+                    f"\t\tchar_ptr = {location}_farray_start_p_ + n * sizeof(FArray4D);\n"
+                    # f"\t\tchar_ptr = static_cast<char*>({item}{START_P}) + n * {item}{BLOCK_SIZE};\n"
+                    f"\t\tstd::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray{d}D));\n\n",
                 ])
 
         # request stream at end
@@ -760,14 +748,20 @@ def generate_cpp_header_file(parameters: dict, args):
             """Parses the array sections of the JSON. (scratch, t-in, t-in-out, t-out)"""
             for sect in [T_IN, T_IN_OUT, T_OUT, T_SCRATCH]:
                 for item in parameters.get(sect, {}):
+                    start = parameters[sect][item][f'{START}-in' if sect == T_IN_OUT else START]
+                    end = parameters[sect][item][f'{END}-in' if sect == T_IN_OUT else END]
+                    item_type = parameters[sect][item]['type']
+                    ext = parameters[sect][item]['extents']
+                    extents, nunkvar, indexer, num_elems = mdata.parse_extents(ext, start, end, item_type, args.language)
+                    parameters[sect][item][EXPANDED] = extents
+                    parameters[sect][item][NUNK] = nunkvar
+                    parameters[sect][item][INDEXER] = indexer
+                    parameters[sect][item][NUM_ELEMS] = num_elems
+                    print(num_elems)
                     if 'location' in parameters[sect][item]: farray_items.append(parameters[sect][item]['location'])
-                    item_type = parameters[sect][item] if not is_enumerable_type(parameters[sect][item]) else parameters[sect][item]['type']
                     types.add(item_type)
                     device_array_pointers[item] = {"section": sect, **parameters[sect][item]}
-
-                    private_variables.extend([ 
-                        f"\tvoid* {item}{START_D} = 0;\n"
-                    ])
+                    private_variables.append(f"\tvoid* {item}{START_D} = 0;\n")
                     if sect != T_SCRATCH:
                         private_variables.append(f"\tvoid* {item}{START_P} = 0;\n")
                     

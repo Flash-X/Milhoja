@@ -43,17 +43,17 @@ imap = {
 
 # NOTE: These are the fortran spaces, while cpp size map is specifically for use with cpp.
 fortran_size_map = {
-    'cc': "nxbGC_h * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size})",
-    'fcx': "(nxbGC_h + 1) * nybGC_h * nzbGC_h * ( {unk} ) * sizeof({size})",
-    'fcy': "nxbGC_h * (nybGC_h + 1) * nzbGC_h * ( {unk} ) * sizeof({size})",
-    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h + 1) * ( {unk} ) * sizeof({size})"
+    'cc': "nxbGC_h * nybGC_h * nzbGC_h * ({unk}) * sizeof({size})",
+    'fcx': "(nxbGC_h+1) * nybGC_h * nzbGC_h * ({unk}) * sizeof({size})",
+    'fcy': "nxbGC_h * (nybGC_h+1) * nzbGC_h * ({unk}) * sizeof({size})",
+    'fcz': "nxbGC_h * nybGC_h * (nzbGC_h+1) * ({unk}) * sizeof({size})"
 }
 
 cpp_size_map = {
-    'cc': "(nxb_ + 2 * {guard} * MILHOJA_K1D) * (nyb_ + 2 * {guard} * MILHOJA_K2D) * (nzb_ + 2 * {guard} * MILHOJA_K3D) * ( {unk} ) * sizeof({size})",
-    'fcx': "((nxb_+1) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * ( {unk} ) * sizeof({size})",
-    'fcy': "((nxb_) + 2 * {guard}) * ((nyb_+1) + 2 * {guard}) * ((nzb_) + 2 * {guard}) * ( {unk} ) * sizeof({size})",
-    'fcz': "((nxb_) + 2 * {guard}) * ((nyb_) + 2 * {guard}) * ((nzb_+1) + 2 * {guard}) * ( {unk} ) * sizeof({size})"
+    'cc': "(nxb_+2*{guard}*MILHOJA_K1D) * (nyb_+2*{guard}*MILHOJA_K2D) * (nzb_+2*{guard}*MILHOJA_K3D) * ({unk}) * sizeof({size})",
+    'fcx': "((nxb_+1)+2*{guard}) * ((nyb_)+2*{guard}) * ((nzb_)+2*{guard}) * ({unk}) * sizeof({size})",
+    'fcy': "((nxb_)+2*{guard}) * ((nyb_+1)+2*{guard}) * ((nzb_)+2*{guard}) * ({unk}) * sizeof({size})",
+    'fcz': "((nxb_)+2*{guard}) * ((nyb_)+2*{guard}) * ((nzb_+1)+2*{guard}) * ({unk}) * sizeof({size})"
 }
 
 finterface_constructor_args = {
@@ -65,12 +65,12 @@ finterface_constructor_args = {
 
 # Government sanctioned constants.
 constants = {
-    "NGUARD",
-    "NFLUXES",
-    "NUNKVAR"
+    "NGUARD": "nGuard_",
+    "NFLUXES": "nFluxVars_",
+    "NUNKVAR": "nCcVars_"
 }
 
-def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[str, str, str]:
+def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[str, str, str, list]:
     """
     Parses the extents string found in the packet JSON file.
 
@@ -83,6 +83,7 @@ def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[
         str - extents string\n
         str - nunkvars string\n
         str - indexer type\n
+        list - The number of elements per var
     """
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
@@ -94,29 +95,21 @@ def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[
 
         try:
             nguard = int(nguard)
-        except:
-            # if nguard is in the constants use as is
-            if nguard not in constants:
-                # our constants is contained in nguard, then we can use the string as is but print an error.
-                for constant in constants:
-                    if constant in nguard:
-                        break # if we find one of the constants in the string
-                else: #no break
-                    print(f"{nguard} not found in string. Aborting.", file=sys.stderr)
-                    exit(-1)
-                warnings.warn("Constant found in string, continuing...")
-            if nguard == "NGUARD":
-                nguard = "nGuard_"
-            elif nguard == "NFLUXES":
-                nguard = "nCcVars_"
-        
+        except Exception:
+            nguard = nguard.upper()
+            nguard = constants.get(nguard, -1)
+            if nguard == -1:
+                print("Constant not found")
+                exit(-1)
+
         if language == Language.cpp:
-            return cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size), f"( ({end}) - ({start}) + 1 )", indexer
+            parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
         elif language == Language.fortran:
-            return fortran_size_map[indexer].format(unk=f"( ({end}) - ({start}) + 1 )", size=size), f"( ({end}) - ({start}) + 1 )", indexer
+            parsed_exts = fortran_size_map[indexer].format(unk=f"( ({end}) - ({start}) + 1 )", size=size)
+        num_elems_per_arr = parsed_exts.split(' * ')[:-2]
+        return parsed_exts, f"( ({end}) - ({start}) + 1 )", indexer, num_elems_per_arr
     
     elif isinstance(extents, list):
-        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None
-    else:
-        print("Extents is not a string or list of numbers. Please refer to the documentation.")
-        exit(-1)
+        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None, extents[:-1]
+    print("Extents is not a string or list of numbers. Please refer to the documentation.")
+    exit(-1)
