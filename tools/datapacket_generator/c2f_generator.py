@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 """
+Generates the c2f layer for data packets.
 
+Note: The same JSON file used to generate the data packets must also be used as a parameter
+      for this script. 
 """
 
 import os
@@ -56,55 +59,54 @@ def generate_hydro_advance_c2f(data):
             'packet': {'ctype': 'type(C_PTR)'}, 
             **{ f'queue{i}': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(1, n_extra_streams+2) },
         }
-        
+
         # nTiles will always be a part of the argument list at the front.
         arg_order.insert(0, 'nTiles')
         gpu_pointers = { 'nTiles': { 'ftype': 'integer', 'ctype': 'type(C_PTR)' } }
         keys = [sects.GENERAL, sects.T_MDATA, sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH]
         for item in keys:
-            if item in data:
-                for key in data[item]:
-                    if item == sects.GENERAL:
-                        ftype = data[item][key].lower()
-                        if ftype=='int': 'integer'
-                        gpu_pointers[f'{key}'] = {
-                            'ftype': ftype,
-                            'ctype': 'type(C_PTR)'
-                        }
-                    elif item == sects.T_MDATA:
-                        ftype = mutil.cpp_equiv[mutil.tile_known_types[key]].lower()
-                        if ftype=='int': ftype='integer'
-                        shape = [3, 'F_nTiles_h']
-                        gpu_pointers[f'{key}'] = {
-                            'ftype': ftype,
-                            'ctype': 'type(C_PTR)',
-                            'shape': shape
-                        }
-                    elif item in {sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH}:
-                        ftype = data[item][key]['type'].lower()
-                        if ftype=='int': ftype='integer'
-                        start = data[item][key]['start' if 'start' in data[item][key] else 'start-in']
-                        end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
-                        # NOTE: Since this file will never be generated when using CPP, we can always
-                        #       use the fortran_size_map.
-                        if 'nTiles' not in extents_set:
-                            extents_set['nTiles'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
-                        shape, nunkvar, indexer = mutil.parse_extents(data[item][key]['extents'], start, end, size='', language=mutil.Language.fortran)
-                        if isinstance(data[item][key]['extents'], list):
-                            shape = data[item][key]['extents']
-                        else:
-                            ext = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
-                            extents_set = { **extents_set, **{ item.rsplit(' ')[0][2:-2]: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ext if item not in extents_set } }
-                            shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
-                            if start + end != 0: shape.append(nunkvar)
-                        shape.append('F_nTiles_h')
-                        
-                        gpu_pointers[f'{key}'] = {
-                            'ftype': ftype,
-                            'ctype': 'type(C_PTR)',
-                            'shape': shape
-                        } 
-        
+            for key in data.get(item, {}):
+                if item == sects.GENERAL:
+                    ftype = data[item][key].lower()
+                    if ftype=='int': 'integer'
+                    gpu_pointers[f'{key}'] = {
+                        'ftype': ftype,
+                        'ctype': 'type(C_PTR)'
+                    }
+                elif item == sects.T_MDATA:
+                    ftype = mutil.cpp_equiv[mutil.tile_known_types[key]].lower()
+                    if ftype=='int': ftype='integer'
+                    shape = [3, 'F_nTiles_h']
+                    gpu_pointers[f'{key}'] = {
+                        'ftype': ftype,
+                        'ctype': 'type(C_PTR)',
+                        'shape': shape
+                    }
+                elif item in {sects.T_IN, sects.T_IN_OUT, sects.T_OUT, sects.T_SCRATCH}:
+                    ftype = data[item][key]['type'].lower()
+                    if ftype=='int': ftype='integer'
+                    start = data[item][key]['start' if 'start' in data[item][key] else 'start-in']
+                    end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
+                    # NOTE: Since this file will never be generated when using CPP, we can always
+                    #       use the fortran_size_map.
+                    if 'nTiles' not in extents_set:
+                        extents_set['nTiles'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
+                    shape, nunkvar, indexer, num_elems = mutil.parse_extents(data[item][key]['extents'], start, end, size='', language=mutil.Language.fortran)
+                    if isinstance(data[item][key]['extents'], list):
+                        shape = data[item][key]['extents']
+                    else:
+                        ext = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                        extents_set = { **extents_set, **{ item.rsplit(' ')[0][2:-2]: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ext if item not in extents_set } }
+                        shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                        if start + end != 0: shape.append(nunkvar)
+                    shape.append('F_nTiles_h')
+
+                    gpu_pointers[f'{key}'] = {
+                        'ftype': ftype,
+                        'ctype': 'type(C_PTR)',
+                        'shape': shape
+                    } 
+
         # If the supplied argument order does not contain every argument in each section of the JSON,
         # or if the JSON sections contain extra items not contained in the argument list, then 
         # we abort the generation of this C2F layer for translating the packets.
@@ -113,7 +115,7 @@ def generate_hydro_advance_c2f(data):
             fp.close()
             exit(-1)
 
-        host_pointers = {**host_pointers, **extents_set}
+        host_pointers |= extents_set
 
         # get pointers for every section
         fp.write( ', &\n'.join(f'C_{item}_h' for item in host_pointers ) + ', &\n')
@@ -132,10 +134,15 @@ def generate_hydro_advance_c2f(data):
         fp.writelines( [ (f"""\t{host_pointers[item]['ftype']}{"" if "kind" not in host_pointers[item] else f"(kind={ host_pointers[item]['kind'] })" } :: F_{item}_h\n""" ) \
                         for item in host_pointers if 'ftype' in host_pointers[item]] + ['\n'] )
 
-        fp.writelines([
-            (f"""\t{gpu_pointers[item]['ftype']}, pointer :: F_{item}_d{'' if 'shape' not in gpu_pointers[item] else '(' + ','.join(':' for idx in range(0, len(gpu_pointers[item]["shape"]))) + ')' }\n""")
-                for item in gpu_pointers
-        ] + ['\n'])
+        fp.writelines(
+            (
+                [
+                    f"""\t{gpu_pointers[item]['ftype']}, pointer :: F_{item}_d{'' if 'shape' not in gpu_pointers[item] else '(' + ','.join(':' for _ in range(0, len(gpu_pointers[item]["shape"]))) + ')'}\n"""
+                    for item in gpu_pointers
+                ]
+                + ['\n']
+            )
+        )
 
         fp.writelines([
             (f"""\tF_{item}_h = INT(C_{item}_h{f', kind={host_pointers[item]["kind"]}' if "kind" in host_pointers[item] else ''})\n""") 
