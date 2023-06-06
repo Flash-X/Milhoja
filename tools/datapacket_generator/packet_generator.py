@@ -555,7 +555,7 @@ def generate_cpp_code_file(parameters: dict, args):
 
         # request stream at end
         file.writelines([
-            "\t}}\n",
+            "\t}\n",
             "\t/// END\n\n"
             "\tstream_ = RuntimeBackend::instance().requestStream(true);\n",
             f"\tif (!stream_.isValid()) throw std::runtime_error(\"[{packet_name}::pack] Unable to acquire stream\");\n",
