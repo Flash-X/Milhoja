@@ -87,21 +87,25 @@ def generate_hydro_advance_c2f(data):
                     if ftype=='int': ftype='integer'
                     start = data[item][key]['start' if 'start' in data[item][key] else 'start-in']
                     end = data[item][key]['end' if 'end' in data[item][key] else 'end-in']
+                    item_type = data[item][key]['type']
                     # NOTE: Since this file will never be generated when using CPP, we can always
                     #       use the fortran_size_map.
                     if 'nTiles' not in extents_set:
                         extents_set['nTiles'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
-                    shape, nunkvar, indexer, num_elems = mutil.parse_extents(data[item][key]['extents'], start, end, size='', language=mutil.Language.fortran)
+                    shape, nunkvar, indexer, num_elems = mutil.parse_extents(data[item][key]['extents'], start, end, size=item_type, language=mutil.Language.fortran)
                     if isinstance(data[item][key]['extents'], list):
                         shape = data[item][key]['extents']
                     else:
-                        ext = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
+                        ext = [ f"F_{ item.replace('(', '').replace(')', '').replace('+1', '') }" for item in shape.split(' * ')[:-2] ]
                         extents_set = { **extents_set, **{ item.rsplit(' ')[0][2:-2]: {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} for item in ext if item not in extents_set } }
                         shape = [ f"F_{ item.replace('(', '').replace(')', '') }" for item in shape.split(' * ')[:-2] ]
                         if start + end != 0: shape.append(nunkvar)
                     shape.append('F_nTiles_h')
 
-                    gpu_pointers[f'{key}'] = {
+                    # print(shape, '\n')
+                    # print(extents_set, '\n')
+
+                    gpu_pointers[key] = {
                         'ftype': ftype,
                         'ctype': 'type(C_PTR)',
                         'shape': shape
@@ -115,7 +119,7 @@ def generate_hydro_advance_c2f(data):
             fp.close()
             exit(-1)
 
-        host_pointers |= extents_set
+        host_pointers.update(extents_set)
 
         # get pointers for every section
         fp.write( ', &\n'.join(f'C_{item}_h' for item in host_pointers ) + ', &\n')
