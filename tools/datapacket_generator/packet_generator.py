@@ -6,8 +6,6 @@ Packet generator for Milhoja. Script takes in a
 JSON file and generates cpp code for a data packet
 based on the contents of the json file.
 
-TODO: parse_extents really should only be called once per item in the JSON if necessary, not multiple times.
-
 """
 
 import os.path
@@ -160,7 +158,6 @@ def generate_cpp_code_file(parameters: dict, args):
             f"\tint   nCcVars_h   = -1;\n",
             f"\tint   nFluxVars_h = -1;\n",
             f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n\n"
-            # "\tunsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n"
         ])
 
         file.writelines([
@@ -478,7 +475,6 @@ def generate_cpp_code_file(parameters: dict, args):
             f"\tpinnedPtrs_ = new BlockPointersPinned[{N_TILES}];\n",
             "\tPacketContents* tilePtrs_p = contents_p_;\n",
             "\tchar* char_ptr;\n",
-            "\tunsigned int ELEMS_PER_CC_PER_VAR = (nxb_ + 2 * nGuard_ * MILHOJA_K1D) * (nyb_ + 2 * nGuard_ * MILHOJA_K2D) * (nzb_ + 2 * nGuard_ * MILHOJA_K3D);\n\n",
             "\t/// MEM COPY SECTION\n",
             ] + general_copy_in
             + ["\n"]
@@ -848,5 +844,15 @@ if __name__ == "__main__":
         data = json.load(file)
         data["file_name"] = file.name.replace(".json", "")
         data["name"] = os.path.basename(file.name).replace(".json", "")
+        clean = mdata.check_task_argument_list(data)
+        if not clean:
+            print("There are duplicates in task argument order or the the order list does not match the arguments.")
+            exit(-1)
+
+        # import timeit
+        # t = timeit.Timer(lambda: generate_cpp_header_file(data, args))
+        # t2 = timeit.Timer(lambda: generate_cpp_code_file(data, args))
         generate_cpp_header_file(data, args)
         generate_cpp_code_file(data, args)
+        # print(t.timeit(10000), t2.timeit(10000))
+

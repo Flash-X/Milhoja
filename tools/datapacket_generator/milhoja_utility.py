@@ -3,6 +3,7 @@ import warnings
 from enum import Enum
 from typing import Tuple
 from typing import Union
+import json_sections
 
 class Language(Enum):
     cpp = 'cpp'
@@ -51,9 +52,9 @@ fortran_size_map = {
 
 cpp_size_map = {
     'cc': "(nxb_+2*{guard}*MILHOJA_K1D) * (nyb_+2*{guard}*MILHOJA_K2D) * (nzb_+2*{guard}*MILHOJA_K3D) * ({unk}) * sizeof({size})",
-    'fcx': "((nxb_+1)+2*{guard}) * ((nyb_)+2*{guard}) * ((nzb_)+2*{guard}) * ({unk}) * sizeof({size})",
-    'fcy': "((nxb_)+2*{guard}) * ((nyb_+1)+2*{guard}) * ((nzb_)+2*{guard}) * ({unk}) * sizeof({size})",
-    'fcz': "((nxb_)+2*{guard}) * ((nyb_)+2*{guard}) * ((nzb_+1)+2*{guard}) * ({unk}) * sizeof({size})"
+    'fcx': "((nxb_+1)+2*{guard}*MILHOJA_K1D) * ((nyb_)+2*{guard}*MILHOJA_K2D) * ((nzb_)+2*{guard}*MILHOJA_K3D) * ({unk}) * sizeof({size})",
+    'fcy': "((nxb_)+2*{guard}*MILHOJA_K1D) * ((nyb_+1)+2*{guard}*MILHOJA_K2D) * ((nzb_)+2*{guard}*MILHOJA_K3D) * ({unk}) * sizeof({size})",
+    'fcz': "((nxb_)+2*{guard}*MILHOJA_K1D) * ((nyb_)+2*{guard}*MILHOJA_K2D) * ((nzb_+1)+2*{guard}*MILHOJA_K3D) * ({unk}) * sizeof({size})"
 }
 
 finterface_constructor_args = {
@@ -70,7 +71,20 @@ constants = {
     "NUNKVAR": "nCcVars_"
 }
 
-def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[str, str, str, list]:
+def get_nguard(extents: list):
+    """Gets the number of guard cells from the extents array."""
+    nguard = extents[1].strip()
+    try:
+        nguard = int(nguard)
+    except Exception:
+        nguard = constants.get(nguard.upper(), -1)
+        if nguard == -1:
+            print("Constant not found")
+            exit(-1)
+    return nguard
+
+
+def parse_extents(extents, start, end, size, language=Language.cpp) -> Tuple[str, str, str, list]:
     """
     Parses the extents string found in the packet JSON file.
 
@@ -87,29 +101,52 @@ def parse_extents(extents, start, end, size='', language=Language.cpp) -> Tuple[
     """
     # check if extents is a string or or an enumerable
     if isinstance(extents, str):
-        if extents[-1] == ')': extents = extents[:-1]
-        else: print(f"{extents} is not closed properly.")
+        if extents[-1] != ')':
+            # TODO: This is not sufficient for checking adequate parenthesis
+            print(f'{extents} is not closed properly.')
+            exit(-1)
+
+        extents = extents[:-1]
         sp = extents.split('(')
         indexer = sp[0]
-        nguard = sp[1].strip()
-
-        try:
-            nguard = int(nguard)
-        except Exception:
-            nguard = nguard.upper()
-            nguard = constants.get(nguard, -1)
-            if nguard == -1:
-                print("Constant not found")
-                exit(-1)
+        nguard = get_nguard(sp)
 
         if language == Language.cpp:
             parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
         elif language == Language.fortran:
             parsed_exts = fortran_size_map[indexer].format(unk=f"( ({end}) - ({start}) + 1 )", size=size)
-        num_elems_per_arr = parsed_exts.split(' * ')[:-2]
+        
+        parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
+        num_elems_per_arr = parsed_exts.split(' * ')[:-2]#[ item.replace('(', '').replace(')', '') for item in parsed_exts.split(' * ')[:-2] ]
         return parsed_exts, f"( ({end}) - ({start}) + 1 )", indexer, num_elems_per_arr
     
     elif isinstance(extents, list):
-        return "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }', extents[-1], None, extents[:-1]
+        parsed_extents = "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }'
+        return parsed_extents, extents[-1], None, extents[:-1]
     print("Extents is not a string or list of numbers. Please refer to the documentation.")
     exit(-1)
+
+def check_task_argument_list(data: dict) -> bool:
+    """
+    Checks if the keys in the task function argument list are all present in the JSON
+    input, as well as checks if any duplicates exist between JSON keys. 
+
+    Parameters:
+        data The JSON dictionary
+    Returns:
+        - True if both all items in the JSON are present in the list and there are no duplicates.
+    """
+    task_arguments = data.get(json_sections.ORDER, {})
+    if not task_arguments:
+        print("Missing task argument list!")
+        return False
+    all_items_list = [ set(data[section]) for section in json_sections.ALL_SECTIONS if section in data ]
+    if set.intersection( *all_items_list ):
+        print("Duplicate items in JSON!")
+        return False
+    all_items_list = set.union(*all_items_list)
+    if all_items_list ^ set(task_arguments):
+        print("Missing arguments in sections or argument list.")
+    return True
+
+    
