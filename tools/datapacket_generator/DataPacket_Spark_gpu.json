@@ -44,8 +44,8 @@
       "Uin": {
         "location": "CC1",
         "type": "Real",
-        "start": "UNK_VARS_START",
-        "end": "UNK_VARS_END",
+        "start": 0,
+        "end": 17,
         "extents": "cc(NGUARD)"
       }
     },
@@ -53,8 +53,8 @@
       "Uout": {
         "location": "CC2",
         "type": "Real",
-        "start": "UNK_VARS_START",
-        "end": "UNK_VARS_END",
+        "start": 0,
+        "end": 17,
         "extents": "cc(NGUARD)"
       }
     }

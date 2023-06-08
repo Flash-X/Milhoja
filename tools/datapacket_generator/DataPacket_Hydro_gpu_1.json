@@ -25,8 +25,8 @@
   "tile-in": {
     "Uin": {
       "location": "CC1",
-      "start": "UNK_VARS_BEGIN",
-      "end": "GAMC_VAR",
+      "start": 0,
+      "end": 8,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }
@@ -34,8 +34,8 @@
   "tile-out": {
     "Uout": {
       "location": "CC2",
-      "start": "UNK_VARS_BEGIN",
-      "end": "EINT_VAR",
+      "start": 0,
+      "end": 7,
       "type": "Real",
       "extents": "cc(NGUARD)"
     }
