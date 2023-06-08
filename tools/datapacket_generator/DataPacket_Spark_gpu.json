@@ -2,6 +2,9 @@
     "byte-align": 16,
     "problem": "Sedov",
     "n-extra-streams": 0,
+    "task-function-argument-list": ["dt","dtOld","smallDens","smallPres","smallE","cvisc","C_hyp","tiny",
+                                    "hybridRiemann", "levels", "deltas", "lo", "hi", "loGC", "hiGC", 
+                                    "Uin", "Uout", "FCX", "FCY", "FCZ" ],
     "tile-scratch": {
       "FCX": {
         "location": "FCX",

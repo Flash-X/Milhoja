@@ -1,6 +1,7 @@
 {
   "n-extra-streams": 1,
   "problem": "Sedov",
+  "task-function-argument-list": [ "dt","deltas", "lo", "hi", "Uin", "Uout", "FCX", "FCY" ],
   "tile-scratch": {
     "FCX": {
       "location": "FCX",
@@ -22,7 +23,7 @@
   },
   "tile-metadata": [ "deltas", "lo", "hi" ],
   "tile-in": {
-    "CC1": {
+    "Uin": {
       "location": "CC1",
       "start": "UNK_VARS_BEGIN",
       "end": "GAMC_VAR",
@@ -31,7 +32,7 @@
     }
   },
   "tile-out": {
-    "CC2": {
+    "Uout": {
       "location": "CC2",
       "start": "UNK_VARS_BEGIN",
       "end": "EINT_VAR",
