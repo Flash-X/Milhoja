@@ -119,7 +119,7 @@ def parse_extents(extents, start, end, size, language=Language.cpp) -> Tuple[str
         # parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
         num_elems_per_arr = parsed_exts.split(' * ')[:-2]#[ item.replace('(', '').replace(')', '') for item in parsed_exts.split(' * ')[:-2] ]
         return parsed_exts, f"( ({end}) - ({start}) + 1 )", indexer, num_elems_per_arr
-    
+
     elif isinstance(extents, list):
         parsed_extents = "(" + ' * '.join([str(item) for item in extents]) + f'){ "" if size == "" else f" * sizeof({size})" }'
         return parsed_extents, extents[-1], None, extents[:-1]
@@ -148,5 +148,3 @@ def check_task_argument_list(data: dict) -> bool:
     if all_items_list ^ set(task_arguments):
         print("Missing arguments in sections or argument list.")
     return True
-
-    
