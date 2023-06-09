@@ -116,7 +116,7 @@ def parse_extents(extents, start, end, size, language=Language.cpp) -> Tuple[str
         elif language == Language.fortran:
             parsed_exts = fortran_size_map[indexer].format(unk=f"( ({end}) - ({start}) + 1 )", size=size)
         
-        parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
+        # parsed_exts = cpp_size_map[indexer].format(guard=nguard, unk=f"( ({end}) - ({start}) + 1 )", size=size)
         num_elems_per_arr = parsed_exts.split(' * ')[:-2]#[ item.replace('(', '').replace(')', '') for item in parsed_exts.split(' * ')[:-2] ]
         return parsed_exts, f"( ({end}) - ({start}) + 1 )", indexer, num_elems_per_arr
     

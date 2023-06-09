@@ -43,7 +43,6 @@ def generate_hydro_advance_c2f(data):
     """
     with open("dr_hydro_advance_packet_oacc_C2F.F90", 'w') as fp:
         extents_set = {}
-        arg_order = data[sects.ORDER]
         fp.writelines([
             '!! This code was generated using C2F_generator.py.\n',
             LICENSE_BLOCK,
@@ -57,9 +56,10 @@ def generate_hydro_advance_c2f(data):
         n_extra_streams = data.get('n-extra-streams', 0)
         host_pointers = {
             'packet': {'ctype': 'type(C_PTR)'}, 
-            **{ f'queue{i}': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(1, n_extra_streams+2) },
+            **{ f'queue{i}': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)', 'kind': 'acc_handle_kind'} for i in range(1, n_extra_streams+2) }
         }
 
+        arg_order = data[sects.ORDER]
         # nTiles will always be a part of the argument list at the front.
         arg_order.insert(0, 'nTiles')
         gpu_pointers = { 'nTiles': { 'ftype': 'integer', 'ctype': 'type(C_PTR)' } }
@@ -68,6 +68,7 @@ def generate_hydro_advance_c2f(data):
             for key in data.get(item, {}):
                 if item == sects.GENERAL:
                     ftype = data[item][key].lower()
+                    # ftype = value.lower()
                     if ftype=='int': 'integer'
                     gpu_pointers[f'{key}'] = {
                         'ftype': ftype,
@@ -77,7 +78,7 @@ def generate_hydro_advance_c2f(data):
                     ftype = mutil.cpp_equiv[mutil.tile_known_types[key]].lower()
                     if ftype=='int': ftype='integer'
                     shape = [3, 'F_nTiles_h']
-                    gpu_pointers[f'{key}'] = {
+                    gpu_pointers[key] = {
                         'ftype': ftype,
                         'ctype': 'type(C_PTR)',
                         'shape': shape
@@ -102,9 +103,6 @@ def generate_hydro_advance_c2f(data):
                         if start + end != 0: shape.append(nunkvar)
                     shape.append('F_nTiles_h')
 
-                    # print(shape, '\n')
-                    # print(extents_set, '\n')
-
                     gpu_pointers[key] = {
                         'ftype': ftype,
                         'ctype': 'type(C_PTR)',
@@ -122,9 +120,9 @@ def generate_hydro_advance_c2f(data):
         host_pointers.update(extents_set)
 
         # get pointers for every section
-        fp.write( ', &\n'.join(f'C_{item}_h' for item in host_pointers ) + ', &\n')
-        fp.write( ', &\n'.join(f'C_{item}_d' for item in arg_order ) )
         fp.writelines([
+            ', &\n'.join(f'C_{item}_h' for item in host_pointers) + ', &\n',
+            ', &\n'.join(f'C_{item}_d' for item in arg_order),
             ') bind(c)\n',
             '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
             '\tuse openacc, ONLY : acc_handle_kind\n',
@@ -166,8 +164,7 @@ def generate_hydro_advance_c2f(data):
                         f', &\n',
                         f', &\n'.join( f'\t\tF_{ptr}_d' if 'ftype' in gpu_pointers[ptr] else f'C_{ptr}_h' for ptr in arg_order )
         ])
-        fp.write(')\n')
-        fp.write('end subroutine dr_hydro_advance_packet_oacc_c2f')
+        fp.write(')\nend subroutine dr_hydro_advance_packet_oacc_c2f')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")

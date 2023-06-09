@@ -224,7 +224,8 @@ def generate_cpp_code_file(parameters: dict, args):
             f"{indent}/// SIZE DETERMINATION\n"
         ])
 
-        def write_block_sizes():
+        def write_block_sizes() -> None:
+            """Writes the block sizes of each item in the JSON."""
             # some misc constructor code for calculating block sizes.
             if args.language == mdata.Language.fortran:
                 file.writelines([
@@ -235,12 +236,14 @@ def generate_cpp_code_file(parameters: dict, args):
                     f"\tint   nFluxVars_h = -1;\n",
                     f"\ttileSize_host(&nxbGC_h, &nybGC_h, &nzbGC_h, &nCcVars_h, &nFluxVars_h);\n"
                 ])    
-            def generate_size_string(subitem_dict, args):
+            def generate_size_string(subitem_dict: dict, args) -> str:
+                """Generates the size string for a non metadata item in the JSON."""
                 if isinstance(subitem_dict, str): 
                     return f"pad(sizeof({subitem_dict}))"
                 return subitem_dict[EXPANDED]
 
             def generate_mdata_size(mdata_item):
+                """Generates the size string for a metadata item in the JSON"""
                 if args.language != mdata.Language.cpp and mdata.tile_known_types[mdata_item] in mdata.cpp_equiv:
                     return f"MILHOJA_MDIM * sizeof({mdata.cpp_equiv[mdata.tile_known_types[mdata_item]]})"
                 return f"sizeof({mdata.tile_known_types[mdata_item]})"
