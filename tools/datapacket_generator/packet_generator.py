@@ -98,15 +98,14 @@ def generate_cpp_code_file(parameters: dict, args):
         Returns:
             None
         """
-        indent = "\t"
         # function definition
         file.writelines([
             f"{params['name']}::{params['name']}({ ', '.join( f'{item[1]} {NEW}{item[0]}' for item in constructor_args) }) : milhoja::DataPacket{{}}, \n",
-            f"".join(f"{indent}{variable}{{ {initialize[variable] } }},\n" for variable in initialize),
-            f",\n".join(f"{indent}{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
+            f"".join(f"\t{variable}{{ {initialize[variable] } }},\n" for variable in initialize),
+            f",\n".join(f"\t{item}{HOST}{{new_{item}}}" for item in params.get(GENERAL, [])),
             "\n{\n",
-            f"{indent}using namespace milhoja;\n",
-            f"{indent}milhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
+            f"\tusing namespace milhoja;\n",
+            f"\tmilhoja::Grid::instance().getBlockSize(&nxb_, &nyb_, &nzb_);\n",
         ])
 
         file.write("}\n\n")
@@ -209,19 +208,18 @@ def generate_cpp_code_file(parameters: dict, args):
         """
         packet_name = params["name"]
         func_name = "pack"
-        indent = "\t"
         
         # Error checking
         file.writelines([
             f"void {packet_name}::pack(void) {{\n",
-            f"{indent}using namespace milhoja;\n",
-            f"{indent}std::string errMsg = isNull();\n",
-            f"{indent}if (errMsg != \"\")\n",
-            f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] \" + errMsg);\n"
-            f"{indent}else if (tiles_.size() == 0)\n",
-            f"{indent*2}throw std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
-            f"{indent}\n",
-            f"{indent}/// SIZE DETERMINATION\n"
+            f"\tusing namespace milhoja;\n",
+            f"\tstd::string errMsg = isNull();\n",
+            f"\tif (errMsg != \"\")\n",
+            f"\t\tthrow std::logic_error(\"[{packet_name}::{func_name}] \" + errMsg);\n"
+            f"\telse if (tiles_.size() == 0)\n",
+            f"\t\tthrow std::logic_error(\"[{packet_name}::{func_name}] No tiles added.\");\n"
+            f"\t\n",
+            f"\t/// SIZE DETERMINATION\n"
         ])
 
         def write_block_sizes() -> None:
@@ -260,12 +258,12 @@ def generate_cpp_code_file(parameters: dict, args):
         write_block_sizes()
 
         file.writelines([
-            f"{indent}{N_TILES} = tiles_.size();\n"
-            f"{indent}{SIZE_T} nTiles{BLOCK_SIZE} = sizeof(int);\n"
+            f"\t{N_TILES} = tiles_.size();\n"
+            f"\t{SIZE_T} nTiles{BLOCK_SIZE} = sizeof(int);\n"
         ])
 
         # # Scratch section generation.
-        file.write(f"\n{indent}// Scratch section\n")
+        file.write(f"\n\t// Scratch section\n")
         bytesToGpu = []
         returnToHost = []
         bytesPerPacket = []
@@ -275,8 +273,8 @@ def generate_cpp_code_file(parameters: dict, args):
         # # Copy-in section generation.
         # Non tile specific data
         file.writelines([
-            f"{indent}// non tile specific data\n",
-            f"{indent}{SIZE_T} generalDataBytes = nTiles{BLOCK_SIZE} "
+            f"\t// non tile specific data\n",
+            f"\t{SIZE_T} generalDataBytes = nTiles{BLOCK_SIZE} "
         ])
         p_contents_size = f" + {N_TILES} * sizeof(PacketContents)" if args.language == mdata.Language.cpp else ""
         if args.language == mdata.Language.fortran:
@@ -284,8 +282,8 @@ def generate_cpp_code_file(parameters: dict, args):
         file.writelines([ 
             f" + { ' + '.join(f'{item}{BLOCK_SIZE}' for item in params.get(GENERAL, [])) }",
             f"{p_contents_size};\n", # we can eventually get rid of packet contents so this will have to change.
-            f"{indent}{SIZE_T} generalDataBytesPadded = pad(generalDataBytes);\n",
-            f"{indent}if (generalDataBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] General padding failure\");\n\n"
+            f"\t{SIZE_T} generalDataBytesPadded = pad(generalDataBytes);\n",
+            f"\tif (generalDataBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] General padding failure\");\n\n"
         ])
         bytesToGpu.append("generalDataBytesPadded")
         bytesPerPacket.append("generalDataBytesPadded")
@@ -296,9 +294,9 @@ def generate_cpp_code_file(parameters: dict, args):
         size = ' + ' + ' + '.join( f'{item}{BLOCK_SIZE}' for item in t_mdata ) if t_mdata else "" 
         scratch_arrays = "0" if args.language != mdata.Language.cpp else f"( ({nScratchArrs} + {number_of_arrays}) * sizeof(FArray4D) )"
         file.writelines([
-            f"{indent}{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n",
-            f"{indent}{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n",
-            f"{indent}if (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Metadata padding failure\");\n\n"
+            f"\t{SIZE_T} nBlockMetadataPerTileBytes = {N_TILES} * ( {scratch_arrays}{size} );\n",
+            f"\t{SIZE_T} nBlockMetadataPerTileBytesPadded = pad(nBlockMetadataPerTileBytes);\n",
+            f"\tif (nBlockMetadataPerTileBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] Metadata padding failure\");\n\n"
         ])
         bytesToGpu.append("nBlockMetadataPerTileBytesPadded")
         bytesPerPacket.append("nBlockMetadataPerTileBytesPadded")
@@ -309,9 +307,9 @@ def generate_cpp_code_file(parameters: dict, args):
             size = ' + '.join( f'{item}{BLOCK_SIZE}' for item in sect_dict) if sect_dict else "0"
             sect = section.replace('-', '')
             file.writelines([
-                f"{indent}{SIZE_T} {sect}DataBytes = ({size}) * {N_TILES};\n",
-                f"{indent}{SIZE_T} {sect}DataBytesPadded = pad({sect}DataBytes);\n",
-                f"{indent}if ({sect}DataBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] {sect}Bytes padding failure\");\n\n"
+                f"\t{SIZE_T} {sect}DataBytes = ({size}) * {N_TILES};\n",
+                f"\t{SIZE_T} {sect}DataBytesPadded = pad({sect}DataBytes);\n",
+                f"\tif ({sect}DataBytesPadded % ALIGN_SIZE != 0) throw std::logic_error(\"[{packet_name}] {sect}Bytes padding failure\");\n\n"
             ])
             if 'in' in sect:
                 bytesToGpu.append(f"{sect}DataBytesPadded")
@@ -320,12 +318,12 @@ def generate_cpp_code_file(parameters: dict, args):
             bytesPerPacket.append(f"{sect}DataBytesPadded")
 
         file.writelines([
-            f"{indent}// Copy out section\n",
-            f"{indent}nCopyToGpuBytes_ = {' + '.join(bytesToGpu)};\n",
-            f"{indent}nReturnToHostBytes_ = {' + '.join(returnToHost)};\n",
-            f"{indent}{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n",
-            f"{indent}RuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {T_SCRATCH.replace('-', '')}DataBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n",
-            f"{indent}/// END\n\n"
+            f"\t// Copy out section\n",
+            f"\tnCopyToGpuBytes_ = {' + '.join(bytesToGpu)};\n",
+            f"\tnReturnToHostBytes_ = {' + '.join(returnToHost)};\n",
+            f"\t{SIZE_T} nBytesPerPacket = {' + '.join(bytesPerPacket)};\n",
+            f"\tRuntimeBackend::instance().requestGpuMemory(nBytesPerPacket - {T_SCRATCH.replace('-', '')}DataBytesPadded, &packet_p_, nBytesPerPacket, &packet_d_);\n",
+            f"\t/// END\n\n"
         ])
 
         # END SIZE  DETERMINATION
@@ -336,25 +334,25 @@ def generate_cpp_code_file(parameters: dict, args):
                 sizes = json.load(s)
 
         file.writelines([
-            f"{indent}/// POINTER DETERMINATION\n",
-            f"{indent}static_assert(sizeof(char) == 1);\n",
-            f"{indent}char* ptr_d = static_cast<char*>(packet_d_);\n\n",
-            f"{indent}// scratch section\n"
+            f"\t/// POINTER DETERMINATION\n",
+            f"\tstatic_assert(sizeof(char) == 1);\n",
+            f"\tchar* ptr_d = static_cast<char*>(packet_d_);\n\n",
+            f"\t// scratch section\n"
         ])
 
         ### DETERMINE SCRATCH POINTERS
         scr = sorted( params.get(T_SCRATCH, {}), key=lambda x: sizes.get(params[T_SCRATCH][x]['type'], 0) if sizes else 1, reverse=True )
-        file.writelines([ f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n" for item in scr ])
-        file.write(f"{indent}// end scratch\n\n")
+        file.writelines([ f"\t{item}{START_D} = static_cast<void*>(ptr_d);\n\tptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n" for item in scr ])
+        file.write(f"\t// end scratch\n\n")
         ###
 
         location = "CC1"
         file.writelines([
-            f"{indent}location_ = PacketDataLocation::{location};\n",
-            f"{indent}copyInStart_p_ = static_cast<char*>(packet_p_);\n",
-            f"{indent}copyInStart_d_ = static_cast<char*>(packet_d_) + {T_SCRATCH.replace('-', '')}DataBytesPadded;\n",
-            f"{indent}char* ptr_p = copyInStart_p_;\n"
-            f"{indent}ptr_d = copyInStart_d_;\n\n",
+            f"\tlocation_ = PacketDataLocation::{location};\n",
+            f"\tcopyInStart_p_ = static_cast<char*>(packet_p_);\n",
+            f"\tcopyInStart_d_ = static_cast<char*>(packet_d_) + {T_SCRATCH.replace('-', '')}DataBytesPadded;\n",
+            f"\tchar* ptr_p = copyInStart_p_;\n"
+            f"\tptr_d = copyInStart_d_;\n\n",
             f"\t// general section;\n"
         ])
 
@@ -366,19 +364,19 @@ def generate_cpp_code_file(parameters: dict, args):
         # I could probably set nTiles in the constructor... I'd have to make sure that setting it in the constructor works fine.
         for item in general:
             file.writelines([
-                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n"
-                f"{indent}ptr_p += sizeof({item}{BLOCK_SIZE});\n",
-                f"{indent}ptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
+                f"\t{item}{START_P} = static_cast<void*>(ptr_p);\n",
+                f"\t{item}{START_D} = static_cast<void*>(ptr_d);\n"
+                f"\tptr_p += sizeof({item}{BLOCK_SIZE});\n",
+                f"\tptr_d += sizeof({item}{BLOCK_SIZE});\n\n"
             ])
             const = "const " if item != N_TILES else ""
-            general_copy_in.append(f"{indent}std::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n")
+            general_copy_in.append(f"\tstd::memcpy({item}{START_P}, static_cast<{const}void*>(&{item}{HOST}), {item}{BLOCK_SIZE});\n")
         if args.language == mdata.Language.cpp:
             file.writelines([
-                f"{indent}contents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
-                f"{indent}contents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
-                f"{indent}ptr_p += {N_TILES} * sizeof(PacketContents);\n",
-                f"{indent}ptr_d += {N_TILES} * sizeof(PacketContents);\n"
+                f"\tcontents_p_ = static_cast<PacketContents*>( static_cast<void*>(ptr_p) );\n",
+                f"\tcontents_d_ = static_cast<PacketContents*>( static_cast<void*>(ptr_d) );\n",
+                f"\tptr_p += {N_TILES} * sizeof(PacketContents);\n",
+                f"\tptr_d += {N_TILES} * sizeof(PacketContents);\n"
             ])
         file.write("\t// end general\n\n")
         ###
@@ -388,18 +386,18 @@ def generate_cpp_code_file(parameters: dict, args):
         metadata = sorted(params.get(T_MDATA, []), key=lambda x: sizes.get(mdata.tile_known_types[x], 0) if sizes else 1, reverse=True)
         for item in metadata:
             file.writelines([
-                f"{indent}{item}{START_P} = static_cast<void*>(ptr_p);\n",
-                f"{indent}{item}{START_D} = static_cast<void*>(ptr_d);\n",
-                f"{indent}ptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
-                f"{indent}ptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
+                f"\t{item}{START_P} = static_cast<void*>(ptr_p);\n",
+                f"\t{item}{START_D} = static_cast<void*>(ptr_d);\n",
+                f"\tptr_p += {N_TILES} * {item}{BLOCK_SIZE};\n",
+                f"\tptr_d += {N_TILES} * {item}{BLOCK_SIZE};\n\n"
             ])
         if args.language == mdata.Language.cpp:
             for item in sorted(farray_items):
                 file.writelines([
-                    f"{indent}char* {item}_farray_start_p_ = ptr_p;\n",
-                    f"{indent}char* {item}_farray_start_d_ = ptr_d;\n"
-                    f"{indent}ptr_p += {N_TILES} * sizeof(FArray4D);\n",
-                    f"{indent}ptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
+                    f"\tchar* {item}_farray_start_p_ = ptr_p;\n",
+                    f"\tchar* {item}_farray_start_d_ = ptr_d;\n"
+                    f"\tptr_p += {N_TILES} * sizeof(FArray4D);\n",
+                    f"\tptr_d += {N_TILES} * sizeof(FArray4D);\n\n"
                 ])
         ###
 
@@ -407,8 +405,8 @@ def generate_cpp_code_file(parameters: dict, args):
         file.writelines([
             "\t// end metadata;\n\n",
             "\t// copy in section;\n",
-            f"{indent}ptr_p = copyInStart_p_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n",
-            f"{indent}ptr_d = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n\n"
+            f"\tptr_p = copyInStart_p_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n",
+            f"\tptr_d = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded;\n\n"
         ])
 
         def write_section_pointers(section, item_key, start_key, end_key, copy_string, fp):
@@ -439,10 +437,10 @@ def generate_cpp_code_file(parameters: dict, args):
         file.writelines([
             "\t// end copy in;\n\n",
             f"\t// copy in out section\n",
-            f"{indent}copyInOutStart_p_ = copyInStart_p_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded + {T_IN.replace('-', '')}DataBytesPadded;\n",
-            f"{indent}copyInOutStart_d_ = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded + {T_IN.replace('-', '')}DataBytesPadded;\n",
-            f"{indent}ptr_p = copyInOutStart_p_;\n"
-            f"{indent}ptr_d = copyInOutStart_d_;\n\n"
+            f"\tcopyInOutStart_p_ = copyInStart_p_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded + {T_IN.replace('-', '')}DataBytesPadded;\n",
+            f"\tcopyInOutStart_d_ = copyInStart_d_ + generalDataBytesPadded + nBlockMetadataPerTileBytesPadded + {T_IN.replace('-', '')}DataBytesPadded;\n",
+            f"\tptr_p = copyInOutStart_p_;\n"
+            f"\tptr_d = copyInOutStart_d_;\n\n"
         ])
 
         ### DETERMINE COPY-IN-OUT POINTERS
@@ -460,10 +458,10 @@ def generate_cpp_code_file(parameters: dict, args):
         out_location = []
         if T_OUT in params:
             file.writelines([
-                f"{indent}char* copyOutStart_p = copyInOutStart_p_ + {T_IN_OUT.replace('-', '')}DataBytesPadded;\n",
-                f"{indent}char* copyOutStart_d = copyInOutStart_d_ + {T_IN_OUT.replace('-', '')}DataBytesPadded;\n"
-                f"{indent}ptr_p = copyOutStart_p;\n"
-                f"{indent}ptr_d = copyOutStart_d;\n\n"
+                f"\tchar* copyOutStart_p = copyInOutStart_p_ + {T_IN_OUT.replace('-', '')}DataBytesPadded;\n",
+                f"\tchar* copyOutStart_d = copyInOutStart_d_ + {T_IN_OUT.replace('-', '')}DataBytesPadded;\n"
+                f"\tptr_p = copyOutStart_p;\n"
+                f"\tptr_d = copyOutStart_d;\n\n"
             ])
         for item in sorted( params.get(T_OUT, {}), key=lambda x: sizes.get(params[T_OUT][x]['type'], 0) if sizes else 1, reverse=True ):
             location = params[T_OUT][item]['location']
@@ -598,34 +596,33 @@ def generate_cpp_code_file(parameters: dict, args):
         """
         packet_name = params['name']
         extra_streams = params.get(EXTRA_STREAMS, 0)
-        indent = '\t'
         # extra async queues
         # only generate extra functions if we have more than 1 stream
         if extra_streams > 0:
             func_name = "extraAsynchronousQueue"
             file.writelines([
                 f"int {packet_name}::{func_name}(const unsigned int id) {{\n",
-                f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
-                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
-                f"{indent}switch(id) {{\n"
+                f"\tif ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
+                f"\t\tthrow std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
+                f"\tswitch(id) {{\n"
             ])
             file.writelines([ 
-                f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Stream {i} invalid.\"); }} return stream{i}_.accAsyncQueue;\n" for i in range(2, extra_streams+2)
+                f"\t\tcase {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Stream {i} invalid.\"); }} return stream{i}_.accAsyncQueue;\n" for i in range(2, extra_streams+2)
             ])
-            file.write(f"{indent}}}\n{indent}return 0;\n}}\n\n")
+            file.write(f"\t}}\n\treturn 0;\n}}\n\n")
 
             # Release extra queue
             func_name = "releaseExtraQueue"
             file.writelines([
                 f"void {packet_name}::{func_name}(const unsigned int id) {{\n",
-                f"{indent}if ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
-                f"{indent*2}throw std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
-                f"{indent}switch(id) {{\n"
+                f"\tif ((id < 2) || (id > EXTRA_STREAMS + 1))\n"
+                f"\t\tthrow std::invalid_argument(\"[{packet_name}::{func_name}] Invalid id.\");\n",
+                f"\tswitch(id) {{\n"
             ])
             file.writelines([
-                f"{indent * 2}case {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n" for i in range(2, extra_streams+2)
+                f"\t\tcase {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error(\"[{packet_name}::{func_name}] Extra queue invalid. ({i})\"); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n" for i in range(2, extra_streams+2)
             ])
-            file.write(f"{indent}}}\n}}\n\n")
+            file.write(f"\t}}\n}}\n\n")
 
     def generate_tile_size_host(file: TextIO, params: dict):
         """
@@ -775,11 +772,14 @@ def generate_cpp_header_file(parameters: dict, args):
         parse_mdata()
         parse_array_sections()
 
+        # If we convert extents entirely into arrays with constants, we don't need this anymore
         private_variables.extend([
             "\tunsigned int nxb_ = 1;\n", "\tunsigned int nyb_ = 1;\n", "\tunsigned int nzb_ = 1;\n",
             "\tconst unsigned int nGuard_;\n", "\tconst unsigned int nCcVars_;\n", "\tconst unsigned int nFluxVars_;\n"
         ])
 
+        # TODO: If nguard, nCcVars, and nFluxVars are not used entirely, this can go away.
+        #       nCcVars might still be needed for unpack error checking.
         initialize.update({
             'nGuard_': 'milhoja::Grid::instance().getNGuardcells()',
             'nCcVars_': 'milhoja::Grid::instance().getNCcVariables()',

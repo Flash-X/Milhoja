@@ -1,6 +1,5 @@
 {
   "byte-align": 16,
-  "problem": "Sedov",
   "n-extra-streams": 0,
   "task-function-argument-list": [ "dt","deltas", "lo", "hi", "U", "auxC", "FCX", "FCY", "FCZ" ],
   "tile-scratch": {
@@ -33,7 +32,7 @@
       "extents": [1, 1, 1, 1]
     }
   },
-  "general": {
+  "constructor": {
     "dt": "Real"
   },
   "tile-metadata": [ "deltas", "lo", "hi" ],
