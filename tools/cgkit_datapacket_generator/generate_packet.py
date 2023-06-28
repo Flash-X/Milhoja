@@ -46,9 +46,9 @@ def main():
     if args.language is None:
         raise NoLanguageException("You must provide a language!")
     if not args.JSON.endswith('.json'):
-        raise NotAJSONException()
+        raise NotAJSONException("File does not have a .json extension.")
     if os.path.getsize(args.JSON) < 5:
-        raise EmptyFileException()
+        raise EmptyFileException("File is empty or too small.")
 
     with open(args.JSON, "r") as file:
         data = load_json(file, args) # load data.

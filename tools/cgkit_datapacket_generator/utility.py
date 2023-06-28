@@ -49,9 +49,9 @@ cpp_equiv = {
 
 finterface_constructor_args = {
     'cc': "loGC, hiGC",
-    'fcx': "lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }",
-    'fcy': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }",
-    'fcz': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }"
+    'flx': "lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }",
+    'fly': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }",
+    'flz': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }"
 }
 
 tile_variable_mapping = {
