@@ -60,8 +60,10 @@ def generate_hydro_advance_c2f(data):
             shape = [3, 'F_nTiles_h']
             gpu_pointers[name] = {'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': shape}
 
-        for _ in data.get(sects.LBOUND, {}):
-            ...
+        for key,bound in data.get(sects.LBOUND, {}).items():
+            ftype = 'integer'
+            shape = [str(3 + len(bound)-1), 'F_nTiles_h']
+            gpu_pointers[key] = {'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': shape}
 
         if 'nTiles' not in extents_set:
             extents_set['nTiles'] = {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'}
@@ -138,7 +140,7 @@ def generate_hydro_advance_c2f(data):
         fp.writelines([ '\tCALL dr_hydroAdvance_packet_gpu_oacc(',
                         f', &\n'.join( f'\t\tF_{ptr}_h' if host_pointers[ptr]['ftype'] else f'C_{ptr}_h' for ptr in host_pointers ),
                         f', &\n',
-                        f', &\n'.join( f'\t\tC_{ptr}_h' for ptr in arg_order )
+                        f', &\n'.join( f'\t\tC_{ptr}_d' for ptr in arg_order )
         ])
         fp.write(')\nend subroutine dr_hydro_advance_packet_oacc_c2f')
 
