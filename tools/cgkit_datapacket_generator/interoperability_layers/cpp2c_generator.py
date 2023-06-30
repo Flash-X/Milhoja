@@ -10,8 +10,8 @@ def generate_cpp2c_outer(data: dict):
     with open('cg-tpl.cpp2c_outer.cpp', 'w') as outer:
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
-            f'/* _param:class_name = {data["name"]}\n',
-            f'{"" if data.get(sects.EXTRA_STREAMS, 0) == 0 else "/* _param:releaseQueue = packet_h->releaseExtraQueue(id); */"} \n'
+            f'/* _param:class_name = {data["name"]} */\n\n',
+            f'/* {"_param:release = 0 */" if data.get(sects.EXTRA_STREAMS, 0) == 0 else "/* _param:release = packet_h->releaseExtraQueue(id) */"} \n\n',
             '/* _link:cpp2c */'
         ])
 
@@ -35,6 +35,7 @@ def generate_cpp2c_helper(data: dict):
     connectors = defaultdict(list)
     connectors['c2f_argument_list'] = [ ('packet_h', 'void*') ]
     insert_host_arguments(data, connectors)
+    data.get(sects.GENERAL, {}).pop("nTiles", None)
     connectors['instance_args'] = [ (key, f'const {dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() ] 
 
     connectors['c2f_arguments'] = [ item[0] for item in connectors['c2f_argument_list'] ]

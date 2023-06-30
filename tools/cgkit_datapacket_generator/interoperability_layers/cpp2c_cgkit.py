@@ -30,6 +30,10 @@ def constructSourceTree(stree, tpl_1, data: dict):
         raise RuntimeError('Linking layer 1 unsuccessful!')
     tree_l2  = srctree.load(helpers)
     pathInfo = stree.link(tree_l2, linkPath=srctree.LINK_PATH_FROM_STACK)
+    if pathInfo:
+        stree.pushLink( srctree.search_links(tree_l2) )
+    else:
+        raise RuntimeError('Linking layer 2 unsuccessful!')
 
 ####################
 # Main

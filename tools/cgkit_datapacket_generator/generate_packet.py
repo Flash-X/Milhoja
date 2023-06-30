@@ -6,6 +6,10 @@ import os
 import json
 import utility as consts
 import warnings
+import sys
+
+sys.path.insert(0, 'interoperability_layers')
+
 
 class NoLanguageException(BaseException):
     pass
@@ -60,7 +64,7 @@ def main():
         if args.language == consts.Language.fortran:
             import c2f_generator
             import cpp2c_generator
-            # cpp2c_generator.main(data)
+            cpp2c_generator.main(data)
             c2f_generator.main(data)
 
 if __name__ == "__main__":
