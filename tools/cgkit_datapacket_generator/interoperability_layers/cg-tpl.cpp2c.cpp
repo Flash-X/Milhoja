@@ -35,20 +35,6 @@ extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     void dr_hydro_advance_packet_oacc_c2f(
         /* _link:c2f_argument_list */
-        // void* packet_h,
-        // const int dataQ_h,
-        // const int queue2_h,
-        // const int queue3_h,
-        // const int nTiles_h,
-        // const void* nTiles_d, const void* dt_d,
-        // const void* deltas_start_d,
-        // const void* lo_start_d,   const void* hi_start_d,
-        // const void* loGC_start_d,
-        // const void* U_start_d,
-        // const void* auxC_start_d,
-        // const void* faceX_start_d,
-        // const void* faceY_start_d,
-        // const void* faceZ_start_d
     );
 
     int instantiate_hydro_advance_packet_c(
@@ -65,7 +51,6 @@ extern "C" {
         try {
             *packet = static_cast<void*>(new _param:class_name(
                 /* _link:host_members */
-                // dt
             ));
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
@@ -113,37 +98,12 @@ extern "C" {
         _param:class_name* packet_h = static_cast<_param:class_name *>(dataItem_h);
         const milhoja::PacketDataLocation   location = packet_h->getDataLocation();
         /* _link:host_arguments */
-        // const int                           dataQ_h  = packet_h->asynchronousQueue();
-        // const int                           queue2_h = packet_h->extraAsynchronousQueue(2);
-        // const int                           queue3_h = packet_h->extraAsynchronousQueue(3);
-        // const int                           nTiles_h = packet_h->nTiles_host();
 
         /* _link:device_arguments */
-        // int*              nTiles_d       = packet_h->nTiles_devptr();
-        // milhoja::Real*    dt_d           = packet_h->dt_devptr();
-        // milhoja::Real*    deltas_start_d = packet_h->deltas_devptr();
-        // int*              lo_start_d     = packet_h->lo_devptr();
-        // int*              hi_start_d     = packet_h->hi_devptr();
-        // int*              loGC_start_d   = packet_h->loGC_devptr();
-        // milhoja::Real*    U_start_d      = packet_h->U_devptr();
-        // milhoja::Real*    auxC_start_d   = packet_h->scratchAuxC_devptr();
-        // milhoja::Real*    faceX_start_d  = packet_h->scratchFaceX_devptr();
-        // milhoja::Real*    faceY_start_d  = packet_h->scratchFaceY_devptr();
-        // milhoja::Real*    faceZ_start_d  = packet_h->scratchFaceZ_devptr();
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
         dr_hydro_advance_packet_oacc_c2f(
             /* _link:c2f_arguments */
-            // packet_h,
-            // dataQ_h, queue2_h, queue3_h,
-            // nTiles_h,
-            // nTiles_d, dt_d,
-            // deltas_start_d,
-            // lo_start_d,   hi_start_d,
-            // loGC_start_d,
-            // U_start_d,
-            // auxC_start_d,
-            // faceX_start_d, faceY_start_d, faceZ_start_d
         );
     }
 }
