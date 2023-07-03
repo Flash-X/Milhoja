@@ -100,7 +100,7 @@ def generate_hydro_advance_c2f(data):
         # get pointers for every section
         fp.writelines([
             ', &\n'.join(f'C_{item}_h' for item in host_pointers) + ', &\n',
-            ', &\n'.join(f'C_{item}_d' for item in gpu_pointers),
+            ', &\n'.join(f'C_{item}_d' for item in arg_order),
             ') bind(c)\n',
             '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
             '\tuse openacc, ONLY : acc_handle_kind\n',
@@ -126,7 +126,7 @@ def generate_hydro_advance_c2f(data):
 
         fp.writelines([
             (f"""\tF_{item}_h = INT(C_{item}_h{f', kind={host_pointers[item]["kind"]}' if "kind" in host_pointers[item] else ''})\n""") 
-                for item in host_pointers if 'ftype' in host_pointers[item]
+                for item in host_pointers if host_pointers[item]['ftype']
         ] + ['\n'])
 
         for item in extents_set:
