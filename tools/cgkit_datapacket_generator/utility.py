@@ -1,5 +1,6 @@
 from enum import Enum
 import json_sections
+from typing import Tuple
 
 GENERATED_MESSAGE = "This code was generated with the data packet generator."
 
@@ -84,6 +85,23 @@ class TaskArgumentListMismatchException(BaseException):
 
 class DuplicateItemException(BaseException):
     pass
+
+def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
+    lbound_list = []
+    formatted = ""
+    for item in lbound:
+        try:
+            lbound_list.append(str(int(item)))
+        except Exception:
+            formatted = item
+            tile_name = formatted.split(' ')[0].replace('tile_', '')
+            tile_name = f'{tile_name}()'
+            start_location = item.find('(')
+            formatted = f'tileDesc_h->{tile_name}'
+            if start_location != -1:
+                formatted = f'tileDesc_h->{tile_name} - IntVect{{ LIST_NDIM{item[start_location:]} }}'
+            lbound_list.extend( [f'{name}.I() + 1', f'{name}.J() + 1', f'{name}.K() + 1'] )
+    return (formatted, lbound_list)
     
 def check_json_validity(data: dict) -> bool:
     """

@@ -42,8 +42,9 @@ def insert_farray_information(data: dict, connectors: dict, size_connectors) -> 
     print(farray_pointers)
 
 def tmdata_memcpy_cpp(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):
+    dtype = util.cpp_equiv[data_type] if data_type in util.cpp_equiv else data_type
     connectors['memcpy_tilemetadata'].extend([
         f"""char_ptr = static_cast<char*>( static_cast<void*>( {pinned} ) ) + n * {size};\n""",
-        f"""tilePtrs_p->{item}_d = static_cast<{util.cpp_equiv[data_type]}*>( static_cast<void*>(char_ptr) );\n""",
+        f"""tilePtrs_p->{item}_d = static_cast<{dtype}*>( static_cast<void*>(char_ptr) );\n""",
         f"""std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{item}), {size});\n\n"""
     ])

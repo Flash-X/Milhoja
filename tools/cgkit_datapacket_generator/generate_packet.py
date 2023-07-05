@@ -10,7 +10,6 @@ import sys
 
 sys.path.insert(0, 'interoperability_layers')
 
-
 class NoLanguageException(BaseException):
     pass
 

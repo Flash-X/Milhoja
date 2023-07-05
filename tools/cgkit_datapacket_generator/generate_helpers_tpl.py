@@ -104,7 +104,7 @@ def iterate_constructor(connectors: dict, size_connectors: dict, constructor: di
             f'std::memcpy({key}_p, static_cast<void*>(&{host_item}), {size_item});\n'
         )
 
-def tmdata_memcpy_f(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):
+def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str, pinned: str, use_ref: str, size: str, item):
     connectors['memcpy_tilemetadata'].extend([
         f'{data_type} {host}{construct};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>({pinned}) ) + n * {size};\n',
@@ -165,7 +165,39 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
     connectors['tile_descriptor'].extend([
         f'const {consts.farray_mapping[consts.tile_variable_mapping[item]]} {item} = tileDesc_h->{item}();\n'
         for item in missing_dependencies
-    ])        
+    ]) 
+
+def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: str):
+    """Iterates the lbound section. """
+    dtype = 'int' if lang == consts.Language.fortran else 'IntVect'
+    dtype_size = '3 * sizeof(int)' if lang == consts.Language.fortran else 'IntVect'
+    memcpy_func = tmdata_memcpy_f if lang == consts.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
+    use_ref = '' if lang == consts.Language.fortran else '&'
+    size_connectors['size_tilemetadata'] = ' + '.join( [size_connectors['size_tilemetadata'], ' + '.join( f'SIZE_{item.upper()}' for item in lbound )])
+    for key,bound in lbound.items():
+        device_item = f'_{key}_d'
+        pinned = f'{key}_p'
+        size_item = f'SIZE_{key.upper()}'
+        constructor_expression,memcpy_list = consts.format_lbound_string(key, bound)
+
+        connectors['public_members'].append( f'{dtype}* {device_item};\n' )
+        connectors['set_members'].append( f'{device_item}{{nullptr}}')
+        connectors['size_determination'].append( f'constexpr std::size_t {size_item} = {dtype_size};\n' )
+        connectors['pointers_tilemetadata'].append(
+            f"""{dtype}* {pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
+            f"""{device_item} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
+            f"""ptr_p+={size_item};\n""" + 
+            f"""ptr_d+={size_item};\n\n"""
+        )
+        connectors['tile_descriptor'].append(
+            f'const IntVect {key} = {constructor_expression};\n'
+        )
+        connectors['memcpy_tilemetadata']
+        print(memcpy_list)
+        memcpy_func(connectors, f'{key}_h', 
+                    f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}",
+                    dtype, pinned, use_ref, size_item, key)
+
 
 def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params:dict, language: str) -> None:
     section_creation('tilein', tilein, connectors, size_connectors)
@@ -405,6 +437,9 @@ def generate_helper_template(data: dict) -> None:
         sort_func = lambda x: sizes.get(consts.tile_variable_mapping[x[1]], 0) if sizes else 1
         metadata = data.get(json_sections.T_MDATA, {}).items()
         iterate_tilemetadata(connectors, size_connectors, sort_dict(metadata, sort_func), data['language'], num_arrays)
+
+        lbound = data.get(json_sections.LBOUND, {})
+        iterate_lbound(connectors, size_connectors, lbound, data['language'])
 
         sort_func = lambda x: sizes.get(x[1]['type'], 0) if sizes else 1
         for section,funct in {json_sections.T_IN: iterate_tilein, json_sections.T_IN_OUT: iterate_tileinout,
