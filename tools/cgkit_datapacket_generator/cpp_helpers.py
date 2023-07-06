@@ -16,7 +16,7 @@ def insert_farray_size(connectors: dict, num_arrays: int) -> None:
     insert_index = line.find('(')
     connectors['size_tilemetadata'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
 
-def insert_farray_memcpy(connectors: dict, item: str, unks: int, data_type: str):
+def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: int, data_type: str):
     connectors['pointers_tilemetadata'].append(
         f"""char* {item}_fa4_p = ptr_p;\n""" + \
         f"""char* {item}_fa4_d = ptr_d;\n""" + \
@@ -28,7 +28,7 @@ def insert_farray_memcpy(connectors: dict, item: str, unks: int, data_type: str)
         f'char_ptr = {item}_fa4_d + n * sizeof(FArray4D);\n',
         f'tilePtrs_p->{item}_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );\n'
         f"""FArray4D {item}_d{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
-        f"""+ n * SIZE_{item.upper()})) }};\n""",
+        f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
         f'char_ptr = {item}_fa4_p + n * sizeof(FArray4D);\n',
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_d), sizeof(FArray4D));\n\n'
     ])

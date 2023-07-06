@@ -1,6 +1,7 @@
 from cgkit.ctree.srctree import SourceTree
 import cgkit.ctree.srctree as srctree
 import pathlib
+import json_sections as jsections
 
 SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
@@ -19,6 +20,7 @@ OUTPUT = 'cgkit.dr_hydroAdvance_bundle.cxx'
 def constructSourceTree(stree, tpl_1, data: dict):
     init = 'cg-tpl.cpp2c_outer.cpp'
     helpers = 'cg-tpl.cpp2c_helper.cpp'
+    extra_queue = 'cg-tpl.cpp2c_no_extra_queue.cpp' if data[jsections.EXTRA_STREAMS] == 0 else 'cg-tpl.cpp2c_extra_queue.cpp'
 
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
@@ -34,6 +36,12 @@ def constructSourceTree(stree, tpl_1, data: dict):
         stree.pushLink( srctree.search_links(tree_l2) )
     else:
         raise RuntimeError('Linking layer 2 unsuccessful!')
+    tree_l3 = srctree.load(extra_queue)
+    pathInfo = stree.link(tree_l3, linkPath=srctree.LINK_PATH_FROM_STACK)
+    if pathInfo:
+        stree.pushLink( srctree.search_links(tree_l3) )
+    else:
+        raise RuntimeError('Linking layer 3 unsuccessful!')
 
 ####################
 # Main

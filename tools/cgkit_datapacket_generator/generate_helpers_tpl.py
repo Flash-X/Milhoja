@@ -192,8 +192,6 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
         connectors['tile_descriptor'].append(
             f'const IntVect {key} = {constructor_expression};\n'
         )
-        connectors['memcpy_tilemetadata']
-        print(memcpy_list)
         memcpy_func(connectors, f'{key}_h', 
                     f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}",
                     dtype, pinned, use_ref, size_item, key)
@@ -228,8 +226,8 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         ])
         params['location_in'] = "CC1"
         pinnedLocation.add(f'pinnedPtrs_[n].{params["location_in"]}_data = static_cast<{item_type}*>( static_cast<void*>(char_ptr) );\n')
-        if language == consts.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, tilein[item]['extents'][-1], item_type)
+        # if language == consts.Language.cpp:
+        #     cpp_helpers.insert_farray_memcpy(connectors, item, tilein[item]['extents'][-1], item_type)
     connectors['memcpy_tileinout'].extend(pinnedLocation)
 
 def add_unpack_connector(connectors: dict, section: str, extents, item, start, end, item_type):
@@ -278,8 +276,8 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
         params['location_in'] = "CC1"
         params['location_out'] = "CC1_data"
         pinnedLocation.add(f'pinnedPtrs_[n].{params["location_in"]}_data = static_cast<{item_type}*>( static_cast<void*>(char_ptr) );\n')
-        if language == consts.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, value['extents'][-1], item_type)
+        # if language == consts.Language.cpp:
+        #     cpp_helpers.insert_farray_memcpy(connectors, item, , , f"{end_in} - {start_in} + 1", item_type)
     connectors['memcpy_tileinout'].extend(pinnedLocation)
 
 def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, params:dict, language: str) -> None:
@@ -312,12 +310,15 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
         add_unpack_connector(connectors, "tileout", extents, item, start, end, item_type)
         params['location_out'] = "CC2"
         #insert farray pointers into tilemetadata if using cpp
-        if language == consts.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, tileout[item]['extents'][-1], item_type)
+        # if language == consts.Language.cpp:
+        #     cpp_helpers.insert_farray_memcpy(connectors, item, tileout[item]['extents'][-1], item_type)
 
 def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
     section_creation('tilescratch', tilescratch, connectors, size_connectors)
     for item in tilescratch:
+        lbound = f"lo{item[0].capitalize()}{item[1:]}"
+        print(lbound)
+        # hbound = ...
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
         extents = ' * '.join(f'({item})' for item in tilescratch[item]['extents'])
@@ -332,8 +333,8 @@ def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: di
             f"""ptr_d+= _nTiles_h * {size_item};\n\n"""
         )
         #insert farray pointers into tilemetadata if using cpp
-        if language == consts.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, tilescratch[item]['extents'][-1], item_type)
+        # if language == consts.Language.cpp:
+        #     cpp_helpers.insert_farray_memcpy(connectors, item, tilescratch[item]['extents'][-1], item_type)
 
 def sort_dict(section, sort_key) -> dict:
     return dict( sorted(section, key = sort_key, reverse = True) )

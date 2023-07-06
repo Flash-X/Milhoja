@@ -16,10 +16,10 @@ def generate_cpp2c_outer(data: dict):
         ])
 
 def insert_host_arguments(data: dict, connectors: dict):
-    connectors['host_arguments'] = ['const int queue1_h = packet_h->asynchronousQueue();\n',
+    connectors['get_host_members'] = ['const int queue1_h = packet_h->asynchronousQueue();\n',
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n']
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
-    connectors['host_arguments'].extend([
+    connectors['get_host_members'].extend([
         f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
         for i in range(2, n_streams+2)
     ])
@@ -42,7 +42,7 @@ def generate_cpp2c_helper(data: dict):
 
     connectors['c2f_arguments'] = [ item[0] for item in connectors['c2f_argument_list'] ]
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
-        helper.writelines(['/* _connector:host_arguments */\n' ] + connectors['host_arguments'])
+        helper.writelines(['/* _connector:get_host_members */\n' ] + connectors['get_host_members'])
         helper.writelines(
             [ '\n/* _connector:c2f_argument_list */\n' ] +
             [ ',\n'.join([ f"{item[1]} {item[0]}" for item in connectors["c2f_argument_list"] ]) ] +
@@ -50,14 +50,14 @@ def generate_cpp2c_helper(data: dict):
             [ '\n\n/* _connector:c2f_arguments */\n'] + 
             [ ',\n'.join([ f"{item[0]}" for item in connectors['c2f_argument_list']]) ] + 
             
-            [ '\n\n/* _connector:device_arguments */\n' ] + 
+            [ '\n\n/* _connector:get_device_members */\n' ] + 
             [ 'void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );\n'] +
             [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
             
             ['\n/* _connector:instance_args */\n'] +
             [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors['instance_args'] ] ) ] +
 
-            ['\n\n/* _connector:host_members */\n'] + 
+            ['\n\n/* _connector:get_host_members */\n'] + 
             [ ','.join([ item[0] for item in connectors['instance_args'] ])]
         )
         

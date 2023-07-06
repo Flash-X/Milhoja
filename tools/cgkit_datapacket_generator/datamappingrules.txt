@@ -1,0 +1,16 @@
+Every item in each JSON section is mapped accordingly:
+
+Depending on the item's purpose in memory, it may have one of 2 suffixes attached to it.
+Every item has 1 prefix attached to it. That prefix is always an underscore. '_'
+
+If the item is contained within the host memory, the suffix will be '_h'.
+If the item is contained within the device memory, the suffix will be '_d'.
+
+For example, an auxC array pointer would be called '_auxC_d' because the pointer points to a place in device memory. (e.g. gpu memory)
+Only constructor items will ever have a variable associated with it in host memory. For example, 'dt' would be stored in the packet as '_dt_h'.
+
+The suffix '_p' is for items in pinned memory. Pinned memory items do not have a prefix and are only accessible from within the pack function.
+
+In the cpp2c layer, the variables use the same name as the data packet.
+
+In the c2f layer, variables are passed in with a 'C' in front of the variable name, and eventually copied over into fortran pointers, that start with 'F'.
