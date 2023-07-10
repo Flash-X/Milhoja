@@ -258,7 +258,7 @@ def add_unpack_connector(connectors: dict, section: str, extents, item, start, e
         f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n',
         f'std::memcpy(static_cast<void*>(start_h_{item}), static_cast<const void*>(start_p_{item}), nBytes_{item});\n'
     ])
-    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = {item}_p + n * SIZE_{item};\n')
+    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( {item}_p ) ) + n * SIZE_{item} ) );\n')
 
 def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, params:dict, language: str) -> None:
     section_creation('tileinout', tileinout, connectors, size_connectors)
