@@ -230,6 +230,9 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         connectors['size_determination'].append(
             f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({item_type});\n'
         )
+        connectors['pinned_sizes'].append(
+            f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({item_type});\n'
+        )
         set_pointer_determination(connectors, 'tilein', item, device_item, f'_nTiles_h * {size_item}', item_type, False)
         add_memcpy_connector(connectors, 'tilein', extents, item, start, end, size_item, raw_type)
         # if language == consts.Language.cpp:
@@ -255,7 +258,7 @@ def add_unpack_connector(connectors: dict, section: str, extents, item, start, e
         f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n',
         f'std::memcpy(static_cast<void*>(start_h_{item}), static_cast<const void*>(start_p_{item}), nBytes_{item});\n'
     ])
-    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = {item}_p;\n')
+    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = {item}_p + n * SIZE_{item};\n')
 
 def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, params:dict, language: str) -> None:
     section_creation('tileinout', tileinout, connectors, size_connectors)
@@ -282,6 +285,9 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
             [f'{device_item}{{nullptr}}']
         )
         connectors['size_determination'].append(
+            f'constexpr std::size_t {size_item} = {extents} * ({unks}) * sizeof({raw_type});\n'
+        )
+        connectors['pinned_sizes'].append(
             f'constexpr std::size_t {size_item} = {extents} * ({unks}) * sizeof({raw_type});\n'
         )
         set_pointer_determination(connectors, 'tileinout', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
@@ -312,6 +318,9 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
             f'{device_item}{{nullptr}}'
         )
         connectors['size_determination'].append(
+            f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n'
+        )
+        connectors['pinned_sizes'].append(
             f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n'
         )
         set_pointer_determination(connectors, 'tileout', item, device_item, f'_nTiles_h * {size_item}', item_type, False)

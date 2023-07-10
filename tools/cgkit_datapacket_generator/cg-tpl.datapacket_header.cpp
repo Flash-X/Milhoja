@@ -33,6 +33,7 @@
 /* _link:size_tilescratch */
 /* _link:in_pointers */
 /* _link:out_pointers */
+/* _link:pinned_sizes */
 #endif
 
 /* _link:includes */

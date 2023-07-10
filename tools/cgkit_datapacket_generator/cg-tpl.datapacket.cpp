@@ -176,6 +176,8 @@ void _param:i_give_up::unpack(void) {
     RuntimeBackend::instance().releaseStream(stream_);
 	assert(!stream_.isValid());
 
+    /* _link:pinned_sizes */
+
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
         /* _link:in_pointers */
