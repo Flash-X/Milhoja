@@ -182,7 +182,8 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
     dtype_size = '3 * sizeof(int)' if lang == consts.Language.fortran else 'IntVect'
     memcpy_func = tmdata_memcpy_f if lang == consts.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
     use_ref = '' if lang == consts.Language.fortran else '&'
-    size_connectors['size_tilemetadata'] = ' + '.join( [size_connectors['size_tilemetadata'], ' + '.join( f'SIZE_{item.upper()}' for item in lbound )])
+    lbound_mdata = ' + '.join( f'SIZE_{item.upper()}' for item in lbound ) if lbound else '0'
+    size_connectors['size_tilemetadata'] = ' + '.join( [size_connectors['size_tilemetadata'], lbound_mdata])
     for key,bound in lbound.items():
         device_item = f'_{key}_d'
         pinned = f'{key}_p'

@@ -172,7 +172,7 @@ void _param:i_give_up::unpack(void) {
     using namespace milhoja;
     if (tiles_.size() <= 0) throw std::logic_error("[unpack] Empty data packet.");
     if (!stream_.isValid()) throw std::logic_error("[unpack] Stream not acquired.");
-    if (pinnedPtrs_ == nullptr) throw std::logic_error("[unpack] No pinned pointers set.");
+    // if (pinnedPtrs_ == nullptr) throw std::logic_error("[unpack] No pinned pointers set.");
     RuntimeBackend::instance().releaseStream(stream_);
 	assert(!stream_.isValid());
 
