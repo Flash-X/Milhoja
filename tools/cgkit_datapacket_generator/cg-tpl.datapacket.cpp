@@ -122,7 +122,6 @@ void _param:i_give_up::pack(void) {
 
     /* _link:pointers_tilescratch */
 
-    location_ = PacketDataLocation::_param:location_in;
     copyInStart_p_ = static_cast<char*>(packet_p_);
     copyInStart_d_ = static_cast<char*>(packet_d_) + SIZE_TILESCRATCH;
     char* ptr_p = copyInStart_p_;
@@ -151,17 +150,11 @@ void _param:i_give_up::pack(void) {
     //memcopy phase
     /* _link:memcpy_constructor */
 
-    if (pinnedPtrs_) throw std::logic_error("[pack] Pinned pointers already exist");
-	pinnedPtrs_ = new BlockPointersPinned[_nTiles_h];
-	PacketContents* tilePtrs_p = contents_p_;
-
     char* char_ptr;
     for (std::size_t n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[pack] Bad tiledesc.");
         /* _link:tile_descriptor */
-        Real* data_h = tileDesc_h->dataPtr();
-        if (data_h == nullptr) throw std::logic_error("[pack] Invalid ptr to data in host.");
 
         /* _link:memcpy_tilemetadata */
         /* _link:memcpy_tilein */
@@ -185,10 +178,8 @@ void _param:i_give_up::unpack(void) {
 
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
-        Real* data_h = tileDesc_h->dataPtr();
-        const Real* data_p = pinnedPtrs_[n]._param:location_out;
-        if(data_h == nullptr) throw std::logic_error("[unpack] Invalid pointer to data in host.");
-        if(data_p == nullptr) throw std::logic_error("[unpack] Invalid pointer to data in pinned.");
+        /* _link:in_pointers */
+        /* _link:out_pointers */
 
         /* _link:unpack_tileinout */
         /* _link:unpack_tileout */

@@ -31,16 +31,22 @@
 /* _link:size_tileout */
 /* _link:host_members */
 /* _link:size_tilescratch */
+/* _link:in_pointers */
+/* _link:out_pointers */
 #endif
 
 /* _link:includes */
 #include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_DataPacket.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
 
 using milhoja::Real;
 using milhoja::FArray4D;
 using milhoja::Stream;
+using milhoja::IntVect;
+using milhoja::RealVect;
 
 class _param:class_name : public milhoja::DataPacket {
 // class _param:class_name { 
