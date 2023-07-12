@@ -1,8 +1,8 @@
 /* _connector:size_constructor */
-SIZE_DT + SIZE_NTILES
+SIZE_DT + SIZE_NTILES + _nTiles_h * sizeof(PacketContents)
 
 /* _connector:size_tilemetadata */
-SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_LOAUXC + SIZE_LOU + SIZE_LOFL
+(5 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_LOAUXC + SIZE_LOU + SIZE_LOFL
 
 /* _connector:size_tilein */
 0
@@ -42,12 +42,12 @@ _dt_h
 /* _connector:size_determination */
 constexpr std::size_t SIZE_DT = pad( sizeof(Real) );
 constexpr std::size_t SIZE_NTILES = pad( sizeof(int) );
-constexpr std::size_t SIZE_TILE_DELTAS = 3 * sizeof(Real);
-constexpr std::size_t SIZE_TILE_LO = 3 * sizeof(int);
-constexpr std::size_t SIZE_TILE_HI = 3 * sizeof(int);
-constexpr std::size_t SIZE_LOAUXC = sizeof(3 * sizeof(int));
-constexpr std::size_t SIZE_LOU = sizeof(3 * sizeof(int));
-constexpr std::size_t SIZE_LOFL = sizeof(3 * sizeof(int));
+constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
+constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
+constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
+constexpr std::size_t SIZE_LOAUXC = sizeof(IntVect);
+constexpr std::size_t SIZE_LOU = sizeof(IntVect);
+constexpr std::size_t SIZE_LOFL = sizeof(IntVect);
 constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
 constexpr std::size_t SIZE_AUXC = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * sizeof(Real);
 constexpr std::size_t SIZE_FLX = ((8 + 2 * 1) + 1) * (8 + 2 * 1) * (1 + 2 * 0) * (5) * sizeof(Real);
@@ -75,81 +75,107 @@ Real _dt_h;
 Real* _dt_d;
 int _nTiles_h;
 int* _nTiles_d;
-Real* _deltas_d;
-int* _lo_d;
-int* _hi_d;
-int* _loAuxC_d;
-int* _loU_d;
-int* _loFl_d;
+RealVect* _deltas_d;
+IntVect* _lo_d;
+IntVect* _hi_d;
+IntVect* _loAuxC_d;
+IntVect* _loU_d;
+IntVect* _loFl_d;
 Real* _U_d;
 Real* U_p;
 Real* _auxC_d;
 Real* _flX_d;
 Real* _flY_d;
 Real* _flZ_d;
+FArray4D* _f4_U_d;
+FArray4D* _f4_auxC_d;
+FArray4D* _f4_flX_d;
+FArray4D* _f4_flY_d;
+FArray4D* _f4_flZ_d;
 
 /* _connector:pointers_tilemetadata */
-Real* deltas_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
-_deltas_d = static_cast<Real*>( static_cast<void*>(ptr_d) );
+RealVect* deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
+_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
 ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
 
-int* lo_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-_lo_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+IntVect* lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_LO;
 ptr_d+=_nTiles_h * SIZE_TILE_LO;
 
-int* hi_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-_hi_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+IntVect* hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_HI;
 ptr_d+=_nTiles_h * SIZE_TILE_HI;
 
-int* loAuxC_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-_loAuxC_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+IntVect* loAuxC_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_loAuxC_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p += _nTiles_h * SIZE_LOAUXC;
 ptr_d += _nTiles_h * SIZE_LOAUXC;
 
-int* loU_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-_loU_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+IntVect* loU_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_loU_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p += _nTiles_h * SIZE_LOU;
 ptr_d += _nTiles_h * SIZE_LOU;
 
-int* loFl_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-_loFl_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+IntVect* loFl_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_loFl_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p += _nTiles_h * SIZE_LOFL;
 ptr_d += _nTiles_h * SIZE_LOFL;
 
+char* _f4_U_p = ptr_p;
+_f4_U_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+ptr_p += _nTiles_h * sizeof(FArray4D);
+ptr_d += _nTiles_h * sizeof(FArray4D);
+
+char* _f4_auxC_p = ptr_p;
+_f4_auxC_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+ptr_p += _nTiles_h * sizeof(FArray4D);
+ptr_d += _nTiles_h * sizeof(FArray4D);
+
+char* _f4_flX_p = ptr_p;
+_f4_flX_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+ptr_p += _nTiles_h * sizeof(FArray4D);
+ptr_d += _nTiles_h * sizeof(FArray4D);
+
+char* _f4_flY_p = ptr_p;
+_f4_flY_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+ptr_p += _nTiles_h * sizeof(FArray4D);
+ptr_d += _nTiles_h * sizeof(FArray4D);
+
+char* _f4_flZ_p = ptr_p;
+_f4_flZ_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+ptr_p += _nTiles_h * sizeof(FArray4D);
+ptr_d += _nTiles_h * sizeof(FArray4D);
+
 
 /* _connector:memcpy_tilemetadata */
-Real deltas_h[3] = { deltas.I(), deltas.J(), deltas.K() };
-char_ptr = static_cast<char*>( static_cast<void*>(deltas_p) ) + n * SIZE_TILE_DELTAS;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(deltas_h), SIZE_TILE_DELTAS);
+char_ptr = static_cast<char*>( static_cast<void*>( deltas_p ) ) + n * SIZE_TILE_DELTAS;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
 
-int lo_h[3] = { lo.I()+1, lo.J()+1, lo.K()+1 };
-char_ptr = static_cast<char*>( static_cast<void*>(lo_p) ) + n * SIZE_TILE_LO;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(lo_h), SIZE_TILE_LO);
+char_ptr = static_cast<char*>( static_cast<void*>( lo_p ) ) + n * SIZE_TILE_LO;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
 
-int hi_h[3] = { hi.I()+1, hi.J()+1, hi.K()+1 };
-char_ptr = static_cast<char*>( static_cast<void*>(hi_p) ) + n * SIZE_TILE_HI;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(hi_h), SIZE_TILE_HI);
+char_ptr = static_cast<char*>( static_cast<void*>( hi_p ) ) + n * SIZE_TILE_HI;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
 
-int loAuxC_h[3] = {loAuxC.I() + 1,loAuxC.J() + 1,loAuxC.K() + 1};
-char_ptr = static_cast<char*>( static_cast<void*>(loAuxC_p) ) + n * SIZE_LOAUXC;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(loAuxC_h), SIZE_LOAUXC);
+char_ptr = static_cast<char*>( static_cast<void*>( loAuxC_p ) ) + n * SIZE_LOAUXC;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loAuxC), SIZE_LOAUXC);
 
-int loU_h[4] = {loU.I() + 1,loU.J() + 1,loU.K() + 1,1};
-char_ptr = static_cast<char*>( static_cast<void*>(loU_p) ) + n * SIZE_LOU;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(loU_h), SIZE_LOU);
+char_ptr = static_cast<char*>( static_cast<void*>( loU_p ) ) + n * SIZE_LOU;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loU), SIZE_LOU);
 
-int loFl_h[4] = {loFl.I() + 1,loFl.J() + 1,loFl.K() + 1,1};
-char_ptr = static_cast<char*>( static_cast<void*>(loFl_p) ) + n * SIZE_LOFL;
-std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(loFl_h), SIZE_LOFL);
+char_ptr = static_cast<char*>( static_cast<void*>( loFl_p ) ) + n * SIZE_LOFL;
+std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loFl), SIZE_LOFL);
 
 
 /* _connector:tile_descriptor */
 const RealVect deltas = tileDesc_h->deltas();
 const IntVect lo = tileDesc_h->lo();
 const IntVect hi = tileDesc_h->hi();
+const IntVect loGC = tileDesc_h->loGC();
+const IntVect hiGC = tileDesc_h->hiGC();
 const IntVect loAuxC = tileDesc_h->lo() - IntVect{ LIST_NDIM(1, 1, 0) };
 const IntVect loU = tileDesc_h->loGC();
 const IntVect loFl = tileDesc_h->lo();
@@ -157,6 +183,31 @@ const IntVect loFl = tileDesc_h->lo();
 /* _connector:pointers_tilein */
 
 /* _connector:memcpy_tilein */
+char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_d) ) + n * sizeof(FArray4D);
+FArray4D U_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_U_d) ) + n * SIZE_U)), loGC, hiGC, 8 - 0 + 1};
+char_ptr = _f4_U_p + n * sizeof(FArray4D);
+std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_device), sizeof(FArray4D));
+
+char_ptr = static_cast<char*>( static_cast<void*>(_f4_auxC_d) ) + n * sizeof(FArray4D);
+FArray4D auxC_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_auxC_d) ) + n * SIZE_AUXC)), loGC, hiGC, 1};
+char_ptr = _f4_auxC_p + n * sizeof(FArray4D);
+std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&auxC_device), sizeof(FArray4D));
+
+char_ptr = static_cast<char*>( static_cast<void*>(_f4_flX_d) ) + n * sizeof(FArray4D);
+FArray4D flX_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flX_d) ) + n * SIZE_FLX)), lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }, 5};
+char_ptr = _f4_flX_p + n * sizeof(FArray4D);
+std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flX_device), sizeof(FArray4D));
+
+char_ptr = static_cast<char*>( static_cast<void*>(_f4_flY_d) ) + n * sizeof(FArray4D);
+FArray4D flY_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flY_d) ) + n * SIZE_FLY)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }, 5};
+char_ptr = _f4_flY_p + n * sizeof(FArray4D);
+std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_device), sizeof(FArray4D));
+
+char_ptr = static_cast<char*>( static_cast<void*>(_f4_flZ_d) ) + n * sizeof(FArray4D);
+FArray4D flZ_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }, 1};
+char_ptr = _f4_flZ_p + n * sizeof(FArray4D);
+std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_device), sizeof(FArray4D));
+
 
 /* _connector:memcpy_tileinout */
 Real* U_d = tileDesc_h->dataPtr();
@@ -180,11 +231,14 @@ const Real*  start_p_U = U_data_p + offset_U;
 std::size_t nBytes_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
 std::memcpy(static_cast<void*>(start_h_U), static_cast<const void*>(start_p_U), nBytes_U);
 
+/* _connector:pinned_sizes */
+constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
+
 /* _connector:in_pointers */
 Real* U_data_h = tileDesc_h->dataPtr();
 
 /* _connector:out_pointers */
-Real* U_data_p = U_p;
+Real* U_data_p = static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( U_p ) ) + n * SIZE_U ) );
 
 /* _connector:pointers_tileout */
 

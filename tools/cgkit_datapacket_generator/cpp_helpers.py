@@ -2,21 +2,37 @@
 import utility as util
 import json_sections
 
+# TODO: Once packet contents is gone this is no longer needed.
 def insert_farray_size_constructor(size_connector: dict):
+    """Insert packet contents size information into the cpp packet constructor section."""
     packet_contents_size = "_nTiles_h * sizeof(PacketContents)"
     size_connector['size_constructor'] = f'{size_connector["size_constructor"]} + {packet_contents_size}'
 
+# TODO: Once bounds are properly introduced into the JSON this is no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str) -> set:
+    """Insert metadata dependencies into the memcpy section for a cpp packet."""
     if language == util.Language.fortran: return set()
     mdata_set = set(metadata.values())
     return mdata_set.symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:
+    """Inserts the total size needed to store all farray pointers."""
     line = connectors['size_tilemetadata']
     insert_index = line.find('(')
     connectors['size_tilemetadata'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
 
 def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str, data_type: str):
+    """
+    Insers the farray memcpy and data pointer sections into the data packet connectors.
+
+    Parameters:
+        connectors: dict - Dictionary that stores connectors.
+        item: str - The name of the item to be stored
+        lo: str - The low bound of the array
+        hi: str - the high bound of the array
+        unks: str - the number of unknowns
+        data_type: str - The data type of the item.
+    """
     connectors['pointers_tilemetadata'].append(
         f"""char* _f4_{item}_p = ptr_p;\n""" + \
         f"""_f4_{item}_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );\n""" + \
@@ -34,6 +50,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
 
 # can probably shrink this function and insert it into each data section.
 def insert_farray_information(data: dict, connectors: dict, size_connectors) -> None:
+    """Inserts farray items into the data packet."""
     insert_farray_size_constructor(size_connectors)
     dicts = [data.get(json_sections.T_IN, {}), data.get(json_sections.T_IN_OUT, {}), data.get(json_sections.T_OUT, {}), data.get(json_sections.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
@@ -42,7 +59,7 @@ def insert_farray_information(data: dict, connectors: dict, size_connectors) -> 
     ])
 
 def tmdata_memcpy_cpp(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):
-    dtype = util.cpp_equiv[data_type] if data_type in util.cpp_equiv else data_type
+    """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
     connectors['memcpy_tilemetadata'].extend([
         f"""char_ptr = static_cast<char*>( static_cast<void*>( {pinned} ) ) + n * {size};\n""",
         f"""std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{item}), {size});\n\n"""

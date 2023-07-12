@@ -1,3 +1,5 @@
+"""A file that constains the name constants of all sections in the JSON. If something is being loaded from a section in the JSON, this file should be used to keep consistency."""
+
 ORDER = "task-function-argument-list"
 EXTRA_STREAMS = "n-extra-streams"
 GENERAL = "constructor"

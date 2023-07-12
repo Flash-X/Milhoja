@@ -18,6 +18,7 @@ HELPERS = "cg-tpl.datapacket_helpers.cpp"
 ####################
 
 def constructSourceTree(stree, tpl_1, data: dict):
+    """Constructs the source tree for the data packet."""
     init = OUTER if not data else data["outer"]
     helpers = HELPERS if not data else data["helpers"]
     stree.initTree(init)

@@ -71,6 +71,7 @@ tile_variable_mapping = {
 }
 
 class Language(Enum):
+    """Gives all possible languages for data packet generation. Included languages are fortran and cpp."""
     cpp = 'cpp'
     fortran = 'fortran'
 
@@ -78,15 +79,19 @@ class Language(Enum):
         return self.value
     
 class NoTaskArgumentListExcepiton(BaseException):
+    """Raised when the provided JSON file does not have a task function argument list."""
     pass
 
 class TaskArgumentListMismatchException(BaseException):
+    """Raised when the items in the task function argument list do not match the items in the JSON file."""
     pass
 
 class DuplicateItemException(BaseException):
+    """Raised when there is a duplicate item key in the JSON file."""
     pass
 
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
+    """Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments."""
     lbound_list = []
     formatted = ""
     for item in lbound:

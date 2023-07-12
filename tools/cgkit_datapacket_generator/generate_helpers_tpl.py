@@ -18,11 +18,13 @@ def add_size_parameter(name: str, section_dict: dict, connectors: dict):
     connectors[f'size_{name.replace("-", "")}'] = ' + '.join( f'SIZE_{item.upper()}' for item in section_dict) if section_dict else 0
 
 def section_creation(name: str, section: dict, connectors: dict, size_connectors):
+    """Creates a section and sets the default value to an empty list."""
     add_size_parameter(name, section, size_connectors)
     connectors[f'pointers_{name}'] = []
     connectors[f'memcpy_{name}'] = []
 
 def set_pointer_determination(connectors: dict, section: str, item:str, device_item: str, size_item: str, item_type, use_item_type=True):
+    """Sets the pointer determination section for a specific section of the JSON."""
     dtype = item_type
     if not use_item_type:
         dtype = f""
@@ -110,6 +112,7 @@ def iterate_constructor(connectors: dict, size_connectors: dict, constructor: di
         )
 
 def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str, pinned: str, use_ref: str, size: str, item):
+    """Adds the memcpy portion for the metadata section in a fortran packet."""
     connectors['memcpy_tilemetadata'].extend([
         f'{data_type} {host}{construct};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>({pinned}) ) + n * {size};\n',
@@ -117,6 +120,7 @@ def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str,
     ])
 
 def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int) -> None:
+    """Iterates the tilemetadata section of the JSON."""
     section_creation('tilemetadata', tilemetadata, connectors, size_connectors)
     connectors['tile_descriptor'] = []
     missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
@@ -176,8 +180,9 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
         for item in missing_dependencies
     ]) 
 
+# TODO: This needs to be modified when converting from lbound to bound section.
 def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: str):
-    """Iterates the lbound section. """
+    """Iterates the lbound section of the JSON. """
     dtype = 'int' if lang == consts.Language.fortran else 'IntVect'
     dtype_size = '3 * sizeof(int)' if lang == consts.Language.fortran else 'IntVect'
     memcpy_func = tmdata_memcpy_f if lang == consts.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
@@ -208,6 +213,7 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
 
 
 def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params:dict, language: str) -> None:
+    """Iterates the tile in section of the JSON."""
     section_creation('tilein', tilein, connectors, size_connectors)
     pinnedLocation = set()
     for item,data in tilein.items():
@@ -240,6 +246,7 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
     connectors['memcpy_tileinout'].extend(pinnedLocation)
 
 def add_memcpy_connector(connectors: dict, section: str, extents, item, start, end, size_item, raw_type):
+    """Adds a memcpy connector based on the information passed in."""
     connectors[f'memcpy_{section.replace("-", "")}'].extend([
         f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'
         f'std::size_t offset_{item} = {extents} * static_cast<std::size_t>({start});\n',
@@ -250,17 +257,31 @@ def add_memcpy_connector(connectors: dict, section: str, extents, item, start, e
     connectors['in_pointers'].append(f'{raw_type}* {item}_data_h = tileDesc_h->dataPtr();\n')
 
 def add_unpack_connector(connectors: dict, section: str, extents, item, start, end, item_type, raw_type):
+    """
+    Adds an unpack connector to the connectors dictionary based on the information passed in.
+    
+    Parameters:
+        connectors: dict - The connectors dictionary
+        section: str - The name of the section
+        extents: str - The extents of the array
+        item: str - The key name
+        start: str - The start variable
+        end: str - The end variable
+        item_type - The data type of item
+        raw_type - The unmodified type of item
+    """
     connectors[f'unpack_{section.replace("-", "")}'].extend([
         f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'
         f'std::size_t offset_{item} = {extents} * static_cast<std::size_t>({start});\n',
         f'Real*        start_h_{item} = {item}_data_h + offset_{item};\n'
         f'const Real*  start_p_{item} = {item}_data_p + offset_{item};\n'
-        f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n',
+        f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n',
         f'std::memcpy(static_cast<void*>(start_h_{item}), static_cast<const void*>(start_p_{item}), nBytes_{item});\n'
     ])
     connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( {item}_p ) ) + n * SIZE_{item} ) );\n')
 
 def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, params:dict, language: str) -> None:
+    """Iterates the tileinout section of the JSON."""
     section_creation('tileinout', tileinout, connectors, size_connectors)
     connectors['memcpy_tileinout'] = []
     connectors['unpack_tileinout'] = []
@@ -299,6 +320,7 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
     connectors['memcpy_tileinout'].extend(pinnedLocation)
 
 def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, params:dict, language: str) -> None:
+    """Iterates the tileout section of the JSON."""
     section_creation('tileout', tileout, connectors, size_connectors)
     connectors['unpack_tileout'] = []
     for item,data in tileout.items():
@@ -329,6 +351,7 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
         #     cpp_helpers.insert_farray_memcpy(connectors, item, , , tilein[item]['extents'][-1], item_type)
 
 def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
+    """Iterates the tilescratch section of the JSON."""
     section_creation('tilescratch', tilescratch, connectors, size_connectors)
     for item in tilescratch:
         lbound = f"lo{item[0].capitalize()}{item[1:]}"
@@ -358,10 +381,17 @@ def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: di
             cpp_helpers.insert_farray_memcpy(connectors, item, bound_map[item][0], bound_map[item][1], bound_map[item][2], item_type)
 
 def sort_dict(section, sort_key) -> dict:
+    """
+    Sorts a given dictionary using the sort key.
+    
+    Parameters:
+        section: dict - The dictionary to sort.
+        sort_key: func - The function to sort with.
+    """
     return dict( sorted(section, key = sort_key, reverse = True) )
 
 def write_connectors(template, connectors):
-    """Writes connectors to the """
+    """Writes connectors to the datapacket file."""
     # constructor args requires a special formatting 
     template.writelines([
         f'/* _connector:constructor_args */\n'
@@ -388,7 +418,7 @@ def write_connectors(template, connectors):
         ] + [ ''.join(connectors[connection]) ] + ['\n'] 
     )
         
-def set_default_params(data: dict, params: dict):
+def set_default_params(data, params: dict):
     """
     Sets the default parameters for cgkit.
     
@@ -407,10 +437,8 @@ def generate_outer(name: str, params: dict):
     Generates the outer template for the datapacket template.
     
     Parameters:
-        name: the name of the class.\n
-        params: the parameter list to write to the outer template.
-    Returns:
-        None
+        name: str - the name of the class.
+        params: dict - the parameter list to write to the outer template.
     """
     with open(name, 'w') as outer:
         outer.writelines([
@@ -425,8 +453,8 @@ def write_size_connectors(size_connectors: dict, file):
     Writes the size connectors to the specified file.
     
     Parameters:
-        size_connectors: the size connectors to write to file.\n
-        file: the file to write to.
+        size_connectors: dict - The size connectors to write to file.
+        file: TextIO- the file to write to.
     Returns:
         None
     """
@@ -438,6 +466,7 @@ def write_size_connectors(size_connectors: dict, file):
 #      need to write an expression parser in order to get accurate size sorting. Either that, or the expressions
 #      given in the JSON file need to be single constants and not mathematical expressions
 def generate_helper_template(data: dict) -> None:
+    """Generates the helper template with the provided JSON data."""
     with open(data["helpers"], 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list)

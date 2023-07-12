@@ -11,16 +11,19 @@ import sys
 sys.path.insert(0, 'interoperability_layers')
 
 class NoLanguageException(BaseException):
+    """Raised when no language is provided when generating a data packet."""
     pass
 
 class NotAJSONException(BaseException):
+    """Raised when a value that is passed in to generate the data packet is not a JSON."""
     pass
 
 class EmptyFileException(BaseException):
+    """Raised when the file passed in to generate the JSON is empty."""
     pass
 
 def load_json(file, args) -> dict:
-    """Loads the json file into a dict and adds any necessary information to the dict."""
+    """Loads the json file into a dict and adds any necessary information to the it."""
     data = json.load(file)
     data["file_name"] = file.name.replace(".json", "")
     data["name"] = os.path.basename(file.name).replace(".json", "")
@@ -40,6 +43,7 @@ def load_json(file, args) -> dict:
     return data
 
 def main():
+    """Loads the arguments and JSON, then generates the data packet files."""
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X simulations.")
     parser.add_argument("JSON", help="The JSON file to generate from.")
     parser.add_argument('--language', '-l', type=consts.Language, choices=list(consts.Language), help="Generate a packet to work with this language.")

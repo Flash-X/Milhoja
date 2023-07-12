@@ -14,14 +14,23 @@ Real _dt_h;
 Real* _dt_d;
 int _nTiles_h;
 int* _nTiles_d;
-Real* _deltas_d;
-int* _lo_d;
-int* _hi_d;
+RealVect* _deltas_d;
+IntVect* _lo_d;
+IntVect* _hi_d;
+IntVect* _loAuxC_d;
+IntVect* _loU_d;
+IntVect* _loFl_d;
 Real* _U_d;
+Real* U_p;
 Real* _auxC_d;
 Real* _flX_d;
 Real* _flY_d;
 Real* _flZ_d;
+FArray4D* _f4_U_d;
+FArray4D* _f4_auxC_d;
+FArray4D* _f4_flX_d;
+FArray4D* _f4_flY_d;
+FArray4D* _f4_flZ_d;
 
 
 #endif
@@ -47,6 +56,9 @@ _nTiles_d{nullptr},
 _deltas_d{nullptr},
 _lo_d{nullptr},
 _hi_d{nullptr},
+_loAuxC_d{nullptr},
+_loU_d{nullptr},
+_loFl_d{nullptr},
 _U_d{nullptr},
 _auxC_d{nullptr},
 _flX_d{nullptr},
@@ -80,6 +92,9 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
   constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
   constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
+  constexpr std::size_t SIZE_LOAUXC = sizeof(IntVect);
+  constexpr std::size_t SIZE_LOU = sizeof(IntVect);
+  constexpr std::size_t SIZE_LOFL = sizeof(IntVect);
   constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
   constexpr std::size_t SIZE_AUXC = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * sizeof(Real);
   constexpr std::size_t SIZE_FLX = ((8 + 2 * 1) + 1) * (8 + 2 * 1) * (1 + 2 * 0) * (5) * sizeof(Real);
@@ -97,7 +112,7 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
 //    std::cout << "Constructor size: " << SIZE_CONSTRUCTOR << std::endl;
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-  (5 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI
+  (5 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_LOAUXC + SIZE_LOU + SIZE_LOFL
   
         )
     );
@@ -170,7 +185,6 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   
   
 
-    location_ = PacketDataLocation::CC1;
     copyInStart_p_ = static_cast<char*>(packet_p_);
     copyInStart_d_ = static_cast<char*>(packet_d_) + SIZE_TILESCRATCH;
     char* ptr_p = copyInStart_p_;
@@ -188,43 +202,58 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   
   
 
-  Real* deltas_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
-  _deltas_d = static_cast<Real*>( static_cast<void*>(ptr_d) );
+  RealVect* deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
+  _deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
   ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
   ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
   
-  int* lo_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-  _lo_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+  IntVect* lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+  _lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
   ptr_p+=_nTiles_h * SIZE_TILE_LO;
   ptr_d+=_nTiles_h * SIZE_TILE_LO;
   
-  int* hi_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-  _hi_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+  IntVect* hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+  _hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
   ptr_p+=_nTiles_h * SIZE_TILE_HI;
   ptr_d+=_nTiles_h * SIZE_TILE_HI;
   
-  char* U_fa4_p = ptr_p;
-  char* U_fa4_d = ptr_d;
+  IntVect* loAuxC_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+  _loAuxC_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+  ptr_p += _nTiles_h * SIZE_LOAUXC;
+  ptr_d += _nTiles_h * SIZE_LOAUXC;
+  
+  IntVect* loU_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+  _loU_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+  ptr_p += _nTiles_h * SIZE_LOU;
+  ptr_d += _nTiles_h * SIZE_LOU;
+  
+  IntVect* loFl_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+  _loFl_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+  ptr_p += _nTiles_h * SIZE_LOFL;
+  ptr_d += _nTiles_h * SIZE_LOFL;
+  
+  char* _f4_U_p = ptr_p;
+  _f4_U_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
   ptr_p += _nTiles_h * sizeof(FArray4D);
   ptr_d += _nTiles_h * sizeof(FArray4D);
   
-  char* auxC_fa4_p = ptr_p;
-  char* auxC_fa4_d = ptr_d;
+  char* _f4_auxC_p = ptr_p;
+  _f4_auxC_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
   ptr_p += _nTiles_h * sizeof(FArray4D);
   ptr_d += _nTiles_h * sizeof(FArray4D);
   
-  char* flX_fa4_p = ptr_p;
-  char* flX_fa4_d = ptr_d;
+  char* _f4_flX_p = ptr_p;
+  _f4_flX_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
   ptr_p += _nTiles_h * sizeof(FArray4D);
   ptr_d += _nTiles_h * sizeof(FArray4D);
   
-  char* flY_fa4_p = ptr_p;
-  char* flY_fa4_d = ptr_d;
+  char* _f4_flY_p = ptr_p;
+  _f4_flY_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
   ptr_p += _nTiles_h * sizeof(FArray4D);
   ptr_d += _nTiles_h * sizeof(FArray4D);
   
-  char* flZ_fa4_p = ptr_p;
-  char* flZ_fa4_d = ptr_d;
+  char* _f4_flZ_p = ptr_p;
+  _f4_flZ_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
   ptr_p += _nTiles_h * sizeof(FArray4D);
   ptr_d += _nTiles_h * sizeof(FArray4D);
   
@@ -240,7 +269,7 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     ptr_p = copyInOutStart_p_;
     ptr_d = copyInOutStart_d_;
 
-  Real* U_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
+   U_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
   _U_d = static_cast<Real*>( static_cast<void*>(ptr_d) );
   ptr_p+=_nTiles_h * SIZE_U;
   ptr_d+=_nTiles_h * SIZE_U;
@@ -256,10 +285,6 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   std::memcpy(nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
   
 
-    if (pinnedPtrs_) throw std::logic_error("[pack] Pinned pointers already exist");
-	pinnedPtrs_ = new BlockPointersPinned[_nTiles_h];
-	PacketContents* tilePtrs_p = contents_p_;
-
     char* char_ptr;
     for (std::size_t n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
@@ -267,61 +292,63 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     const RealVect deltas = tileDesc_h->deltas();
     const IntVect lo = tileDesc_h->lo();
     const IntVect hi = tileDesc_h->hi();
-    const IntVect hiGC = tileDesc_h->hiGC();
     const IntVect loGC = tileDesc_h->loGC();
+    const IntVect hiGC = tileDesc_h->hiGC();
+    const IntVect loAuxC = tileDesc_h->lo() - IntVect{ LIST_NDIM(1, 1, 0) };
+    const IntVect loU = tileDesc_h->loGC();
+    const IntVect loFl = tileDesc_h->lo();
     
-        Real* data_h = tileDesc_h->dataPtr();
-        if (data_h == nullptr) throw std::logic_error("[pack] Invalid ptr to data in host.");
 
     char_ptr = static_cast<char*>( static_cast<void*>( deltas_p ) ) + n * SIZE_TILE_DELTAS;
-    tilePtrs_p->deltas_d = static_cast<RealVect*>( static_cast<void*>(char_ptr) );
     std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
     
     char_ptr = static_cast<char*>( static_cast<void*>( lo_p ) ) + n * SIZE_TILE_LO;
-    tilePtrs_p->lo_d = static_cast<IntVect*>( static_cast<void*>(char_ptr) );
     std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
     
     char_ptr = static_cast<char*>( static_cast<void*>( hi_p ) ) + n * SIZE_TILE_HI;
-    tilePtrs_p->hi_d = static_cast<IntVect*>( static_cast<void*>(char_ptr) );
     std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
     
+    char_ptr = static_cast<char*>( static_cast<void*>( loAuxC_p ) ) + n * SIZE_LOAUXC;
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loAuxC), SIZE_LOAUXC);
     
-    char_ptr = U_fa4_d + n * sizeof(FArray4D);
-    tilePtrs_p->U_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );
-    FArray4D U_d{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_U_d) ) + n * SIZE_U)) };
-    char_ptr = U_fa4_p + n * sizeof(FArray4D);
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_d), sizeof(FArray4D));
+    char_ptr = static_cast<char*>( static_cast<void*>( loU_p ) ) + n * SIZE_LOU;
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loU), SIZE_LOU);
     
-    char_ptr = auxC_fa4_d + n * sizeof(FArray4D);
-    tilePtrs_p->auxC_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );
-    FArray4D auxC_d{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_auxC_d) ) + n * SIZE_AUXC)) };
-    char_ptr = auxC_fa4_p + n * sizeof(FArray4D);
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&auxC_d), sizeof(FArray4D));
-    
-    char_ptr = flX_fa4_d + n * sizeof(FArray4D);
-    tilePtrs_p->flX_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );
-    FArray4D flX_d{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flX_d) ) + n * SIZE_FLX)) };
-    char_ptr = flX_fa4_p + n * sizeof(FArray4D);
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flX_d), sizeof(FArray4D));
-    
-    char_ptr = flY_fa4_d + n * sizeof(FArray4D);
-    tilePtrs_p->flY_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );
-    FArray4D flY_d{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flY_d) ) + n * SIZE_FLY)) };
-    char_ptr = flY_fa4_p + n * sizeof(FArray4D);
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_d), sizeof(FArray4D));
-    
-    char_ptr = flZ_fa4_d + n * sizeof(FArray4D);
-    tilePtrs_p->flZ_d = static_cast<FArray4D*>( static_cast<void*>(char_ptr) );
-    FArray4D flZ_d{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)) };
-    char_ptr = flZ_fa4_p + n * sizeof(FArray4D);
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_d), sizeof(FArray4D));
+    char_ptr = static_cast<char*>( static_cast<void*>( loFl_p ) ) + n * SIZE_LOFL;
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loFl), SIZE_LOFL);
     
     
+    char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_d) ) + n * sizeof(FArray4D);
+    FArray4D U_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_U_d) ) + n * SIZE_U)), loGC, hiGC, 8 - 0 + 1};
+    char_ptr = _f4_U_p + n * sizeof(FArray4D);
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_device), sizeof(FArray4D));
+    
+    char_ptr = static_cast<char*>( static_cast<void*>(_f4_auxC_d) ) + n * sizeof(FArray4D);
+    FArray4D auxC_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_auxC_d) ) + n * SIZE_AUXC)), loGC, hiGC, 1};
+    char_ptr = _f4_auxC_p + n * sizeof(FArray4D);
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&auxC_device), sizeof(FArray4D));
+    
+    char_ptr = static_cast<char*>( static_cast<void*>(_f4_flX_d) ) + n * sizeof(FArray4D);
+    FArray4D flX_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flX_d) ) + n * SIZE_FLX)), lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }, 5};
+    char_ptr = _f4_flX_p + n * sizeof(FArray4D);
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flX_device), sizeof(FArray4D));
+    
+    char_ptr = static_cast<char*>( static_cast<void*>(_f4_flY_d) ) + n * sizeof(FArray4D);
+    FArray4D flY_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flY_d) ) + n * SIZE_FLY)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }, 5};
+    char_ptr = _f4_flY_p + n * sizeof(FArray4D);
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_device), sizeof(FArray4D));
+    
+    char_ptr = static_cast<char*>( static_cast<void*>(_f4_flZ_d) ) + n * sizeof(FArray4D);
+    FArray4D flZ_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }, 1};
+    char_ptr = _f4_flZ_p + n * sizeof(FArray4D);
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_device), sizeof(FArray4D));
+    
+    
+    Real* U_d = tileDesc_h->dataPtr();
     std::size_t offset_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
     std::size_t nBytes_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 8 - 0 + 1 ) * sizeof(Real);
     char_ptr = static_cast<char*>( static_cast<void*>(U_p) ) + n * SIZE_U;
-    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(data_h + offset_U), nBytes_U);
-    pinnedPtrs_[n].CC1_data = static_cast<Real*>( static_cast<void*>(char_ptr) );
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(U_d + offset_U), nBytes_U);
     
     
     }
@@ -335,20 +362,24 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::unpack(void) {
     using namespace milhoja;
     if (tiles_.size() <= 0) throw std::logic_error("[unpack] Empty data packet.");
     if (!stream_.isValid()) throw std::logic_error("[unpack] Stream not acquired.");
-    if (pinnedPtrs_ == nullptr) throw std::logic_error("[unpack] No pinned pointers set.");
+    // if (pinnedPtrs_ == nullptr) throw std::logic_error("[unpack] No pinned pointers set.");
     RuntimeBackend::instance().releaseStream(stream_);
 	assert(!stream_.isValid());
 
+  constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
+  
+
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
-        Real* data_h = tileDesc_h->dataPtr();
-        const Real* data_p = pinnedPtrs_[n].CC1_data;
-        if(data_h == nullptr) throw std::logic_error("[unpack] Invalid pointer to data in host.");
-        if(data_p == nullptr) throw std::logic_error("[unpack] Invalid pointer to data in pinned.");
+    Real* U_data_h = tileDesc_h->dataPtr();
+    
+    Real* U_data_p = static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( U_p ) ) + n * SIZE_U ) );
+    
 
+    Real* U_d = tileDesc_h->dataPtr();
     std::size_t offset_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
-    Real*        start_h_U = data_h + offset_U;
-    const Real*  start_p_U = data_p + offset_U;
+    Real*        start_h_U = U_data_h + offset_U;
+    const Real*  start_p_U = U_data_p + offset_U;
     std::size_t nBytes_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
     std::memcpy(static_cast<void*>(start_h_U), static_cast<const void*>(start_p_U), nBytes_U);
     
