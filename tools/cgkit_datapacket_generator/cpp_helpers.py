@@ -28,7 +28,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
         data_type: str - The data type of the item.
     """
     connectors['pointers_tilemetadata'].append(
-        f"""char* _f4_{item}_p = ptr_p;\n""" + \
+        f"""_f4_{item}_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );\n""" + \
         f"""_f4_{item}_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );\n""" + \
         f"""ptr_p += _nTiles_h * sizeof(FArray4D);\n""" + \
         f"""ptr_d += _nTiles_h * sizeof(FArray4D);\n\n"""
@@ -38,7 +38,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
         f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_d) ) + n * sizeof(FArray4D);\n',
         f"""FArray4D {item}_device{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
         f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
-        f'char_ptr = _f4_{item}_p + n * sizeof(FArray4D);\n'
+        f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * sizeof(FArray4D);\n'
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_device), sizeof(FArray4D));\n\n'
     ])
 
@@ -50,6 +50,8 @@ def insert_farray_information(data: dict, connectors: dict, size_connectors) -> 
     farrays = {item: sect[item] for sect in dicts for item in sect}
     connectors['public_members'].extend([
         f'FArray4D* _f4_{item}_d;\n' for item in farrays
+    ] + [
+        f'FArray4D* _f4_{item}_p;\n' for item in farrays
     ])
 
 def tmdata_memcpy_cpp(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):

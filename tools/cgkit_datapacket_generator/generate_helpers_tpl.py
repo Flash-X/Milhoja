@@ -31,7 +31,7 @@ def set_pointer_determination(connectors: dict, section: str, item:str, device_i
     else:
         dtype += "*"
     connectors[f'pointers_{section}'].append(
-        f"""{dtype} {item}_p = static_cast<{item_type}*>( static_cast<void*>(ptr_p) );\n""" + 
+        f"""_{item}_p = static_cast<{item_type}*>( static_cast<void*>(ptr_p) );\n""" + 
         f"""{device_item} = static_cast<{item_type}*>( static_cast<void*>(ptr_d) );\n""" + 
         f"""ptr_p+={size_item};\n""" + 
         f"""ptr_d+={size_item};\n\n"""
@@ -92,12 +92,15 @@ def iterate_constructor(connectors: dict, size_connectors: dict, constructor: di
     for key,item_type in constructor.items():
         device_item = f'_{key}_d'
         host_item = f'_{key}_h'
+        pinned_item = f'_{key}_p'
         size_item = f'SIZE_{key.upper()}'
         if key != 'nTiles':
             connectors['constructor_args'].append( f'{item_type} {key}' )
             connectors['host_members'].append( f'{host_item}' )
         connectors['public_members'].extend(
-            [f'{item_type} {host_item};\n', f'{item_type}* {device_item};\n']
+            [f'{item_type} {host_item};\n', 
+             f'{item_type}* {device_item};\n',
+             f'{item_type}* {pinned_item};\n']
         )
         connectors['set_members'].extend(
             [f'{host_item}{"{tiles_.size()}" if key == "nTiles" else f"{{{key}}}"}', 
@@ -108,7 +111,7 @@ def iterate_constructor(connectors: dict, size_connectors: dict, constructor: di
         )
         set_pointer_determination(connectors, 'constructor', key, device_item, size_item, item_type)
         connectors['memcpy_constructor'].append(
-            f'std::memcpy({key}_p, static_cast<void*>(&{host_item}), {size_item});\n'
+            f'std::memcpy({pinned_item}, static_cast<void*>(&{host_item}), {size_item});\n'
         )
 
 def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str, pinned: str, use_ref: str, size: str, item):
@@ -140,14 +143,15 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
             continue
         
         device_item = f'_{name}_d'
-        pinned_item = f'{name}_p'
+        pinned_item = f'_{name}_p'
         size_item = f'SIZE_{item.upper()}'
         host_item = f'{name}_h'
         # Be careful! MDIM is 3 in Flash-X but might not always be 3 in every language
         size_eq = f"3 * sizeof({item_type})" if language == consts.Language.fortran else f"sizeof({ consts.farray_mapping.get(item_type, item_type) })"
 
         connectors['public_members'].extend(
-            [f'{item_type}* {device_item};\n']
+            [f'{item_type}* {device_item};\n',
+             f'{item_type}* {pinned_item};\n']
         )
         connectors['set_members'].extend(
             [f'{device_item}{{nullptr}}']
@@ -191,15 +195,15 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
     size_connectors['size_tilemetadata'] = ' + '.join( [size_connectors['size_tilemetadata'], lbound_mdata])
     for key,bound in lbound.items():
         device_item = f'_{key}_d'
-        pinned = f'{key}_p'
+        pinned = f'_{key}_p'
         size_item = f'SIZE_{key.upper()}'
         constructor_expression,memcpy_list = consts.format_lbound_string(key, bound)
 
-        connectors['public_members'].append( f'{dtype}* {device_item};\n' )
+        connectors['public_members'].extend( [f'{dtype}* {device_item};\n', f'{dtype}* {pinned};\n'] )
         connectors['set_members'].append( f'{device_item}{{nullptr}}')
         connectors['size_determination'].append( f'constexpr std::size_t {size_item} = sizeof({dtype_size});\n' )
         connectors['pointers_tilemetadata'].append(
-            f"""{dtype}* {pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
+            f"""{pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
             f"""{device_item} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
             f"""ptr_p += _nTiles_h * {size_item};\n""" + 
             f"""ptr_d += _nTiles_h * {size_item};\n\n"""
@@ -218,7 +222,7 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
     pinnedLocation = set()
     for item,data in tilein.items():
         device_item = f'_{item}_d'
-        pinned_item = f'{item}_p'
+        pinned_item = f'_{item}_p'
         size_item = f'SIZE_{item.upper()}'
         extents = data['extents']
         start = data['start']
@@ -251,7 +255,7 @@ def add_memcpy_connector(connectors: dict, section: str, extents, item, start, e
         f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'
         f'std::size_t offset_{item} = {extents} * static_cast<std::size_t>({start});\n',
         f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
-        f'char_ptr = static_cast<char*>( static_cast<void*>({item}_p) ) + n * {size_item};\n',
+        f'char_ptr = static_cast<char*>( static_cast<void*>(_{item}_p) ) + n * {size_item};\n',
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n'
     ])
     # connectors['in_pointers'].append(f'{raw_type}* {item}_data_h = tileDesc_h->dataPtr();\n')
@@ -278,7 +282,7 @@ def add_unpack_connector(connectors: dict, section: str, extents, item, start, e
         f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n',
         f'std::memcpy(static_cast<void*>(start_h_{item}), static_cast<const void*>(start_p_{item}), nBytes_{item});\n'
     ])
-    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( {item}_p ) ) + n * SIZE_{item.upper()} ) );\n')
+    connectors['out_pointers'].append(f'{raw_type}* {item}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _{item}_p ) ) + n * SIZE_{item.upper()} ) );\n')
 
 def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, params:dict, language: str) -> None:
     """Iterates the tileinout section of the JSON."""
@@ -289,7 +293,7 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
     for item,value in tileinout.items():
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
-        pinned_item = f'{item}_p'
+        pinned_item = f'_{item}_p'
         raw_type = value['type']
         item_type = value['type'] if language == consts.Language.fortran else consts.cpp_equiv[value['type']]
         start_in = value['start-in']
@@ -333,8 +337,8 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
         raw_type = data['type']
 
         connectors['public_members'].append(
-            f'{item_type}* {device_item};\n'
-            f'{raw_type}* {item}_p;\n'
+            f'{raw_type}* {device_item};\n'
+            f'{raw_type}* _{item}_p;\n'
         )
         connectors['set_members'].extend(
             [f'{device_item}{{nullptr}}']
