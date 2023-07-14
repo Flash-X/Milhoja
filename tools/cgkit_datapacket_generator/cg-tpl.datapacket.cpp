@@ -187,12 +187,3 @@ void _param:i_give_up::unpack(void) {
         /* _link:unpack_tileout */
     }
 }
-
-// int main() {
-//     //this is acting as driver_evolveAll
-//     _param:class_name packet{2.1};
-//     //this is driver_evolveAll calling runtime
-//     packet.pack();
-//     packet.unpack();
-//     return 0;
-// }

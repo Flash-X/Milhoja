@@ -20,13 +20,19 @@ IntVect* _hi_d;
 IntVect* _loAuxC_d;
 IntVect* _loU_d;
 IntVect* _loFl_d;
+Real* _in_d;
+Real* in_p;
 Real* _U_d;
 Real* U_p;
+Real* _oot_d;
+Real* oot_p;
 Real* _auxC_d;
 Real* _flX_d;
 Real* _flY_d;
 Real* _flZ_d;
+FArray4D* _f4_in_d;
 FArray4D* _f4_U_d;
+FArray4D* _f4_oot_d;
 FArray4D* _f4_auxC_d;
 FArray4D* _f4_flX_d;
 FArray4D* _f4_flY_d;
@@ -59,7 +65,9 @@ _hi_d{nullptr},
 _loAuxC_d{nullptr},
 _loU_d{nullptr},
 _loFl_d{nullptr},
+_in_d{nullptr},
 _U_d{nullptr},
+_oot_d{nullptr},
 _auxC_d{nullptr},
 _flX_d{nullptr},
 _flY_d{nullptr},
@@ -79,9 +87,9 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     using namespace milhoja;
 	std::string errMsg = isNull();
 	if (errMsg != "")
-		throw std::logic_error("[packet::pack] " + errMsg);
+		throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack] " + errMsg);
 	else if (tiles_.size() == 0)
-		throw std::logic_error("[packet::pack] No tiles added.");
+		throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack] No tiles added.");
     static_assert(sizeof(char) == 1);
 
 
@@ -95,7 +103,9 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   constexpr std::size_t SIZE_LOAUXC = sizeof(IntVect);
   constexpr std::size_t SIZE_LOU = sizeof(IntVect);
   constexpr std::size_t SIZE_LOFL = sizeof(IntVect);
+  constexpr std::size_t SIZE_IN = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(RealVect);
   constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
+  constexpr std::size_t SIZE_OOT = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
   constexpr std::size_t SIZE_AUXC = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * sizeof(Real);
   constexpr std::size_t SIZE_FLX = ((8 + 2 * 1) + 1) * (8 + 2 * 1) * (1 + 2 * 0) * (5) * sizeof(Real);
   constexpr std::size_t SIZE_FLY = (8 + 2 * 1) * ((8 + 2 * 1) + 1) * (1 + 2 * 0) * (5) * sizeof(Real);
@@ -103,31 +113,31 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
   
 
 	std::size_t SIZE_CONSTRUCTOR = pad(
-  SIZE_DT + SIZE_NTILES + _nTiles_h * sizeof(PacketContents)
+  SIZE_DT + SIZE_NTILES
   
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_CONSTRUCTOR padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_CONSTRUCTOR padding failure");
 
 //    std::cout << "Constructor size: " << SIZE_CONSTRUCTOR << std::endl;
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-  (5 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_LOAUXC + SIZE_LOU + SIZE_LOFL
+  (7 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_LOAUXC + SIZE_LOU + SIZE_LOFL
   
         )
     );
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_TILEMETADATA padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_TILEMETADATA padding failure");
 
 //    std::cout << "Tilemetadata size: " << SIZE_TILEMETADATA << std::endl;
 
     std::size_t SIZE_TILEIN = pad( _nTiles_h * (
-  0
+  SIZE_IN
   
         )
     );
     if (SIZE_TILEIN % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_TILEIN padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_TILEIN padding failure");
 
 //    std::cout << "Tilein size: " << SIZE_TILEIN << std::endl;
 
@@ -137,17 +147,17 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
         )
     );
     if (SIZE_TILEINOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_TILEINOUT padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_TILEINOUT padding failure");
 
 //    std::cout << "Tileinout size: " << SIZE_TILEINOUT << std::endl;
 
     std::size_t SIZE_TILEOUT = pad( _nTiles_h * (
-  0
+  SIZE_OOT
   
         )
     );
     if (SIZE_TILEOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_TILEOUT padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_TILEOUT padding failure");
 
 //    std::cout << "Tileout size: " << SIZE_TILEOUT << std::endl;
 
@@ -157,7 +167,7 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
         )
     );
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
-        throw std::logic_error("[packet] SIZE_TILESCRATCH padding failure");
+        throw std::logic_error("[cgkit_dataPacket_Hydro_gpu_3_2nd_pass] SIZE_TILESCRATCH padding failure");
 
 //    std::cout << "Tilescratch size: " << SIZE_TILESCRATCH << std::endl;
 
@@ -262,6 +272,11 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
 
+   in_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
+  _in_d = static_cast<Real*>( static_cast<void*>(ptr_d) );
+  ptr_p+=_nTiles_h * SIZE_IN;
+  ptr_d+=_nTiles_h * SIZE_IN;
+  
   
 
     copyInOutStart_p_ = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA + SIZE_TILEIN;
@@ -278,6 +293,11 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     char* copyOutStart_p_ = copyInOutStart_p_ + SIZE_TILEINOUT;
     char* copyOutStart_d_ = copyInOutStart_d_ + SIZE_TILEINOUT;
 
+   oot_p = static_cast<Real*>( static_cast<void*>(ptr_p) );
+  _oot_d = static_cast<Real*>( static_cast<void*>(ptr_d) );
+  ptr_p+=_nTiles_h * SIZE_OOT;
+  ptr_d+=_nTiles_h * SIZE_OOT;
+  
   
 
     //memcopy phase
@@ -292,8 +312,8 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     const RealVect deltas = tileDesc_h->deltas();
     const IntVect lo = tileDesc_h->lo();
     const IntVect hi = tileDesc_h->hi();
-    const IntVect loGC = tileDesc_h->loGC();
     const IntVect hiGC = tileDesc_h->hiGC();
+    const IntVect loGC = tileDesc_h->loGC();
     const IntVect loAuxC = tileDesc_h->lo() - IntVect{ LIST_NDIM(1, 1, 0) };
     const IntVect loU = tileDesc_h->loGC();
     const IntVect loFl = tileDesc_h->lo();
@@ -318,6 +338,11 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::pack(void) {
     std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&loFl), SIZE_LOFL);
     
     
+    Real* in_d = tileDesc_h->dataPtr();
+    std::size_t offset_in = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
+    std::size_t nBytes_in = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 8 - 0 + 1 ) * sizeof(Real);
+    char_ptr = static_cast<char*>( static_cast<void*>(in_p) ) + n * SIZE_IN;
+    std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(in_d + offset_in), nBytes_in);
     char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_d) ) + n * sizeof(FArray4D);
     FArray4D U_device{ static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_U_d) ) + n * SIZE_U)), loGC, hiGC, 8 - 0 + 1};
     char_ptr = _f4_U_p + n * sizeof(FArray4D);
@@ -366,31 +391,30 @@ void cgkit_dataPacket_Hydro_gpu_3_2nd_pass::unpack(void) {
     RuntimeBackend::instance().releaseStream(stream_);
 	assert(!stream_.isValid());
 
+  constexpr std::size_t SIZE_IN = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(RealVect);
   constexpr std::size_t SIZE_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(Real);
+  constexpr std::size_t SIZE_OOT = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
   
 
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
-    Real* U_data_h = tileDesc_h->dataPtr();
-    
     Real* U_data_p = static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( U_p ) ) + n * SIZE_U ) );
+    Real* oot_data_p = static_cast<Real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( oot_p ) ) + n * SIZE_OOT ) );
     
 
-    Real* U_d = tileDesc_h->dataPtr();
+    Real* U_data_h = tileDesc_h->dataPtr();
     std::size_t offset_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
     Real*        start_h_U = U_data_h + offset_U;
     const Real*  start_p_U = U_data_p + offset_U;
     std::size_t nBytes_U = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
     std::memcpy(static_cast<void*>(start_h_U), static_cast<const void*>(start_p_U), nBytes_U);
     
+    Real* oot_data_h = tileDesc_h->dataPtr();
+    std::size_t offset_oot = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
+    Real*        start_h_oot = oot_data_h + offset_oot;
+    const Real*  start_p_oot = oot_data_p + offset_oot;
+    std::size_t nBytes_oot = (8 + 2 * 1) * (8 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(Real);
+    std::memcpy(static_cast<void*>(start_h_oot), static_cast<const void*>(start_p_oot), nBytes_oot);
     
     }
 }
-
-// int main() {
-//     //this is acting as driver_evolveAll
-//     //this is driver_evolveAll calling runtime
-//     packet.pack();
-//     packet.unpack();
-//     return 0;
-// }

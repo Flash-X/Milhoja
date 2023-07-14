@@ -77,7 +77,6 @@ extern "C" {
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
     void dr_hydro_advance_packet_oacc_tf(const int tId, void* dataItem_h) {
         _param:class_name* packet_h = static_cast<_param:class_name*>(dataItem_h);
-        const milhoja::PacketDataLocation   location = packet_h->getDataLocation();
         /* _link:get_host_members */
 
         /* _link:get_device_members */
