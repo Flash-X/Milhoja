@@ -72,6 +72,7 @@ class DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
 
+# This function will likely be changed once bounds are fully implemented in the data packet json.
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
     """Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments."""
     lbound_list = []

@@ -4,7 +4,7 @@ import pathlib
 
 SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
-    'indentSpace': ' '*2,
+    'indentSpace': ' '*4,
     'verbose': False,
     'verbosePre': '/* ',
     'verbosePost': ' */',

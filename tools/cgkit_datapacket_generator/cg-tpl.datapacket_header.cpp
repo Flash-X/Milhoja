@@ -59,7 +59,6 @@ public:
     ~_param:class_name(void);
 
     //helper methods
-    //this should eventually be milhoja::DataPacket.
     std::unique_ptr<milhoja::DataPacket> clone(void) const;
     _param:class_name(_param:class_name&) = delete;
     _param:class_name(const _param:class_name&) = delete;
@@ -72,9 +71,7 @@ public:
     void unpack(void);
 
     /* _link:stream_functions_h */
-
     /* _link:public_members */
-
 private:
     static constexpr std::size_t ALIGN_SIZE=_param:align_size;
     static constexpr std::size_t pad(const std::size_t size) {

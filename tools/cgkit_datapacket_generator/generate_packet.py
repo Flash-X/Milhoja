@@ -1,6 +1,6 @@
 #!/usr/bin/env/ python
 import generate_helpers_tpl
-import run
+import packet_source_tree_cgkit as ctree
 import argparse
 import os
 import json
@@ -61,7 +61,7 @@ def main():
         data = load_json(file, args) # load data.
         consts.check_json_validity(data) # check if the task args list matches the items in the JSON
         generate_helpers_tpl.generate_helper_template(data) # generate helper templates
-        run.main(data) # assemble data packet
+        ctree.main(data) # assemble data packet
 
         # generate cpp2c and c2f layers here.
         if args.language == consts.Language.fortran:
