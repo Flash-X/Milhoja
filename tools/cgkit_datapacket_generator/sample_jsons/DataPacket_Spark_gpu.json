@@ -1,0 +1,62 @@
+{
+    "byte-align": 16,
+    "problem": "Sedov",
+    "n-extra-streams": 0,
+    "task-function-argument-list": ["dt","dtOld","smallDens","smallPres","smallE","cvisc","C_hyp","tiny",
+                                    "hybridRiemann", "levels", "deltas", "lo", "hi", "loGC", "hiGC", 
+                                    "Uin", "Uout", "FCX", "FCY", "FCZ" ],
+    "tile-scratch": {
+      "FCX": {
+        "location": "FCX",
+        "start": 0,
+        "end": 4,
+        "type": "Real",
+        "extents": "fcx(0)"
+      },
+      "FCY": {
+        "location": "FCY",
+        "start": 0,
+        "end": 4,
+        "type": "Real",
+        "extents": "fcy(0)"
+      },
+      "FCZ": {
+        "location": "FCZ",
+        "start": 0,
+        "end": 4,
+        "type": "Real",
+        "extents": "fcz(0)"
+      }
+    },
+    "general": {
+      "dt": "Real",
+      "dtOld": "Real",
+      "smallDens": "Real",
+      "smallPres": "Real",
+      "smallE": "Real",
+      "cvisc": "Real",
+      "C_hyp": "Real",
+      "tiny": "Real",
+      "hybridRiemann": "int"
+    },
+    "tile-metadata": [ "levels", "deltas", "lo", "hi", "loGC", "hiGC" ],
+    "tile-in": {
+      "Uin": {
+        "location": "CC1",
+        "type": "Real",
+        "start": 0,
+        "end": 17,
+        "extents": "cc(NGUARD)"
+      }
+    },
+    "tile-out": {
+      "Uout": {
+        "location": "CC2",
+        "type": "Real",
+        "start": 0,
+        "end": 17,
+        "extents": "cc(NGUARD)"
+      }
+    }
+  }
+  
