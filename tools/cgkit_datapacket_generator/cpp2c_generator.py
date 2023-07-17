@@ -1,5 +1,5 @@
 import json_sections as sects
-import utility as mutil
+import packet_generation_utility as mutil
 import argparse
 import json
 import os

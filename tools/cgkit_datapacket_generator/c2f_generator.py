@@ -12,7 +12,7 @@ import os
 import argparse
 import json
 import json_sections as sects
-import utility as mutil
+import packet_generation_utility as mutil
 import os
 
 LICENSE_BLOCK = mutil.F_LICENSE_BLOCK

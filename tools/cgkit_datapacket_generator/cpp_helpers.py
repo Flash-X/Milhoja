@@ -1,6 +1,14 @@
 """A collection of alternate functions to be used when generating cpp packets."""
-import utility as util
+import packet_generation_utility as util
 import json_sections
+
+# This is a temporary measure until the bounds section in the JSON is solidified.
+bound_map = {
+    'auxC': ['loGC', 'hiGC', '1'],
+    'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
+    'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }', '5'],
+    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '1']
+}
 
 # TODO: Once bounds are properly introduced into the JSON this is no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str) -> set:
@@ -35,7 +43,6 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     )
     # does not matter memcpy to insert into
     connectors['memcpy_tilein'].extend([
-        # f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_d) ) + n * sizeof(FArray4D);\n',
         f"""FArray4D {item}_device{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
         f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
         f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * sizeof(FArray4D);\n'
@@ -45,7 +52,6 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
 # can probably shrink this function and insert it into each data section.
 def insert_farray_information(data: dict, connectors: dict, size_connectors) -> None:
     """Inserts farray items into the data packet."""
-    # insert_farray_size_constructor(size_connectors)
     dicts = [data.get(json_sections.T_IN, {}), data.get(json_sections.T_IN_OUT, {}), data.get(json_sections.T_OUT, {}), data.get(json_sections.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
     connectors['public_members'].extend([

@@ -4,11 +4,10 @@ import packet_source_tree_cgkit as ctree
 import argparse
 import os
 import json
-import utility as consts
+import packet_generation_utility as consts
 import warnings
-import sys
-
-sys.path.insert(0, 'interoperability_layers')
+import c2f_generator
+import cpp2c_generator
 
 class NoLanguageException(BaseException):
     """Raised when no language is provided when generating a data packet."""
@@ -39,7 +38,6 @@ def load_json(file, args) -> dict:
                 data["sizes"] = json.load(sizes)
             except Exception:
                 warnings.warn("Sizes file could not be loaded. Continuing...")
-
     return data
 
 def main():
@@ -65,8 +63,6 @@ def main():
 
         # generate cpp2c and c2f layers here.
         if args.language == consts.Language.fortran:
-            import c2f_generator
-            import cpp2c_generator
             c2f_generator.main(data)
             cpp2c_generator.main(data)
 
