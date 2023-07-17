@@ -86,8 +86,8 @@ void    Driver::executeSimulation(void) {
     hydroAdvance_gpu.nInitialThreads = RPs.getUnsignedInt("Hydro_cpu/gpu_bundle", "nThreadsGpu");
     hydroAdvance_gpu.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
     hydroAdvance_gpu.nTilesPerPacket = RPs.getUnsignedInt("Hydro_cpu/gpu_bundle", "nBlocksPerPacket");
-    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
-//    hydroAdvance_gpu.routine         = Hydro::debug_packet_oacc_summit_3;
+//    hydroAdvance_gpu.routine         = Hydro::advanceSolutionHll_packet_oacc_summit_3;
+    hydroAdvance_gpu.routine         = Hydro::debug_packet_oacc_summit_3;
 
 
     // Get RPs that will be used in the loop
