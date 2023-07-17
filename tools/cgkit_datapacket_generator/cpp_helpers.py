@@ -35,7 +35,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     )
     # does not matter memcpy to insert into
     connectors['memcpy_tilein'].extend([
-        f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_d) ) + n * sizeof(FArray4D);\n',
+        # f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_d) ) + n * sizeof(FArray4D);\n',
         f"""FArray4D {item}_device{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
         f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
         f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * sizeof(FArray4D);\n'
