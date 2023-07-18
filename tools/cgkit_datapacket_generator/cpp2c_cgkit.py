@@ -5,7 +5,7 @@ import json_sections as jsections
 
 SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
-    'indentSpace': ' '*2,
+    'indentSpace': ' '*4,
     'verbose': False,
     'verbosePre': '/* ',
     'verbosePost': ' */',
@@ -18,10 +18,12 @@ OUTPUT = 'cgkit.dr_hydroAdvance_bundle.cxx'
 ####################
 
 def constructSourceTree(stree, tpl_1, data: dict):
+    """Constructs the source tree for the cpp to c layer."""
     init = 'cg-tpl.cpp2c_outer.cpp'
     helpers = 'cg-tpl.cpp2c_helper.cpp'
     extra_queue = 'cg-tpl.cpp2c_no_extra_queue.cpp' if data[jsections.EXTRA_STREAMS] == 0 else 'cg-tpl.cpp2c_extra_queue.cpp'
 
+    # load outer template
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
     tree_l1  = srctree.load(tpl_1)
@@ -30,12 +32,16 @@ def constructSourceTree(stree, tpl_1, data: dict):
         stree.pushLink( srctree.search_links(tree_l1) )
     else:
         raise RuntimeError('Linking layer 1 unsuccessful!')
+    
+    # Load generated helpers template
     tree_l2  = srctree.load(helpers)
     pathInfo = stree.link(tree_l2, linkPath=srctree.LINK_PATH_FROM_STACK)
     if pathInfo:
         stree.pushLink( srctree.search_links(tree_l2) )
     else:
         raise RuntimeError('Linking layer 2 unsuccessful!')
+    
+    # load the extra queue information
     tree_l3 = srctree.load(extra_queue)
     pathInfo = stree.link(tree_l3, linkPath=srctree.LINK_PATH_FROM_STACK)
     if pathInfo:

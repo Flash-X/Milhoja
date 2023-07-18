@@ -39,7 +39,7 @@ extern "C" {
 
     int instantiate_hydro_advance_packet_c(
         /* _link:instance_args */
-        void** packet) {
+        ) {
         if ( packet == nullptr) {
             std::cerr << "[instantiate_hydro_advance_packet_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;

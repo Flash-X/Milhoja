@@ -59,7 +59,7 @@ public:
     ~_param:class_name(void);
 
     //helper methods
-    std::unique_ptr<milhoja::DataPacket> clone(void) const;
+    std::unique_ptr<milhoja::DataPacket> clone(void) const override;
     _param:class_name(_param:class_name&) = delete;
     _param:class_name(const _param:class_name&) = delete;
     _param:class_name(_param:class_name&& packet) = delete;

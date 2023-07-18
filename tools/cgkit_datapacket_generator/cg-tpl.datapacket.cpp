@@ -30,6 +30,7 @@ _param:i_give_up::_param:i_give_up(
     /* _link:constructor_args */
 )
     : 
+    milhoja::DataPacket{},
     /* _link:set_members */ 
     {
 }

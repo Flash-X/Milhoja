@@ -28,7 +28,6 @@ def insert_host_arguments(data: dict, connectors: dict):
         (f'queue{i}_h', 'const int') for i in range(2, n_streams+2)
     ])
     connectors['c2f_argument_list'].append( ('_nTiles_h', 'const int'))
-    connectors['c2f_argument_list'].append( ('_nTiles_d', 'const void*') )
     connectors['c2f_argument_list'].extend([
         (f'_{item}_d', 'const void*') for item in data[sects.ORDER]
     ])
@@ -37,10 +36,11 @@ def generate_cpp2c_helper(data: dict):
     connectors = defaultdict(list)
     connectors['c2f_argument_list'] = [ ('packet_h', 'void*') ]
     insert_host_arguments(data, connectors)
-    # data.get(sects.GENERAL, {}).pop("nTiles", None)
-    connectors['instance_args'] = [ (key, f'const {dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] 
-
+    connectors['instance_args'] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ]
+    connectors['instance_args'].append( ('packet', 'void**') )
     connectors['c2f_arguments'] = [ item[0] for item in connectors['c2f_argument_list'] ]
+    instance_args = [ f'{item[1]} {item[0]}' for item in connectors['instance_args'] ]
+
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
         helper.writelines(['/* _connector:get_host_members */\n' ] + connectors['get_host_members'])
         helper.writelines(
@@ -51,14 +51,13 @@ def generate_cpp2c_helper(data: dict):
             [ ',\n'.join([ f"{item[0]}" for item in connectors['c2f_argument_list']]) ] + 
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
-            [ 'void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );\n'] +
             [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
             
             ['\n/* _connector:instance_args */\n'] +
-            [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors['instance_args'] ] ) ] +
+            [ ','.join( instance_args ) ] + 
 
-            ['\n\n/* _connector:get_host_members */\n'] + 
-            [ ','.join([ item[0] for item in connectors['instance_args'] ])]
+            ['\n\n/* _connector:host_members */\n'] + 
+            [ ','.join( [ item for item in data.get(sects.GENERAL, {}) if item != 'nTiles'] )]
         )
         
 def main(data: dict):
