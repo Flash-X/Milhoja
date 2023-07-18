@@ -8,7 +8,6 @@ int release_hydro_advance_extra_queue_c(void* packet, const int id) {
 
     try {
         _param:release
-        // packet_h->releaseExtraQueue(id);
     } catch (const std::exception& exc) {
         std::cerr << exc.what() << std::endl;
         return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;

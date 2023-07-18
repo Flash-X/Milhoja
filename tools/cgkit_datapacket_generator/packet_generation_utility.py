@@ -30,26 +30,15 @@ cpp_equiv = {
     "int": "IntVect"
 }
 
-finterface_constructor_args = {
-    'cc': "loGC, hiGC",
-    'flx': "lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }",
-    'fly': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }",
-    'flz': "lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }"
-}
-
 tile_variable_mapping = {
     'levels': 'unsigned int',
     'gridIndex': 'int',
     'tileIndex': 'int',
-    'nCcVariables': 'unsigned int',
-    'nFluxVariables': 'unsigned int',
     'deltas': 'Real',
     'lo': "int",
     'hi': "int",
     'loGC': "int",
-    'hiGC': "int",
-    'data': 'FArray4D',
-    'dataPtr': 'Real*',
+    'hiGC': "int"
 }
 
 class Language(Enum):
@@ -72,7 +61,7 @@ class DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
 
-# This function will likely be changed once bounds are fully implemented in the data packet json.
+# TODO: This function will likely be changed once bounds are fully implemented in the data packet json.
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
     """Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments."""
     lbound_list = []

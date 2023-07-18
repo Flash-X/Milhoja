@@ -63,36 +63,31 @@ void _param:i_give_up::pack(void) {
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * ( 
         /* _link:size_tilemetadata */
-        )
-    );
+    ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEMETADATA padding failure");
       
     std::size_t SIZE_TILEIN = pad( _nTiles_h * (
         /* _link:size_tilein */
-        )
-    );
+    ));
     if (SIZE_TILEIN % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEIN padding failure");
 
     std::size_t SIZE_TILEINOUT = pad( _nTiles_h * (
         /* _link:size_tileinout */
-        )
-    );
+    ));
     if (SIZE_TILEINOUT % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEINOUT padding failure");
 
     std::size_t SIZE_TILEOUT = pad( _nTiles_h * (
         /* _link:size_tileout */
-        )
-    );
+    ));
     if (SIZE_TILEOUT % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
         /* _link:size_tilescratch */
-        )
-    );
+    ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILESCRATCH padding failure");
 

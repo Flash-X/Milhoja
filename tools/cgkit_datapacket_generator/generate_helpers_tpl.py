@@ -2,7 +2,7 @@ from collections import defaultdict
 import packet_generation_utility as util
 import warnings
 import cpp_helpers
-import json_sections
+import json_sections as jsc
 
 def add_size_parameter(name: str, section_dict: dict, connectors: dict):
     """
@@ -83,9 +83,9 @@ def generate_extra_streams_information(connectors: dict, extra_streams: int):
         ] + [   
             '\t}\n'
             '}\n'
-        ])
+    ])
 
-def iterate_constructor(connectors: dict, size_connectors: dict, constructor: dict, language: str) -> None:
+def iterate_constructor(connectors: dict, size_connectors: dict, constructor: dict):
     """Iterates the constructor section and adds the necessary connectors."""
     section_creation('constructor', constructor, connectors, size_connectors)
     connectors['host_members'] = []
@@ -121,7 +121,7 @@ def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str,
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({use_ref}{host}), {size});\n\n',
     ])
 
-def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int) -> None:
+def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int):
     """Iterates the tilemetadata section of the JSON."""
     section_creation('tilemetadata', tilemetadata, connectors, size_connectors)
     connectors['tile_descriptor'] = []
@@ -145,15 +145,10 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
         pinned_item = f'_{name}_p'
         size_item = f'SIZE_{item.upper()}'
         host_item = f'{name}_h'
-        # Be careful! MDIM is 3 in Flash-X but might not always be 3 in every language
-        size_eq = f"3 * sizeof({item_type})" if language == util.Language.fortran else f"sizeof({ util.farray_mapping.get(item_type, item_type) })"
+        size_eq = f"MILHOJA_MDIM * sizeof({item_type})" if language == util.Language.fortran else f"sizeof({ util.farray_mapping.get(item_type, item_type) })"
 
-        connectors['public_members'].extend(
-            [f'{item_type}* {device_item};\n']
-        )
-        connectors['set_members'].extend(
-            [f'{device_item}{{nullptr}}']
-        )
+        connectors['public_members'].extend( [f'{item_type}* {device_item};\n'] )
+        connectors['set_members'].extend( [f'{device_item}{{nullptr}}'] )
         connectors['size_determination'].append(
             f'constexpr std::size_t {size_item} = {size_eq};\n'
         )
@@ -170,19 +165,21 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
         else:
             base_type = util.tile_variable_mapping[name]
             fix_index = "+1" if 'int' in base_type else ""
-            construct_host = f"[3] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
+            construct_host = f"[MILHOJA_MDIM] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
             item_type = util.tile_variable_mapping[name]
             use_ref = ""
 
         # NO
         memcpy_func(connectors, host_item, construct_host, item_type, pinned_item, use_ref, size_item, name)
  
+    # TODO: Remove this once bounds section is implemented in json. 
     connectors['tile_descriptor'].extend([
         f'const {util.farray_mapping[util.tile_variable_mapping[item]]} {item} = tileDesc_h->{item}();\n'
         for item in missing_dependencies
     ]) 
 
 # TODO: This needs to be modified when converting from lbound to bound section.
+# TODO TODO: This setup currently does not work, since lbound sizes may not always be 3 * sizeof(int) or IntVect.
 def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: str):
     """Iterates the lbound section of the JSON. """
     dtype = 'int' if lang == util.Language.fortran else 'IntVect'
@@ -222,12 +219,12 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         device_item = f'_{item}_d'
         pinned_item = f'_{item}_p'
         size_item = f'SIZE_{item.upper()}'
-        extents = data['extents']
-        start = data['start']
-        end = data['end']
-        raw_type = data['type']
-        item_type = data['type'] if language == util.Language.fortran else util.cpp_equiv[data['type']]
-        extents = ' * '.join(f'({item})' for item in data['extents'])
+        extents = data[jsc.EXTENTS]
+        start = data[jsc.START]
+        end = data[jsc.END]
+        raw_type = data[jsc.DTYPE]
+        item_type = data[jsc.DTYPE] if language == util.Language.fortran else util.cpp_equiv[data[jsc.DTYPE]]
+        extents = ' * '.join(f'({item})' for item in extents)
         connectors['public_members'].append(
             f'{raw_type}* {device_item};\n'
             f'{raw_type}* {pinned_item};\n'
@@ -256,9 +253,8 @@ def add_memcpy_connector(connectors: dict, section: str, extents, item, start, e
         f'char_ptr = static_cast<char*>( static_cast<void*>(_{item}_p) ) + n * {size_item};\n',
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n'
     ])
-    # connectors['in_pointers'].append(f'{raw_type}* {item}_data_h = tileDesc_h->dataPtr();\n')
 
-def add_unpack_connector(connectors: dict, section: str, extents, start, end, item_type, raw_type, in_ptr, out_ptr):
+def add_unpack_connector(connectors: dict, section: str, extents, start, end, raw_type, in_ptr, out_ptr):
     """
     Adds an unpack connector to the connectors dictionary based on the information passed in.
     
@@ -289,17 +285,16 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
     connectors['memcpy_tileinout'] = []
     connectors['unpack_tileinout'] = []
     pinnedLocation = set()
-    for item,value in tileinout.items():
+    for item,data in tileinout.items():
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
         pinned_item = f'_{item}_p'
-        raw_type = value['type']
-        item_type = value['type'] if language == util.Language.fortran else util.cpp_equiv[value['type']]
-        start_in = value['start-in']
-        end_in = value['end-in']
-        start_out = value['start-out']
-        end_out = value['end-out']
-        extents = ' * '.join(f'({item})' for item in value['extents'])
+        raw_type = data[jsc.DTYPE]
+        start_in = data[jsc.START_IN]
+        end_in = data[jsc.END_IN]
+        start_out = data[jsc.START_OUT]
+        end_out = data[jsc.END_OUT]
+        extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
         unks = f'{end_in} - {start_in} + 1'
         connectors['public_members'].append(
             f'{raw_type}* {device_item};\n'
@@ -316,7 +311,7 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
         )
         set_pointer_determination(connectors, 'tileinout', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
         add_memcpy_connector(connectors, 'tileinout', extents, item, start_in, end_in, size_item, raw_type)
-        add_unpack_connector(connectors, 'tileinout', extents, start_out, end_out, item_type, raw_type, item, item)
+        add_unpack_connector(connectors, 'tileinout', extents, start_out, end_out, raw_type, item, item)
         if language == util.Language.cpp:
             # hardcode lo and hi for now.
             cpp_helpers.insert_farray_memcpy(connectors, item, "loGC", "hiGC", unks, raw_type)
@@ -329,11 +324,11 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
     for item,data in tileout.items():
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
-        start = data['start']
-        end = data['end']
-        extents = ' * '.join(f'({item})' for item in data['extents'])
-        item_type = data['type']
-        raw_type = data['type']
+        start = data[jsc.START]
+        end = data[jsc.END]
+        extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
+        item_type = data[jsc.EXTENTS]
+        raw_type = data[jsc.EXTENTS]
 
         # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
         corresponding_in_data = data.get('in_key', '') 
@@ -352,20 +347,20 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
             f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n'
         )
         set_pointer_determination(connectors, 'tileout', item, device_item, f'_nTiles_h * {size_item}', item_type, False)
-        add_unpack_connector(connectors, "tileout", extents, start, end, item_type, raw_type, corresponding_in_data, item)
+        add_unpack_connector(connectors, "tileout", extents, start, end, raw_type, corresponding_in_data, item)
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.bound_map[item][0], cpp_helpers.bound_map[item][1], cpp_helpers.bound_map[item][2], item_type)
 
 def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
     """Iterates the tilescratch section of the JSON."""
     section_creation('tilescratch', tilescratch, connectors, size_connectors)
-    for item in tilescratch:
+    for item,data in tilescratch.items():
         lbound = f"lo{item[0].capitalize()}{item[1:]}"
         # hbound = ...
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
-        extents = ' * '.join(f'({item})' for item in tilescratch[item]['extents'])
-        item_type = tilescratch[item]['type']
+        extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
+        item_type = data[jsc.DTYPE]
         connectors['public_members'].append( f'{item_type}* {device_item};\n' )
         connectors['set_members'].append( f'{device_item}{{nullptr}}' )
         connectors['size_determination'].append(
@@ -424,8 +419,8 @@ def set_default_params(data, params: dict):
         data: dict - The JSON data 
         params: dict - The params dictionary
     """
-    params['align_size'] = data.get("byte-align", 16)
-    params['nextrastreams'] = data.get('n-extra-streams', 0)
+    params['align_size'] = data.get(jsc.BYTE_ALIGN, 16)
+    params['nextrastreams'] = data.get(jsc.EXTRA_STREAMS, 0)
     params['class_name'] = data["name"]
     params['i_give_up'] = data["name"]
     params['ndef_name'] = f'{data["name"].upper()}_UNIQUE_IFNDEF_H_'
@@ -469,6 +464,7 @@ def generate_helper_template(data: dict) -> None:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list)
         params = defaultdict(str)
+        lang = data['language']
 
         # set defaults for the connectors. 
         connectors['constructor_args'] = []
@@ -478,34 +474,36 @@ def generate_helper_template(data: dict) -> None:
 
         sort_func = lambda x: sizes.get(x[1], 0) if sizes else 1
         sizes = data["sizes"]
-        constructor = data.get(json_sections.GENERAL, {})
-        constructor['nTiles'] = 'int' # every data packet always needs nTiles.
+        constructor = data.get(jsc.GENERAL, {})
+        if 'nTiles' in constructor:
+            warnings.warn("Found nTiles in data packet. Mistake?")
+        constructor['nTiles'] = 'int' # every data packet always needs nTiles so we insert it here.
         constructor = constructor.items()
-        iterate_constructor(connectors, size_connectors, sort_dict(constructor, sort_func), data['language'])
+        iterate_constructor(connectors, size_connectors, sort_dict(constructor, sort_func))
 
-        num_arrays = len(data.get(json_sections.T_SCRATCH, {})) + len(data.get(json_sections.T_IN, {})) + \
-                     len(data.get(json_sections.T_IN_OUT, {})) + len(data.get(json_sections.T_OUT, {}))
+        num_arrays = len(data.get(jsc.T_SCRATCH, {})) + len(data.get(jsc.T_IN, {})) + \
+                     len(data.get(jsc.T_IN_OUT, {})) + len(data.get(jsc.T_OUT, {}))
         sort_func = lambda x: sizes.get(util.tile_variable_mapping[x[1]], 0) if sizes else 1
-        metadata = data.get(json_sections.T_MDATA, {}).items()
-        iterate_tilemetadata(connectors, size_connectors, sort_dict(metadata, sort_func), data['language'], num_arrays)
+        metadata = data.get(jsc.T_MDATA, {}).items()
+        iterate_tilemetadata(connectors, size_connectors, sort_dict(metadata, sort_func), lang, num_arrays)
 
-        lbound = data.get(json_sections.LBOUND, {})
-        iterate_lbound(connectors, size_connectors, lbound, data['language'])
+        lbound = data.get(jsc.LBOUND, {})
+        iterate_lbound(connectors, size_connectors, lbound, lang)
 
-        sort_func = lambda x: sizes.get(x[1]['type'], 0) if sizes else 1
-        for section,funct in {json_sections.T_IN: iterate_tilein, json_sections.T_IN_OUT: iterate_tileinout,
-                              json_sections.T_OUT: iterate_tileout }.items():
+        sort_func = lambda x: sizes.get(x[1][jsc.DTYPE], 0) if sizes else 1
+        for section,funct in {jsc.T_IN: iterate_tilein, jsc.T_IN_OUT: iterate_tileinout,
+                              jsc.T_OUT: iterate_tileout }.items():
             dictionary = data.get(section, {}).items()
-            funct(connectors, size_connectors, sort_dict(dictionary, sort_func), params, data['language'])
-        tilescratch = data.get(json_sections.T_SCRATCH, {}).items()
-        iterate_tilescratch(connectors, size_connectors, sort_dict(tilescratch, sort_func), data['language'])
+            funct(connectors, size_connectors, sort_dict(dictionary, sort_func), params, lang)
+        tilescratch = data.get(jsc.T_SCRATCH, {}).items()
+        iterate_tilescratch(connectors, size_connectors, sort_dict(tilescratch, sort_func), lang)
 
-        if data['language'] == util.Language.cpp: 
-            cpp_helpers.insert_farray_information(data, connectors, size_connectors)
+        if lang == util.Language.cpp: 
+            cpp_helpers.insert_farray_information(data, connectors)
 
         generate_outer(data["outer"], params)
         write_size_connectors(size_connectors, template)
-        generate_extra_streams_information(connectors, data.get('n-extra-streams', 0))
+        generate_extra_streams_information(connectors, data.get(jsc.EXTRA_STREAMS, 0))
         write_connectors(template, connectors)
 
         

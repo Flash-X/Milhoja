@@ -10,7 +10,7 @@ bound_map = {
     'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '1']
 }
 
-# TODO: Once bounds are properly introduced into the JSON this is no longer needed.
+# TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str) -> set:
     """Insert metadata dependencies into the memcpy section for a cpp packet."""
     if language == util.Language.fortran: return set()
@@ -50,7 +50,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     ])
 
 # can probably shrink this function and insert it into each data section.
-def insert_farray_information(data: dict, connectors: dict, size_connectors) -> None:
+def insert_farray_information(data: dict, connectors: dict) -> None:
     """Inserts farray items into the data packet."""
     dicts = [data.get(json_sections.T_IN, {}), data.get(json_sections.T_IN_OUT, {}), data.get(json_sections.T_OUT, {}), data.get(json_sections.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
@@ -60,6 +60,7 @@ def insert_farray_information(data: dict, connectors: dict, size_connectors) -> 
         f'FArray4D* _f4_{item}_p;\n' for item in farrays
     ])
 
+# NOTE: This function call gets swapped with another so many params may be unused.
 def tmdata_memcpy_cpp(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):
     """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
     connectors['memcpy_tilemetadata'].extend([

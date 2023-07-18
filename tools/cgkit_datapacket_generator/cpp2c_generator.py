@@ -7,6 +7,7 @@ import cpp2c_cgkit
 from collections import defaultdict
 
 def generate_cpp2c_outer(data: dict):
+    """Generates the outer template for the cpp2c layer."""
     with open('cg-tpl.cpp2c_outer.cpp', 'w') as outer:
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
@@ -15,7 +16,8 @@ def generate_cpp2c_outer(data: dict):
             '/* _link:cpp2c */'
         ])
 
-def insert_host_arguments(data: dict, connectors: dict):
+def insert_connector_arguments(data: dict, connectors: dict):
+    """Inserts various connector arguments into the connectors dictionary."""
     connectors['get_host_members'] = ['const int queue1_h = packet_h->asynchronousQueue();\n',
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n']
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
@@ -27,20 +29,22 @@ def insert_host_arguments(data: dict, connectors: dict):
     connectors['c2f_argument_list'].extend([
         (f'queue{i}_h', 'const int') for i in range(2, n_streams+2)
     ])
-    connectors['c2f_argument_list'].append( ('_nTiles_h', 'const int'))
+    connectors['c2f_argument_list'].append( ('_nTiles_h', 'const int') )
     connectors['c2f_argument_list'].extend([
         (f'_{item}_d', 'const void*') for item in data[sects.ORDER]
     ])
     
 def generate_cpp2c_helper(data: dict):
+    """Generates the helper template for the cpp2c layer."""
     connectors = defaultdict(list)
     connectors['c2f_argument_list'] = [ ('packet_h', 'void*') ]
-    insert_host_arguments(data, connectors)
+    insert_connector_arguments(data, connectors)
     connectors['instance_args'] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ]
     connectors['instance_args'].append( ('packet', 'void**') )
     connectors['c2f_arguments'] = [ item[0] for item in connectors['c2f_argument_list'] ]
     instance_args = [ f'{item[1]} {item[0]}' for item in connectors['instance_args'] ]
 
+    # write to helper template file
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
         helper.writelines(['/* _connector:get_host_members */\n' ] + connectors['get_host_members'])
         helper.writelines(
@@ -52,7 +56,7 @@ def generate_cpp2c_helper(data: dict):
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
             [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
-            
+        
             ['\n/* _connector:instance_args */\n'] +
             [ ','.join( instance_args ) ] + 
 
