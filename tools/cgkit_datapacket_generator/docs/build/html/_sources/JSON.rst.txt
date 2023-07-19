@@ -32,12 +32,38 @@ from the Tile class. The list of obtainable values is a set of keywords containe
 
 tile-in
 -------
+The data in this array is copied into the device being used. This dictionary consists of several keywords: 
+
+* **type**: The data type of the items in the array to be copied in.
+* **start**: The starting index of the array.
+* **end**: The ending index of the array.
+* **extents**: The extents of the array. This is an array of constants of size n.
+
 
 tile-in-out
 -----------
+The data in this array is copied to the device being used, then data is copied back from the device to the same array. This section contains similar keywords to the other sections with some minor changes: 
+
+* **type**: The data type of the items in the array to be copied in.
+* **start-in**: The starting index of the array when being copied in.
+* **start-out**: The starting index of the array when being copied out.
+* **end-in**: The ending index of the array when being copied in.
+* **end-out**: The ending index of the array when being copied out.
+* **extents**: The extents of the array. This is an array of constants of size n.
 
 tile-out
 --------
+This is the array to copy data back to. Again, this section contains similar keywords with minor changes:
+
+* **type**: The data type of the items in the array to be copied in.
+* **start**: The starting index of the array.
+* **end**: The ending index of the array.
+* **extents**: The extents of the array. This is an array of constants of size n.
+* **in-key**: The key referencing the array in tile-in to copy from.
 
 tile-scratch
 ------------
+All of the scratch data used for calculations. Starts in the GPU and is not copied to the host or returned from the host.
+
+* **type**: The data type of the items in the array to be copied in.
+* **extents**: The extents of the array. This is an array of constants of size n.

@@ -68,15 +68,44 @@ from the Tile class. The list of obtainable values is a set of keywords containe
 </section>
 <section id="tile-in">
 <h2>tile-in<a class="headerlink" href="#tile-in" title="Permalink to this heading">¶</a></h2>
+<p>The data in this array is copied into the device being used. This dictionary consists of several keywords:</p>
+<ul class="simple">
+<li><p><strong>type</strong>: The data type of the items in the array to be copied in.</p></li>
+<li><p><strong>start</strong>: The starting index of the array.</p></li>
+<li><p><strong>end</strong>: The ending index of the array.</p></li>
+<li><p><strong>extents</strong>: The extents of the array. This is an array of constants of size n.</p></li>
+</ul>
 </section>
 <section id="tile-in-out">
 <h2>tile-in-out<a class="headerlink" href="#tile-in-out" title="Permalink to this heading">¶</a></h2>
+<p>The data in this array is copied to the device being used, then data is copied back from the device to the same array. This section contains similar keywords to the other sections with some minor changes:</p>
+<ul class="simple">
+<li><p><strong>type</strong>: The data type of the items in the array to be copied in.</p></li>
+<li><p><strong>start-in</strong>: The starting index of the array when being copied in.</p></li>
+<li><p><strong>start-out</strong>: The starting index of the array when being copied out.</p></li>
+<li><p><strong>end-in</strong>: The ending index of the array when being copied in.</p></li>
+<li><p><strong>end-out</strong>: The ending index of the array when being copied out.</p></li>
+<li><p><strong>extents</strong>: The extents of the array. This is an array of constants of size n.</p></li>
+</ul>
 </section>
 <section id="tile-out">
 <h2>tile-out<a class="headerlink" href="#tile-out" title="Permalink to this heading">¶</a></h2>
+<p>This is the array to copy data back to. Again, this section contains similar keywords with minor changes:</p>
+<ul class="simple">
+<li><p><strong>type</strong>: The data type of the items in the array to be copied in.</p></li>
+<li><p><strong>start</strong>: The starting index of the array.</p></li>
+<li><p><strong>end</strong>: The ending index of the array.</p></li>
+<li><p><strong>extents</strong>: The extents of the array. This is an array of constants of size n.</p></li>
+<li><p><strong>in-key</strong>: The key referencing the array in tile-in to copy from.</p></li>
+</ul>
 </section>
 <section id="tile-scratch">
 <h2>tile-scratch<a class="headerlink" href="#tile-scratch" title="Permalink to this heading">¶</a></h2>
+<p>All of the scratch data used for calculations. Starts in the GPU and is not copied to the host or returned from the host.</p>
+<ul class="simple">
+<li><p><strong>type</strong>: The data type of the items in the array to be copied in.</p></li>
+<li><p><strong>extents</strong>: The extents of the array. This is an array of constants of size n.</p></li>
+</ul>
 </section>
 </section>
 

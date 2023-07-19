@@ -20,6 +20,7 @@ To use the data packet generator as a standalone tool, you can run
 
 **Language** is the desired language to generate a packet for. Included languages are 'cpp' and 'fortran'. 
 The file **sizes.json** is a JSON file containing byte sizes for all types used in the data packet JSON.
+For more information on **sizes.json**, please see :doc:`SIZES`.
 Finally, **packet.json** is the JSON file containing all of the information needed to generate a data packet.
 For more information on the format of **packet.json**, see :doc:`JSON`.
 
