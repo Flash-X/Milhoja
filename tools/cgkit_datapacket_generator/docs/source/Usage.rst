@@ -1,0 +1,27 @@
+Usage
+=====
+
+Installation
+------------
+
+This tool is packaged with the Milhoja Runtime package.
+
+For Users
+---------
+
+This packet generator is automatically called by the Milhoja Runtime.
+Please refer to the Milhoja Runtime documentation for using Milhoja.
+
+For Developers
+--------------
+To use the data packet generator as a standalone tool, you can run
+
+| `./generate_packet.py -l [language] -s [sizes.json] [packet.json]`.
+
+**Language** is the desired language to generate a packet for. Included languages are 'cpp' and 'fortran'. 
+The file **sizes.json** is a JSON file containing byte sizes for all types used in the data packet JSON.
+Finally, **packet.json** is the JSON file containing all of the information needed to generate a data packet.
+For more information on the format of **packet.json**, see :doc:`JSON`.
+
+Please note that the data packet generator assumes that the compuler used to build the Milhoja libraries is
+the same compiler used to build applications that use the Milhoja Runtime.

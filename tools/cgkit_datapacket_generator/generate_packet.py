@@ -1,4 +1,4 @@
-#!/usr/bin/env/ python
+#!/usr/bin/env python3
 import generate_helpers_tpl
 import packet_source_tree_cgkit as ctree
 import argparse
@@ -22,7 +22,14 @@ class EmptyFileException(BaseException):
     pass
 
 def load_json(file, args) -> dict:
-    """Loads the json file into a dict and adds any necessary information to the it."""
+    """
+    Loads the json file into a dict and adds any necessary information to it.
+
+    :param file: The file path of the JSON.
+    :type file: TextIO
+    :return: The loaded json dictionary.
+    :rtype: dict[Unknown, Unknown]
+    """
     data = json.load(file)
     data["file_name"] = file.name.replace(".json", "")
     data["name"] = os.path.basename(file.name).replace(".json", "")
@@ -41,7 +48,10 @@ def load_json(file, args) -> dict:
     return data
 
 def main():
-    """Loads the arguments and JSON, then generates the data packet files."""
+    """
+    Loads the arguments and JSON, then generates the data packet files.
+    Also generates the cpp2c and c2f layers if necessary.
+    """
     parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X simulations.")
     parser.add_argument("JSON", help="The JSON file to generate from.")
     parser.add_argument('--language', '-l', type=consts.Language, choices=list(consts.Language), help="Generate a packet to work with this language.")
