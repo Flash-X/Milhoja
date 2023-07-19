@@ -18,6 +18,13 @@
 #include "Simulation.h"
 #include "ProcessTimer.h"
 
+// TODO: This would need to be inserted by a Driver code generator
+#if MILHOJA_NDIM == 2
+#include "cpu_tf00_2D.h"
+#else
+#include "cpu_tf00_3D.h"
+#endif
+
 void    Driver::executeSimulation(void) {
     constexpr  int          TIMER_RANK          = LEAD_RANK;
     constexpr  unsigned int N_DIST_THREADS      = 1;
@@ -77,7 +84,12 @@ void    Driver::executeSimulation(void) {
     hydroAdvance.nInitialThreads = RPs.getUnsignedInt("Hydro", "nThreadsForAdvanceSolution");
     hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
-    hydroAdvance.routine         = Hydro::advanceSolutionHll_tile_cpu;
+    // TODO: This would need to be inserted by a Driver code generator
+#if MILHOJA_NDIM == 2
+    hydroAdvance.routine         = cpu_tf00_2D::taskFunction;
+#else
+    hydroAdvance.routine         = cpu_tf00_3D::taskFunction;
+#endif
 
     ProcessTimer  hydro{"sedov_timings.dat", "CPU",
                         N_DIST_THREADS, 0,

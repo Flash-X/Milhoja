@@ -11,8 +11,6 @@
 
 namespace Hydro {
     //----- ORCHESTRATION RUNTIME ACTION ROUTINES
-    void advanceSolutionHll_tile_cpu(const int tId,
-                                     milhoja::DataItem* dataItem);
     void advanceSolutionHll_packet_oacc_summit_1(const int tId,
                                                  milhoja::DataItem* dataItem_h);
     void advanceSolutionHll_packet_oacc_summit_2(const int tId,
