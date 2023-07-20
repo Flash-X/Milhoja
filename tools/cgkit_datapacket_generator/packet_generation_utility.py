@@ -22,11 +22,11 @@ F_LICENSE_BLOCK = """!> @copyright Copyright 2022 UChicago Argonne, LLC and cont
 
 farray_mapping = {
     "int": "IntVect",
-    "Real": "RealVect"
+    "real": "RealVect"
 }
 
 cpp_equiv = {
-    "Real": "RealVect",
+    "real": "RealVect",
     "int": "IntVect"
 }
 
@@ -34,7 +34,7 @@ tile_variable_mapping = {
     'levels': 'unsigned int',
     'gridIndex': 'int',
     'tileIndex': 'int',
-    'deltas': 'Real',
+    'deltas': 'real',
     'lo': "int",
     'hi': "int",
     'loGC': "int",

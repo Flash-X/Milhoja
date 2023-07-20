@@ -272,8 +272,8 @@ def add_unpack_connector(connectors: dict, section: str, extents, start, end, ra
     connectors['in_pointers'].append(f'{raw_type}* {in_ptr}_data_h = tileDesc_h->dataPtr();\n')
     connectors[f'unpack_{section.replace("-", "")}'].extend([
         f'std::size_t offset_{in_ptr} = {extents} * static_cast<std::size_t>({start});\n',
-        f'Real*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
-        f'const Real*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
+        f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
+        f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
         f'std::size_t nBytes_{in_ptr} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n',
         f'std::memcpy(static_cast<void*>(start_h_{in_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{in_ptr});\n'
     ])

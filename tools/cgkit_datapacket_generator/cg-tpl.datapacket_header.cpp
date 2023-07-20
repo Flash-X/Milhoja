@@ -43,7 +43,7 @@
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
 
-using milhoja::Real;
+using real = milhoja::Real;
 using milhoja::FArray4D;
 using milhoja::Stream;
 using milhoja::IntVect;
