@@ -48,14 +48,13 @@ def generate_hydro_advance_c2f(data):
         gpu_pointers = { 'nTiles': { 'ftype': 'integer', 'ctype': 'type(C_PTR)', 'shape': None} }
 
         for key,itype in data.get(sects.GENERAL, {}).items():
-            print(key, itype)
             ftype = itype.lower()
             if 'int' in ftype: ftype = 'integer'
             gpu_pointers[key] = { 'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': None }
 
         for key,name in data.get(sects.T_MDATA, {}).items():
             ftype = mutil.tile_variable_mapping[name].lower()
-            if 'int' in ftype: ftype='integer'
+            if 'int' in ftype: ftype = 'integer'
             gpu_pointers[name] = { 'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': [3, 'F_nTiles_h'] }
 
         # TODO: This needs to change once the bounds section in the data packet json is solidified.
@@ -65,25 +64,25 @@ def generate_hydro_advance_c2f(data):
         extents_set = { 'nTiles': {'ftype': 'integer', 'ctype': 'integer(MILHOJA_INT)'} }
         for section in [sects.T_IN, sects.T_IN_OUT, sects.T_OUT]:
             sect_dict = data.get(section, {})
-            for item,data in sect_dict.items():
-                ftype = data[sects.DTYPE].lower()
+            for item,info in sect_dict.items():
+                ftype = info[sects.DTYPE].lower()
                 if ftype.endswith('int'): ftype='integer'
-                start = data[sects.START if sects.START in data else sects.START_IN]
-                end = data[sects.END if sects.END in data else sects.END_IN]
+                start = info[sects.START if sects.START in data else sects.START_IN]
+                end = info[sects.END if sects.END in data else sects.END_IN]
                 gpu_pointers[item] = {
                     'ftype': ftype,
                     'ctype': 'type(C_PTR)',
-                    'shape': data[sects.EXTENTS] + [f'{end} - {start} + 1', 'F_nTiles_h']
+                    'shape': info[sects.EXTENTS] + [f'{end} - {start} + 1', 'F_nTiles_h']
                 }
 
         scratch = data.get(sects.T_SCRATCH, {})
-        for item,data in scratch.items():
-            ftype = data[sects.DTYPE].lower()
+        for item,info in scratch.items():
+            ftype = info[sects.DTYPE].lower()
             if ftype.endswith('int'): ftype='integer'
             gpu_pointers[item] = {
                 'ftype': ftype,
                 'ctype': 'type(C_PTR)',
-                'shape': data[sects.EXTENTS] + ['F_nTiles_h']
+                'shape': info[sects.EXTENTS] + ['F_nTiles_h']
             }
 
         host_pointers.update(extents_set)
