@@ -19,8 +19,6 @@ DataPacket::DataPacket(void)
         copyInOutStart_p_{nullptr},
         copyInOutStart_d_{nullptr},
         tiles_{},
-        contents_p_{nullptr},
-        contents_d_{nullptr},
         pinnedPtrs_{nullptr},
         stream_{},
         nCopyToGpuBytes_{0},

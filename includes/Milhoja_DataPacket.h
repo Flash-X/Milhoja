@@ -151,32 +151,6 @@ namespace milhoja {
 enum class PacketDataLocation {NOT_ASSIGNED, CC1, CC2};
 
 /**
- * @struct PacketContents
- * @brief Keep track of the location in device memory of different tile-specific
- * data.
- *
- * @todo The PacketContents struct was implemented to make unpacking of the data
- * packet trivial in the patch code.  This was necessary since a humble human
- * was writing and maintaining the code.  The code generator, however, will
- * hopefully be able to write the low-level unpacking code directly in the patch
- * code.  Therefore, this structure, should disappear.  This makes sense as
- * otherwise, this struct would have to include every possible tile-specific
- * element that could ever be included in a data packet, which is somewhat out
- * of the control of this library.
- */
-struct PacketContents {
-    std::shared_ptr<Tile>   tileDesc_h = std::shared_ptr<Tile>{};
-    RealVect*               deltas_d   = nullptr;
-    IntVect*                lo_d       = nullptr;
-    IntVect*                hi_d       = nullptr;
-    FArray4D*               CC1_d      = nullptr;  //!< From loGC to hiGC
-    FArray4D*               CC2_d      = nullptr;  //!< From loGC to hiGC   
-    FArray4D*               FCX_d      = nullptr;  //!< From lo to hi 
-    FArray4D*               FCY_d      = nullptr;  //!< From lo to hi  
-    FArray4D*               FCZ_d      = nullptr;  //!< From lo to hi  
-};
-
-/**
  * @class DataPacket Milhoja_DataPacket.h
  * @brief Define and effectively export to applications the minimal DataPacket
  * interface that their concrete DataPackets must implement.
@@ -210,11 +184,6 @@ public:
     std::size_t            nTiles(void) const        { return tiles_.size(); }
     void                   addTile(std::shared_ptr<Tile>&& tileDesc);
     std::shared_ptr<Tile>  popTile(void);
-
-    /**
-     * Obtain the pointer to the packet contents in GPU memory.
-     */
-    const PacketContents*  tilePointers(void) const  { return contents_d_; };
 
     /**
      * The runtime calls this member function automatically once all tiles to be
@@ -347,8 +316,6 @@ protected:
                                                                  *   of the copy-in/out block*/ 
     std::deque<std::shared_ptr<Tile>>      tiles_;              /*!< Tiles included in packet.  Derived
                                                                  * classes need only read from this. */
-    PacketContents*                        contents_p_;
-    PacketContents*                        contents_d_;
     BlockPointersPinned*                   pinnedPtrs_;         //!< Location of CC data blocks
     Stream                                 stream_;             //!< Main stream for communication
     std::size_t                            nCopyToGpuBytes_;    //!< Number of bytes in copy in and copy in/out
