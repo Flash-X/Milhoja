@@ -1,12 +1,8 @@
 {
   "byte-align": 16,
-  "n-extra-streams": 0,
+  "n-extra-streams": 3,
   "task-function-argument-list": [ "dt", "deltas", "lo", "hi", "U", "auxC", "flX", "flY", "flZ" ],
   "tile-scratch": {
-    "auxC": {
-      "type": "real",
-      "extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
-    },
     "flX": {
       "type": "real",
       "extents": ["(16 + 2 * 0) + 1", "16 + 2 * 0", "1 + 2 * 0", "5"]
@@ -28,14 +24,20 @@
   	"tile_lo": "lo",
   	"tile_hi": "hi"
   },
-  "tile-in-out": {
-    "U": {
-      "start-in": "0",
-      "end-in": "8",
-      "start-out": "0",
-      "end-out": "7",
-      "type": "real",
-      "extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
-    }
+  "tile-in": {
+	"U": {
+		"type": "real",
+		"start": "0",
+		"end": "8",
+		"extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+	}
+  },
+  "tile-out": {
+	"auxC": {
+		"type": "real",
+		"start": "0",
+		"end": "7",
+		"extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+	}
   }
 }
