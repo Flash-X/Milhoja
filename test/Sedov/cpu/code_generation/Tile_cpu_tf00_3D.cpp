@@ -33,21 +33,14 @@ void   Tile_cpu_tf00_3D::releaseScratch(void) {
 }
 
 /**
- *
+ * Instantiate a prototype of the wrapper.  The object does not wrap a tile and
+ * is, therefore, typically only useful for cloning objects that do wrap the
+ * actual tile given to clone().
  */
 Tile_cpu_tf00_3D::Tile_cpu_tf00_3D(const milhoja::Real dt)
-    : milhoja::TileWrapper{std::unique_ptr<milhoja::Tile>{}},
+    : milhoja::TileWrapper{},
       dt_{dt}
 {
-#ifdef DEBUG_RUNTIME
-    if (!tile_) {
-        std::string msg = "[Tile_cpu_tf00_3D] Creating null wrapper";
-        milhoja::Logger::instance().log(msg);
-    } else {
-        throw std::logic_error("[Tile_cpu_tf00_3D] "
-                               "Pointer is not null");
-    }
-#endif
 }
 
 /**
@@ -65,11 +58,6 @@ Tile_cpu_tf00_3D::~Tile_cpu_tf00_3D(void) {
  */
 std::unique_ptr<milhoja::TileWrapper>   Tile_cpu_tf00_3D::clone(
         std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
-    if (!tileToWrap) {
-        throw std::logic_error("[Tile_cpu_tf00_3D::clone] "
-                               "Tile to wrap is null");
-    }
-
     // Create new wrapper & set private data to prototype's values
     Tile_cpu_tf00_3D*   ptr = new Tile_cpu_tf00_3D{dt_};
 

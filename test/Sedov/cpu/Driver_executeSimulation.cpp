@@ -62,7 +62,7 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
-    const milhoja::TileWrapper int_IQ_prototype{std::unique_ptr<milhoja::Tile>{}};
+    const milhoja::TileWrapper int_IQ_prototype{};
 
     Timer::start("Set initial conditions");
     grid.initDomain(initBlock_cpu);

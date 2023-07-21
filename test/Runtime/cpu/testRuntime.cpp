@@ -6,7 +6,7 @@
 #include <Milhoja_edge.h>
 #include <Milhoja_FArray1D.h>
 #include <Milhoja_FArray4D.h>
-#include <Milhoja_Tile.h>
+#include <Milhoja_TileWrapper.h>
 #include <Milhoja_RuntimeAction.h>
 #include <Milhoja_Runtime.h>
 
@@ -65,7 +65,9 @@ protected:
         unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
         unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
         Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
-        Runtime::instance().executeCpuTasks("Analysis", computeError);
+        Milhoja::TileWrapper  prototype{};
+        Runtime::instance().executeCpuTasks("Analysis",
+                                            computeError, prototype);
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;
@@ -107,8 +109,11 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
-    Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
+    Milhoja::TileWrapper  prototype{};
+    Runtime::instance().executeCpuTasks("LapDens",
+                                        computeLaplacianDensity, prototype);
+    Runtime::instance().executeCpuTasks("LapEner",
+                                        computeLaplacianEnergy, prototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -129,7 +134,9 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("Fused Kernels CPU", computeLaplacianFused_cpu);
+    Milhoja::TileWrapper  prototype{};
+    Runtime::instance().executeCpuTasks("Fused Kernels CPU",
+                                        computeLaplacianFused_cpu, prototype);
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();

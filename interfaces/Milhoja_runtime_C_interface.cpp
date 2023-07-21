@@ -212,7 +212,7 @@ extern "C" {
 
        try {
            // TODO: Users should pass in tile wrapper prototype
-           milhoja::TileWrapper   prototype{std::unique_ptr<milhoja::Tile>{}};
+           milhoja::TileWrapper   prototype{};
            milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name",
                                                         action, prototype);
        } catch (const std::exception& exc) {
