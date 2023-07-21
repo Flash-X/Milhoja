@@ -23,6 +23,8 @@ std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
  * class.  This function must be called before using instance() to gain access
  * to the Singleton object.
  *
+ * @todo We should have a different memory pool size for the CPU.
+ *
  * @param nStreams - the maximum number of streams that the runtime is allowed
  * to use at any point in time.
  * @param nBytesInMemoryPools - the amount of memory to allocate in memory
@@ -30,7 +32,7 @@ std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
  * pools will be allocated.
  */
 void   RuntimeBackend::initialize(const unsigned int nStreams,
-                            const std::size_t  nBytesInMemoryPools) {
+                                  const std::size_t  nBytesInMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
@@ -43,6 +45,8 @@ void   RuntimeBackend::initialize(const unsigned int nStreams,
     // consumes them later.
     nStreams_ = nStreams;
     nBytesInMemoryPools_ = nBytesInMemoryPools;
+
+    CpuMemoryManager::initialize(1);
 
     initialized_ = true;
 
@@ -68,6 +72,8 @@ void   RuntimeBackend::finalize(void) {
 
     nStreams_ = 0;
     nBytesInMemoryPools_ = 0;
+
+    CpuMemoryManager::instance().finalize();
 
     finalized_ = true;
 

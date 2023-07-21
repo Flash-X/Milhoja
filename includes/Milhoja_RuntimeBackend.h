@@ -6,6 +6,7 @@
 #include "Milhoja.h"
 #include "Milhoja_Stream.h"
 #include "Milhoja_DataPacket.h"
+#include "Milhoja_CpuMemoryManager.h"
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 #include <cuda_runtime.h>
@@ -134,9 +135,10 @@ public:
                                                 void* callbackData) = 0;
 
     //----- MEMORY MANAGEMENT
-    virtual void      requestCpuMemory(const std::size_t nBytes,
-                                       void** ptr) = 0;
-    virtual void      releaseCpuMemory(void** ptr) = 0;
+    void      requestCpuMemory(const std::size_t nBytes, void** ptr)
+        { CpuMemoryManager::instance().requestMemory(nBytes, ptr); }
+    void      releaseCpuMemory(void** ptr)
+        { CpuMemoryManager::instance().releaseMemory(ptr); }
 
     /**
      * To facilitate the construction of data packets, pinned and GPU memory can
