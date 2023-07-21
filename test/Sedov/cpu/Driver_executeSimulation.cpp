@@ -23,6 +23,7 @@
 #include "cpu_tf00_2D.h"
 #else
 #include "cpu_tf00_3D.h"
+#include "Tile_cpu_tf00_3D.h"
 #endif
 
 void    Driver::executeSimulation(void) {
@@ -61,13 +62,16 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
     computeIntQuantitiesByBlk.routine         
         = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
+    const milhoja::TileWrapper int_IQ_prototype{std::unique_ptr<milhoja::Tile>{}};
 
     Timer::start("Set initial conditions");
     grid.initDomain(initBlock_cpu);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    runtime.executeCpuTasks("IntegralQ",
+                            computeIntQuantitiesByBlk,
+                            int_IQ_prototype);
     Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
@@ -132,14 +136,18 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
-        runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        const Tile_cpu_tf00_3D   cpu_tf00_prototype{Driver::dt};
+        runtime.executeCpuTasks("Advance Hydro Solution",
+                                hydroAdvance, cpu_tf00_prototype);
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
         Timer::stop("Gather/Write");
 
         Timer::start("computeLocalIQ");
-        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        runtime.executeCpuTasks("IntegralQ",
+                                computeIntQuantitiesByBlk,
+                                int_IQ_prototype);
         Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES

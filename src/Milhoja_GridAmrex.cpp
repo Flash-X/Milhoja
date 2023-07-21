@@ -18,6 +18,7 @@
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 #include "Milhoja_TileIterAmrex.h"
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_Runtime.h"
 
 namespace milhoja {
@@ -1103,7 +1104,11 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
 
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
-        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch", initCpuAction_);
+        // TODO: Applications should provide this when they call initDomain
+        const TileWrapper    prototype{std::unique_ptr<Tile>{}};
+        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch",
+                                            initCpuAction_,
+                                            prototype);
     } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         // Apply initial conditions using just the iterator
         for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {

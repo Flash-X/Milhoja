@@ -1,7 +1,7 @@
 #include "Simulation.h"
 
 #include <Milhoja_Grid.h>
-#include <Milhoja_Tile.h>
+#include <Milhoja_TileWrapper.h>
 #include <Milhoja_axis.h>
 #include <Milhoja_edge.h>
 
@@ -11,7 +11,8 @@ void Simulation::setInitialConditions_tile_cpu(const int tId,
                                                milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
     const unsigned int  level  = tileDesc->level();
     const IntVect       loGC   = tileDesc->loGC();

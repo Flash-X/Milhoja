@@ -131,7 +131,8 @@ Runtime::Runtime(void)
  * \return 
  */
 void Runtime::executeCpuTasks(const std::string& actionName,
-                              const RuntimeAction& cpuAction) {
+                              const RuntimeAction& cpuAction,
+                              const TileWrapper& prototype) {
     Logger::instance().log("[Runtime] Start single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
@@ -167,7 +168,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     Grid&   grid = Grid::instance();
     for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            cpuTeam->enqueue( ti->buildCurrentTile() );
+            cpuTeam->enqueue( prototype.clone( ti->buildCurrentTile() ) );
         }
     }
     cpuTeam->closeQueue(nullptr);

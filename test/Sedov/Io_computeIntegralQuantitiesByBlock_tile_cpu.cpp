@@ -1,6 +1,6 @@
 #include "Io.h"
 
-#include <Milhoja_Tile.h>
+#include <Milhoja_TileWrapper.h>
 #include <Milhoja_Grid.h>
 
 /**
@@ -20,7 +20,8 @@ void ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu(const int tId,
     Io&   io   = Io::instance();
     Grid& grid = Grid::instance();
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
     unsigned int        level = tileDesc->level();
     const IntVect       lo    = tileDesc->lo();

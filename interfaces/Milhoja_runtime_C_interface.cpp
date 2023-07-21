@@ -82,6 +82,7 @@
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_Runtime.h"
 #include "Milhoja_RuntimeBackend.h"
+#include "Milhoja_TileWrapper.h"
 
 extern "C" {
     /**
@@ -210,7 +211,10 @@ extern "C" {
        action.routine         = taskFunction;
 
        try {
-           milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name", action);
+           // TODO: Users should pass in tile wrapper prototype
+           milhoja::TileWrapper   prototype{std::unique_ptr<milhoja::Tile>{}};
+           milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name",
+                                                        action, prototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;

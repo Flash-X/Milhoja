@@ -14,6 +14,7 @@
 
 #include "Milhoja.h"
 #include "Milhoja_ThreadTeam.h"
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
@@ -42,7 +43,8 @@ public:
     void                 finalize(void);
 
     void executeCpuTasks(const std::string& actionName,
-                         const RuntimeAction& cpuAction);
+                         const RuntimeAction& cpuAction,
+                         const TileWrapper& prototype);
 #ifdef MILHOJA_GPUS_SUPPORTED
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,

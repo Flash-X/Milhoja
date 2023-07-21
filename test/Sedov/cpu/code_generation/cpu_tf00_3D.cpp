@@ -10,6 +10,8 @@
 #include <Milhoja_FArray4D.h>
 #include <Milhoja_Tile.h>
 
+#include "Tile_cpu_tf00_3D.h"
+
 #include "Eos.h"
 #include "Hydro.h"
 
@@ -20,9 +22,13 @@ void  cpu_tf00_3D::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    Tile_cpu_tf00_3D*  wrapper = dynamic_cast<Tile_cpu_tf00_3D*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
-    milhoja::Real    dt = Driver::dt;
+    // Thread-private variables
+    milhoja::Real    dt = wrapper->dt_;
+
+    // Tile metadata
     const IntVect  tile_lo = tileDesc->lo();
     const IntVect  tile_hi = tileDesc->hi();
     const RealVect  tile_deltas = tileDesc->deltas();
@@ -30,6 +36,8 @@ void  cpu_tf00_3D::taskFunction(const int threadId,
     FArray4D  FLX_1 = tileDesc->fluxData(Axis::I);
     FArray4D  FLY_1 = tileDesc->fluxData(Axis::J);
     FArray4D  FLZ_1 = tileDesc->fluxData(Axis::K);
+
+    // TODO: Eventually get the scratch from the wrapper.
     IntVect    cLo = IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
