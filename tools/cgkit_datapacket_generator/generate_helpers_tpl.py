@@ -328,7 +328,7 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
         end = data[jsc.END]
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
         item_type = data[jsc.EXTENTS]
-        raw_type = data[jsc.EXTENTS]
+        raw_type = data[jsc.DTYPE]
 
         # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
         corresponding_in_data = data.get('in_key', '') 
