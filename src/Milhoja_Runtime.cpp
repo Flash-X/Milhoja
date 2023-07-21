@@ -33,7 +33,8 @@ bool            Runtime::finalized_         = false;
 void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
                             const unsigned int nStreams,
-                            const std::size_t  nBytesInMemoryPools) {
+                            const std::size_t  nBytesInCpuMemoryPool,
+                            const std::size_t  nBytesInGpuMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
@@ -52,7 +53,9 @@ void   Runtime::initialize(const unsigned int nTeams,
     maxThreadsPerTeam_ = nThreadsPerTeam;
     initialized_ = true;
 
-    milhoja::RuntimeBackend::initialize(nStreams, nBytesInMemoryPools);
+    milhoja::RuntimeBackend::initialize(nStreams,
+                                        nBytesInCpuMemoryPool,
+                                        nBytesInGpuMemoryPools);
 
     // Create/initialize runtime
     instance();

@@ -104,7 +104,8 @@ extern "C" {
      */
     int    milhoja_runtime_init_c(const int nThreadTeams, const int nThreadsPerTeam,
                                   const int nStreams,
-                                  const size_t nBytesInMemoryPools) {
+                                  const size_t nBytesInCpuMemoryPool,
+                                  const size_t nBytesInGpuMemoryPools) {
         if (nThreadTeams < 0) {
             std::cerr << "[milhoja_runtime_init_c] nThreadTeams is negative" << std::endl;
             return MILHOJA_ERROR_N_THREAD_TEAMS_NEGATIVE;
@@ -123,7 +124,8 @@ extern "C" {
         try {
             milhoja::Runtime::initialize(nThreadTeams_ui, nThreadsPerTeam_ui,
                                          nStreams_ui,
-                                         nBytesInMemoryPools);
+                                         nBytesInCpuMemoryPool,
+                                         nBytesInGpuMemoryPools);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME;

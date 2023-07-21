@@ -1,8 +1,10 @@
 #include "Milhoja_CpuMemoryManager.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <iostream>
 
 #include "Milhoja_Logger.h"
 
@@ -50,6 +52,11 @@ void    CpuMemoryManager::finalize(void) {
     }
 
     Logger::instance().log("[CpuMemoryManager] Finalizing ...");
+
+    Logger::instance().log(  "[CpuMemoryManager] Deallocated " 
+                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
+                           + " Gb of CPU memory");
+
     finalized_ = true;
     Logger::instance().log("[CpuMemoryManager] Finalized");
 }
@@ -67,6 +74,29 @@ CpuMemoryManager&   CpuMemoryManager::instance(void) {
 
     static CpuMemoryManager   manager;
     return manager;
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
+CpuMemoryManager::CpuMemoryManager(void) {
+    Logger::instance().log(  "[CpuMemoryManager] Allocated " 
+                           + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
+                           + " Gb of CPU memory");
+}
+
+/**
+ * 
+ *
+ * \return 
+ */
+CpuMemoryManager::~CpuMemoryManager(void) {
+    if (initialized_ && !finalized_) {
+        std::cerr << "[CpuMemoryManager::~CpuMemoryManager] ERROR - Not finalized"
+                  << std::endl;
+    }
 }
 
 /**

@@ -15,7 +15,7 @@ namespace milhoja {
 bool           RuntimeBackend::initialized_ = false;
 bool           RuntimeBackend::finalized_   = false;
 unsigned int   RuntimeBackend::nStreams_ = 0;
-std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
+std::size_t    RuntimeBackend::nBytesInGpuMemoryPools_ = 0;
 
 /**
  * Provide the Singleton design pattern with the runtime parameters needed to
@@ -27,12 +27,15 @@ std::size_t    RuntimeBackend::nBytesInMemoryPools_ = 0;
  *
  * @param nStreams - the maximum number of streams that the runtime is allowed
  * to use at any point in time.
- * @param nBytesInMemoryPools - the amount of memory to allocate in memory
- * pools.  Refer to the documentation for each backend to determine what memory
- * pools will be allocated.
+ * @param nBytesInCpuMemoryPool - the amount of memory to allocate in CPU's
+ * memory pool.
+ * @param nBytesInGpuMemoryPools - the amount of memory to allocate in
+ * GPU-associated memory pools.  Refer to the documentation for each backend to
+ * determine what memory pools will be allocated.
  */
 void   RuntimeBackend::initialize(const unsigned int nStreams,
-                                  const std::size_t  nBytesInMemoryPools) {
+                                  const std::size_t  nBytesInCpuMemoryPool,
+                                  const std::size_t  nBytesInGpuMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
@@ -44,9 +47,9 @@ void   RuntimeBackend::initialize(const unsigned int nStreams,
     // The responsibility of error checking these falls on the code that
     // consumes them later.
     nStreams_ = nStreams;
-    nBytesInMemoryPools_ = nBytesInMemoryPools;
+    nBytesInGpuMemoryPools_ = nBytesInGpuMemoryPools;
 
-    CpuMemoryManager::initialize(1);
+    CpuMemoryManager::initialize(nBytesInCpuMemoryPool);
 
     initialized_ = true;
 
@@ -71,7 +74,7 @@ void   RuntimeBackend::finalize(void) {
     Logger::instance().log("[RuntimeBackend] Finalizing ...");
 
     nStreams_ = 0;
-    nBytesInMemoryPools_ = 0;
+    nBytesInGpuMemoryPools_ = 0;
 
     CpuMemoryManager::instance().finalize();
 
@@ -91,7 +94,7 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
     }
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
-    static CudaBackend singleton{nStreams_, nBytesInMemoryPools_};
+    static CudaBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
 #else
     static NullBackend singleton{};
     Logger::instance().log("[RuntimeBackend] No runtime backend needed");

@@ -16,7 +16,7 @@ namespace milhoja {
  */
 class CpuMemoryManager {
 public:
-    ~CpuMemoryManager(void)   { };
+    ~CpuMemoryManager(void);
 
     CpuMemoryManager(CpuMemoryManager&)                  = delete;
     CpuMemoryManager(const CpuMemoryManager&)            = delete;
@@ -33,7 +33,7 @@ public:
     void      releaseMemory(void** ptr);
 
 private:
-    CpuMemoryManager(void)  { };
+    CpuMemoryManager(void);
 
     static std::size_t  nBytes_;
     static bool         initialized_;

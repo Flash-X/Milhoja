@@ -59,13 +59,15 @@ int main(int argc, char* argv[]) {
         Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
                             RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
                             RPs.getUnsignedInt("Runtime", "nStreams"),
-                            RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
+                            RPs.getSizeT("Runtime", "cpuMemoryPoolSizeBytes"),
+                            RPs.getSizeT("Runtime", "gpuMemoryPoolSizeBytes"));
 
         try {
             Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
                                 RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
                                 RPs.getUnsignedInt("Runtime", "nStreams"),
-                                RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
+                                RPs.getSizeT("Runtime", "cpuMemoryPoolSizeBytes"),
+                                RPs.getSizeT("Runtime", "gpuMemoryPoolSizeBytes"));
             std::cerr << "FAILURE - Runtime::main - Runtime initialized more than once"
                       << std::endl;
             return 2;

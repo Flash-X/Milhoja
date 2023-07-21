@@ -38,7 +38,8 @@ public:
     static void          initialize(const unsigned int nTeams,
                                      const unsigned int nThreadsPerTeam,
                                      const unsigned int nStreams,
-                                     const std::size_t nBytesInMemoryPools);
+                                     const std::size_t nBytesInCpuMemoryPool,
+                                     const std::size_t nBytesInGpuMemoryPools);
     static Runtime&      instance(void);
     void                 finalize(void);
 
