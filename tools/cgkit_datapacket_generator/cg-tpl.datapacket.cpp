@@ -107,6 +107,8 @@ void _param:i_give_up::pack(void) {
     ptr_d = copyInStart_d_;
 
     /* _link:pointers_constructor */
+    ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
+    ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
     /* _link:pointers_tilemetadata */
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;

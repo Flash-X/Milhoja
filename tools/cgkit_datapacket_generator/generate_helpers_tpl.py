@@ -381,7 +381,7 @@ def sort_dict(section, sort_key) -> dict:
         section: dict - The dictionary to sort.
         sort_key: func - The function to sort with.
     """
-    return dict( sorted(section, key = sort_key, reverse = True) )
+    return dict( sorted(section, key = sort_key, reverse = False) )
 
 def write_connectors(template, connectors):
     """Writes connectors to the datapacket file."""
