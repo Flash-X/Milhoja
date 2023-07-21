@@ -21,6 +21,7 @@
 // TODO: This would need to be inserted by a Driver code generator
 #if MILHOJA_NDIM == 2
 #include "cpu_tf00_2D.h"
+#include "Tile_cpu_tf00_2D.h"
 #else
 #include "cpu_tf00_3D.h"
 #include "Tile_cpu_tf00_3D.h"
@@ -107,7 +108,11 @@ void    Driver::executeSimulation(void) {
     // Acquire auxC scratch memory up front and use throughout simulation.
     // Include in simulation timing so that Milhoja-based overhead can be
     // included in comparisons against non-Milhoja-based performance results.
+#if MILHOJA_NDIM == 2
+    Tile_cpu_tf00_2D::acquireScratch();
+#else
     Tile_cpu_tf00_3D::acquireScratch();
+#endif
 
     unsigned int      nStep{1};
     unsigned int      maxSteps{RPs.getUnsignedInt("Simulation", "maxSteps")};
@@ -141,7 +146,11 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
+#if MILHOJA_NDIM == 2
+        const Tile_cpu_tf00_2D   cpu_tf00_prototype{Driver::dt};
+#else
         const Tile_cpu_tf00_3D   cpu_tf00_prototype{Driver::dt};
+#endif
         runtime.executeCpuTasks("Advance Hydro Solution",
                                 hydroAdvance, cpu_tf00_prototype);
         double   wtime_sec = MPI_Wtime() - tStart;
@@ -193,7 +202,11 @@ void    Driver::executeSimulation(void) {
 
     // Include in simulation timing so that Milhoja-based overhead can be
     // included in comparisons against non-Milhoja-based performance results.
+#if MILHOJA_NDIM == 2
+    Tile_cpu_tf00_2D::releaseScratch();
+#else
     Tile_cpu_tf00_3D::releaseScratch();
+#endif
 
     Timer::stop("sedov simulation");
 

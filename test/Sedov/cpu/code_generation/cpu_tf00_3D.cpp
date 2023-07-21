@@ -19,7 +19,7 @@
 
 
 void  cpu_tf00_3D::taskFunction(const int threadId,
-                    milhoja::DataItem* dataItem) {
+                                milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
     Tile_cpu_tf00_3D*  wrapper = dynamic_cast<Tile_cpu_tf00_3D*>(dataItem);
