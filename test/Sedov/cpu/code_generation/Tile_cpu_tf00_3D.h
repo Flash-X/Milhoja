@@ -33,7 +33,7 @@ struct Tile_cpu_tf00_3D : public milhoja::TileWrapper {
     constexpr static std::size_t     AUXC_SIZE_ =   (16 + 2)
                                                   * (16 + 2)
                                                   * (16 + 2);
-    static milhoja::Real*            auxC_scratch_;
+    static void*  auxC_scratch_;
 };
 
 #endif

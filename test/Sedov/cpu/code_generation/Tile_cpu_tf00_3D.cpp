@@ -1,12 +1,13 @@
 #include "Tile_cpu_tf00_3D.h"
 
 #include <Milhoja_Runtime.h>
+#include <Milhoja_RuntimeBackend.h>
 #ifdef DEBUG_RUNTIME
 #include <Milhoja_Logger.h>
 #endif
 
 //----- STATIC SCRATCH MEMORY MANAGEMENT
-milhoja::Real*  Tile_cpu_tf00_3D::auxC_scratch_ = nullptr;
+void*  Tile_cpu_tf00_3D::auxC_scratch_ = nullptr;
 
 /**
  *
@@ -18,9 +19,11 @@ void   Tile_cpu_tf00_3D::acquireScratch(void) {
         
     }
 
-    // TODO: Acquire from Runtime backend.
-    unsigned int   nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
-    auxC_scratch_ = new milhoja::Real[nThreads * Tile_cpu_tf00_3D::AUXC_SIZE_];
+    const unsigned int   nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
+    const std::size_t    nBytes =   nThreads
+                                  * Tile_cpu_tf00_3D::AUXC_SIZE_
+                                  * sizeof(milhoja::Real);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &auxC_scratch_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg =   "[Tile_cpu_tf00_3D::acquireScratch] Acquired "
@@ -39,8 +42,7 @@ void   Tile_cpu_tf00_3D::releaseScratch(void) {
                                "auxC scratch not allocated");
     }
 
-    // TODO: Release with runtime backend
-    delete auxC_scratch_;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&auxC_scratch_);
     auxC_scratch_ = nullptr;
 
 #ifdef DEBUG_RUNTIME

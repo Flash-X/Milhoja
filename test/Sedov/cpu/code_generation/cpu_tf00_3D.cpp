@@ -26,11 +26,12 @@ void  cpu_tf00_3D::taskFunction(const int threadId,
     Tile*  tileDesc = wrapper->tile_.get();
 
     // Thread-private variables
-    milhoja::Real    dt = wrapper->dt_;
+    Real    dt = wrapper->dt_;
 
     // Thread-private scratch
-    milhoja::Real*   ptr_hydro_op1_auxc =   Tile_cpu_tf00_3D::auxC_scratch_
-                                          + Tile_cpu_tf00_3D::AUXC_SIZE_ * threadId;
+    Real*   ptr_hydro_op1_auxc =
+                  static_cast<Real*>(Tile_cpu_tf00_3D::auxC_scratch_)
+                + Tile_cpu_tf00_3D::AUXC_SIZE_ * threadId;
 
     // Tile metadata
     const IntVect  tile_lo = tileDesc->lo();

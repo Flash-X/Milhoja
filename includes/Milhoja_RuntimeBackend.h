@@ -134,9 +134,9 @@ public:
                                                 void* callbackData) = 0;
 
     //----- MEMORY MANAGEMENT
-//    virtual void      requestCpuMemory(const std::size_t bytes,
-//                                       void** ptr) = 0;
-//    virtual void      releaseCpuMemory(void** ptr) = 0;
+    virtual void      requestCpuMemory(const std::size_t nBytes,
+                                       void** ptr) = 0;
+    virtual void      releaseCpuMemory(void** ptr) = 0;
 
     /**
      * To facilitate the construction of data packets, pinned and GPU memory can

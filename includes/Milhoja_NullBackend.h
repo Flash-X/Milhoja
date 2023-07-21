@@ -40,6 +40,8 @@ public:
                                         void* callbackData) override
         { throw std::logic_error("[NullBackend::initiateGpuToHostTransfer] Not implemented"); };
 
+    void      requestCpuMemory(const std::size_t nBytes, void** ptr) override;
+    void      releaseCpuMemory(void** ptr) override;
     void      requestGpuMemory(const std::size_t pinnedBytes,
                                void** pinnedPtr,
                                const std::size_t gpuBytes,

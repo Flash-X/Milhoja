@@ -31,7 +31,8 @@ SRCS_BASE       = \
     $(SRCDIR)/Milhoja_ThreadTeamRunningNoMoreWork.cpp \
     $(SRCDIR)/Milhoja_MoverUnpacker.cpp \
     $(SRCDIR)/Milhoja_Runtime.cpp \
-    $(SRCDIR)/Milhoja_RuntimeBackend.cpp
+    $(SRCDIR)/Milhoja_RuntimeBackend.cpp \
+    $(SRCDIR)/Milhoja_NullBackend.cpp
 
 CU_SRCS_BASE = \
 	$(SRCDIR)/Milhoja_CudaBackend.cu \
