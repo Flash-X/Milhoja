@@ -104,6 +104,11 @@ void    Driver::executeSimulation(void) {
 
     Timer::start("sedov simulation");
 
+    // Acquire auxC scratch memory up front and use throughout simulation.
+    // Include in simulation timing so that Milhoja-based overhead can be
+    // included in comparisons against non-Milhoja-based performance results.
+    Tile_cpu_tf00_3D::acquireScratch();
+
     unsigned int      nStep{1};
     unsigned int      maxSteps{RPs.getUnsignedInt("Simulation", "maxSteps")};
     milhoja::Real     tMax{RPs.getReal("Simulation", "tMax")};
@@ -185,6 +190,11 @@ void    Driver::executeSimulation(void) {
 
         ++nStep;
     }
+
+    // Include in simulation timing so that Milhoja-based overhead can be
+    // included in comparisons against non-Milhoja-based performance results.
+    Tile_cpu_tf00_3D::releaseScratch();
+
     Timer::stop("sedov simulation");
 
     if (Driver::simTime >= tMax) {

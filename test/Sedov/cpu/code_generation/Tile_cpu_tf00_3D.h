@@ -29,7 +29,11 @@ struct Tile_cpu_tf00_3D : public milhoja::TileWrapper {
     static void   acquireScratch(void);
     static void   releaseScratch(void);
 
-    static milhoja::Real*  auxC_scratch_;
+    // Size is in number of Reals for easy pointer arithmetic.
+    constexpr static std::size_t     AUXC_SIZE_ =   (16 + 2)
+                                                  * (16 + 2)
+                                                  * (16 + 2);
+    static milhoja::Real*            auxC_scratch_;
 };
 
 #endif

@@ -1,6 +1,9 @@
 #include "Tile_cpu_tf00_3D.h"
 
-#include <iostream>
+#include <Milhoja_Runtime.h>
+#ifdef DEBUG_RUNTIME
+#include <Milhoja_Logger.h>
+#endif
 
 //----- STATIC SCRATCH MEMORY MANAGEMENT
 milhoja::Real*  Tile_cpu_tf00_3D::auxC_scratch_ = nullptr;
@@ -15,21 +18,35 @@ void   Tile_cpu_tf00_3D::acquireScratch(void) {
         
     }
 
-    // TODO: Acquire from runtime backend
-    std::cout << "Allocated scratch for Tile_cpu_tf00_3D" << std::endl;
+    // TODO: Acquire from Runtime backend.
+    unsigned int   nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
+    auxC_scratch_ = new milhoja::Real[nThreads * Tile_cpu_tf00_3D::AUXC_SIZE_];
+
+#ifdef DEBUG_RUNTIME
+    std::string   msg =   "[Tile_cpu_tf00_3D::acquireScratch] Acquired "
+                        + std::to_string(nThreads)
+                        + " auxC scratch blocks";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 /**
  *
  */
 void   Tile_cpu_tf00_3D::releaseScratch(void) {
-//    if (!auxC_scratch_) {
-//        throw std::logic_error("[Tile_cpu_tf00_3D::releaseScratch] "
-//                               "Scratch not allocated");
-//    }
+    if (!auxC_scratch_) {
+        throw std::logic_error("[Tile_cpu_tf00_3D::releaseScratch] "
+                               "auxC scratch not allocated");
+    }
 
     // TODO: Release with runtime backend
-    std::cout << "Scratch for Tile_cpu_tf00_3D released" << std::endl;
+    delete auxC_scratch_;
+    auxC_scratch_ = nullptr;
+
+#ifdef DEBUG_RUNTIME
+    std::string    msg = "[Tile_cpu_tf00_3D::releaseScratch] Released auxC scratch";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 /**

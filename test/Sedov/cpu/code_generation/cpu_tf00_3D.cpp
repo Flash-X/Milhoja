@@ -28,6 +28,10 @@ void  cpu_tf00_3D::taskFunction(const int threadId,
     // Thread-private variables
     milhoja::Real    dt = wrapper->dt_;
 
+    // Thread-private scratch
+    milhoja::Real*   ptr_hydro_op1_auxc =   Tile_cpu_tf00_3D::auxC_scratch_
+                                          + Tile_cpu_tf00_3D::AUXC_SIZE_ * threadId;
+
     // Tile metadata
     const IntVect  tile_lo = tileDesc->lo();
     const IntVect  tile_hi = tileDesc->hi();
@@ -37,14 +41,13 @@ void  cpu_tf00_3D::taskFunction(const int threadId,
     FArray4D  FLY_1 = tileDesc->fluxData(Axis::J);
     FArray4D  FLZ_1 = tileDesc->fluxData(Axis::K);
 
-    // TODO: Eventually get the scratch from the wrapper.
     IntVect    cLo = IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
     IntVect    cHi = IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
                                        tile_hi.J()+MILHOJA_K2D,
                                        tile_hi.K()+MILHOJA_K3D)};
-    FArray3D  hydro_op1_auxc = FArray3D::buildScratchArray(cLo, cHi);
+    FArray3D  hydro_op1_auxc = FArray3D{ptr_hydro_op1_auxc, cLo, cHi};
 
     hy::computeFluxesHll(
                     dt,

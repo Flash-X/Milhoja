@@ -42,6 +42,10 @@ public:
     static Runtime&      instance(void);
     void                 finalize(void);
 
+    unsigned int   nMaxThreadsPerTeam(void) const {
+        return maxThreadsPerTeam_;
+    }
+
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction,
                          const TileWrapper& prototype);
