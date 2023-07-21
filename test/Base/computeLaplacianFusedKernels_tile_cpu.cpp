@@ -1,12 +1,13 @@
 #include "computeLaplacianFused.h"
 
-#include <Milhoja_Tile.h>
+#include <Milhoja_TileWrapper.h>
 
 void ActionRoutines::computeLaplacianFusedKernels_tile_cpu(const int tId,
                                                            milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
-    Tile*  tileDesc = static_cast<Tile*>(dataItem);
+    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
     const IntVect   lo      = tileDesc->lo();
     const IntVect   hi      = tileDesc->hi();

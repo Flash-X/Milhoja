@@ -65,7 +65,7 @@ protected:
         unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
         unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
         Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
-        Milhoja::TileWrapper  prototype{};
+        milhoja::TileWrapper  prototype{};
         Runtime::instance().executeCpuTasks("Analysis",
                                             computeError, prototype);
 
@@ -109,7 +109,7 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Milhoja::TileWrapper  prototype{};
+    milhoja::TileWrapper  prototype{};
     Runtime::instance().executeCpuTasks("LapDens",
                                         computeLaplacianDensity, prototype);
     Runtime::instance().executeCpuTasks("LapEner",
@@ -134,7 +134,7 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
 
     double tStart = MPI_Wtime(); 
-    Milhoja::TileWrapper  prototype{};
+    milhoja::TileWrapper  prototype{};
     Runtime::instance().executeCpuTasks("Fused Kernels CPU",
                                         computeLaplacianFused_cpu, prototype);
     double tWalltime = MPI_Wtime() - tStart; 

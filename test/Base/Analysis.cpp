@@ -8,6 +8,7 @@
 #include <Milhoja_edge.h>
 #include <Milhoja_FArray4D.h>
 #include <Milhoja_Grid.h>
+#include <Milhoja_TileWrapper.h>
 
 #include "Base.h"
 
@@ -73,7 +74,8 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
 }
 
 void   ActionRoutines::computeErrors_tile_cpu(const int tId, DataItem* dataItem) {
-    Tile* tileDesc = dynamic_cast<Tile*>(dataItem);
+    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
     Grid&   grid = Grid::instance();
 
