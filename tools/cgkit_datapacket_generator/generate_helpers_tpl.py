@@ -85,6 +85,12 @@ def generate_extra_streams_information(connectors: dict, extra_streams: int):
             '}\n'
     ])
 
+    connectors['nextrastreams'].extend([
+        f'stream{i}_ = RuntimeBackend::instance().requestStream(true);\n' + 
+        f'if(!stream{i}_.isValid()) throw std::runtime_error("[_param:class_name::pack] Unable to acquire second stream");\n'
+        for i in range(2, extra_streams+2)
+    ])
+
 def iterate_constructor(connectors: dict, size_connectors: dict, constructor: dict):
     """Iterates the constructor section and adds the necessary connectors."""
     section_creation('constructor', constructor, connectors, size_connectors)
@@ -223,7 +229,6 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         start = data[jsc.START]
         end = data[jsc.END]
         raw_type = data[jsc.DTYPE]
-        item_type = data[jsc.DTYPE] if language == util.Language.fortran else util.cpp_equiv[data[jsc.DTYPE]]
         extents = ' * '.join(f'({item})' for item in extents)
         connectors['public_members'].append(
             f'{raw_type}* {device_item};\n'
@@ -233,10 +238,10 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
             [f'{device_item}{{nullptr}}']
         )
         connectors['size_determination'].append(
-            f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({item_type});\n'
+            f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({raw_type});\n'
         )
         connectors['pinned_sizes'].append(
-            f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({item_type});\n'
+            f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({raw_type});\n'
         )
         set_pointer_determination(connectors, 'tilein', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
         add_memcpy_connector(connectors, 'tilein', extents, item, start, end, size_item, raw_type)
@@ -327,7 +332,6 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
         start = data[jsc.START]
         end = data[jsc.END]
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
-        item_type = data[jsc.EXTENTS]
         raw_type = data[jsc.DTYPE]
 
         # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
@@ -341,15 +345,15 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, para
             [f'{device_item}{{nullptr}}']
         )
         connectors['size_determination'].append(
-            f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n'
+            f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
         )
         connectors['pinned_sizes'].append(
-            f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({item_type});\n'
+            f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
         )
-        set_pointer_determination(connectors, 'tileout', item, device_item, f'_nTiles_h * {size_item}', item_type, False)
+        set_pointer_determination(connectors, 'tileout', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
         add_unpack_connector(connectors, "tileout", extents, start, end, raw_type, corresponding_in_data, item)
         if language == util.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.bound_map[item][0], cpp_helpers.bound_map[item][1], cpp_helpers.bound_map[item][2], item_type)
+            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.bound_map[item][0], cpp_helpers.bound_map[item][1], cpp_helpers.bound_map[item][2], raw_type)
 
 def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
     """Iterates the tilescratch section of the JSON."""
