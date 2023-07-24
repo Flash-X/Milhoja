@@ -230,6 +230,7 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         end = data[jsc.END]
         raw_type = data[jsc.DTYPE]
         extents = ' * '.join(f'({item})' for item in extents)
+        unks = f'{end} - {start} + 1'
         connectors['public_members'].append(
             f'{raw_type}* {device_item};\n'
             f'{raw_type}* {pinned_item};\n'
@@ -245,8 +246,10 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, params
         )
         set_pointer_determination(connectors, 'tilein', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
         add_memcpy_connector(connectors, 'tilein', extents, item, start, end, size_item, raw_type)
-        # if language == util.Language.cpp:
-        #     cpp_helpers.insert_farray_memcpy(connectors, item, , , tilein[item]['extents'][-1], item_type)
+        # temporary measure until the bounds information in JSON is solidified.
+        if language == util.Language.cpp:
+            cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', unks, raw_type)
+
     connectors['memcpy_tileinout'].extend(pinnedLocation)
 
 def add_memcpy_connector(connectors: dict, section: str, extents, item, start, end, size_item, raw_type):
