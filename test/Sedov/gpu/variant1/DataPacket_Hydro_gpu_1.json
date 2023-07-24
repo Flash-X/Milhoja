@@ -1,0 +1,43 @@
+{
+  "byte-align": 16,
+  "n-extra-streams": 1,
+  "task-function-argument-list": [ "dt", "deltas", "lo", "hi", "U", "auxC", "flX", "flY", "flZ" ],
+  "tile-scratch": {
+    "flX": {
+      "type": "real",
+      "extents": ["(16 + 2 * 0) + 1", "16 + 2 * 0", "1 + 2 * 0", "5"]
+    },
+    "flY": {
+      "type": "real",
+      "extents": ["16 + 2 * 0", "(16 + 2 * 0) + 1", "1 + 2 * 0", "5"]
+    },
+    "flZ": {
+      "type": "real",
+      "extents": ["1", "1", "1", "1"]
+    }
+  },
+  "constructor": {
+    "dt": "real"
+  },
+  "tile-metadata": {
+  	"tile_deltas": "deltas",
+  	"tile_lo": "lo",
+  	"tile_hi": "hi"
+  },
+  "tile-in": {
+	"U": {
+		"type": "real",
+		"start": "0",
+		"end": "8",
+		"extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+	}
+  },
+  "tile-out": {
+	"auxC": {
+		"type": "real",
+		"start": "0",
+		"end": "7",
+		"extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+	}
+  }
+}

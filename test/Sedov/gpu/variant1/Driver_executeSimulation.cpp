@@ -110,7 +110,7 @@ void    Driver::executeSimulation(void) {
     milhoja::Real     dtAfter{RPs.getReal("Driver", "dtAfter")};
     unsigned int      writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
 
-    const DataPacket_Hydro_gpu_1    packetPrototype;
+//    const DataPacket_Hydro_gpu_1    packetPrototype;
     while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -145,15 +145,23 @@ void    Driver::executeSimulation(void) {
 //                                       hydroAdvance_gpu,
 //                                       packetPrototype,
 //                                       nTilesPerCpuTurn);
-        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
-                                              nDistThreads,
-                                              stagger_usec,
-                                              hydroAdvance_cpu,
-                                              hydroAdvance_gpu,
-                                              packetPrototype,
-                                              nTilesPerCpuTurn,
-                                              nStep,
-                                              GLOBAL_COMM);
+//        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
+//                                              nDistThreads,
+//                                              stagger_usec,
+//                                              hydroAdvance_cpu,
+//                                              hydroAdvance_gpu,
+//                                              packetPrototype,
+//                                              nTilesPerCpuTurn,
+//                                              nStep,
+//                                              GLOBAL_COMM);
+
+		const DataPacket_Hydro_gpu_1 packetPrototype{Driver::dt};
+		runtime.executeGpuTasks("Advance Hydro Solution",
+                                      nDistThreads,
+                                      stagger_usec,
+                                      hydroAdvance_gpu,
+                                      packetPrototype);
+
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
