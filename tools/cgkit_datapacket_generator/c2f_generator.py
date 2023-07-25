@@ -54,7 +54,7 @@ def generate_hydro_advance_c2f(data):
         for key,name in data.get(sects.T_MDATA, {}).items():
             ftype = mutil.tile_variable_mapping[name].lower()
             if 'int' in ftype: ftype = 'integer'
-            gpu_pointers[name] = { 'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': [3, 'F_nTiles_h'] }
+            gpu_pointers[name] = { 'ftype': ftype, 'ctype': 'type(C_PTR)', 'shape': ['MILHOJA_MDIM', 'F_nTiles_h'] }
 
         # TODO: This needs to change once the bounds section in the data packet json is solidified.
         for key,bound in data.get(sects.LBOUND, {}).items():
