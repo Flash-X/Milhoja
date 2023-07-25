@@ -8,7 +8,6 @@ Note: The same JSON file used to generate the data packets must also be used as 
 """
 
 import os
-
 import argparse
 import json
 import json_sections as sects
@@ -26,12 +25,12 @@ def generate_hydro_advance_c2f(data):
     Returns:
         None
     """
-    with open("dr_hydro_advance_packet_oacc_C2F.F90", 'w') as fp:
+    with open("c2f.F90", 'w') as fp:
         fp.writelines([
             '!! This code was generated using C2F_generator.py.\n',
             LICENSE_BLOCK,
             '#include "Milhoja.h"\n',
-            '#ifndef MILHOJA_OPENACC_OFFLOADING\n', # do we really need to include this?
+            '#ifndef MILHOJA_OPENACC_OFFLOADING\n', 
             '#error "This file should only be compiled if using OpenACC offloading"\n',
             '#endif\n\n',
             'subroutine dr_hydro_advance_packet_oacc_c2f('

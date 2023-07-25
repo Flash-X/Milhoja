@@ -11,7 +11,7 @@ SOURCETREE_OPTIONS = {
     'verbosePost': ' */',
 }
 
-OUTPUT = 'cgkit.dr_hydroAdvance_bundle.cxx'
+OUTPUT = 'cgkit.cpp2c.cxx'
 
 ####################
 # Recipes
