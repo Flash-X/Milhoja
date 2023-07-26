@@ -6,8 +6,19 @@ import os
 import cpp2c_cgkit
 from collections import defaultdict
 
-def generate_cpp2c_outer(data: dict):
-    """Generates the outer template for the cpp2c layer."""
+_ARG_LIST_KEY = "c2f_argument_list"
+_INST_ARGS_KEY = "instance_args"
+_HOST_MEMBERS_KEY = "get_host_members"
+
+def _generate_cpp2c_outer(data: dict):
+    """
+    Generates the outer template for the cpp2c layer with the name `cg-tpl.cpp2c_outer.cpp`.
+    
+    Parameters:
+        data: dict - The dictionary containing the JSON data.
+    Returns: 
+        None
+    """
     with open('cg-tpl.cpp2c_outer.cpp', 'w') as outer:
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
@@ -16,57 +27,67 @@ def generate_cpp2c_outer(data: dict):
             '/* _link:cpp2c */'
         ])
 
-def insert_connector_arguments(data: dict, connectors: dict):
-    """Inserts various connector arguments into the connectors dictionary."""
-    connectors['get_host_members'] = ['const int queue1_h = packet_h->asynchronousQueue();\n',
-                                    'const int _nTiles_h = packet_h->_nTiles_h;\n']
+def _insert_connector_arguments(data: dict, connectors: dict):
+    """
+    Inserts various connector arguments into the connectors dictionary.
+    
+    Parameters:
+        data: dict - The dictionary containing the JSON data.
+        connectors: dict - The connectors dictionary to write to.
+    Returns:
+        None
+    """
+    connectors[_HOST_MEMBERS_KEY] = ['const int queue1_h = packet_h->asynchronousQueue();\n', # one queue always exists in the data packet
+                                    'const int _nTiles_h = packet_h->_nTiles_h;\n'] # need to insert nTiles host manually
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
-    connectors['get_host_members'].extend([
+    connectors[_HOST_MEMBERS_KEY].extend([
         f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
         for i in range(2, n_streams+2)
     ])
-    connectors['c2f_argument_list'].append( ('queue1_h', 'const int') )
-    connectors['c2f_argument_list'].extend([
-        (f'queue{i}_h', 'const int') for i in range(2, n_streams+2)
-    ])
-    connectors['c2f_argument_list'].append( ('_nTiles_h', 'const int') )
-    connectors['c2f_argument_list'].extend([
-        (f'_{item}_d', 'const void*') for item in data[sects.ORDER]
-    ])
+    connectors[_ARG_LIST_KEY].extend(
+        [ ('packet_h', 'void*') ] + 
+        [ ('queue1_h', 'const int') ] +  
+        [ (f'queue{i}_h', 'const int') for i in range(2, n_streams+2) ] + 
+        [ ('_nTiles_h', 'const int') ] +
+        [ (f'_{item}_d', 'const void*') for item in data[sects.ORDER] ]
+    )
     
-def generate_cpp2c_helper(data: dict):
-    """Generates the helper template for the cpp2c layer."""
+def _generate_cpp2c_helper(data: dict):
+    """
+    Generates the helper template for the cpp2c layer.
+    
+    Parameters:
+        data: dict - The dictionary containing the JSON data.
+    Returns:
+        None
+    """
     connectors = defaultdict(list)
-    connectors['c2f_argument_list'] = [ ('packet_h', 'void*') ]
-    insert_connector_arguments(data, connectors)
-    connectors['instance_args'] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ]
-    connectors['instance_args'].append( ('packet', 'void**') )
-    connectors['c2f_arguments'] = [ item[0] for item in connectors['c2f_argument_list'] ]
-    instance_args = [ f'{item[1]} {item[0]}' for item in connectors['instance_args'] ]
+    _insert_connector_arguments(data, connectors)
+    connectors[_INST_ARGS_KEY] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] + [ ('packet', 'void**') ]
 
     # write to helper template file
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
-        helper.writelines(['/* _connector:get_host_members */\n' ] + connectors['get_host_members'])
+        helper.writelines(['/* _connector:get_host_members */\n' ] + connectors[_HOST_MEMBERS_KEY])
         helper.writelines(
             [ '\n/* _connector:c2f_argument_list */\n' ] +
-            [ ',\n'.join([ f"{item[1]} {item[0]}" for item in connectors["c2f_argument_list"] ]) ] +
+            [ ',\n'.join([ f"{item[1]} {item[0]}" for item in connectors[_ARG_LIST_KEY] ]) ] +
             
             [ '\n\n/* _connector:c2f_arguments */\n'] + 
-            [ ',\n'.join([ f"{item[0]}" for item in connectors['c2f_argument_list']]) ] + 
+            [ ',\n'.join([ f"{item[0]}" for item in connectors[_ARG_LIST_KEY]]) ] + 
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
             [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
         
             ['\n/* _connector:instance_args */\n'] +
-            [ ','.join( instance_args ) ] + 
+            [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors[_INST_ARGS_KEY] ] ) ] + 
 
             ['\n\n/* _connector:host_members */\n'] + 
             [ ','.join( [ item for item in data.get(sects.GENERAL, {}) if item != 'nTiles'] )]
         )
         
 def main(data: dict):
-    generate_cpp2c_outer(data)
-    generate_cpp2c_helper(data)
+    _generate_cpp2c_outer(data)
+    _generate_cpp2c_helper(data)
     cpp2c_cgkit.main(data)
 
 if __name__ == "__main__":
