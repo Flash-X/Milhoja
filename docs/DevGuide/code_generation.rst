@@ -1,6 +1,8 @@
 Code Generation
 ===============
 
+Not sure about the organization of this code generation doc.
+
 JSON
 ----
 
@@ -23,7 +25,7 @@ Non-tile-specific data goes here. Note that the number of tiles is automatically
 so those do not need to be specified in the JSON file. Any items in general must be passed into the data packet 
 constructor, and the data packet will take ownership of the items and copy them into its own memory to manage it. 
 We are assuming the items will remain valid throughout the life cycle of the entire packet. This section is 
-generally good for non-tile specific variables that are used in your computation functions.
+used for non-tile-specific variables that are used in the task functions.
 
 .. code-block::
 
@@ -35,7 +37,9 @@ tile-metadata
 """""""""""""
 Tile-metadata is a dictionary containing metadata for each tile. The items in tile-metadata consist of a key, 
 a specifier that may be referenced by items in the various array sections, and the value is an obtainable value 
-from the Tile class. The list of obtainable values is a set of keywords contained in the data packet generator code. 
+from the Tile class. The list of obtainable values is a set of keywords contained in the data packet generator code.
+The tile-metadata items are used for various items in the data array sections (`tile-in`, `tile-in-out`, `tile-out`, `tile-scratch`).
+For example, lower and upper bounds for array indices are calculated using the information contained in this section.
 
 Example:
 
@@ -69,7 +73,8 @@ Example:
 
 tile-in-out
 """""""""""
-The data in this array is copied to the device being used, then data is copied back from the device to the same array. This section contains similar keywords to the other sections with some minor changes: 
+The data in this array is copied to the device being used, then data is copied back from the device to the same array. 
+This section contains similar keywords to the other sections with some minor changes: 
 
 * **type**: The data type of the items in the array to be copied in.
 * **start-in**: The starting index of the array when being copied in.
@@ -109,7 +114,7 @@ This is the array to copy data back to. Again, this section contains similar key
 
 tile-scratch
 """"""""""""
-All of the scratch data used for calculations. Starts in the GPU and is not copied to the host or returned from the host.
+This section contains data arrays used as scratch space. Starts in the GPU and is not copied to the host or returned from the device.
 
 * **type**: The data type of the items in the array to be copied in.
 * **extents**: The extents of the array. This is an array of constants of size n. The extents in tile scratch includes the number of unknown variables at the end.
@@ -125,9 +130,9 @@ All of the scratch data used for calculations. Starts in the GPU and is not copi
 JSON Abstraction Layer
 ----------------------
 
-This is a class responsible for abstracting the JSON file in such a way that the task function generator and data Packets
-generator can be given exactly what they need to generate their respective files without the need for having multiple
-or separate JSONs.
+This is a python class responsible for abstracting the JSON file in such a way that the task function generator and DataPacket
+generator can be given exactly what they need to generate their respective files without the need for having multiple or 
+separate JSONs.
 
 Task functions
 --------------
@@ -148,22 +153,50 @@ subclass, the DataPacket generator will need:
 
 Using that information, the DataPacket generator will create a new subclass for passing information to an external device.
 
-To create the DataPacket subclass, the DataPacket generator uses CGKit, a code generation toolkit. The generator uses premade 
-CGKit templates to assist with generating the final files for the packet, as well as using generated CGKit templates. To generate the 
-various templates for assembling the final class, the DataPacket generator collects information for every item that needs to be in the 
-data packet, as well as other information like the number of streams to use and the byte alignment, and formats it in a way that can 
-be used by CGKit. This involves making two cgkit helper templates called **cg-tpl.datapacket_helpers.cpp** and 
-**cg-tpl.datapacket_outer.cpp**. CGKit then uses those generated files along with the premade templates named **cg-tpl.datapacket.cpp** 
-and **cg-tpl.datapacket_header.cpp** to generate the final output files for the new class, called **cgkit.datapacket.cpp** and 
-**cgkit.datapacket.h**. 
+Packet Generation Steps
+"""""""""""""""""""""""
 
-If creating a packet for use with fortran, the DataPacket generator will create a few more files to allow the DataPacket items to 
-be passed to a fortran task function. The DataPacket generator creates a C++ to C layer using CGKit. The generator will create new 
-files using the same information to create the packets, called **cg-tpl.cpp2c_outer** and **cg-tpl.cpp2c_helper.cpp**, and combines 
-it with either **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp**. CGKit then takes these files, along with the 
-premade C++ to C template called **cg-tpl.cpp2c.cpp**, and assembles it into the C++ to C layer found in **cgkit.cpp2c.cpp**. This is 
-for another layer, the C to Fortran layer, since Fortran cannot interface with C++. The generation of this layer does not use CGKit, 
-and **c2f.F90** is the file that is generated.
+1. The DataPacket generator takes in a language specifier, a byte sizes JSON, and DataPacket :doc:`JSON``. 
+
+2. The DataPacket generator loads each JSON and creates any extra information it needs for DataPacket class generation.
+
+3. The generator moves through each section in the :doc:`JSON`` in a specified order [`constructor`, `tile-metadata`, `tile-in`, 
+`tile-in-out`, `tile-out`, and `tile-scratch`], sorts the section by size, then generates formatted links, connectors, 
+and param strings and stores them in dictionaries for later use. The links, connectors, and params from the DataPacket 
+generator act as the implementation for the DataPacket. Since the JSON format does not have an inherent order, 
+the DataPacket generator uses the specified order to group related variables together in the new DataPacket subclass. 
+However, even if the variables are grouped together, this does not mean that they will appear in the packet in the same 
+order. That depends on the sizes of each item in the packet.
+
+4. Once the generator has gone through each section in the JSON, it will write the strings in the dictionaries to cgkit 
+template files for use by cgkit. These files are **cg-tpl.datapacket_helpers.cpp** and **cg-tpl.datapacket_outer.cpp**.
+
+5. Once the files have been generated, the DataPacket generator calls CGKit to insert each param, connector, and link into 
+the premade template files named **cg-tpl.datapacket.cpp** and **cg-tpl.datapacket_header.cpp**, resulting in the completed
+implementation of the new DataPacket class. The output files are named **cgkit.datapacket.cpp** and **cgkit.datapacket.h**. 
+
+6. If the 'fortran' language is specified, the DataPacket generator will call two more functions to create interoperability 
+layers for the new DataPacket. One is the C++ to C layer, and the other is the C to Fortran layer. The C to Fortran layer and 
+the C++ to C layer are created using the same inputs used for the DataPacket.
+
+7. The C to Fortran layer generation creates a new Fortran 90 file that converts the C pointers and variable members in the 
+DataPacket to Fortran based variables. This file is named **c2f.f90**.
+
+8. The C++ to C layer is created using CGKit. Two more template files are generated and are combined with pre-existing template 
+files to create the layer. The generated template files are named **cg-tpl.cpp2c_outer** and **cg-tpl.cpp2c_helper.cpp** and 
+the existing templates are **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp** and **cg-tpl.cpp2c.cpp**. 
+
+Using the information from the JSON input, the DataPacket generator will implement methods from the base DataPacket class as necessary.
+The methods `extraAsynchronousQueue()` and `releaseExtraQueue()` are given derived class implementations if there are more than 
+0 n-extra-streams. The clone method is overridden, using the arguments from the `constructor` section to create a new packet, 
+satisfying the prototype design pattern. The `unpack()` function uses information from `tile-in`, `tile-in-out`, and `tile-out` to 
+unpack the information from device memory back into host memory.
+
+The `pack()` function is generated using three distinct phases. The first is the size determination phase, where the size of each item 
+in the packet is determined, as well as the overall size of the packet. The next phase is the pointer determination phase. Since the 
+packet uses a SoA pattern, the pointer determination phase gets the start of each array of pointers for each item in the packet. The 
+size of each item's pointer array is equal to the number of tiles. The last phase is the memcpy phase, where pointers from the host 
+memory are copied into pinned memory.
 
 Data Mapping
 ------------
