@@ -19,7 +19,8 @@ generator is called, it will create new files based on the information passed to
 
 * The byte sizes for every data type used in the DataPacket JSON input.
 * The language that is being used to run the task function. Either 'cpp' or 'fortran'.
-* A JSON input containing all information needed for each item in a data packet. For specifications on this, read the DataPacket JSON section in the UserManual.
+* A JSON input containing all information needed for each item in a data packet. 
+  For specifications on this, read the DataPacket JSON section in the UserManual.
 
 Using that information, the DataPacket generator will create a new subclass for passing information to a remote device.
 
@@ -50,7 +51,6 @@ Packet Generation Steps
       size of each item's pointer array is equal to the number of tiles. The last phase is the memcpy phase, where pointers from the host 
       memory are copied into pinned memory.
 
-
 4. Once the generator has gone through each section in the JSON, it will write the strings in the dictionaries to cgkit 
    template files for use by cgkit. These files are **cg-tpl.datapacket_helpers.cpp** and **cg-tpl.datapacket_outer.cpp**.
 
@@ -76,7 +76,7 @@ multiple variables for use within and outside of the data packet. The variables 
 a prefix and a suffix.
 
 For items in host memory, each item in the JSON will have an associated variable in the data packet that starts with the prefix '_',
-followed by the name of the item, followed by the suffix '_h'. Items contained in the 'constructor'/'private-thread-variables' are the 
+followed by the name of the item, followed by the suffix '_h'. Items contained in the 'constructor'/'thread-private-variables' are the 
 only variables contained in the data packet that have associated host variables in the data packet. Example: 'dt' -> '_dt_h'.
 
 For items in device memory, each item in the JSON will have an associated variable in the data packet that starts with the prefix '_',
@@ -89,3 +89,6 @@ prefix '_', followed by the name of the item, followed by the suffix '_p'. Examp
 When creating a packet using the 'cpp' language option, each item in tile-in, tile-in-out, tile-out, and tile-scratch will have FArrayND 
 device memory pointers associated with them. The name of the pointer starts with the prefix '_f4_', followed by the name of the item,
 followed by the suffix '_d'.
+
+    * NOTE: When should we be using FArray3D / FArray2D / FArray1D instead of FArray4D? Is this based on dimensionality of the problem?
+
