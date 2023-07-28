@@ -7,13 +7,13 @@
 #endif
 
 //----- STATIC SCRATCH MEMORY MANAGEMENT
-void*  Tile_cpu_tf00_2D::auxC_scratch_ = nullptr;
+void*  Tile_cpu_tf00_2D::hydro_op1_auxc_ = nullptr;
 
 /**
  *
  */
 void   Tile_cpu_tf00_2D::acquireScratch(void) {
-    if (auxC_scratch_) {
+    if (hydro_op1_auxc_) {
         throw std::logic_error("[Tile_cpu_tf00_2D::acquireScratch] "
                                "Scratch already allocated");
         
@@ -21,9 +21,9 @@ void   Tile_cpu_tf00_2D::acquireScratch(void) {
 
     const unsigned int   nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
     const std::size_t    nBytes =   nThreads
-                                  * Tile_cpu_tf00_2D::AUXC_SIZE_
+                                  * Tile_cpu_tf00_2D::hydro_op1_auxc_SIZE_
                                   * sizeof(milhoja::Real);
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &auxC_scratch_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &hydro_op1_auxc_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg =   "[Tile_cpu_tf00_2D::acquireScratch] Acquired "
@@ -37,13 +37,13 @@ void   Tile_cpu_tf00_2D::acquireScratch(void) {
  *
  */
 void   Tile_cpu_tf00_2D::releaseScratch(void) {
-    if (!auxC_scratch_) {
+    if (!hydro_op1_auxc_) {
         throw std::logic_error("[Tile_cpu_tf00_2D::releaseScratch] "
                                "auxC scratch not allocated");
     }
 
-    milhoja::RuntimeBackend::instance().releaseCpuMemory(&auxC_scratch_);
-    auxC_scratch_ = nullptr;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&hydro_op1_auxc_);
+    hydro_op1_auxc_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
     std::string    msg = "[Tile_cpu_tf00_2D::releaseScratch] Released auxC scratch";
