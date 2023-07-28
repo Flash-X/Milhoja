@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 """
-Generates the c2f layer for data packets.
+Generates the C to Fortran layer for data packets.
 
-Note: The same JSON file used to generate the data packets must also be used as a parameter
-      for this script. 
+Note: The same JSON file used to generate the data packets must also be used as a parameter for this script. 
+
+TODO: Bounds are not solidified in the JSON yet. So this code does not deal with bounds in any way.
 """
 
 import os
@@ -23,13 +24,11 @@ class C2FInfo:
     shape: list
 
 def generate_hydro_advance_c2f(data):
-    """
-    Generates the code responsible for passing a data packet from the C layer to the Fortran code layer.
+    """Generates the code for passing a data packet from the C layer to the Fortran layer to c2f.F90
 
-    Parameters:
-        json - the json file used to generate the data packet associated with this file.
-    Returns:
-        None
+    :param data: The json file used to generate the data packet associated with this file.
+    :type data: dict
+    :return: None
     """
     with open("c2f.F90", 'w') as fp:
         fp.writelines([
@@ -130,6 +129,12 @@ def generate_hydro_advance_c2f(data):
         fp.write(')\nend subroutine dr_hydro_advance_packet_oacc_c2f')
 
 def main(data: dict):
+    """Driver function for the c2f generator.
+    
+    :param data: The dictionary containing the data packet JSON.
+    :type data: dict
+    :return: None
+    """
     generate_hydro_advance_c2f(data)
 
 if __name__ == "__main__":
