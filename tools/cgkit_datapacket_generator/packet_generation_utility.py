@@ -99,9 +99,21 @@ def check_json_validity(data: dict) -> bool:
     if not task_arguments:
         raise NoTaskArgumentListExcepiton("Missing task-function-argument-list.")
     all_items_list = [ set(data[section]) if section != json_sections.T_MDATA else set(data[section].values()) for section in json_sections.ALL_SECTIONS if section in data ]
-    if set.intersection( *all_items_list ):
-        raise DuplicateItemException("There is a duplicate item key in the JSON. Please ensure all item keys are unique.")
-    all_items_list = set.union(*all_items_list)
-    if all_items_list ^ set(task_arguments):
-        raise TaskArgumentListMismatchException("task-function-argument-list items do not match the items in the JSON.")
+    
+    # all_items_dupe = list(all_items_list)
+    # duplicates = set()
+    # for set1 in all_items_list:
+    #     for set2 in all_items_list:
+    #         if set1 is not set2:
+    #             print(set1, set2)
+    #             duplicates.union( set1.intersection(set2) )
+
+    # print(duplicates)
+
+    dupes = set.intersection(*all_items_list)
+    if dupes:
+        raise DuplicateItemException(f"There is a duplicate item key in the JSON. Duplicates: {dupes}")
+    missing_items = set.union(*all_items_list) ^ set(task_arguments)
+    if missing_items:
+        raise TaskArgumentListMismatchException(f"task-function-argument-list items do not match the items in the JSON. Missing: {missing_items}")
     return True

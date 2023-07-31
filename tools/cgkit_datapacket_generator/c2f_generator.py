@@ -23,16 +23,16 @@ class C2FInfo:
     kind: str
     shape: list
 
-def generate_hydro_advance_c2f(data):
-    """Generates the code for passing a data packet from the C layer to the Fortran layer to c2f.F90
+def generate_advance_c2f(data):
+    """
+    Generates the code for passing a data packet from the C layer to the Fortran layer to c2f.F90
 
-    :param data: The json file used to generate the data packet associated with this file.
-    :type data: dict
+    :param dict data: The json file used to generate the data packet associated with this file.
     :return: None
     """
     with open("c2f.F90", 'w') as fp:
         fp.writelines([
-            '!! This code was generated using C2F_generator.py.\n',
+            '!! This code was generated using c2f_generator.py.\n',
             mutil.F_LICENSE_BLOCK,
             '#include "Milhoja.h"\n',
             '#ifndef MILHOJA_OPENACC_OFFLOADING\n', 
@@ -105,18 +105,18 @@ def generate_hydro_advance_c2f(data):
             ] + ['\n']
         ))
 
-        fp.writelines([
-            (f"""\tF_{item}_h = INT(C_{item}_h{f', kind={data.kind}' if data.kind else ''})\n""") 
-                for item,data in host_pointers.items() if data.ftype
-            ] + ['\n']
+        fp.writelines(
+            [(f"""\tF_{item}_h = INT(C_{item}_h{f', kind={data.kind}' if data.kind else ''})\n""") 
+                for item,data in host_pointers.items() if data.ftype] + 
+            ['\n']
         )
 
         for item in extents_set:
             host_pointers.pop(item)
-        fp.writelines([
-            f"""\tCALL C_F_POINTER(C_{item}_d, F_{item}_d{f', shape=[{ ", ".join(f"{ext}" for ext in data.shape)  }]' if data.shape else ''})\n"""
-                for item,data in gpu_pointers.items() if data.ftype
-            ] + ['\n']
+        fp.writelines(
+            [f"""\tCALL C_F_POINTER(C_{item}_d, F_{item}_d{f', shape=[{ ", ".join(f"{ext}" for ext in data.shape)  }]' if data.shape else ''})\n"""
+                for item,data in gpu_pointers.items() if data.ftype] + 
+            ['\n']
         )
 
         # CALL STATIC FORTRAN LAYER
@@ -131,11 +131,10 @@ def generate_hydro_advance_c2f(data):
 def main(data: dict):
     """Driver function for the c2f generator.
     
-    :param data: The dictionary containing the data packet JSON.
-    :type data: dict
+    :param dict data: The dictionary containing the data packet JSON.
     :return: None
     """
-    generate_hydro_advance_c2f(data)
+    generate_advance_c2f(data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")
@@ -144,5 +143,5 @@ if __name__ == "__main__":
 
     with open(args.JSON, 'r') as fp:
         data = json.load(fp)
-        data['name'] = os.path.basename(args.JSON).replace('.json', '')
+        data[sects.NAME] = os.path.basename(args.JSON).replace('.json', '')
         main(data)

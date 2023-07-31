@@ -1,4 +1,8 @@
-"""A collection of alternate functions to be used when generating cpp packets."""
+"""
+A collection of alternate functions to be used when generating cpp packets.
+
+TODO: Need some way to determine when to use FArray1D/2D/3D over FArray4D.
+"""
 import packet_generation_utility as util
 import json_sections as jsc
 
@@ -54,16 +58,17 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     ])
 
 # can probably shrink this function and insert it into each data section.
-def insert_farray_information(data: dict, connectors: dict) -> None:
+def insert_farray_information(data: dict, connectors: dict, section: str) -> None:
     """
     Inserts farray items into the data packet.
     
     :param dict data: The dict containing information from the data packet JSON.
     :param dict connectors: The dict containing all cgkit connectors.
+    :param str section: The connectors section to extend.
     """
     dicts = [data.get(jsc.T_IN, {}), data.get(jsc.T_IN_OUT, {}), data.get(jsc.T_OUT, {}), data.get(jsc.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
-    connectors['public_members'].extend(
+    connectors[section].extend(
         [ f'FArray4D* _f4_{item}_d;\n' for item in farrays] + 
         [ f'FArray4D* _f4_{item}_p;\n' for item in farrays]
     )

@@ -3,7 +3,7 @@ import cgkit.ctree.srctree as srctree
 import pathlib
 import json_sections as jsections
 
-SOURCETREE_OPTIONS = {
+_SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
     'indentSpace': ' '*4,
     'verbose': False,
@@ -11,7 +11,7 @@ SOURCETREE_OPTIONS = {
     'verbosePost': ' */',
 }
 
-OUTPUT = 'cgkit.cpp2c.cxx'
+_OUTPUT = 'cgkit.cpp2c.cxx'
 
 ####################
 # Recipes
@@ -32,28 +32,14 @@ def constructSourceTree(stree, tpl_1, data: dict):
     # load outer template
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
-    tree_l1  = srctree.load(tpl_1)
-    pathInfo = stree.link(tree_l1, linkPath=srctree.LINK_PATH_FROM_STACK)
-    if pathInfo is not None and pathInfo:
-        stree.pushLink( srctree.search_links(tree_l1) )
-    else:
-        raise RuntimeError('Linking layer 1 unsuccessful!')
-    
-    # Load generated helpers template
-    tree_l2  = srctree.load(helpers)
-    pathInfo = stree.link(tree_l2, linkPath=srctree.LINK_PATH_FROM_STACK)
-    if pathInfo:
-        stree.pushLink( srctree.search_links(tree_l2) )
-    else:
-        raise RuntimeError('Linking layer 2 unsuccessful!')
-    
-    # load the extra queue information
-    tree_l3 = srctree.load(extra_queue)
-    pathInfo = stree.link(tree_l3, linkPath=srctree.LINK_PATH_FROM_STACK)
-    if pathInfo:
-        stree.pushLink( srctree.search_links(tree_l3) )
-    else:
-        raise RuntimeError('Linking layer 3 unsuccessful!')
+
+    for idx,link in enumerate([tpl_1, helpers, extra_queue]):
+        tree_link = srctree.load(link)
+        pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)
+        if pathInfo:
+            stree.pushLink(srctree.search_links(tree_link))
+        else:
+            raise RuntimeError(f'Linking layer {idx} ({link}) unsuccessful!')
 
 ####################
 # Main
@@ -61,11 +47,11 @@ def constructSourceTree(stree, tpl_1, data: dict):
 
 def main(data):
     # assemble from recipe
-    stree = SourceTree(**SOURCETREE_OPTIONS, debug=False)
+    stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
     constructSourceTree(stree, 'cg-tpl.cpp2c.cpp', data)
     # check result
     lines = stree.parse()
-    with open(OUTPUT, 'w') as cpp2c:
+    with open(_OUTPUT, 'w') as cpp2c:
         cpp2c.write(lines)
     print("Assembled to cpp2c layer.")
 

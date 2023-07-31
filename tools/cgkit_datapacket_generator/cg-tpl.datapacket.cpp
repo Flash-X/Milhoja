@@ -18,15 +18,15 @@
 /* _link:extra_streams*/
 #endif
 
-std::unique_ptr<milhoja::DataPacket> _param:i_give_up::clone(void) const {
+std::unique_ptr<milhoja::DataPacket> _param:class_name::clone(void) const {
     return std::unique_ptr<milhoja::DataPacket>{
-        new _param:i_give_up {
+        new _param:class_name {
             /* _link:host_members */
         }
     };
 }
 
-_param:i_give_up::_param:i_give_up(
+_param:class_name::_param:class_name(
     /* _link:constructor_args */
 )
     : 
@@ -35,14 +35,14 @@ _param:i_give_up::_param:i_give_up(
     {
 }
 
-_param:i_give_up::~_param:i_give_up(void) {
+_param:class_name::~_param:class_name(void) {
     /* _link:destructor */
     nullify();
 }
 
 /* _link:stream_functions_cxx */
 
-void _param:i_give_up::pack(void) {
+void _param:class_name::pack(void) {
     using namespace milhoja;
 	std::string errMsg = isNull();
 	if (errMsg != "")
@@ -140,7 +140,7 @@ void _param:i_give_up::pack(void) {
     /* _link:n_extra_streams */
 }
 
-void _param:i_give_up::unpack(void) {
+void _param:class_name::unpack(void) {
     using namespace milhoja;
     if (tiles_.size() <= 0) throw std::logic_error("[_param:class_name unpack] Empty data packet.");
     if (!stream_.isValid()) throw std::logic_error("[_param:class_name unpack] Stream not acquired.");
