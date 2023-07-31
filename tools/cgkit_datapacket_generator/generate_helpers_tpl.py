@@ -14,7 +14,7 @@ def add_size_parameter(name: str, section_dict: dict, connectors: dict):
     :param dict connectors: The dictionary containing all connectors generated for the packet.
     :rtype: None
     """
-    connectors[f'size_{name.replace("-", "")}'] = ' + '.join( f'SIZE_{item.upper()}' for item in section_dict) if section_dict else 0
+    connectors[f'size_{name}'] = ' + '.join( f'SIZE_{item.upper()}' for item in section_dict) if section_dict else 0
 
 def section_creation(name: str, section: dict, connectors: dict, size_connectors):
     """
@@ -28,7 +28,7 @@ def section_creation(name: str, section: dict, connectors: dict, size_connectors
     connectors[f'pointers_{name}'] = []
     connectors[f'memcpy_{name}'] = []
 
-def set_pointer_determination(connectors: dict, section: str, item:str, device_item: str, size_item: str, item_type, item_is_member_variable=True):
+def set_pointer_determination(connectors: dict, section: str, item:str, device_item: str, size_item: str, item_type, item_is_not_member_variable=True):
     """
     Stores the code for determining pointer offsets in the DataPacket into the connectors dictionary to be used with CGKit.
     
@@ -43,8 +43,8 @@ def set_pointer_determination(connectors: dict, section: str, item:str, device_i
     dtype = item_type
     # If the item is not a data packet member variable, we don't need to specify a type name here.
     # Note that pointers to memory in the remote device are always member variables, so it will never need a type name.
-    if item_is_member_variable: dtype = f""
-    else: dtype += "* "
+    if item_is_not_member_variable: dtype += "* "
+    else: dtype = ""
     
     connectors[f'pointers_{section}'].append(
         f"""{dtype}_{item}_p = static_cast<{item_type}*>( static_cast<void*>(ptr_p) );\n""" + 
@@ -98,7 +98,7 @@ def generate_extra_streams_information(connectors: dict, extra_streams: int):
             '}\n'
     ])
 
-    connectors['nextrastreams'].extend([
+    connectors[jsc.EXTRA_STREAMS].extend([
         f'stream{i}_ = RuntimeBackend::instance().requestStream(true);\n' + 
         f'if(!stream{i}_.isValid()) throw std::runtime_error("[_param:class_name::pack] Unable to acquire second stream");\n'
         for i in range(2, extra_streams+2)
@@ -148,7 +148,7 @@ def tmdata_memcpy_f(connectors: dict, host: str, construct: str, data_type: str,
     :param str construct: The generated host variable to copy to the pinned pointer location
     :param str data_type: The data type of *item*.
     """
-    connectors['memcpy_tilemetadata'].extend([
+    connectors['memcpy_tile_metadata'].extend([
         f'{data_type} {host}{construct};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>({pinned}) ) + n * {size};\n',
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({use_ref}{host}), {size});\n\n',
@@ -164,7 +164,7 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
     :param str language: The language to use
     :param int num_arrays: The number of arrays inside tile-in, tile-in-out, tile-out, and tile-scratch.
     """
-    section_creation('tilemetadata', tilemetadata, connectors, size_connectors)
+    section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors['tile_descriptor'] = []
     missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
     use_ref = ""
@@ -193,7 +193,7 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
         connectors['size_determination'].append(
             f'constexpr std::size_t {size_item} = {size_eq};\n'
         )
-        set_pointer_determination(connectors, 'tilemetadata', name, device_item, f'_nTiles_h * {size_item}', item_type)
+        set_pointer_determination(connectors, jsc.T_MDATA, name, device_item, f'_nTiles_h * {size_item}', item_type)
         item_type = util.farray_mapping.get(item_type, item_type)
         connectors['tile_descriptor'].append(
             f'const {item_type} {name} = tileDesc_h->{name}();\n'
@@ -235,7 +235,7 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
     memcpy_func = tmdata_memcpy_f if lang == util.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
     use_ref = '' if lang == util.Language.fortran else '&'
     lbound_mdata = ' + '.join( f'SIZE_{item.upper()}' for item in lbound ) if lbound else '0'
-    size_connectors['size_tilemetadata'] = ' + '.join( [size_connectors['size_tilemetadata'], lbound_mdata])
+    size_connectors[f'size_{jsc.T_MDATA}'] = ' + '.join( [size_connectors[f'size_{jsc.T_MDATA}'], lbound_mdata])
     for key,bound in lbound.items():
         device_item = f'_{key}_d'
         pinned = f'_{key}_p'
@@ -245,7 +245,7 @@ def iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: 
         connectors['public_members'].extend( [f'{dtype}* {device_item};\n'] )
         connectors['set_members'].append( f'{device_item}{{nullptr}}')
         connectors['size_determination'].append( f'constexpr std::size_t {size_item} = sizeof({dtype_size});\n' )
-        connectors['pointers_tilemetadata'].append(
+        connectors[f'pointers_{jsc.T_MDATA}'].append(
             f"""{dtype}* {pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
             f"""{device_item} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
             f"""ptr_p += _nTiles_h * {size_item};\n""" + 
@@ -268,7 +268,7 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dict
     :param dict tilein: The dict containing the 
     """
     del _
-    section_creation('tilein', tilein, connectors, size_connectors)
+    section_creation(jsc.T_IN, tilein, connectors, size_connectors)
     pinnedLocation = set()
     for item,data in tilein.items():
         device_item = f'_{item}_d'
@@ -293,13 +293,13 @@ def iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dict
         connectors['pinned_sizes'].append(
             f'constexpr std::size_t {size_item} = {extents} * ({end} - {start} + 1) * sizeof({raw_type});\n'
         )
-        set_pointer_determination(connectors, 'tilein', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
-        add_memcpy_connector(connectors, 'tilein', extents, item, start, end, size_item, raw_type)
+        set_pointer_determination(connectors, jsc.T_IN, item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
+        add_memcpy_connector(connectors, jsc.T_IN, extents, item, start, end, size_item, raw_type)
         # temporary measure until the bounds information in JSON is solidified.
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', unks, raw_type)
 
-    connectors['memcpy_tileinout'].extend(pinnedLocation)
+    connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
 def add_memcpy_connector(connectors: dict, section: str, extents: str, item: str, start: str, end: str, size_item: str, raw_type: str):
     """
@@ -314,7 +314,7 @@ def add_memcpy_connector(connectors: dict, section: str, extents: str, item: str
     :param str size_item: The string containing the size variable for *item*.
     :param str raw_type: The data type of the item.
     """
-    connectors[f'memcpy_{section.replace("-", "")}'].extend([
+    connectors[f'memcpy_{section}'].extend([
         f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'  # eventually we will pass arguments to data ptr for specific data args.
         f'std::size_t offset_{item} = {extents} * static_cast<std::size_t>({start});\n',
         f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
@@ -338,7 +338,7 @@ def add_unpack_connector(connectors: dict, section: str, extents, start, end, ra
         out_ptr: str - The name of the out data pointer
     """
     connectors['in_pointers'].append(f'{raw_type}* {in_ptr}_data_h = tileDesc_h->dataPtr();\n')
-    connectors[f'unpack_{section.replace("-", "")}'].extend([
+    connectors[f'unpack_{section}'].extend([
         f'std::size_t offset_{in_ptr} = {extents} * static_cast<std::size_t>({start});\n',
         f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
         f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
@@ -356,9 +356,9 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
     :param dict tileinout: The dict containing the data from the tile-in-out section of the datapacket json.
     :param str language: The language to use.
     """
-    section_creation('tileinout', tileinout, connectors, size_connectors)
-    connectors['memcpy_tileinout'] = []
-    connectors['unpack_tileinout'] = []
+    section_creation(jsc.T_IN_OUT, tileinout, connectors, size_connectors)
+    connectors[f'memcpy_{jsc.T_IN_OUT}'] = []
+    connectors[f'unpack_{jsc.T_IN_OUT}'] = []
     pinnedLocation = set()
     for item,data in tileinout.items():
         device_item = f'_{item}_d'
@@ -384,13 +384,13 @@ def iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, 
         connectors['pinned_sizes'].append(
             f'constexpr std::size_t {size_item} = {extents} * ({unks}) * sizeof({raw_type});\n'
         )
-        set_pointer_determination(connectors, 'tileinout', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
-        add_memcpy_connector(connectors, 'tileinout', extents, item, start_in, end_in, size_item, raw_type)
-        add_unpack_connector(connectors, 'tileinout', extents, start_out, end_out, raw_type, item, item)
+        set_pointer_determination(connectors, jsc.T_IN_OUT, item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
+        add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, start_in, end_in, size_item, raw_type)
+        add_unpack_connector(connectors, jsc.T_IN_OUT, extents, start_out, end_out, raw_type, item, item)
         if language == util.Language.cpp:
             # hardcode lo and hi for now.
             cpp_helpers.insert_farray_memcpy(connectors, item, "loGC", "hiGC", unks, raw_type)
-    connectors['memcpy_tileinout'].extend(pinnedLocation)
+    connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
 def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:dict, language: str) -> None:
     """
@@ -401,8 +401,8 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:di
     :param dict tileout: The dict containing information from the tile-out section of the data packet JSON.
     :param str language: The language to use. 
     """
-    section_creation('tileout', tileout, connectors, size_connectors)
-    connectors['unpack_tileout'] = []
+    section_creation(jsc.T_OUT, tileout, connectors, size_connectors)
+    connectors[f'unpack_{jsc.T_OUT}'] = []
     for item,data in tileout.items():
         device_item = f'_{item}_d'
         size_item = f'SIZE_{item.upper()}'
@@ -427,8 +427,8 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:di
         connectors['pinned_sizes'].append(
             f'constexpr std::size_t {size_item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
         )
-        set_pointer_determination(connectors, 'tileout', item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
-        add_unpack_connector(connectors, "tileout", extents, start, end, raw_type, corresponding_in_data, item)
+        set_pointer_determination(connectors, jsc.T_OUT, item, device_item, f'_nTiles_h * {size_item}', raw_type, False)
+        add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, raw_type, corresponding_in_data, item)
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.bound_map[item][0], cpp_helpers.bound_map[item][1], cpp_helpers.bound_map[item][2], raw_type)
 
@@ -440,7 +440,7 @@ def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: di
     :param dict size_connectors: The dict containing all size connectors for variable sizes.
     :param dict tilescratch: The dict containing information from the tilescratch section of the JSON.
     """
-    section_creation('tilescratch', tilescratch, connectors, size_connectors)
+    section_creation(jsc.T_SCRATCH, tilescratch, connectors, size_connectors)
     for item,data in tilescratch.items():
         lbound = f"lo{item[0].capitalize()}{item[1:]}"
         # hbound = ...
@@ -448,12 +448,13 @@ def iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: di
         size_item = f'SIZE_{item.upper()}'
         extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
         item_type = data[jsc.DTYPE]
+
         connectors['public_members'].append( f'{item_type}* {device_item};\n' )
         connectors['set_members'].append( f'{device_item}{{nullptr}}' )
         connectors['size_determination'].append(
             f'constexpr std::size_t {size_item} = {extents} * sizeof({item_type});\n'
         )
-        connectors['pointers_tilescratch'].append(
+        connectors[f'pointers_{jsc.T_SCRATCH}'].append(
             f"""{device_item} = static_cast<{item_type}*>( static_cast<void*>(ptr_d) );\n""" + 
             f"""ptr_d+= _nTiles_h * {size_item};\n\n"""
         )
@@ -510,10 +511,10 @@ def set_default_params(data: dict, params: dict):
     :param dict params: The dict containing all parameters for the outer template.
     """
     params['align_size'] = data.get(jsc.BYTE_ALIGN, 16)
-    params['nextrastreams'] = data.get(jsc.EXTRA_STREAMS, 0)
-    params['class_name'] = data["name"]
-    params['i_give_up'] = data["name"]
-    params['ndef_name'] = f'{data["name"].upper()}_UNIQUE_IFNDEF_H_'
+    params['n_extra_streams'] = data.get(jsc.EXTRA_STREAMS, 0)
+    params['class_name'] = data[jsc.NAME]
+    params['i_give_up'] = data[jsc.NAME]
+    params['ndef_name'] = f'{data[jsc.NAME].upper()}_UNIQUE_IFNDEF_H_'
     
 def generate_outer(name: str, params: dict):
     """
@@ -551,11 +552,11 @@ def generate_helper_template(data: dict) -> None:
     
     :param dict data: The dictionary containing the DataPacket JSON data.
     """
-    with open(data["helpers"], 'w') as template:
+    with open(data[jsc.HELPERS], 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list)
         params = defaultdict(str)
-        lang = data['language']
+        lang = data[jsc.LANG]
 
         # set defaults for the connectors. 
         connectors['constructor_args'] = []
@@ -564,7 +565,7 @@ def generate_helper_template(data: dict) -> None:
         set_default_params(data, params)
 
         sort_func = lambda x: sizes.get(x[1], 0) if sizes else 1
-        sizes = data["sizes"]
+        sizes = data[jsc.SIZES]
         constructor = data.get(jsc.GENERAL, {})
         if 'nTiles' in constructor:
             warnings.warn("Found nTiles in data packet. Mistake?")
@@ -592,7 +593,7 @@ def generate_helper_template(data: dict) -> None:
         if lang == util.Language.cpp: 
             cpp_helpers.insert_farray_information(data, connectors)
 
-        generate_outer(data["outer"], params)
+        generate_outer(data[jsc.OUTER], params)
         write_size_connectors(size_connectors, template)
         generate_extra_streams_information(connectors, data.get(jsc.EXTRA_STREAMS, 0))
         write_connectors(template, connectors)

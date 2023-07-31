@@ -14,7 +14,7 @@
 /* _link:public_members */
 /* _link:includes */
 /* _link:stream_functions_h */
-/* _link:memcpy_tilescratch */
+/* _link:memcpy_tile_scratch */
 /* _link:extra_streams*/
 #endif
 
@@ -62,31 +62,31 @@ void _param:i_give_up::pack(void) {
         throw std::logic_error("[_param:class_name pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * ( 
-        /* _link:size_tilemetadata */
+        /* _link:size_tile_metadata */
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEMETADATA padding failure");
       
     std::size_t SIZE_TILEIN = pad( _nTiles_h * (
-        /* _link:size_tilein */
+        /* _link:size_tile_in */
     ));
     if (SIZE_TILEIN % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEIN padding failure");
 
     std::size_t SIZE_TILEINOUT = pad( _nTiles_h * (
-        /* _link:size_tileinout */
+        /* _link:size_tile_in_out */
     ));
     if (SIZE_TILEINOUT % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEINOUT padding failure");
 
     std::size_t SIZE_TILEOUT = pad( _nTiles_h * (
-        /* _link:size_tileout */
+        /* _link:size_tile_out */
     ));
     if (SIZE_TILEOUT % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
-        /* _link:size_tilescratch */
+        /* _link:size_tile_scratch */
     ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
         throw std::logic_error("[_param:class_name pack] SIZE_TILESCRATCH padding failure");
@@ -100,7 +100,7 @@ void _param:i_give_up::pack(void) {
     static_assert(sizeof(char) == 1);
     char* ptr_d = static_cast<char*>(packet_d_);
     
-    /* _link:pointers_tilescratch */
+    /* _link:pointers_tile_scratch */
     copyInStart_p_ = static_cast<char*>(packet_p_);
     copyInStart_d_ = static_cast<char*>(packet_d_) + SIZE_TILESCRATCH;
     char* ptr_p = copyInStart_p_;
@@ -109,18 +109,18 @@ void _param:i_give_up::pack(void) {
     /* _link:pointers_constructor */
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
-    /* _link:pointers_tilemetadata */
+    /* _link:pointers_tile_metadata */
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
-    /* _link:pointers_tilein */
+    /* _link:pointers_tile_in */
     copyInOutStart_p_ = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA + SIZE_TILEIN;
     copyInOutStart_d_ = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA + SIZE_TILEIN;
     ptr_p = copyInOutStart_p_;
     ptr_d = copyInOutStart_d_;
-    /* _link:pointers_tileinout */
+    /* _link:pointers_tile_in_out */
     char* copyOutStart_p_ = copyInOutStart_p_ + SIZE_TILEINOUT;
     char* copyOutStart_d_ = copyInOutStart_d_ + SIZE_TILEINOUT;
-    /* _link:pointers_tileout */
+    /* _link:pointers_tile_out */
     //memcopy phase
     /* _link:memcpy_constructor */
     char* char_ptr;
@@ -128,23 +128,22 @@ void _param:i_give_up::pack(void) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[_param:class_name pack] Bad tiledesc.");
         /* _link:tile_descriptor */
-        /* _link:memcpy_tilemetadata */
-        /* _link:memcpy_tilein */
-        /* _link:memcpy_tileinout */
-        /* _link:memcpy_tileout */
+        /* _link:memcpy_tile_metadata */
+        /* _link:memcpy_tile_in */
+        /* _link:memcpy_tile_in_out */
+        /* _link:memcpy_tile_out */
     }
 
     stream_ = RuntimeBackend::instance().requestStream(true);
     if (!stream_.isValid())
         throw std::runtime_error("[_param:class_name pack] Unable to acquire stream 1.");
-    /* _link:nextrastreams */
+    /* _link:n_extra_streams */
 }
 
 void _param:i_give_up::unpack(void) {
     using namespace milhoja;
     if (tiles_.size() <= 0) throw std::logic_error("[_param:class_name unpack] Empty data packet.");
     if (!stream_.isValid()) throw std::logic_error("[_param:class_name unpack] Stream not acquired.");
-    // if (pinnedPtrs_ == nullptr) throw std::logic_error("[unpack] No pinned pointers set.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
     /* _link:pinned_sizes */
@@ -152,7 +151,7 @@ void _param:i_give_up::unpack(void) {
         Tile* tileDesc_h = tiles_[n].get();
         /* _link:in_pointers */
         /* _link:out_pointers */
-        /* _link:unpack_tileinout */
-        /* _link:unpack_tileout */
+        /* _link:unpack_tile_in_out */
+        /* _link:unpack_tile_out */
     }
 }

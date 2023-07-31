@@ -5,6 +5,7 @@ import argparse
 import os
 import json
 import packet_generation_utility as consts
+import json_sections as sections
 import warnings
 import c2f_generator
 import cpp2c_generator
@@ -30,18 +31,18 @@ def load_json(file, args) -> dict:
     :rtype: dict[Unknown, Unknown]
     """
     data = json.load(file)
-    data["file_name"] = file.name.replace(".json", "")
-    data["name"] = os.path.basename(file.name).replace(".json", "")
-    data["language"] = args.language
-    data["outer"] = f'cg-tpl.{data["name"]}_outer.cpp'
-    data["helpers"] = f'cg-tpl.{data["name"]}_helpers.cpp'
-    data["sizes"] = None
+    data[sections.FILE_NAME] = file.name.replace(".json", "")
+    data[sections.NAME] = os.path.basename(file.name).replace(".json", "")
+    data[sections.LANG] = args.language
+    data[sections.OUTER] = f'cg-tpl.{data[sections.NAME]}_outer.cpp'
+    data[sections.HELPERS] = f'cg-tpl.{data[sections.NAME]}_helpers.cpp'
+    data[sections.SIZES] = None
     
     #if sizes file is provided it is inserted into the dictionary.
     if args.sizes:
         with open(args.sizes, 'r') as sizes:
             try:
-                data["sizes"] = json.load(sizes)
+                data[sections.SIZES] = json.load(sizes)
             except Exception:
                 warnings.warn("Sizes file could not be loaded. Continuing...")
     return data

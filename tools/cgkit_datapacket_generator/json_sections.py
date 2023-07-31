@@ -3,29 +3,37 @@ A file that constains the name constants of all sections in the JSON.
 If something is being loaded from a section in the JSON, this file should be used to keep consistency.
 """
 
-# All sections.
+# Packet Metadata keywords
 #: Determines the byte-align to use for the packet.
-BYTE_ALIGN = 'byte-align'
+BYTE_ALIGN = 'byte_align'
 #: Task function argument list argument order.
-ORDER = "task-function-argument-list"
+ORDER = "task_function_argument_list"
 #: The number of extra streams to use. 
-EXTRA_STREAMS = "n-extra-streams"
+EXTRA_STREAMS = "n_extra_streams"
+FILE_NAME = "file_name"
+NAME = "name"
+LANG = "language"
+OUTER = "outer"
+HELPERS = "helpers"
+SIZES = "sizes"
+
+# All sections.
 GENERAL = "constructor"
-T_SCRATCH = "tile-scratch"
-T_MDATA = "tile-metadata"
-T_IN = "tile-in"
-T_IN_OUT = "tile-in-out"
-T_OUT = "tile-out"
+T_SCRATCH = "tile_scratch"
+T_MDATA = "tile_metadata"
+T_IN = "tile_in"
+T_IN_OUT = "tile_in_out"
+T_OUT = "tile_out"
 LBOUND = 'lbound'
 
 # Possible keys
 EXTENTS = 'extents'
 START = 'start'
 END = 'end'
-START_IN = 'start-in'
-START_OUT = 'start-out'
-END_IN = 'end-in'
-END_OUT = 'end-out'
+START_IN = 'start_in'
+START_OUT = 'start_out'
+END_IN = 'end_in'
+END_OUT = 'end_out'
 DTYPE = 'type'
 
 ALL_SECTIONS = { GENERAL, LBOUND, T_MDATA, T_IN, T_IN_OUT, T_OUT, T_SCRATCH }

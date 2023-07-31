@@ -1,6 +1,6 @@
 """A collection of alternate functions to be used when generating cpp packets."""
 import packet_generation_utility as util
-import json_sections
+import json_sections as jsc
 
 # This is a temporary measure until the bounds section in the JSON is solidified.
 bound_map = {
@@ -24,9 +24,9 @@ def get_metadata_dependencies(metadata: dict, language: str) -> set:
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:
     """Inserts the total size needed to store all farray pointers."""
-    line = connectors['size_tilemetadata']
+    line = connectors[f'size_{jsc.T_MDATA}']
     insert_index = line.find('(')
-    connectors['size_tilemetadata'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
+    connectors[f'size_{jsc.T_MDATA}'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
 
 def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str, data_type: str):
     """
@@ -39,14 +39,14 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     :param str unks: The number of unknown variables in *item*
     :param str data_type: The data type of *item*
     """
-    connectors['pointers_tilemetadata'].append(
+    connectors[f'pointers_{jsc.T_MDATA}'].append(
         f"""_f4_{item}_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );\n""" + \
         f"""_f4_{item}_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );\n""" + \
         f"""ptr_p += _nTiles_h * sizeof(FArray4D);\n""" + \
         f"""ptr_d += _nTiles_h * sizeof(FArray4D);\n\n"""
     )
     # does not matter memcpy to insert into
-    connectors['memcpy_tilein'].extend([
+    connectors[f'memcpy_{jsc.T_IN}'].extend([
         f"""FArray4D {item}_device{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
         f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
         f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * sizeof(FArray4D);\n'
@@ -61,18 +61,18 @@ def insert_farray_information(data: dict, connectors: dict) -> None:
     :param dict data: The dict containing information from the data packet JSON.
     :param dict connectors: The dict containing all cgkit connectors.
     """
-    dicts = [data.get(json_sections.T_IN, {}), data.get(json_sections.T_IN_OUT, {}), data.get(json_sections.T_OUT, {}), data.get(json_sections.T_SCRATCH, {})]
+    dicts = [data.get(jsc.T_IN, {}), data.get(jsc.T_IN_OUT, {}), data.get(jsc.T_OUT, {}), data.get(jsc.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
-    connectors['public_members'].extend([
-        f'FArray4D* _f4_{item}_d;\n' for item in farrays
-    ] + [
-        f'FArray4D* _f4_{item}_p;\n' for item in farrays
-    ])
+    connectors['public_members'].extend(
+        [ f'FArray4D* _f4_{item}_d;\n' for item in farrays] + 
+        [ f'FArray4D* _f4_{item}_p;\n' for item in farrays]
+    )
 
 # NOTE: This function call gets swapped with another so many params may be unused.
 def tmdata_memcpy_cpp(connectors: dict, _, __, ___, pinned: str, ____, size: str, item: str):
     """
-    The cpp version for the metadata memcpy section. 
+    The cpp version for the metadata memcpy section. This function contains many unused variables
+    because it shares a call with the fortran version of this function.
 
     :param dict connectors: The dictionary containing all connectors for CGKit.
     :param str pinned: The string of the pinned item for *item*
@@ -81,7 +81,7 @@ def tmdata_memcpy_cpp(connectors: dict, _, __, ___, pinned: str, ____, size: str
     """
     del _, __, ___, ____
     """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
-    connectors['memcpy_tilemetadata'].extend([
+    connectors[f'memcpy_{jsc.T_MDATA}'].extend([
         f"""char_ptr = static_cast<char*>( static_cast<void*>( {pinned} ) ) + n * {size};\n""",
         f"""std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{item}), {size});\n\n"""
     ])
