@@ -25,8 +25,7 @@ def load_json(file, args) -> dict:
     """
     Loads the json file into a dict and adds any necessary information to it.
 
-    :param file: The file path of the JSON.
-    :type file: TextIO
+    :param TextIO file: The file path of the JSON.
     :return: The loaded json dictionary.
     :rtype: dict[Unknown, Unknown]
     """

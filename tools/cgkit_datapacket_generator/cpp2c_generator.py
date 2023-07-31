@@ -14,10 +14,7 @@ def _generate_cpp2c_outer(data: dict):
     """
     Generates the outer template for the cpp2c layer with the name `cg-tpl.cpp2c_outer.cpp`.
     
-    Parameters:
-        data: dict - The dictionary containing the JSON data.
-    Returns: 
-        None
+    :param dict data: The dictionary containing the data packet JSON data.
     """
     with open('cg-tpl.cpp2c_outer.cpp', 'w') as outer:
         outer.writelines([
@@ -31,11 +28,8 @@ def _insert_connector_arguments(data: dict, connectors: dict):
     """
     Inserts various connector arguments into the connectors dictionary.
     
-    Parameters:
-        data: dict - The dictionary containing the JSON data.
-        connectors: dict - The connectors dictionary to write to.
-    Returns:
-        None
+    :param dict data: The dictionary containing the data packet JSON data.
+    :param dict connectors: The connectors dictionary to write to containing all cgkit connectors.
     """
     connectors[_HOST_MEMBERS_KEY] = ['const int queue1_h = packet_h->asynchronousQueue();\n', # one queue always exists in the data packet
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n'] # need to insert nTiles host manually
@@ -56,10 +50,7 @@ def _generate_cpp2c_helper(data: dict):
     """
     Generates the helper template for the cpp2c layer.
     
-    Parameters:
-        data: dict - The dictionary containing the JSON data.
-    Returns:
-        None
+    :param dict data: The dict containing the data packet JSON data.
     """
     connectors = defaultdict(list)
     _insert_connector_arguments(data, connectors)
@@ -86,6 +77,11 @@ def _generate_cpp2c_helper(data: dict):
         )
         
 def main(data: dict):
+    """
+    Driver for cpp2c generator.
+    
+    :param dict data: The dict containing the data packet JSON.
+    """
     _generate_cpp2c_outer(data)
     _generate_cpp2c_helper(data)
     cpp2c_cgkit.main(data)

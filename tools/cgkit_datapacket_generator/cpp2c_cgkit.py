@@ -18,7 +18,13 @@ OUTPUT = 'cgkit.cpp2c.cxx'
 ####################
 
 def constructSourceTree(stree, tpl_1, data: dict):
-    """Constructs the source tree for the cpp to c layer."""
+    """
+    Constructs the source tree for the cpp to c layer.
+    
+    :param SourceTree stree: The source tree
+    :param str tpl_1: The file path for the initial template.
+    :param dict data: The data containing the data packet JSON information.
+    """
     init = 'cg-tpl.cpp2c_outer.cpp'
     helpers = 'cg-tpl.cpp2c_helper.cpp'
     extra_queue = 'cg-tpl.cpp2c_no_extra_queue.cpp' if data[jsections.EXTRA_STREAMS] == 0 else 'cg-tpl.cpp2c_extra_queue.cpp'

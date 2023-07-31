@@ -18,7 +18,14 @@ HELPERS = "cg-tpl.datapacket_helpers.cpp"
 ####################
 
 def constructSourceTree(stree, tpl_1, data: dict):
-    """Constructs the source tree for the data packet."""
+    """
+    Constructs the source tree for the data packet.
+    
+    :param SourceTree stree: The empty source tree object to use.
+    :param str tpl_1: The source template to use.
+    :param dict data: The dictionary containing DataPacket JSON data.
+    :rtype: None
+    """
     init = OUTER if not data else data["outer"]
     helpers = HELPERS if not data else data["helpers"]
     stree.initTree(init)
@@ -41,6 +48,11 @@ def constructSourceTree(stree, tpl_1, data: dict):
 ####################
 
 def main(data):
+    """
+    Driver function for constructing the data packet source tree.
+    
+    :param dict data: The dictionary containing the DataPacket JSON.
+    """
     file_names_all = [('cg-tpl.datapacket_header.cpp', 'cgkit.datapacket.h'), 
                         ('cg-tpl.datapacket.cpp', 'cgkit.datapacket.cpp')]
     for src,dest in file_names_all:

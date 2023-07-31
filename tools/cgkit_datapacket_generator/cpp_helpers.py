@@ -12,7 +12,12 @@ bound_map = {
 
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str) -> set:
-    """Insert metadata dependencies into the memcpy section for a cpp packet."""
+    """
+    Insert metadata dependencies into the memcpy section for a cpp packet.
+    
+    :param dict metadata: The dict containing tile-metadata information.
+    :param str language: The language to use.
+    """
     if language == util.Language.fortran: return set()
     mdata_set = set(metadata.values())
     return mdata_set.symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
@@ -27,13 +32,12 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     """
     Insers the farray memcpy and data pointer sections into the data packet connectors.
 
-    Parameters:
-        connectors: dict - Dictionary that stores connectors.
-        item: str - The name of the item to be stored
-        lo: str - The low bound of the array
-        hi: str - the high bound of the array
-        unks: str - the number of unknowns
-        data_type: str - The data type of the item.
+    :param dict connectors: The dict that stores all cgkit connectors.
+    :param str item: The item to be stored.
+    :param str lo: The low bound of the array
+    :param str hi: The high bound of the array
+    :param str unks: The number of unknown variables in *item*
+    :param str data_type: The data type of *item*
     """
     connectors['pointers_tilemetadata'].append(
         f"""_f4_{item}_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );\n""" + \
@@ -51,7 +55,12 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
 
 # can probably shrink this function and insert it into each data section.
 def insert_farray_information(data: dict, connectors: dict) -> None:
-    """Inserts farray items into the data packet."""
+    """
+    Inserts farray items into the data packet.
+    
+    :param dict data: The dict containing information from the data packet JSON.
+    :param dict connectors: The dict containing all cgkit connectors.
+    """
     dicts = [data.get(json_sections.T_IN, {}), data.get(json_sections.T_IN_OUT, {}), data.get(json_sections.T_OUT, {}), data.get(json_sections.T_SCRATCH, {})]
     farrays = {item: sect[item] for sect in dicts for item in sect}
     connectors['public_members'].extend([
@@ -61,7 +70,16 @@ def insert_farray_information(data: dict, connectors: dict) -> None:
     ])
 
 # NOTE: This function call gets swapped with another so many params may be unused.
-def tmdata_memcpy_cpp(connectors: dict, host, construct, data_type, pinned, use_ref, size, item):
+def tmdata_memcpy_cpp(connectors: dict, _, __, ___, pinned: str, ____, size: str, item: str):
+    """
+    The cpp version for the metadata memcpy section. 
+
+    :param dict connectors: The dictionary containing all connectors for CGKit.
+    :param str pinned: The string of the pinned item for *item*
+    :param str size: The string of the size variable for *item*
+    :param str item: The item to copy to pinned memory
+    """
+    del _, __, ___, ____
     """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
     connectors['memcpy_tilemetadata'].extend([
         f"""char_ptr = static_cast<char*>( static_cast<void*>( {pinned} ) ) + n * {size};\n""",

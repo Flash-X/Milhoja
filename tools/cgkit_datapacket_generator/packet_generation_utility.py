@@ -61,9 +61,15 @@ class DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
 
-# TODO: This function will likely be changed once bounds are fully implemented in the data packet json.
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
-    """Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments."""
+    """
+    Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments.
+    
+    :param str name: The lbound string.
+    :param list lbound: The lbound string split up as a list.
+    :return: A tuple containing the formatted lbound string, as well as a list of formatted lbound items.
+    :rtype: Tuple[str, list]
+    """
     lbound_list = []
     formatted = ""
     for item in lbound:
@@ -85,10 +91,9 @@ def check_json_validity(data: dict) -> bool:
     Checks if the keys in the task function argument list are all present in the JSON
     input, as well as checks if any duplicates exist between JSON keys. 
 
-    Parameters:
-        data The JSON dictionary
-    Returns:
-        - True if both all items in the JSON are present in the list and there are no duplicates.
+    :param dict data: The JSON to check the validity of.
+    :return: True if the JSON is valid, False otherwise.
+    :rtype: bool
     """
     task_arguments = data.get(json_sections.ORDER, {})
     if not task_arguments:

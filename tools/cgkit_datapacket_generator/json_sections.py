@@ -1,8 +1,14 @@
-"""A file that constains the name constants of all sections in the JSON. If something is being loaded from a section in the JSON, this file should be used to keep consistency."""
+"""
+A file that constains the name constants of all sections in the JSON. 
+If something is being loaded from a section in the JSON, this file should be used to keep consistency.
+"""
 
 # All sections.
+#: Determines the byte-align to use for the packet.
 BYTE_ALIGN = 'byte-align'
+#: Task function argument list argument order.
 ORDER = "task-function-argument-list"
+#: The number of extra streams to use. 
 EXTRA_STREAMS = "n-extra-streams"
 GENERAL = "constructor"
 T_SCRATCH = "tile-scratch"
