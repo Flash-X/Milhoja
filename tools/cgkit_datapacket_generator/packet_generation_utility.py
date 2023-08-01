@@ -1,36 +1,18 @@
-from enum import Enum
 import json_sections
 from typing import Tuple
+from enum import Enum
 
-GENERATED_MESSAGE = "This code was generated with the data packet generator."
-
-F_LICENSE_BLOCK = """!> @copyright Copyright 2022 UChicago Argonne, LLC and contributors
-!!
-!! @licenseblock
-!! Licensed under the Apache License, Version 2.0 (the "License");
-!! you may not use this file except in compliance with the License.
-!!
-!! Unless required by applicable law or agreed to in writing, software
-!! distributed under the License is distributed on an "AS IS" BASIS,
-!! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-!! See the License for the specific language governing permissions and
-!! limitations under the License.
-!! @endlicenseblock
-!!
-!! @file\n
-"""
-
-farray_mapping = {
+FARRAY_MAPPING = {
     "int": "IntVect",
     "real": "RealVect"
 }
 
-cpp_equiv = {
+CPP_EQUIVALENT = {
     "real": "RealVect",
     "int": "IntVect"
 }
 
-tile_variable_mapping = {
+TILE_VARIABLE_MAPPING = {
     'levels': 'unsigned int',
     'gridIndex': 'int',
     'tileIndex': 'int',
@@ -49,15 +31,15 @@ class Language(Enum):
     def __str__(self):
         return self.value
     
-class NoTaskArgumentListExcepiton(BaseException):
+class _NoTaskArgumentListExcepiton(BaseException):
     """Raised when the provided JSON file does not have a task function argument list."""
     pass
 
-class TaskArgumentListMismatchException(BaseException):
+class _TaskArgumentListMismatchException(BaseException):
     """Raised when the items in the task function argument list do not match the items in the JSON file."""
     pass
 
-class DuplicateItemException(BaseException):
+class _DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
 
@@ -95,9 +77,9 @@ def check_json_validity(data: dict) -> bool:
     :return: True if the JSON is valid, False otherwise.
     :rtype: bool
     """
-    task_arguments = data.get(json_sections.ORDER, {})
+    task_arguments = data.get(json_sections.ORDER, [])
     if not task_arguments:
-        raise NoTaskArgumentListExcepiton("Missing task-function-argument-list.")
+        raise _NoTaskArgumentListExcepiton("Missing task-function-argument-list.")
     all_items_list = [ set(data[section]) if section != json_sections.T_MDATA else set(data[section].values()) for section in json_sections.ALL_SECTIONS if section in data ]
     
     # This checks if there is a duplicate between any 2 sets, out of n total sets. 
@@ -111,8 +93,8 @@ def check_json_validity(data: dict) -> bool:
         all_items_dupe.remove(set1)
 
     if duplicates:
-        raise DuplicateItemException(f"There is a duplicate item key in the JSON. Duplicates: {duplicates}")
+        raise _DuplicateItemException(f"There is a duplicate item key in the JSON. Duplicates: {duplicates}")
     missing_items = set.union(*all_items_list) ^ set(task_arguments)
     if missing_items:
-        raise TaskArgumentListMismatchException(f"task-function-argument-list items do not match the items in the JSON. Missing: {missing_items}")
+        raise _TaskArgumentListMismatchException(f"task-function-argument-list items do not match the items in the JSON. Missing: {missing_items}")
     return True

@@ -10,19 +10,19 @@ import warnings
 import c2f_generator
 import cpp2c_generator
 
-class NoLanguageException(BaseException):
+class _NoLanguageException(BaseException):
     """Raised when no language is provided when generating a data packet."""
     pass
 
-class NotAJSONException(BaseException):
+class _NotAJSONException(BaseException):
     """Raised when a value that is passed in to generate the data packet is not a JSON."""
     pass
 
-class EmptyFileException(BaseException):
+class _EmptyFileException(BaseException):
     """Raised when the file passed in to generate the JSON is empty."""
     pass
 
-def load_json(file, args) -> dict:
+def _load_json(file, args) -> dict:
     """
     Loads the json file into a dict and adds any necessary information to it.
 
@@ -59,14 +59,14 @@ def main():
     args = parser.parse_args()
 
     if args.language is None:
-        raise NoLanguageException("You must provide a language!")
+        raise _NoLanguageException("You must provide a language!")
     if not args.JSON.endswith('.json'):
-        raise NotAJSONException("File does not have a .json extension.")
+        raise _NotAJSONException("File does not have a .json extension.")
     if os.path.getsize(args.JSON) < 5:
-        raise EmptyFileException("File is empty or too small.")
+        raise _EmptyFileException("File is empty or too small.")
 
     with open(args.JSON, "r") as file:
-        data = load_json(file, args) # load data.
+        data = _load_json(file, args) # load data.
         consts.check_json_validity(data) # check if the task args list matches the items in the JSON
         generate_helpers_tpl.generate_helper_template(data) # generate helper templates
         ctree.main(data) # assemble data packet

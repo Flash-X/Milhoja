@@ -17,7 +17,7 @@ _OUTPUT = 'cgkit.cpp2c.cxx'
 # Recipes
 ####################
 
-def constructSourceTree(stree, tpl_1, data: dict):
+def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
     """
     Constructs the source tree for the cpp to c layer.
     

@@ -15,6 +15,22 @@ import json_sections as sects
 import packet_generation_utility as mutil
 from dataclasses import dataclass
 
+_F_LICENSE_BLOCK = """!> @copyright Copyright 2022 UChicago Argonne, LLC and contributors
+!!
+!! @licenseblock
+!! Licensed under the Apache License, Version 2.0 (the "License");
+!! you may not use this file except in compliance with the License.
+!!
+!! Unless required by applicable law or agreed to in writing, software
+!! distributed under the License is distributed on an "AS IS" BASIS,
+!! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!! See the License for the specific language governing permissions and
+!! limitations under the License.
+!! @endlicenseblock
+!!
+!! @file\n
+"""
+
 @dataclass
 class C2FInfo:
     """Scruct containing various attributes of the pointers to be generated for the c2f layer."""
@@ -23,7 +39,7 @@ class C2FInfo:
     kind: str
     shape: list
 
-def generate_advance_c2f(data):
+def _generate_advance_c2f(data):
     """
     Generates the code for passing a data packet from the C layer to the Fortran layer to c2f.F90
 
@@ -33,7 +49,7 @@ def generate_advance_c2f(data):
     with open("c2f.F90", 'w') as fp:
         fp.writelines([
             '!! This code was generated using c2f_generator.py.\n',
-            mutil.F_LICENSE_BLOCK,
+            _F_LICENSE_BLOCK,
             '#include "Milhoja.h"\n',
             '#ifndef MILHOJA_OPENACC_OFFLOADING\n', 
             '#error "This file should only be compiled if using OpenACC offloading"\n',
@@ -46,18 +62,16 @@ def generate_advance_c2f(data):
             **{ f'queue{i}': C2FInfo('integer', 'integer(MILHOJA_INT)', 'acc_handle_kind', []) for i in range(1, data.get(sects.EXTRA_STREAMS, 0)+2) }
         }
 
-        arg_order = data[sects.ORDER]
-        # nTiles will always be a part of the argument list at the front.
-        arg_order.insert(0, 'nTiles')
+        arg_order = ['nTiles'] + data[sects.ORDER]
         gpu_pointers = {'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])}
 
-        for key,itype in data.get(sects.GENERAL, {}).items():
-            ftype = itype.lower()
+        for key,dtype in data.get(sects.GENERAL, {}).items():
+            ftype = dtype.lower()
             if 'int' in ftype: ftype = 'integer'
             gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
 
         for key,name in data.get(sects.T_MDATA, {}).items():
-            ftype = mutil.tile_variable_mapping[name].lower()
+            ftype = mutil.TILE_VARIABLE_MAPPING[name].lower()
             if 'int' in ftype: ftype = 'integer'
             gpu_pointers[name] = C2FInfo(ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h'])
 
@@ -99,11 +113,13 @@ def generate_advance_c2f(data):
         fp.writelines( [ (f"""\t{data.ftype}{"" if not data.kind else f"(kind={ data.kind })" } :: F_{item}_h\n""" ) \
                         for item,data in host_pointers.items() if data.ftype] + ['\n'] )
 
-        fp.writelines(([
+        fp.writelines(
+            [
                 f"""\t{data.ftype}, pointer :: F_{item}_d{'' if not data.shape else '(' + ','.join(':' for _ in range(0, len(data.shape))) + ')'}\n"""
                 for item,data in gpu_pointers.items()
-            ] + ['\n']
-        ))
+            ] + 
+            ['\n']
+        )
 
         fp.writelines(
             [(f"""\tF_{item}_h = INT(C_{item}_h{f', kind={data.kind}' if data.kind else ''})\n""") 
@@ -134,7 +150,7 @@ def main(data: dict):
     :param dict data: The dictionary containing the data packet JSON.
     :return: None
     """
-    generate_advance_c2f(data)
+    _generate_advance_c2f(data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")

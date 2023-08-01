@@ -7,7 +7,7 @@ import packet_generation_utility as util
 import json_sections as jsc
 
 # This is a temporary measure until the bounds section in the JSON is solidified.
-bound_map = {
+BOUND_MAP = {
     'auxC': ['loGC', 'hiGC', '1'],
     'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
     'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }', '5'],

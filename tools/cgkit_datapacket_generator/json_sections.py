@@ -24,7 +24,6 @@ T_MDATA = "tile_metadata"
 T_IN = "tile_in"
 T_IN_OUT = "tile_in_out"
 T_OUT = "tile_out"
-LBOUND = 'lbound'
 
 # Possible keys
 EXTENTS = 'extents'
@@ -35,5 +34,10 @@ START_OUT = 'start_out'
 END_IN = 'end_in'
 END_OUT = 'end_out'
 DTYPE = 'type'
+LBOUND = 'lbound'
+LB_IN = 'lbound_in'
+LB_OUT = 'lbound_out'
+EXT_IN = 'extents_in'
+EXT_OUT = 'extents_out'
 
 ALL_SECTIONS = { GENERAL, LBOUND, T_MDATA, T_IN, T_IN_OUT, T_OUT, T_SCRATCH }

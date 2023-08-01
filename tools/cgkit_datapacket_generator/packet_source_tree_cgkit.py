@@ -1,8 +1,9 @@
 from cgkit.ctree.srctree import SourceTree
 import cgkit.ctree.srctree as srctree
 import pathlib
+import json_sections as jsc
 
-SOURCETREE_OPTIONS = {
+_SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
     'indentSpace': ' '*4,
     'verbose': False,
@@ -10,14 +11,14 @@ SOURCETREE_OPTIONS = {
     'verbosePost': ' */',
 }
 
-OUTER = 'cg-tpl.datapacket_outer.cpp'
-HELPERS = "cg-tpl.datapacket_helpers.cpp"
+_OUTER = 'cg-tpl.datapacket_outer.cpp'
+_HELPERS = "cg-tpl.datapacket_helpers.cpp"
 
 ####################
 # Recipes
 ####################
 
-def constructSourceTree(stree, tpl_1, data: dict):
+def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
     """
     Constructs the source tree for the data packet.
     
@@ -26,16 +27,18 @@ def constructSourceTree(stree, tpl_1, data: dict):
     :param dict data: The dictionary containing DataPacket JSON data.
     :rtype: None
     """
-    init = OUTER if not data else data["outer"]
-    helpers = HELPERS if not data else data["helpers"]
+    init = _OUTER if not data else data[jsc.OUTER]
+    helpers = _HELPERS if not data else data[jsc.HELPERS]
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
+
     tree_l1  = srctree.load(tpl_1)
     pathInfo = stree.link(tree_l1, linkPath=srctree.LINK_PATH_FROM_STACK)
     if pathInfo is not None and pathInfo:
         stree.pushLink( srctree.search_links(tree_l1) )
     else:
         raise RuntimeError('Linking layer 1 unsuccessful!')
+    
     tree_l2  = srctree.load(helpers)
     pathInfo = stree.link(tree_l2, linkPath=srctree.LINK_PATH_FROM_STACK)
     # if pathInfo is not None and pathInfo:
@@ -57,7 +60,7 @@ def main(data):
                         ('cg-tpl.datapacket.cpp', 'cgkit.datapacket.cpp')]
     for src,dest in file_names_all:
         # assemble from recipe
-        stree = SourceTree(**SOURCETREE_OPTIONS, debug=False)
+        stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
         constructSourceTree(stree, src, data)
         # check result
         lines = stree.parse()
