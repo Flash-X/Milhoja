@@ -143,6 +143,7 @@ def iterate_constructor(connectors: dict, size_connectors: dict, constructor: di
         host_item = f'_{key}_h'
         pinned_item = f'_{key}_p'
         size_item = f'SIZE_{key.upper()}'
+
         if key != 'nTiles':
             connectors[_CON_ARGS].append( f'{item_type} {key}' )
             connectors[_HOST_MEMBERS].append( f'{host_item}' )
@@ -189,18 +190,15 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
     """
     section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors[_T_DESCRIPTOR] = []
-    missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
     use_ref = ""
     memcpy_func = tmdata_memcpy_f if language == util.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
     if language == util.Language.cpp: 
         cpp_helpers.insert_farray_size(size_connectors, num_arrays)
         use_ref = "&"
+    
     for item,name in tilemetadata.items():
         try:
-            if language == util.Language.fortran:
-                item_type = util.TILE_VARIABLE_MAPPING[name]
-            else: 
-                item_type = util.CPP_EQUIVALENT[util.TILE_VARIABLE_MAPPING[name]]
+            item_type = util.TILE_VARIABLE_MAPPING[name] if language == util.Language.cpp else util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[name]] 
         except Exception:
             warnings.warn(f"{name} was not found in tile_variable_mapping. Ignoring...")
             continue
@@ -213,32 +211,30 @@ def iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: 
 
         connectors[_PUB_MEMBERS].extend( [f'{item_type}* {device_item};\n'] )
         connectors[_SET_MEMBERS].extend( [f'{device_item}{{nullptr}}'] )
-        connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {size_item} = {size_eq};\n'
-        )
+        connectors[_SIZE_DET].append( f'constexpr std::size_t {size_item} = {size_eq};\n' )
         set_pointer_determination(connectors, jsc.T_MDATA, name, device_item, f'_nTiles_h * {size_item}', item_type)
+
         item_type = util.FARRAY_MAPPING.get(item_type, item_type)
         connectors[_T_DESCRIPTOR].append(
-            f'const {item_type} {name} = tileDesc_h->{name}();\n'
+            f'const auto {name} = tileDesc_h->{name}();\n'
         )
 
-        if 'unsigned ' in item_type:
-            item_type = item_type.replace('unsigned ', '')
+        item_type = item_type.replace('unsigned', '')
+        if item_type in util.F_HOST_EQUIVALENT and language == util.Language.fortran:
+            fix_index = '+1' if item_type == 'IntVect' else ''
+            item_type = util.F_HOST_EQUIVALENT[item_type]
+            construct_host = f"[MILHOJA_MDIM] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
+            use_ref = ""
+        else:
             construct_host = f' = static_cast<{item_type}>({host_item})'
             use_ref = "&"
-        else:
-            base_type = util.TILE_VARIABLE_MAPPING[name]
-            fix_index = "+1" if 'int' in base_type else ""
-            construct_host = f"[MILHOJA_MDIM] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
-            item_type = util.TILE_VARIABLE_MAPPING[name]
-            use_ref = ""
 
-        # NO
         memcpy_func(connectors, host_item, construct_host, item_type, pinned_item, use_ref, size_item, name)
  
     # TODO: Remove this once bounds section is implemented in json. 
+    missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
     connectors[_T_DESCRIPTOR].extend([
-        f'const {util.FARRAY_MAPPING[util.TILE_VARIABLE_MAPPING[item]]} {item} = tileDesc_h->{item}();\n'
+        f'const auto {item} = tileDesc_h->{item}();\n'
         for item in missing_dependencies
     ]) 
 
@@ -491,7 +487,7 @@ def sort_dict(section, sort_key) -> dict:
     :param dict section: The dictionary to sort.
     :param func sort_key: The function to sort with.
     """
-    return dict( sorted(section, key = sort_key, reverse = False) )
+    return dict( sorted(section, key = sort_key, reverse = True) )
 
 def write_connectors(template, connectors: dict):
     """
@@ -607,7 +603,11 @@ def generate_helper_template(data: dict) -> None:
 
         num_arrays = len( data.get(jsc.T_SCRATCH, {}) ) + len(data.get(jsc.T_IN, {})) + \
                      len(data.get(jsc.T_IN_OUT, {})) + len(data.get(jsc.T_OUT, {}))
-        sort_func = lambda x: sizes.get(util.TILE_VARIABLE_MAPPING[x[1]], 0) if sizes else 1
+        if lang == util.Language.cpp:
+            sort_func = lambda x: sizes.get(util.TILE_VARIABLE_MAPPING[x[1]], 0) if sizes else 1
+        elif lang == util.Language.fortran:
+            sort_func = lambda x: sizes.get(util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[x[1]]], 0) if sizes else 1
+        # sort_func = lambda x: sizes.get(util.TILE_VARIABLE_MAPPING[x[1]], 0) if sizes else 1
         metadata = data.get(jsc.T_MDATA, {}).items()
         iterate_tilemetadata(connectors, size_connectors, sort_dict(metadata, sort_func), lang, num_arrays)
 

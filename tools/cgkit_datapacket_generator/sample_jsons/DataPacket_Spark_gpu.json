@@ -6,33 +6,33 @@
                                     "Uin", "Uout", "FCX", "FCY", "FCZ" ],
     "tile_scratch": {
       "FCX": {
-        "type": "Real",
+        "type": "real",
         "extents": "fcx(0)"
       },
       "FCY": {
-        "type": "Real",
+        "type": "real",
         "extents": "fcy(0)"
       },
       "FCZ": {
-        "type": "Real",
+        "type": "real",
         "extents": "fcz(0)"
       }
     },
     "general": {
-      "dt": "Real",
-      "dtOld": "Real",
-      "smallDens": "Real",
-      "smallPres": "Real",
-      "smallE": "Real",
-      "cvisc": "Real",
-      "C_hyp": "Real",
-      "tiny": "Real",
+      "dt": "real",
+      "dtOld": "real",
+      "smallDens": "real",
+      "smallPres": "real",
+      "smallE": "real",
+      "cvisc": "real",
+      "C_hyp": "real",
+      "tiny": "real",
       "hybridRiemann": "int"
     },
     "tile_metadata": [ "levels", "deltas", "lo", "hi", "loGC", "hiGC" ],
     "tile_in": {
       "Uin": {
-        "type": "Real",
+        "type": "real",
         "start": 0,
         "end": 17,
         "extents": "cc(NGUARD)"
@@ -40,7 +40,7 @@
     },
     "tile_out": {
       "Uout": {
-        "type": "Real",
+        "type": "real",
         "start": 0,
         "end": 17,
         "extents": "cc(NGUARD)"

@@ -7,6 +7,11 @@ FARRAY_MAPPING = {
     "real": "RealVect"
 }
 
+F_HOST_EQUIVALENT = {
+    'RealVect': 'real',
+    'IntVect': 'int'
+}
+
 CPP_EQUIVALENT = {
     "real": "RealVect",
     "int": "IntVect"
@@ -16,11 +21,11 @@ TILE_VARIABLE_MAPPING = {
     'levels': 'unsigned int',
     'gridIndex': 'int',
     'tileIndex': 'int',
-    'deltas': 'real',
-    'lo': "int",
-    'hi': "int",
-    'loGC': "int",
-    'hiGC': "int"
+    'deltas': 'RealVect',
+    'lo': "IntVect",
+    'hi': "IntVect",
+    'loGC': "IntVect",
+    'hiGC': "IntVect"
 }
 
 class Language(Enum):
