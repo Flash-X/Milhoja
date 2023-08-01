@@ -100,19 +100,18 @@ def check_json_validity(data: dict) -> bool:
         raise NoTaskArgumentListExcepiton("Missing task-function-argument-list.")
     all_items_list = [ set(data[section]) if section != json_sections.T_MDATA else set(data[section].values()) for section in json_sections.ALL_SECTIONS if section in data ]
     
-    # all_items_dupe = list(all_items_list)
-    # duplicates = set()
-    # for set1 in all_items_list:
-    #     for set2 in all_items_list:
-    #         if set1 is not set2:
-    #             print(set1, set2)
-    #             duplicates.union( set1.intersection(set2) )
+    # This checks if there is a duplicate between any 2 sets, out of n total sets. 
+    # Is there a faster way to do this using set operations? 
+    all_items_dupe = list(all_items_list)
+    duplicates = set()
+    for set1 in all_items_list:
+        for set2 in all_items_dupe:
+            if set1 is not set2:
+                duplicates = duplicates.union( set1.intersection(set2) )
+        all_items_dupe.remove(set1)
 
-    # print(duplicates)
-
-    dupes = set.intersection(*all_items_list)
-    if dupes:
-        raise DuplicateItemException(f"There is a duplicate item key in the JSON. Duplicates: {dupes}")
+    if duplicates:
+        raise DuplicateItemException(f"There is a duplicate item key in the JSON. Duplicates: {duplicates}")
     missing_items = set.union(*all_items_list) ^ set(task_arguments)
     if missing_items:
         raise TaskArgumentListMismatchException(f"task-function-argument-list items do not match the items in the JSON. Missing: {missing_items}")
