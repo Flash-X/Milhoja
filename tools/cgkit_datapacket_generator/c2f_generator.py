@@ -62,8 +62,10 @@ def _generate_advance_c2f(data):
             **{ f'queue{i}': C2FInfo('integer', 'integer(MILHOJA_INT)', 'acc_handle_kind', []) for i in range(1, data.get(sects.EXTRA_STREAMS, 0)+2) }
         }
 
-        arg_order = ['nTiles'] + data[sects.ORDER]
+        arg_order = data[sects.ORDER]
+        arg_order.insert(0, 'nTiles')
         gpu_pointers = {'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])}
+
 
         for key,dtype in data.get(sects.GENERAL, {}).items():
             ftype = dtype.lower()
