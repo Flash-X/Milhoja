@@ -420,7 +420,7 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:di
 
         connectors[_PUB_MEMBERS].append(
             f'{info.dtype}* {info.get_device()};\n'
-            f'{info.dtype}* _{info.ITEM}_p;\n'
+            f'{info.dtype}* {info.get_pinned()};\n'
         )
         connectors[_SET_MEMBERS].extend(
             [f'{info.get_device()}{{nullptr}}']

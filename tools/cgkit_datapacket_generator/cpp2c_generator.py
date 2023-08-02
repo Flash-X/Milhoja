@@ -31,6 +31,7 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
     
     :param dict data: The dictionary containing the data packet JSON data.
     :param dict connectors: The connectors dictionary to write to containing all cgkit connectors.
+    :param list dpinfo_order: A list of DataPacketMemberVars objects that use all of the items in the task_function_argument_list. 
     """
     connectors[_HOST_MEMBERS_KEY] = ['const int queue1_h = packet_h->asynchronousQueue();\n', # one queue always exists in the data packet
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n'] # need to insert nTiles host manually
