@@ -5,6 +5,7 @@ import json
 import os
 import cpp2c_cgkit
 from collections import defaultdict
+from DataPacketMemberVars import DataPacketMemberVars as dpinfo
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -24,7 +25,7 @@ def _generate_cpp2c_outer(data: dict):
             '/* _link:cpp2c */'
         ])
 
-def _insert_connector_arguments(data: dict, connectors: dict):
+def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list):
     """
     Inserts various connector arguments into the connectors dictionary.
     
@@ -38,12 +39,13 @@ def _insert_connector_arguments(data: dict, connectors: dict):
         f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
         for i in range(2, n_streams+2)
     ])
+
     connectors[_ARG_LIST_KEY].extend(
         [ ('packet_h', 'void*') ] + 
         [ ('queue1_h', 'const int') ] +  
         [ (f'queue{i}_h', 'const int') for i in range(2, n_streams+2) ] + 
         [ ('_nTiles_h', 'const int') ] +
-        [ (f'_{item}_d', 'const void*') for item in data[sects.ORDER] ]
+        [ (item.get_device(), 'const void*') for item in dpinfo_order ]
     )
     
 def _generate_cpp2c_helper(data: dict):
@@ -53,7 +55,8 @@ def _generate_cpp2c_helper(data: dict):
     :param dict data: The dict containing the data packet JSON data.
     """
     connectors = defaultdict(list)
-    _insert_connector_arguments(data, connectors)
+    dpinfo_order = ( [ dpinfo(item, '', '', False) for item in data[sects.ORDER] ] )
+    _insert_connector_arguments(data, connectors, dpinfo_order)
     connectors[_INST_ARGS_KEY] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] + [ ('packet', 'void**') ]
 
     # write to helper template file
@@ -67,7 +70,7 @@ def _generate_cpp2c_helper(data: dict):
             [ ',\n'.join([ f"{item[0]}" for item in connectors[_ARG_LIST_KEY]]) ] + 
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
-            [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
+            [ ''.join([ f'void* {item.get_device()} = static_cast<void*>( packet_h->{item.get_device()} );\n' for item in dpinfo_order ]) ] +
         
             ['\n/* _connector:instance_args */\n'] +
             [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors[_INST_ARGS_KEY] ] ) ] + 
