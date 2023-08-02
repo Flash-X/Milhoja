@@ -71,9 +71,9 @@ def _generate_advance_c2f(data):
             gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
 
         for key,name in data.get(sects.T_MDATA, {}).items():
-            ftype = mutil.TILE_VARIABLE_MAPPING[name].lower()
+            ftype = mutil.F_HOST_EQUIVALENT[mutil.TILE_VARIABLE_MAPPING[name]].lower()
             if 'int' in ftype: ftype = 'integer'
-            gpu_pointers[name] = C2FInfo(ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h'])
+            gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h'])
 
         # TODO: This needs to change once the bounds section in the data packet json is solidified.
         for key,bound in data.get(sects.LBOUND, {}).items():
