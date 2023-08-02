@@ -1,8 +1,8 @@
 {
-  "byte-align": 16,
-  "n-extra-streams": 3,
-  "task-function-argument-list": [ "dt", "deltas", "lo", "hi", "U", "auxC", "flX", "flY", "flZ" ],
-  "tile-scratch": {
+  "byte_align": 16,
+  "n_extra_streams": 3,
+  "task_function_argument_list": [ "dt", "deltas", "lo", "hi", "U", "auxC", "flX", "flY", "flZ" ],
+  "tile_scratch": {
     "flX": {
       "type": "real",
       "extents": ["(16 + 2 * 0) + 1", "16 + 2 * 0", "1 + 2 * 0", "5"]
@@ -19,12 +19,12 @@
   "constructor": {
     "dt": "real"
   },
-  "tile-metadata": {
+  "tile_metadata": {
   	"tile_deltas": "deltas",
   	"tile_lo": "lo",
   	"tile_hi": "hi"
   },
-  "tile-in": {
+  "tile_in": {
 	"U": {
 		"type": "real",
 		"start": "0",
@@ -32,7 +32,7 @@
 		"extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
 	}
   },
-  "tile-out": {
+  "tile_out": {
 	"auxC": {
 		"type": "real",
 		"start": "0",
