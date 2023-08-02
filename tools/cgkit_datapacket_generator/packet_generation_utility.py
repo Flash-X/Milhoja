@@ -85,7 +85,7 @@ def check_json_validity(data: dict) -> bool:
     task_arguments = data.get(json_sections.ORDER, [])
     if not task_arguments:
         raise _NoTaskArgumentListExcepiton("Missing task_function_argument_list.")
-    all_items_list = [ set(data[section]) if section != json_sections.T_MDATA else set(data[section].values()) for section in json_sections.ALL_SECTIONS if section in data ]
+    all_items_list = [ set(data[section]) for section in json_sections.ALL_SECTIONS if section in data ]
     
     # This checks if there is a duplicate between any 2 sets, out of n total sets. 
     # Is there a faster way to do this using set operations? 

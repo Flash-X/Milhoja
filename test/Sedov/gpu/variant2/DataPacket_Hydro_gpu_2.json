@@ -1,7 +1,7 @@
 {
   "byte_align": 16,
   "n_extra_streams": 3,
-  "task_function_argument_list": [ "dt", "deltas", "lo", "hi", "U", "auxC", "flX", "flY", "flZ" ],
+  "task_function_argument_list": [ "dt", "tile_deltas", "tile_lo", "tile_hi", "U", "auxC", "flX", "flY", "flZ" ],
   "tile_scratch": {
     "flX": {
       "type": "real",
