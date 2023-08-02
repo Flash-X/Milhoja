@@ -429,7 +429,7 @@ def iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:di
             f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
         )
         connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ});\n'
+            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
         )
         set_pointer_determination(connectors, jsc.T_OUT, info, False)
         add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, info.dtype, corresponding_in_data, info.ITEM)
