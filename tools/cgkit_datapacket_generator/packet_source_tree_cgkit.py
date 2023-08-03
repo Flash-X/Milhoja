@@ -32,6 +32,7 @@ def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
 
+    # link initial template
     tree_l1  = srctree.load(tpl_1)
     pathInfo = stree.link(tree_l1, linkPath=srctree.LINK_PATH_FROM_STACK)
     if pathInfo is not None and pathInfo:

@@ -5,6 +5,7 @@ import json
 import os
 import cpp2c_cgkit
 from collections import defaultdict
+from DataPacketMemberVars import DataPacketMemberVars as dpinfo
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -24,39 +25,48 @@ def _generate_cpp2c_outer(data: dict):
             '/* _link:cpp2c */'
         ])
 
-def _insert_connector_arguments(data: dict, connectors: dict):
+def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list):
     """
     Inserts various connector arguments into the connectors dictionary.
     
     :param dict data: The dictionary containing the data packet JSON data.
     :param dict connectors: The connectors dictionary to write to containing all cgkit connectors.
+    :param list dpinfo_order: A list of DataPacketMemberVars objects that use all of the items in the task_function_argument_list. 
     """
+    # initialize the boilerplate values for host members.
     connectors[_HOST_MEMBERS_KEY] = ['const int queue1_h = packet_h->asynchronousQueue();\n', # one queue always exists in the data packet
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n'] # need to insert nTiles host manually
+    # insert the number of extra streams as a connector
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
     connectors[_HOST_MEMBERS_KEY].extend([
         f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
         for i in range(2, n_streams+2)
     ])
+
+    # extend the argument list connector using dpinfo_order
     connectors[_ARG_LIST_KEY].extend(
         [ ('packet_h', 'void*') ] + 
         [ ('queue1_h', 'const int') ] +  
         [ (f'queue{i}_h', 'const int') for i in range(2, n_streams+2) ] + 
         [ ('_nTiles_h', 'const int') ] +
-        [ (f'_{item}_d', 'const void*') for item in data[sects.ORDER] ]
+        [ (item.get_device(), 'const void*') for item in dpinfo_order ]
     )
     
 def _generate_cpp2c_helper(data: dict):
     """
     Generates the helper template for the cpp2c layer.
     
-    :param dict data: The dict containing the data packet JSON data.
+    :param data: The dict containing the data packet JSON data.
     """
     connectors = defaultdict(list)
-    _insert_connector_arguments(data, connectors)
+    # generate DataPacketMemberVars instance for each item in TFAL.
+    dpinfo_order = ( [ dpinfo(item, '', '', False) for item in data[sects.ORDER] ] )
+    # insert connectors into dictionary
+    _insert_connector_arguments(data, connectors, dpinfo_order)
+    # instance args only found in general section
     connectors[_INST_ARGS_KEY] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] + [ ('packet', 'void**') ]
 
-    # write to helper template file
+    # insert all connectors into helper template file
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
         helper.writelines(['/* _connector:get_host_members */\n' ] + connectors[_HOST_MEMBERS_KEY])
         helper.writelines(
@@ -67,7 +77,7 @@ def _generate_cpp2c_helper(data: dict):
             [ ',\n'.join([ f"{item[0]}" for item in connectors[_ARG_LIST_KEY]]) ] + 
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
-            [ ''.join([ f'void* _{item}_d = static_cast<void*>( packet_h->_{item}_d );\n' for item in data[sects.ORDER] ]) ] +
+            [ ''.join([ f'void* {item.get_device()} = static_cast<void*>( packet_h->{item.get_device()} );\n' for item in dpinfo_order ]) ] +
         
             ['\n/* _connector:instance_args */\n'] +
             [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors[_INST_ARGS_KEY] ] ) ] + 

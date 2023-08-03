@@ -38,7 +38,7 @@ def _load_json(file, args) -> dict:
     data[sections.HELPERS] = f'cg-tpl.{data[sections.NAME]}_helpers.cpp'
     data[sections.SIZES] = None
     
-    #if sizes file is provided it is inserted into the dictionary.
+    # if sizes file is provided it is inserted into the dictionary. TODO: Should sizes file always be provided? Probably (See requirement 2)
     if args.sizes:
         with open(args.sizes, 'r') as sizes:
             try:

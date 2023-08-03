@@ -47,6 +47,8 @@ def _generate_advance_c2f(data):
     :return: None
     """
     with open("c2f.F90", 'w') as fp:
+        
+        # # WRITE BOILERPLATE
         fp.writelines([
             '!! This code was generated using c2f_generator.py.\n',
             _F_LICENSE_BLOCK,
@@ -57,21 +59,24 @@ def _generate_advance_c2f(data):
             'subroutine dr_hydro_advance_packet_oacc_c2f('
         ])
 
+        # initialize host pointers
         host_pointers = {
             'packet': C2FInfo('', 'type(C_PTR)', '', []),
             **{ f'queue{i}': C2FInfo('integer', 'integer(MILHOJA_INT)', 'acc_handle_kind', []) for i in range(1, data.get(sects.EXTRA_STREAMS, 0)+2) }
         }
 
+        # get argument order and insert nTiles (TODO: This affects the CPP2C generator as well. Is it worth it to change this?)
         arg_order = data[sects.ORDER]
         arg_order.insert(0, 'nTiles')
-        gpu_pointers = {'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])}
+        gpu_pointers = {'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])} # TODO: this should probably be renamed to device pointers
 
-
+        # Load all items from general.
         for key,dtype in data.get(sects.GENERAL, {}).items():
             ftype = dtype.lower()
-            if 'int' in ftype: ftype = 'integer'
+            if 'int' in ftype: ftype = 'integer'    # need to format type name for fortran
             gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
 
+        # load all items from tile_metadata.
         for key,name in data.get(sects.T_MDATA, {}).items():
             ftype = mutil.F_HOST_EQUIVALENT[mutil.TILE_VARIABLE_MAPPING[name]].lower()
             if 'int' in ftype: ftype = 'integer'
@@ -81,7 +86,9 @@ def _generate_advance_c2f(data):
         for key,bound in data.get(sects.LBOUND, {}).items():
             gpu_pointers[key] = C2FInfo('integer', 'type(C_PTR)', '', [str(3 + len(bound)-1), 'F_nTiles_h'])
 
+        # need to create an extents set to set the sizes for the fortran arrays.
         extents_set = { 'nTiles': C2FInfo('integer', 'integer(MILHOJA_INT)', '', [])}
+        # load all items from array sections, except scratch.
         for section in [sects.T_IN, sects.T_IN_OUT, sects.T_OUT]:
             sect_dict = data.get(section, {})
             for item,info in sect_dict.items():
@@ -91,6 +98,7 @@ def _generate_advance_c2f(data):
                 end = info[sects.END if sects.END in data else sects.END_IN]
                 gpu_pointers[item] = C2FInfo(ftype, 'type(C_PTR)', '', info[sects.EXTENTS] + [f'{end} - {start} + 1', 'F_nTiles_h'])
 
+        # finally load scratch data
         scratch = data.get(sects.T_SCRATCH, {})
         for item,info in scratch.items():
             ftype = info[sects.DTYPE].lower()
@@ -100,8 +108,8 @@ def _generate_advance_c2f(data):
         host_pointers.update(extents_set)
         # get pointers for every section
         fp.writelines([
-            ', &\n'.join(f'C_{item}_h' for item in host_pointers) + ', &\n',
-            ', &\n'.join(f'C_{item}_d' for item in arg_order),
+            ', &\n'.join(f'C_{item}_h' for item in host_pointers) + ', &\n', # put all host items into func declaration
+            ', &\n'.join(f'C_{item}_d' for item in arg_order), # we can assume every item in the TFAL exists in the data packet at this point
             ') bind(c)\n',
             '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
             '\tuse openacc, ONLY : acc_handle_kind\n',
@@ -110,11 +118,13 @@ def _generate_advance_c2f(data):
             '\timplicit none\n\n'
         ])
 
+        # write c pointer & host fortran declarations
         fp.writelines( [ f'\t{ data.ctype }, intent(IN), value :: C_{item}_h\n' for item,data in host_pointers.items() if data.ctype ] + ['\n'] )
         fp.writelines( [ f'\t{ data.ctype }, intent(IN), value :: C_{item}_d\n' for item,data in gpu_pointers.items() if data.ctype ] + ['\n'] )
         fp.writelines( [ (f"""\t{data.ftype}{"" if not data.kind else f"(kind={ data.kind })" } :: F_{item}_h\n""" ) \
                         for item,data in host_pointers.items() if data.ftype] + ['\n'] )
 
+        # write Fortran pointer declarations
         fp.writelines(
             [
                 f"""\t{data.ftype}, pointer :: F_{item}_d{'' if not data.shape else '(' + ','.join(':' for _ in range(0, len(data.shape))) + ')'}\n"""
@@ -129,6 +139,7 @@ def _generate_advance_c2f(data):
             ['\n']
         )
 
+        # remove all items in extents set so they don't get passed to the task function
         for item in extents_set:
             host_pointers.pop(item)
         fp.writelines(
