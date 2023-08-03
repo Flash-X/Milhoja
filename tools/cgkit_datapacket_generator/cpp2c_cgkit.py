@@ -33,6 +33,7 @@ def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
     stree.initTree(init)
     stree.pushLink( srctree.search_links(stree.getTree()) )
 
+    # load and link each template into source tree.
     for idx,link in enumerate([tpl_1, helpers, extra_queue]):
         tree_link = srctree.load(link)
         pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)

@@ -33,14 +33,17 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
     :param dict connectors: The connectors dictionary to write to containing all cgkit connectors.
     :param list dpinfo_order: A list of DataPacketMemberVars objects that use all of the items in the task_function_argument_list. 
     """
+    # initialize the boilerplate values for host members.
     connectors[_HOST_MEMBERS_KEY] = ['const int queue1_h = packet_h->asynchronousQueue();\n', # one queue always exists in the data packet
                                     'const int _nTiles_h = packet_h->_nTiles_h;\n'] # need to insert nTiles host manually
+    # insert the number of extra streams as a connector
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
     connectors[_HOST_MEMBERS_KEY].extend([
         f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
         for i in range(2, n_streams+2)
     ])
 
+    # extend the argument list connector using dpinfo_order
     connectors[_ARG_LIST_KEY].extend(
         [ ('packet_h', 'void*') ] + 
         [ ('queue1_h', 'const int') ] +  
@@ -53,14 +56,17 @@ def _generate_cpp2c_helper(data: dict):
     """
     Generates the helper template for the cpp2c layer.
     
-    :param dict data: The dict containing the data packet JSON data.
+    :param data: The dict containing the data packet JSON data.
     """
     connectors = defaultdict(list)
+    # generate DataPacketMemberVars instance for each item in TFAL.
     dpinfo_order = ( [ dpinfo(item, '', '', False) for item in data[sects.ORDER] ] )
+    # insert connectors into dictionary
     _insert_connector_arguments(data, connectors, dpinfo_order)
+    # instance args only found in general section
     connectors[_INST_ARGS_KEY] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] + [ ('packet', 'void**') ]
 
-    # write to helper template file
+    # insert all connectors into helper template file
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
         helper.writelines(['/* _connector:get_host_members */\n' ] + connectors[_HOST_MEMBERS_KEY])
         helper.writelines(
