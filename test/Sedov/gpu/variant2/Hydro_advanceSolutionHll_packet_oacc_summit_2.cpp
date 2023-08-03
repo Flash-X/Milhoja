@@ -23,9 +23,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_2(const int tId,
 
     const int* nTiles_d = packet_h->_nTiles_d;
     const Real* dt_d = packet_h->_dt_d;
-    const RealVect* deltas_d = packet_h->_deltas_d;
-    const IntVect* lo_d = packet_h->_lo_d;
-    const IntVect* hi_d = packet_h->_hi_d;
+    const RealVect* deltas_d = packet_h->_tile_deltas_d;
+    const IntVect* lo_d = packet_h->_tile_lo_d;
+    const IntVect* hi_d = packet_h->_tile_hi_d;
     FArray4D* CC1_d = packet_h->_f4_U_d;
     FArray4D* CC2_d = packet_h->_f4_auxC_d;
     FArray4D* FCX_d = packet_h->_f4_flX_d;

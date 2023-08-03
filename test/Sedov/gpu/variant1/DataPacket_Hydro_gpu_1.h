@@ -6,9 +6,9 @@ _dt_h{dt},
 _dt_d{nullptr},
 _nTiles_h{tiles_.size()},
 _nTiles_d{nullptr},
-_deltas_d{nullptr},
-_lo_d{nullptr},
-_hi_d{nullptr},
+_tile_deltas_d{nullptr},
+_tile_lo_d{nullptr},
+_tile_hi_d{nullptr},
 _U_d{nullptr},
 _auxC_d{nullptr},
 _flX_d{nullptr},
@@ -31,8 +31,8 @@ void DataPacket_Hydro_gpu_1::releaseExtraQueue(const unsigned int id) {
 
 if (stream2_.isValid()) throw std::logic_error("[DataPacket_Hydro_gpu_1::~DataPacket_Hydro_gpu_1] Stream 2 not released");
 
-constexpr std::size_t SIZE_DT = pad( sizeof(real) );
-constexpr std::size_t SIZE_NTILES = pad( sizeof(int) );
+constexpr std::size_t SIZE_DT =  pad( sizeof(real));
+constexpr std::size_t SIZE_NTILES =  pad( sizeof(int));
 constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
 constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
 constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
@@ -43,13 +43,13 @@ constexpr std::size_t SIZE_FLY = (16 + 2 * 0) * ((16 + 2 * 0) + 1) * (1 + 2 * 0)
 constexpr std::size_t SIZE_FLZ = (1) * (1) * (1) * (1) * sizeof(real);
 
 _flX_d = static_cast<real*>( static_cast<void*>(ptr_d) );
-ptr_d+= _nTiles_h * SIZE_FLX;
+ptr_d += _nTiles_h * SIZE_FLX;
 
 _flY_d = static_cast<real*>( static_cast<void*>(ptr_d) );
-ptr_d+= _nTiles_h * SIZE_FLY;
+ptr_d += _nTiles_h * SIZE_FLY;
 
 _flZ_d = static_cast<real*>( static_cast<void*>(ptr_d) );
-ptr_d+= _nTiles_h * SIZE_FLZ;
+ptr_d += _nTiles_h * SIZE_FLZ;
 
 
 real* _dt_p = static_cast<real*>( static_cast<void*>(ptr_p) );
@@ -63,18 +63,18 @@ ptr_p+=SIZE_NTILES;
 ptr_d+=SIZE_NTILES;
 
 
-RealVect* _deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
-_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
+RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
+_tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
 ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
 
-IntVect* _lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
-_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+IntVect* _tile_lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_tile_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_LO;
 ptr_d+=_nTiles_h * SIZE_TILE_LO;
 
-IntVect* _hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
-_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+IntVect* _tile_hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+_tile_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
 ptr_p+=_nTiles_h * SIZE_TILE_HI;
 ptr_d+=_nTiles_h * SIZE_TILE_HI;
 
@@ -120,19 +120,19 @@ ptr_d+=_nTiles_h * SIZE_AUXC;
 std::memcpy(_dt_p, static_cast<void*>(&_dt_h), SIZE_DT);
 std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
 
-const RealVect deltas = tileDesc_h->deltas();
-const IntVect lo = tileDesc_h->lo();
-const IntVect hi = tileDesc_h->hi();
-const IntVect loGC = tileDesc_h->loGC();
-const IntVect hiGC = tileDesc_h->hiGC();
+const auto deltas = tileDesc_h->deltas();
+const auto lo = tileDesc_h->lo();
+const auto hi = tileDesc_h->hi();
+const auto loGC = tileDesc_h->loGC();
+const auto hiGC = tileDesc_h->hiGC();
 
-char_ptr = static_cast<char*>( static_cast<void*>( _deltas_p ) ) + n * SIZE_TILE_DELTAS;
+char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
 std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
 
-char_ptr = static_cast<char*>( static_cast<void*>( _lo_p ) ) + n * SIZE_TILE_LO;
+char_ptr = static_cast<char*>( static_cast<void*>( _tile_lo_p ) ) + n * SIZE_TILE_LO;
 std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
 
-char_ptr = static_cast<char*>( static_cast<void*>( _hi_p ) ) + n * SIZE_TILE_HI;
+char_ptr = static_cast<char*>( static_cast<void*>( _tile_hi_p ) ) + n * SIZE_TILE_HI;
 std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
 
 
@@ -239,9 +239,9 @@ public:
         real* _dt_d;
         int _nTiles_h;
         int* _nTiles_d;
-        RealVect* _deltas_d;
-        IntVect* _lo_d;
-        IntVect* _hi_d;
+        RealVect* _tile_deltas_d;
+        IntVect* _tile_lo_d;
+        IntVect* _tile_hi_d;
         real* _U_d;
         real* _U_p;
         real* _auxC_d;
