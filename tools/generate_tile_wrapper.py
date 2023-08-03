@@ -16,9 +16,9 @@ def main():
     INDENT = 4
 
     #####----- PROGRAM USAGE INFO
-    DESCRIPTION = "Generate the .h/.cpp Milhoja task function code associated\n" \
+    DESCRIPTION = "Generate the .h/.cpp Milhoja tile wrapper code associated\n" \
                   "with the given JSON task function specification file.\n"
-    JSON_HELP = "JSON-format file that fully specifies a CPU/C++ task function\n"
+    JSON_HELP = "JSON-format file that fully specifies a task function\n"
     HEADER_HELP = "Filename of the header file to generate\n"
     SOURCE_HELP = "Filename of the source file to generate\n"
     VERBOSE_HELP = f"Verbosity level of logging.  Valid values are {milhoja.CodeGenerationLogger.LOG_LEVELS}."
@@ -43,11 +43,11 @@ def main():
     #####----- LOGGING
     try:
         logger = milhoja.CodeGenerationLogger( \
-                                "C++ Task Function Generator", \
+                                "TileWrapper Generator", \
                                 verbosity_level \
                             )
     except Exception as error:
-        # Assume that logger printed error message itself already
+        # Assume that the logger printed the error message itself already
         exit(1)
 
     def print_and_abort(error_msg):
@@ -63,10 +63,8 @@ def main():
         print_and_abort(f"{source_filename} already exists")
 
     #####----- GET TO GENERATIN'
-    # TODO: We should be able to determine which generator to use based on the
-    # extension of the source file or the passing of a header file.
     try:
-        generator = milhoja.CppTaskFunctionGenerator.from_json( \
+        generator = milhoja.TileWrapperGenerator.from_json( \
                         json_filename, \
                         header_filename, \
                         source_filename, \

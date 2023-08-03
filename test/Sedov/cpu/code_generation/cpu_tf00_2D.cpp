@@ -14,31 +14,30 @@
 #include "Eos.h"
 #include "Hydro.h"
 
-
 void  cpu_tf00_2D::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
     Tile_cpu_tf00_2D*  wrapper = dynamic_cast<Tile_cpu_tf00_2D*>(dataItem);
-    Tile*  tileDesc = wrapper->tile_.get();
+    milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
-    Real& dt = wrapper->dt_;
-    const IntVect  tile_lo = tileDesc->lo();
-    const IntVect  tile_hi = tileDesc->hi();
-    const RealVect  tile_deltas = tileDesc->deltas();
-    FArray4D  CC_1 = tileDesc->data();
-    FArray4D  FLX_1 = tileDesc->fluxData(Axis::I);
-    FArray4D  FLY_1 = tileDesc->fluxData(Axis::J);
-    IntVect    lo_hydro_op1_auxc = IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
+    milhoja::Real& dt = wrapper->dt_;
+    const milhoja::IntVect  tile_lo = tileDesc->lo();
+    const milhoja::IntVect  tile_hi = tileDesc->hi();
+    const milhoja::RealVect  tile_deltas = tileDesc->deltas();
+    milhoja::FArray4D  CC_1 = tileDesc->data();
+    milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
+    milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);
+    milhoja::IntVect    lo_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
-    IntVect    hi_hydro_op1_auxc = IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
+    milhoja::IntVect    hi_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
                                        tile_hi.J()+MILHOJA_K2D,
                                        tile_hi.K()+MILHOJA_K3D)};
-    Real* ptr_hydro_op1_auxc = 
-             static_cast<Real*>(Tile_cpu_tf00_2D::hydro_op1_auxc_)
-            + Tile_cpu_tf00_2D::hydro_op1_auxc_SIZE_ * threadId;
-    FArray3D  hydro_op1_auxc = FArray3D{ptr_hydro_op1_auxc,
+    milhoja::Real* ptr_hydro_op1_auxc = 
+             static_cast<milhoja::Real*>(Tile_cpu_tf00_2D::hydro_op1_auxc_)
+            + Tile_cpu_tf00_2D::HYDRO_OP1_AUXC_SIZE_ * threadId;
+    milhoja::FArray3D  hydro_op1_auxc = milhoja::FArray3D{ptr_hydro_op1_auxc,
             lo_hydro_op1_auxc,
             hi_hydro_op1_auxc};
 

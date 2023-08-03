@@ -1,4 +1,5 @@
-#include "cpu_tf00_3D.h"
+#include "delete_me.h"
+#include "Tile_delete_me.h"
 
 #include <Milhoja.h>
 #include <Milhoja_real.h>
@@ -13,29 +14,33 @@
 #include "Eos.h"
 #include "Hydro.h"
 
-/* _link:dt_tf_header_include */
-
-void  cpu_tf00_3D::taskFunction(const int threadId,
+void  delete_me::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
-    Tile*  tileDesc = dynamic_cast<Tile*>(dataItem);
+    Tile_delete_me*  wrapper = dynamic_cast<Tile_delete_me*>(dataItem);
+    milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
-    /* _link:dt_tf_getter */
-    const IntVect  tile_lo = tileDesc->lo();
-    const IntVect  tile_hi = tileDesc->hi();
-    const RealVect  tile_deltas = tileDesc->deltas();
-    FArray4D  CC_1 = tileDesc->data();
-    FArray4D  FLX_1 = tileDesc->fluxData(Axis::I);
-    FArray4D  FLY_1 = tileDesc->fluxData(Axis::J);
-    FArray4D  FLZ_1 = tileDesc->fluxData(Axis::K);
-    IntVect    cLo = IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
+    milhoja::Real& dt = wrapper->dt_;
+    const milhoja::IntVect  tile_lo = tileDesc->lo();
+    const milhoja::IntVect  tile_hi = tileDesc->hi();
+    const milhoja::RealVect  tile_deltas = tileDesc->deltas();
+    milhoja::FArray4D  CC_1 = tileDesc->data();
+    milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
+    milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);
+    milhoja::FArray4D  FLZ_1 = tileDesc->fluxData(milhoja::Axis::K);
+    milhoja::IntVect    lo_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
-    IntVect    cHi = IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
+    milhoja::IntVect    hi_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
                                        tile_hi.J()+MILHOJA_K2D,
                                        tile_hi.K()+MILHOJA_K3D)};
-    FArray3D  hydro_op1_auxc = FArray3D::buildScratchArray(cLo, cHi);
+    milhoja::Real* ptr_hydro_op1_auxc = 
+             static_cast<milhoja::Real*>(Tile_delete_me::hydro_op1_auxc_)
+            + Tile_delete_me::HYDRO_OP1_AUXC_SIZE_ * threadId;
+    milhoja::FArray3D  hydro_op1_auxc = milhoja::FArray3D{ptr_hydro_op1_auxc,
+            lo_hydro_op1_auxc,
+            hi_hydro_op1_auxc};
 
     hy::computeFluxesHll(
                     dt,
