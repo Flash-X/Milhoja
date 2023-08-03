@@ -1,5 +1,5 @@
 {
-    "Real": 8,
+    "real": 8,
     "int": 4,
     "unsigned int": 4,
     "std::size_t": 8,
