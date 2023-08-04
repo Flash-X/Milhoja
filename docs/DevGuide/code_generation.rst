@@ -63,11 +63,14 @@ Packet Generation Steps
    the C++ to C layer are created using the same inputs used for the DataPacket.
 
 7. The C to Fortran layer generation creates a new Fortran 90 file that converts the C pointers and variable members in the 
-   DataPacket to Fortran based variables. This file is named **c2f.f90**.
+   DataPacket to Fortran based variables, then calls the Fortran task function associated with the generated DataPacket class. 
+   This file is named **c2f.f90**.
 
 8. The C++ to C layer is created using CGKit. Two more template files are generated and are combined with pre-existing template 
    files to create the layer. The generated template files are named **cg-tpl.cpp2c_outer** and **cg-tpl.cpp2c_helper.cpp** and 
    the existing templates are **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp** and **cg-tpl.cpp2c.cpp**. 
+
+For information on the C++ to Fortran interoperability layer, see:doc:`f2c`.
 
 Data Mapping
 ------------
