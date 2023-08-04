@@ -14,18 +14,22 @@ Packet Metadata
 | These options in the JSON file appear outside of any section and exist to help the generator with general packet information. 
 | These are all possible parameters for the packet metadata:
 
-* **byte-align**: The specified byte alignment. [16]
-* **n-extra-streams**: The number of extra streams to use. [0]
+* **byte-align**: The specified byte alignment of the memory system of the remote device that will use the data packet for offloaded computation. [16]
+* **n-extra-streams**: The number of extra streams to use. Needed to allow for concurrent kernel execution. [0]
 * **task-function-argument-list**: The order of arguments for the task function. This is required since JSONs are unordered.
 
 constructor / thread-private-variables
 """"""""""""""""""""""""""""""""""""""
 Non-tile-specific data goes here. Note that the number of tiles is automatically inserted into the data packet, 
-so those do not need to be specified in the JSON file. Any items in general must be passed into the data packet 
-constructor, and the data packet will take ownership of the items and copy them into its own memory to manage it. 
-We are assuming the items will remain valid throughout the life cycle of the entire packet. This section is 
-used for non-tile-specific variables that are used in the task functions. The format of an item included in this 
-section is `name: data_type`.
+so those do not need to be specified in the JSON file. Any variables in general must be passed into the data packet 
+constructor where the data packet will copy them into its own memory to manage it. This means that the data packet "owns"
+the variable and will be available for use throughout the lifetime of the data packet. We are assuming the variables 
+will remain valid throughout the life cycle of the entire packet. This section is used for non-tile-specific variables 
+that are used in the task functions. The format of an item included in this section is `name: data_type`.
+
+TODO: The current iteration of the data packet assumes that any variables in the constructor / thread-private-variables 
+section cannot be changed after the packet is instantiated. Is there a scenario where we might want a task function that 
+can change these values? The variables might be considered datapacket-private then if there is no such scernario.
 
 .. literalinclude:: ../../tools/cgkit_datapacket_generator/sample_jsons/DataPacket_Hydro_gpu_3_fx.json
     :linenos:
