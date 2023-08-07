@@ -30,16 +30,16 @@ First, since the data packets are being used on a remote memory deivce, the way 
 should be appropriate for that device. Given that these DataPacket classes are mostly for use with a remote GPU, the data is 
 copied over using the Struct of Arrays (SoA) pattern. This is a performant pattern for memory being used with GPUs. It's also 
 used to overcome certain challenges in generating Fortran task functions. In order to effectively generate code following the 
-SoA pattern, the DataPacket JSON defines various sections for specifying variables. For more information, see the input_interface 
-section in the UserManual.
+SoA pattern, the DataPacket JSON defines various sections for specifying variables. For more information, see the 
+input_interface/DataPacket JSON section in the UserManual.
 
 Second, since the DataPackets are being created and managed a very low level, it's important that the DataPacket uses its space 
 efficiently. Because the DataPackets deal memory at the byte level, it's crucial to ensure that each section in the DataPacket 
 is on a byte alignment boundary that matches the boundary of the hardware that the DataPacket and associated task function 
 are being used on, to avoid memory alignment errors. For these reasons, we force the user to specify a byte-alignment value. 
 For similar reasons, the DataPacket generator requires the byte sizes of each variable in the data packet. This is so that the 
-variables can be sorted inside of the packet from largest to smallest, reducing the total amount of necessary padding and 
-being more performant.
+variables can be sorted inside of the packet from largest to smallest, potentially reducing the total amount of necessary 
+padding and being more performant.
 
 Using that information, the DataPacket generator can create a new subclass for passing information to a remote device. 
 
