@@ -58,7 +58,9 @@ class CodeGenerationLogger(object):
         :param min_level: The threshold logging level
         :type  min_level: int contained in CodeGenerationLogger.LOG_LEVELS
         """
-        if min_level not in CodeGenerationLogger.LOG_LEVELS:
+        valid = set(CodeGenerationLogger.LOG_LEVELS)
+        valid = valid.difference(set([CodeGenerationLogger.NO_LOGGING_LEVEL]))
+        if min_level not in valid:
             raise ValueError(f"Invalid code generation logging level ({min_level})")
 
         if self.__level >= min_level:
