@@ -77,8 +77,8 @@ tile_in_out
 """""""""""
 The data in this array is copied to the device being used, then data is copied back from the device to the same array. 
 Arrays in tile_in_out must have specified start_in, end_in, start_out, and end_out indices, since the array may possibly 
-return less (or more?) data than it was packed with. Currently, this section does not support different array extents for 
-packing and unpacking.
+return less (or more?) data than it was packed with. Because of this, arrays specified in here do not currently support 
+different spatial dimensions for packing and unpacking, and only support changing the number of variables.
 
 * **type**: The data type of the items in the array to be copied in.
 * **start_in**: The starting index of the array when being copied in.
