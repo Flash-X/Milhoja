@@ -17,7 +17,7 @@ _OUTPUT = 'cgkit.cpp2c.cxx'
 # Recipes
 ####################
 
-def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
+def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     """
     Constructs the source tree for the cpp to c layer.
     
@@ -49,7 +49,7 @@ def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
 def main(data):
     # assemble from recipe
     stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
-    constructSourceTree(stree, 'cg-tpl.cpp2c.cpp', data)
+    _construct_source_tree(stree, 'cg-tpl.cpp2c.cpp', data)
     # check result
     lines = stree.parse()
     with open(_OUTPUT, 'w') as cpp2c:

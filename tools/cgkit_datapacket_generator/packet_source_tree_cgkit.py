@@ -18,7 +18,7 @@ _HELPERS = "cg-tpl.datapacket_helpers.cpp"
 # Recipes
 ####################
 
-def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
+def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     """
     Constructs the source tree for the data packet.
     
@@ -30,12 +30,12 @@ def constructSourceTree(stree: SourceTree, tpl_1: str, data: dict):
     init = _OUTER if not data else data[jsc.OUTER]
     helpers = _HELPERS if not data else data[jsc.HELPERS]
     stree.initTree(init)
-    stree.pushLink( srctree.search_links(stree.getTree()) )
+    stree.pushLink( srctree.search_links( stree.getTree() ) )
 
     # link initial template
     tree_l1  = srctree.load(tpl_1)
     pathInfo = stree.link(tree_l1, linkPath=srctree.LINK_PATH_FROM_STACK)
-    if pathInfo is not None and pathInfo:
+    if pathInfo:
         stree.pushLink( srctree.search_links(tree_l1) )
     else:
         raise RuntimeError('Linking layer 1 unsuccessful!')
@@ -62,7 +62,7 @@ def main(data):
     for src,dest in file_names_all:
         # assemble from recipe
         stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
-        constructSourceTree(stree, src, data)
+        _construct_source_tree(stree, src, data)
         # check result
         lines = stree.parse()
         with open(dest, 'w') as header:
