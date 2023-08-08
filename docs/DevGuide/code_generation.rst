@@ -61,7 +61,7 @@ The steps for generating a DataPacket subclass are as follows:
 3. The generator moves through each section in the DataPacket JSON in a specified order [`constructor`, `tile_metadata`, `tile_in`, 
    `tile_in_out`, `tile_out`, and `tile_scratch`], sorts the section by size, then generates formatted links, connectors, 
    and param strings and stores them in dictionaries for later use. The links, connectors, and params from the DataPacket 
-   generator act as the implementation for the DataPacket. 
+   generator save the implementation for the DataPacket. 
 
    a. Using the information from the JSON input, the DataPacket generator will implement methods from the base DataPacket class as necessary.
       The methods `extraAsynchronousQueue()` and `releaseExtraQueue()` are given derived class implementations if there are more than 

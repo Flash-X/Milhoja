@@ -14,9 +14,9 @@ Packet Metadata
 | These options in the JSON file appear outside of any section and exist to help the generator with general packet information. 
 | These are all possible parameters for the packet metadata:
 
-* **byte-align**: The specified byte alignment of the memory system of the remote device that will use the data packet for offloaded computation. [16]
-* **n-extra-streams**: The number of extra streams to use. Needed to allow for concurrent kernel execution. [0]
-* **task-function-argument-list**: The order of arguments for the task function. This is required since JSONs are unordered.
+* **byte_align**: The specified byte alignment of the memory system of the remote device that will use the data packet for offloaded computation. [16]
+* **n_extra_streams**: The number of extra streams to use. Needed to allow for concurrent kernel execution. [0]
+* **task_function_argument_list**: The order of arguments for the task function. This is required since JSONs are unordered.
 
 constructor / thread_private_variables
 """"""""""""""""""""""""""""""""""""""
@@ -50,7 +50,7 @@ All possible tile_metadata keys:
 * **tile_level**: The refinement level in which the associated region is defined
 * **tile_deltas**: The array of the mesh spacing along all directions
 * **tile_lbound**: the index associated with the lower corner of the data array associated with the region
-* **tile_u_bound**: the index associated with the upper corner of the data array associated with the region
+* **tile_ubound**: the index associated with the upper corner of the data array associated with the region
 
 Example:
 
@@ -123,3 +123,12 @@ JSON Abstraction Layer
 This is a python class responsible for abstracting the JSON file in such a way that the task function generator and DataPacket
 generator can be given exactly what they need to generate their respective files without the need for having multiple or 
 separate JSONs.
+
+Given an input data file and a specific file format reader, the JSON abstraction layer should be able to provide the 
+necessary information needed to generate a packet or task function without the code generators knowing how the inforamtion 
+was obtained. 
+
+I'm going to list some requirements here so I don't forget.
+
+1. Any given data section containing variables for a generated DataPacket can have 0 to N total variables.
+2. 
