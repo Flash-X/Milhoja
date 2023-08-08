@@ -93,12 +93,15 @@ extern "C" {
      *
      * \todo Allow calling code to specify the log's filename.
      *
-     * \param nThreadTeams        The number of thread teams to use
-     * \param nThreadsPerTeam     The number of threads to be assigned to each
-     *                            team
-     * \param nStreams            The number of streams to use
-     * \param nBytesInMemoryPools The number of bytes to allocate in all memory
-     *                            pools (e.g., pinned and GPU)
+     * \param nThreadTeams           The number of thread teams to use
+     * \param nThreadsPerTeam        The number of threads to be assigned to each
+     *                               team
+     * \param nStreams               The number of streams to use
+     * \param nBytesInCpuMemoryPool  The number of bytes to allocate in CPU memory
+     *                               pool
+     * \param nBytesInGpuMemoryPools The number of bytes to allocate in memory
+     *                               pools associated with GPU (e.g., pinned &
+     *                               GPU)
      *
      * \return The milhoja error code
      */
