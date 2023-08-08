@@ -4,6 +4,7 @@
 #include <Milhoja_FArray4D.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Tile.h>
+#include <Milhoja_TileWrapper.h>
 #include <Milhoja_axis.h>
 #include <Milhoja_edge.h>
 
@@ -12,7 +13,8 @@
 void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataItem) {
     using namespace milhoja;
 
-    Tile*  tileDesc = static_cast<Tile*>(dataItem);
+    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
+    Tile*  tileDesc = wrapper->tile_.get();
 
     Grid&   grid = Grid::instance();
 

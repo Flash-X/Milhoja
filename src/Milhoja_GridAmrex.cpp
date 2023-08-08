@@ -1102,18 +1102,18 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
         }
     }
 
+    const TileWrapper    prototype{};
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
         // TODO: Applications should provide this when they call initDomain
-        const TileWrapper    prototype{};
         Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch",
                                             initCpuAction_,
                                             prototype);
     } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         // Apply initial conditions using just the iterator
         for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {
-            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
-            initBlock_noRuntime_(0, tileDesc.get());
+            std::unique_ptr<TileWrapper>  wrapper = prototype.clone( ti->buildCurrentTile() );
+            initBlock_noRuntime_(0, wrapper.get());
         }
     } else if ((!initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] No IC routine given");
