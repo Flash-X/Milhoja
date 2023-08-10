@@ -7,8 +7,23 @@ the installation instructions (Use develop mode?). You also may need to adjust y
 it. On summit, for example, you may need to switch to the python 3.8 module with anaconda for easy installation of cgkit. 
 Or, you can create a python virtual environment and install it. 
 
-OR OR, if you are on summit you can use summit's module system to load the necessary modules for installing cgkit. 
+STEPS TO GETTING CG-KIT INSTALLED ON A PYTHON ENVIRONMENT
+---------------------------------------------------------
 
+1. The compiler is important. Make sure you have a gcc compiler loaded, either through modules or installed on your machine.
+
+2. If you have gcc or a c compiler, you should just be able to install CG-Kit using `python setup.py develop`. CG-Kit should 
+	install the necessary dependencies for you. If not, see 3.
+
+3. Once gcc is installed, you'll need to install the various dependencies for CG-Kit. These dependencies include:
+	
+	* cython
+	* numpy
+	* networkx
+	* matplotlib
+
+OR OR, if you are on summit you can use summit's module system to load the necessary modules for installing cgkit. Having conda 
+do this for you is general easier.  
 
 Once CG-Kit is installed, the DataPacket Generator can now be used as a standalone tool. 
 
@@ -80,7 +95,13 @@ A few things to note when generating packets:
 
 HERE ARE MY NOTES ON TRYING TO SETUP CGKIT FOR SUMMIT WITHOUT THE USE OF ANACONDA
 
+08/09/2023: 
 I started by creating an empty virtual environment. Tried to install the most up to date versions of the packages that cg-kit needs to no avail.
 I tried installing the versions that CG-Kit specifies to no avail. Keep running into the same issues with numpy, either Cythonize fails, 
 or MATHLIB env variable is not set. Cython is installed and its the correct one that CG-Kit uses so I'm not sure why the cythonizing is failing 
 for installing numpy. Will continue troubleshooting tomorrow. 
+
+08/10/2023:
+Jared suggested that the problem might be the compiler, since numpy was throwing what seemed to be compiler errors. It seems like 
+numpy was trying to compile in order to install itself. Swapping to gcc instead of using the nvidia compiler suite ended up fixing 
+the issue. Now I have a consistent way to setup cgkit on a python virtual environment. 
