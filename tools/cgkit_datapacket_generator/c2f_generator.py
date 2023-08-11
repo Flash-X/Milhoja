@@ -94,8 +94,8 @@ def _generate_advance_c2f(data):
             for item,info in sect_dict.items():
                 ftype = info[sects.DTYPE].lower()
                 if ftype.endswith('int'): ftype='integer'
-                start = info[sects.START if sects.START in data else sects.START_IN]
-                end = info[sects.END if sects.END in data else sects.END_IN]
+                start = info[sects.START if sects.START in info else sects.START_IN]
+                end = info[sects.END if sects.END in info else sects.END_IN]
                 gpu_pointers[item] = C2FInfo(ftype, 'type(C_PTR)', '', info[sects.EXTENTS] + [f'{end} - {start} + 1', 'F_nTiles_h'])
 
         # finally load scratch data
