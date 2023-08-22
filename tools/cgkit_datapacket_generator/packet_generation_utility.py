@@ -14,7 +14,8 @@ F_HOST_EQUIVALENT = {
 
 CPP_EQUIVALENT = {
     "real": "RealVect",
-    "int": "IntVect"
+    "int": "IntVect",
+    "logical": "bool"
 }
 
 TILE_VARIABLE_MAPPING = {

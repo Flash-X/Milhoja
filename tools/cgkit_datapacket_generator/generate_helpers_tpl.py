@@ -310,10 +310,10 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
     for item,data in tilein.items():
         # gather all information from tile_in section.
         extents = data[jsc.EXTENTS]
-        start = data[jsc.START]
-        end = data[jsc.END]
+        start = data.get(jsc.START, "")
+        end = data.get(jsc.END, "")
         extents = ' * '.join(f'({item})' for item in extents)
-        unks = f'{end} - {start} + 1'
+        unks = f'{end if end else 0} - {start if start else 0} + 1'
         info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
         
         # Add necessary connectors.
@@ -351,15 +351,33 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
     :param str size_item: The string containing the size variable for *item*.
     :param str raw_type: The data type of the item.
     """
+
+    # Developer's Note:
+    # I'm adding the potential for not including a start and an ending index
+    # to satisfy a small requirement by Anshu's requested DataPacket JSON 
+    # generator. Ideally, bounds should always be specified in the 
+    # JSON, and it's up to the application, not the DataPacket Generator, 
+    # to specify defaults. This however, I think is an okay workaround for 
+    # having default starting and ending indices, since copying the size of 
+    # the entire variable is not application specific, and the size of the 
+    # variable must be specified by the application (aka, no default sizes).
+    offset = f"{extents} * static_cast<std::size_t>({start})"
+    nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type})'
+    if not start or not end:
+        if not start: print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
+        if not end: print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
+        offset = '0'
+        nBytes = size_item
+
     # This exists inside the pack function for copying data from tile_in to the device.
     # Luckily we don't really need to use DataPacketMemberVars here because the temporary device pointer 
     # is locally scoped.
     connectors[f'memcpy_{section}'].extend([
         f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'  # eventually we will pass arguments to data ptr for specific data args.
-        f'std::size_t offset_{item} = {extents} * static_cast<std::size_t>({start});\n',
-        f'std::size_t nBytes_{item} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n'
+        f'std::size_t offset_{item} = {offset};\n',
+        f'std::size_t nBytes_{item} = {nBytes};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>(_{item}_p) ) + n * {size_item};\n',
-        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n'
+        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n\n'
     ])
 
 def _add_unpack_connector(connectors: dict, section: str, extents, start, end, raw_type, in_ptr, out_ptr):
@@ -376,14 +394,32 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start, end, r
         in_ptr: str - The name of the in data pointer
         out_ptr: str - The name of the out data pointer
     """
+
+    # Developer's Note:
+    # I'm adding the potential for not including a start and an ending index
+    # to satisfy a small requirement by Anshu's requested DataPacket JSON 
+    # generator. Ideally, bounds should always be specified in the 
+    # JSON, and it's up to the application, not the DataPacket Generator, 
+    # to specify defaults. This however, I think is an okay workaround for 
+    # having default starting and ending indices, since copying the size of 
+    # the entire variable is not application specific, and the size of the 
+    # variable must be specified by the application (aka, no default sizes).
+    offset = f"{extents} * static_cast<std::size_t>({start});"
+    nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
+    if not start or not end:
+        if not start: print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
+        if not end: print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
+        offset = '0;'
+        nBytes = f'SIZE_{out_ptr.upper()};'
+
     # TODO: Eventually the tile wrapper class will allow us to pick out the exact data array we need with dataPtr().
     connectors[_IN_PTRS].append(f'{raw_type}* {in_ptr}_data_h = tileDesc_h->dataPtr();\n')
     connectors[f'unpack_{section}'].extend([
-        f'std::size_t offset_{in_ptr} = {extents} * static_cast<std::size_t>({start});\n',
+        f'std::size_t offset_{in_ptr} = {offset}\n',
         f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
         f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
-        f'std::size_t nBytes_{in_ptr} = {extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});\n',
-        f'std::memcpy(static_cast<void*>(start_h_{in_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{in_ptr});\n'
+        f'std::size_t nBytes_{out_ptr} = {nBytes}\n',
+        f'std::memcpy(static_cast<void*>(start_h_{in_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{out_ptr});\n\n'
     ])
     # I'm the casting here is awful but I'm not sure there's a way around it that isn't just using c-style casting, 
     # and that is arguably worse than CPP style casting
@@ -404,12 +440,12 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
     pinnedLocation = set()
     # unpack all items in tile_in_out
     for item,data in tileinout.items():
-        start_in = data[jsc.START_IN]
-        end_in = data[jsc.END_IN]
-        start_out = data[jsc.START_OUT]
-        end_out = data[jsc.END_OUT]
+        start_in = data.get(jsc.START_IN, "")
+        end_in = data.get(jsc.END_IN, "")
+        start_out = data.get(jsc.START_OUT, "")
+        end_out = data.get(jsc.END_OUT, "")
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
-        unks = f'{end_in} - {start_in} + 1'
+        unks = f'{end_in if end_in else 0} - {start_in if start_in else 0} + 1'
         info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
 
         # set connectors
@@ -448,10 +484,10 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:d
     connectors[f'unpack_{jsc.T_OUT}'] = []
     for item,data in tileout.items():
         # ge tile_out information
-        start = data[jsc.START]
-        end = data[jsc.END]
+        start = data.get(jsc.START, "")
+        end = data.get(jsc.END, "")
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ( {end} - {start} + 1 ) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ( {end if end else 0} - {start if start else 0} + 1 ) * sizeof({data[jsc.DTYPE]})', per_tile=True)
 
         # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
         #       This may not need to exist once the generated tile wrapper class is created.

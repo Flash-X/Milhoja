@@ -47,6 +47,12 @@ def _generate_advance_c2f(data):
     :return: None
     """
     with open("c2f.F90", 'w') as fp:
+
+        data_mapping = {
+            'int': 'integer',
+            'real': 'real',
+            'bool': 'logical'
+        }
         
         # # WRITE BOILERPLATE
         fp.writelines([
@@ -72,14 +78,13 @@ def _generate_advance_c2f(data):
 
         # Load all items from general.
         for key,dtype in data.get(sects.GENERAL, {}).items():
-            ftype = dtype.lower()
-            if 'int' in ftype: ftype = 'integer'    # need to format type name for fortran
+            ftype = data_mapping[dtype.lower()]
             gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
 
         # load all items from tile_metadata.
         for key,name in data.get(sects.T_MDATA, {}).items():
             ftype = mutil.F_HOST_EQUIVALENT[mutil.TILE_VARIABLE_MAPPING[name]].lower()
-            if 'int' in ftype: ftype = 'integer'
+            ftype = data_mapping[ftype]
             gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h'])
 
         # TODO: This needs to change once the bounds section in the data packet json is solidified.
@@ -93,10 +98,16 @@ def _generate_advance_c2f(data):
             sect_dict = data.get(section, {})
             for item,info in sect_dict.items():
                 ftype = info[sects.DTYPE].lower()
-                if ftype.endswith('int'): ftype='integer'
-                start = info[sects.START if sects.START in info else sects.START_IN]
-                end = info[sects.END if sects.END in info else sects.END_IN]
-                gpu_pointers[item] = C2FInfo(ftype, 'type(C_PTR)', '', info[sects.EXTENTS] + [f'{end} - {start} + 1', 'F_nTiles_h'])
+                ftype = data_mapping[ftype]
+                
+                shape = ['F_nTiles_h']
+                if (sects.START in info and sects.END in info) or (sects.START_IN in info and sects.END_IN in info):
+                    start = info[sects.START if sects.START in info else sects.START_IN]
+                    end = info[sects.END if sects.END in info else sects.END_IN]
+                    if start and end:
+                        shape.insert(0, f'{end} - {start} + 1')
+
+                gpu_pointers[item] = C2FInfo(ftype, 'type(C_PTR)', '', info[sects.EXTENTS] + shape)
 
         # finally load scratch data
         scratch = data.get(sects.T_SCRATCH, {})
