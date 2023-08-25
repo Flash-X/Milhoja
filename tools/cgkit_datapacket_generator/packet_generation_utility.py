@@ -1,6 +1,18 @@
 import json_sections
+import re
 from typing import Tuple
 from enum import Enum
+
+# source keywords
+_GRID = "grid_data"
+_SCRATCH = "scratch"
+
+PREDEFINED_STRUCT_KEYWORDS = {
+    'auxC': ['loGC', 'hiGC', '1'],
+    'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
+    'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }', '5'],
+    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '5']
+}
 
 FARRAY_MAPPING = {
     "int": "IntVect",
@@ -48,6 +60,39 @@ class _TaskArgumentListMismatchException(BaseException):
 class _DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
+
+def parse_lbound(lbound: str, data_source: str):
+    """
+    Parses an lbound string for use within the generator.
+    
+    :param str lbound: The lbound string to parse.
+    :param str data_source: The source of the data. Eg: scratch or grid data. 
+    """
+    starting_index = "1"
+    if data_source == _GRID:
+        # If it's a grid data structure we know that the number of unks will always
+        # be at the end. 
+        lbound_info = lbound.split(',')
+        low = lbound_info[0]
+        low = low.strip().replace(')', '').replace('(', '')
+        starting_index = lbound_info[-1]
+        starting_index = starting_index.strip().replace('(', '').replace(')', '')
+        return [low, starting_index]
+    elif data_source == _SCRATCH:
+        # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
+        # to find tile data.
+        lookahead = r',\s*(?![^()]*\))'
+        matches = re.split(lookahead, lbound)
+        print("Split: ", matches)
+        for idx,item in enumerate(matches):
+            match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
+            unlabeled_intvects = re.findall(match_intvects, item)
+            print(unlabeled_intvects)
+            for vect in unlabeled_intvects:
+                matches[idx] = item.replace(vect, f"IntVect{vect}")
+        return matches
+
+    
 
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
     """
