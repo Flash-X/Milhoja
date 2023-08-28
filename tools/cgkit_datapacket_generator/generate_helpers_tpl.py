@@ -338,6 +338,20 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
 
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
+
+def get_data_pointer_string(item: str):
+    # todo: get data from structure_index section
+    data_pointer_string = "tileDesc_h->dataPtr()"
+    # TODO: Make this actually good.    
+    # TODO: THis is testing for getting flux data pointers.
+    # TODO: Something like this would probably be a 'per format' thing and not a data packet generator specification.
+    if 'flux' in item.lower() or 'fl' in item.lower():
+        if 'X' in item: data_pointer_string = util.DATA_POINTER_MAP['flX']
+        elif 'Y' in item: data_pointer_string = util.DATA_POINTER_MAP['flY']
+        elif 'Z' in item: data_pointer_string = util.DATA_POINTER_MAP['flZ']
+    return data_pointer_string
+
+
 def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: str, start: str, end: str, size_item: str, raw_type: str):
     """
     Adds a memcpy connector based on the information passed in.
@@ -372,8 +386,12 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
     # This exists inside the pack function for copying data from tile_in to the device.
     # Luckily we don't really need to use DataPacketMemberVars here because the temporary device pointer 
     # is locally scoped.
+
+    data_pointer_string = get_data_pointer_string(item)
+
+    # TODO: Use grid data to get data pointer information.
     connectors[f'memcpy_{section}'].extend([
-        f'{raw_type}* {item}_d = tileDesc_h->dataPtr();\n'  # eventually we will pass arguments to data ptr for specific data args.
+        f'{raw_type}* {item}_d = {data_pointer_string};\n'  # eventually we will pass arguments to data ptr for specific data args.
         f'std::size_t offset_{item} = {offset};\n',
         f'std::size_t nBytes_{item} = {nBytes};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>(_{item}_p) ) + n * {size_item};\n',
@@ -412,8 +430,10 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start, end, r
         offset = '0;'
         nBytes = f'SIZE_{out_ptr.upper()};'
 
+    data_pointer_string = get_data_pointer_string(in_ptr)
+
     # TODO: Eventually the tile wrapper class will allow us to pick out the exact data array we need with dataPtr().
-    connectors[_IN_PTRS].append(f'{raw_type}* {in_ptr}_data_h = tileDesc_h->dataPtr();\n')
+    connectors[_IN_PTRS].append(f'{raw_type}* {in_ptr}_data_h = {data_pointer_string};\n')
     connectors[f'unpack_{section}'].extend([
         f'std::size_t offset_{in_ptr} = {offset}\n',
         f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'

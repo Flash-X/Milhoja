@@ -41,6 +41,13 @@ TILE_VARIABLE_MAPPING = {
     'hiGC': "IntVect"
 }
 
+DATA_POINTER_MAP = {
+    'unk': 'tileDesc_h->dataPtr()',
+    'flX': 'tileDesc_h->fluxDataPtrs()[Axis::I]',
+    'flY': 'tileDesc_h->fluxDataPtrs()[Axis::J]',
+    'flZ': 'tileDesc_h->fluxDataPtrs()[Axis::K]'
+}
+
 class Language(Enum):
     """Gives all possible languages for data packet generation. Included languages are fortran and cpp."""
     cpp = 'cpp'
@@ -90,7 +97,7 @@ def parse_lbound(lbound: str, data_source: str):
     """
     starting_index = "1"
     print(lbound)
-    if data_source == _GRID:
+    if lbound and data_source == _GRID:
         # We have control over the extents of grid data structures.
         lbound_info = lbound.split(',')
         low = lbound_info[0]
@@ -98,7 +105,7 @@ def parse_lbound(lbound: str, data_source: str):
         starting_index = lbound_info[-1]
         starting_index = starting_index.strip().replace('(', '').replace(')', '')
         return [low, starting_index]
-    elif data_source == _SCRATCH:
+    elif lbound and data_source == _SCRATCH:
         # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
         # to find tile data.
         lookahead = r',\s*(?![^()]*\))'
@@ -112,7 +119,7 @@ def parse_lbound(lbound: str, data_source: str):
                 matches[idx] = item.replace(vect, f"IntVect{vect}")
         print(matches)
         return matches
-    return []
+    return ['']
 
     
 
@@ -141,6 +148,7 @@ def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
             lbound_list.extend( [f'{name}.I() + 1', f'{name}.J() + 1', f'{name}.K() + 1'] )
     return (formatted, lbound_list)
     
+
 def check_json_validity(data: dict) -> bool:
     """
     Checks if the keys in the task function argument list are all present in the JSON

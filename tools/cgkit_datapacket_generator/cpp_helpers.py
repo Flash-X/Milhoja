@@ -12,7 +12,7 @@ BOUND_MAP = {
     'auxC': ['loGC', 'hiGC', '1'],
     'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
     'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }', '5'],
-    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '1']
+    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '5']
 }
 
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
