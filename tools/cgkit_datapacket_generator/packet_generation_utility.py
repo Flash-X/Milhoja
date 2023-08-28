@@ -61,6 +61,26 @@ class _DuplicateItemException(BaseException):
     """Raised when there is a duplicate item key in the JSON file."""
     pass
 
+
+def remove_invalid_parens(s: str) -> str:
+    """Removes any invalid parentheses from a string."""
+    stack = []
+    to_remove = []
+
+    for idx,char in enumerate(s):
+        if char == "(":
+            stack.append( (char, idx) )
+        elif char == ")":
+            try:
+                stack.pop()
+            except:
+                to_remove.append( (char, idx) )
+    to_remove.extend(stack)
+    for (char,idx) in to_remove:
+        s = s[:idx] + '' + s[idx + 1:]
+    print(s)
+    return s
+
 def parse_lbound(lbound: str, data_source: str):
     """
     Parses an lbound string for use within the generator.
@@ -69,9 +89,9 @@ def parse_lbound(lbound: str, data_source: str):
     :param str data_source: The source of the data. Eg: scratch or grid data. 
     """
     starting_index = "1"
+    print(lbound)
     if data_source == _GRID:
-        # If it's a grid data structure we know that the number of unks will always
-        # be at the end. 
+        # We have control over the extents of grid data structures.
         lbound_info = lbound.split(',')
         low = lbound_info[0]
         low = low.strip().replace(')', '').replace('(', '')
@@ -90,7 +110,9 @@ def parse_lbound(lbound: str, data_source: str):
             print(unlabeled_intvects)
             for vect in unlabeled_intvects:
                 matches[idx] = item.replace(vect, f"IntVect{vect}")
+        print(matches)
         return matches
+    return []
 
     
 
