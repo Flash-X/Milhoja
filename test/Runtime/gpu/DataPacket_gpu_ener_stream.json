@@ -1,26 +1,26 @@
 {
     "byte_align": 16,
     "n_extra_streams": 0,
-    "task_function_argument_list": [ "tile_deltas", "tile_lo", "tile_hi", "U", "auxC" ],
+    "task_function_argument_list": [ "tile_deltas", "tile_lo", "tile_hi", "Uin", "Uout" ],
     "tile_metadata": {
         "tile_deltas": "deltas",
         "tile_lo": "lo",
         "tile_hi": "hi"
     },
     "tile_in": {
-      "U": {
+      "Uin": {
           "type": "real",
           "start": "1",
           "end": "1",
-          "extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+          "extents": ["8 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
       }
     },
     "tile_out": {
-      "auxC": {
+      "Uout": {
           "type": "real",
           "start": "1",
           "end": "1",
-          "extents": ["16 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
+          "extents": ["8 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
       }
     }
   }
