@@ -26,6 +26,8 @@ std::unique_ptr<milhoja::DataPacket> _param:class_name::clone(void) const {
     };
 }
 
+// Constructor arguments for DataPacket classes are copied by value into non-reference data members. 
+// Thus, these values are frozen at instantiation. 
 _param:class_name::_param:class_name(
     /* _link:constructor_args */
 )
