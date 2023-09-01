@@ -63,7 +63,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (int n=0; n<*nTiles_d; ++n) {
             const FArray4D* U_d = CC1_d + n;
-            FArray4D* auxC_d = CC2_d + n;
+            const FArray4D* auxC_d = CC2_d + n;
 
             const IntVect* lo = lo_d + n;
             const IntVect* hi = hi_d + n;
