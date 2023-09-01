@@ -207,8 +207,8 @@ public:
 	DataPacket_Hydro_gpu_3& operator=(const DataPacket_Hydro_gpu_3&) = delete;
 	DataPacket_Hydro_gpu_3& operator=(DataPacket_Hydro_gpu_3&& rhs)  = delete;
 
-    void pack(void);
-    void unpack(void);
+    void pack(void) override;
+    void unpack(void) override;
 
         real _dt_h;
         real* _dt_d;
