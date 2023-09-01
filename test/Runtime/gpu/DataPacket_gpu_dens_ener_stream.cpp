@@ -163,6 +163,7 @@ void DataPacket_gpu_dens_ener_stream::pack(void) {
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
+    
     RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
     _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;

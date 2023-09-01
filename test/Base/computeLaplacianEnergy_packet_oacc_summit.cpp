@@ -28,12 +28,15 @@ void ActionRoutines::computeLaplacianEnergy_packet_oacc_summit(const int tId,
     #pragma acc data deviceptr(nTiles_d, deltas_d, lo_d, hi_d, CC1_d, CC2_d)
     {
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (std::size_t n=0; n<*nTiles_d; ++n) {
+        for (int n=0; n<*nTiles_d; ++n) {
             const FArray4D*        Uin_d  = CC1_d + n;
             FArray4D*              Uout_d = CC2_d + n;
-            StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(lo_d + n, hi_d + n,
+	        const RealVect* deltas = deltas_d + n;
+	        const IntVect* lo = lo_d + n;
+	        const IntVect* hi = hi_d + n;
+	        StaticPhysicsRoutines::computeLaplacianEnergy_oacc_summit(lo, hi,
                                                                       Uin_d, Uout_d,
-                                                                      deltas_d + n);
+                                                                      deltas);
         }
     }
     #pragma acc wait(queue_h)

@@ -163,8 +163,7 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
     const DataPacket_gpu_dens_stream&   packetPrototypeDens{};
-    const DataPacket_gpu_ener_stream&   packetPrototypeEner{};
-    
+    const DataPacket_gpu_ener_stream&   packetPrototypeEner{}; 
     
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("LapDens", 1, 0, computeLaplacianDensity,

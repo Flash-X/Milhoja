@@ -73,8 +73,8 @@ void DataPacket_gpu_dens_stream::pack(void) {
     constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (0 - 0 + 1) * sizeof(real);
-    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
+    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (1 - 0 + 1) * sizeof(real);
+    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 1 - 0 + 1 ) * sizeof(real);
     
 
 	std::size_t SIZE_CONSTRUCTOR = pad(
@@ -142,6 +142,7 @@ void DataPacket_gpu_dens_stream::pack(void) {
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
+
     RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
     _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
@@ -166,7 +167,7 @@ void DataPacket_gpu_dens_stream::pack(void) {
     _f4_Uout_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
     ptr_p += _nTiles_h * sizeof(FArray4D);
     ptr_d += _nTiles_h * sizeof(FArray4D);
-    
+     
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -214,15 +215,15 @@ void DataPacket_gpu_dens_stream::pack(void) {
         
         real* Uin_d = tileDesc_h->dataPtr();
         std::size_t offset_Uin = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
-        std::size_t nBytes_Uin = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
+        std::size_t nBytes_Uin = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 1 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_Uin_p) ) + n * SIZE_UIN;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
-        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), loGC, hiGC, 0 - 0 + 1};
+        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), loGC, hiGC, 1 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * sizeof(FArray4D);
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), sizeof(FArray4D));
         
-        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), loGC, hiGC, 0 - 0 + 1};
+        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), loGC, hiGC, 1 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * sizeof(FArray4D);
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), sizeof(FArray4D));
         
@@ -242,8 +243,8 @@ void DataPacket_gpu_dens_stream::unpack(void) {
     if (!stream_.isValid()) throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
-    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (0 - 0 + 1) * sizeof(real);
-    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
+    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (1 - 0 + 1) * sizeof(real);
+    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 1 - 0 + 1 ) * sizeof(real);
     
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();

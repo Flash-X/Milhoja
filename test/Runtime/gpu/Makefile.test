@@ -23,7 +23,6 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
@@ -33,6 +32,7 @@ SRCS_TEST = \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp
 
+#    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
 #    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
 #    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
 #    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
