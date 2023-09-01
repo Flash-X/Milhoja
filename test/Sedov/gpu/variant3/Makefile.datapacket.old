@@ -1,3 +1,0 @@
-DataPacket_Hydro_gpu_3.cpp: $(TESTDIR)/DataPacket_Hydro_gpu_3.json $(MAKEFILES)
-	cp $(TESTDIR)/DataPacket*.cpp .
-	cp $(TESTDIR)/DataPacket*.h .
