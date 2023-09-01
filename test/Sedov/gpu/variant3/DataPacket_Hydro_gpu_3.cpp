@@ -46,6 +46,8 @@ std::unique_ptr<milhoja::DataPacket> DataPacket_Hydro_gpu_3::clone(void) const {
     };
 }
 
+// Constructor arguments for DataPacket classes are copied by value into non-reference data members.
+// Thus, these values are frozen at instantiation.
 DataPacket_Hydro_gpu_3::DataPacket_Hydro_gpu_3(
 real dt
 
