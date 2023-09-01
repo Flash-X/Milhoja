@@ -4,7 +4,7 @@ code is to move through every possible DataPacket JSON section and fill out the 
 for generating every template.
 
 TODO: How to sort bound class members by size?
-TODO: Eventually logging sure be more informative and replace all print statements.
+TODO: Eventually logging should be more informative and replace all print statements.
 """
 
 from dataclasses import dataclass
@@ -146,7 +146,7 @@ def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: d
     connectors[_HOST_MEMBERS] = []
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
     for key,item_type in constructor.items():
-        info = dpinfo.DataPacketMemberVars(item=key, dtype=item_type, size_eq=f'pad( sizeof({item_type}) )', per_tile=False)
+        info = dpinfo.DataPacketMemberVars(item=key, dtype=item_type, size_eq=f'sizeof({item_type})', per_tile=False)
 
         # nTiles is a special case here. nTiles should not be included in the constructor, and it has its own host variable generation.
         if key != 'nTiles':
@@ -529,7 +529,7 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:d
         _set_pointer_determination(connectors, jsc.T_OUT, info, False)
         _add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, info.dtype, corresponding_in_data, info.ITEM)
         if language == util.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], cpp_helpers.BOUND_MAP[item][2], info.dtype)
+            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], f'{end} - {start} + 1', info.dtype)
 
 def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
     """
