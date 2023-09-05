@@ -322,7 +322,10 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
             f'{info.dtype}* {info.get_pinned()};\n'
         )
         connectors[_SET_MEMBERS].extend(
-            [f'{info.get_device()}{{nullptr}}']
+            [
+                f'{info.get_device()}{{nullptr}}',
+                f'{info.get_pinned()}{{nullptr}}'
+            ]
         )
         connectors[_SIZE_DET].append(
             f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
@@ -474,7 +477,10 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
             f'{info.dtype}* {info.get_pinned()};\n'
         )
         connectors[_SET_MEMBERS].extend(
-            [f'{info.get_device()}{{nullptr}}']
+            [
+                f'{info.get_device()}{{nullptr}}',
+                f'{info.get_pinned()}{{nullptr}}'
+            ]
         )
         connectors[_SIZE_DET].append(
             f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
@@ -557,6 +563,9 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: d
         # we don't insert into memcpy or unpack because the scratch is only used in the device memory 
         # and does not come back.
         
+        # TODO: How to insert this FArray into the C++ packet? 
+        #       We do not have control over the number of unknowns in scratch arrays, so how do we 
+        #       incorporate this with lbound?
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], cpp_helpers.BOUND_MAP[item][2], info.dtype)
 
@@ -708,7 +717,7 @@ def generate_helper_template(data: dict) -> None:
 
         # insert farray variables if necessary.
         if lang == util.Language.cpp: 
-            cpp_helpers.insert_farray_information(data, connectors, _PUB_MEMBERS)
+            cpp_helpers.insert_farray_information(data, connectors, _PUB_MEMBERS, _SET_MEMBERS)
 
         # Write to all files.
         _generate_outer(data[jsc.OUTER], params)

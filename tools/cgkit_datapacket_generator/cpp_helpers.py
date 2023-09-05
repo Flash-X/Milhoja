@@ -2,6 +2,7 @@
 A collection of alternate functions to be used when generating cpp packets.
 
 TODO: Need some way to determine when to use FArray1D/2D/3D over FArray4D.
+TODO: All FArray4D objects should be created using the DataPacketMemberVars class.
 """
 import packet_generation_utility as util
 import json_sections as jsc
@@ -61,7 +62,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     ])
 
 # can probably shrink this function and insert it into each data section.
-def insert_farray_information(data: dict, connectors: dict, section: str) -> None:
+def insert_farray_information(data: dict, connectors: dict, section: str, set_members) -> None:
     """
     Inserts farray items into the data packet.
     
@@ -73,9 +74,14 @@ def insert_farray_information(data: dict, connectors: dict, section: str) -> Non
     dicts = [data.get(jsc.T_IN, {}), data.get(jsc.T_IN_OUT, {}), data.get(jsc.T_OUT, {}), data.get(jsc.T_SCRATCH, {})]
     # we need to make an farray object for every possible data array
     farrays = {item: sect[item] for sect in dicts for item in sect}
+    # TODO: Use DataPacketMemberVars class for this.
     connectors[section].extend(
-        [ f'FArray4D* _f4_{item}_d;\n' for item in farrays] + 
-        [ f'FArray4D* _f4_{item}_p;\n' for item in farrays]
+        [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] + 
+        [ f'FArray4D* _f4_{item}_p;\n' for item in farrays ]
+    )
+    connectors[set_members].extend(
+        [ f'_f4_{item}_d{{nullptr}}' for item in farrays ] +
+        [ f'_f4_{item}_p{{nullptr}}' for item in farrays ]
     )
 
 # NOTE: This function call gets swapped with another so many params may be unused.
