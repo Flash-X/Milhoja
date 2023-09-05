@@ -24,6 +24,9 @@ class _EmptyFileException(BaseException):
     """Raised when the file passed in to generate the JSON is empty."""
     pass
 
+class _MissingSizesException(BaseException):
+    pass
+
 def _load_json(file: TextIO, args) -> dict:
     """
     Loads the json file into a dict and adds any necessary information to it.
@@ -39,15 +42,10 @@ def _load_json(file: TextIO, args) -> dict:
     data[sections.LANG] = args.language
     data[sections.OUTER] = f'cg-tpl.{data[sections.NAME]}_outer.cpp'
     data[sections.HELPERS] = f'cg-tpl.{data[sections.NAME]}_helpers.cpp'
-    data[sections.SIZES] = None
-    
-    # if sizes file is provided it is inserted into the dictionary. TODO: Should sizes file always be provided? Probably (See requirement 2)
-    if args.sizes:
-        with open(args.sizes, 'r') as sizes:
-            try:
-                data[sections.SIZES] = json.load(sizes)
-            except Exception:
-                warnings.warn("Sizes file could not be loaded. Continuing...")
+    # Sizes file should always be provided. Generating a data packet subclass without sorting
+    # the pointers based on size is prone to memory alignment errors, and requires extra padding
+    # on every variable.
+    data[sections.SIZES] = json.load(args.sizes)
     return data
 
 def main():
@@ -67,6 +65,8 @@ def main():
         raise _NotAJSONException("File does not have a .json extension.")
     if os.path.getsize(args.JSON) < 5:
         raise _EmptyFileException("File is empty or too small.")
+    if not args.sizes or not args.sizes.endswith('.json'):
+        raise _MissingSizesException("No sizes json file provided.")
 
     with open(args.JSON, "r") as file:
         data = _load_json(file, args) # load data.
