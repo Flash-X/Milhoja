@@ -9,7 +9,9 @@ import json_sections as sections
 import warnings
 import c2f_generator
 import cpp2c_generator
+from typing import TextIO
 
+# TODO: Replace exception handling with CI build server friendly error handling and logging scheme.
 class _NoLanguageException(BaseException):
     """Raised when no language is provided when generating a data packet."""
     pass
@@ -22,11 +24,12 @@ class _EmptyFileException(BaseException):
     """Raised when the file passed in to generate the JSON is empty."""
     pass
 
-def _load_json(file, args) -> dict:
+def _load_json(file: TextIO, args) -> dict:
     """
     Loads the json file into a dict and adds any necessary information to it.
 
-    :param TextIO file: The file path of the JSON.
+    :param TextIO file: The file pointer containing the data of the DataPacket json.
+    :param args: Command-line argument namespace.
     :return: The loaded json dictionary.
     :rtype: dict[Unknown, Unknown]
     """
