@@ -9,6 +9,10 @@ _SCRATCH = "scratch"
 
 # TODO: Will flux arrays always contain 5 unks? Will auxC always only have 1 unk?
 #       Need to determine with lbound.
+# TODO TODO: These should be flash-x specific keywords. They should not be stored within
+#            the data packet generation code. Anything application specific should be able to 
+#            provide their own keyword list for parsing data packet jsons / yamls / whatever 
+#            they want to have the data packet information stored in.
 PREDEFINED_STRUCT_KEYWORDS = {
     'auxC': ['loGC', 'hiGC', '1'],
     'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
