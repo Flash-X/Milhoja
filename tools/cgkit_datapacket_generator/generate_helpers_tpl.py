@@ -395,8 +395,8 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
     # TODO: Use grid data to get data pointer information.
     connectors[f'memcpy_{section}'].extend([
         f'{raw_type}* {item}_d = {data_pointer_string};\n'  # eventually we will pass arguments to data ptr for specific data args.
-        f'std::size_t offset_{item} = {offset};\n',
-        f'std::size_t nBytes_{item} = {nBytes};\n',
+        f'constexpr std::size_t offset_{item} = {offset};\n',
+        f'constexpr std::size_t nBytes_{item} = {nBytes};\n',
         f'char_ptr = static_cast<char*>( static_cast<void*>(_{item}_p) ) + n * {size_item};\n',
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n\n'
     ])
@@ -405,15 +405,14 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start, end, r
     """
     Adds an unpack connector to the connectors dictionary based on the information passed in.
     
-    Parameters:
-        connectors: dict - The connectors dictionary
-        section: str - The name of the section
-        extents: str - The extents of the array
-        start: str - The start variable
-        end: str - The end variable
-        raw_type - The item's data type
-        in_ptr: str - The name of the in data pointer
-        out_ptr: str - The name of the out data pointer
+    :param dict connectors: The connectors dictionary
+    :param str section: The name of the section
+    :param str extents: The extents of the array
+    :param str start: The start variable
+    :param str end: The end variable
+    :param str raw_type: The item's data type
+    :param str in_ptr: The name of the in data pointer
+    :param str out_ptr: The name of the out data pointer
     """
 
     # Developer's Note:
@@ -438,10 +437,10 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start, end, r
     # TODO: Eventually the tile wrapper class will allow us to pick out the exact data array we need with dataPtr().
     connectors[_IN_PTRS].append(f'{raw_type}* {in_ptr}_data_h = {data_pointer_string};\n')
     connectors[f'unpack_{section}'].extend([
-        f'std::size_t offset_{in_ptr} = {offset}\n',
+        f'constexpr std::size_t offset_{in_ptr} = {offset}\n',
         f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
         f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
-        f'std::size_t nBytes_{out_ptr} = {nBytes}\n',
+        f'constexpr std::size_t nBytes_{out_ptr} = {nBytes}\n',
         f'std::memcpy(static_cast<void*>(start_h_{in_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{out_ptr});\n\n'
     ])
     # I'm the casting here is awful but I'm not sure there's a way around it that isn't just using c-style casting, 
