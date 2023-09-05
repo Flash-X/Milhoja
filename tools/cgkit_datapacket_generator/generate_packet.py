@@ -10,6 +10,23 @@ import warnings
 import c2f_generator
 import cpp2c_generator
 from typing import TextIO
+from argparse import RawTextHelpFormatter
+
+# TODO: DataPacket generator should have an option to clean up any files it generatoes outside of the
+#       CPP2C layer, C2F layer, and data packet header and source files.
+
+_APPLICATION_DESCRIPTION = \
+"""=== DataPacket Generator ===
+
+This tool is responsible for generating DataPacket subclasses for use with an
+associated task function. To use this tool, run a command similar to:
+
+    generate_packet.py -l fortran -s sample_jsons/sizes.json sample_jsons/DataPacket_Hydro_gpu_3.json
+
+This will output a set of generated files that contain the code for DataPacket 
+based on the contents of the json file. Note that the generator does not clean 
+up any files that it generates.
+"""
 
 # TODO: Replace exception handling with CI build server friendly error handling and logging scheme.
 class _NoLanguageException(BaseException):
@@ -53,14 +70,15 @@ def main():
     Loads the arguments and JSON, then generates the data packet files.
     Also generates the cpp2c and c2f layers if necessary.
     """
-    parser = argparse.ArgumentParser(description="Generate packet code files for use in Flash-X simulations.")
-    parser.add_argument("JSON", help="The JSON file to generate from.")
-    parser.add_argument('--language', '-l', type=consts.Language, choices=list(consts.Language), help="Generate a packet to work with this language.")
-    parser.add_argument("--sizes", "-s", help="Path to data type size information.")
+    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description=_APPLICATION_DESCRIPTION)
+    parser.add_argument("JSON", help="[mandatory] The JSON file to generate from.")
+    parser.add_argument('--language', '-l', type=consts.Language, choices=list(consts.Language), 
+                        help="[mandatory] Generate a packet to work with a task function using this language.")
+    parser.add_argument("--sizes", "-s", help="[mandatory] Path to data type size information.")
     args = parser.parse_args()
 
     if args.language is None:
-        raise _NoLanguageException("You must provide a language!")
+        raise _NoLanguageException("You must provide the language of the paired task function!")
     if not args.JSON.endswith('.json'):
         raise _NotAJSONException("File does not have a .json extension.")
     if os.path.getsize(args.JSON) < 5:
