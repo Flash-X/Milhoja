@@ -62,10 +62,17 @@ _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
 _U_d{nullptr},
+_U_p{nullptr},
 _auxC_d{nullptr},
 _flX_d{nullptr},
 _flY_d{nullptr},
-_flZ_d{nullptr}
+_flZ_d{nullptr},
+_f4_U_d{nullptr},
+_f4_U_p{nullptr},
+_f4_auxC_d{nullptr},
+_f4_flX_d{nullptr},
+_f4_flY_d{nullptr},
+_f4_flZ_d{nullptr}
 
     {
 }
