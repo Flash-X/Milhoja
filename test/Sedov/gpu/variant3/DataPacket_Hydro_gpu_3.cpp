@@ -89,7 +89,6 @@ void DataPacket_Hydro_gpu_3::pack(void) {
 		throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] " + errMsg);
 	else if (tiles_.size() == 0)
 		throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] No tiles added.");
-    static_assert(sizeof(char) == 1);
 
     _nTiles_h = tiles_.size();
     // size determination

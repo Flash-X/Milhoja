@@ -51,7 +51,6 @@ void _param:class_name::pack(void) {
 		throw std::logic_error("[_param:class_name pack] " + errMsg);
 	else if (tiles_.size() == 0)
 		throw std::logic_error("[_param:class_name pack] No tiles added.");
-    static_assert(sizeof(char) == 1);
 
     _nTiles_h = tiles_.size();
     // size determination
