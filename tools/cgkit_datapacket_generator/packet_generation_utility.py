@@ -7,6 +7,8 @@ from enum import Enum
 _GRID = "grid_data"
 _SCRATCH = "scratch"
 
+# TODO: Will flux arrays always contain 5 unks? Will auxC always only have 1 unk?
+#       Need to determine with lbound.
 PREDEFINED_STRUCT_KEYWORDS = {
     'auxC': ['loGC', 'hiGC', '1'],
     'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
@@ -56,7 +58,7 @@ class Language(Enum):
     def __str__(self):
         return self.value
     
-class _NoTaskArgumentListExcepiton(BaseException):
+class _NoTaskArgumentListException(BaseException):
     """Raised when the provided JSON file does not have a task function argument list."""
     pass
 
@@ -69,12 +71,12 @@ class _DuplicateItemException(BaseException):
     pass
 
 
-def remove_invalid_parens(s: str) -> str:
+def remove_invalid_parens(invalid_string: str) -> str:
     """Removes any invalid parentheses from a string."""
     stack = []
     to_remove = []
 
-    for idx,char in enumerate(s):
+    for idx,char in enumerate(invalid_string):
         if char == "(":
             stack.append( (char, idx) )
         elif char == ")":
@@ -84,9 +86,9 @@ def remove_invalid_parens(s: str) -> str:
                 to_remove.append( (char, idx) )
     to_remove.extend(stack)
     for (char,idx) in to_remove:
-        s = s[:idx] + '' + s[idx + 1:]
-    print(s)
-    return s
+        invalid_string = invalid_string[:idx] + '' + invalid_string[idx + 1:]
+    print(invalid_string)
+    return invalid_string
 
 def parse_lbound(lbound: str, data_source: str):
     """
@@ -160,7 +162,7 @@ def check_json_validity(data: dict) -> bool:
     """
     task_arguments = data.get(json_sections.ORDER, [])
     if not task_arguments:
-        raise _NoTaskArgumentListExcepiton("Missing task_function_argument_list.")
+        raise _NoTaskArgumentListException("Missing task_function_argument_list.")
     all_items_list = [ set(data[section]) for section in json_sections.ALL_SECTIONS if section in data ]
     
     # This checks if there is a duplicate between any 2 sets, out of n total sets. 
