@@ -2,6 +2,7 @@ from cgkit.ctree.srctree import SourceTree
 import cgkit.ctree.srctree as srctree
 import pathlib
 import json_sections as jsc
+import os
 
 _SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path.cwd(),
@@ -65,6 +66,9 @@ def generate_packet_code(data):
         _construct_source_tree(stree, src, data)
         # check result
         lines = stree.parse()
+        if os.path.isfile(dest):
+            # use logger here but for now just print a warning.
+            print(f"Warning: {dest} already exists. Overwriting.")
         with open(dest, 'w') as header:
             header.write(lines)
     print("Assembled datapacket")
