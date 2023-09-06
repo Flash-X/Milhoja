@@ -7,8 +7,6 @@ TODO: How to sort bound class members by size?
 TODO: Eventually logging should be more informative and replace all print statements.
 """
 
-from dataclasses import dataclass
-
 _CON_ARGS = 'constructor_args'
 _SET_MEMBERS = 'set_members'
 _SIZE_DET = 'size_determination'
@@ -50,6 +48,8 @@ def _section_creation(name: str, section: dict, connectors: dict, size_connector
     
     :param str name: The name of the section to create.
     :param dict section: The dictionary to get all data packet items from. 
+    :param dict connectors: The dictionary containing all link connectors. 
+    :param dict size_connectors: The dictionary containing all connectors that determine sizes for each variable in the data packet.
     """
     _add_size_parameter(name, section, size_connectors)
     connectors[f'pointers_{name}'] = []
@@ -72,7 +72,7 @@ def _set_pointer_determination(connectors: dict, section: str, info: dpinfo.Data
     
     # insert items into boiler plate for the pointer determination phase for *section*.
     connectors[f'pointers_{section}'].append(
-        f"""{dtype}_{info.ITEM}_p = static_cast<{info.dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
+        f"""{dtype}{info.pinned} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
         f"""{info.device} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
         f"""ptr_p+={info.total_size};\n""" + 
         f"""ptr_d+={info.total_size};\n\n"""
