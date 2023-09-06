@@ -85,18 +85,16 @@ def insert_farray_information(data: dict, connectors: dict, section: str, set_me
     )
 
 # NOTE: This function call gets swapped with another so many params may be unused.
-def tmdata_memcpy_cpp(connectors: dict, construct: str, use_ref: str, info: dpinfo.DataPacketMemberVars, alt_name: str):
+def tmdata_memcpy_cpp(connectors: dict, _: str, __: str, info: dpinfo.DataPacketMemberVars, alt_name: str):
     """
     The cpp version for the metadata memcpy section. This function contains many unused variables
     because it shares a call with the fortran version of this function.
 
     :param dict connectors: The dictionary containing all connectors for CGKit.
-    :param str pinned: The string of the pinned item for *item*
-    :param str size: The string of the size variable for *item*
-    :param str item: The item to copy to pinned memory
+    :param DataPacketMemberVars info: The information of the DataPacket variable.
     :param str alt_name: The name of the source pointer to be copied in.
     """
-    del construct, use_ref # delete unused parameters
+    del _, __ # delete unused parameters
     """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
     connectors[f'memcpy_{jsc.T_MDATA}'].extend([
         f"""char_ptr = static_cast<char*>( static_cast<void*>( {info.pinned} ) ) + n * {info.size};\n""",
