@@ -157,12 +157,13 @@ def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: d
             [f'{info.dtype} {info.host};\n', 
              f'{info.dtype}* {info.device};\n']
         )
+        set_host = "{ tiles_.size() }" if key == "nTiles" else f"{{ {key} }}"
         connectors[_SET_MEMBERS].extend(
-            [f'{info.host}{"{tiles_.size()}" if key == "nTiles" else f"{{{key}}}"}', 
+            [f'{info.host}{set_host}', 
              f'{info.device}{{nullptr}}']
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.size} =  {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.GENERAL, info)
         connectors[f'memcpy_{jsc.GENERAL}'].append(
