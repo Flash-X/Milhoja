@@ -305,7 +305,7 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang:
         _tmetadata_memcopy(connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", use_ref, info, '', lang)
 
 
-def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dict, language: str) -> None:
+def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, language: str) -> None:
     """
     Iterates the tile in section of the JSON.
     
@@ -314,7 +314,6 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
     :param dict tilein: The dict containing the information in the tile_in section.
     :param str language: The language of the corresponding task function.
     """
-    del _
     _section_creation(jsc.T_IN, tilein, connectors, size_connectors)
     pinnedLocation = set()
     for item,data in tilein.items():
@@ -457,7 +456,7 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start, end, r
     # and that is arguably worse than CPP style casting
     connectors[_OUT_PTRS].append(f'{raw_type}* {out_ptr}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _{out_ptr}_p ) ) + n * SIZE_{out_ptr.upper()} ) );\n')
 
-def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, _:dict, language: str) -> None:
+def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, language: str) -> None:
     """
     Iterates the tileinout section of the JSON.
     
@@ -506,7 +505,7 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
             cpp_helpers.insert_farray_memcpy(connectors, item, "loGC", "hiGC", unks, info.dtype)
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
-def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:dict, language: str) -> None:
+def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, language: str) -> None:
     """
     Iterates the tileout section of the JSON.
     
@@ -725,7 +724,7 @@ def generate_helper_template(data: dict) -> None:
         for section,funct in {jsc.T_IN: _iterate_tilein, jsc.T_IN_OUT: _iterate_tileinout,
                               jsc.T_OUT: _iterate_tileout }.items():
             dictionary = data.get(section, {}).items()
-            funct(connectors, size_connectors, _sort_dict(dictionary, sort_func), params, lang)
+            funct(connectors, size_connectors, _sort_dict(dictionary, sort_func), lang)
         tilescratch = data.get(jsc.T_SCRATCH, {}).items()
         _iterate_tilescratch(connectors, size_connectors, _sort_dict(tilescratch, sort_func), lang)
 
