@@ -62,7 +62,8 @@ def _load_json(file: TextIO, args) -> dict:
     # Sizes file should always be provided. Generating a data packet subclass without sorting
     # the pointers based on size is prone to memory alignment errors, and requires extra padding
     # on every variable.
-    data[sections.SIZES] = json.load(args.sizes)
+    with open(args.sizes, 'r') as sizes:
+        data[sections.SIZES] = json.load(sizes)
     return data
 
 def main():

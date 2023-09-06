@@ -2,7 +2,7 @@
 A collection of alternate functions to be used when generating cpp packets.
 
 TODO: Need some way to determine when to use FArray1D/2D/3D over FArray4D.
-TODO: All FArray4D objects should be created using the DataPacketMemberVars class.
+TODO: All FArray4D objects should be created using the DataPacketMemberVars class?
 """
 import packet_generation_utility as util
 import json_sections as jsc
@@ -99,6 +99,6 @@ def tmdata_memcpy_cpp(connectors: dict, construct: str, use_ref: str, info: dpin
     del construct, use_ref # delete unused parameters
     """Inserts the memcpy portion for tile metadata. Various arguments are unused to share a function call with another func."""
     connectors[f'memcpy_{jsc.T_MDATA}'].extend([
-        f"""char_ptr = static_cast<char*>( static_cast<void*>( {info.get_pinned()} ) ) + n * {info.get_size(False)};\n""",
-        f"""std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{alt_name}), {info.get_size(False)});\n\n"""
+        f"""char_ptr = static_cast<char*>( static_cast<void*>( {info.pinned} ) ) + n * {info.size};\n""",
+        f"""std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&{alt_name}), {info.size});\n\n"""
     ])

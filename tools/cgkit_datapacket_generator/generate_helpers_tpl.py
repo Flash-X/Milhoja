@@ -73,9 +73,9 @@ def _set_pointer_determination(connectors: dict, section: str, info: dpinfo.Data
     # insert items into boiler plate for the pointer determination phase for *section*.
     connectors[f'pointers_{section}'].append(
         f"""{dtype}_{info.ITEM}_p = static_cast<{info.dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
-        f"""{info.get_device()} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
-        f"""ptr_p+={info.get_size(info.PER_TILE)};\n""" + 
-        f"""ptr_d+={info.get_size(info.PER_TILE)};\n\n"""
+        f"""{info.device} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
+        f"""ptr_p+={info.total_size};\n""" + 
+        f"""ptr_d+={info.total_size};\n\n"""
     )
 
 def _generate_extra_streams_information(connectors: dict, extra_streams: int):
@@ -151,22 +151,22 @@ def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: d
         # nTiles is a special case here. nTiles should not be included in the constructor, and it has its own host variable generation.
         if key != 'nTiles':
             connectors[_CON_ARGS].append( f'{item_type} {key}' )
-            connectors[_HOST_MEMBERS].append( info.get_host() )
+            connectors[_HOST_MEMBERS].append( info.host )
         # add the necessary connectors for the constructor section.
         connectors[_PUB_MEMBERS].extend(
-            [f'{info.dtype} {info.get_host()};\n', 
-             f'{info.dtype}* {info.get_device()};\n']
+            [f'{info.dtype} {info.host};\n', 
+             f'{info.dtype}* {info.device};\n']
         )
         connectors[_SET_MEMBERS].extend(
-            [f'{info.get_host()}{"{tiles_.size()}" if key == "nTiles" else f"{{{key}}}"}', 
-             f'{info.get_device()}{{nullptr}}']
+            [f'{info.host}{"{tiles_.size()}" if key == "nTiles" else f"{{{key}}}"}', 
+             f'{info.device}{{nullptr}}']
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.get_size(False)} =  {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} =  {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.GENERAL, info)
         connectors[f'memcpy_{jsc.GENERAL}'].append(
-            f'std::memcpy({info.get_pinned()}, static_cast<void*>(&{info.get_host()}), {info.get_size(False)});\n'
+            f'std::memcpy({info.pinned}, static_cast<void*>(&{info.host}), {info.size});\n'
         )
 
 def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: dpinfo.DataPacketMemberVars, alt_name: str):
@@ -180,9 +180,9 @@ def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: dpinf
     :param str alt_name: Unused
     """
     connectors[f'memcpy_{jsc.T_MDATA}'].extend([
-        f'{info.dtype} {info.get_host()}{construct};\n',
-        f'char_ptr = static_cast<char*>( static_cast<void*>({info.get_pinned()}) ) + n * {info.get_size(False)};\n',
-        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({use_ref}{info.get_host()}), {info.get_size(False)});\n\n',
+        f'{info.dtype} {info.host}{construct};\n',
+        f'char_ptr = static_cast<char*>( static_cast<void*>({info.pinned}) ) + n * {info.size};\n',
+        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({use_ref}{info.host}), {info.size});\n\n',
     ])
 
 def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int):
@@ -220,9 +220,9 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
         info = dpinfo.DataPacketMemberVars(item=item, dtype=item_type, size_eq=size_eq, per_tile=True)
 
         # extend each connector
-        connectors[_PUB_MEMBERS].extend( [f'{item_type}* {info.get_device()};\n'] )
-        connectors[_SET_MEMBERS].extend( [f'{info.get_device()}{{nullptr}}'] )
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.get_size(False)} = {size_eq};\n' )
+        connectors[_PUB_MEMBERS].extend( [f'{item_type}* {info.device};\n'] )
+        connectors[_SET_MEMBERS].extend( [f'{info.device}{{nullptr}}'] )
+        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {size_eq};\n' )
         _set_pointer_determination(connectors, jsc.T_MDATA, info)
 
         # data type depends on the language. If there exists a mapping for a fortran data type for the given item_type,
@@ -243,7 +243,7 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
             construct_host = f"[MILHOJA_MDIM] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
             use_ref = "" # don't need to pass by reference with primitive arrays
         else:
-            construct_host = f' = static_cast<{item_type}>({info.get_host()})'
+            construct_host = f' = static_cast<{item_type}>({info.host})'
             use_ref = "&" # need a reference for Vect objects.
 
         memcpy_func(connectors=connectors, construct=construct_host, use_ref=use_ref, info=info, alt_name=name)
@@ -280,14 +280,14 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang:
         constructor_expression,memcpy_list = util.format_lbound_string(key, bound)
         info = dpinfo.DataPacketMemberVars(item=key, dtype=dtype, size_eq=f'sizeof({dtype_size})', per_tile=True)
 
-        connectors[_PUB_MEMBERS].extend( [f'{dtype}* {info.get_device()};\n'] )
-        connectors[_SET_MEMBERS].append( f'{info.get_device()}{{nullptr}}')
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n' )
+        connectors[_PUB_MEMBERS].extend( [f'{dtype}* {info.device};\n'] )
+        connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}')
+        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
         connectors[f'pointers_{jsc.T_MDATA}'].append(
-            f"""{dtype}* {info.get_pinned()} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
-            f"""{info.get_device()} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
-            f"""ptr_p += {info.get_size(True)};\n""" + 
-            f"""ptr_d += {info.get_size(True)};\n\n"""
+            f"""{dtype}* {info.pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
+            f"""{info.device} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
+            f"""ptr_p += {info.total_size};\n""" + 
+            f"""ptr_d += {info.total_size};\n\n"""
         )
         connectors[_T_DESCRIPTOR].append(
             f'const IntVect {key} = {constructor_expression};\n'
@@ -318,23 +318,23 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
         
         # Add necessary connectors.
         connectors[_PUB_MEMBERS].append(
-            f'{info.dtype}* {info.get_device()};\n'
-            f'{info.dtype}* {info.get_pinned()};\n'
+            f'{info.dtype}* {info.device};\n'
+            f'{info.dtype}* {info.pinned};\n'
         )
         connectors[_SET_MEMBERS].extend(
             [
-                f'{info.get_device()}{{nullptr}}',
-                f'{info.get_pinned()}{{nullptr}}'
+                f'{info.device}{{nullptr}}',
+                f'{info.pinned}{{nullptr}}'
             ]
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN, info, False)
-        _add_memcpy_connector(connectors, jsc.T_IN, extents, item, start, end, info.get_size(False), info.dtype)
+        _add_memcpy_connector(connectors, jsc.T_IN, extents, item, start, end, info.size, info.dtype)
         # temporary measure until the bounds information in JSON is solidified.
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', unks, info.dtype)
@@ -472,23 +472,23 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
 
         # set connectors
         connectors[_PUB_MEMBERS].append(
-            f'{info.dtype}* {info.get_device()};\n'
-            f'{info.dtype}* {info.get_pinned()};\n'
+            f'{info.dtype}* {info.device};\n'
+            f'{info.dtype}* {info.pinned};\n'
         )
         connectors[_SET_MEMBERS].extend(
             [
-                f'{info.get_device()}{{nullptr}}',
-                f'{info.get_pinned()}{{nullptr}}'
+                f'{info.device}{{nullptr}}',
+                f'{info.pinned}{{nullptr}}'
             ]
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN_OUT, info, False)
-        _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, start_in, end_in, info.get_size(False), info.dtype)
+        _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, start_in, end_in, info.size, info.dtype)
         # here we pass in item twice because tile_in_out pointers get packed and unpacked from the same location.
         _add_unpack_connector(connectors, jsc.T_IN_OUT, extents, start_out, end_out, info.dtype, item, item)
         if language == util.Language.cpp:
@@ -519,17 +519,17 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:d
         corresponding_in_data = data.get('in_key', '') 
 
         connectors[_PUB_MEMBERS].append(
-            f'{info.dtype}* {info.get_device()};\n'
-            f'{info.dtype}* {info.get_pinned()};\n'
+            f'{info.dtype}* {info.device};\n'
+            f'{info.dtype}* {info.pinned};\n'
         )
         connectors[_SET_MEMBERS].extend(
-            [f'{info.get_device()}{{nullptr}}']
+            [f'{info.device}{{nullptr}}']
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n'
+            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_OUT, info, False)
         _add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, info.dtype, corresponding_in_data, info.ITEM)
@@ -552,12 +552,12 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: d
         extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
         info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', per_tile=True)
 
-        connectors[_PUB_MEMBERS].append( f'{info.dtype}* {info.get_device()};\n' )
-        connectors[_SET_MEMBERS].append( f'{info.get_device()}{{nullptr}}' )
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.get_size(False)} = {info.SIZE_EQ};\n' )
+        connectors[_PUB_MEMBERS].append( f'{info.dtype}* {info.device};\n' )
+        connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}' )
+        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
         connectors[f'pointers_{jsc.T_SCRATCH}'].append(
-            f"""{info.get_device()} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
-            f"""ptr_d += {info.get_size(info.PER_TILE)};\n\n"""
+            f"""{info.device} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
+            f"""ptr_d += {info.total_size};\n\n"""
         )
         # we don't insert into memcpy or unpack because the scratch is only used in the device memory 
         # and does not come back.
