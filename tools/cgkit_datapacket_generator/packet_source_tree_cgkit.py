@@ -4,7 +4,7 @@ import pathlib
 import json_sections as jsc
 
 _SOURCETREE_OPTIONS = {
-    'codePath': pathlib.Path('.'),
+    'codePath': pathlib.Path.cwd(),
     'indentSpace': ' '*4,
     'verbose': False,
     'verbosePre': '/* ',
@@ -51,7 +51,7 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
 # Main
 ####################
 
-def main(data):
+def generate_packet_code(data):
     """
     Driver function for constructing the data packet source tree.
     
@@ -70,4 +70,4 @@ def main(data):
     print("Assembled datapacket")
 
 if __name__ == '__main__':
-    main(None)
+    generate_packet_code(None)
