@@ -91,7 +91,7 @@ def main():
         data = _load_json(file, args) # load data.
         consts.check_json_validity(data) # check if the task args list matches the items in the JSON
         generate_helpers_tpl.generate_helper_template(data) # generate helper templates
-        ctree.main(data) # assemble data packet
+        ctree.generate_packet_code(data) # assemble data packet
 
         # generate cpp2c and c2f layers here.
         if args.language == consts.Language.fortran:
