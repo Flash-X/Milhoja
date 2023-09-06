@@ -27,7 +27,8 @@ import packet_generation_utility as util
 import warnings
 import cpp_helpers
 import json_sections as jsc
-import DataPacketMemberVars as dpinfo
+# import DataPacketMemberVars as dpinfo
+from DataPacketMemberVars import DataPacketMemberVars
 
 def _add_size_parameter(name: str, section_dict: dict, connectors: dict):
     """
@@ -55,7 +56,7 @@ def _section_creation(name: str, section: dict, connectors: dict, size_connector
     connectors[f'pointers_{name}'] = []
     connectors[f'memcpy_{name}'] = []
 
-def _set_pointer_determination(connectors: dict, section: str, info: dpinfo.DataPacketMemberVars, item_is_member_variable=True):
+def _set_pointer_determination(connectors: dict, section: str, info: DataPacketMemberVars, item_is_member_variable=True):
     """
     Stores the code for determining pointer offsets in the DataPacket into the connectors dictionary to be used with CGKit.
     
@@ -146,7 +147,7 @@ def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: d
     connectors[_HOST_MEMBERS] = []
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
     for key,item_type in constructor.items():
-        info = dpinfo.DataPacketMemberVars(item=key, dtype=item_type, size_eq=f'sizeof({item_type})', per_tile=False)
+        info = DataPacketMemberVars(item=key, dtype=item_type, size_eq=f'sizeof({item_type})', per_tile=False)
 
         # nTiles is a special case here. nTiles should not be included in the constructor, and it has its own host variable generation.
         if key != 'nTiles':
@@ -170,7 +171,7 @@ def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: d
             f'std::memcpy({info.pinned}, static_cast<void*>(&{info.host}), {info.size});\n'
         )
 
-def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: dpinfo.DataPacketMemberVars, alt_name: str):
+def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: DataPacketMemberVars):
     """
     Adds the memcpy portion for the metadata section in a fortran packet.
     
@@ -186,6 +187,20 @@ def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: dpinf
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({use_ref}{info.host}), {info.size});\n\n',
     ])
 
+def _tmetadata_memcopy(connectors: dict, construct: str, use_ref: str, info: DataPacketMemberVars, alt_name: str, language: str):
+    """
+    :param dict connectors: The dictionary containing all connectors for use with cgkit.
+    :param str construct: The variable name containing the value to be copied using memcpy.
+    :param str use_ref: string that determines if a variable should be passed by reference or not.
+    :param dpinfo.DataPacketMemberVars
+    """
+    if language == util.Language.cpp:
+        cpp_helpers.tmdata_memcpy_cpp(connectors, info, alt_name)
+    elif language == util.Language.fortran:
+        _tmdata_memcpy_f(connectors, construct, use_ref, info)
+    else:
+        print("Incompatible language.")
+
 def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int):
     """
     Iterates the tilemetadata section of the JSON.
@@ -200,9 +215,6 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
     connectors[_T_DESCRIPTOR] = []
     # depending on the item, it may or may not need to be passed by reference when casting to void*.
     use_ref = ""
-    # the memcpy function to use changes based on the language, since fortran requires the creation of a new array with 
-    # the tile data passed in.
-    memcpy_func = _tmdata_memcpy_f if language == util.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
     if language == util.Language.cpp: 
         cpp_helpers.insert_farray_size(size_connectors, num_arrays)
         use_ref = "&"
@@ -218,7 +230,7 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
         # code generation for the tile_metadata section often depends on the language to properly generate
         # working code
         size_eq = f"MILHOJA_MDIM * sizeof({item_type})" if language == util.Language.fortran else f"sizeof({ util.FARRAY_MAPPING.get(item_type, item_type) })"
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=item_type, size_eq=size_eq, per_tile=True)
+        info = DataPacketMemberVars(item=item, dtype=item_type, size_eq=size_eq, per_tile=True)
 
         # extend each connector
         connectors[_PUB_MEMBERS].extend( [f'{item_type}* {info.device};\n'] )
@@ -247,7 +259,7 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
             construct_host = f' = static_cast<{item_type}>({info.host})'
             use_ref = "&" # need a reference for Vect objects.
 
-        memcpy_func(connectors=connectors, construct=construct_host, use_ref=use_ref, info=info, alt_name=name)
+        _tmetadata_memcopy(connectors, construct_host, use_ref, info, name, language)
  
     # TODO: Remove this once bounds information is implemented.
     missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
@@ -273,13 +285,12 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang:
     """
     dtype = 'int' if lang == util.Language.fortran else 'IntVect'
     dtype_size = '3 * sizeof(int)' if lang == util.Language.fortran else 'IntVect'
-    memcpy_func = _tmdata_memcpy_f if lang == util.Language.fortran else cpp_helpers.tmdata_memcpy_cpp
     use_ref = '' if lang == util.Language.fortran else '&'
     lbound_mdata = ' + '.join( f'SIZE_{item.upper()}' for item in lbound ) if lbound else '0'
     size_connectors[f'size_{jsc.T_MDATA}'] = ' + '.join( [size_connectors[f'size_{jsc.T_MDATA}'], lbound_mdata])
     for key,bound in lbound.items():
         constructor_expression,memcpy_list = util.format_lbound_string(key, bound)
-        info = dpinfo.DataPacketMemberVars(item=key, dtype=dtype, size_eq=f'sizeof({dtype_size})', per_tile=True)
+        info = DataPacketMemberVars(item=key, dtype=dtype, size_eq=f'sizeof({dtype_size})', per_tile=True)
 
         connectors[_PUB_MEMBERS].extend( [f'{dtype}* {info.device};\n'] )
         connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}')
@@ -293,8 +304,7 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang:
         connectors[_T_DESCRIPTOR].append(
             f'const IntVect {key} = {constructor_expression};\n'
         )
-        memcpy_func(connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}",
-                    use_ref, info, '' )
+        _tmetadata_memcopy(connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", use_ref, info, '', lang)
 
 
 def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dict, language: str) -> None:
@@ -304,6 +314,7 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
     :param dict connectors: The dict containing all connectors for cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the data packet.
     :param dict tilein: The dict containing the information in the tile_in section.
+    :param str language: The language of the corresponding task function.
     """
     del _
     _section_creation(jsc.T_IN, tilein, connectors, size_connectors)
@@ -315,7 +326,7 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, _:dic
         end = data.get(jsc.END, "")
         extents = ' * '.join(f'({item})' for item in extents)
         unks = f'{end if end else 0} - {start if start else 0} + 1'
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
         
         # Add necessary connectors.
         connectors[_PUB_MEMBERS].append(
@@ -469,7 +480,7 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
         end_out = data.get(jsc.END_OUT, "")
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
         unks = f'{end_in if end_in else 0} - {start_in if start_in else 0} + 1'
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
 
         # set connectors
         connectors[_PUB_MEMBERS].append(
@@ -513,7 +524,12 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, _:d
         start = data.get(jsc.START, "")
         end = data.get(jsc.END, "")
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ( {end if end else 0} - {start if start else 0} + 1 ) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(
+            item=item, 
+            dtype=data[jsc.DTYPE], 
+            size_eq=f'{extents} * ( {end if end else 0} - {start if start else 0} + 1 ) * sizeof({data[jsc.DTYPE]})', 
+            per_tile=True
+        )
 
         # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
         #       This may not need to exist once the generated tile wrapper class is created.
@@ -551,7 +567,7 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: d
         # lbound = f"lo{item[0].capitalize()}{item[1:]}"
         # hbound = ...
         extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
-        info = dpinfo.DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', per_tile=True)
 
         connectors[_PUB_MEMBERS].append( f'{info.dtype}* {info.device};\n' )
         connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}' )
