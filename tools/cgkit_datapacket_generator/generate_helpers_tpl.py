@@ -213,11 +213,8 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
     """
     _section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors[_T_DESCRIPTOR] = []
-    # depending on the item, it may or may not need to be passed by reference when casting to void*.
-    use_ref = ""
     if language == util.Language.cpp: 
         cpp_helpers.insert_farray_size(size_connectors, num_arrays)
-        use_ref = "&"
     
     for item,name in tilemetadata.items():
         try:
@@ -250,6 +247,7 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
         #       as a variable type. Try generating spark packets to resolve this.
         info.dtype = info.dtype.replace('unsigned', '')
         # if the language is fortran and there exists a fortran data type equivalent (eg, IntVect -> int array.)
+        use_ref = ""
         if info.dtype in util.F_HOST_EQUIVALENT and language == util.Language.fortran:
             fix_index = '+1' if info.dtype == str('IntVect') else '' # indices are 1 based, so bound arrays need to adjust
             info.dtype = util.F_HOST_EQUIVALENT[info.dtype]
