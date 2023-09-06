@@ -364,7 +364,7 @@ def get_data_pointer_string(item: str):
     return data_pointer_string
 
 
-def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: str, start: str, end: str, size_item: str, raw_type: str):
+def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: str, start: int, end: int, size_item: str, raw_type: str):
     """
     Adds a memcpy connector based on the information passed in.
     
@@ -372,8 +372,8 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
     :param str section: The section to add a memcpy connector for.
     :param str extents: The string containing array extents information.
     :param str item: The item to copy into pinned memory.
-    :param str start: The starting index of the array.
-    :param str end: The ending index of the array.
+    :param int start: The starting index of the array.
+    :param int end: The ending index of the array.
     :param str size_item: The string containing the size variable for *item*.
     :param str raw_type: The data type of the item.
     """
@@ -410,15 +410,15 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>({item}_d + offset_{item}), nBytes_{item});\n\n'
     ])
 
-def _add_unpack_connector(connectors: dict, section: str, extents, start, end, raw_type, in_ptr, out_ptr):
+def _add_unpack_connector(connectors: dict, section: str, extents, start: int, end: int, raw_type: str, in_ptr: str, out_ptr: str):
     """
     Adds an unpack connector to the connectors dictionary based on the information passed in.
     
     :param dict connectors: The connectors dictionary
     :param str section: The name of the section
     :param str extents: The extents of the array
-    :param str start: The start variable
-    :param str end: The end variable
+    :param int start: The start variable
+    :param int end: The end variable
     :param str raw_type: The item's data type
     :param str in_ptr: The name of the in data pointer
     :param str out_ptr: The name of the out data pointer
