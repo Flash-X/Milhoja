@@ -28,6 +28,7 @@ import packet_generation_utility as util
 import warnings
 import cpp_helpers
 import json_sections as jsc
+import os
 # import DataPacketMemberVars as dpinfo
 from DataPacketMemberVars import DataPacketMemberVars
 
@@ -654,6 +655,9 @@ def _generate_outer(name: str, params: dict):
     :param str name: The name of the class.
     :param dict params: The dict containing the parameter list to write to the outer template.
     """
+    if os.path.isfile(name):
+        print(f'Warning: {name} already exists. Overwriting.')
+
     with open(name, 'w') as outer:
         outer.writelines(
         [
