@@ -57,7 +57,7 @@ def _generate_advance_c2f(data):
         # # WRITE BOILERPLATE
         fp.writelines([
             '!! This code was generated using c2f_generator.py.\n',
-            _F_LICENSE_BLOCK,
+            # _F_LICENSE_BLOCK,
             '#include "Milhoja.h"\n',
             '#ifndef MILHOJA_OPENACC_OFFLOADING\n', 
             '#error "This file should only be compiled if using OpenACC offloading"\n',
