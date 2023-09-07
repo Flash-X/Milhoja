@@ -3,6 +3,7 @@ import cgkit.ctree.srctree as srctree
 import pathlib
 import json_sections as jsections
 import os
+import sys
 
 _SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
@@ -28,7 +29,11 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     """
     init = 'cg-tpl.cpp2c_outer.cpp'
     helpers = 'cg-tpl.cpp2c_helper.cpp'
-    extra_queue = 'cg-tpl.cpp2c_no_extra_queue.cpp' if data[jsections.EXTRA_STREAMS] == 0 else 'cg-tpl.cpp2c_extra_queue.cpp'
+    extra_queue = f'{sys.path[0]}/templates/'
+    if data[jsections.EXTRA_STREAMS] == 0:
+        extra_queue = f'{extra_queue}cg-tpl.cpp2c_no_extra_queue.cpp'
+    else:
+        extra_queue = f'{extra_queue}cg-tpl.cpp2c_extra_queue.cpp'
 
     # load outer template
     stree.initTree(init)
@@ -50,7 +55,7 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
 def generate_datapacket_cpp2c_layer(data):
     # assemble from recipe
     stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
-    _construct_source_tree(stree, 'cg-tpl.cpp2c.cpp', data)
+    _construct_source_tree(stree, f'{sys.path[0]}/templates/cg-tpl.cpp2c.cpp', data)
     # check result
     lines = stree.parse()
     if os.path.isfile(_OUTPUT):

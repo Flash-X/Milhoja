@@ -6,9 +6,9 @@ import os
 import json
 import packet_generation_utility as consts
 import json_sections as sections
-import warnings
 import c2f_generator
 import cpp2c_generator
+import sys
 from typing import TextIO
 from argparse import RawTextHelpFormatter
 
@@ -75,6 +75,7 @@ def main():
     Loads the arguments and JSON, then generates the data packet files.
     Also generates the cpp2c and c2f layers if necessary.
     """
+    print(sys.path[0])
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description=_APPLICATION_DESCRIPTION)
     parser.add_argument("JSON", help="[mandatory] The JSON file to generate from.")
     parser.add_argument('--language', '-l', type=consts.Language, choices=list(consts.Language), 

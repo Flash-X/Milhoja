@@ -129,7 +129,7 @@ def parse_lbound(lbound: str, data_source: str):
         for idx,item in enumerate(matches):
             match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
             unlabeled_intvects = re.findall(match_intvects, item)
-            print(unlabeled_intvects)
+            # print(unlabeled_intvects)
             for vect in unlabeled_intvects:
                 matches[idx] = item.replace(vect, f"IntVect{vect}")
         print(matches)

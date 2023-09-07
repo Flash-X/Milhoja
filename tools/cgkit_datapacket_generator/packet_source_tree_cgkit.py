@@ -3,6 +3,7 @@ import cgkit.ctree.srctree as srctree
 import pathlib
 import json_sections as jsc
 import os
+import sys
 
 _SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path.cwd(),
@@ -58,8 +59,8 @@ def generate_packet_code(data):
     
     :param dict data: The dictionary containing the DataPacket JSON.
     """
-    file_names_all = [('cg-tpl.datapacket_header.cpp', 'cgkit.datapacket.h'), 
-                        ('cg-tpl.datapacket.cpp', 'cgkit.datapacket.cpp')]
+    file_names_all = [(f'{sys.path[0]}/templates/cg-tpl.datapacket_header.cpp', 'cgkit.datapacket.h'), 
+                        (f'{sys.path[0]}/templates/cg-tpl.datapacket.cpp', 'cgkit.datapacket.cpp')]
     for src,dest in file_names_all:
         # assemble from recipe
         stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
