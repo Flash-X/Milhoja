@@ -103,20 +103,29 @@ def parse_lbound(lbound: str, data_source: str):
     """
     starting_index = "1"
     print(lbound)
+    # data source is either grid or scratch for tile arrays.
     if lbound and data_source == _GRID:
         # We have control over the extents of grid data structures.
         lbound_info = lbound.split(',')
+        # We control lbound format for grid data structures, 
+        # so the length of this lbound should always be 2.
+        assert len(lbound_info) == 2
+
+        # get low index
         low = lbound_info[0]
         low = low.strip().replace(')', '').replace('(', '')
         starting_index = lbound_info[-1]
         starting_index = starting_index.strip().replace('(', '').replace(')', '')
         return [low, starting_index]
+    
     elif lbound and data_source == _SCRATCH:
         # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
         # to find tile data.
         lookahead = r',\s*(?![^()]*\))'
         matches = re.split(lookahead, lbound)
-        print("Split: ", matches)
+        # print("Split: ", matches)
+        # Can't assume lbound split is a specific size since we don't have control over
+        # structures of scratch data.
         for idx,item in enumerate(matches):
             match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
             unlabeled_intvects = re.findall(match_intvects, item)
@@ -125,12 +134,14 @@ def parse_lbound(lbound: str, data_source: str):
                 matches[idx] = item.replace(vect, f"IntVect{vect}")
         print(matches)
         return matches
+    # data source was not valid.
     return ['']
 
     
 
 def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
     """
+    TODO: Remove this.
     Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments.
     
     :param str name: The lbound string.
