@@ -168,13 +168,14 @@ def _generate_advance_c2f(data):
         ])
         fp.write(')\nend subroutine dr_hydro_advance_packet_oacc_c2f')
 
-def main(data: dict):
+def generate_c2f(data: dict):
     """Driver function for the c2f generator.
     
     :param dict data: The dictionary containing the data packet JSON.
     :return: None
     """
     _generate_advance_c2f(data)
+    print("Assembled c2f layer.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")
@@ -184,4 +185,4 @@ if __name__ == "__main__":
     with open(args.JSON, 'r') as fp:
         data = json.load(fp)
         data[sects.NAME] = os.path.basename(args.JSON).replace('.json', '')
-        main(data)
+        generate_c2f(data)

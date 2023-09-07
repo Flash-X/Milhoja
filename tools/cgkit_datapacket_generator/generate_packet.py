@@ -99,8 +99,8 @@ def main():
 
         # generate cpp2c and c2f layers here.
         if args.language == consts.Language.fortran:
-            c2f_generator.main(data)
-            cpp2c_generator.main(data)
+            c2f_generator.generate_c2f(data)
+            cpp2c_generator.generate_cpp2c(data)
 
 if __name__ == "__main__":
     main()

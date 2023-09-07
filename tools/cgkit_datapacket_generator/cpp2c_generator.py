@@ -49,7 +49,7 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
         [ ('queue1_h', 'const int') ] +  
         [ (f'queue{i}_h', 'const int') for i in range(2, n_streams+2) ] + 
         [ ('_nTiles_h', 'const int') ] +
-        [ (item.get_device(), 'const void*') for item in dpinfo_order ]
+        [ (item.device, 'const void*') for item in dpinfo_order ]
     )
     
 def _generate_cpp2c_helper(data: dict):
@@ -77,7 +77,7 @@ def _generate_cpp2c_helper(data: dict):
             [ ',\n'.join([ f"{item[0]}" for item in connectors[_ARG_LIST_KEY]]) ] + 
             
             [ '\n\n/* _connector:get_device_members */\n' ] + 
-            [ ''.join([ f'void* {item.get_device()} = static_cast<void*>( packet_h->{item.get_device()} );\n' for item in dpinfo_order ]) ] +
+            [ ''.join([ f'void* {item.device} = static_cast<void*>( packet_h->{item.device} );\n' for item in dpinfo_order ]) ] +
         
             ['\n/* _connector:instance_args */\n'] +
             [ ','.join( [ f'{item[1]} {item[0]}' for item in connectors[_INST_ARGS_KEY] ] ) ] + 
@@ -86,7 +86,7 @@ def _generate_cpp2c_helper(data: dict):
             [ ','.join( [ item for item in data.get(sects.GENERAL, {}) if item != 'nTiles'] )]
         )
         
-def main(data: dict):
+def generate_cpp2c(data: dict):
     """
     Driver for cpp2c generator.
     
@@ -94,7 +94,7 @@ def main(data: dict):
     """
     _generate_cpp2c_outer(data)
     _generate_cpp2c_helper(data)
-    cpp2c_cgkit.main(data)
+    cpp2c_cgkit.generate_datapacket_cpp2c_layer(data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")
@@ -104,4 +104,4 @@ if __name__ == "__main__":
     with open(args.JSON, 'r') as fp:
         data = json.load(fp)
         data['name'] = os.path.basename(args.JSON).replace('.json', '')
-        main(data)
+        generate_cpp2c(data)
