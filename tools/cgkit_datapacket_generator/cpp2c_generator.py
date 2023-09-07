@@ -1,11 +1,10 @@
 import json_sections as sects
-import packet_generation_utility as mutil
 import argparse
 import json
 import os
 import cpp2c_cgkit
 from collections import defaultdict
-from DataPacketMemberVars import DataPacketMemberVars as dpinfo
+from DataPacketMemberVars import DataPacketMemberVars
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -17,7 +16,11 @@ def _generate_cpp2c_outer(data: dict):
     
     :param dict data: The dictionary containing the data packet JSON data.
     """
-    with open('cg-tpl.cpp2c_outer.cpp', 'w') as outer:
+    file_name = 'cg-tpl.cpp2c_outer.cpp'
+    if os.path.isfile(file_name):
+        print(f"Warning: {file_name} already exists. Overwriting.")
+
+    with open(file_name, 'w') as outer:
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
             f'/* _param:class_name = {data["name"]} */\n\n',
@@ -60,12 +63,16 @@ def _generate_cpp2c_helper(data: dict):
     """
     connectors = defaultdict(list)
     # generate DataPacketMemberVars instance for each item in TFAL.
-    dpinfo_order = ( [ dpinfo(item, '', '', False) for item in data[sects.ORDER] ] )
+    dpinfo_order = ( [ DataPacketMemberVars(item, '', '', False) for item in data[sects.ORDER] ] )
     # insert connectors into dictionary
     _insert_connector_arguments(data, connectors, dpinfo_order)
     # instance args only found in general section
     connectors[_INST_ARGS_KEY] = [ (key, f'{dtype}') for key,dtype in data.get(sects.GENERAL, {}).items() if key != "nTiles" ] + [ ('packet', 'void**') ]
 
+    file_name = 'cg-tpl.cpp2c_helper.cpp'
+    if os.path.isfile(file_name):
+        print(f'Warning: {file_name} already exists. Overwriting.')
+        
     # insert all connectors into helper template file
     with open('cg-tpl.cpp2c_helper.cpp', 'w') as helper:
         helper.writelines(['/* _connector:get_host_members */\n' ] + connectors[_HOST_MEMBERS_KEY])
