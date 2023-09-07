@@ -2,6 +2,7 @@ from cgkit.ctree.srctree import SourceTree
 import cgkit.ctree.srctree as srctree
 import pathlib
 import json_sections as jsections
+import os
 
 _SOURCETREE_OPTIONS = {
     'codePath': pathlib.Path('.'),
@@ -46,15 +47,17 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
 # Main
 ####################
 
-def main(data):
+def generate_datapacket_cpp2c_layer(data):
     # assemble from recipe
     stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
     _construct_source_tree(stree, 'cg-tpl.cpp2c.cpp', data)
     # check result
     lines = stree.parse()
+    if os.path.isfile(_OUTPUT):
+        print(f'Warning: {_OUTPUT} already exists. Overwriting.')
     with open(_OUTPUT, 'w') as cpp2c:
         cpp2c.write(lines)
-    print("Assembled to cpp2c layer.")
+    print("Assembled cpp2c layer.")
 
 if __name__ == '__main__':
-    main(None)
+    generate_datapacket_cpp2c_layer(None)
