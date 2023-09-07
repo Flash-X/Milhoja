@@ -39,7 +39,6 @@ _param:class_name::_param:class_name(
 
 _param:class_name::~_param:class_name(void) {
     /* _link:destructor */
-    nullify();
 }
 
 /* _link:stream_functions_cxx */
