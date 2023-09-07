@@ -23,6 +23,7 @@ _DESTRUCTOR = 'destructor'
 _STREAM_FUNCS_CXX = 'stream_functions_cxx'
 
 from collections import defaultdict
+from collections import OrderedDict
 import packet_generation_utility as util
 import warnings
 import cpp_helpers
@@ -134,13 +135,13 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
         for i in range(2, extra_streams+2)
     ])
 
-def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: dict):
+def _iterate_constructor(connectors: dict, size_connectors: dict, constructor: OrderedDict):
     """
     Iterates the constructor / thread-private-variables section and adds the necessary connectors.
 
     :param dict connectors: The dictionary containing all connectors for use with CGKit.
     :param dict size_connectors: The dictionary containing all size connectors for determining the sizes of each item in the packet.
-    :param dict constructor: The dictionary containing the data for the ptv section in the DataPacket JSON.
+    :param OrderedDict constructor: The dictionary containing the data for the ptv section in the DataPacket JSON.
     :rtype: None
     """
     _section_creation(jsc.GENERAL, constructor, connectors, size_connectors)
@@ -201,13 +202,13 @@ def _tmetadata_memcopy(connectors: dict, construct: str, use_ref: str, info: Dat
     else:
         print("Incompatible language.")
 
-def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: dict, language: str, num_arrays: int):
+def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata: OrderedDict, language: str, num_arrays: int):
     """
     Iterates the tilemetadata section of the JSON.
     
     :param dict connectors: The dict containing all connectors for cgkit.
     :param dict size_connectors: The dict containing all size connectors for variable sizes.
-    :param dict tilemetadata: The dict containing information from the tile-metadata section in the JSON.
+    :param OrderedDict tilemetadata: The dict containing information from the tile-metadata section in the JSON.
     :param str language: The language to use
     :param int num_arrays: The number of arrays inside tile-in, tile-in-out, tile-out, and tile-scratch.
     """
@@ -272,13 +273,13 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
 # it depends on how bounds is implemented in the JSON. Bits and pieces of this might end up existing
 # within the tile data / array sections.
 # Luckily, this function is relatively straightforward. 
-def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang: str):
+def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: OrderedDict, lang: str):
     """
     Iterates the lbound section of the JSON.
     
     :param dict connectors: The dict containing all cgkit connectors.
     :param dict size_connectors: The dict containing all size connectors for items in the data packet.
-    :param dict lbound: The dict containing the lbound section (This will likely be removed later).
+    :param OrderedDict lbound: The dict containing the lbound section (This will likely be removed later).
     :param str lang: The language to use.
     """
     dtype = 'int' if lang == util.Language.fortran else 'IntVect'
@@ -305,13 +306,13 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: dict, lang:
         _tmetadata_memcopy(connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", use_ref, info, '', lang)
 
 
-def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: dict, language: str) -> None:
+def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict, language: str) -> None:
     """
     Iterates the tile in section of the JSON.
     
     :param dict connectors: The dict containing all connectors for cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the data packet.
-    :param dict tilein: The dict containing the information in the tile_in section.
+    :param OrderedDict tilein: The dict containing the information in the tile_in section.
     :param str language: The language of the corresponding task function.
     """
     _section_creation(jsc.T_IN, tilein, connectors, size_connectors)
@@ -456,13 +457,13 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start: int, e
     # and that is arguably worse than CPP style casting
     connectors[_OUT_PTRS].append(f'{raw_type}* {out_ptr}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _{out_ptr}_p ) ) + n * SIZE_{out_ptr.upper()} ) );\n')
 
-def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict, language: str) -> None:
+def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: OrderedDict, language: str) -> None:
     """
     Iterates the tileinout section of the JSON.
     
     :param dict connectors: The dict containing all connectors for use with cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the JSON.
-    :param dict tileinout: The dict containing the data from the tile-in-out section of the datapacket json.
+    :param OrderedDict tileinout: The dict containing the data from the tile-in-out section of the datapacket json.
     :param str language: The language to use.
     """
     _section_creation(jsc.T_IN_OUT, tileinout, connectors, size_connectors)
@@ -505,13 +506,13 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: dict,
             cpp_helpers.insert_farray_memcpy(connectors, item, "loGC", "hiGC", unks, info.dtype)
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
-def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, language: str) -> None:
+def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: OrderedDict, language: str) -> None:
     """
     Iterates the tileout section of the JSON.
     
     :param dict connectors: The dict containing all connectors for use with cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the JSON.
-    :param dict tileout: The dict containing information from the tile-out section of the data packet JSON.
+    :param OrderedDict tileout: The dict containing information from the tile-out section of the data packet JSON.
     :param str language: The language to use. 
     """
     _section_creation(jsc.T_OUT, tileout, connectors, size_connectors)
@@ -550,13 +551,13 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: dict, lan
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], f'{end} - {start} + 1', info.dtype)
 
-def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: dict, language: str) -> None:
+def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: OrderedDict, language: str):
     """
     Iterates the tilescratch section of the JSON.
     
     :param dict connectors: The dict containing all connectors for use with cgkit.
     :param dict size_connectors: The dict containing all size connectors for variable sizes.
-    :param dict tilescratch: The dict containing information from the tilescratch section of the JSON.
+    :param OrderedDict tilescratch: The dict containing information from the tilescratch section of the JSON.
     :param str language: The language to use when generating the packet. 
     """
     _section_creation(jsc.T_SCRATCH, tilescratch, connectors, size_connectors)
@@ -582,14 +583,17 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: d
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], cpp_helpers.BOUND_MAP[item][2], info.dtype)
 
-def _sort_dict(section, sort_key) -> dict:
+def _sort_dict(section, sort_key) -> OrderedDict:
     """
     Sorts a given dictionary using the sort key.
     
     :param dict section: The dictionary to sort.
     :param func sort_key: The function to sort with.
     """
-    return dict( sorted(section, key = sort_key, reverse = True) )
+    dict_items = [ (k,v) for k,v in section ]
+    dict_items = sorted(dict_items, key=sort_key, reverse=True)
+    return OrderedDict(dict_items)
+    # return dict( sorted(section, key = sort_key, reverse = True) )
 
 def _write_connectors(template, connectors: dict):
     """
@@ -638,10 +642,10 @@ def _set_default_params(data: dict, params: dict):
     try:
         params['align_size'] = int(data.get(jsc.BYTE_ALIGN, 16))
         params['n_extra_streams'] = int(data.get(jsc.EXTRA_STREAMS, 0))
-        params['class_name'] = data[jsc.NAME]
-        params['ndef_name'] = f'{data[jsc.NAME].upper()}_UNIQUE_IFNDEF_H_'
     except:
         print("align_size or n_extra_streams is not an integer.")
+    params['class_name'] = data[jsc.NAME]
+    params['ndef_name'] = f'{data[jsc.NAME].upper()}_UNIQUE_IFNDEF_H_'
     
 def _generate_outer(name: str, params: dict):
     """
