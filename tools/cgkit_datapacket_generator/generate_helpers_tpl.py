@@ -688,6 +688,9 @@ def generate_helper_template(data: dict) -> None:
     
     :param dict data: The dictionary containing the DataPacket JSON data.
     """
+    if os.path.isfile(data[jsc.HELPERS]):
+        print(f'Warning: {data[jsc.HELPERS]} already exists. Overwriting.')
+
     with open(data[jsc.HELPERS], 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list) 
