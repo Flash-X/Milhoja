@@ -78,7 +78,6 @@ _f4_flZ_d{nullptr}
 }
 
 DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
-    nullify();
 }
 
 
