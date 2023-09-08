@@ -108,10 +108,13 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
     # task function does not use more than 1 stream.
     connectors[_STREAM_FUNCS_CXX].extend([
             f'int _param:class_name::extraAsynchronousQueue(const unsigned int id) {{\n',
-            f'\tif((id < 2) || (id > {extra_streams} + 1)) throw std::invalid_argument("[_param:class_name::extraAsynchronousQueue] Invalid id.");\n',
+            f'\tif((id < 2) || (id > {extra_streams} + 1))' +
+            f' throw std::invalid_argument("[_param:class_name::extraAsynchronousQueue] Invalid id.");\n',
             '\tswitch(id) {\n'
         ] + [
-            f'\t\tcase {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error("[_param:class_name::extraAsynchronousQueue] Stream {i} invalid."); }} return stream{i}_.accAsyncQueue;\n'
+            f'\t\tcase {i}: if(!stream{i}_.isValid())' +
+            f'{{ throw std::logic_error("[_param:class_name::extraAsynchronousQueue]' +
+            f' Stream {i} invalid."); }} return stream{i}_.accAsyncQueue;\n'
             for i in range(2, extra_streams+2)
         ] + [
             '\t}\n',
@@ -119,10 +122,13 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
             '}\n'
         ] + [
             f'void _param:class_name::releaseExtraQueue(const unsigned int id) {{\n',
-            f'\tif((id < 2) || (id > {extra_streams} + 1)) throw std::invalid_argument("[_param:class_name::releaseExtraQueue] Invalid id.");\n',
+            f'\tif((id < 2) || (id > {extra_streams} + 1))' + 
+            f' throw std::invalid_argument("[_param:class_name::releaseExtraQueue] Invalid id.");\n',
             '\tswitch(id) {\n'
         ] + [
-            f'\t\tcase {i}: if(!stream{i}_.isValid()) {{ throw std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid."); }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n'
+            f'\t\tcase {i}: if(!stream{i}_.isValid())' + 
+            f'{{ throw std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid.");' + 
+            f' }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n'
             for i in range(2, extra_streams+2)
         ] + [   
             '\t}\n'
@@ -220,7 +226,9 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
     
     for item,name in tilemetadata.items():
         try:
-            item_type = util.TILE_VARIABLE_MAPPING[name] if language == util.Language.cpp else util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[name]] 
+            item_type = util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[name]]
+            if language == util.Language.cpp:
+                item_type = util.TILE_VARIABLE_MAPPING[name]
         except Exception:
             # TODO: Eventually use the logger to track this.
             warnings.warn(f"{name} was not found in tile_variable_mapping. Ignoring...")
@@ -228,7 +236,9 @@ def _iterate_tilemetadata(connectors: dict, size_connectors: dict, tilemetadata:
         
         # code generation for the tile_metadata section often depends on the language to properly generate
         # working code
-        size_eq = f"MILHOJA_MDIM * sizeof({item_type})" if language == util.Language.fortran else f"sizeof({ util.FARRAY_MAPPING.get(item_type, item_type) })"
+        size_eq = f"sizeof({ util.FARRAY_MAPPING.get(item_type, item_type) })"
+        if language == util.Language.fortran:
+            size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
         info = DataPacketMemberVars(item=item, dtype=item_type, size_eq=size_eq, per_tile=True)
 
         # extend each connector
@@ -304,7 +314,12 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: OrderedDict
         connectors[_T_DESCRIPTOR].append(
             f'const IntVect {key} = {constructor_expression};\n'
         )
-        _tmetadata_memcopy(connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", use_ref, info, '', lang)
+        _tmetadata_memcopy(
+            connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", 
+            use_ref, info, 
+            '', 
+            lang
+        )
 
 
 def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict, language: str) -> None:
@@ -325,7 +340,10 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict
         end = data.get(jsc.END, "")
         extents = ' * '.join(f'({item})' for item in extents)
         unks = f'{end if end else 0} - {start if start else 0} + 1'
-        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(
+            item=item, dtype=data[jsc.DTYPE], 
+            size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True
+        )
         
         # Add necessary connectors.
         connectors[_PUB_MEMBERS].append(
@@ -366,7 +384,10 @@ def get_data_pointer_string(item: str):
     return data_pointer_string
 
 
-def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: str, start: int, end: int, size_item: str, raw_type: str):
+def _add_memcpy_connector(connectors: dict, section: str, 
+                          extents: str, item: str, 
+                          start: int, end: int, 
+                          size_item: str, raw_type: str):
     """
     Adds a memcpy connector based on the information passed in.
     
@@ -392,8 +413,10 @@ def _add_memcpy_connector(connectors: dict, section: str, extents: str, item: st
     offset = f"{extents} * static_cast<std::size_t>({start})"
     nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type})'
     if not start or not end:
-        if not start: print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
-        if not end: print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
+        if not start: 
+            print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
+        if not end: 
+            print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
         offset = '0'
         nBytes = size_item
 
@@ -456,7 +479,10 @@ def _add_unpack_connector(connectors: dict, section: str, extents, start: int, e
     ])
     # I'm the casting here is awful but I'm not sure there's a way around it that isn't just using c-style casting, 
     # and that is arguably worse than CPP style casting
-    connectors[_OUT_PTRS].append(f'{raw_type}* {out_ptr}_data_p = static_cast<{raw_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _{out_ptr}_p ) ) + n * SIZE_{out_ptr.upper()} ) );\n')
+    connectors[_OUT_PTRS].append(
+        f'{raw_type}* {out_ptr}_data_p = static_cast<{raw_type}*>('
+         + ' static_cast<void*>( static_cast<char*>( static_cast<void*>(' 
+         + f' _{out_ptr}_p ) ) + n * SIZE_{out_ptr.upper()} ) );\n')
 
 def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: OrderedDict, language: str) -> None:
     """
@@ -479,7 +505,11 @@ def _iterate_tileinout(connectors: dict, size_connectors: dict, tileinout: Order
         end_out = data.get(jsc.END_OUT, "")
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
         unks = f'{end_in if end_in else 0} - {start_in if start_in else 0} + 1'
-        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(
+            item=item, dtype=data[jsc.DTYPE], 
+            size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', 
+            per_tile=True
+        )
 
         # set connectors
         connectors[_PUB_MEMBERS].append(
@@ -548,7 +578,10 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: OrderedDi
             f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_OUT, info, False)
-        _add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, info.dtype, corresponding_in_data, info.ITEM)
+        _add_unpack_connector(
+            connectors, jsc.T_OUT, extents, start, 
+            end, info.dtype, corresponding_in_data, info.ITEM
+        )
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', f'{end} - {start} + 1', info.dtype)
 
@@ -566,7 +599,11 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: O
         # lbound = f"lo{item[0].capitalize()}{item[1:]}"
         # hbound = ...
         extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
-        info = DataPacketMemberVars(item=item, dtype=data[jsc.DTYPE], size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', per_tile=True)
+        info = DataPacketMemberVars(
+            item=item, dtype=data[jsc.DTYPE], 
+            size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', 
+            per_tile=True
+        )
 
         connectors[_PUB_MEMBERS].append( f'{info.dtype}* {info.device};\n' )
         connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}' )
@@ -582,7 +619,12 @@ def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: O
         #       We do not have control over the number of unknowns in scratch arrays, so how do we 
         #       incorporate this with lbound?
         if language == util.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], cpp_helpers.BOUND_MAP[item][2], info.dtype)
+            cpp_helpers.insert_farray_memcpy(
+                connectors, item, 
+                cpp_helpers.BOUND_MAP[item][0], 
+                cpp_helpers.BOUND_MAP[item][1], 
+                cpp_helpers.BOUND_MAP[item][2], info.dtype
+            )
 
 def _sort_dict(section, sort_key) -> OrderedDict:
     """
