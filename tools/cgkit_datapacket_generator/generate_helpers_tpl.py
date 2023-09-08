@@ -187,7 +187,6 @@ def _tmdata_memcpy_f(connectors: dict, construct: str, use_ref: str, info: DataP
     :param str construct: The generated host variable to copy to the pinned pointer location
     :param str use_ref: Use a reference to the host item.
     :param DataPacketMemberVars info: Contains information for formatting the name to get variable names.
-    :param str alt_name: Unused
     """
     connectors[f'memcpy_{jsc.T_MDATA}'].extend([
         f'{info.dtype} {info.host}{construct};\n',
