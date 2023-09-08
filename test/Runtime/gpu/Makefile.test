@@ -29,11 +29,11 @@ SRCS_TEST = \
     $(TESTDIR)/DataPacket_gpu_dens_stream.cpp \
     $(TESTDIR)/DataPacket_gpu_ener_stream.cpp \
     $(TESTDIR)/DataPacket_gpu_dens_ener_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_de_1_stream.cpp \
     $(TESTDIR)/testRuntime.cpp \
-    $(RUNTIMEDIR)/runRuntimeTests.cpp
-
-#    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
-#    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
-#    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
-#    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
+    $(RUNTIMEDIR)/runRuntimeTests.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp
 

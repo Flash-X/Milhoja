@@ -550,7 +550,7 @@ def _iterate_tileout(connectors: dict, size_connectors: dict, tileout: OrderedDi
         _set_pointer_determination(connectors, jsc.T_OUT, info, False)
         _add_unpack_connector(connectors, jsc.T_OUT, extents, start, end, info.dtype, corresponding_in_data, info.ITEM)
         if language == util.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, cpp_helpers.BOUND_MAP[item][0], cpp_helpers.BOUND_MAP[item][1], f'{end} - {start} + 1', info.dtype)
+            cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', f'{end} - {start} + 1', info.dtype)
 
 def _iterate_tilescratch(connectors: dict, size_connectors: dict, tilescratch: OrderedDict, language: str):
     """

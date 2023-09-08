@@ -17,11 +17,10 @@
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
 
-//#include "DataPacket_gpu_1_stream.h"
-//#include "DataPacket_gpu_2_stream.h"
 #include "DataPacket_gpu_dens_stream.h"
 #include "DataPacket_gpu_ener_stream.h"
 #include "DataPacket_gpu_dens_ener_stream.h"
+#include "DataPacket_gpu_de_1_stream.h"
 
 using namespace milhoja;
 
@@ -304,83 +303,83 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
 //    Logger::instance().log("[googletest] End Cpu/Gpu Wowza Config");
 //}
 //
-//TEST_F(TestRuntime, TestFusedActions) {
-//    Logger::instance().log("[googletest] Start Fused Actions");
-//
-//    RuntimeAction    computeLaplacianFused_gpu;
-//
-//    computeLaplacianFused_gpu.name            = "LaplacianFusedActions_gpu";
-//    computeLaplacianFused_gpu.nInitialThreads = 3;
-//    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-//    computeLaplacianFused_gpu.nTilesPerPacket = 20;
-//    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
-//
-//    const DataPacket_gpu_2_stream&   packetPrototype{};
-//
-//    double tStart = MPI_Wtime(); 
-//    Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, 0, computeLaplacianFused_gpu,
-//                                        packetPrototype);
-//    double tWalltime = MPI_Wtime() - tStart; 
-//
-////    std::vector<std::string>    names{};
-////    names.push_back("density");
-////    names.push_back("energy");
-////    Grid::instance().writePlotfile("Wowza", names);
-//
-//    checkSolution();
-//    std::cout << "Total walltime = " << tWalltime << " sec\n";
-//
-//    Logger::instance().log("[googletest] End Fused Actions");
-//}
-//
-//TEST_F(TestRuntime, TestFusedKernelsStrong) {
-//    Logger::instance().log("[googletest] Start Fused Kernels Strong");
-//
-//    RuntimeAction    computeLaplacianFused_gpu;
-//
-//    computeLaplacianFused_gpu.name            = "LaplacianFusedKernelsStrong_gpu";
-//    computeLaplacianFused_gpu.nInitialThreads = 3;
-//    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-//    computeLaplacianFused_gpu.nTilesPerPacket = 20;
-//    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
-//
-//    const DataPacket_gpu_1_stream&   packetPrototype{};
-//
-//    double tStart = MPI_Wtime(); 
-//    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", 1, 0, computeLaplacianFused_gpu,
-//                                        packetPrototype);
-//    double tWalltime = MPI_Wtime() - tStart; 
-//
-//    checkSolution();
-//    std::cout << "Total walltime = " << tWalltime << " sec\n";
-//
-//    Logger::instance().log("[googletest] End Fused Kernels Strong");
-//}
-//
-//TEST_F(TestRuntime, TestFusedKernelsWeak) {
-//    Logger::instance().log("[googletest] Start Fused Kernels Weak");
-//
-//    RuntimeAction    computeLaplacianFused_gpu;
-//
-//    computeLaplacianFused_gpu.name            = "LaplacianFusedKernelsWeak_gpu";
-//    computeLaplacianFused_gpu.nInitialThreads = 3;
-//    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
-//    computeLaplacianFused_gpu.nTilesPerPacket = 20;
-//    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit;
-//
-//    const DataPacket_gpu_1_stream&   packetPrototype{}; 
-//
-//    double tStart = MPI_Wtime(); 
-//    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", 1, 0, computeLaplacianFused_gpu,
-//                                        packetPrototype);
-//    double tWalltime = MPI_Wtime() - tStart; 
-//
-//    checkSolution();
-//    std::cout << "Total walltime = " << tWalltime << " sec\n";
-//
-//    Logger::instance().log("[googletest] End Fused Kernels Weak");
-//}
-//
+TEST_F(TestRuntime, TestFusedActions) {
+    Logger::instance().log("[googletest] Start Fused Actions");
+
+    RuntimeAction    computeLaplacianFused_gpu;
+
+    computeLaplacianFused_gpu.name            = "LaplacianFusedActions_gpu";
+    computeLaplacianFused_gpu.nInitialThreads = 3;
+    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianFused_gpu.nTilesPerPacket = 20;
+    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
+
+    const DataPacket_gpu_dens_ener_stream&   packetPrototype{};
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, 0, computeLaplacianFused_gpu,
+                                        packetPrototype);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+//    std::vector<std::string>    names{};
+//    names.push_back("density");
+//    names.push_back("energy");
+//    Grid::instance().writePlotfile("Wowza", names);
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Fused Actions");
+}
+
+TEST_F(TestRuntime, TestFusedKernelsStrong) {
+    Logger::instance().log("[googletest] Start Fused Kernels Strong");
+
+    RuntimeAction    computeLaplacianFused_gpu;
+
+    computeLaplacianFused_gpu.name            = "LaplacianFusedKernelsStrong_gpu";
+    computeLaplacianFused_gpu.nInitialThreads = 3;
+    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianFused_gpu.nTilesPerPacket = 20;
+    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
+
+    const DataPacket_gpu_de_1_stream&   packetPrototype{};
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", 1, 0, computeLaplacianFused_gpu,
+                                        packetPrototype);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Fused Kernels Strong");
+}
+
+TEST_F(TestRuntime, TestFusedKernelsWeak) {
+    Logger::instance().log("[googletest] Start Fused Kernels Weak");
+
+    RuntimeAction    computeLaplacianFused_gpu;
+
+    computeLaplacianFused_gpu.name            = "LaplacianFusedKernelsWeak_gpu";
+    computeLaplacianFused_gpu.nInitialThreads = 3;
+    computeLaplacianFused_gpu.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianFused_gpu.nTilesPerPacket = 20;
+    computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit;
+
+    const DataPacket_gpu_de_1_stream&   packetPrototype{}; 
+
+    double tStart = MPI_Wtime(); 
+    Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", 1, 0, computeLaplacianFused_gpu,
+                                        packetPrototype);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End Fused Kernels Weak");
+}
+
 //TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
 //    constexpr unsigned int   N_DIST_THREADS = 2;
 //
