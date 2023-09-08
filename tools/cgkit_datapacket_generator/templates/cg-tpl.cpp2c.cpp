@@ -16,18 +16,18 @@ using milhoja::Real;
 
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
-    void dr_hydro_advance_packet_oacc_c2f(
+    void _param:taskfunctionnamec2f (
         /* _link:c2f_argument_list */
     );
 
-    int instantiate_hydro_advance_packet_c(
+    int instantiate_packet_c(
         /* _link:instance_args */
         ) {
         if ( packet == nullptr) {
-            std::cerr << "[instantiate_hydro_advance_packet_c] packet is NULL" << std::endl;
+            std::cerr << "[instantiate_packet_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         } else if (*packet != nullptr) {
-            std::cerr << "[instantiate_hydro_advance_packet_c] *packet not NULL" << std::endl;
+            std::cerr << "[instantiate_packet_c] *packet not NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL;
         }
 
@@ -39,16 +39,16 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         } catch (...) {
-            std::cerr << "[instantiate_hydro_advance_packet_c] Unknown error caught" << std::endl;
+            std::cerr << "[instantiate_packet_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         }
 
         return MILHOJA_SUCCESS;
     }
 
-    int delete_hydro_advance_packet_c(void* packet) {
+    int delete_packet_c(void* packet) {
         if (packet == nullptr) {
-            std::cerr << "[delete_hydro_advance_packet_c] packet is NULL" << std::endl;
+            std::cerr << "[delete_packet_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         delete static_cast< _param:class_name *>(packet);
@@ -58,14 +58,14 @@ extern "C" {
     /* _link:release_extra_queue */
 
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
-    void dr_hydro_advance_packet_oacc_tf(const int tId, void* dataItem_h) {
+    void _param:taskfunctionnametf (const int tId, void* dataItem_h) {
         _param:class_name* packet_h = static_cast<_param:class_name*>(dataItem_h);
         /* _link:get_host_members */
 
         /* _link:get_device_members */
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
-        dr_hydro_advance_packet_oacc_c2f(
+        _param:taskfunctionnamec2f (
             /* _link:c2f_arguments */
         );
     }

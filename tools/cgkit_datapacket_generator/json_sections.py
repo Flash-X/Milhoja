@@ -10,6 +10,7 @@ BYTE_ALIGN = 'byte_align'
 ORDER = "task_function_argument_list"
 #: The number of extra streams to use. 
 EXTRA_STREAMS = "n_extra_streams"
+TASK_FUNCTION_NAME = 'task_function_name'
 FILE_NAME = "file_name"
 NAME = "name"
 LANG = "language"

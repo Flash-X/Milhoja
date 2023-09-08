@@ -24,6 +24,9 @@ def _generate_cpp2c_outer(data: dict):
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
             f'/* _param:class_name = {data["name"]} */\n\n',
+            f'/* _param:taskfunctionname = {data[sects.TASK_FUNCTION_NAME]} */\n',
+            f'/* _param:taskfunctionnametf = {data[sects.TASK_FUNCTION_NAME]}_tf\n'
+            f'/* _param:taskfunctionnamec2f = {data[sects.TASK_FUNCTION_NAME]}_c2f\n'
             f'/* {"_param:release = 0 */" if data.get(sects.EXTRA_STREAMS, 0) == 0 else "/* _param:release = packet_h->releaseExtraQueue(id) */"} \n\n',
             '/* _link:cpp2c */'
         ])
