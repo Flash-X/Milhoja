@@ -66,7 +66,7 @@ def _generate_advance_c2f(data):
             '#ifndef MILHOJA_OPENACC_OFFLOADING\n', 
             '#error "This file should only be compiled if using OpenACC offloading"\n',
             '#endif\n\n',
-            'subroutine dr_hydro_advance_packet_oacc_c2f('
+            f'subroutine {data[sects.TASK_FUNCTION_NAME]}_c2f('
         ])
 
         # initialize host pointers
@@ -129,7 +129,7 @@ def _generate_advance_c2f(data):
             '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
             '\tuse openacc, ONLY : acc_handle_kind\n',
             '\tuse milhoja_types_mod, ONLY : MILHOJA_INT\n',
-            '\tuse dr_hydroAdvance_bundle_mod, ONLY : dr_hydroAdvance_packet_gpu_oacc\n',
+            f'\tuse {data[sects.TASK_FUNCTION_NAME]}_bundle_mod, ONLY : {data[sects.TASK_FUNCTION_NAME]}\n',
             '\timplicit none\n\n'
         ])
 
@@ -165,12 +165,12 @@ def _generate_advance_c2f(data):
 
         # CALL STATIC FORTRAN LAYER
         fp.writelines([
-            '\tCALL dr_hydroAdvance_packet_gpu_oacc(',
+            f'\tCALL {data[sects.TASK_FUNCTION_NAME]}(',
             f', &\n'.join( f'\t\tF_{ptr}_h' if data.ftype else f'C_{ptr}_h' for ptr,data in host_pointers.items() ),
             f', &\n',
             f', &\n'.join( f'\t\tF_{ptr}_d' for ptr in arg_order )
         ])
-        fp.write(')\nend subroutine dr_hydro_advance_packet_oacc_c2f')
+        fp.write(f')\nend subroutine {data[sects.TASK_FUNCTION_NAME]}_c2f')
 
 def generate_c2f(data: dict):
     """Driver function for the c2f generator.
@@ -182,7 +182,7 @@ def generate_c2f(data: dict):
     print("Assembled c2f layer.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer.")
+    parser = argparse.ArgumentParser("Generates the C to Fortran interoperability layer. Not intended to be used independently of the packet generator.")
     parser.add_argument("JSON", help="The JSON file used to generated the data packet.")
     args = parser.parse_args()
 

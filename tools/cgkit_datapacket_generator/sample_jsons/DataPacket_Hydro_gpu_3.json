@@ -2,6 +2,7 @@
   "byte_align": 16,
   "n_extra_streams": 0,
   "task_function_argument_list": [ "dt", "tile_deltas", "tile_lo", "tile_hi", "U", "auxC", "flX", "flY", "flZ" ],
+  "task_function_name": "dr_hydroAdvance_packet_gpu_oacc",
   "tile_scratch": {
     "auxC": {
       "type": "real",

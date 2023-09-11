@@ -48,6 +48,9 @@ class _EmptyFileException(BaseException):
 class _MissingSizesException(BaseException):
     pass
 
+class _NoTaskFunctionNameException(BaseException):
+    pass
+
 def _load_json(file: TextIO, args) -> dict:
     """
     Loads the json file into a dict and adds any necessary information to it.
@@ -100,6 +103,10 @@ def main():
 
         # generate cpp2c and c2f layers here.
         if args.language == consts.Language.fortran:
+
+            if not data.get(sections.TASK_FUNCTION_NAME, ""):
+                raise _NoTaskFunctionNameException(f"Missing {sections.TASK_FUNCTION_NAME}.")
+
             c2f_generator.generate_c2f(data)
             cpp2c_generator.generate_cpp2c(data)
 
