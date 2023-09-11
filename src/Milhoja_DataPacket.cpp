@@ -11,8 +11,7 @@ namespace milhoja {
  * @todo The error checks below should be asserts.
  */
 DataPacket::DataPacket(void)
-      : location_{PacketDataLocation::NOT_ASSIGNED},
-        packet_p_{nullptr},
+      : packet_p_{nullptr},
         packet_d_{nullptr},
         copyInStart_p_{nullptr},
         copyInStart_d_{nullptr},
@@ -61,8 +60,6 @@ void  DataPacket::nullify(void) {
         pinnedPtrs_ = nullptr;
     }
 
-    location_ = PacketDataLocation::NOT_ASSIGNED;
-
     startVariable_ = -1;
     endVariable_   = -1;
 
@@ -91,8 +88,6 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned memory buffer has already been allocated";
     } else if (packet_d_ != nullptr) {
         return "Device memory buffer has already been allocated";
-    } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
-        return "Data location already assigned";
     } else if (startVariable_ >= 0) {
         return "Start variable already set";
     } else if (endVariable_ >= 0) {
@@ -152,21 +147,6 @@ std::shared_ptr<Tile>  DataPacket::popTile(void) {
     }
 
     return tileDesc;
-}
-
-/**
- * Obtain the location of the correct cell-centered data.
- */
-PacketDataLocation    DataPacket::getDataLocation(void) const {
-    return location_;
-}
-
-/**
- * Specify the location of the correct cell-centered data so that the next
- * runtime element to use the packet knows where to look.
- */
-void   DataPacket::setDataLocation(const PacketDataLocation location) {
-    location_ = location;
 }
 
 /**

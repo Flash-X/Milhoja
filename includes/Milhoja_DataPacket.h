@@ -281,8 +281,6 @@ public:
     cudaStream_t           stream(void)            { return stream_.cudaStream; };
 #endif
 
-    PacketDataLocation    getDataLocation(void) const;
-    void                  setDataLocation(const PacketDataLocation location);
     void                  setVariableMask(const int startVariable, 
                                           const int endVariable);
 
@@ -301,7 +299,6 @@ protected:
         Real*    CC2_data = nullptr;
     };
 
-    PacketDataLocation                     location_;           //!< The current location of cell-centered data
     void*                                  packet_p_;           /*!< The starting location in pinned memory
                                                                  *   of the memory allocated to the packet */ 
     void*                                  packet_d_;           /*!< The starting location in GPU memory
