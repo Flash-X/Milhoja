@@ -281,24 +281,12 @@ public:
     cudaStream_t           stream(void)            { return stream_.cudaStream; };
 #endif
 
-    void                  setVariableMask(const int startVariable, 
-                                          const int endVariable);
-
 protected:
     DataPacket(void);
 
     void         nullify(void);
     std::string  isNull(void) const;
-
-    /**
-     * Used to store for each tile added to the DataPacket the starting location
-     * in pinned memory of the cell-centered 1 and 2 data blocks.
-     */
-    struct BlockPointersPinned {
-        Real*    CC1_data = nullptr;
-        Real*    CC2_data = nullptr;
-    };
-
+ 
     void*                                  packet_p_;           /*!< The starting location in pinned memory
                                                                  *   of the memory allocated to the packet */ 
     void*                                  packet_d_;           /*!< The starting location in GPU memory
@@ -313,13 +301,9 @@ protected:
                                                                  *   of the copy-in/out block*/ 
     std::deque<std::shared_ptr<Tile>>      tiles_;              /*!< Tiles included in packet.  Derived
                                                                  * classes need only read from this. */
-    BlockPointersPinned*                   pinnedPtrs_;         //!< Location of CC data blocks
     Stream                                 stream_;             //!< Main stream for communication
     std::size_t                            nCopyToGpuBytes_;    //!< Number of bytes in copy in and copy in/out
     std::size_t                            nReturnToHostBytes_; //!< Number of bytes in copy in/out and copy out
-
-    int   startVariable_;
-    int   endVariable_;
 };
 
 }

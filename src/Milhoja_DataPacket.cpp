@@ -18,12 +18,9 @@ DataPacket::DataPacket(void)
         copyInOutStart_p_{nullptr},
         copyInOutStart_d_{nullptr},
         tiles_{},
-        pinnedPtrs_{nullptr},
         stream_{},
         nCopyToGpuBytes_{0},
-        nReturnToHostBytes_{0},
-        startVariable_{-1},
-        endVariable_{-1}
+        nReturnToHostBytes_{0}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -55,14 +52,6 @@ void  DataPacket::nullify(void) {
     }
     RuntimeBackend::instance().releaseGpuMemory(&packet_p_, &packet_d_);
 
-    if (pinnedPtrs_) {
-        delete [] pinnedPtrs_;
-        pinnedPtrs_ = nullptr;
-    }
-
-    startVariable_ = -1;
-    endVariable_   = -1;
-
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
 
@@ -88,10 +77,6 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned memory buffer has already been allocated";
     } else if (packet_d_ != nullptr) {
         return "Device memory buffer has already been allocated";
-    } else if (startVariable_ >= 0) {
-        return "Start variable already set";
-    } else if (endVariable_ >= 0) {
-        return "End variable already set";
     } else if (nCopyToGpuBytes_ > 0) {
         return "Non-zero packet size";
     } else if (nReturnToHostBytes_ > 0) {
@@ -104,8 +89,6 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned copy back buffer exists";
     } else if (copyInOutStart_d_ != nullptr) {
         return "GPU copy back buffer exists";
-    } else if (pinnedPtrs_ != nullptr) {
-        return "Pinned pointers exist";
     }
 
     return "";
@@ -148,33 +131,5 @@ std::shared_ptr<Tile>  DataPacket::popTile(void) {
 
     return tileDesc;
 }
-
-/**
- * We assume that all variable indices are non-negative and that the end index
- * is greater than or equal to the start index.  Other than this, there is no
- * error checking of the variables performed here.
- *
- * @todo The present interface allows task functions to specify the variable
- * mask.  Since concrete DataPackets are now coupled to task functions, it seems
- * like this should be known when the concrete classes are designed.  Remove the
- * setVariableMask from the public interface.
- */
-void   DataPacket::setVariableMask(const int startVariable,
-                                   const int endVariable) {
-    if        (startVariable < 0) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable index is negative");
-    } else if (endVariable < 0) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Ending variable index is negative");
-    } else if (startVariable > endVariable) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable > ending variable");
-    }
-
-    startVariable_ = startVariable;
-    endVariable_ = endVariable;
-}
-
 }
 
