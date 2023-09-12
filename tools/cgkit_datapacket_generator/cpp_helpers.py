@@ -16,6 +16,7 @@ BOUND_MAP = {
     'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '5']
 }
 
+
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str) -> set:
     """
@@ -26,13 +27,15 @@ def get_metadata_dependencies(metadata: dict, language: str) -> set:
     """
     if language == util.Language.fortran: return set()
     mdata_set = set(metadata.values())
-    return mdata_set.symmetric_difference( {"lo", "hi", "loGC", "hiGC"} ).intersection({"lo", "hi", "loGC", "hiGC"})
+    return mdata_set.symmetric_difference({"lo", "hi", "loGC", "hiGC"}).intersection({"lo", "hi", "loGC", "hiGC"})
+
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:
     """Inserts the total size needed to store all farray pointers."""
     line = connectors[f'size_{jsc.T_MDATA}']
     insert_index = line.find('(')
     connectors[f'size_{jsc.T_MDATA}'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
+
 
 def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str, data_type: str):
     """
@@ -61,6 +64,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
         f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_device), sizeof(FArray4D));\n\n'
     ])
 
+
 # can probably shrink this function and insert it into each data section.
 def insert_farray_information(data: dict, connectors: dict, section: str, set_members) -> None:
     """
@@ -83,6 +87,7 @@ def insert_farray_information(data: dict, connectors: dict, section: str, set_me
         [ f'_f4_{item}_d{{nullptr}}' for item in farrays ] +
         [ f'_f4_{item}_p{{nullptr}}' for item in farrays ]
     )
+
 
 # NOTE: This function call gets swapped with another so many params may be unused.
 def tmdata_memcpy_cpp(connectors: dict, info: dpinfo.DataPacketMemberVars, alt_name: str):
