@@ -11,20 +11,16 @@ namespace milhoja {
  * @todo The error checks below should be asserts.
  */
 DataPacket::DataPacket(void)
-      : location_{PacketDataLocation::NOT_ASSIGNED},
-        packet_p_{nullptr},
+      : packet_p_{nullptr},
         packet_d_{nullptr},
         copyInStart_p_{nullptr},
         copyInStart_d_{nullptr},
         copyInOutStart_p_{nullptr},
         copyInOutStart_d_{nullptr},
         tiles_{},
-        pinnedPtrs_{nullptr},
         stream_{},
         nCopyToGpuBytes_{0},
-        nReturnToHostBytes_{0},
-        startVariable_{-1},
-        endVariable_{-1}
+        nReturnToHostBytes_{0}
 {
     std::string   errMsg = isNull();
     if (errMsg != "") {
@@ -56,16 +52,6 @@ void  DataPacket::nullify(void) {
     }
     RuntimeBackend::instance().releaseGpuMemory(&packet_p_, &packet_d_);
 
-    if (pinnedPtrs_) {
-        delete [] pinnedPtrs_;
-        pinnedPtrs_ = nullptr;
-    }
-
-    location_ = PacketDataLocation::NOT_ASSIGNED;
-
-    startVariable_ = -1;
-    endVariable_   = -1;
-
     nCopyToGpuBytes_    = 0;
     nReturnToHostBytes_ = 0;
 
@@ -91,12 +77,6 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned memory buffer has already been allocated";
     } else if (packet_d_ != nullptr) {
         return "Device memory buffer has already been allocated";
-    } else if (location_ != PacketDataLocation::NOT_ASSIGNED) {
-        return "Data location already assigned";
-    } else if (startVariable_ >= 0) {
-        return "Start variable already set";
-    } else if (endVariable_ >= 0) {
-        return "End variable already set";
     } else if (nCopyToGpuBytes_ > 0) {
         return "Non-zero packet size";
     } else if (nReturnToHostBytes_ > 0) {
@@ -109,8 +89,6 @@ std::string  DataPacket::isNull(void) const {
         return "Pinned copy back buffer exists";
     } else if (copyInOutStart_d_ != nullptr) {
         return "GPU copy back buffer exists";
-    } else if (pinnedPtrs_ != nullptr) {
-        return "Pinned pointers exist";
     }
 
     return "";
@@ -153,48 +131,5 @@ std::shared_ptr<Tile>  DataPacket::popTile(void) {
 
     return tileDesc;
 }
-
-/**
- * Obtain the location of the correct cell-centered data.
- */
-PacketDataLocation    DataPacket::getDataLocation(void) const {
-    return location_;
-}
-
-/**
- * Specify the location of the correct cell-centered data so that the next
- * runtime element to use the packet knows where to look.
- */
-void   DataPacket::setDataLocation(const PacketDataLocation location) {
-    location_ = location;
-}
-
-/**
- * We assume that all variable indices are non-negative and that the end index
- * is greater than or equal to the start index.  Other than this, there is no
- * error checking of the variables performed here.
- *
- * @todo The present interface allows task functions to specify the variable
- * mask.  Since concrete DataPackets are now coupled to task functions, it seems
- * like this should be known when the concrete classes are designed.  Remove the
- * setVariableMask from the public interface.
- */
-void   DataPacket::setVariableMask(const int startVariable,
-                                   const int endVariable) {
-    if        (startVariable < 0) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable index is negative");
-    } else if (endVariable < 0) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Ending variable index is negative");
-    } else if (startVariable > endVariable) {
-        throw std::logic_error("[DataPacket::setVariableMask] "
-                               "Starting variable > ending variable");
-    }
-
-    startVariable_ = startVariable;
-    endVariable_ = endVariable;
-}
-
 }
 
