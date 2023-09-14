@@ -43,7 +43,6 @@ test_gnu:
  ##-- Setup all environment variables
  - echo $PWD
  - export CI_BASE_PATH=/tmp/milhoja
- - mkdir $CI_BASE_PATH
  - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - cd ..
