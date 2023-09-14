@@ -42,9 +42,11 @@ test_gnu:
  script:
  ##-- Setup all environment variables
  - echo $PWD
- - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export CI_BASE_PATH=/tmp/milhoja
+ - mkdir $CI_BASE_PATH
  - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
