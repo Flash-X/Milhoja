@@ -43,6 +43,28 @@ from the Tile class. The list of obtainable values is a set of keywords containe
 The tile-metadata items are used for various items in the data array sections (`tile-in`, `tile-in-out`, `tile-out`, `tile-scratch`).
 For example, lower and upper bounds for array indices are calculated using the information contained in this section.
 
+TODO: The existing tile_metadata section does not have a concrete way to use milhoja Grid interface functions. 
+There needs to be some kind of mapping between keywords and Grid interface functions. The tile_metadata section 
+would need these keywords to be contained within the `source` value, and any other potential keywords necessary 
+for calling a grid interface function (the axis, bounds, or edge, for example). 
+
+My initial idea is to have a small set of keywords that point to grid functions, and to have extra information 
+contained within tile_metadata keys that can pass in parameters to those specific Grid functions. For example, 
+a tile_metadata variable can contain the name of the corresponding application variable, pointing to a dictionary 
+containing a `source` attribute (like what Jared has done) that points to a specific function call based on a map 
+contained within the code generator. Information pertaining to that function call would be contained within that
+dictionary as necessary (e.g. Axis, bounds, edge). This seems like the most effective way to me at the moment to 
+be able to easily add new Grid function calls to the data packet generator without substantial changes to the 
+actual code.
+
+Some things to keep in mind: 1) While we chould have a keyword for every possible Grid function and parameter 
+combination, this becomes unwieldy and unmaintainable as we add more possible keyword -> function maps or parameters. 
+So we want to avoid that. 2) This is more generator related, but if we go down the route of having specific information 
+included in the tile_metadata, then the mapping needs to be formatted in such a way that the strings of functions use 
+every possible parameter inside of the string. 3) How will this work with the c2f interface? 4) It's very possible that 
+some grid functions are not as simple as just inserting the function call into the source code. Should all of the necessary 
+code to use that function be included inside of that mapping? 
+
 All possible tile_metadata keys:
 
 * **tile_lo**: The index of the lower corner of the interior of the associated region
@@ -60,6 +82,25 @@ Example:
 
 tile_in
 """""""
+TODO: The current JSON setup for tile_in / tile_in_out / tile_out / tile_scratch obtains the size of the 
+array by subtracting the start and ends of the array and adding 1. However, if we want the starting offset 
+to be anything other than 0, this will not work. For example, in the Runtime tests, there exists a packet that
+needs to be size 1, and the start and end indices need to be 1. Because the starting and ending index are 1,
+but the size of the array is also 1, the data packet tries to use an offset outside of the array's memory,
+causing memory access violations. There are 2 proposed fixes for this problem. 
+
+One is to allow additional functionality to the FArray4D class to be able to offset its starting index. 
+Unfortunately, I don't believe this solution solves the issue for Fortran packets, since a Fortran packet does
+not use FArray4D objects to store arrays. There would need to be adjustments made to the DataPacket generator 
+for this to work properly.
+
+The second solution is to split the NUNKS and variable masking offsets of the data packet. This allows for 
+any desired variable masking while also being able to set a specific size for the array. This solution is 
+essentially what the hand-written data packets used, where the size of the array was determined by NUNKVAR
+and the variable masking was set using a separate variable masking function. Only this time, only the data 
+packet itself would have access to the variable masking information, keeping it self contained. The problem 
+with this solution is that it's much more error prone when creating DataPacket jsons.
+
 The data in this array is copied into the device being used. This dictionary consists of several keywords: 
 
 * **type**: The data type of the items in the array to be copied in.
