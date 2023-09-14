@@ -46,6 +46,7 @@ test_gnu:
  - mkdir $CI_BASE_PATH
  - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - cd ..
  - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
