@@ -1,7 +1,12 @@
 Milhoja Input Interface
 =======================
 
-This is a living document detailing each JSON input that the Milhoja Runtime uses.
+This is a living document detailing each JSON input that the Milhoja Runtime uses. This is the default input method 
+that is specified by Milhoja as an initial option to pass data to its code generators. However, in the future there 
+may be a more concrete method of specifying and parsing data that is defined by the application to suit their purposes.
+In this case, the code generators have a predefined set of information it needs in order to properly generate a Task 
+Function or DataPacket that the application would need to satisfy when creating its own method of outlining and 
+parsing information, so that the generators have all of the necessary information to generate code.
 
 DataPacket JSON
 ---------------
@@ -63,7 +68,8 @@ So we want to avoid that. 2) This is more generator related, but if we go down t
 included in the tile_metadata, then the mapping needs to be formatted in such a way that the strings of functions use 
 every possible parameter inside of the string. 3) How will this work with the c2f interface? 4) It's very possible that 
 some grid functions are not as simple as just inserting the function call into the source code. Should all of the necessary 
-code to use that function be included inside of that mapping? 
+code to use that function be included inside of that mapping? 5) When calling Grid functions, what information is directly 
+tied to the tile iterator, and what information should be specified by the application / user?
 
 All possible tile_metadata keys:
 
@@ -99,7 +105,8 @@ any desired variable masking while also being able to set a specific size for th
 essentially what the hand-written data packets used, where the size of the array was determined by NUNKVAR
 and the variable masking was set using a separate variable masking function. Only this time, only the data 
 packet itself would have access to the variable masking information, keeping it self contained. The problem 
-with this solution is that it's much more error prone when creating DataPacket jsons.
+with this solution is that it's much more error prone when creating DataPacket jsons. The upside is that it's
+an easy solution to this problem.
 
 The data in this array is copied into the device being used. This dictionary consists of several keywords: 
 
