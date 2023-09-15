@@ -17,10 +17,10 @@
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
 
-#include "DataPacket_gpu_dens_stream.h"
-#include "DataPacket_gpu_ener_stream.h"
-#include "DataPacket_gpu_dens_ener_stream.h"
-#include "DataPacket_gpu_de_1_stream.h"
+#include "cgkit.DataPacket_gpu_dens_stream.h"
+#include "cgkit.DataPacket_gpu_ener_stream.h"
+#include "cgkit.DataPacket_gpu_dens_ener_stream.h"
+#include "cgkit.DataPacket_gpu_de_1_stream.h"
 
 using namespace milhoja;
 

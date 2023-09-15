@@ -8,7 +8,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#include "DataPacket_gpu_dens_ener_stream.h"
+#include "cgkit.DataPacket_gpu_dens_ener_stream.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
@@ -22,7 +22,7 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
     const int                  queue_h    = packet_h->asynchronousQueue();
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
 
-    const int*  nTiles_d = packet_h->_nTiles_d;
+    const std::size_t*  nTiles_d = packet_h->_nTiles_d;
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
@@ -35,7 +35,7 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
         // launch these two independent kernels for concurrent execution
         #pragma acc wait(queue_h)
         #pragma acc parallel loop gang default(none) async(queue2_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D*        Uin_d  = CC1_d + n;
             FArray4D*              Uout_d = CC2_d + n;
             StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(lo_d + n, hi_d + n,

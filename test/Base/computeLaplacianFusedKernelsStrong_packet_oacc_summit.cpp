@@ -6,7 +6,7 @@
 
 #include "Base.h"
 
-#include "DataPacket_gpu_de_1_stream.h"
+#include "cgkit.DataPacket_gpu_de_1_stream.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
@@ -19,7 +19,7 @@ void ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit(const
     DataPacket_gpu_de_1_stream* packet_h   = dynamic_cast<DataPacket_gpu_de_1_stream*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();
 
-    int*  nTiles_d = packet_h->_nTiles_d;
+    std::size_t*  nTiles_d = packet_h->_nTiles_d;
     RealVect* deltas_d = packet_h->_tile_deltas_d;
     IntVect* lo_d = packet_h->_tile_lo_d;
     IntVect* hi_d = packet_h->_tile_hi_d;
