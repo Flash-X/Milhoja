@@ -1,12 +1,10 @@
 /* _connector:cpp2c */
-
+#include <iostream>
 #include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_interface_error_codes.h>
 
-// include the datapacket. this may need to change depending on how the name is determined. for now,
-// cgkit outputs will be named cgkit.datapacket.h.
-#include "cgkit.datapacket.h"
+#include "cgkit._param:class_name.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"

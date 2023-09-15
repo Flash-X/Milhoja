@@ -42,6 +42,8 @@
 #include <Milhoja_DataPacket.h>
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
+#include <Milhoja_FArray4D.h>
+#include <Milhoja_Stream.h>
 
 using real = milhoja::Real;
 using milhoja::FArray4D;
