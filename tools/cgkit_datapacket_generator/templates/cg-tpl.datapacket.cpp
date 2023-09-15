@@ -1,14 +1,10 @@
 /* _connector:datapacket */
-
-#include <iostream>
-#include "cgkit.datapacket.h"
+#include "cgkit._param:class_name.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
-#include <Milhoja_IntVect.h>
-#include <Milhoja_RealVect.h>
 
 #if 0
 /* _link:public_members */

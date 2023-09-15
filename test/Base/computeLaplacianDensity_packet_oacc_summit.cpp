@@ -3,7 +3,7 @@
 #include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_gpu_dens_stream.h"
+#include "cgkit.DataPacket_gpu_dens_stream.h"
 
 #include "Base.h"
 
@@ -18,7 +18,7 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
     DataPacket_gpu_dens_stream* packet_h   = dynamic_cast<DataPacket_gpu_dens_stream*>(dataItem_h);
     const int                   queue_h    = packet_h->asynchronousQueue();
 
-    const int* nTiles_d = packet_h->_nTiles_d;
+    const std::size_t* nTiles_d = packet_h->_nTiles_d;
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
@@ -28,12 +28,12 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
     #pragma acc data deviceptr(nTiles_d, deltas_d, lo_d, hi_d, CC1_d, CC2_d)
     {
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D*        Uin_d  = CC1_d + n;
             FArray4D*              Uout_d = CC2_d + n;
-	    const RealVect* deltas = deltas_d + n;
-	    const IntVect* lo = lo_d + n;
-	    const IntVect* hi = hi_d + n;
+	        const RealVect* deltas = deltas_d + n;
+	        const IntVect* lo = lo_d + n;
+	        const IntVect* hi = hi_d + n;
             StaticPhysicsRoutines::computeLaplacianDensity_oacc_summit(lo, hi,
                                                                        Uin_d, Uout_d,
                                                                        deltas);

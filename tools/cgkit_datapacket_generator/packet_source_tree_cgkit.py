@@ -59,8 +59,8 @@ def generate_packet_code(data):
     
     :param dict data: The dictionary containing the DataPacket JSON.
     """
-    file_names_all = [(f'{sys.path[0]}/templates/cg-tpl.datapacket_header.cpp', 'cgkit.datapacket.h'), 
-                        (f'{sys.path[0]}/templates/cg-tpl.datapacket.cpp', 'cgkit.datapacket.cpp')]
+    file_names_all = [(f'{sys.path[0]}/templates/cg-tpl.datapacket_header.cpp', f'cgkit.{data.get(jsc.NAME, "")}.h'), 
+                        (f'{sys.path[0]}/templates/cg-tpl.datapacket.cpp', f'cgkit.{data.get(jsc.NAME, "")}.cpp')]
     for src,dest in file_names_all:
         # assemble from recipe
         stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)

@@ -10,16 +10,16 @@
     "tile_in": {
       "Uin": {
           "type": "real",
-          "start": "0",
-          "end": "0",
+          "start": "1",
+          "end": "1",
           "extents": ["8 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
       }
     },
     "tile_out": {
       "Uout": {
           "type": "real",
-          "start": "0",
-          "end": "0",
+          "start": "1",
+          "end": "1",
           "extents": ["8 + 2 * 1", "16 + 2 * 1", "1 + 2 * 0"]
       }
     }

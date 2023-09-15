@@ -1,17 +1,13 @@
-
-#include <iostream>
-#include "DataPacket_gpu_de_1_stream.h"
+#include "cgkit.DataPacket_gpu_de_1_stream.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
-#include <Milhoja_IntVect.h>
-#include <Milhoja_RealVect.h>
 
 #if 0
-int _nTiles_h;
-int* _nTiles_d;
+std::size_t _nTiles_h;
+std::size_t* _nTiles_d;
 RealVect* _tile_deltas_d;
 IntVect* _tile_lo_d;
 IntVect* _tile_hi_d;
@@ -74,7 +70,7 @@ void DataPacket_gpu_de_1_stream::pack(void) {
 
     _nTiles_h = tiles_.size();
     // size determination
-    constexpr std::size_t SIZE_NTILES = sizeof(int);
+    constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
     constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
@@ -139,8 +135,8 @@ void DataPacket_gpu_de_1_stream::pack(void) {
     char* ptr_p = copyInStart_p_;
     ptr_d = copyInStart_d_;
 
-    int* _nTiles_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _nTiles_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    std::size_t* _nTiles_p = static_cast<std::size_t*>( static_cast<void*>(ptr_p) );
+    _nTiles_d = static_cast<std::size_t*>( static_cast<void*>(ptr_d) );
     ptr_p+=SIZE_NTILES;
     ptr_d+=SIZE_NTILES;
     
@@ -204,8 +200,8 @@ void DataPacket_gpu_de_1_stream::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto hiGC = tileDesc_h->hiGC();
         const auto loGC = tileDesc_h->loGC();
+        const auto hiGC = tileDesc_h->hiGC();
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
