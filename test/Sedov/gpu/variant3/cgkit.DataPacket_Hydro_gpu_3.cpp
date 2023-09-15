@@ -1,19 +1,15 @@
-
-#include <iostream>
-#include "DataPacket_Hydro_gpu_3.h"
+#include "cgkit.DataPacket_Hydro_gpu_3.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
-#include <Milhoja_IntVect.h>
-#include <Milhoja_RealVect.h>
 
 #if 0
 real _dt_h;
 real* _dt_d;
-int _nTiles_h;
-int* _nTiles_d;
+std::size_t _nTiles_h;
+std::size_t* _nTiles_d;
 RealVect* _tile_deltas_d;
 IntVect* _tile_lo_d;
 IntVect* _tile_hi_d;
@@ -56,7 +52,7 @@ real dt
     milhoja::DataPacket{},
 _dt_h{dt},
 _dt_d{nullptr},
-_nTiles_h{tiles_.size()},
+_nTiles_h{ tiles_.size() },
 _nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
@@ -68,11 +64,15 @@ _flX_d{nullptr},
 _flY_d{nullptr},
 _flZ_d{nullptr},
 _f4_U_d{nullptr},
-_f4_U_p{nullptr},
 _f4_auxC_d{nullptr},
 _f4_flX_d{nullptr},
 _f4_flY_d{nullptr},
-_f4_flZ_d{nullptr}
+_f4_flZ_d{nullptr},
+_f4_U_p{nullptr},
+_f4_auxC_p{nullptr},
+_f4_flX_p{nullptr},
+_f4_flY_p{nullptr},
+_f4_flZ_p{nullptr}
 
     {
 }
@@ -91,8 +91,8 @@ void DataPacket_Hydro_gpu_3::pack(void) {
 
     _nTiles_h = tiles_.size();
     // size determination
-    constexpr std::size_t SIZE_DT =  pad( sizeof(real));
-    constexpr std::size_t SIZE_NTILES =  pad( sizeof(int));
+    constexpr std::size_t SIZE_DT = sizeof(real);
+    constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
     constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
@@ -177,8 +177,8 @@ void DataPacket_Hydro_gpu_3::pack(void) {
     ptr_p+=SIZE_DT;
     ptr_d+=SIZE_DT;
     
-    int* _nTiles_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _nTiles_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    std::size_t* _nTiles_p = static_cast<std::size_t*>( static_cast<void*>(ptr_p) );
+    _nTiles_d = static_cast<std::size_t*>( static_cast<void*>(ptr_d) );
     ptr_p+=SIZE_NTILES;
     ptr_d+=SIZE_NTILES;
     
@@ -253,8 +253,8 @@ void DataPacket_Hydro_gpu_3::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto loGC = tileDesc_h->loGC();
         const auto hiGC = tileDesc_h->hiGC();
+        const auto loGC = tileDesc_h->loGC();
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
@@ -282,7 +282,7 @@ void DataPacket_Hydro_gpu_3::pack(void) {
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_flY_p) ) + n * sizeof(FArray4D);
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_device), sizeof(FArray4D));
         
-        FArray4D flZ_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }, 1};
+        FArray4D flZ_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }, 5};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_flZ_p) ) + n * sizeof(FArray4D);
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_device), sizeof(FArray4D));
         
@@ -292,6 +292,7 @@ void DataPacket_Hydro_gpu_3::pack(void) {
         constexpr std::size_t nBytes_U = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 8 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_U_p) ) + n * SIZE_U;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(U_d + offset_U), nBytes_U);
+        
         
         
     }
@@ -320,6 +321,7 @@ void DataPacket_Hydro_gpu_3::unpack(void) {
         const real*  start_p_U = U_data_p + offset_U;
         constexpr std::size_t nBytes_U = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 7 - 0 + 1 ) * sizeof(real);
         std::memcpy(static_cast<void*>(start_h_U), static_cast<const void*>(start_p_U), nBytes_U);
+        
         
         
     }

@@ -2,7 +2,7 @@
 
 #include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_Hydro_gpu_3.h"
+#include "cgkit.DataPacket_Hydro_gpu_3.h"
 
 #include "Sedov.h"
 #include "Eos.h"
@@ -18,7 +18,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     DataPacket_Hydro_gpu_3*    packet_h   = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();
 
-	const int* nTiles_d = packet_h->_nTiles_d;
+	const std::size_t* nTiles_d = packet_h->_nTiles_d;
 	const Real* dt_d = packet_h->_dt_d;
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
@@ -61,9 +61,9 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     {
         //----- COMPUTE FLUXES
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D* U_d = CC1_d + n;
-            const FArray4D* auxC_d = CC2_d + n;
+            FArray4D* auxC_d = CC2_d + n;
 
             const IntVect* lo = lo_d + n;
             const IntVect* hi = hi_d + n;
@@ -73,7 +73,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
         }
 
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D* U_d = CC1_d + n;
             FArray4D* auxC_d = CC2_d + n;
             FArray4D* flX_d = FCX_d + n;
@@ -97,7 +97,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
 
         //----- UPDATE SOLUTIONS IN PLACE
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             FArray4D*              U_d   = CC1_d + n;
             const FArray4D*        flX_d = FCX_d + n;
             const FArray4D*        flY_d = FCY_d + n;
@@ -114,7 +114,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
         }
 
         #pragma acc parallel loop gang default(none) async(queue_h)
-        for (int n=0; n<*nTiles_d; ++n) {
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
             FArray4D*              U_d = CC1_d + n;
             const IntVect* lo = lo_d + n;
             const IntVect* hi = hi_d + n;
