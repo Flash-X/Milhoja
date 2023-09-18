@@ -80,7 +80,8 @@ The steps for generating a DataPacket subclass are as follows:
 
 5. Once the files have been generated, the DataPacket generator calls CG-Kit to insert each param, connector, and link into 
    the premade template files named **cg-tpl.datapacket.cpp** and **cg-tpl.datapacket_header.cpp**, resulting in the completed
-   implementation of the new DataPacket class. The output files are named **cgkit.datapacket.cpp** and **cgkit.datapacket.h**. 
+   implementation of the new DataPacket class. The output files are named **cgkit.[name].cpp** and **cgkit.[name].h**, where
+   [name] is the basename of whatever file was used to generate the packets, without the file extention. 
 
 6. If the 'fortran' language is specified, the DataPacket generator will call two more functions to create interoperability 
    layers for the new DataPacket. One is the C++ to C layer, and the other is the C to Fortran layer. The C to Fortran layer and 
