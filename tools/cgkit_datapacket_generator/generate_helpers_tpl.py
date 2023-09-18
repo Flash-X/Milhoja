@@ -16,6 +16,7 @@ import os
 # import DataPacketMemberVars as dpinfo
 from DataPacketMemberVars import DataPacketMemberVars
 
+_NTILES_VALUE = 'nTiles_value'
 _CON_ARGS = 'constructor_args'
 _SET_MEMBERS = 'set_members'
 _SIZE_DET = 'size_determination'
@@ -149,9 +150,11 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
             f' throw std::invalid_argument("[_param:class_name::releaseExtraQueue] Invalid id.");\n',
             '\tswitch(id) {\n'
         ] + [
-            f'\t\tcase {i}: if(!stream{i}_.isValid())' + 
-            f'{{ throw std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid.");' + 
-            f' }} milhoja::RuntimeBackend::instance().releaseStream(stream{i}_); break;\n'
+            f'\t\tcase {i}:\n'
+            f'\t\t\tif(!stream{i}_.isValid())\n' + 
+            f'\t\t\t\tthrow std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid.");\n' + 
+            f'\t\t\tmilhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n' 
+            f'\t\t\tbreak;\n'
             for i in range(2, extra_streams+2)
         ] + [   
             '\t}\n'
@@ -162,8 +165,8 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
     # Inserts the code necessary to acquire extra streams. 
     connectors[jsc.EXTRA_STREAMS].extend([
         f'stream{i}_ = RuntimeBackend::instance().requestStream(true);\n' + 
-        f'if(!stream{i}_.isValid()) ' +
-        'throw std::runtime_error("[_param:class_name::pack] Unable to acquire second stream");\n'
+        f'if(!stream{i}_.isValid())\n' +
+        f'\tthrow std::runtime_error("[_param:class_name::pack] Unable to acquire stream {i}.");\n'
         for i in range(2, extra_streams+2)
     ])
 
@@ -184,6 +187,13 @@ def _iterate_constructor(
     """
     _section_creation(jsc.GENERAL, constructor, connectors, size_connectors)
     connectors[_HOST_MEMBERS] = []
+    # we need to set nTiles value here as a link, _param does not work as expected.
+    
+    nTiles_value = '_nTiles_h = tiles_.size();'
+    if constructor['nTiles'] != 'std::size_t':
+        nTiles_value = f'_nTiles_h = static_cast<{constructor["nTiles"]}>(tiles_.size());'
+    connectors[_NTILES_VALUE] = [nTiles_value]
+
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
     for key,item_type in constructor.items():
         info = DataPacketMemberVars(
@@ -201,7 +211,14 @@ def _iterate_constructor(
             f'{info.dtype} {info.host};\n',
             f'{info.dtype}* {info.device};\n'
         ])
-        set_host = "{ tiles_.size() }" if key == "nTiles" else f"{{{key}}}"
+        
+        set_host = f'{{{key}}}'
+        # NOTE: it doesn't matter what we set nTiles to here.
+        #       nTiles always gets set in pack, and we cannot set nTiles in here using tiles_
+        #       because tiles_ has not been filled at the time of this packet's construction.
+        if key == "nTiles":
+            set_host = '{0}'
+        
         connectors[_SET_MEMBERS].extend([
             f'{info.host}{set_host}', 
             f'{info.device}{{nullptr}}'
@@ -789,7 +806,6 @@ def _set_default_params(data: dict, params: dict):
     params['class_name'] = data[jsc.NAME]
     params['ndef_name'] = f'{data[jsc.NAME].upper()}_UNIQUE_IFNDEF_H_'
 
-
 def _generate_outer(name: str, params: dict):
     """
     Generates the outer template for the datapacket template.
@@ -853,9 +869,6 @@ def generate_helper_template(data: dict) -> None:
         sort_func = lambda key_and_type: sizes.get(key_and_type[1], 0) if sizes else 1
         sizes = data[jsc.SIZES]
         tpv = data.get(jsc.GENERAL, {}) # tpv = thread-private-variables
-        if 'nTiles' in tpv:
-            warnings.warn("Found nTiles in data packet. Mistake?")
-        tpv['nTiles'] = 'int' # every data packet always needs nTiles so we insert it here.
         tpv = tpv.items()
         _iterate_constructor(connectors, size_connectors, _sort_dict(tpv, sort_func))
 

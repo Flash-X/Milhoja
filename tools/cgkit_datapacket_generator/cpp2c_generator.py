@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import cpp2c_cgkit
+from packet_generation_utility import Language
 from collections import defaultdict
 from DataPacketMemberVars import DataPacketMemberVars
 
@@ -46,12 +47,15 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
     :param dict connectors: The connectors dictionary to write to containing all cgkit connectors.
     :param list dpinfo_order: A list of DataPacketMemberVars objects that use all of the items in the task_function_argument_list.
     """
+
+    nTiles_language = 'int' if data[sects.LANG] == Language.fortran else 'std::size_t'
+
     # initialize the boilerplate values for host members.
     # one queue always exists in the data packet
     # need to insert nTiles host manually
     connectors[_HOST_MEMBERS_KEY] = [
         'const int queue1_h = packet_h->asynchronousQueue();\n',
-        'const int _nTiles_h = packet_h->_nTiles_h;\n'
+        f'const {nTiles_language} _nTiles_h = packet_h->_nTiles_h;\n'
     ]
     # insert the number of extra streams as a connector
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
@@ -65,7 +69,7 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
         [('packet_h', 'void*')] +
         [('queue1_h', 'const int')] +
         [(f'queue{i}_h', 'const int') for i in range(2, n_streams+2)] +
-        [('_nTiles_h', 'const int')] +
+        [('_nTiles_h', f'const {nTiles_language}')] +
         [(item.device, 'const void*') for item in dpinfo_order]
     )
 

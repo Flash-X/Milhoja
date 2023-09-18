@@ -45,7 +45,7 @@ DataPacket_gpu_dens_ener_stream::DataPacket_gpu_dens_ener_stream(
 )
     :
     milhoja::DataPacket{},
-_nTiles_h{ tiles_.size() },
+_nTiles_h{0},
 _nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
@@ -76,7 +76,11 @@ int DataPacket_gpu_dens_ener_stream::extraAsynchronousQueue(const unsigned int i
 void DataPacket_gpu_dens_ener_stream::releaseExtraQueue(const unsigned int id) {
 	if((id < 2) || (id > 1 + 1)) throw std::invalid_argument("[DataPacket_gpu_dens_ener_stream::releaseExtraQueue] Invalid id.");
 	switch(id) {
-		case 2: if(!stream2_.isValid()){ throw std::logic_error("[DataPacket_gpu_dens_ener_stream::releaseExtraQueue] Stream 2 invalid."); } milhoja::RuntimeBackend::instance().releaseStream(stream2_); break;
+		case 2:
+			if(!stream2_.isValid())
+				throw std::logic_error("[DataPacket_gpu_dens_ener_stream::releaseExtraQueue] Stream 2 invalid.");
+			milhoja::RuntimeBackend::instance().releaseStream(stream2_);
+			break;
 	}
 }
 
@@ -89,6 +93,7 @@ void DataPacket_gpu_dens_ener_stream::pack(void) {
 	else if (tiles_.size() == 0)
 		throw std::logic_error("[DataPacket_gpu_dens_ener_stream pack] No tiles added.");
 
+    // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
     // size determination
     constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
@@ -257,14 +262,17 @@ void DataPacket_gpu_dens_ener_stream::pack(void) {
     if (!stream_.isValid())
         throw std::runtime_error("[DataPacket_gpu_dens_ener_stream pack] Unable to acquire stream 1.");
     stream2_ = RuntimeBackend::instance().requestStream(true);
-    if(!stream2_.isValid()) throw std::runtime_error("[DataPacket_gpu_dens_ener_stream::pack] Unable to acquire second stream");
+    if(!stream2_.isValid())
+    	throw std::runtime_error("[DataPacket_gpu_dens_ener_stream::pack] Unable to acquire stream 2.");
     
 }
 
 void DataPacket_gpu_dens_ener_stream::unpack(void) {
     using namespace milhoja;
-    if (tiles_.size() <= 0) throw std::logic_error("[DataPacket_gpu_dens_ener_stream unpack] Empty data packet.");
-    if (!stream_.isValid()) throw std::logic_error("[DataPacket_gpu_dens_ener_stream unpack] Stream not acquired.");
+    if (tiles_.size() <= 0)
+        throw std::logic_error("[DataPacket_gpu_dens_ener_stream unpack] Empty data packet.");
+    if (!stream_.isValid())
+        throw std::logic_error("[DataPacket_gpu_dens_ener_stream unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
     constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (1 - 0 + 1) * sizeof(real);

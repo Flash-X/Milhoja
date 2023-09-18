@@ -4,7 +4,7 @@
 #if 0
 _dt_h{dt},
 _dt_d{nullptr},
-_nTiles_h{ tiles_.size() },
+_nTiles_h{0},
 _nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
@@ -116,8 +116,8 @@ std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
 const auto deltas = tileDesc_h->deltas();
 const auto lo = tileDesc_h->lo();
 const auto hi = tileDesc_h->hi();
-const auto hiGC = tileDesc_h->hiGC();
 const auto loGC = tileDesc_h->loGC();
+const auto hiGC = tileDesc_h->hiGC();
 
 char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
 std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
@@ -187,6 +187,7 @@ real* U_data_p = static_cast<real*>( static_cast<void*>( static_cast<char*>( sta
 
 constexpr std::size_t SIZE_U = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(real);
 
+_nTiles_h = tiles_.size();
 #endif
 
 #include <Milhoja.h>

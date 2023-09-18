@@ -34,6 +34,7 @@
 /* _link:in_pointers */
 /* _link:out_pointers */
 /* _link:pinned_sizes */
+/* _link:nTiles_value */
 #endif
 
 /* _link:includes */

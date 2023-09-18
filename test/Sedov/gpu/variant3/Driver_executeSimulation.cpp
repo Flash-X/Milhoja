@@ -17,7 +17,7 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "DataPacket_Hydro_gpu_3.h"
+#include "cgkit.DataPacket_Hydro_gpu_3.h"
 
 /**
  * Numerically approximate using the third GPU variant the solution to the

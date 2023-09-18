@@ -78,6 +78,7 @@ def _load_json(file: TextIO, args) -> dict:
     data[sections.LANG] = args.language
     data[sections.OUTER] = f'cg-tpl.{data[sections.NAME]}_outer.cpp'
     data[sections.HELPERS] = f'cg-tpl.{data[sections.NAME]}_helpers.cpp'
+
     # Sizes file should always be provided. Generating a data packet subclass without sorting
     # the pointers based on size is prone to memory alignment errors, and requires extra padding
     # on every variable.
@@ -121,6 +122,13 @@ def main():
         data = _load_json(file, args)
         # check if the task args list matches the items in the JSON
         consts.check_json_validity(data)
+
+        # insert nTiles into data after checking json.
+        if sections.GENERAL not in data:
+            data[sections.GENERAL] = {}
+        nTiles_type = 'int' if args.language == consts.Language.fortran else 'std::size_t'
+        data[sections.GENERAL]['nTiles'] = nTiles_type
+
         # generate helper templates
         generate_helpers_tpl.generate_helper_template(data)
         # assemble data packet

@@ -47,7 +47,8 @@ void _param:class_name::pack(void) {
 	else if (tiles_.size() == 0)
 		throw std::logic_error("[_param:class_name pack] No tiles added.");
 
-    _nTiles_h = tiles_.size();
+    // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
+    /* _link:nTiles_value */
     // size determination
     /* _link:size_determination */
 
@@ -138,8 +139,10 @@ void _param:class_name::pack(void) {
 
 void _param:class_name::unpack(void) {
     using namespace milhoja;
-    if (tiles_.size() <= 0) throw std::logic_error("[_param:class_name unpack] Empty data packet.");
-    if (!stream_.isValid()) throw std::logic_error("[_param:class_name unpack] Stream not acquired.");
+    if (tiles_.size() <= 0) 
+        throw std::logic_error("[_param:class_name unpack] Empty data packet.");
+    if (!stream_.isValid()) 
+        throw std::logic_error("[_param:class_name unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
     /* _link:pinned_sizes */

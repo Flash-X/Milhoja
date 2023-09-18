@@ -42,6 +42,7 @@ def _generate_advance_c2f(data):
 
     with open(file_name, 'w') as fp:
         data_mapping = {
+            'std::size_t': 'integer',
             'int': 'integer',
             'real': 'real',
             'bool': 'logical'
@@ -91,7 +92,7 @@ def _generate_advance_c2f(data):
             )
 
         # need to create an extents set to set the sizes for the fortran arrays.
-        extents_set = {'nTiles': C2FInfo('integer', 'integer(MILHOJA_INT)', '', [])}
+        extents_set = {'nTiles': C2FInfo('integer', 'integer(MILHOJA_INT)',  '', [])}
         # load all items from array sections, except scratch.
         for section in [sects.T_IN, sects.T_IN_OUT, sects.T_OUT]:
             sect_dict = data.get(section, {})

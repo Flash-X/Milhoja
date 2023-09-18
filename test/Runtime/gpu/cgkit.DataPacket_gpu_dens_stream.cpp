@@ -40,7 +40,7 @@ DataPacket_gpu_dens_stream::DataPacket_gpu_dens_stream(
 )
     :
     milhoja::DataPacket{},
-_nTiles_h{ tiles_.size() },
+_nTiles_h{0},
 _nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
@@ -68,6 +68,7 @@ void DataPacket_gpu_dens_stream::pack(void) {
 	else if (tiles_.size() == 0)
 		throw std::logic_error("[DataPacket_gpu_dens_stream pack] No tiles added.");
 
+    // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
     // size determination
     constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
@@ -200,8 +201,8 @@ void DataPacket_gpu_dens_stream::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto hiGC = tileDesc_h->hiGC();
         const auto loGC = tileDesc_h->loGC();
+        const auto hiGC = tileDesc_h->hiGC();
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
@@ -239,8 +240,10 @@ void DataPacket_gpu_dens_stream::pack(void) {
 
 void DataPacket_gpu_dens_stream::unpack(void) {
     using namespace milhoja;
-    if (tiles_.size() <= 0) throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Empty data packet.");
-    if (!stream_.isValid()) throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Stream not acquired.");
+    if (tiles_.size() <= 0)
+        throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Empty data packet.");
+    if (!stream_.isValid())
+        throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
     constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (0 - 0 + 1) * sizeof(real);
