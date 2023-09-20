@@ -33,7 +33,7 @@ variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
  MILHOJA_TEST_REPO:      $MILHOJA_PROJECT_PATH/MilhojaTest
- CGKIT_PATH:             $MILHOJA_PROJECT_PATH/cg-kit
+ CGKIT_CODE_REPO:        $MILHOJA_PROJECT_PATH/cg-kit
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
@@ -47,6 +47,7 @@ test_gnu:
  - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
+ - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
  - . $MILHOJA_TEST_REPO/gce/available_gce_machines.sh
@@ -58,6 +59,7 @@ test_gnu:
  - echo $MILHOJA_CODE_REPO
  - echo $MILHOJA_WORK_REPO
  - echo $MILHOJA_INSTALL_PATH
+ - echo $CGKIT_CODE_REPO
  - echo $SEDOV_REGRESSION_TEST
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
@@ -66,6 +68,9 @@ test_gnu:
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_REPO
  - ls
+ ##-- Copy cgkit to this space so that it can be installed without needing special
+ #    permissions.  CGKIT_PATH must be set for tox to work below.
+ - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_REPO
  - git log -1 --oneline
