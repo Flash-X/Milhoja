@@ -4,6 +4,7 @@ from pathlib import Path
 
 from . import CodeGenerationLogger
 
+
 class TileWrapperGenerator(object):
     """
     A class for generating final, compilable C++ header and source code that
@@ -11,20 +12,20 @@ class TileWrapperGenerator(object):
     passed to the task function specified by the specification object given at
     instantiation.
     """
-    #####----- INSTANTIATION CLASS METHODS
+    # ----- INSTANTIATION CLASS METHODS
     @classmethod
-    def from_json( \
-            cls, \
-            tf_spec_json_filename, \
-            header_filename, \
-            source_filename, \
-            logger, \
+    def from_json(
+            cls,
+            tf_spec_json_filename,
+            header_filename,
+            source_filename,
+            logger,
             indent=4
-        ):
+            ):
         """
         Instantiate an object and initialize it with the contents of the given
-        JSON-format file, which contains all configuration information needed to
-        generate a derived Milhoja_TileWrapper class for use with the task
+        JSON-format file, which contains all configuration information needed
+        to generate a derived Milhoja_TileWrapper class for use with the task
         function specified by the JSON file.
 
         See the constructor's documentation for more information.
@@ -37,8 +38,8 @@ class TileWrapperGenerator(object):
         :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used in
-            both generated files.
+        :param indent: The number of spaces used to define the tab to be used
+            in both generated files.
         :type  indent: non-negative int, optional
         :return: The generator object ready for use
         :rtype: TileWrapperGenerator
@@ -50,8 +51,8 @@ class TileWrapperGenerator(object):
         if not json_fname.is_file():
             raise ValueError(f"{json_fname} does not exist or is not a file")
 
-        # TODO: Instead of using .from_* classmethods, the constructor of the TF
-        # specification class could guess the format by looking at the file
+        # TODO: Instead of using .from_* classmethods, the constructor of the
+        # TF specification class could guess the format by looking at the file
         # extension.
         with open(json_fname, "r") as fptr:
             tf_spec = json.load(fptr)
@@ -67,17 +68,17 @@ class TileWrapperGenerator(object):
         elif tf_version.lower() != "1.0.0":
             raise ValueError("Invalid Milhoja-native JSON version (v{tf_version})")
 
-        # TODO: Once we have a class that wraps the task function specification,
-        # we should instantiate it here with its .to_json classmethod and pass
-        # it to the constructor.  tf_spec is presently the standin for that
-        # object.
-        generator = TileWrapperGenerator( \
+        # TODO: Once we have a class that wraps the task function
+        # specification, we should instantiate it here with its .to_json
+        # classmethod and pass it to the constructor.  tf_spec is presently the
+        # standin for that object.
+        generator = TileWrapperGenerator(
                         tf_spec,
-                        tf_spec_json_filename, \
-                        header_filename, \
-                        source_filename, \
-                        logger, \
-                        indent \
+                        tf_spec_json_filename,
+                        header_filename,
+                        source_filename,
+                        logger,
+                        indent
                     )
 
         msg = f"Created code generator from JSON file {tf_spec_json_filename}"
@@ -85,15 +86,15 @@ class TileWrapperGenerator(object):
 
         return generator
 
-    def __init__( \
-            self, \
-            tf_spec, \
-            tf_spec_filename, \
-            header_filename, \
-            source_filename, \
-            logger, \
-            indent \
-        ):
+    def __init__(
+            self,
+            tf_spec,
+            tf_spec_filename,
+            header_filename,
+            source_filename,
+            logger,
+            indent
+            ):
         """
         Construct an object for use with the task function specified by the
         given specification object.
@@ -115,13 +116,13 @@ class TileWrapperGenerator(object):
         :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used in
-            both generated files.
+        :param indent: The number of spaces used to define the tab to be used
+            in both generated files.
         :type  indent: non-negative int
         """
         super().__init__()
 
-        #####----- STORE ARGUMENTS
+        # ----- STORE ARGUMENTS
         self.__tf_spec = tf_spec
 
         self.__spec_fname = Path(tf_spec_filename).resolve()
@@ -134,9 +135,10 @@ class TileWrapperGenerator(object):
 
         self.__logger = logger
 
-        #####----- SANITY CHECK ARGUMENTS
-        # Since there could be no file at instantiation, but a file could appear
-        # before calling a generate method, we don't check file existence here.
+        # ----- SANITY CHECK ARGUMENTS
+        # Since there could be no file at instantiation, but a file could
+        # appear before calling a generate method, we don't check file
+        # existence here.
 
         if not isinstance(self.__logger, CodeGenerationLogger):
             raise TypeError("logger not derived from CodeGenerationLogger")
@@ -144,35 +146,38 @@ class TileWrapperGenerator(object):
         if indent < 0:
             raise ValueError(f"Invalid indent ({self.__indent})")
 
-        #####----- CONSTANTS
+        # ----- CONSTANTS
         # Keys identify the index space of a MFab available through the Milhoja
         # Tile interface (i.e., data, etc.).  For each space, there may be one
         # or more distinct MFabs managed by Grid.  These are indexed with each
         # class by a different set of positive integers.
         #
         # TODO: This is strange.  This information should be encoded in the
-        # library.  Seems like a maintenance nightmare to link the contents here
-        # to the library that others might be using.  Should some of this
+        # library.  Seems like a maintenance nightmare to link the contents
+        # here to the library that others might be using.  Should some of this
         # information go into the include folder for us to pick out?  What if
         # people want to use this on a machine different from the platform on
-        # which they will run?  Should the contents here be specified based on a
-        # given library version?
+        # which they will run?  Should the contents here be specified based on
+        # a given library version?
         self.__AVAILABLE_MFABS = {"CENTER": [1],
                                   "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
 
-        #####----- CODE GENERATION CONSTANTS
+        # ----- CODE GENERATION CONSTANTS
         # TODO: The content here is likely generic to all code generators and
-        # should likely be made available in a constants.py file in the package.
+        # should likely be made available in a constants.py file in the
+        # package.
         self.__TILE_METADATA_LUT = {"tile_lo":     ("const milhoja::IntVect",  "tileDesc->lo()"),
                                     "tile_hi":     ("const milhoja::IntVect",  "tileDesc->hi()"),
                                     "tile_deltas": ("const milhoja::RealVect", "tileDesc->deltas()")}
 
-        self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
-                                        "milhoja::FArray3D", "milhoja::FArray4D"]
+        self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D",
+                                        "milhoja::FArray2D",
+                                        "milhoja::FArray3D",
+                                        "milhoja::FArray4D"]
         self.__MIN_DATA_ARRAY_DIM = 1
         self.__MAX_DATA_ARRAY_DIM = len(self.__TILE_DATA_ARRAY_TYPES)
 
-        msg  = "Loaded task function specification\n"
+        msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
         msg += str(self)
         self.__logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
@@ -208,7 +213,7 @@ class TileWrapperGenerator(object):
         external_all = []
         for arg, arg_spec in arg_specs_all.items():
             if arg_spec["source"].lower() == "external":
-                external_all.append( (arg, arg_spec["type"]) )
+                external_all.append((arg, arg_spec["type"]))
 
         return external_all
 
@@ -223,7 +228,7 @@ class TileWrapperGenerator(object):
         scratch_all = []
         for arg, arg_spec in arg_specs_all.items():
             if arg_spec["source"].lower() == "scratch":
-                scratch_all.append( (arg, arg_spec["type"], arg_spec["extents"]) )
+                scratch_all.append((arg, arg_spec["type"], arg_spec["extents"]))
 
         return scratch_all
 
@@ -233,17 +238,19 @@ class TileWrapperGenerator(object):
         task function specification.
         """
         extents = spec.strip()
-        assert(extents.startswith("("))
-        assert(extents.endswith(")"))
+        assert extents.startswith("(")
+        assert extents.endswith(")")
         extents = extents.lstrip("(").rstrip(")")
         return [int(e) for e in extents.split(",")]
 
     def __generate_constructor_arg_list(self, external_all):
         """
         """
+        INDENT = " " * self.__indent
+
         n_external = len(external_all)
 
-        if   n_external == 0:
+        if n_external == 0:
             arg_list = "(void)"
         elif n_external == 1:
             arg_list = f"(const {external_all[0][1]} {external_all[0][0]})"
@@ -266,8 +273,6 @@ class TileWrapperGenerator(object):
 
         classname = self.__class_name
 
-        args_all = self.__tf_spec["argument_list"]
-
         external_all = self.__external_arguments
         scratch_all = self.__scratch_arguments
         n_external = len(external_all)
@@ -276,7 +281,7 @@ class TileWrapperGenerator(object):
             raise ValueError(f"{self.__src_fname} already exists")
 
         with open(self.__src_fname, "w") as fptr:
-            #####----- HEADER INCLUSION
+            # ----- HEADER INCLUSION
             # Task function's header file
             fptr.write(f'#include "{self.__hdr_fname.name}"\n')
             fptr.write("\n")
@@ -289,7 +294,7 @@ class TileWrapperGenerator(object):
             fptr.write("#endif\n")
             fptr.write("\n")
 
-            #####----- STATIC DEFINITIONS
+            # ----- STATIC DEFINITIONS
             for arg, _, _ in scratch_all:
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
             fptr.write("\n")
@@ -340,7 +345,7 @@ class TileWrapperGenerator(object):
             fptr.write("}\n")
             fptr.write("\n")
 
-            #####----- CONSTRUCTOR/DESTRUCTOR
+            # ----- CONSTRUCTOR/DESTRUCTOR
             arg_list = self.__generate_constructor_arg_list(external_all)
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
@@ -355,16 +360,16 @@ class TileWrapperGenerator(object):
             fptr.write(f"{classname}::~{classname}(void) {{\n")
             fptr.write("#ifdef DEBUG_RUNTIME\n")
             fptr.write(f'{INDENT}std::string   msg = "[~{classname}] ')
-            fptr.write(f'Destroying wrapper object";\n')
+            fptr.write('Destroying wrapper object";\n')
             fptr.write(f"{INDENT}milhoja::Logger::instance().log(msg);\n")
             fptr.write("#endif\n")
             fptr.write("}\n")
             fptr.write("\n")
 
-            #####----- CLONE METHOD
+            # ----- CLONE METHOD
             fptr.write("std::unique_ptr<milhoja::TileWrapper> ")
             fptr.write(f"{classname}::clone")
-            fptr.write(f"(std::unique_ptr<milhoja::Tile>&& tileToWrap)")
+            fptr.write("(std::unique_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
             fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
             if n_external == 0:
@@ -381,13 +386,13 @@ class TileWrapperGenerator(object):
             fptr.write(f"{INDENT}if (ptr->tile_) {{\n")
             fptr.write(f'{INDENT*2}throw std::logic_error("')
             fptr.write(f'[{classname}::clone] ')
-            fptr.write(f'Internal tile_ member not null");\n')
+            fptr.write('Internal tile_ member not null");\n')
             fptr.write(f"{INDENT}}}\n")
             fptr.write(f"{INDENT}ptr->tile_ = std::move(tileToWrap);\n")
             fptr.write(f"{INDENT}if (!(ptr->tile_) || tileToWrap) {{\n")
             fptr.write(f'{INDENT*2}throw std::logic_error("')
             fptr.write(f'[{classname}::clone] ')
-            fptr.write(f'Wrapper did not take ownership of tile");\n')
+            fptr.write('Wrapper did not take ownership of tile");\n')
             fptr.write(f"{INDENT}}}\n")
             fptr.write("\n")
             fptr.write(f"{INDENT}return std::unique_ptr<milhoja::TileWrapper>{{ptr}};\n")
@@ -404,7 +409,6 @@ class TileWrapperGenerator(object):
 
         external_all = self.__external_arguments
         scratch_all = self.__scratch_arguments
-        n_external = len(external_all)
 
         if self.__hdr_fname.exists():
             raise ValueError(f"{self.__hdr_fname} already exists")
@@ -430,8 +434,8 @@ class TileWrapperGenerator(object):
             fptr.write("\n")
 
             fptr.write(f"{INDENT}std::unique_ptr<milhoja::TileWrapper> ")
-            fptr.write(f"clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) ")
-            fptr.write(f"const override;\n")
+            fptr.write("clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) ")
+            fptr.write("const override;\n")
             fptr.write("\n")
 
             for arg, arg_type in external_all:
@@ -457,17 +461,17 @@ class TileWrapperGenerator(object):
             fptr.write("\n")
             for arg, _, _ in scratch_all:
                 fptr.write(f"{INDENT}static void* {arg}_;\n")
-            fptr.write(f"}};\n")
+            fptr.write("};\n")
             fptr.write("\n")
 
             fptr.write("#endif\n")
 
     def __str__(self):
-        msg  = f"Task Function Specification File\t{self.specification_filename}\n"
+        json_fname = self.specification_filename
+        msg = f"Task Function Specification File\t{json_fname}\n"
         msg += f"TileWrapper C++ Header File\t\t{self.header_filename}\n"
         msg += f"TileWrapper C++ Source File\t\t{self.source_filename}\n"
         msg += f"Indentation length\t\t\t{self.indentation}\n"
         msg += f"Verbosity level\t\t\t\t{self.verbosity_level}"
 
         return msg
-

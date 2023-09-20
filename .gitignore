@@ -67,7 +67,11 @@ tools/sedov_pypkg/.eggs
 tools/sedov_pypkg/Sedov.egg-info/
 tools/sedov_pypkg/dist/
 tools/sedov_pypkg/sedov/__pycache__/
+tools/milhoja_pypkg/.tox
 tools/milhoja_pypkg/.eggs
-tools/milhoja_pypkg/milhoja.egg-info/
+tools/milhoja_pypkg/.coverage_milhoja
+tools/milhoja_pypkg/build
 tools/milhoja_pypkg/dist/
-tools/milhoja_pypkg/milhoja/__pycache__/
+tools/milhoja_pypkg/src/milhoja.egg-info/
+tools/milhoja_pypkg/src/milhoja/__pycache__/
+tools/milhoja_pypkg/src/milhoja/tests/__pycache__/

@@ -4,23 +4,24 @@ from pathlib import Path
 
 from . import CodeGenerationLogger
 
+
 class CppTaskFunctionGenerator(object):
     """
     """
-    #####----- INSTANTIATION CLASS METHODS
+    # ----- INSTANTIATION CLASS METHODS
     @classmethod
-    def from_json( \
-            cls, \
-            tf_spec_json_filename, \
-            header_filename, \
-            source_filename, \
-            logger, \
-            indent=4 \
-        ):
+    def from_json(
+            cls,
+            tf_spec_json_filename,
+            header_filename,
+            source_filename,
+            logger,
+            indent=4
+            ):
         """
         Instantiate an object and initialize it with the contents of the given
-        JSON-format file, which contains all configuration information needed to
-        generate the associated C++ task function.
+        JSON-format file, which contains all configuration information needed
+        to generate the associated C++ task function.
 
         See the constructor's documentation for more information.
 
@@ -32,8 +33,8 @@ class CppTaskFunctionGenerator(object):
         :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used in
-            both generated files.
+        :param indent: The number of spaces used to define the tab to be used
+            in both generated files.
         :type  indent: non-negative int, optional
         :return: The generator object ready for use
         :rtype: CppTaskFunctionGenerator
@@ -53,17 +54,17 @@ class CppTaskFunctionGenerator(object):
         elif tf_version.lower() != "1.0.0":
             raise ValueError("Invalid Milhoja-native JSON version (v{tf_version})")
 
-        # TODO: Once we have a class that wraps the task function specification,
-        # we should instantiate it here with its .to_json classmethod and pass
-        # it to the constructor.  tf_spec is presently the standin for that
-        # object.
-        generator = CppTaskFunctionGenerator( \
+        # TODO: Once we have a class that wraps the task function
+        # specification, we should instantiate it here with its .to_json
+        # classmethod and pass it to the constructor.  tf_spec is presently the
+        # standin for that object.
+        generator = CppTaskFunctionGenerator(
                         tf_spec,
-                        tf_spec_json_filename, \
-                        header_filename, \
-                        source_filename, \
-                        logger, \
-                        indent \
+                        tf_spec_json_filename,
+                        header_filename,
+                        source_filename,
+                        logger,
+                        indent
                     )
 
         msg = f"Created code generator from JSON file {tf_spec_json_filename}"
@@ -71,20 +72,20 @@ class CppTaskFunctionGenerator(object):
 
         return generator
 
-    def __init__( \
-            self, \
-            tf_spec, \
-            tf_spec_filename, \
-            header_filename, \
-            source_filename, \
-            logger, \
-            indent \
-        ):
+    def __init__(
+            self,
+            tf_spec,
+            tf_spec_filename,
+            header_filename,
+            source_filename,
+            logger,
+            indent
+            ):
         """
         The basename of the header file is adopted as the name of the task
-        function.  It is assumed that the task function will receive a data item
-        derived from Milhoja_TileWrapper named Tile_<task function name>
-        declared in a header file Tile_<task function name>.h. 
+        function.  It is assumed that the task function will receive a data
+        item derived from Milhoja_TileWrapper named Tile_<task function name>
+        declared in a header file Tile_<task function name>.h.
 
         :param tf_spec: The XXX task function specification object
         :type  tf_spec: XXX
@@ -96,13 +97,13 @@ class CppTaskFunctionGenerator(object):
         :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used in
-            both generated files.
+        :param indent: The number of spaces used to define the tab to be used
+            in both generated files.
         :type  indent: non-negative int, optional
         """
         super().__init__()
 
-        #####----- STORE ARGUMENTS
+        # ----- STORE ARGUMENTS
         self.__tf_spec = tf_spec
 
         self.__spec_fname = Path(tf_spec_filename).resolve()
@@ -115,29 +116,30 @@ class CppTaskFunctionGenerator(object):
 
         self.__logger = logger
 
-        #####----- SANITY CHECK ARGUMENTS
-        # Since there could be no file at instantiation, but a file could appear
-        # before calling a generate method, we don't check file existence here.
+        # ----- SANITY CHECK ARGUMENTS
+        # Since there could be no file at instantiation, but a file could
+        # appear before calling a generate method, we don't check file
+        # existence here.
         if indent < 0:
             raise ValueError(f"Invalid indent ({indent})")
 
-        #####----- CONSTANTS
+        # ----- CONSTANTS
         # Keys identify the index space of a MFab available through the Milhoja
         # Tile interface (i.e., data, etc.).  For each space, there may be one
         # or more distinct MFabs managed by Grid.  These are indexed with each
         # class by a different set of positive integers.
         #
         # TODO: This is strange.  This information should be encoded in the
-        # library.  Seems like a maintenance nightmare to link the contents here
-        # to the library that others might be using.  Should some of this
+        # library.  Seems like a maintenance nightmare to link the contents
+        # here to the library that others might be using.  Should some of this
         # information go into the include folder for us to pick out?  What if
         # people want to use this on a machine different from the platform on
-        # which they will run?  Should the contents here be specified based on a
-        # given library version?
+        # which they will run?  Should the contents here be specified based on
+        # a given library version?
         self.__AVAILABLE_MFABS = {"CENTER": [1],
                                   "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
 
-        #####----- CODE GENERATION CONSTANTS
+        # ----- CODE GENERATION CONSTANTS
         self.__TILE_METADATA_LUT = {"tile_lo":     ("const milhoja::IntVect",  "tileDesc->lo()"),
                                     "tile_hi":     ("const milhoja::IntVect",  "tileDesc->hi()"),
                                     "tile_deltas": ("const milhoja::RealVect", "tileDesc->deltas()")}
@@ -147,7 +149,7 @@ class CppTaskFunctionGenerator(object):
         self.__MIN_DATA_ARRAY_DIM = 1
         self.__MAX_DATA_ARRAY_DIM = len(self.__TILE_DATA_ARRAY_TYPES)
 
-        msg  = "Loaded task function specification\n"
+        msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
         msg += str(self)
         self.__logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
@@ -158,8 +160,8 @@ class CppTaskFunctionGenerator(object):
         task function specification.
         """
         extents = spec.strip()
-        assert(extents.startswith("("))
-        assert(extents.endswith(")"))
+        assert extents.startswith("(")
+        assert extents.endswith(")")
         extents = extents.lstrip("(").rstrip(")")
         return [int(e) for e in extents.split(",")]
 
@@ -199,8 +201,10 @@ class CppTaskFunctionGenerator(object):
 
         tile_name = f"Tile_{self.__tf_name}"
 
+        json_fname = self.specification_filename
+
         with open(self.__src_fname, "w") as fptr:
-            #####----- HEADER INCLUSION
+            # ----- HEADER INCLUSION
             # Task function's header file
             fptr.write(f'#include "{self.__hdr_fname.name}"\n')
             fptr.write(f'#include "Tile_{self.__hdr_fname.name}"\n')
@@ -232,22 +236,22 @@ class CppTaskFunctionGenerator(object):
                 fptr.write(f'#include "{header}"\n')
             fptr.write("\n")
 
-            #####----- FUNCTION DECLARATION
+            # ----- FUNCTION DECLARATION
             fptr.write(f"void  {self.__tf_name}::taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
 
-            #####----- USE IN NAMESPACES
+            # ----- USE IN NAMESPACES
             # TODO: Try to do this so that all types are explicitly given.
             for namespace in ["milhoja"]:
                 fptr.write(f"{INDENT}using namespace {namespace};\n")
             fptr.write("\n")
 
-            #####----- ACCESS GIVEN TILE DESCRIPTOR
+            # ----- ACCESS GIVEN TILE DESCRIPTOR
             fptr.write(f"{INDENT}{tile_name}*  wrapper = dynamic_cast<{tile_name}*>(dataItem);\n")
             fptr.write(f"{INDENT}milhoja::Tile*  tileDesc = wrapper->tile_.get();\n")
             fptr.write("\n")
 
-            #####----- EXTRACT TASK FUNCTION ARGUMENTS FROM TILE
+            # ----- EXTRACT TASK FUNCTION ARGUMENTS FROM TILE
             for arg in args_all:
                 arg_spec = arg_specs_all[arg]
                 src = arg_spec["source"]
@@ -256,9 +260,9 @@ class CppTaskFunctionGenerator(object):
                     arg_type, getter = self.__TILE_METADATA_LUT[arg]
                     fptr.write(f"{INDENT}{arg_type}  {arg} = {getter};\n")
                 elif src == "external":
-                    name       = arg_spec["name"]
+                    name = arg_spec["name"]
                     param_type = arg_spec["type"]
-                    extents    = arg_spec["extents"]
+                    extents = arg_spec["extents"]
                     if len(extents) == 0:
                         fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
                     else:
@@ -271,14 +275,14 @@ class CppTaskFunctionGenerator(object):
                         error_msg = f"Invalid structure_index for {arg} in {json_fname}"
                         raise ValueError(error_msg)
                     index_space = arg_mfab[0].upper()
-                    mfab_idx    = arg_mfab[1]
+                    mfab_idx = arg_mfab[1]
                     if (index_space not in self.__AVAILABLE_MFABS) or \
-                       (mfab_idx    not in self.__AVAILABLE_MFABS[index_space]):
-                        error_msg  = f"{arg_mfab} specified for {arg} in {json_fname}"
-                        error_msg +=  "is not a valid grid data structure"
+                       (mfab_idx not in self.__AVAILABLE_MFABS[index_space]):
+                        error_msg = f"{arg_mfab} specified for {arg} in {json_fname}"
+                        error_msg += "is not a valid grid data structure"
                         raise ValueError(error_msg)
 
-                    extents_in  = self.__parse_extents_spec(arg_spec["extents_in"])
+                    extents_in = self.__parse_extents_spec(arg_spec["extents_in"])
                     extents_out = self.__parse_extents_spec(arg_spec["extents_out"])
                     dimension = len(extents_in)
                     if len(extents_out) != dimension:
@@ -314,8 +318,8 @@ class CppTaskFunctionGenerator(object):
                     array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
 
                     # TODO: We should get this from extents and tile_lo
-                    assert(arg == "hydro_op1_auxc")
-                    assert(dimension == 3)
+                    assert arg == "hydro_op1_auxc"
+                    assert dimension == 3
                     fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
                     fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
@@ -331,9 +335,9 @@ class CppTaskFunctionGenerator(object):
                 else:
                     raise ValueError(f"Unknown argument type {src}")
 
-            fptr.write(f"\n")
+            fptr.write("\n")
 
-            #####----- CALL SUBROUTINES
+            # ----- CALL SUBROUTINES
             # We require a flat call stack for CPU task functions
             # TODO: Confirm this
             for subroutine in self.__tf_spec["subroutine_call_stack"]:
@@ -346,8 +350,8 @@ class CppTaskFunctionGenerator(object):
                     fptr.write(f"{INDENT*5}{mapping[arg]},\n")
                 fptr.write(f"{INDENT*5}{mapping[arg_list[-1]]});\n")
 
-            #####----- CLOSE TASK FUNCTION DEFINITION
-            fptr.write(f"}}")
+            # ----- CLOSE TASK FUNCTION DEFINITION
+            fptr.write("}")
 
     def generate_header_code(self):
         """
@@ -370,20 +374,19 @@ class CppTaskFunctionGenerator(object):
             fptr.write("#include <Milhoja_DataItem.h>\n")
             fptr.write("\n")
 
-            fptr.write(f"namespace {self.__tf_name} {{\n") 
+            fptr.write(f"namespace {self.__tf_name} {{\n")
             fptr.write(f"{INDENT}void  taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT}                   milhoja::DataItem* dataItem);\n")
-            fptr.write( "};\n")
+            fptr.write("};\n")
             fptr.write("\n")
 
             fptr.write("#endif\n")
 
     def __str__(self):
-        msg  = f"Task Function Specification File\t{self.specification_filename}\n"
+        msg = f"Task Function Specification File\t{self.specification_filename}\n"
         msg += f"TileWrapper C++ Header File\t\t{self.header_filename}\n"
         msg += f"TileWrapper C++ Source File\t\t{self.source_filename}\n"
         msg += f"Indentation length\t\t\t{self.indentation}\n"
         msg += f"Verbosity level\t\t\t\t{self.verbosity_level}"
 
         return msg
-
