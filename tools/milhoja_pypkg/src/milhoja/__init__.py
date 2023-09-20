@@ -1,6 +1,5 @@
 """
-A general-use python package for working with Milhoja.  This packages includes
-code needed by Milhoja code generators.
+Please refer to package's README file.
 """
 
 from importlib.metadata import version
