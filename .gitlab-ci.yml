@@ -71,7 +71,7 @@ test_milhoja_pypkg:
  - popd
  ##-- Save artifacts
  - tar cvfz milhoja_pypkg_coverage.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/htmlcov
-artifacts:
+ artifacts:
     paths:
      - milhoja_pypkg_coverage.tgz
     expire_in: never
