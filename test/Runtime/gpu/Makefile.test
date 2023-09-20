@@ -23,14 +23,17 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/DataPacket_gpu_1_stream.cpp \
-    $(TESTDIR)/DataPacket_gpu_2_stream.cpp \
+    $(TESTDIR)/cgkit.DataPacket_gpu_dens_stream.cpp \
+    $(TESTDIR)/cgkit.DataPacket_gpu_ener_stream.cpp \
+    $(TESTDIR)/cgkit.DataPacket_gpu_dens_ener_stream.cpp \
+    $(TESTDIR)/cgkit.DataPacket_gpu_de_1_stream.cpp \
     $(TESTDIR)/testRuntime.cpp \
-    $(RUNTIMEDIR)/runRuntimeTests.cpp
+    $(RUNTIMEDIR)/runRuntimeTests.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernels_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsStrong_packet_oacc_summit.cpp \
+    $(TESTBASEDIR)/computeLaplacianFusedKernelsWeak_packet_oacc_summit.cpp
+

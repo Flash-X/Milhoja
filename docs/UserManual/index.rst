@@ -11,6 +11,7 @@ Milhoja's User Manual
    :caption: Contents:
 
    dependencies
+   input_interface
 
 Indices and tables
 ==================

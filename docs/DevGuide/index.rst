@@ -15,6 +15,8 @@ Milhoja Developers' Guide
    grid
    runtime
    f2c
+   code_generation
+   datapacket_generator_api
 
 Indices and tables
 ==================

@@ -1,0 +1,42 @@
+{
+  "byte-align": 16,
+  "n_extra_streams": 0,
+  "task_function_argument_list": ["dt", "deltas", "lo", "hi", "loGC", "U", "auxC", "FCX", "FCY", "FCZ"],
+  "tile_scratch": {
+    "auxC": {
+      "type": "real",
+      "extents": ["8 + 2 * 1", "8 + 2 * 1", "1 + 2 * 0"]
+    },
+    "FCX": {
+      "type": "real",
+      "extents": ["(8 + 2 * 1) + 1", "8 + 2 * 1", "1 + 2 * 0", "5"]
+    },
+    "FCY": {
+      "type": "real",
+      "extents": ["8 + 2 * 1", "(8 + 2 * 1) + 1", "1 + 2 * 0", "5"]
+    },
+    "FCZ": {
+      "type": "real",
+      "extents": ["1", "1", "1", "1"]
+    }
+  },
+  "constructor": {
+    "dt": "real"
+  },
+  "tile_metadata": {
+  	"tile_deltas": "deltas",
+  	"tile_lo": "lo",
+  	"tile_hi": "hi",
+  	"tile_loGC": "loGC"
+  },
+  "tile_in_out": {
+    "U": {
+      "start_in": "0",
+      "end_in": "9",
+      "start_out": "0",
+      "end_out": "8",
+      "type": "real",
+      "extents": ["8 + 2 * 1", "8 + 2 * 1", "1 + 2 * 0"]
+    }
+  }
+}

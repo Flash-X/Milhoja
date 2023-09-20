@@ -110,7 +110,8 @@ if __name__ == '__main__':
 
     test_name = args.test
     testDir = _HOME_DIR.joinpath('test')
-    for each in test_name.split('/'):
+    path = test_name.split('/')
+    for each in path:
         testDir = testDir.joinpath(each)
     if not testDir.is_dir():
         print_and_exit(f'Test directory {testDir} does not exist')
@@ -172,6 +173,25 @@ if __name__ == '__main__':
     assert(not testMakefile_dest.exists())
     shutil.copy(testMakefile_src, testMakefile_dest)
 
+    ##-- DATAPACKET MAKEFILE
+    print(f"Copying Makefile.datapacket from test {test_name}")
+    packetMakefile_src  =  testDir.joinpath('Makefile.datapacket')
+    packetMakefile_dest = buildDir.joinpath('Makefile.datapacket')
+    assert(not packetMakefile_dest.exists())
+    if not packetMakefile_src.is_file():
+        with open(packetMakefile_dest, "w") as fptr:
+            fptr.write("")
+    else:
+        shutil.copy(packetMakefile_src, packetMakefile_dest)
+
+    ##-- CHECK JSON file
+    print(f"Checking JSON file in {test_name}")
+    jsonPath = testDir.joinpath(f'{os.path.basename(test_name)}.json')
+    if not jsonPath.is_file():
+        print(f"Generating empty json {jsonPath}")
+        with open(jsonPath, "w") as fptr:
+    	    fptr.write("{\n}")
+
     ##-- GENERATE Makefile.setup
     print("Writing Makefile.setup")
     setupMakefile = buildDir.joinpath('Makefile.setup')
@@ -181,6 +201,7 @@ if __name__ == '__main__':
         fptr.write("$(warning BASEDIR=$(BASEDIR) but repository root directory is {})\n".format(_HOME_DIR))
         fptr.write("endif\n\n")
         fptr.write("BUILDDIR = $(BASEDIR)/{}\n".format(args.build))
+        fptr.write("GENDIR=$(BASEDIR)/tools/datapacket_generator\n")
         if args.debug:
             fptr.write(f"DEBUG = true\n")
         else:
