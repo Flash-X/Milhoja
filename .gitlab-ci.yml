@@ -33,6 +33,7 @@ variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
  MILHOJA_TEST_REPO:      $MILHOJA_PROJECT_PATH/MilhojaTest
+ CGKIT_PATH:             $MILHOJA_PROJECT_PATH/cg-kit
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
@@ -85,6 +86,8 @@ test_gnu:
  - which python
  - which pip
  - pip install nose
+ - pip install --editable=file://${CGKIT_PATH}
+ - pip install tox
  - pip install numpy
  - pip install scipy
  - pip install pandas
@@ -96,6 +99,11 @@ test_gnu:
  - python setup.py sdist && cd dist
  - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
+ - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - tox -r -e coverage
+ - python setup.py sdist && cd dist
+ - pip install $(ls milhoja-*.tar.gz)
+ - python -c 'import milhoja ; milhoja.test()'
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_REPO/gce
