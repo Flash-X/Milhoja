@@ -67,6 +67,7 @@ test_gnu:
  - ls
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_REPO
+ - rm -rf $CGKIT_PATH
  - ls
  ##-- Copy cgkit to this space so that it can be installed without needing special
  #    permissions.  CGKIT_PATH must be set for tox to work below.
