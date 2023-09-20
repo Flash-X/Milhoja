@@ -74,7 +74,7 @@ test_gnu:
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_REPO
  - git log -1 --oneline
- ##-- Install Sedov python package for use throughout
+ ##-- Install python packages for use throughout
  # NOTE: I previously ran in this build script the command `pydoc sedov` and found that this
  # installs to `/home/svccels.ci/.local`, which means that we are potentially using a python
  # installation altered by other projects using the CI.  For instance another project might
@@ -90,6 +90,8 @@ test_gnu:
  - source ./pyenv/bin/activate
  - which python
  - which pip
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
  - pip install nose
  - pip install --editable=file://${CGKIT_PATH}
  - pip install tox
@@ -108,6 +110,8 @@ test_gnu:
  - tox -r -e coverage
  - python setup.py sdist && cd dist
  - pip install $(ls milhoja-*.tar.gz)
+ ##-- Check python virtual environment
+ - pip list
  - python -c 'import milhoja ; milhoja.test()'
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
