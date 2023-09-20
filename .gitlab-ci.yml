@@ -107,12 +107,11 @@ test_gnu:
  - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
  - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
- - tox -r -e coverage
  - python setup.py sdist && cd dist
  - pip install $(ls milhoja-*.tar.gz)
  ##-- Check python virtual environment
  - pip list
- - python -c 'import milhoja ; milhoja.test()'
+ - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_REPO/gce
