@@ -2,7 +2,7 @@ A general-use python package for working with Milhoja.  This packages includes
 code needed by Milhoja code generators.
 
 ## Known Issues
-* We acknowledge that `pytest` is a common-used and well-liked framework for
+* We acknowledge that `pytest` is a commonly-used and well-liked framework for
   testing python code.  We intend to study if it should be used to integrate
   testing in the package or if the present use of python's `unittest`
   facitilities is sufficient.
