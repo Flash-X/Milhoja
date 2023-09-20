@@ -60,7 +60,9 @@ def _insert_connector_arguments(data: dict, connectors: dict, dpinfo_order: list
     # insert the number of extra streams as a connector
     n_streams = data.get(sects.EXTRA_STREAMS, 0)
     connectors[_HOST_MEMBERS_KEY].extend([
-        f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
+        f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n' + 
+        f'if (queue{i}_h < 0)\n' + 
+        f'\tthrow std::overflow_error("[cgkit.cpp2c.cxx] Potential overflow error when accessing async queue id.");\n'
         for i in range(2, n_streams+2)
     ])
 
