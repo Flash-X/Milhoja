@@ -15,11 +15,6 @@ namespace StaticPhysicsRoutines{
                                       const milhoja::RealVect& deltas);
 }
 
-namespace ActionRoutines {
-    void computeLaplacianFusedKernels_tile_cpu(const int tId,
-                                               milhoja::DataItem* dataItem);
-}
-
 #ifdef MILHOJA_OPENACC_OFFLOADING
 namespace StaticPhysicsRoutines{
     #pragma acc routine vector

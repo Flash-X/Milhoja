@@ -17,6 +17,13 @@
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
 
+#include "cpu_tf_dens.h"
+#include "Tile_cpu_tf_dens.h"
+#include "cpu_tf_ener.h"
+#include "Tile_cpu_tf_ener.h"
+#include "cpu_tf_fused.h"
+#include "Tile_cpu_tf_fused.h"
+
 using namespace milhoja;
 
 namespace {
@@ -24,6 +31,7 @@ namespace {
 class TestRuntime : public testing::Test {
 protected:
     TestRuntime(void) {
+        // TODO: Set with Mihoja?
         // Each test can use the Grid structure determined by initDomain when
         // this application is started.  However, each test can overwrite the
         // ICs during execution.  Therefore, we blindly reset the ICs each time.
@@ -100,20 +108,26 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianDensity.nInitialThreads = 6;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacianDensity.routine         = cpu_tf_dens::taskFunction;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 6;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianEnergy.nTilesPerPacket = 0;
-    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+    computeLaplacianEnergy.routine         = cpu_tf_ener::taskFunction;
 
     double tStart = MPI_Wtime(); 
-    milhoja::TileWrapper  prototype{};
+    Tile_cpu_tf_dens::acquireScratch();
+    Tile_cpu_tf_dens    prototypeDens{};
     Runtime::instance().executeCpuTasks("LapDens",
-                                        computeLaplacianDensity, prototype);
+                                        computeLaplacianDensity, prototypeDens);
+    Tile_cpu_tf_dens::releaseScratch();
+
+    Tile_cpu_tf_ener::acquireScratch();
+    Tile_cpu_tf_ener    prototypeEner{};
     Runtime::instance().executeCpuTasks("LapEner",
-                                        computeLaplacianEnergy, prototype);
+                                        computeLaplacianEnergy, prototypeEner);
+    Tile_cpu_tf_ener::releaseScratch();
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();
@@ -131,12 +145,14 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     computeLaplacianFused_cpu.nInitialThreads = 6;
     computeLaplacianFused_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianFused_cpu.nTilesPerPacket = 0;
-    computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+    computeLaplacianFused_cpu.routine         = cpu_tf_fused::taskFunction;
 
     double tStart = MPI_Wtime(); 
-    milhoja::TileWrapper  prototype{};
+    Tile_cpu_tf_fused::acquireScratch();
+    Tile_cpu_tf_fused    prototype{};
     Runtime::instance().executeCpuTasks("Fused Kernels CPU",
                                         computeLaplacianFused_cpu, prototype);
+    Tile_cpu_tf_fused::releaseScratch();
     double tWalltime = MPI_Wtime() - tStart; 
 
     checkSolution();

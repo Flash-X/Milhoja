@@ -417,6 +417,7 @@ extern "C" {
      * \return The milhoja error code
      */
     int    milhoja_grid_init_domain_cpu_only_c(milhoja::ACTION_ROUTINE initBlock,
+                                               void* tileWrapper,
                                                const int nThreads) {
         if (nThreads < 0) {
             std::cerr << "[milhoja_grid_init_domain_cpu_only_c] nThreads is negative" << std::endl;
@@ -431,8 +432,10 @@ extern "C" {
         action.nTilesPerPacket = 0;
         action.routine         = initBlock;
 
+        milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
         try {
-            milhoja::Grid::instance().initDomain(action);
+            milhoja::Grid::instance().initDomain(action, prototype);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_DOMAIN;

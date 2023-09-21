@@ -5,21 +5,25 @@ TESTBASEDIR         = $(TESTROOTDIR)/Base
 RUNTIMEDIR          = $(TESTROOTDIR)/Runtime
 TESTDIR             = $(RUNTIMEDIR)/cpu
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) -I$(TESTBASEDIR)/code_generation
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(RUNTIMEDIR) $(CXXFLAGS_GTEST) -I$(TESTBASEDIR)/code_generation
 LDFLAGS_TEST        = $(LIB_GTEST)
 
 SRCS_TEST = \
 	$(TESTROOTDIR)/RuntimeParameters.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
-    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_ic.cpp \
+    $(TESTBASEDIR)/code_generation/cpu_tf_ic.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
+    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_dens.cpp \
+    $(TESTBASEDIR)/code_generation/cpu_tf_dens.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
+    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_ener.cpp \
+    $(TESTBASEDIR)/code_generation/cpu_tf_ener.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
+    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_fused.cpp \
+    $(TESTBASEDIR)/code_generation/cpu_tf_fused.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp

@@ -1,0 +1,44 @@
+{
+    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "argument_list": ["tile_lo",
+                      "tile_hi",
+                      "tile_deltas",
+                      "CC_1",
+                      "base_op1_scratch"],
+    "argument_specifications": {
+        "tile_lo":          {"source":           "tile_lo"},
+        "tile_hi":          {"source":           "tile_hi"},
+        "tile_deltas":      {"source":           "tile_deltas"},
+        "CC_1":             {"source":           "grid_data",
+                             "type":             "milhoja::Real",
+                             "extents_in":       "(10, 18, 1, 1)",
+                             "lbound_in":        "(tile_lo, 1)",
+                             "extents_out":      "(10, 18, 1, 1)",
+                             "lbound_out":       "(tile_lo, 1)",
+                             "structure_index": ["CENTER", 1]},
+        "base_op1_scratch": {"source":           "scratch",
+                             "type":             "milhoja::Real",
+                             "extents":          "(8, 16, 1, 1)",
+                             "lbound":           "(tile_lo, 1)"}
+    },
+    "subroutine_call_stack": [
+        "StaticPhysicsRoutines::computeLaplacianDensity"
+    ],
+    "subroutine_specifications": {
+        "StaticPhysicsRoutines::computeLaplacianDensity": {
+            "header_file": "computeLaplacianDensity.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "U",
+                              "scratch",
+                              "deltas"],
+            "argument_mapping": {
+                "lo":      "tile_lo",
+                "hi":      "tile_hi",
+                "deltas":  "tile_deltas",
+                "U":       "CC_1",
+                "scratch": "base_op1_scratch"
+            }
+        }
+    }
+}

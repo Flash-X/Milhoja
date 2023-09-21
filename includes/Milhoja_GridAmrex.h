@@ -54,7 +54,8 @@ public:
 
     // Pure virtual function overrides.
     void         initDomain(ACTION_ROUTINE initBlock) override;
-    void         initDomain(const RuntimeAction& cpuAction) override;
+    void         initDomain(const RuntimeAction& cpuAction,
+                            const TileWrapper* prototype) override;
     void         destroyDomain(void) override;
     void         restrictAllLevels(void) override;
     void         fillGuardCells(void) override;
@@ -175,10 +176,11 @@ private:
     const int   nCcVars_;
     const int   nFluxVars_;
 
-    ERROR_ROUTINE   errorEst_;            //!< Routine for marking blocks for refinement
-    BC_ROUTINE      extBcFcn_;
-    ACTION_ROUTINE  initBlock_noRuntime_; //!< Temporary cache for setting initial conditions without runtime
-    RuntimeAction   initCpuAction_;       //!< Temporary cache for setting initial conditions with runtime
+    ERROR_ROUTINE       errorEst_;            //!< Routine for marking blocks for refinement
+    BC_ROUTINE          extBcFcn_;
+    ACTION_ROUTINE      initBlock_noRuntime_; //!< Temporary cache for setting initial conditions without runtime
+    RuntimeAction       initCpuAction_;       //!< Temporary cache for setting initial conditions with runtime
+    const TileWrapper*  initCpuPrototype_;    //!< Temporary cache for setting initial conditions with runtime 
 };
 
 }

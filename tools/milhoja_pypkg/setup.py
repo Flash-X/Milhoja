@@ -18,6 +18,8 @@ def version():
         return fptr.read().strip()
 
 
+description = "Milhoja AMR-specific parallelization for heterogenous platforms"
+
 # Changes made to python_requires should be propagated to all tox.ini and all
 # CI build server config files.
 python_requires = ">=3.8"
@@ -27,11 +29,11 @@ install_requires = code_requires + test_requires
 
 package_data = {"milhoja": ["tests/data/*"]}
 
-project_urls = {"Source": "Git Hub",
-                "Documentation": "milhoja.org",
-                "Tracker": "Git Hub Issues"}
-
-description = "Milhoja AMR-specific parallelization for heterogenous platforms"
+project_urls = {
+    "Source": "Git Hub",
+    "Documentation": "milhoja.org",
+    "Tracker": "Git Hub Issues"
+}
 
 setup(
     name="milhoja",
@@ -57,5 +59,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Natural Language :: English",
         "Operating System :: MacOS :: MacOS X",
-        "Topic :: Scientific/Engineering"]
+        "Topic :: Scientific/Engineering"
+    ]
 )

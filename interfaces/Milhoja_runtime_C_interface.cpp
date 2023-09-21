@@ -201,6 +201,7 @@ extern "C" {
      * \return The milhoja error code
      */
     int   milhoja_runtime_execute_tasks_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              void* tileWrapper,
                                               const int nThreads) {
        if (nThreads < 0) {
            std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] nThreads is negative" << std::endl;
@@ -215,11 +216,11 @@ extern "C" {
        action.nTilesPerPacket = 0;
        action.routine         = taskFunction;
 
+       milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
        try {
-           // TODO: Users should pass in tile wrapper prototype
-           milhoja::TileWrapper   prototype{};
            milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name",
-                                                        action, prototype);
+                                                        action, *prototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;

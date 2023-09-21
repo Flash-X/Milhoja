@@ -14,9 +14,5 @@ namespace StaticPhysicsRoutines {
                               milhoja::FArray4D& U);
 }
 
-namespace ActionRoutines {
-    void setInitialConditions_tile_cpu(const int tId, milhoja::DataItem* dataItem);
-}
-
 #endif
 

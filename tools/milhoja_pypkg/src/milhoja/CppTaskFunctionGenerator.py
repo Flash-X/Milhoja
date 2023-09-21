@@ -140,9 +140,40 @@ class CppTaskFunctionGenerator(object):
                                   "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
 
         # ----- CODE GENERATION CONSTANTS
-        self.__TILE_METADATA_LUT = {"tile_lo":     ("const milhoja::IntVect",  "tileDesc->lo()"),
-                                    "tile_hi":     ("const milhoja::IntVect",  "tileDesc->hi()"),
-                                    "tile_deltas": ("const milhoja::RealVect", "tileDesc->deltas()")}
+        # TODO: Should we actively construct the tile metadata getters as an
+        # optimization so that we aren't calling the same getter several times?
+        # TODO: As suggested by Wesley, we should probably have a single
+        # "tile_coordinates" that requires extra specifications such as axis,
+        # edge, and interior/full
+        self.__TILE_METADATA_LUT = {"tile_lo":       ("const milhoja::IntVect",  "tileDesc->lo()"),
+                                    "tile_hi":       ("const milhoja::IntVect",  "tileDesc->hi()"),
+                                    "tile_lbound":   ("const milhoja::IntVect",  "tileDesc->loGC()"),
+                                    "tile_ubound":   ("const milhoja::IntVect",  "tileDesc->hiGC()"),
+                                    "tile_deltas":   ("const milhoja::RealVect", "tileDesc->deltas()"),
+                                    "tile_xCenters": ("const milhoja::FArray1D",
+                                                      "milhoja::Grid::instance().getCellCoords(\n" \
+                                                    + "\t\tmilhoja::Axis::I,\n" \
+                                                    + "\t\tmilhoja::Edge::Center,\n" \
+                                                    + "\t\ttileDesc->level(), \n"
+                                                    + "\t\ttileDesc->loGC(), \n"
+                                                    + "\t\ttileDesc->hiGC()\n"
+                                                    + "\t)"),
+                                    "tile_yCenters": ("const milhoja::FArray1D",
+                                                      "milhoja::Grid::instance().getCellCoords(\n" \
+                                                    + "\t\tmilhoja::Axis::J,\n" \
+                                                    + "\t\tmilhoja::Edge::Center,\n" \
+                                                    + "\t\ttileDesc->level(), \n"
+                                                    + "\t\ttileDesc->loGC(), \n"
+                                                    + "\t\ttileDesc->hiGC()\n"
+                                                    + "\t)"),
+                                    "tile_zCenters": ("const milhoja::FArray1D",
+                                                      "milhoja::Grid::instance().getCellCoords(\n" \
+                                                    + "\t\tmilhoja::Axis::K,\n" \
+                                                    + "\t\tmilhoja::Edge::Center,\n" \
+                                                    + "\t\ttileDesc->level(), \n"
+                                                    + "\t\ttileDesc->loGC(), \n"
+                                                    + "\t\ttileDesc->hiGC()\n"
+                                                    + "\t)")}
 
         self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
                                         "milhoja::FArray3D", "milhoja::FArray4D"]
@@ -220,7 +251,10 @@ class CppTaskFunctionGenerator(object):
             fptr.write("#include <Milhoja_FArray2D.h>\n")
             fptr.write("#include <Milhoja_FArray3D.h>\n")
             fptr.write("#include <Milhoja_FArray4D.h>\n")
+            fptr.write("#include <Milhoja_axis.h>\n")
+            fptr.write("#include <Milhoja_edge.h>\n")
             fptr.write("#include <Milhoja_Tile.h>\n")
+            fptr.write("#include <Milhoja_Grid.h>\n")
             fptr.write("\n")
 
             # Application header files for subroutines
@@ -318,20 +352,37 @@ class CppTaskFunctionGenerator(object):
                     array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
 
                     # TODO: We should get this from extents and tile_lo
-                    assert arg == "hydro_op1_auxc"
-                    assert dimension == 3
-                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
-                    fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
-                    fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
-                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
-                    fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
-                    fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
-                    fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                    fptr.write(f"{INDENT*3} static_cast<milhoja::Real*>({tile_name}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
-                    fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
-                    fptr.write(f"{INDENT*3}lo_{arg},\n")
-                    fptr.write(f"{INDENT*3}hi_{arg}}};\n")
+                    if arg == "hydro_op1_auxc":
+                        assert dimension == 3
+                        fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
+                        fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
+                        fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
+                        fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
+                        fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
+                        fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
+                        fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
+                        fptr.write(f"{INDENT*3} static_cast<milhoja::Real*>({tile_name}::{arg}_)\n")
+                        fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                        fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
+                        fptr.write(f"{INDENT*3}lo_{arg},\n")
+                        fptr.write(f"{INDENT*3}hi_{arg}}};\n")
+                    elif arg == "base_op1_scratch":
+                        assert dimension == 4
+                        fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
+                        fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
+                        fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
+                        fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
+                        fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
+                        fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
+                        fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
+                        fptr.write(f"{INDENT*3} static_cast<milhoja::Real*>({tile_name}::{arg}_)\n")
+                        fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                        fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
+                        fptr.write(f"{INDENT*3}lo_{arg},\n")
+                        fptr.write(f"{INDENT*3}hi_{arg},\n")
+                        fptr.write(f"{INDENT*3}2}};\n")
+                    else:
+                        raise ValueError(f"Unknown scratch variable {arg}")
                 else:
                     raise ValueError(f"Unknown argument type {src}")
 

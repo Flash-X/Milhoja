@@ -1,0 +1,41 @@
+{
+    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "argument_list": ["tile_lbound",
+                      "tile_ubound",
+                      "tile_xCenters",
+                      "tile_yCenters",
+                      "CC_1"],
+    "argument_specifications": {
+        "tile_lbound":      {"source":           "tile_lbound"},
+        "tile_ubound":      {"source":           "tile_ubound"},
+        "tile_xCenters":    {"source":           "tile_xCenters"},
+        "tile_yCenters":    {"source":           "tile_yCenters"},
+        "CC_1":             {"source":           "grid_data",
+                             "type":             "milhoja::Real",
+                             "extents_in":       "(10, 18, 1, 2)",
+                             "lbound_in":        "(tile_lo, 1)",
+                             "extents_out":      "(10, 18, 1, 2)",
+                             "lbound_out":       "(tile_lo, 1)",
+                             "structure_index": ["CENTER", 1]}
+    },
+    "subroutine_call_stack": [
+        "StaticPhysicsRoutines::setInitialConditions"
+    ],
+    "subroutine_specifications": {
+        "StaticPhysicsRoutines::setInitialConditions": {
+            "header_file": "setInitialConditions.h",
+            "argument_list": ["loGC",
+                              "hiGC",
+                              "xCoords",
+                              "yCoords",
+                              "U"],
+            "argument_mapping": {
+                "loGC":    "tile_lbound",
+                "hiGC":    "tile_ubound",
+                "xCoords": "tile_xCenters",
+                "yCoords": "tile_yCenters",
+                "U":       "CC_1"
+            }
+        }
+    }
+}
