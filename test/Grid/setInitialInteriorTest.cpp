@@ -3,28 +3,24 @@
 #include <Milhoja_FArray1D.h>
 #include <Milhoja_FArray4D.h>
 #include <Milhoja_Grid.h>
-#include <Milhoja_Tile.h>
-#include <Milhoja_TileWrapper.h>
 #include <Milhoja_axis.h>
 #include <Milhoja_edge.h>
 
 #include "Base.h"
 
-void Simulation::setInitialInteriorTest(const int tId, milhoja::DataItem* dataItem) {
+void Simulation::setInitialInteriorTest(milhoja::Tile* tileDesc) {
     using namespace milhoja;
-
-    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
-    Tile*  tileDesc = wrapper->tile_.get();
 
     Grid&   grid = Grid::instance();
 
-    const IntVect   lo = tileDesc->lo();
-    const IntVect   hi = tileDesc->hi();
-    FArray4D        f  = tileDesc->data();
+    const unsigned int  level = tileDesc->level();
+    const IntVect       lo = tileDesc->lo();
+    const IntVect       hi = tileDesc->hi();
+    FArray4D            f  = tileDesc->data();
 
-    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, tileDesc->level(),
+    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, level,
                         lo, hi); 
-    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, tileDesc->level(),
+    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, level,
                         lo, hi); 
 
     // We intentionally leave the GC unset.
