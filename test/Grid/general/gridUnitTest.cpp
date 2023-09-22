@@ -15,6 +15,9 @@
 #include "Simulation.h"
 #include "setInitialConditions.h"
 
+#include "cpu_tf_ic.h"
+#include "Tile_cpu_tf_ic.h"
+
 using namespace milhoja;
 
 namespace {
@@ -420,7 +423,7 @@ TEST(GridUnitTest,LogicErrors){
     }
 
     try {
-        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+        grid.initDomain(sim::setInitialConditions_noRuntime);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }
@@ -431,9 +434,10 @@ TEST(GridUnitTest,LogicErrors){
         initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
         initBlock_cpu.nInitialThreads = 1;
         initBlock_cpu.nTilesPerPacket = 0;
-        initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+        initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
-        grid.initDomain(initBlock_cpu);
+        Tile_cpu_tf_ic    prototype{};
+        grid.initDomain(initBlock_cpu, &prototype);
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }

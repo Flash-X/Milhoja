@@ -25,6 +25,8 @@
 
 namespace milhoja {
 
+using INIT_BLOCK_NO_RUNTIME = void (*)(Tile* tileDesc);
+
 /**
   * Grid is an abstract base class designed with the singleton pattern.
   * Each AMR package will have a corresponding derived class from Grid,
@@ -50,7 +52,7 @@ public:
 
     // Pure virtual functions that must be implemented by derived class.
     virtual void destroyDomain(void) = 0;
-    virtual void initDomain(ACTION_ROUTINE initBlock) = 0;
+    virtual void initDomain(INIT_BLOCK_NO_RUNTIME initBlock) = 0;
     virtual void initDomain(const RuntimeAction& cpuAction,
                             const TileWrapper* prototype) = 0;
     virtual void restrictAllLevels() = 0;

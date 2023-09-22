@@ -24,6 +24,11 @@ module milhoja_runtime_mod
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
         !> Fortran interface of the runtime's task function.
+        !!
+        !! C_threadId - unique zero-based index of runtime thread calling this
+        !!              routine
+        !! C_dataItemPtr - C pointer to Grid DataItem to which the task
+        !!                 function should be applied
         subroutine milhoja_runtime_taskFunction(C_threadId, C_dataItemPtr) bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT

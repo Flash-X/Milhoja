@@ -390,7 +390,7 @@ extern "C" {
      *                     conditions on a single tile
      * \return The milhoja error code
      */
-    int    milhoja_grid_init_domain_no_runtime_c(milhoja::ACTION_ROUTINE initBlock) {
+    int    milhoja_grid_init_domain_no_runtime_c(milhoja::INIT_BLOCK_NO_RUNTIME initBlock) {
         try {
             milhoja::Grid::instance().initDomain(initBlock);
         } catch (const std::exception& exc) {

@@ -429,7 +429,7 @@ void  GridAmrex::destroyDomain(void) {
  * executed one block at a time without the runtime.
  *
  */
-void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
+void    GridAmrex::initDomain(INIT_BLOCK_NO_RUNTIME initBlock) {
     // domainDestroyed_ => domainInitialized_
     // Therefore, no need to check domainDestroyed_.
     if (domainInitialized_) {
@@ -1119,10 +1119,8 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
                                             *initCpuPrototype_);
     } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         // Apply initial conditions using just the iterator
-        const TileWrapper    prototype{};
         for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {
-            std::unique_ptr<TileWrapper>  wrapper = prototype.clone( ti->buildCurrentTile() );
-            initBlock_noRuntime_(0, wrapper.get());
+            initBlock_noRuntime_(ti->buildCurrentTile().get());
         }
     } else if ((!initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         throw std::logic_error("[GridAmrex::MakeNewLevelFromScratch] No IC routine given");

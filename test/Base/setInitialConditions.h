@@ -4,7 +4,11 @@
 #include <Milhoja_IntVect.h>
 #include <Milhoja_FArray1D.h>
 #include <Milhoja_FArray4D.h>
-#include <Milhoja_DataItem.h>
+#include <Milhoja_Tile.h>
+
+namespace sim {
+    void  setInitialConditions_noRuntime(milhoja::Tile* tileDesc);
+}
 
 namespace StaticPhysicsRoutines {
     void setInitialConditions(const milhoja::IntVect& loGC,
