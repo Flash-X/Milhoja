@@ -413,6 +413,7 @@ extern "C" {
      *
      * \param initBlock    Procedure to use to compute and store the initial
      *                     conditions on a single tile
+     * \param tileWrapper  WRITE THIS
      * \param nThreads     Number of threads to be activated in CPU thread team
      * \return The milhoja error code
      */
