@@ -73,26 +73,6 @@ void   Analysis::computeErrors(const IntVect& lo, const IntVect& hi,
     L_inf_ener[idx] = maxAbsErr2;
 }
 
-void   ActionRoutines::computeErrors_tile_cpu(const int tId, DataItem* dataItem) {
-    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
-    Tile*  tileDesc = wrapper->tile_.get();
-
-    Grid&   grid = Grid::instance();
-
-    const int           idx   = tileDesc->gridIndex();
-    const unsigned int  level = tileDesc->level();
-    const IntVect       lo    = tileDesc->lo();
-    const IntVect       hi    = tileDesc->hi();
-    const FArray4D      U     = tileDesc->data();
-
-    FArray1D xCoords = grid.getCellCoords(Axis::I, Edge::Center, level,
-                                          lo, hi); 
-    FArray1D yCoords = grid.getCellCoords(Axis::J, Edge::Center, level,
-                                          lo, hi); 
-
-    Analysis::computeErrors(lo, hi, xCoords, yCoords, U, idx);
-}
-
 void Analysis::densityErrors(double* L_inf, double* meanAbsError) {
     *L_inf = *std::max_element(std::begin(L_inf_dens), std::end(L_inf_dens));
     *meanAbsError = 0.0;

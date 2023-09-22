@@ -145,35 +145,36 @@ class CppTaskFunctionGenerator(object):
         # TODO: As suggested by Wesley, we should probably have a single
         # "tile_coordinates" that requires extra specifications such as axis,
         # edge, and interior/full
-        self.__TILE_METADATA_LUT = {"tile_lo":       ("const milhoja::IntVect",  "tileDesc->lo()"),
-                                    "tile_hi":       ("const milhoja::IntVect",  "tileDesc->hi()"),
-                                    "tile_lbound":   ("const milhoja::IntVect",  "tileDesc->loGC()"),
-                                    "tile_ubound":   ("const milhoja::IntVect",  "tileDesc->hiGC()"),
-                                    "tile_deltas":   ("const milhoja::RealVect", "tileDesc->deltas()"),
-                                    "tile_xCenters": ("const milhoja::FArray1D",
-                                                      "milhoja::Grid::instance().getCellCoords(\n" \
-                                                    + "\t\tmilhoja::Axis::I,\n" \
-                                                    + "\t\tmilhoja::Edge::Center,\n" \
-                                                    + "\t\ttileDesc->level(), \n"
-                                                    + "\t\ttileDesc->loGC(), \n"
-                                                    + "\t\ttileDesc->hiGC()\n"
-                                                    + "\t)"),
-                                    "tile_yCenters": ("const milhoja::FArray1D",
-                                                      "milhoja::Grid::instance().getCellCoords(\n" \
-                                                    + "\t\tmilhoja::Axis::J,\n" \
-                                                    + "\t\tmilhoja::Edge::Center,\n" \
-                                                    + "\t\ttileDesc->level(), \n"
-                                                    + "\t\ttileDesc->loGC(), \n"
-                                                    + "\t\ttileDesc->hiGC()\n"
-                                                    + "\t)"),
-                                    "tile_zCenters": ("const milhoja::FArray1D",
-                                                      "milhoja::Grid::instance().getCellCoords(\n" \
-                                                    + "\t\tmilhoja::Axis::K,\n" \
-                                                    + "\t\tmilhoja::Edge::Center,\n" \
-                                                    + "\t\ttileDesc->level(), \n"
-                                                    + "\t\ttileDesc->loGC(), \n"
-                                                    + "\t\ttileDesc->hiGC()\n"
-                                                    + "\t)")}
+        self.__TILE_METADATA_LUT = {"tile_gridIndex": ("const int",               "tileDesc->gridIndex()"),
+                                    "tile_lo":        ("const milhoja::IntVect",  "tileDesc->lo()"),
+                                    "tile_hi":        ("const milhoja::IntVect",  "tileDesc->hi()"),
+                                    "tile_lbound":    ("const milhoja::IntVect",  "tileDesc->loGC()"),
+                                    "tile_ubound":    ("const milhoja::IntVect",  "tileDesc->hiGC()"),
+                                    "tile_deltas":    ("const milhoja::RealVect", "tileDesc->deltas()"),
+                                    "tile_xCenters":  ("const milhoja::FArray1D",
+                                                       "milhoja::Grid::instance().getCellCoords(\n" \
+                                                     + "\t\tmilhoja::Axis::I,\n" \
+                                                     + "\t\tmilhoja::Edge::Center,\n" \
+                                                     + "\t\ttileDesc->level(), \n"
+                                                     + "\t\ttileDesc->loGC(), \n"
+                                                     + "\t\ttileDesc->hiGC()\n"
+                                                     + "\t)"),
+                                    "tile_yCenters":  ("const milhoja::FArray1D",
+                                                       "milhoja::Grid::instance().getCellCoords(\n" \
+                                                     + "\t\tmilhoja::Axis::J,\n" \
+                                                     + "\t\tmilhoja::Edge::Center,\n" \
+                                                     + "\t\ttileDesc->level(), \n"
+                                                     + "\t\ttileDesc->loGC(), \n"
+                                                     + "\t\ttileDesc->hiGC()\n"
+                                                     + "\t)"),
+                                    "tile_zCenters":  ("const milhoja::FArray1D",
+                                                       "milhoja::Grid::instance().getCellCoords(\n" \
+                                                     + "\t\tmilhoja::Axis::K,\n" \
+                                                     + "\t\tmilhoja::Edge::Center,\n" \
+                                                     + "\t\ttileDesc->level(), \n"
+                                                     + "\t\ttileDesc->loGC(), \n"
+                                                     + "\t\ttileDesc->hiGC()\n"
+                                                     + "\t)")}
 
         self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
                                         "milhoja::FArray3D", "milhoja::FArray4D"]

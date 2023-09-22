@@ -24,6 +24,8 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/code_generation/Tile_cpu_tf_fused.cpp \
     $(TESTBASEDIR)/code_generation/cpu_tf_fused.cpp \
+    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_analysis.cpp \
+    $(TESTBASEDIR)/code_generation/cpu_tf_analysis.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp

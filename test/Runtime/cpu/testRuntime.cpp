@@ -23,6 +23,8 @@
 #include "Tile_cpu_tf_ener.h"
 #include "cpu_tf_fused.h"
 #include "Tile_cpu_tf_fused.h"
+#include "cpu_tf_analysis.h"
+#include "Tile_cpu_tf_analysis.h"
 
 using namespace milhoja;
 
@@ -65,7 +67,7 @@ protected:
         computeError.nInitialThreads = 1;
         computeError.teamType        = ThreadTeamDataType::BLOCK;
         computeError.nTilesPerPacket = 0;
-        computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
+        computeError.routine         = cpu_tf_analysis::taskFunction;
 
         RuntimeParameters&   RPs = RuntimeParameters::instance();
 
@@ -73,7 +75,7 @@ protected:
         unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
         unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
         Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
-        milhoja::TileWrapper  prototype{};
+        Tile_cpu_tf_analysis   prototype{};
         Runtime::instance().executeCpuTasks("Analysis",
                                             computeError, prototype);
 

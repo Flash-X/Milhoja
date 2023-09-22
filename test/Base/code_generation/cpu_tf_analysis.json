@@ -1,0 +1,45 @@
+{
+    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "argument_list": ["tile_gridIndex",
+                      "tile_lo",
+                      "tile_hi",
+                      "tile_xCenters",
+                      "tile_yCenters",
+                      "CC_1"],
+    "argument_specifications": {
+        "tile_gridIndex":   {"source":           "tile_gridIndex"},
+        "tile_lo":          {"source":           "tile_lo"},
+        "tile_hi":          {"source":           "tile_hi"},
+        "tile_xCenters":    {"source":           "tile_xCenters"},
+        "tile_yCenters":    {"source":           "tile_yCenters"},
+        "CC_1":             {"source":           "grid_data",
+                             "type":             "milhoja::Real",
+                             "extents_in":       "(10, 18, 1, 2)",
+                             "lbound_in":        "(tile_lo, 1)",
+                             "extents_out":      "(10, 18, 1, 2)",
+                             "lbound_out":       "(tile_lo, 1)",
+                             "structure_index": ["CENTER", 1]}
+    },
+    "subroutine_call_stack": [
+        "Analysis::computeErrors"
+    ],
+    "subroutine_specifications": {
+        "Analysis::computeErrors": {
+            "header_file": "Analysis.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "xCoords",
+                              "yCoords",
+                              "U",
+                              "idx"],
+            "argument_mapping": {
+                "lo":      "tile_lo",
+                "hi":      "tile_hi",
+                "xCoords": "tile_xCenters",
+                "yCoords": "tile_yCenters",
+                "U":       "CC_1",
+                "idx":     "tile_gridIndex"
+            }
+        }
+    }
+}

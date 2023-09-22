@@ -4,7 +4,8 @@
 TF_ALL=('cpu_tf_ic' \
         'cpu_tf_dens' \
         'cpu_tf_ener' \
-        'cpu_tf_fused')
+        'cpu_tf_fused' \
+        'cpu_tf_analysis')
 
 #####----- Setup
 # Use the tools located in the same clone as this script
