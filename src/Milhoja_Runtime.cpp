@@ -752,6 +752,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const unsigned int stagger_usec,
                                       const RuntimeAction& cpuAction,
+                                      const TileWrapper& tilePrototype,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
                                       const unsigned int nTilesPerCpuTurn) {
@@ -860,7 +861,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
             tileDesc = ti->buildCurrentTile();
 
             if (isCpuTurn) {
-                cpuTeam->enqueue( std::move(tileDesc) );
+                cpuTeam->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
 
                 ++nInCpuTurn;
                 if (nInCpuTurn >= nTilesPerCpuTurn) {
@@ -915,6 +916,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
                                             const unsigned int stagger_usec,
                                             const RuntimeAction& cpuAction,
+                                            const TileWrapper& tilePrototype,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
                                             const unsigned int nTilesPerCpuTurn,
@@ -1077,7 +1079,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
             tileDesc = ti->buildCurrentTile();
 
             if (isCpuTurn) {
-                cpuTeam->enqueue( std::move(tileDesc) );
+                cpuTeam->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
 
                 ++nInCpuTurn;
                 if (nInCpuTurn >= nTilesPerCpuTurn) {

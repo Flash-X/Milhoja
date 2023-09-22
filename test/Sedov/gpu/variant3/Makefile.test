@@ -5,8 +5,8 @@ SEDOVDIR            = $(TESTROOTDIR)/Sedov
 SEDOVGPUDIR         = $(SEDOVDIR)/gpu
 TESTDIR             = $(SEDOVGPUDIR)/variant3
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) -I$(SEDOVDIR)/code_generation
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) -I$(SEDOVDIR)/code_generation
 CUFLAGS_TEST        = -I$(SEDOVDIR)
 LDFLAGS_TEST        =
 
@@ -16,11 +16,13 @@ SRCS_TEST = \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/sim_getVariableNames.cpp \
-	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(SEDOVDIR)/code_generation/Tile_cpu_tf_ic_$(NDIM)D.cpp \
+	$(SEDOVDIR)/code_generation/cpu_tf_ic_$(NDIM)D.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
     $(SEDOVDIR)/hy_computeFluxesHll.cpp \
     $(SEDOVDIR)/hy_updateSolutionHll.cpp \
-    $(SEDOVDIR)/Hydro_advanceSolutionHll_tile_cpu.cpp \
+	$(SEDOVDIR)/code_generation/Tile_cpu_tf00_$(NDIM)D.cpp \
+	$(SEDOVDIR)/code_generation/cpu_tf00_$(NDIM)D.cpp \
 	$(SEDOVGPUDIR)/hy_computeSoundSpeedHll_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/hy_computeFluxesHll_X_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/hy_computeFluxesHll_Y_oacc_summit.cpp \
@@ -28,7 +30,8 @@ SRCS_TEST = \
 	$(TESTDIR)/hy_updateSolutionHll_oacc_summit.cpp \
 	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 	$(SEDOVDIR)/Io.cpp \
-	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
+	$(SEDOVDIR)/code_generation/Tile_cpu_tf_IQ_$(NDIM)D.cpp \
+	$(SEDOVDIR)/code_generation/cpu_tf_IQ_$(NDIM)D.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
 	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \

@@ -76,6 +76,7 @@ public:
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,
                                  const RuntimeAction& cpuAction,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
@@ -83,6 +84,7 @@ public:
                                        const unsigned int nDistributorThreads,
                                        const unsigned int stagger_usec,
                                        const RuntimeAction& cpuAction,
+                                       const TileWrapper& tilePrototype,
                                        const RuntimeAction& gpuAction,
                                        const DataPacket& packetPrototype,
                                        const unsigned int nTilesPerCpuTurn,
