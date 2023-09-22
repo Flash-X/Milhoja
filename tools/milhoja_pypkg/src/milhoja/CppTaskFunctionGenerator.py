@@ -146,6 +146,7 @@ class CppTaskFunctionGenerator(object):
         # "tile_coordinates" that requires extra specifications such as axis,
         # edge, and interior/full
         self.__TILE_METADATA_LUT = {"tile_gridIndex": ("const int",               "tileDesc->gridIndex()"),
+                                    "tile_level":     ("const unsigned int",      "tileDesc->level()"),
                                     "tile_lo":        ("const milhoja::IntVect",  "tileDesc->lo()"),
                                     "tile_hi":        ("const milhoja::IntVect",  "tileDesc->hi()"),
                                     "tile_lbound":    ("const milhoja::IntVect",  "tileDesc->loGC()"),
@@ -174,7 +175,9 @@ class CppTaskFunctionGenerator(object):
                                                      + "\t\ttileDesc->level(), \n"
                                                      + "\t\ttileDesc->loGC(), \n"
                                                      + "\t\ttileDesc->hiGC()\n"
-                                                     + "\t)")}
+                                                     + "\t)"),
+                                    "tile_cellVolumes": (None, None)
+                                    }
 
         self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
                                         "milhoja::FArray3D", "milhoja::FArray4D"]
@@ -293,7 +296,18 @@ class CppTaskFunctionGenerator(object):
 
                 if src in self.__TILE_METADATA_LUT:
                     arg_type, getter = self.__TILE_METADATA_LUT[arg]
-                    fptr.write(f"{INDENT}{arg_type}  {arg} = {getter};\n")
+                    if src == "tile_cellVolumes":
+                        fptr.write(f"{INDENT}milhoja::Real* ptr_mh_internal_volumes =\n")
+                        fptr.write(f"{INDENT*2}static_cast<milhoja::Real*>({tile_name}::_mh_internal_volumes_)\n")
+                        fptr.write(f"{INDENT*2}+ {tile_name}::_MH_INTERNAL_VOLUMES_SIZE_ * threadId;\n")
+                        fptr.write(f"{INDENT}Grid::instance().fillCellVolumes(\n")
+                        fptr.write(f"{INDENT*2}tileDesc->level(),\n")
+                        fptr.write(f"{INDENT*2}tileDesc->lo(),\n")
+                        fptr.write(f"{INDENT*2}tileDesc->hi(),\n")
+                        fptr.write(f"{INDENT*2}ptr_mh_internal_volumes);\n")
+                        fptr.write(f"{INDENT}milhoja::FArray3D  {arg}{{ptr_mh_internal_volumes, tileDesc->lo(), tileDesc->hi()}};\n")
+                    else:
+                        fptr.write(f"{INDENT}{arg_type}  {arg} = {getter};\n")
                 elif src == "external":
                     name = arg_spec["name"]
                     param_type = arg_spec["type"]

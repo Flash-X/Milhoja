@@ -20,9 +20,17 @@
 
 // TODO: This would need to be inserted by a Driver code generator
 #if MILHOJA_NDIM == 2
+#include "cpu_tf_ic_2D.h"
+#include "Tile_cpu_tf_ic_2D.h"
+#include "cpu_tf_IQ_2D.h"
+#include "Tile_cpu_tf_IQ_2D.h"
 #include "cpu_tf00_2D.h"
 #include "Tile_cpu_tf00_2D.h"
 #else
+#include "cpu_tf_ic_3D.h"
+#include "Tile_cpu_tf_ic_3D.h"
+#include "cpu_tf_IQ_3D.h"
+#include "Tile_cpu_tf_IQ_3D.h"
 #include "cpu_tf00_3D.h"
 #include "Tile_cpu_tf00_3D.h"
 #endif
@@ -48,12 +56,25 @@ void    Driver::executeSimulation(void) {
     Driver::dt      = RPs.getReal("Simulation", "dtInit");
     Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
+    //------ ACQUIRE PERSISTENT MILHOJA SCRATCH
+#if MILHOJA_NDIM == 2
+    Tile_cpu_tf_IQ_2D::acquireScratch();
+    Tile_cpu_tf00_2D::acquireScratch();
+#else
+    Tile_cpu_tf_IQ_3D::acquireScratch();
+    Tile_cpu_tf00_3D::acquireScratch();
+#endif
+
     milhoja::RuntimeAction     initBlock_cpu;
     initBlock_cpu.name            = "initBlock_cpu";
     initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
     initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     initBlock_cpu.nTilesPerPacket = 0;
-    initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
+#if MILHOJA_NDIM == 2
+    initBlock_cpu.routine         = cpu_tf_ic_2D::taskFunction;
+#else
+    initBlock_cpu.routine         = cpu_tf_ic_3D::taskFunction;
+#endif
 
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
@@ -61,12 +82,34 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nInitialThreads = RPs.getUnsignedInt("Io", "nThreadsForIntQuantities");
     computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-    computeIntQuantitiesByBlk.routine         
-        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
-    const milhoja::TileWrapper int_IQ_prototype{};
+#if MILHOJA_NDIM == 2
+    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ_2D::taskFunction;
+    const Tile_cpu_tf_IQ_2D    int_IQ_prototype{};
+#else
+    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ_3D::taskFunction;
+    const Tile_cpu_tf_IQ_3D    int_IQ_prototype{};
+#endif
 
     Timer::start("Set initial conditions");
-    grid.initDomain(initBlock_cpu);
+#if MILHOJA_NDIM == 2
+    // TODO: Call these all the time even though they might be no-op?  How
+    // would the Driver code generator know if scratch is needed or not.
+    // Remember that Milhoja's code generators might sneak in internal scratch
+    // memory.
+    Tile_cpu_tf_ic_2D::acquireScratch();
+    const Tile_cpu_tf_ic_2D    ic_prototype{};
+#else
+    Tile_cpu_tf_ic_3D::acquireScratch();
+    const Tile_cpu_tf_ic_3D    ic_prototype{};
+#endif
+
+    grid.initDomain(initBlock_cpu, &ic_prototype);
+
+#if MILHOJA_NDIM == 2
+    Tile_cpu_tf_ic_2D::releaseScratch();
+#else
+    Tile_cpu_tf_ic_3D::releaseScratch();
+#endif
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -104,15 +147,6 @@ void    Driver::executeSimulation(void) {
                         GLOBAL_COMM, TIMER_RANK};
 
     Timer::start("sedov simulation");
-
-    // Acquire auxC scratch memory up front and use throughout simulation.
-    // Include in simulation timing so that Milhoja-based overhead can be
-    // included in comparisons against non-Milhoja-based performance results.
-#if MILHOJA_NDIM == 2
-    Tile_cpu_tf00_2D::acquireScratch();
-#else
-    Tile_cpu_tf00_3D::acquireScratch();
-#endif
 
     unsigned int      nStep{1};
     unsigned int      maxSteps{RPs.getUnsignedInt("Simulation", "maxSteps")};
@@ -200,15 +234,18 @@ void    Driver::executeSimulation(void) {
         ++nStep;
     }
 
-    // Include in simulation timing so that Milhoja-based overhead can be
-    // included in comparisons against non-Milhoja-based performance results.
+    Timer::stop("sedov simulation");
+
+    //----- RELEASE PERSISTENT MILHOJA Scratch Memory
+    // TODO: It would be good to include this is performance timings since it
+    // is extra overhead associated with Milhoja use
 #if MILHOJA_NDIM == 2
     Tile_cpu_tf00_2D::releaseScratch();
+    Tile_cpu_tf_IQ_2D::releaseScratch();
 #else
     Tile_cpu_tf00_3D::releaseScratch();
+    Tile_cpu_tf_IQ_3D::releaseScratch();
 #endif
-
-    Timer::stop("sedov simulation");
 
     if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");

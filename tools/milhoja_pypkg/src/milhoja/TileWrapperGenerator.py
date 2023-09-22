@@ -225,10 +225,20 @@ class TileWrapperGenerator(object):
         """
         arg_specs_all = self.__tf_spec["argument_specifications"]
 
+        # Scratch requested by application
         scratch_all = []
         for arg, arg_spec in arg_specs_all.items():
             if arg_spec["source"].lower() == "scratch":
                 scratch_all.append((arg, arg_spec["type"], arg_spec["extents"]))
+
+        # Internal scratch required by Milhoja
+        for arg, arg_spec in arg_specs_all.items():
+            if arg_spec["source"].lower() == "tile_cellvolumes":
+                # TODO: How to get extents and dimensionality of problem as numbers here?
+                name = "_mh_internal_volumes"
+                scratch_type = "milhoja::Real"
+                extents = "(18, 18, 18)"
+                scratch_all.append((name, scratch_type, extents))
 
         return scratch_all
 

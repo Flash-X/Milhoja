@@ -15,10 +15,12 @@ SRCS_TEST = \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
 	$(SEDOVDIR)/Io.cpp \
-	$(SEDOVDIR)/Io_computeIntegralQuantitiesByBlock_tile_cpu.cpp \
+	$(TESTDIR)/code_generation/Tile_cpu_tf_IQ_$(NDIM)D.cpp \
+	$(TESTDIR)/code_generation/cpu_tf_IQ_$(NDIM)D.cpp \
 	$(SEDOVDIR)/hy_computeFluxesHll.cpp \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
-	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(TESTDIR)/code_generation/Tile_cpu_tf_ic_$(NDIM)D.cpp \
+	$(TESTDIR)/code_generation/cpu_tf_ic_$(NDIM)D.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/sim_getVariableNames.cpp \
 	$(TESTDIR)/code_generation/Tile_cpu_tf00_$(NDIM)D.cpp \

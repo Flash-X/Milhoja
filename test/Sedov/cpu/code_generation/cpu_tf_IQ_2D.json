@@ -1,0 +1,39 @@
+{
+    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "argument_list": ["tile_lo",
+                      "tile_hi",
+                      "tile_cellVolumes",
+                      "CC_1"],
+    "argument_specifications": {
+        "tile_lo":          {"source":           "tile_lo"},
+        "tile_hi":          {"source":           "tile_hi"},
+        "tile_cellVolumes": {"source":           "tile_cellVolumes"},
+        "CC_1":             {"source":           "grid_data",
+                             "type":             "milhoja::Real",
+                             "extents_in":       "(18, 18, 1, 8)",
+                             "lbound_in":        "(tile_lo, 1)",
+                             "extents_out":      "(18, 18, 1, 0)",
+                             "lbound_out":       "(tile_lo, 1)",
+                             "structure_index": ["CENTER", 1]}
+    },
+    "subroutine_call_stack": [
+        "Io::instance().computeIntegralQuantitiesByBlock"
+    ],
+    "subroutine_specifications": {
+        "Io::instance().computeIntegralQuantitiesByBlock": {
+            "header_file": "Io.h",
+            "argument_list": ["threadIdx",
+                              "lo",
+                              "hi",
+                              "cellVolumes", 
+                              "solnData"],
+            "argument_mapping": {
+                "threadIdx":   "threadId", 
+                "lo":          "tile_lo",
+                "hi":          "tile_hi",
+                "cellVolumes": "tile_cellVolumes",
+                "solnData":    "CC_1"
+            }
+        }
+    }
+}

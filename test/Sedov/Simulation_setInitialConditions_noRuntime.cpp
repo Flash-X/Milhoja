@@ -1,18 +1,14 @@
 #include "Simulation.h"
 
 #include <Milhoja_Grid.h>
-#include <Milhoja_TileWrapper.h>
+#include <Milhoja_Tile.h>
 #include <Milhoja_axis.h>
 #include <Milhoja_edge.h>
 
 #include "Eos.h"
 
-void Simulation::setInitialConditions_tile_cpu(const int tId,
-                                               milhoja::DataItem* dataItem) {
+void Simulation::setInitialConditions_noRuntime(milhoja::Tile* tileDesc) {
     using namespace milhoja;
-
-    TileWrapper*  wrapper = dynamic_cast<TileWrapper*>(dataItem);
-    Tile*  tileDesc = wrapper->tile_.get();
 
     const unsigned int  level  = tileDesc->level();
     const IntVect       loGC   = tileDesc->loGC();

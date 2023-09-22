@@ -9,7 +9,10 @@
 #include <Milhoja_FArray2D.h>
 #include <Milhoja_FArray3D.h>
 #include <Milhoja_FArray4D.h>
+#include <Milhoja_axis.h>
+#include <Milhoja_edge.h>
 #include <Milhoja_Tile.h>
+#include <Milhoja_Grid.h>
 
 #include "Eos.h"
 #include "Hydro.h"
