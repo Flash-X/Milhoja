@@ -195,6 +195,7 @@ extern "C" {
      *
      * \param taskFunction   The computational work to apply identically to each
      *                       block
+     * \param tileWrapper    C pointer to the prototype TileWrapper
      * \param nThreads       The number of threads that the single thread team
      *                       should activate.
      *
