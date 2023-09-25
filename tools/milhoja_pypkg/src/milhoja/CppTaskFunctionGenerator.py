@@ -431,7 +431,7 @@ class CppTaskFunctionGenerator(object):
             raise ValueError(f"{self.__hdr_fname} already exists")
 
         basename = Path(self.__hdr_fname.name).stem
-        hdr_macro = f"CGKIT_GENERATED_{basename.upper()}_H__"
+        hdr_macro = f"MILHOJA_GENERATED_{basename.upper()}_H__"
 
         with open(self.__hdr_fname, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")

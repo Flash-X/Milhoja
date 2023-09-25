@@ -415,7 +415,7 @@ class TileWrapperGenerator(object):
         msg = f"Generating C++ Header {self.__hdr_fname}"
         self.__logger.log(msg, CodeGenerationLogger.BASIC_LOG_LEVEL)
 
-        hdr_macro = f"CGKIT_GENERATED_{self.__class_name.upper()}_H__"
+        hdr_macro = f"MILHOJA_GENERATED_{self.__class_name.upper()}_H__"
 
         external_all = self.__external_arguments
         scratch_all = self.__scratch_arguments

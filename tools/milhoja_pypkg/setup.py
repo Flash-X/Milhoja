@@ -27,7 +27,8 @@ code_requires = ["Code-Generation-Toolkit"]
 test_requires = ["numpy"]
 install_requires = code_requires + test_requires
 
-package_data = {"milhoja": ["tests/data/*"]}
+package_data = {"milhoja": ["tests/data/*",
+                            "tests/data/Sedov/*"]}
 
 project_urls = {
     "Source": "Git Hub",
