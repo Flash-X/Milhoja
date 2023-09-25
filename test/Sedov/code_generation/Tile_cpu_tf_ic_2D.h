@@ -14,7 +14,7 @@ struct Tile_cpu_tf_ic_2D : public milhoja::TileWrapper {
     Tile_cpu_tf_ic_2D& operator=(const Tile_cpu_tf_ic_2D&) = delete;
     Tile_cpu_tf_ic_2D& operator=(Tile_cpu_tf_ic_2D&&)      = delete;
 
-    std::unique_ptr<milhoja::TileWrapper> clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const override;
+    std::unique_ptr<milhoja::TileWrapper> clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const override;
 
 
     static void acquireScratch(void);

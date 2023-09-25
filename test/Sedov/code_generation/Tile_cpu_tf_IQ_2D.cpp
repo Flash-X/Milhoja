@@ -55,7 +55,7 @@ Tile_cpu_tf_IQ_2D::~Tile_cpu_tf_IQ_2D(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_IQ_2D::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_IQ_2D::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_IQ_2D* ptr = new Tile_cpu_tf_IQ_2D{};
 
     if (ptr->tile_) {
