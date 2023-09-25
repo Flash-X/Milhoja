@@ -45,12 +45,12 @@ CUFLAGS_LIB  =
 ifeq ($(DEBUG),true)
 CXXFLAGS = -I$(BUILDDIR) -I$(JSONDIR) -I$(LIB_MILHOJA)/include \
 			$(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) \
-			$(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG)
+			$(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG) \
             $(CXXFLAGS_GENERATED_DEBUG) $(CXXFLAGS_AMREX)
 else
 CXXFLAGS = -I$(BUILDDIR) -I$(JSONDIR) -I$(LIB_MILHOJA)/include \
 			$(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD)
+           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD) \
            $(CXXFLAGS_GENERATED_PROD) $(CXXFLAGS_AMREX)
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) -I$(BUILDDIR) $(CUFLAGS_BASE) \
@@ -93,6 +93,7 @@ OBJS      = $(C_OBJS) $(CU_OBJS)
 DEPS      = $(OBJS:.o=.d)
 
 OBJS_TEST = $(CU_OBJS) $(addsuffix .o, $(basename $(notdir $(SRCS_TEST))))
+OBJS_GEN  = $(addsuffix .o, $(basename $(notdir $(SRCS_GENERATED))))
 OBJS_BASE = $(addsuffix .o, $(basename $(notdir $(SRCS_BASE))))
 
 # Use vpath as suggested here: http://make.mad-scientist.net/papers/multi-architecture-builds/#single
@@ -112,11 +113,11 @@ test:
 	./$(BINARYNAME)
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS_TEST) $(MAKEFILES) $(LIB_MILHOJA)/lib/libmilhoja.a
+$(BINARYNAME): $(OBJS_TEST) $(OBJS_GEN) $(MAKEFILES) $(LIB_MILHOJA)/lib/libmilhoja.a
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif
-	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(LDFLAGS)
+	$(CXXCOMP) -o $(BINARYNAME) $(OBJS_TEST) $(OBJS_GEN) $(LDFLAGS)
 
 %.o: %.cpp $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAG) $(CXXFLAGS) -o $@ $<
@@ -124,8 +125,6 @@ endif
 %.o: %.cu $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
-
-include Makefile.datapacket
 
 # Clean removes all intermediate files
 clean:

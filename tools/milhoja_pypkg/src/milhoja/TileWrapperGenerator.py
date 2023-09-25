@@ -379,7 +379,7 @@ class TileWrapperGenerator(object):
             # ----- CLONE METHOD
             fptr.write("std::unique_ptr<milhoja::TileWrapper> ")
             fptr.write(f"{classname}::clone")
-            fptr.write("(std::unique_ptr<milhoja::Tile>&& tileToWrap)")
+            fptr.write("(std::shared_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
             fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
             if n_external == 0:
@@ -444,7 +444,7 @@ class TileWrapperGenerator(object):
             fptr.write("\n")
 
             fptr.write(f"{INDENT}std::unique_ptr<milhoja::TileWrapper> ")
-            fptr.write("clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) ")
+            fptr.write("clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) ")
             fptr.write("const override;\n")
             fptr.write("\n")
 

@@ -49,9 +49,7 @@ for taskFunction in ${TF_ALL[@]}; do
     $GEN_TF_TOOL ${CGPATH}/${taskFunction}.json ${GENPATH}/${taskFunction}.h ${GENPATH}/${taskFunction}.cpp
     $GEN_TWRAPPER_TOOL ${CGPATH}/${taskFunction}.json ${GENPATH}/Tile_${taskFunction}.h ${GENPATH}/Tile_${taskFunction}.cpp
 
-    echo -e "\t${GENPATH}/${taskFunction}.h \\"        >> $MAKEFILE
     echo -e "\t${GENPATH}/${taskFunction}.cpp \\"      >> $MAKEFILE
-    echo -e "\t${GENPATH}/Tile_${taskFunction}.h \\"   >> $MAKEFILE
     echo -e "\t${GENPATH}/Tile_${taskFunction}.cpp \\" >> $MAKEFILE
 done
 echo
