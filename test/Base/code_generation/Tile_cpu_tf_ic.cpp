@@ -30,7 +30,7 @@ Tile_cpu_tf_ic::~Tile_cpu_tf_ic(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_ic::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_ic::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_ic* ptr = new Tile_cpu_tf_ic{};
 
     if (ptr->tile_) {

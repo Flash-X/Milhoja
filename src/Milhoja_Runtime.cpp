@@ -489,6 +489,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
 #ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype) {
     Logger::instance().log("[Runtime] Start CPU/GPU action bundle");
@@ -572,7 +573,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
         }
 
         // CPU action parallel pipeline
-        cpuTeam->enqueue( std::move(tile_cpu) );
+        cpuTeam->enqueue( tilePrototype.clone( std::move(tile_cpu) ) );
         if ((tile_cpu != nullptr) || (tile_cpu.use_count() != 0)) {
             throw std::logic_error("[Runtime::executeCpuGpuTasks] tile_cpu ownership not transferred");
         }
@@ -1343,6 +1344,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 #ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const RuntimeAction& actionA_cpu,
+                                      const TileWrapper& tilePrototype,
                                       const RuntimeAction& actionA_gpu,
                                       const RuntimeAction& actionB_gpu,
                                       const DataPacket& packetPrototypeA,
@@ -1450,7 +1452,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
         // CPU/GPU data parallel pipeline
         if (isCpuTurn) {
-            teamA_cpu->enqueue( std::move(tileA) );
+            teamA_cpu->enqueue( tilePrototype.clone( std::move(tileA) ) );
 
             ++nInCpuTurn;
             if (nInCpuTurn >= nTilesPerCpuTurn) {

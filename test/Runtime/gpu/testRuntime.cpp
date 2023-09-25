@@ -17,6 +17,15 @@
 #include "computeLaplacianFused.h"
 #include "Analysis.h"
 
+#include "cpu_tf_dens.h"
+#include "Tile_cpu_tf_dens.h"
+#include "cpu_tf_ener.h"
+#include "Tile_cpu_tf_ener.h"
+#include "cpu_tf_fused.h"
+#include "Tile_cpu_tf_fused.h"
+#include "cpu_tf_analysis.h"
+#include "Tile_cpu_tf_analysis.h"
+
 #include "DataPacket_gpu_1_stream.h"
 #include "DataPacket_gpu_2_stream.h"
 
@@ -60,7 +69,7 @@ protected:
         computeError.nInitialThreads = 1;
         computeError.teamType        = ThreadTeamDataType::BLOCK;
         computeError.nTilesPerPacket = 0;
-        computeError.routine         = ActionRoutines::computeErrors_tile_cpu;
+        computeError.routine         = cpu_tf_analysis::taskFunction;
 
         RuntimeParameters&   RPs = RuntimeParameters::instance();
 
@@ -68,7 +77,9 @@ protected:
         unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
         unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
         Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
-        Runtime::instance().executeCpuTasks("Analysis", computeError);
+        const Tile_cpu_tf_analysis   prototype{};
+        Runtime::instance().executeCpuTasks("Analysis",
+                                            computeError, prototype);
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;
@@ -101,18 +112,29 @@ TEST_F(TestRuntime, TestCpuOnlyConfig) {
     computeLaplacianDensity.nInitialThreads = 6;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacianDensity.routine         = cpu_tf_dens::taskFunction;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 6;
     computeLaplacianEnergy.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianEnergy.nTilesPerPacket = 0;
-    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+    computeLaplacianEnergy.routine         = cpu_tf_ener::taskFunction;
+
+    Tile_cpu_tf_dens::acquireScratch();
+    Tile_cpu_tf_ener::acquireScratch();
+
+    const Tile_cpu_tf_dens    prototypeDens{};
+    const Tile_cpu_tf_ener    prototypeEner{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("LapDens", computeLaplacianDensity);
-    Runtime::instance().executeCpuTasks("LapEner", computeLaplacianEnergy);
+    Runtime::instance().executeCpuTasks("LapDens",
+                                        computeLaplacianDensity, prototypeDens);
+    Runtime::instance().executeCpuTasks("LapEner",
+                                        computeLaplacianEnergy, prototypeEner);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_dens::releaseScratch();
+    Tile_cpu_tf_ener::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -129,11 +151,17 @@ TEST_F(TestRuntime, TestFusedKernelsCpu) {
     computeLaplacianFused_cpu.nInitialThreads = 6;
     computeLaplacianFused_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianFused_cpu.nTilesPerPacket = 0;
-    computeLaplacianFused_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+    computeLaplacianFused_cpu.routine         = cpu_tf_fused::taskFunction;
+
+    Tile_cpu_tf_fused::acquireScratch();
+    const Tile_cpu_tf_fused    prototype{};
 
     double tStart = MPI_Wtime(); 
-    Runtime::instance().executeCpuTasks("Fused Kernels CPU", computeLaplacianFused_cpu);
+    Runtime::instance().executeCpuTasks("Fused Kernels CPU",
+                                        computeLaplacianFused_cpu, prototype);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_fused::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -184,7 +212,7 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
     computeLaplacianDensity.nInitialThreads = 3;
     computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity.nTilesPerPacket = 0;
-    computeLaplacianDensity.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacianDensity.routine         = cpu_tf_dens::taskFunction;
 
     computeLaplacianEnergy.name            = "LaplacianEnergy";
     computeLaplacianEnergy.nInitialThreads = 3;
@@ -192,14 +220,20 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
     computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-    const DataPacket_gpu_1_stream&   packetPrototype{};
+    Tile_cpu_tf_dens::acquireScratch();
+
+    const Tile_cpu_tf_dens    tilePrototypeDens{};
+    const DataPacket_gpu_1_stream&   packetPrototypeEner{};
     
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuTasks("ConcurrentCpuGpu",
                                            computeLaplacianDensity,
+                                           tilePrototypeDens,
                                            computeLaplacianEnergy,
-                                           packetPrototype);
+                                           packetPrototypeEner);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_dens::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -219,7 +253,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     computeLaplacian_cpu.nInitialThreads = 4;
     computeLaplacian_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacian_cpu.nTilesPerPacket = 0;
-    computeLaplacian_cpu.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacian_cpu.routine         = cpu_tf_dens::taskFunction;
 
     computeLaplacian_gpu.name            = "LaplacianDensity_gpu";
     computeLaplacian_gpu.nInitialThreads = 2;
@@ -227,18 +261,25 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     computeLaplacian_gpu.nTilesPerPacket = 30;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianDensity_packet_oacc_summit;
 
+
+    Tile_cpu_tf_dens::acquireScratch();
+    Tile_cpu_tf_ener::acquireScratch();
+
+    const Tile_cpu_tf_dens           tilePrototypeDens{};
+    const Tile_cpu_tf_ener           tilePrototypeEner{};
     const DataPacket_gpu_1_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
                                                 N_DIST_THREADS, 0,
                                                 computeLaplacian_cpu,
+                                                tilePrototypeDens,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
                                                 30);
 
     computeLaplacian_cpu.name    = "LaplacianEnergy_cpu";
-    computeLaplacian_cpu.routine = ActionRoutines::computeLaplacianEnergy_tile_cpu;
+    computeLaplacian_cpu.routine = cpu_tf_ener::taskFunction;
 
     computeLaplacian_gpu.name    = "LaplacianEnergy_gpu";
     computeLaplacian_gpu.routine = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
@@ -246,10 +287,14 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelEnergy",
                                                 N_DIST_THREADS, 0,
                                                 computeLaplacian_cpu,
+                                                tilePrototypeEner,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
                                                 30);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_dens::releaseScratch();
+    Tile_cpu_tf_ener::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -268,7 +313,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     computeLaplacianDensity_cpu.nInitialThreads = 2;
     computeLaplacianDensity_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacianDensity_cpu.nTilesPerPacket = 0;
-    computeLaplacianDensity_cpu.routine         = ActionRoutines::computeLaplacianDensity_tile_cpu;
+    computeLaplacianDensity_cpu.routine         = cpu_tf_dens::taskFunction;
 
     computeLaplacianDensity_gpu.name            = "LaplacianDensity_gpu";
     computeLaplacianDensity_gpu.nInitialThreads = 3;
@@ -282,17 +327,23 @@ TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     computeLaplacianEnergy_gpu.nTilesPerPacket = 20;
     computeLaplacianEnergy_gpu.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
+    Tile_cpu_tf_dens::acquireScratch();
+
     const DataPacket_gpu_1_stream&   packetPrototype{};
+    const Tile_cpu_tf_dens           tilePrototypeDens{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuWowzaTasks("CPU/GPU Wowza",
                                                 computeLaplacianDensity_cpu,
+                                                tilePrototypeDens,
                                                 computeLaplacianDensity_gpu,
                                                 computeLaplacianEnergy_gpu,
                                                 packetPrototype,
                                                 packetPrototype,
                                                 20);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_dens::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -389,7 +440,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
     computeLaplacian_cpu.nInitialThreads = 3;
     computeLaplacian_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacian_cpu.nTilesPerPacket = 0;
-    computeLaplacian_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+    computeLaplacian_cpu.routine         = cpu_tf_fused::taskFunction;
 
     computeLaplacian_gpu.name            = "LaplacianFused_gpu";
     computeLaplacian_gpu.nInitialThreads = 3;
@@ -399,14 +450,20 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
 
     const DataPacket_gpu_2_stream&   packetPrototype{};
 
+    Tile_cpu_tf_fused::acquireScratch();
+    const Tile_cpu_tf_fused   tilePrototype{};
+
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
                                                 N_DIST_THREADS, 0,
                                                 computeLaplacian_cpu,
+                                                tilePrototype,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_fused::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";
@@ -426,7 +483,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     computeLaplacian_cpu.nInitialThreads = 4;
     computeLaplacian_cpu.teamType        = ThreadTeamDataType::BLOCK;
     computeLaplacian_cpu.nTilesPerPacket = 0;
-    computeLaplacian_cpu.routine         = ActionRoutines::computeLaplacianFusedKernels_tile_cpu;
+    computeLaplacian_cpu.routine         = cpu_tf_fused::taskFunction;
 
     computeLaplacian_gpu.name            = "LaplacianFused_gpu";
     computeLaplacian_gpu.nInitialThreads = 2;
@@ -434,16 +491,22 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     computeLaplacian_gpu.nTilesPerPacket = 20;
     computeLaplacian_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
+    Tile_cpu_tf_fused::acquireScratch();
+
+    const Tile_cpu_tf_fused   tilePrototype{};
     const DataPacket_gpu_1_stream&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
                                                 N_DIST_THREADS, 0,
                                                 computeLaplacian_cpu,
+                                                tilePrototype,
                                                 computeLaplacian_gpu,
                                                 packetPrototype,
                                                 15);
     double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_fused::releaseScratch();
 
     checkSolution();
     std::cout << "Total walltime = " << tWalltime << " sec\n";

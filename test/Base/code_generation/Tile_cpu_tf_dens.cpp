@@ -55,7 +55,7 @@ Tile_cpu_tf_dens::~Tile_cpu_tf_dens(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_dens::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_dens::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_dens* ptr = new Tile_cpu_tf_dens{};
 
     if (ptr->tile_) {

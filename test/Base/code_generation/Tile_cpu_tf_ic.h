@@ -14,7 +14,7 @@ struct Tile_cpu_tf_ic : public milhoja::TileWrapper {
     Tile_cpu_tf_ic& operator=(const Tile_cpu_tf_ic&) = delete;
     Tile_cpu_tf_ic& operator=(Tile_cpu_tf_ic&&)      = delete;
 
-    std::unique_ptr<milhoja::TileWrapper> clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const override;
+    std::unique_ptr<milhoja::TileWrapper> clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const override;
 
 
     // TODO: Can we get rid of these?

@@ -25,7 +25,7 @@ TileWrapper::~TileWrapper(void) {
 }
 
 std::unique_ptr<TileWrapper>   TileWrapper::clone(
-        std::unique_ptr<Tile>&& tileToWrap) const {
+        std::shared_ptr<Tile>&& tileToWrap) const {
     // New wrapper takes ownership of the tile to wrap
     TileWrapper*   ptr = new TileWrapper{};
     ptr->tile_ = std::move(tileToWrap);

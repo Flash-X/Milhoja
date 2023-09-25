@@ -55,7 +55,7 @@ Tile_cpu_tf_fused::~Tile_cpu_tf_fused(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_fused::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_fused::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_fused* ptr = new Tile_cpu_tf_fused{};
 
     if (ptr->tile_) {

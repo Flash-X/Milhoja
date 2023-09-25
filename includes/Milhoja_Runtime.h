@@ -65,6 +65,7 @@ public:
                                const MPI_Comm comm);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
+                            const TileWrapper& tilePrototype,
                             const RuntimeAction& gpuAction,
                             const DataPacket& packetPrototype);
     void executeExtendedGpuTasks(const std::string& bundleName,
@@ -99,6 +100,7 @@ public:
                                          const unsigned int nTilesPerCpuTurn);
     void executeCpuGpuWowzaTasks(const std::string& bundleName,
                                  const RuntimeAction& actionA_cpu,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& actionA_gpu,
                                  const RuntimeAction& actionB_gpu,
                                  const DataPacket& packetPrototypeA,

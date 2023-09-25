@@ -55,7 +55,7 @@ Tile_cpu_tf_ener::~Tile_cpu_tf_ener(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_ener::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_ener::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_ener* ptr = new Tile_cpu_tf_ener{};
 
     if (ptr->tile_) {

@@ -27,7 +27,7 @@ Tile_cpu_tf_analysis::~Tile_cpu_tf_analysis(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_analysis::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_analysis::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_cpu_tf_analysis* ptr = new Tile_cpu_tf_analysis{};
 
     if (ptr->tile_) {
