@@ -17,7 +17,7 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "DataPacket_Hydro_gpu_3.h"
+#include "cgkit.DataPacket_Hydro_gpu_3.h"
 
 #if MILHOJA_NDIM == 2
 #include "cpu_tf_ic_2D.h"
@@ -167,8 +167,6 @@ void    Driver::executeSimulation(void) {
     milhoja::Real     tMax{RPs.getReal("Simulation", "tMax")};
     milhoja::Real     dtAfter{RPs.getReal("Driver", "dtAfter")};
     unsigned int      writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
-
-    const DataPacket_Hydro_gpu_3    gpu_tf00_prototype;
     while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -201,6 +199,7 @@ void    Driver::executeSimulation(void) {
 #else
         const Tile_cpu_tf00_3D   cpu_tf00_prototype{Driver::dt};
 #endif
+	    const DataPacket_Hydro_gpu_3    gpu_tf00_prototype{Driver::dt};
         runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
                                         nDistThreads,
                                         stagger_usec,
@@ -219,6 +218,15 @@ void    Driver::executeSimulation(void) {
 //                                              nTilesPerCpuTurn,
 //                                              nStep,
 //                                              GLOBAL_COMM);
+// TODO: Currently, the test is only using the GPU because it makes testing easier,
+//       and there's no need to account for roundoff error. Eventually, we should
+//       move back to using the CpuGpuSplit thread team config.
+//        runtime.executeGpuTasks("Advance Hydro Solution",
+//                                nDistThreads,
+//                                stagger_usec,
+//                                hydroAdvance_gpu,
+//                                gpu_tf00_prototype);
+
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);

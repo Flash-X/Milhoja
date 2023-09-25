@@ -1,0 +1,50 @@
+{
+    "byte_align": 16,
+    "n_extra_streams": 0,
+    "task_function_argument_list": ["dt","dtOld","smallDens","smallPres","smallE","cvisc","C_hyp","tiny",
+                                    "hybridRiemann", "levels", "deltas", "lo", "hi", "loGC", "hiGC", 
+                                    "Uin", "Uout", "FCX", "FCY", "FCZ" ],
+    "tile_scratch": {
+      "FCX": {
+        "type": "real",
+        "extents": "fcx(0)"
+      },
+      "FCY": {
+        "type": "real",
+        "extents": "fcy(0)"
+      },
+      "FCZ": {
+        "type": "real",
+        "extents": "fcz(0)"
+      }
+    },
+    "general": {
+      "dt": "real",
+      "dtOld": "real",
+      "smallDens": "real",
+      "smallPres": "real",
+      "smallE": "real",
+      "cvisc": "real",
+      "C_hyp": "real",
+      "tiny": "real",
+      "hybridRiemann": "int"
+    },
+    "tile_metadata": [ "levels", "deltas", "lo", "hi", "loGC", "hiGC" ],
+    "tile_in": {
+      "Uin": {
+        "type": "real",
+        "start": 0,
+        "end": 17,
+        "extents": "cc(NGUARD)"
+      }
+    },
+    "tile_out": {
+      "Uout": {
+        "type": "real",
+        "start": 0,
+        "end": 17,
+        "extents": "cc(NGUARD)"
+      }
+    }
+  }
+  

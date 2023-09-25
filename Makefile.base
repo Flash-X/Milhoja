@@ -122,6 +122,8 @@ endif
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 
+include Makefile.datapacket
+
 # Clean removes all intermediate files
 clean:
 	$(RM) -f *.o
