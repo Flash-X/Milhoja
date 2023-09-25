@@ -64,6 +64,10 @@ _NC    = '\033[0m'      # No Color/Not bold
 # relative to that directory.
 _HOME_DIR = Path(__file__).resolve().parent
 
+# If a test directory contains this file, we assume that it must be run to
+# automatically generate all code
+_CODE_GENERATION_SCRIPT = "generate_code_for_milhoja.sh"
+
 PAR_FILENAME_BASE = 'RuntimeParameters'
 
 if __name__ == '__main__':
@@ -173,17 +177,6 @@ if __name__ == '__main__':
     assert(not testMakefile_dest.exists())
     shutil.copy(testMakefile_src, testMakefile_dest)
 
-    ##-- DATAPACKET MAKEFILE
-    print(f"Copying Makefile.datapacket from test {test_name}")
-    packetMakefile_src  =  testDir.joinpath('Makefile.datapacket')
-    packetMakefile_dest = buildDir.joinpath('Makefile.datapacket')
-    assert(not packetMakefile_dest.exists())
-    if not packetMakefile_src.is_file():
-        with open(packetMakefile_dest, "w") as fptr:
-            fptr.write("")
-    else:
-        shutil.copy(packetMakefile_src, packetMakefile_dest)
-
     ##-- CHECK JSON file
     print(f"Checking JSON file in {test_name}")
     jsonPath = testDir.joinpath(f'{os.path.basename(test_name)}.json')
@@ -268,10 +261,26 @@ if __name__ == '__main__':
         fptr.write(f'{parFile_dest.name} -->    {parFile_src}\n')
         fptr.write('\n')
 
+    #####----- GENERATE CODE FOR MILHOJA
+    generator = testDir.joinpath(_CODE_GENERATION_SCRIPT)
+    genpath = buildDir.joinpath("generated_code")
+    generatedMakefile = genpath.joinpath("..", "Makefile.generated")
+    if generator.is_file():
+        assert not genpath.exists()
+        os.mkdir(genpath)
+        # TODO: Pass makefile name as well
+        # TODO: Check error code of shell call
+        sbp.call([str(generator), str(genpath)])
+    else:
+        print(f"No automatic code generation required by test")
+        with open(generatedMakefile, "w") as fptr:
+            fptr.write("")
+
     #####----- SET PERMISSIONS TO READ-ONLY
     os.chmod(mainMakefile_dest, 0o444)
     os.chmod(siteMakefile_dest, 0o444)
     os.chmod(testMakefile_dest, 0o444)
+    os.chmod(generatedMakefile, 0o444)
     os.chmod(setupMakefile,     0o444)
     os.chmod(parFile_dest,      0o444)
     os.chmod(logfileName,       0o444)

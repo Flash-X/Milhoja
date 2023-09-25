@@ -7,11 +7,12 @@ MAKEFILE     = Makefile
 # TODO: We don't need to define this and include.  Better to rename this and use
 # includes explicitly?  Note that it is *not* an error if one or more of these
 # makefiles cannot be found.
-MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.test Makefile.setup
+MAKEFILES    = $(MAKEFILE) Makefile.site Makefile.test Makefile.setup Makefile.generated
 
 include Makefile.site
 include Makefile.setup
 include Makefile.test
+include Makefile.generated
 
 # Default shell commands
 RM ?= /bin/rm
@@ -44,11 +45,13 @@ CUFLAGS_LIB  =
 ifeq ($(DEBUG),true)
 CXXFLAGS = -I$(BUILDDIR) -I$(JSONDIR) -I$(LIB_MILHOJA)/include \
 			$(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_BASE) \
-			$(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG) $(CXXFLAGS_AMREX)
+			$(CXXFLAGS_LIB) $(CXXFLAGS_TEST_DEBUG)
+            $(CXXFLAGS_GENERATED_DEBUG) $(CXXFLAGS_AMREX)
 else
 CXXFLAGS = -I$(BUILDDIR) -I$(JSONDIR) -I$(LIB_MILHOJA)/include \
 			$(CXXFLAGS_STD) $(CXXFLAGS_PROD) $(CXXFLAGS_BASE) \
-           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD) $(CXXFLAGS_AMREX)
+           $(CXXFLAGS_LIB) $(CXXFLAGS_TEST_PROD)
+           $(CXXFLAGS_GENERATED_PROD) $(CXXFLAGS_AMREX)
 endif
 CUFLAGS  = $(CUFLAGS_STD) $(CUFLAGS_PROD) -I$(BUILDDIR) $(CUFLAGS_BASE) \
            $(CUFLAGS_LIB) $(CUFLAGS_TEST) $(CUFLAGS_AMREX)
@@ -81,7 +84,7 @@ endif
 
 
 # List of sources, objects, and dependencies
-C_SRCS    = $(SRCS_BASE) $(SRCS_TEST)
+C_SRCS    = $(SRCS_BASE) $(SRCS_TEST) $(SRCS_GENERATED)
 SRCS      = $(C_SRCS) $(CU_SRCS)
 
 C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
