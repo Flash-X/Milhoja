@@ -49,10 +49,10 @@ class CppTaskFunctionGenerator(object):
             raise ValueError('"format" not provided in JSON specification')
 
         tf_fmt, tf_version = tf_spec["format"]
-        if tf_fmt.lower() != "milhoja_native_json":
-            raise ValueError("Unknown JSON format ({tf_fmt} v{tf_version})")
+        if tf_fmt.lower() != "milhoja-native json":
+            raise ValueError(f"Unknown JSON format ({tf_fmt} v{tf_version})")
         elif tf_version.lower() != "1.0.0":
-            raise ValueError("Invalid Milhoja-native JSON version (v{tf_version})")
+            raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
 
         # TODO: Once we have a class that wraps the task function
         # specification, we should instantiate it here with its .to_json

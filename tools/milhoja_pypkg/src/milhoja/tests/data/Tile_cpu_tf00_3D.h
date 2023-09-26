@@ -14,7 +14,7 @@ struct Tile_delete_me : public milhoja::TileWrapper {
     Tile_delete_me& operator=(const Tile_delete_me&) = delete;
     Tile_delete_me& operator=(Tile_delete_me&&)      = delete;
 
-    std::unique_ptr<milhoja::TileWrapper> clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const override;
+    std::unique_ptr<milhoja::TileWrapper> clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const override;
 
     milhoja::Real  dt_;
 

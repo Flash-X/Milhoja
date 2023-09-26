@@ -1,5 +1,5 @@
 {
-    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "format": ["Milhoja-native JSON", "1.0.0"],
     "argument_list": ["dt",
                       "tile_lo",
                       "tile_hi",

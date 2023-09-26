@@ -66,6 +66,9 @@ def main():
     # TODO: We should be able to determine which generator to use based on the
     # extension of the source file or the passing of a header file.
     try:
+        tf_spec = milhoja.TaskFunction.from_json(json_filename)
+        print(tf_spec.tile_metadata)
+
         generator = milhoja.CppTaskFunctionGenerator.from_json( \
                         json_filename, \
                         header_filename, \

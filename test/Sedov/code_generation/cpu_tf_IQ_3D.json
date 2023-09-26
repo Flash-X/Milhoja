@@ -1,5 +1,5 @@
 {
-    "format": ["Milhoja_native_JSON", "1.0.0"],
+    "format": ["Milhoja-native JSON", "1.0.0"],
     "argument_list": ["tile_lo",
                       "tile_hi",
                       "tile_cellVolumes",
@@ -7,7 +7,9 @@
     "argument_specifications": {
         "tile_lo":          {"source":           "tile_lo"},
         "tile_hi":          {"source":           "tile_hi"},
-        "tile_cellVolumes": {"source":           "tile_cellVolumes"},
+        "tile_cellVolumes": {"source":           "tile_cellVolumes",
+                             "lo":               "tile_lo",
+                             "hi":               "tile_hi"},
         "CC_1":             {"source":           "grid_data",
                              "type":             "milhoja::Real",
                              "extents_in":       "(18, 18, 18, 8)",

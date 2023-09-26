@@ -14,9 +14,11 @@ __version__ = version("milhoja")
 #       matching TT configuration.
 
 # functions
+from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 
 # classes
 from .CodeGenerationLogger import CodeGenerationLogger
+from .TaskFunction import TaskFunction
 from .TileWrapperGenerator import TileWrapperGenerator
 from .CppTaskFunctionGenerator import CppTaskFunctionGenerator
 

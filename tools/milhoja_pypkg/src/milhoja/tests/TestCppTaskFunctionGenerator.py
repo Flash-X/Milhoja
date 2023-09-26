@@ -90,6 +90,46 @@ class TestCppTaskFunctionGenerator(unittest.TestCase):
         with self.assertRaises(Exception):
             milhoja.CppTaskFunctionGenerator(GOOD_FNAME, BAD_INDENT)
 
+    def testRuntime(self):
+        path = _TEST_PATH.joinpath("runtime")
+        json_fname = path.joinpath("cpu_tf_analysis.json").resolve()
+        ref_hdr_fname = path.joinpath("cpu_tf_analysis.h").resolve()
+        ref_src_fname = path.joinpath("cpu_tf_analysis.cpp").resolve()
+
+        log_level = milhoja.CodeGenerationLogger.NO_LOGGING_LEVEL
+        logger = milhoja.CodeGenerationLogger(
+                    "C++ Task Function Generator",
+                    log_level
+                 )
+
+        tf_spec = milhoja.TaskFunction.from_json(json_fname)
+        code = milhoja.generate_tile_metadata_extraction(
+                tf_spec.tile_metadata,
+                "tileDesc"
+               )
+        for line in code:
+            print(line)
+
+    def _testSedov(self):
+        path = _TEST_PATH.joinpath("Sedov")
+        json_fname = path.joinpath("cpu_tf_IQ_3D.json").resolve()
+        ref_hdr_fname = path.joinpath("cpu_tf_IQ_3D.h").resolve()
+        ref_src_fname = path.joinpath("cpu_tf_IQ_3D.cpp").resolve()
+
+        log_level = milhoja.CodeGenerationLogger.NO_LOGGING_LEVEL
+        logger = milhoja.CodeGenerationLogger(
+                    "C++ Task Function Generator",
+                    log_level
+                 )
+
+        tf_spec = milhoja.TaskFunction.from_json(json_fname)
+        code = milhoja.generate_tile_metadata_extraction(
+                tf_spec.tile_metadata,
+                "tileDesc"
+               )
+        for line in code:
+            print(line)
+
     def _testGeneration(self):
         # TODO: We need to test many different JSONs.  Examples
         # - Try the 2D
@@ -106,6 +146,9 @@ class TestCppTaskFunctionGenerator(unittest.TestCase):
                     "C++ Task Function Generator",
                     log_level
                  )
+
+        tf_spec = milhoja.TaskFunction.from_json(json_fname)
+        milhoja.generate_tile_metadata_extraction(tf_spec.tile_metadata)
 
         generator = milhoja.CppTaskFunctionGenerator.from_json(
                         json_fname,

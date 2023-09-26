@@ -56,7 +56,7 @@ Tile_delete_me::~Tile_delete_me(void) {
 #endif
 }
 
-std::unique_ptr<milhoja::TileWrapper> Tile_delete_me::clone(std::unique_ptr<milhoja::Tile>&& tileToWrap) const {
+std::unique_ptr<milhoja::TileWrapper> Tile_delete_me::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
     Tile_delete_me* ptr = new Tile_delete_me{dt_};
 
     if (ptr->tile_) {
