@@ -27,7 +27,11 @@ def get_metadata_dependencies(metadata: dict, language: str) -> set:
     """
     if language == util.Language.fortran: return set()
     mdata_set = set(metadata.values())
-    return mdata_set.symmetric_difference({"lo", "hi", "loGC", "hiGC"}).intersection({"lo", "hi", "loGC", "hiGC"})
+    sorted_set = sorted(
+        mdata_set.symmetric_difference({"lo", "hi", "loGC", "hiGC"}).intersection({"lo", "hi", "loGC", "hiGC"}),
+        reverse=True
+    )
+    return sorted_set
 
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:

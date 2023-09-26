@@ -73,8 +73,8 @@ std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
 const auto deltas = tileDesc_h->deltas();
 const auto lo = tileDesc_h->lo();
 const auto hi = tileDesc_h->hi();
-const auto hiGC = tileDesc_h->hiGC();
 const auto loGC = tileDesc_h->loGC();
+const auto hiGC = tileDesc_h->hiGC();
 
 char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
 std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
