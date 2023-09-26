@@ -8,7 +8,6 @@ import packet_generation_utility as consts
 import json_sections as sections
 import c2f_generator
 import cpp2c_generator
-import sys
 from typing import TextIO
 from argparse import RawTextHelpFormatter
 
@@ -87,27 +86,11 @@ def _load_json(file: TextIO, args) -> dict:
     return data
 
 
-def main():
+def generate_packet(args):
     """
     Loads the arguments and JSON, then generates the data packet files.
     Also generates the cpp2c and c2f layers if necessary.
     """
-    print(sys.path[0])
-    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter,
-                                     description=_APPLICATION_DESCRIPTION)
-    parser.add_argument(
-        "JSON", help="[mandatory] The JSON file to generate from."
-    )
-    parser.add_argument(
-        '--language', '-l',
-        type=consts.Language, choices=list(consts.Language),
-        help=_LANGUAGE_DESCRIPTION
-    )
-    parser.add_argument(
-        "--sizes", "-s", help="[mandatory] Path to data type size information."
-    )
-    args = parser.parse_args()
-
     if args.language is None:
         raise _NoLanguageException("You must provide the language of the paired task function!")
     if not args.JSON.endswith('.json'):
@@ -142,5 +125,24 @@ def main():
             cpp2c_generator.generate_cpp2c(data)
 
 
+def parse_configuration():
+    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter,
+                                     description=_APPLICATION_DESCRIPTION)
+    parser.add_argument(
+        "JSON", help="[mandatory] The JSON file to generate from."
+    )
+    parser.add_argument(
+        '--language', '-l',
+        type=consts.Language, choices=list(consts.Language),
+        help=_LANGUAGE_DESCRIPTION
+    )
+    parser.add_argument(
+        "--sizes", "-s", help="[mandatory] Path to data type size information."
+    )
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == "__main__":
-    main()
+    args = parse_configuration()
+    generate_packet(args)
