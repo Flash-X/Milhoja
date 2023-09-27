@@ -5,6 +5,7 @@ import glob
 import difflib
 import subprocess
 import generate_packet
+import milhoja
 from packet_generation_utility import Language
 from argparse import Namespace
 
@@ -23,8 +24,8 @@ class TestPacketGenerator(unittest.TestCase):
         # values are directories where the comparison data is located. 
         # The name of the file to compare to should always be the same name as the 
         # file that the json outputs.
-        self.json_list = glob.glob("TestData/*.json")
-        print(self.json_list)        
+        self.cpp_jsons = glob.glob("CppTestData/*.json")
+        self.fortran_jsons = glob.glob("FortranTestData/*.json")
  
         self.code_repo = os.getenv("MILHOJA_CODE_REPO", "")
         if not self.code_repo:
@@ -47,7 +48,9 @@ class TestPacketGenerator(unittest.TestCase):
         print(log)
 
     def test_all_packet_generation(self):
-        for file in self.json_list:
+        # All C++ language tests.
+        self.namespace.language = Language.cpp
+        for file in self.cpp_jsons:
             # generate data packet
             self.namespace.JSON = file
             self.namespace.language = Language.cpp
@@ -58,7 +61,7 @@ class TestPacketGenerator(unittest.TestCase):
             name = os.path.basename(self.namespace.JSON).replace(".json", "")
 
             generated_name_cpp = f'cgkit.{name}.cpp'
-            correct_name_cpp = f'TestData/cgkit.{name}.cpp'
+            correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
             
             # check c++ source code
             with open(generated_name_cpp, 'r') as generated_cpp, \
@@ -67,46 +70,14 @@ class TestPacketGenerator(unittest.TestCase):
                 self.check_generated_files(generated_cpp, correct)
                 
             generated_name_h = f'cgkit.{name}.h'
-            correct_name_h = f'TestData/cgkit.{name}.h'
+            correct_name_h = f'CppTestData/cgkit.{name}.h'
 
             # check c++ headers
             with open(generated_name_h, 'r') as generated_h, \
             open(correct_name_h, 'r') as correct:
                 self.check_generated_files(generated_h, correct)
 
-            # generate fortran packet and test.
-    #         self.namespace.JSON = 'TestData/DataPacket_Hydro_gpu_3.json'
-    #         self.namespace.language = Language.fortran
-    #         log = (
-    #             f"""
-    # ------------------------------------ TEST LOG ------------------------------------
-    #             JSON: {self.namespace.JSON}\n
-    #             Lang: {self.namespace.language}\n
-    #             Size: {self.namespace.sizes}
-    #             """
-    #         )
-
-    #         generate_packet.generate_packet(self.namespace)
-    #         name = os.path.basename(self.namespace.JSON).replace(".json", "")
-
-            # check C++ source code when building for fortran
-            # with open(f'cgkit.{name}.cpp', 'r') as generated_cpp, \
-            # open(f'{os.getenv("MILHOJA_CODE_REPO")}/test/Sedov/gpu/variant3/cgkit.DataPacket_Hydro_gpu_3.cpp', 'r') as correct:
-            #     # Test generated files.
-            #     test1 = generated_cpp.read().replace(' ', '').replace('\n', '').replace('\t', '')
-            #     test2 = correct.read().replace(' ', '').replace('\n', '').replace('\t', '')
-            #     self.assertTrue(len(test1) == len(test2))
-            #     self.assertTrue(test1 == test2)
-
-            # # check C++ header when building for fortran.
-            # with open(f'cgkit.{name}.h', 'r') as generated_h, \
-            # open(f'{os.getenv("MILHOJA_CODE_REPO")}/test/Sedov/gpu/variant3/cgkit.DataPacket_Hydro_gpu_3.h', 'r') as correct:
-            #     test1 = generated_h.read().replace(' ', '').replace('\n', '').replace('\t', '')
-            #     test2 = correct.read().replace(' ', '').replace('\n', '').replace('\t', '')
-            #     self.assertTrue(len(test1) == len(test2))
-            #     self.assertTrue(test1 == test2)
-
-            # TODO: Check c2f and cpp2c layers. 
+            # TOOD: Generator should generate TaskFunction call
             print("----- Success")
 
             # clean up generated files if test passes.
@@ -115,11 +86,42 @@ class TestPacketGenerator(unittest.TestCase):
                 os.remove(generated_name_h)
                 for file in glob.glob("cg-tpl.*"):
                     os.remove(file)
-                os.remove(r"c2f.F90")
-                os.remove(r"cgkit.cpp2c.cxx")
             except: 
                 print("Could not find files. Continue.")
-    
+        
+        # All fortran language tests
+        self.namespace.language = Language.fortran
+        for file in self.fortran_jsons:
+            # generate fortran packet and test.
+            self.namespace.json = file
+            generate_packet.generate_packet(self.namespace)
+            name = os.path.basename(self.namespace.JSON).replace(".json", "")
+
+            log_beginning()
+            # check C++ source code when building for fortran
+            with open(f'cgkit.{name}.cpp', 'r') as generated_cpp, \
+            open(f'FortranTestData/cgkit.{name}.cpp', 'r') as correct:
+                # Test generated files.
+                self.check_generated_files(generated_cpp, correct)
+            
+            # check C++ header when building for fortran.
+            with open(f'cgkit.{name}.h', 'r') as generated_h, \
+            open(f'FortranTestData/cgkit.{name}.h', 'r') as correct:
+                self.check_generated_files(generated_h, correct)
+ 
+            # TODO: Should cpp2c layers be named something specific? 
+            #       Let developer choose the name?
+            # Check C++ to C layer
+            with open(f'cgkit.cpp2c.cxx', 'r') as generated, \
+            open(f'FortranTestData/cpp2c.{name}.cxx', 'r') as correct:
+                self.check_generated_files(generated, correct)
+
+            # Check C to F layer.
+            with open(f'c2f.F90', 'r') as generated, \
+            open(f'FortranTestData/c2f.{name}.F90', 'r') as correct:
+                self.check_generated_files(generated, correct)
+
+ 
 
     def check_generated_files(self, generated, correct):
         generated_string = generated.read().replace(' ', '').replace('\n', '').replace('\t', '')
