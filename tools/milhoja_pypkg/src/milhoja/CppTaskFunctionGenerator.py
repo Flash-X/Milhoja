@@ -2,12 +2,18 @@ import json
 
 from pathlib import Path
 
-from . import CodeGenerationLogger
+from . import LOG_LEVEL_BASIC
+from . import LOG_LEVEL_BASIC_DEBUG
+from . import TaskFunction
+from . import BaseCodeGenerator
+from . import generate_tile_metadata_extraction
 
 
-class CppTaskFunctionGenerator(object):
+class CppTaskFunctionGenerator(BaseCodeGenerator):
     """
     """
+    __LOG_TAG = "C++ Task Function"
+
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
     def from_json(
@@ -15,7 +21,7 @@ class CppTaskFunctionGenerator(object):
             tf_spec_json_filename,
             header_filename,
             source_filename,
-            logger,
+            log_level=LOG_LEVEL_BASIC,
             indent=4
             ):
         """
@@ -54,31 +60,33 @@ class CppTaskFunctionGenerator(object):
         elif tf_version.lower() != "1.0.0":
             raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
 
+        tf_spec_new = TaskFunction.from_json(json_fname)
+
         # TODO: Once we have a class that wraps the task function
         # specification, we should instantiate it here with its .to_json
         # classmethod and pass it to the constructor.  tf_spec is presently the
         # standin for that object.
         generator = CppTaskFunctionGenerator(
                         tf_spec,
-                        tf_spec_json_filename,
+                        tf_spec_new,
                         header_filename,
                         source_filename,
-                        logger,
+                        log_level,
                         indent
                     )
 
-        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
-        logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
+#        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
+#        logger.log(msg, LOG_LEVEL_BASIC_DEBUG)
 
         return generator
 
     def __init__(
             self,
             tf_spec,
-            tf_spec_filename,
+            tf_spec_new,
             header_filename,
             source_filename,
-            logger,
+            log_level,
             indent
             ):
         """
@@ -101,27 +109,17 @@ class CppTaskFunctionGenerator(object):
             in both generated files.
         :type  indent: non-negative int, optional
         """
-        super().__init__()
+        super().__init__(
+            tf_spec_new,
+            header_filename, source_filename,
+            CppTaskFunctionGenerator.__LOG_TAG, log_level,
+            indent
+        )
 
         # ----- STORE ARGUMENTS
-        self.__tf_spec = tf_spec
-
-        self.__spec_fname = Path(tf_spec_filename).resolve()
-        self.__hdr_fname = Path(header_filename).resolve()
-        self.__src_fname = Path(source_filename).resolve()
-
-        self.__indent = indent
-
-        self.__tf_name = Path(self.__hdr_fname.name).stem
-
-        self.__logger = logger
-
-        # ----- SANITY CHECK ARGUMENTS
-        # Since there could be no file at instantiation, but a file could
-        # appear before calling a generate method, we don't check file
-        # existence here.
-        if indent < 0:
-            raise ValueError(f"Invalid indent ({indent})")
+        # TODO: Transfer from these to tf_spec_new
+        self.__tf_spec = tf_spec["task_function"]
+        self.__subroutine_spec = tf_spec["subroutines"]
 
         # ----- CONSTANTS
         # Keys identify the index space of a MFab available through the Milhoja
@@ -140,45 +138,6 @@ class CppTaskFunctionGenerator(object):
                                   "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
 
         # ----- CODE GENERATION CONSTANTS
-        # TODO: Should we actively construct the tile metadata getters as an
-        # optimization so that we aren't calling the same getter several times?
-        # TODO: As suggested by Wesley, we should probably have a single
-        # "tile_coordinates" that requires extra specifications such as axis,
-        # edge, and interior/full
-        self.__TILE_METADATA_LUT = {"tile_gridIndex": ("const int",               "tileDesc->gridIndex()"),
-                                    "tile_level":     ("const unsigned int",      "tileDesc->level()"),
-                                    "tile_lo":        ("const milhoja::IntVect",  "tileDesc->lo()"),
-                                    "tile_hi":        ("const milhoja::IntVect",  "tileDesc->hi()"),
-                                    "tile_lbound":    ("const milhoja::IntVect",  "tileDesc->loGC()"),
-                                    "tile_ubound":    ("const milhoja::IntVect",  "tileDesc->hiGC()"),
-                                    "tile_deltas":    ("const milhoja::RealVect", "tileDesc->deltas()"),
-                                    "tile_xCenters":  ("const milhoja::FArray1D",
-                                                       "milhoja::Grid::instance().getCellCoords(\n" \
-                                                     + "\t\tmilhoja::Axis::I,\n" \
-                                                     + "\t\tmilhoja::Edge::Center,\n" \
-                                                     + "\t\ttileDesc->level(), \n"
-                                                     + "\t\ttileDesc->loGC(), \n"
-                                                     + "\t\ttileDesc->hiGC()\n"
-                                                     + "\t)"),
-                                    "tile_yCenters":  ("const milhoja::FArray1D",
-                                                       "milhoja::Grid::instance().getCellCoords(\n" \
-                                                     + "\t\tmilhoja::Axis::J,\n" \
-                                                     + "\t\tmilhoja::Edge::Center,\n" \
-                                                     + "\t\ttileDesc->level(), \n"
-                                                     + "\t\ttileDesc->loGC(), \n"
-                                                     + "\t\ttileDesc->hiGC()\n"
-                                                     + "\t)"),
-                                    "tile_zCenters":  ("const milhoja::FArray1D",
-                                                       "milhoja::Grid::instance().getCellCoords(\n" \
-                                                     + "\t\tmilhoja::Axis::K,\n" \
-                                                     + "\t\tmilhoja::Edge::Center,\n" \
-                                                     + "\t\ttileDesc->level(), \n"
-                                                     + "\t\ttileDesc->loGC(), \n"
-                                                     + "\t\ttileDesc->hiGC()\n"
-                                                     + "\t)"),
-                                    "tile_cellVolumes": (None, None)
-                                    }
-
         self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
                                         "milhoja::FArray3D", "milhoja::FArray4D"]
         self.__MIN_DATA_ARRAY_DIM = 1
@@ -187,7 +146,7 @@ class CppTaskFunctionGenerator(object):
         msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
         msg += str(self)
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
+        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     def __parse_extents_spec(self, spec):
         """
@@ -200,49 +159,31 @@ class CppTaskFunctionGenerator(object):
         extents = extents.lstrip("(").rstrip(")")
         return [int(e) for e in extents.split(",")]
 
-    @property
-    def specification_filename(self):
-        return self.__spec_fname
-
-    @property
-    def header_filename(self):
-        return self.__hdr_fname
-
-    @property
-    def source_filename(self):
-        return self.__src_fname
-
-    @property
-    def indentation(self):
-        return self.__indent
-
-    @property
-    def verbosity_level(self):
-        return self.__logger.level
-
     def generate_source_code(self):
         """
         """
-        INDENT = " " * self.__indent
+        INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Source {self.__src_fname}"
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_LOG_LEVEL)
+        msg = f"Generating C++ Source {self.source_filename}"
+        self._log(msg, LOG_LEVEL_BASIC)
 
-        if self.__src_fname.exists():
-            raise ValueError(f"{self.__src_fname} already exists")
+        if self.source_filename.exists():
+            raise ValueError(f"{self.source_filename} already exists")
 
         args_all = self.__tf_spec["argument_list"]
         arg_specs_all = self.__tf_spec["argument_specifications"]
 
-        tile_name = f"Tile_{self.__tf_name}"
+        tile_name = f"Tile_{self._tf_spec_new.name}"
 
         json_fname = self.specification_filename
 
-        with open(self.__src_fname, "w") as fptr:
+        device = self._tf_spec_new.device_information["device"]
+
+        with open(self.source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
-            fptr.write(f'#include "{self.__hdr_fname.name}"\n')
-            fptr.write(f'#include "Tile_{self.__hdr_fname.name}"\n')
+            fptr.write(f'#include "{self.header_filename.name}"\n')
+            fptr.write(f'#include "Tile_{self.header_filename.name}"\n')
             fptr.write("\n")
 
             # Milhoja header files
@@ -266,7 +207,7 @@ class CppTaskFunctionGenerator(object):
             # TODO: Confirm this
             headers_all = set()
             for subroutine in self.__tf_spec["subroutine_call_stack"]:
-                subr_spec = self.__tf_spec["subroutine_specifications"][subroutine]
+                subr_spec = self.__subroutine_spec[subroutine]
                 header = subr_spec["header_file"]
                 headers_all = headers_all.union(set([header]))
 
@@ -275,7 +216,7 @@ class CppTaskFunctionGenerator(object):
             fptr.write("\n")
 
             # ----- FUNCTION DECLARATION
-            fptr.write(f"void  {self.__tf_name}::taskFunction(const int threadId,\n")
+            fptr.write(f"void  {self._tf_spec_new.name}::taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
 
             # ----- USE IN NAMESPACES
@@ -289,29 +230,25 @@ class CppTaskFunctionGenerator(object):
             fptr.write(f"{INDENT}milhoja::Tile*  tileDesc = wrapper->tile_.get();\n")
             fptr.write("\n")
 
-            # ----- EXTRACT TASK FUNCTION ARGUMENTS FROM TILE
+            # ----- EXTRACT TASK FUNCTION TILE METADATA FROM TILE
+            metadata_all = self._tf_spec_new.tile_metadata
+            code = generate_tile_metadata_extraction(self._tf_spec_new, "tileDesc")
+            for line in code:
+                fptr.write(f"{INDENT}{line}\n")
+
+            # ----- EXTRACT ALL OTHER TASK FUNCTION ARGUMENTS FROM TILE
             for arg in args_all:
                 arg_spec = arg_specs_all[arg]
-                src = arg_spec["source"]
+                src = arg_spec["source"].lower()
 
-                if src in self.__TILE_METADATA_LUT:
-                    arg_type, getter = self.__TILE_METADATA_LUT[arg]
-                    if src == "tile_cellVolumes":
-                        fptr.write(f"{INDENT}milhoja::Real* ptr_mh_internal_volumes =\n")
-                        fptr.write(f"{INDENT*2}static_cast<milhoja::Real*>({tile_name}::_mh_internal_volumes_)\n")
-                        fptr.write(f"{INDENT*2}+ {tile_name}::_MH_INTERNAL_VOLUMES_SIZE_ * threadId;\n")
-                        fptr.write(f"{INDENT}Grid::instance().fillCellVolumes(\n")
-                        fptr.write(f"{INDENT*2}tileDesc->level(),\n")
-                        fptr.write(f"{INDENT*2}tileDesc->lo(),\n")
-                        fptr.write(f"{INDENT*2}tileDesc->hi(),\n")
-                        fptr.write(f"{INDENT*2}ptr_mh_internal_volumes);\n")
-                        fptr.write(f"{INDENT}milhoja::FArray3D  {arg}{{ptr_mh_internal_volumes, tileDesc->lo(), tileDesc->hi()}};\n")
-                    else:
-                        fptr.write(f"{INDENT}{arg_type}  {arg} = {getter};\n")
+                if src in metadata_all:
+                    pass
                 elif src == "external":
                     name = arg_spec["name"]
                     param_type = arg_spec["type"]
                     extents = arg_spec["extents"]
+                    if (param_type.lower() == "real") and (device.lower() == "cpu"):
+                        param_type = "milhoja::Real"
                     if len(extents) == 0:
                         fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
                     else:
@@ -331,12 +268,14 @@ class CppTaskFunctionGenerator(object):
                         error_msg += "is not a valid grid data structure"
                         raise ValueError(error_msg)
 
-                    extents_in = self.__parse_extents_spec(arg_spec["extents_in"])
-                    extents_out = self.__parse_extents_spec(arg_spec["extents_out"])
-                    dimension = len(extents_in)
-                    if len(extents_out) != dimension:
-                        error_msg = f"Inconsistent extents_* for {arg} in {json_fname}"
-                        raise ValueError(msg)
+                    if "extents_in" in arg_spec:
+                        extents_in = self.__parse_extents_spec(arg_spec["extents_in"])
+                        dimension = len(extents_in)
+                    elif "extents_out" in arg_spec:
+                        extents_out = self.__parse_extents_spec(arg_spec["extents_out"])
+                        dimension = len(extents_out)
+                    else:
+                        raise ValueError(f"No extents given for grid_data {arg}")
                     if (dimension < self.__MIN_DATA_ARRAY_DIM) or \
                        (dimension > self.__MAX_DATA_ARRAY_DIM):
                         error_msg = f"Invalid dimension for {arg} in {json_fname}"
@@ -364,6 +303,8 @@ class CppTaskFunctionGenerator(object):
                         error_msg = f"Invalid dimension for {arg} in {json_fname}"
                         raise ValueError(msg)
                     arg_type = arg_spec["type"]
+                    if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                        arg_type = "milhoja::Real"
                     array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
 
                     # TODO: We should get this from extents and tile_lo
@@ -376,7 +317,7 @@ class CppTaskFunctionGenerator(object):
                         fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
                         fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
                         fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                        fptr.write(f"{INDENT*3} static_cast<milhoja::Real*>({tile_name}::{arg}_)\n")
+                        fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
                         fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
                         fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                         fptr.write(f"{INDENT*3}lo_{arg},\n")
@@ -390,7 +331,7 @@ class CppTaskFunctionGenerator(object):
                         fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
                         fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                         fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                        fptr.write(f"{INDENT*3} static_cast<milhoja::Real*>({tile_name}::{arg}_)\n")
+                        fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
                         fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
                         fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                         fptr.write(f"{INDENT*3}lo_{arg},\n")
@@ -407,7 +348,7 @@ class CppTaskFunctionGenerator(object):
             # We require a flat call stack for CPU task functions
             # TODO: Confirm this
             for subroutine in self.__tf_spec["subroutine_call_stack"]:
-                subr_spec = self.__tf_spec["subroutine_specifications"][subroutine]
+                subr_spec = self.__subroutine_spec[subroutine]
                 arg_list = subr_spec["argument_list"]
                 mapping = subr_spec["argument_mapping"]
 
@@ -422,25 +363,25 @@ class CppTaskFunctionGenerator(object):
     def generate_header_code(self):
         """
         """
-        INDENT = " " * self.__indent
+        INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Header {self.__hdr_fname}"
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_LOG_LEVEL)
+        msg = f"Generating C++ Header {self.header_filename}"
+        self._log(msg, LOG_LEVEL_BASIC)
 
-        if self.__hdr_fname.exists():
-            raise ValueError(f"{self.__hdr_fname} already exists")
+        if self.header_filename.exists():
+            raise ValueError(f"{self.header_filename} already exists")
 
-        basename = Path(self.__hdr_fname.name).stem
+        basename = Path(self.header_filename.name).stem
         hdr_macro = f"MILHOJA_GENERATED_{basename.upper()}_H__"
 
-        with open(self.__hdr_fname, "w") as fptr:
+        with open(self.header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
             fptr.write(f"#define {hdr_macro}\n")
             fptr.write("\n")
             fptr.write("#include <Milhoja_DataItem.h>\n")
             fptr.write("\n")
 
-            fptr.write(f"namespace {self.__tf_name} {{\n")
+            fptr.write(f"namespace {self._tf_spec_new.name} {{\n")
             fptr.write(f"{INDENT}void  taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT}                   milhoja::DataItem* dataItem);\n")
             fptr.write("};\n")

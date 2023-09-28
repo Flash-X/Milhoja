@@ -6,39 +6,39 @@
 #include <Milhoja_Logger.h>
 #endif
 
-void*  Tile_cpu_tf_IQ::_mh_internal_volumes_ = nullptr;
+void*  Tile_cpu_tf_IQ::MH_INTERNAL_cellVolumes_ = nullptr;
 
 void Tile_cpu_tf_IQ::acquireScratch(void) {
     const unsigned int  nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
 
-    if (_mh_internal_volumes_) {
-        throw std::logic_error("[Tile_cpu_tf_IQ::acquireScratch] _mh_internal_volumes scratch already allocated");
+    if (MH_INTERNAL_cellVolumes_) {
+        throw std::logic_error("[Tile_cpu_tf_IQ::acquireScratch] MH_INTERNAL_cellVolumes_ scratch already allocated");
     }
 
     const std::size_t nBytes = nThreads
-                    * Tile_cpu_tf_IQ::_MH_INTERNAL_VOLUMES_SIZE_
+                    * Tile_cpu_tf_IQ::MH_INTERNAL_CELLVOLUMES_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &_mh_internal_volumes_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &MH_INTERNAL_cellVolumes_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_IQ::acquireScratch] Acquired"
                     + std::to_string(nThreads)
-                    + " _mh_internal_volumes scratch blocks"
+                    + " MH_INTERNAL_cellVolumes_ scratch blocks"
     milhoja::Logger::instance().log(msg);
 #endif
 }
 
 void Tile_cpu_tf_IQ::releaseScratch(void) {
-    if (!_mh_internal_volumes_) {
-        throw std::logic_error("[Tile_cpu_tf_IQ::releaseScratch] _mh_internal_volumes scratch not allocated");
+    if (!MH_INTERNAL_cellVolumes_) {
+        throw std::logic_error("[Tile_cpu_tf_IQ::releaseScratch] MH_INTERNAL_cellVolumes_ scratch not allocated");
     }
 
-    milhoja::RuntimeBackend::instance().releaseCpuMemory(&_mh_internal_volumes_);
-    _mh_internal_volumes_ = nullptr;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&MH_INTERNAL_cellVolumes_);
+    MH_INTERNAL_cellVolumes_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_IQ::releaseScratch] Released _mh_internal_volumes scratch"
+    std::string   msg = "[Tile_cpu_tf_IQ::releaseScratch] Released MH_INTERNAL_cellVolumes_ scratch"
     milhoja::Logger::instance().log(msg);
 #endif
 }

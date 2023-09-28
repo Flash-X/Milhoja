@@ -16,19 +16,17 @@
             "tile_xCenters":    {"source":           "tile_coordinates",
                                  "axis":             "I",
                                  "edge":             "center",
-                                 "lo":               "tile_lbound",
-                                 "hi":               "tile_ubound"},
+                                 "lo":               "tile_lo",
+                                 "hi":               "tile_hi"},
             "tile_yCenters":    {"source":           "tile_coordinates",
                                  "axis":             "J",
                                  "edge":             "center",
-                                 "lo":               "tile_lbound",
-                                 "hi":               "tile_ubound"},
+                                 "lo":               "tile_lo",
+                                 "hi":               "tile_hi"},
             "CC_1":             {"source":           "grid_data",
-                                 "type":             "milhoja::Real",
+                                 "type":             "real",
                                  "extents_in":       "(10, 18, 1, 2)",
-                                 "lbound_in":        "(tile_lo, 1)",
-                                 "extents_out":      "(10, 18, 1, 2)",
-                                 "lbound_out":       "(tile_lo, 1)",
+                                 "lbound_in":        "(tile_lbound, 1)",
                                  "structure_index": ["CENTER", 1]}
         },
         "subroutine_call_stack": [
@@ -36,11 +34,10 @@
         ]
     },
     "device": {
-        "hardware": "CPU",
-        "byte_alignement": 16,
-        "n_extra_streams": 0
+        "hardware":        "CPU",
+        "byte_alignment":     -1
     },
-    "subroutine_specifications": {
+    "subroutines": {
         "Analysis::computeErrors": {
             "header_file": "Analysis.h",
             "argument_list": ["lo",

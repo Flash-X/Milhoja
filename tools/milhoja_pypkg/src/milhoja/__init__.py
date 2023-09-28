@@ -13,12 +13,20 @@ __version__ = version("milhoja")
 #       CG-Kit in Flash-X can map a particular action/block loop onto the
 #       matching TT configuration.
 
+# constants
+from .constants import LOG_LEVEL_NONE
+from .constants import LOG_LEVEL_BASIC
+from .constants import LOG_LEVEL_BASIC_DEBUG
+from .constants import LOG_LEVEL_MAX
+from .constants import LOG_LEVELS
+
 # functions
 from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 
 # classes
-from .CodeGenerationLogger import CodeGenerationLogger
 from .TaskFunction import TaskFunction
+from .CodeGenerationLogger import CodeGenerationLogger
+from .BaseCodeGenerator import BaseCodeGenerator
 from .TileWrapperGenerator import TileWrapperGenerator
 from .CppTaskFunctionGenerator import CppTaskFunctionGenerator
 

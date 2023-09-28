@@ -263,14 +263,10 @@ if __name__ == '__main__':
 
     #####----- GENERATE CODE FOR MILHOJA
     generator = testDir.joinpath(_CODE_GENERATION_SCRIPT)
-    genpath = buildDir.joinpath("generated_code")
-    generatedMakefile = genpath.joinpath("..", "Makefile.generated")
+    generatedMakefile = buildDir.joinpath("Makefile.generated")
     if generator.is_file():
-        assert not genpath.exists()
-        os.mkdir(genpath)
-        # TODO: Pass makefile name as well
         # TODO: Check error code of shell call
-        sbp.call([str(generator), str(genpath)])
+        sbp.call([str(generator), str(buildDir), str(generatedMakefile), str(ndim)])
     else:
         print(f"No automatic code generation required by test")
         with open(generatedMakefile, "w") as fptr:

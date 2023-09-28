@@ -2,16 +2,21 @@ import json
 
 from pathlib import Path
 
-from . import CodeGenerationLogger
+from . import LOG_LEVEL_BASIC
+from . import LOG_LEVEL_BASIC_DEBUG
+from . import TaskFunction
+from . import BaseCodeGenerator
 
 
-class TileWrapperGenerator(object):
+class TileWrapperGenerator(BaseCodeGenerator):
     """
     A class for generating final, compilable C++ header and source code that
     defines a Milhoja_TileWrapper derived class for constructing the data item
     passed to the task function specified by the specification object given at
     instantiation.
     """
+    __LOG_TAG = "Tile Wrapper"
+
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
     def from_json(
@@ -19,7 +24,7 @@ class TileWrapperGenerator(object):
             tf_spec_json_filename,
             header_filename,
             source_filename,
-            logger,
+            log_level=LOG_LEVEL_BASIC,
             indent=4
             ):
         """
@@ -44,9 +49,6 @@ class TileWrapperGenerator(object):
         :return: The generator object ready for use
         :rtype: TileWrapperGenerator
         """
-        if not isinstance(logger, CodeGenerationLogger):
-            raise TypeError("logger not derived from CodeGenerationLogger")
-
         json_fname = Path(tf_spec_json_filename).resolve()
         if not json_fname.is_file():
             raise ValueError(f"{json_fname} does not exist or is not a file")
@@ -68,31 +70,33 @@ class TileWrapperGenerator(object):
         elif tf_version.lower() != "1.0.0":
             raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
 
+        tf_spec_new = TaskFunction.from_json(json_fname)
+
         # TODO: Once we have a class that wraps the task function
         # specification, we should instantiate it here with its .to_json
         # classmethod and pass it to the constructor.  tf_spec is presently the
         # standin for that object.
         generator = TileWrapperGenerator(
                         tf_spec,
-                        tf_spec_json_filename,
+                        tf_spec_new,
                         header_filename,
                         source_filename,
-                        logger,
+                        log_level,
                         indent
                     )
 
-        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
-        logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
+#        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
+#        logger.log(msg, LOG_LEVEL_BASIC_DEBUG)
 
         return generator
 
     def __init__(
             self,
             tf_spec,
-            tf_spec_filename,
+            tf_spec_new,
             header_filename,
             source_filename,
-            logger,
+            log_level,
             indent
             ):
         """
@@ -120,31 +124,22 @@ class TileWrapperGenerator(object):
             in both generated files.
         :type  indent: non-negative int
         """
-        super().__init__()
+        super().__init__(
+            tf_spec_new,
+            header_filename, source_filename,
+            TileWrapperGenerator.__LOG_TAG, log_level,
+            indent
+        )
 
         # ----- STORE ARGUMENTS
-        self.__tf_spec = tf_spec
+        self.__tf_spec = tf_spec["task_function"]
 
-        self.__spec_fname = Path(tf_spec_filename).resolve()
-        self.__hdr_fname = Path(header_filename).resolve()
-        self.__src_fname = Path(source_filename).resolve()
-
-        self.__class_name = Path(self.__hdr_fname.name).stem
-
-        self.__indent = indent
-
-        self.__logger = logger
+        self.__class_name = Path(self.header_filename.name).stem
 
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no file at instantiation, but a file could
         # appear before calling a generate method, we don't check file
         # existence here.
-
-        if not isinstance(self.__logger, CodeGenerationLogger):
-            raise TypeError("logger not derived from CodeGenerationLogger")
-
-        if indent < 0:
-            raise ValueError(f"Invalid indent ({self.__indent})")
 
         # ----- CONSTANTS
         # Keys identify the index space of a MFab available through the Milhoja
@@ -180,27 +175,7 @@ class TileWrapperGenerator(object):
         msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
         msg += str(self)
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_DEBUG_LEVEL)
-
-    @property
-    def specification_filename(self):
-        return self.__spec_fname
-
-    @property
-    def header_filename(self):
-        return self.__hdr_fname
-
-    @property
-    def source_filename(self):
-        return self.__src_fname
-
-    @property
-    def indentation(self):
-        return self.__indent
-
-    @property
-    def verbosity_level(self):
-        return self.__logger.level
+        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     @property
     def __external_arguments(self):
@@ -235,7 +210,7 @@ class TileWrapperGenerator(object):
         for arg, arg_spec in arg_specs_all.items():
             if arg_spec["source"].lower() == "tile_cellvolumes":
                 # TODO: How to get extents and dimensionality of problem as numbers here?
-                name = "_mh_internal_volumes"
+                name = "MH_INTERNAL_cellVolumes"
                 scratch_type = "milhoja::Real"
                 extents = "(18, 18, 18)"
                 scratch_all.append((name, scratch_type, extents))
@@ -256,17 +231,24 @@ class TileWrapperGenerator(object):
     def __generate_constructor_arg_list(self, external_all):
         """
         """
-        INDENT = " " * self.__indent
+        INDENT = " " * self.indentation
 
         n_external = len(external_all)
+
+        device = self._tf_spec_new.device_information["device"]
 
         if n_external == 0:
             arg_list = "(void)"
         elif n_external == 1:
-            arg_list = f"(const {external_all[0][1]} {external_all[0][0]})"
+            arg_type = external_all[0][1]
+            if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                arg_type = "milhoja::Real"
+            arg_list = f"(const {arg_type} {external_all[0][0]})"
         else:
             arg_list = ""
             for j, (arg, arg_type) in enumerate(external_all):
+                if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                    arg_type = "milhoja::real"
                 arg_list += f"\n{INDENT*5}const {arg_type} {arg}"
                 if j < n_external - 1:
                     arg_list += ","
@@ -276,10 +258,10 @@ class TileWrapperGenerator(object):
 
     def generate_source_code(self):
         """Generate the C++ source code"""
-        INDENT = " " * self.__indent
+        INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Source {self.__src_fname}"
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_LOG_LEVEL)
+        msg = f"Generating C++ Source {self.source_filename}"
+        self._log(msg, LOG_LEVEL_BASIC)
 
         classname = self.__class_name
 
@@ -287,13 +269,15 @@ class TileWrapperGenerator(object):
         scratch_all = self.__scratch_arguments
         n_external = len(external_all)
 
-        if self.__src_fname.exists():
-            raise ValueError(f"{self.__src_fname} already exists")
+        device = self._tf_spec_new.device_information["device"]
 
-        with open(self.__src_fname, "w") as fptr:
+        if self.source_filename.exists():
+            raise ValueError(f"{self.source_filename} already exists")
+
+        with open(self.source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
-            fptr.write(f'#include "{self.__hdr_fname.name}"\n')
+            fptr.write(f'#include "{self.header_filename.name}"\n')
             fptr.write("\n")
 
             # Milhoja header files
@@ -313,10 +297,13 @@ class TileWrapperGenerator(object):
             fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
             fptr.write("\n")
             for arg, arg_type, _ in scratch_all:
+                if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                    arg_type = "milhoja::Real"
+
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
                 fptr.write(f"{INDENT*2}throw ")
                 fptr.write(f'std::logic_error("[{classname}::acquireScratch] ')
-                fptr.write(f'{arg} scratch already allocated");\n')
+                fptr.write(f'{arg}_ scratch already allocated");\n')
                 fptr.write(f"{INDENT}}}\n")
                 fptr.write("\n")
                 fptr.write(f"{INDENT}const std::size_t nBytes = nThreads\n")
@@ -329,7 +316,7 @@ class TileWrapperGenerator(object):
                 fptr.write("#ifdef DEBUG_RUNTIME\n")
                 fptr.write(f'{INDENT}std::string   msg = "[{classname}::acquireScratch] Acquired"\n')
                 fptr.write(f"{INDENT*5}+ std::to_string(nThreads)\n")
-                fptr.write(f'{INDENT*5}+ " {arg} scratch blocks"\n')
+                fptr.write(f'{INDENT*5}+ " {arg}_ scratch blocks"\n')
                 fptr.write(f"{INDENT}milhoja::Logger::instance().log(msg);\n")
                 fptr.write("#endif\n")
             fptr.write("}\n")
@@ -340,7 +327,7 @@ class TileWrapperGenerator(object):
                 fptr.write(f"{INDENT}if (!{arg}_) {{\n")
                 fptr.write(f"{INDENT*2}throw ")
                 fptr.write(f'std::logic_error("[{classname}::releaseScratch] ')
-                fptr.write(f'{arg} scratch not allocated");\n')
+                fptr.write(f'{arg}_ scratch not allocated");\n')
                 fptr.write(f"{INDENT}}}\n")
                 fptr.write("\n")
                 fptr.write(f"{INDENT}milhoja::RuntimeBackend::instance().")
@@ -349,7 +336,7 @@ class TileWrapperGenerator(object):
                 fptr.write("\n")
                 fptr.write("#ifdef DEBUG_RUNTIME\n")
                 fptr.write(f'{INDENT}std::string   msg = "[{classname}::releaseScratch] ')
-                fptr.write(f'Released {arg} scratch"\n')
+                fptr.write(f'Released {arg}_ scratch"\n')
                 fptr.write(f"{INDENT}milhoja::Logger::instance().log(msg);\n")
                 fptr.write("#endif\n")
             fptr.write("}\n")
@@ -410,20 +397,22 @@ class TileWrapperGenerator(object):
 
     def generate_header_code(self):
         """Generate the C++ header code"""
-        INDENT = " " * self.__indent
+        INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Header {self.__hdr_fname}"
-        self.__logger.log(msg, CodeGenerationLogger.BASIC_LOG_LEVEL)
+        msg = f"Generating C++ Header {self.header_filename}"
+        self._log(msg, LOG_LEVEL_BASIC)
 
         hdr_macro = f"MILHOJA_GENERATED_{self.__class_name.upper()}_H__"
 
         external_all = self.__external_arguments
         scratch_all = self.__scratch_arguments
 
-        if self.__hdr_fname.exists():
-            raise ValueError(f"{self.__hdr_fname} already exists")
+        device = self._tf_spec_new.device_information["device"]
 
-        with open(self.__hdr_fname, "w") as fptr:
+        if self.header_filename.exists():
+            raise ValueError(f"{self.header_filename} already exists")
+
+        with open(self.header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
             fptr.write(f"#define {hdr_macro}\n")
             fptr.write("\n")
@@ -449,7 +438,10 @@ class TileWrapperGenerator(object):
             fptr.write("\n")
 
             for arg, arg_type in external_all:
-                fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
+                if (arg_type.lower()) == "real" and (device.lower() == "cpu"):
+                    fptr.write(f"{INDENT}milhoja::Real  {arg}_;\n")
+                else:
+                    fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")
 
             # TODO: Should we only declare & define these if scratch is needed?

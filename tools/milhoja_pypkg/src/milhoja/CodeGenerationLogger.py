@@ -1,5 +1,7 @@
 import sys
 
+from . import LOG_LEVELS
+from . import LOG_LEVEL_NONE
 
 class CodeGenerationLogger(object):
     """
@@ -12,13 +14,6 @@ class CodeGenerationLogger(object):
     applications.  For instance, these scripts should log errors through a
     logger rather than printing to stdout/stderr themselves.
     """
-    NO_LOGGING_LEVEL = 0
-    BASIC_LOG_LEVEL = 1
-    BASIC_DEBUG_LEVEL = 2
-    MAX_LOG_LEVEL = 3
-
-    LOG_LEVELS = list(range(NO_LOGGING_LEVEL, MAX_LOG_LEVEL+1))
-
     def __init__(self, tool_name, level):
         """
         Logger constructor.
@@ -34,7 +29,7 @@ class CodeGenerationLogger(object):
         self.__tool_name = tool_name
 
         self.__level = level
-        if self.__level not in CodeGenerationLogger.LOG_LEVELS:
+        if self.__level not in LOG_LEVELS:
             # Calling code do not have access to the logger for printing the
             # error message.  Print it on their behalf.
             msg = f"Invalid code generation logging level ({self.__level})"
@@ -59,8 +54,8 @@ class CodeGenerationLogger(object):
         :param min_level: The threshold logging level
         :type  min_level: int contained in CodeGenerationLogger.LOG_LEVELS
         """
-        valid = set(CodeGenerationLogger.LOG_LEVELS)
-        valid = valid.difference(set([CodeGenerationLogger.NO_LOGGING_LEVEL]))
+        valid = set(LOG_LEVELS)
+        valid = valid.difference(set([LOG_LEVEL_NONE]))
         if min_level not in valid:
             msg = f"Invalid code generation logging level ({min_level})"
             raise ValueError(msg)

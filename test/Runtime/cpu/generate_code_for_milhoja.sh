@@ -8,8 +8,9 @@ TF_ALL=('cpu_tf_ic' \
         'cpu_tf_analysis')
 
 #####----- Command Line Arguments
-if [[ "$#" -ne 1 ]]; then
-    echo "Must pass only the destination folder"
+if [[ "$#" -ne 3 ]]; then
+    echo "Must pass destination folder, Makefile, dimensionality"
+    exit 1
 fi
 
 SCRIPTPATH=$( cd "$(dirname "$0")" ; pwd -P )
@@ -17,6 +18,11 @@ GENPATH=$1
 if [[ -d "$GENPATH" ]]; then
   echo "$GENPATH does exist."
 fi
+
+# TODO: Confirm that Makefile doesn't already exist
+MAKEFILE=$2
+
+DIM=$3
 
 #####----- Setup
 # Use the tools located in the same clone as this script
@@ -29,7 +35,6 @@ GEN_TWRAPPER_TOOL=$TOOLPATH/generate_tile_wrapper.py
 CGPATH=$CLONEPATH/test/Base/code_generation
 
 #####----- Makefile boilerplate
-MAKEFILE=$GENPATH/../Makefile.generated
 rm -f $MAKEFILE
 echo "CXXFLAGS_GENERATED_DEBUG = -I${GENPATH}" >  $MAKEFILE
 echo "CXXFLAGS_GENERATED_PROD  = -I${GENPATH}" >> $MAKEFILE

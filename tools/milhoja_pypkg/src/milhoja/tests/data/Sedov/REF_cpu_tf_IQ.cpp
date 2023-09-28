@@ -23,17 +23,21 @@ void  cpu_tf_IQ::taskFunction(const int threadId,
     Tile_cpu_tf_IQ*  wrapper = dynamic_cast<Tile_cpu_tf_IQ*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
+    const unsigned int   MH_INTERNAL_level = tileDesc->level();
     const milhoja::IntVect  tile_lo = tileDesc->lo();
     const milhoja::IntVect  tile_hi = tileDesc->hi();
-    milhoja::Real* ptr_mh_internal_volumes =
-        static_cast<milhoja::Real*>(Tile_cpu_tf_IQ::_mh_internal_volumes_)
-        + Tile_cpu_tf_IQ::_MH_INTERNAL_VOLUMES_SIZE_ * threadId;
+    milhoja::Real*   MH_INTERNAL_cellVolumes_ptr =
+        static_cast<milhoja::Real*>(Tile_cpu_tf_IQ::MH_INTERNAL_cellVolumes_)
+        + Tile_cpu_tf_IQ::MH_INTERNAL_CELLVOLUMES_SIZE_ * threadId;
     Grid::instance().fillCellVolumes(
-        tileDesc->level(),
-        tileDesc->lo(),
-        tileDesc->hi(),
-        ptr_mh_internal_volumes);
-    milhoja::FArray3D  tile_cellVolumes{ptr_mh_internal_volumes, tileDesc->lo(), tileDesc->hi()};
+        MH_INTERNAL_level,
+        tile_lo,
+        tile_hi,
+        MH_INTERNAL_cellVolumes_ptr);
+    const milhoja::FArray3D  tile_cellVolumes{
+            MH_INTERNAL_cellVolumes_ptr,
+            tile_lo,
+            tile_hi};
     milhoja::FArray4D  CC_1 = tileDesc->data();
 
     Io::instance().computeIntegralQuantitiesByBlock(

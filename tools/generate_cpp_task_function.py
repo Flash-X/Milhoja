@@ -21,16 +21,18 @@ def main():
     JSON_HELP = "JSON-format file that fully specifies a CPU/C++ task function\n"
     HEADER_HELP = "Filename of the header file to generate\n"
     SOURCE_HELP = "Filename of the source file to generate\n"
-    VERBOSE_HELP = f"Verbosity level of logging.  Valid values are {milhoja.CodeGenerationLogger.LOG_LEVELS}."
+    VERBOSE_HELP = f"Verbosity level of logging"
 
     #####----- SPECIFY COMMAND LINE USAGE
-    parser = argparse.ArgumentParser(description=DESCRIPTION, \
+    parser = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("json",   nargs=1, help=JSON_HELP)
     parser.add_argument("header", nargs=1, help=HEADER_HELP)
     parser.add_argument("source", nargs=1, help=SOURCE_HELP)
-    parser.add_argument("--verbose", "-v", type=int, help=VERBOSE_HELP, \
-                        default=milhoja.CodeGenerationLogger.BASIC_LOG_LEVEL)
+    parser.add_argument("--verbose", "-v",
+                        type=int, choices=milhoja.LOG_LEVELS,
+                        help=VERBOSE_HELP,
+                        default=milhoja.LOG_LEVEL_BASIC)
 
     #####----- GET COMMAND LINE ARGUMENTS
     args = parser.parse_args()
@@ -40,47 +42,32 @@ def main():
     source_filename = Path(args.source[0]).resolve()
     verbosity_level = args.verbose
 
-    #####----- LOGGING
-    try:
-        logger = milhoja.CodeGenerationLogger( \
-                                "C++ Task Function Generator", \
-                                verbosity_level \
-                            )
-    except Exception as error:
-        # Assume that logger printed error message itself already
-        exit(1)
-
     def print_and_abort(error_msg):
-        logger.error(error_msg)
+        FAILURE = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'            # No Color/Not bold
+        print()
+        print(f"{FAILURE}ERROR - {error_msg}{NC}")
+        print()
         exit(1)
-
-    #####----- ERROR CHECKING
-    if not json_filename.is_file():
-        print_and_abort(f"{json_filename} does not exist or is not a file")
-    if header_filename.exists():
-        print_and_abort(f"{header_filename} already exists")
-    if source_filename.exists():
-        print_and_abort(f"{source_filename} already exists")
 
     #####----- GET TO GENERATIN'
     # TODO: We should be able to determine which generator to use based on the
     # extension of the source file or the passing of a header file.
     try:
         tf_spec = milhoja.TaskFunction.from_json(json_filename)
-        print(tf_spec.tile_metadata)
 
-        generator = milhoja.CppTaskFunctionGenerator.from_json( \
-                        json_filename, \
-                        header_filename, \
-                        source_filename, \
-                        logger, \
-                        indent=INDENT \
+        generator = milhoja.CppTaskFunctionGenerator.from_json(
+                        json_filename,
+                        header_filename,
+                        source_filename,
+                        verbosity_level,
+                        indent=INDENT
                     )
         generator.generate_header_code()
         generator.generate_source_code()
     except Exception as error:
         error_msg = str(error)
-        if logger.level >= milhoja.CodeGenerationLogger.BASIC_DEBUG_LEVEL:
+        if verbosity_level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
             error_msg += f"\n{traceback.format_exc()}"
         print_and_abort(error_msg)
 

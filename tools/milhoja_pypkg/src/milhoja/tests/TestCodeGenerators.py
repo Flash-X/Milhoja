@@ -1,0 +1,155 @@
+"""
+Base class for concrete test cases that test code generators derived from
+BaseCodeGenerator.
+
+Since potentially many classes will be derived from this class, this test case
+class should *not* include any actual test methods.  Methods in the class
+can, however, use the unittest self.assert*() methods.
+"""
+
+import os
+import json
+import shutil
+import unittest
+
+from pathlib import Path
+
+import milhoja
+
+
+class TestCodeGenerators(unittest.TestCase):
+    def __load_code(self, filename):
+        #
+        # Loads the given file, splits each line by words, and strips off all
+        # white space.
+        #
+        # Returns a list of lines in the file with blank lines removed.  Each
+        # line is itself a list of the words in that line.
+        #
+
+        with open(filename, "r") as fptr:
+            lines = fptr.readlines()
+
+        cleaned = []
+        for each in lines:
+            clean = [e for e in each.strip().split() if e != ""]
+            if clean:
+                cleaned.append(clean)
+
+        return cleaned
+
+    def set_extents(self, extents_str, dim):
+        #
+        # Given a string that expresses the extents for an array for a 3D
+        # version of its test, return the extents for the test in the given
+        # dimension.
+        #
+
+        self.assertTrue(dim in [1, 2, 3])
+        if dim == 3:
+            return extents_str
+
+        tmp = extents_str.strip()
+        self.assertTrue(tmp.startswith("("))
+        self.assertTrue(tmp.endswith(")"))
+        tmp = tmp.lstrip("(").rstrip(")")
+
+        tmp = tmp.split(",")
+        self.assertEqual(4, len(tmp))
+
+        extents = [int(e) for e in tmp]
+    
+        if dim <= 2:
+            extents[2] = 1
+        if dim == 1:
+            extents[1] = 1
+
+        return "(" + ", ".join([str(e) for e in extents]) + ")"
+
+    def __dimensionalize(self, json_fname_3D, json_fname_XD, dim):
+        #
+        # Given a file containing the specification of a task function for a 3D
+        # test problem, write the specification to a new file for the version
+        # of the problem associated with the given dimension.
+        #
+
+        with open(json_fname_3D, "r") as fptr:
+            json_3D = json.load(fptr)
+
+        tf_spec = milhoja.TaskFunction.from_json(json_fname_3D)
+
+        json_XD = json_3D.copy()
+        for arg in tf_spec.argument_list:
+            arg_spec = tf_spec.argument_specification(arg)
+            for field in arg_spec:
+                if field.strip().lower().startswith("extents_"):
+                    extents_3D = arg_spec[field]
+                    extents_XD = self.set_extents(extents_3D, dim)
+                    json_XD["task_function"]["argument_specifications"][arg][field] \
+                        = extents_XD
+    
+        with open(json_fname_XD, "w") as fptr:
+            json.dump(json_XD, fptr)
+
+    def run_tests(self, tests_all, dims_all, create_generator):
+        #
+        # For each test in the Cartesian product of tests_all x dims_all,
+        #   * Create a new dimension-specific version of the task function,
+        #   * Create a generator object,
+        #   * Generate the header and source files,
+        #   * Confirm that both files are identical to the given reference
+        #     files except for white space and blank lines.
+        #
+
+        for test in tests_all:
+            json_fname_3D = test["json"]
+            hdr_depends_on_dim = test["header_dim_dependent"]
+            src_depends_on_dim = test["source_dim_dependent"]
+
+            json_fname_XD = Path(f"tmp.json")
+
+            for dim in dims_all:
+                self.assertTrue(not json_fname_XD.exists())
+                if hdr_depends_on_dim or src_depends_on_dim:
+                    self.__dimensionalize(json_fname_3D, json_fname_XD, dim)
+                else:
+                    shutil.copy(json_fname_3D, json_fname_XD)
+                self.assertTrue(json_fname_XD.is_file())
+
+                generator = create_generator(json_fname_XD)
+                self.assertTrue(not generator.header_filename.exists())
+                self.assertTrue(not generator.source_filename.exists())
+
+                ref_hdr_fname = test["header"]
+                ref_src_fname = test["source"]
+                if hdr_depends_on_dim:
+                    ref_hdr_fname = Path(str(ref_hdr_fname).format(dim))
+                if src_depends_on_dim:
+                    ref_src_fname = Path(str(ref_src_fname).format(dim))
+
+                # ----- CHECK HEADER AGAINST BASELINE
+                generator.generate_header_code()
+                self.assertTrue(generator.header_filename.is_file())
+
+                ref = self.__load_code(ref_hdr_fname)
+                generated = self.__load_code(generator.header_filename)
+
+                self.assertEqual(len(ref), len(generated))
+                for gen_line, ref_line in zip(generated, ref):
+                    self.assertEqual(gen_line, ref_line)
+
+                # ----- CHECK SOURCE AGAINST BASELINE
+                generator.generate_source_code()
+                self.assertTrue(generator.source_filename.is_file())
+
+                ref = self.__load_code(ref_src_fname)
+                generated = self.__load_code(generator.source_filename)
+
+                self.assertEqual(len(ref), len(generated))
+                for gen_line, ref_line in zip(generated, ref):
+                    self.assertEqual(gen_line, ref_line)
+
+                # ----- CLEAN-UP YA LAZY SLOB!
+                os.remove(str(json_fname_XD))
+                os.remove(str(generator.header_filename))
+                os.remove(str(generator.source_filename))

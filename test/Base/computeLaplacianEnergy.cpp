@@ -10,7 +10,6 @@ void StaticPhysicsRoutines::computeLaplacianEnergy(const milhoja::IntVect& lo,
     milhoja::Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
     milhoja::Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());
 
-    // OFFLINE TOOLCHAIN - Place parallelization directive/hints here
     // Compute Laplacian in scratch
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {
@@ -26,7 +25,6 @@ void StaticPhysicsRoutines::computeLaplacianEnergy(const milhoja::IntVect& lo,
         }
     }
 
-    // OFFLINE TOOLCHAIN - Place parallelization directive/hints here
     // Overwrite interior of given block with Laplacian result
     for         (int k=lo.K(); k<=hi.K(); ++k) {
         for     (int j=lo.J(); j<=hi.J(); ++j) {

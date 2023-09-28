@@ -4,8 +4,8 @@ TESTROOTDIR         = $(BASEDIR)/test
 SEDOVDIR            = $(TESTROOTDIR)/Sedov
 TESTDIR             = $(SEDOVDIR)/cpu
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR) -I$(SEDOVDIR)/code_generation
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR) -I$(SEDOVDIR)/code_generation
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(TESTDIR)
 LDFLAGS_TEST        =
 
 SRCS_TEST = \
@@ -15,15 +15,9 @@ SRCS_TEST = \
 	$(SEDOVDIR)/ProcessTimer.cpp \
 	$(SEDOVDIR)/Eos_idealGammaDensIe.cpp \
 	$(SEDOVDIR)/Io.cpp \
-	$(SEDOVDIR)/code_generation/Tile_cpu_tf_IQ_$(NDIM)D.cpp \
-	$(SEDOVDIR)/code_generation/cpu_tf_IQ_$(NDIM)D.cpp \
 	$(SEDOVDIR)/hy_computeFluxesHll.cpp \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
-	$(SEDOVDIR)/code_generation/Tile_cpu_tf_ic_$(NDIM)D.cpp \
-	$(SEDOVDIR)/code_generation/cpu_tf_ic_$(NDIM)D.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/sim_getVariableNames.cpp \
-	$(SEDOVDIR)/code_generation/Tile_cpu_tf00_$(NDIM)D.cpp \
-	$(SEDOVDIR)/code_generation/cpu_tf00_$(NDIM)D.cpp \
 	$(TESTDIR)/Driver_executeSimulation.cpp \
 	$(SEDOVDIR)/solve_sedov_with_runtime.cpp

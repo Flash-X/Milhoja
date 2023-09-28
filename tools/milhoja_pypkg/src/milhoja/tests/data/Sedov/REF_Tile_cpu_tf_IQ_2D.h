@@ -20,12 +20,12 @@ struct Tile_cpu_tf_IQ : public milhoja::TileWrapper {
     static void acquireScratch(void);
     static void releaseScratch(void);
 
-    constexpr static std::size_t  _MH_INTERNAL_VOLUMES_SIZE_ =
+    constexpr static std::size_t  MH_INTERNAL_CELLVOLUMES_SIZE_ =
                       18
                     * 18
                     * 18;
 
-    static void* _mh_internal_volumes_;
+    static void* MH_INTERNAL_cellVolumes_;
 };
 
 #endif

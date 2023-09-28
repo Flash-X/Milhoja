@@ -1,34 +1,52 @@
 {
-    "format": ["Milhoja_native_JSON", "1.0.0"],
-    "argument_list": ["tile_level",
-                      "tile_lbound",
-                      "tile_ubound",
-                      "tile_deltas",
-                      "tile_xCenters",
-                      "tile_yCenters",
-                      "tile_zCenters",
-                      "CC_1"],
-    "argument_specifications": {
-        "tile_level":     {"source":           "tile_level"},
-        "tile_lbound":    {"source":           "tile_lbound"},
-        "tile_ubound":    {"source":           "tile_ubound"},
-        "tile_deltas":    {"source":           "tile_deltas"},
-        "tile_xCenters":  {"source":           "tile_xCenters"},
-        "tile_yCenters":  {"source":           "tile_yCenters"},
-        "tile_zCenters":  {"source":           "tile_zCenters"},
-        "CC_1":           {"source":           "grid_data",
-                           "type":             "milhoja::Real",
-                           "extents_in":       "(18, 18, 18, 10)",
-                           "lbound_in":        "(tile_lo, 1)",
-                           "extents_out":      "(18, 18, 18, 10)",
-                           "lbound_out":       "(tile_lo, 1)",
-                           "structure_index": ["CENTER", 1]}
+    "format": ["Milhoja-native JSON", "1.0.0"],
+    "task_function": {
+        "name": "cpu_tf_ic",
+        "language": "C++", 
+        "argument_list": ["tile_level",
+                          "tile_lbound",
+                          "tile_ubound",
+                          "tile_deltas",
+                          "tile_xCenters",
+                          "tile_yCenters",
+                          "tile_zCenters",
+                          "CC_1"],
+        "argument_specifications": {
+            "tile_level":     {"source":           "tile_level"},
+            "tile_lbound":    {"source":           "tile_lbound"},
+            "tile_ubound":    {"source":           "tile_ubound"},
+            "tile_deltas":    {"source":           "tile_deltas"},
+            "tile_xCenters":  {"source":           "tile_coordinates",
+                               "axis":             "I",
+                               "edge":             "center",
+                               "lo":               "tile_lbound",
+                               "hi":               "tile_ubound"},
+            "tile_yCenters":  {"source":           "tile_coordinates",
+                               "axis":             "J",
+                               "edge":             "center",
+                               "lo":               "tile_lbound",
+                               "hi":               "tile_ubound"},
+            "tile_zCenters":  {"source":           "tile_coordinates",
+                               "axis":             "K",
+                               "edge":             "center",
+                               "lo":               "tile_lbound",
+                               "hi":               "tile_ubound"},
+            "CC_1":           {"source":           "grid_data",
+                               "type":             "real",
+                               "extents_out":      "(18, 18, 18, 10)",
+                               "lbound_out":       "(tile_lbound, 1)",
+                               "structure_index": ["CENTER", 1]}
+        },
+        "subroutine_call_stack": [
+            "sim::setInitialConditions",
+            "Eos::idealGammaDensIe"
+        ]
     },
-    "subroutine_call_stack": [
-        "sim::setInitialConditions",
-        "Eos::idealGammaDensIe"
-    ],
-    "subroutine_specifications": {
+    "device": {
+        "hardware": "CPU",
+        "byte_alignment": -1
+    },
+    "subroutines": {
         "sim::setInitialConditions": {
             "header_file": "Simulation.h",
             "argument_list": ["lo",
