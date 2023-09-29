@@ -27,8 +27,9 @@ DIM=$3
 CLONEPATH=$SCRIPTPATH/../../..
 
 TOOLPATH=$CLONEPATH/tools
-GEN_TF_TOOL=$TOOLPATH/generate_cpp_task_function.py
-GEN_TWRAPPER_TOOL=$TOOLPATH/generate_tile_wrapper.py
+GEN_TF_TOOL=$TOOLPATH/generate_task_function.py
+GEN_DATAITEM_TOOL=$TOOLPATH/generate_data_item.py
+MILHOJA_JSON_FMT='Milhoja-JSON'
 
 CGPATH=$CLONEPATH/test/Sedov/code_generation
 
@@ -49,8 +50,8 @@ for taskFunction in ${TF_ALL[@]}; do
     echo
     echo "Generate code for Task Function $taskFunction"
     echo "------------------------------------------------------------"
-    $GEN_TF_TOOL ${CGPATH}/${taskFunction}_${DIM}D.json ${GENPATH}/${taskFunction}.h ${GENPATH}/${taskFunction}.cpp
-    $GEN_TWRAPPER_TOOL ${CGPATH}/${taskFunction}_${DIM}D.json ${GENPATH}/Tile_${taskFunction}.h ${GENPATH}/Tile_${taskFunction}.cpp
+    $GEN_TF_TOOL ${CGPATH}/${taskFunction}_${DIM}D.json ${MILHOJA_JSON_FMT} ${GENPATH}/${taskFunction}.h ${GENPATH}/${taskFunction}.cpp
+    $GEN_DATAITEM_TOOL ${CGPATH}/${taskFunction}_${DIM}D.json ${MILHOJA_JSON_FMT} ${GENPATH}/Tile_${taskFunction}.h ${GENPATH}/Tile_${taskFunction}.cpp
 
     echo -e "\t${GENPATH}/${taskFunction}.cpp \\"      >> $MAKEFILE
     echo -e "\t${GENPATH}/Tile_${taskFunction}.cpp \\" >> $MAKEFILE

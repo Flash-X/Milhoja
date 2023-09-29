@@ -11,9 +11,10 @@ _TEST_PATH = _FILE_PATH.joinpath("data")
 
 
 def _create_generator(json_filename):
-    tf_spec = milhoja.TaskFunction.from_json(json_filename)
+    tf_spec = milhoja.TaskFunction.from_milhoja_json(json_filename)
     task_function = tf_spec.name
 
+    # TODO: Switch this to generate_data_item and check type
     return milhoja.TileWrapperGenerator.from_json(
                        json_filename,
                        f"Tile_{task_function}.h",

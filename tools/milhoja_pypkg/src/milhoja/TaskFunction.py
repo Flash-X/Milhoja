@@ -2,14 +2,14 @@ import json
 
 from pathlib import Path
 
+from . import MILHOJA_JSON_FORMAT
+from . import CURRENT_MILHOJA_JSON_VERSION
+
 class TaskFunction(object):
     """
     """
-    __JSON_FORMAT_NAME = "Milhoja-native JSON"
-    __CURRENT_JSON_VERSION = "1.0.0"
-
     @staticmethod
-    def from_json(filename):
+    def from_milhoja_json(filename):
         """
         """
         # ----- ERROR CHECK ARGUMENTS
@@ -26,12 +26,14 @@ class TaskFunction(object):
         format_name, version = configuration["format"]
 
         # Only one JSON internal format presently
-        if format_name.lower() != TaskFunction.__JSON_FORMAT_NAME.lower():
+        # Use MILHOJA_JSON_FORMAT once JSON files are all updated
+#        if format_name.lower() != MILHOJA_JSON_FORMAT.lower():
+        if format_name.lower() != "milhoja-native json":
             raise ValueError(f"Unknown JSON format {format_name}")
 
         # Only one version of Milhoja-native JSON format.
         # Therefore, contents already in Milhoja-internal format.
-        if version.lower() != TaskFunction.__CURRENT_JSON_VERSION.lower():
+        if version.lower() != CURRENT_MILHOJA_JSON_VERSION.lower():
             raise ValueError(f"Unknown Milhoja JSON version v{version}")
 
         return TaskFunction(filename, configuration)
@@ -62,6 +64,10 @@ class TaskFunction(object):
     @property
     def specification_filename(self):
         return self.__filename
+
+    @property
+    def specification_format(self):
+        return configuration["format"]
 
     @property
     def name(self):
@@ -140,7 +146,7 @@ class TaskFunction(object):
 #    @property
 #    def tile_out(self):
 
-    def to_json(self, filename):
+    def to_milhoja_json(self, filename):
         """
         Write the object's full configuration to a Milhoja-native JSON file
         using the current version of the JSON format.

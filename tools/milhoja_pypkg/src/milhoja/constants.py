@@ -1,3 +1,11 @@
+# ----- SPECIFICATION FORMAT INFORMATION
+# Format strings are used as tool command line arguments.  Therefore, keep
+# short and don't insert white space.
+MILHOJA_JSON_FORMAT = "Milhoja-JSON"
+CURRENT_MILHOJA_JSON_VERSION = "1.0.0"
+
+TASK_FUNCTION_FORMATS = [MILHOJA_JSON_FORMAT]
+
 # ----- MILHOJA CODE GENERATION LOG CONFIGURATION
 LOG_LEVEL_NONE = 0
 LOG_LEVEL_BASIC = 1

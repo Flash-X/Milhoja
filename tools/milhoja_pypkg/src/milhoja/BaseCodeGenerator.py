@@ -1,9 +1,16 @@
+import abc
+
 from pathlib import Path
 
 from . import CodeGenerationLogger
 
-class BaseCodeGenerator(object):
+class BaseCodeGenerator(abc.ABC):
     """
+    This class takes the task function specification as an argument rather than
+    instantiate one from arguments so that application codes can use a custom
+    class derived from TaskFunction if so desired.  For the same reason, code
+    generators derived from this class should also take the specification as an
+    object.
     """
     def __init__(
             self,
@@ -82,13 +89,14 @@ class BaseCodeGenerator(object):
         """
         return self.__src_filename
 
+    @abc.abstractmethod
     def generate_header_code(self):
         """
         """
-        # TODO: This should be abtract as should the class
-        pass
+        ...
 
+    @abc.abstractmethod
     def generate_source_code(self):
         """
         """
-        pass
+        ...

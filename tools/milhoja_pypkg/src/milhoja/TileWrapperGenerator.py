@@ -70,7 +70,7 @@ class TileWrapperGenerator(BaseCodeGenerator):
         elif tf_version.lower() != "1.0.0":
             raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
 
-        tf_spec_new = TaskFunction.from_json(json_fname)
+        tf_spec_new = TaskFunction.from_milhoja_json(json_fname)
 
         # TODO: Once we have a class that wraps the task function
         # specification, we should instantiate it here with its .to_json

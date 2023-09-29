@@ -14,13 +14,16 @@ __version__ = version("milhoja")
 #       matching TT configuration.
 
 # constants
+from .constants import MILHOJA_JSON_FORMAT
+from .constants import CURRENT_MILHOJA_JSON_VERSION
+from .constants import TASK_FUNCTION_FORMATS
 from .constants import LOG_LEVEL_NONE
 from .constants import LOG_LEVEL_BASIC
 from .constants import LOG_LEVEL_BASIC_DEBUG
 from .constants import LOG_LEVEL_MAX
 from .constants import LOG_LEVELS
 
-# functions
+# Functions used by classes
 from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 
 # classes
@@ -29,6 +32,10 @@ from .CodeGenerationLogger import CodeGenerationLogger
 from .BaseCodeGenerator import BaseCodeGenerator
 from .TileWrapperGenerator import TileWrapperGenerator
 from .CppTaskFunctionGenerator import CppTaskFunctionGenerator
+
+# Functions that use classes
+from .generate_data_item import generate_data_item
+from .generate_task_function import generate_task_function
 
 # ----- Python unittest-based test framework
 # Used for automatic test discovery

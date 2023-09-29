@@ -76,7 +76,7 @@ class TestCodeGenerators(unittest.TestCase):
         with open(json_fname_3D, "r") as fptr:
             json_3D = json.load(fptr)
 
-        tf_spec = milhoja.TaskFunction.from_json(json_fname_3D)
+        tf_spec = milhoja.TaskFunction.from_milhoja_json(json_fname_3D)
 
         json_XD = json_3D.copy()
         for arg in tf_spec.argument_list:
