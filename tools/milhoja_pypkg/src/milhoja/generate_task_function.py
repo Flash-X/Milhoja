@@ -1,6 +1,6 @@
 from . import MILHOJA_JSON_FORMAT
 from . import TaskFunction
-from . import CppTaskFunctionGenerator
+from . import TaskFunctionGenerator_cpu_cpp
 
 def generate_task_function(
         filename, specification_format,
@@ -16,7 +16,7 @@ def generate_task_function(
         language = tf_spec.language
 
         if (language.lower() == "c++") and (device.lower() == "cpu"):
-            generator = CppTaskFunctionGenerator.from_json(
+            generator = TaskFunctionGenerator_cpu_cpp.from_json(
                             filename,
                             header_filename,
                             source_filename,

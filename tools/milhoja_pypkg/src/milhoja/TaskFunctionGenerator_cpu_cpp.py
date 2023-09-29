@@ -9,10 +9,10 @@ from . import BaseCodeGenerator
 from . import generate_tile_metadata_extraction
 
 
-class CppTaskFunctionGenerator(BaseCodeGenerator):
+class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
     """
     """
-    __LOG_TAG = "C++ Task Function"
+    __LOG_TAG = "C++/CPU Task Function"
 
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
@@ -43,7 +43,7 @@ class CppTaskFunctionGenerator(BaseCodeGenerator):
             in both generated files.
         :type  indent: non-negative int, optional
         :return: The generator object ready for use
-        :rtype: CppTaskFunctionGenerator
+        :rtype: TaskFunctionGenerator_cpu_cpp
         """
         json_fname = Path(tf_spec_json_filename).resolve()
         if not json_fname.is_file():
@@ -66,7 +66,7 @@ class CppTaskFunctionGenerator(BaseCodeGenerator):
         # specification, we should instantiate it here with its .to_json
         # classmethod and pass it to the constructor.  tf_spec is presently the
         # standin for that object.
-        generator = CppTaskFunctionGenerator(
+        generator = TaskFunctionGenerator_cpu_cpp(
                         tf_spec,
                         tf_spec_new,
                         header_filename,
@@ -112,7 +112,7 @@ class CppTaskFunctionGenerator(BaseCodeGenerator):
         super().__init__(
             tf_spec_new,
             header_filename, source_filename,
-            CppTaskFunctionGenerator.__LOG_TAG, log_level,
+            TaskFunctionGenerator_cpu_cpp.__LOG_TAG, log_level,
             indent
         )
 

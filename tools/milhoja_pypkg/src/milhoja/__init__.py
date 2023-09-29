@@ -30,8 +30,8 @@ from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 from .TaskFunction import TaskFunction
 from .CodeGenerationLogger import CodeGenerationLogger
 from .BaseCodeGenerator import BaseCodeGenerator
-from .TileWrapperGenerator import TileWrapperGenerator
-from .CppTaskFunctionGenerator import CppTaskFunctionGenerator
+from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
+from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 
 # Functions that use classes
 from .generate_data_item import generate_data_item

@@ -8,14 +8,14 @@ from . import TaskFunction
 from . import BaseCodeGenerator
 
 
-class TileWrapperGenerator(BaseCodeGenerator):
+class TileWrapperGenerator_cpp(BaseCodeGenerator):
     """
     A class for generating final, compilable C++ header and source code that
     defines a Milhoja_TileWrapper derived class for constructing the data item
     passed to the task function specified by the specification object given at
     instantiation.
     """
-    __LOG_TAG = "Tile Wrapper"
+    __LOG_TAG = "C++ Tile Wrapper"
 
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
@@ -47,7 +47,7 @@ class TileWrapperGenerator(BaseCodeGenerator):
             in both generated files.
         :type  indent: non-negative int, optional
         :return: The generator object ready for use
-        :rtype: TileWrapperGenerator
+        :rtype: TileWrapperGenerator_cpp
         """
         json_fname = Path(tf_spec_json_filename).resolve()
         if not json_fname.is_file():
@@ -76,7 +76,7 @@ class TileWrapperGenerator(BaseCodeGenerator):
         # specification, we should instantiate it here with its .to_json
         # classmethod and pass it to the constructor.  tf_spec is presently the
         # standin for that object.
-        generator = TileWrapperGenerator(
+        generator = TileWrapperGenerator_cpp(
                         tf_spec,
                         tf_spec_new,
                         header_filename,
@@ -127,7 +127,7 @@ class TileWrapperGenerator(BaseCodeGenerator):
         super().__init__(
             tf_spec_new,
             header_filename, source_filename,
-            TileWrapperGenerator.__LOG_TAG, log_level,
+            TileWrapperGenerator_cpp.__LOG_TAG, log_level,
             indent
         )
 

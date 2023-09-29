@@ -1,6 +1,6 @@
 from . import MILHOJA_JSON_FORMAT
 from . import TaskFunction
-from . import TileWrapperGenerator
+from . import TileWrapperGenerator_cpp
 
 def generate_data_item(
         filename, specification_format,
@@ -16,7 +16,7 @@ def generate_data_item(
         language = tf_spec.language
 
         if (language.lower() == "c++") and (device.lower() == "cpu"):
-            generator = TileWrapperGenerator.from_json(
+            generator = TileWrapperGenerator_cpp.from_json(
                             filename,
                             header_filename,
                             source_filename,

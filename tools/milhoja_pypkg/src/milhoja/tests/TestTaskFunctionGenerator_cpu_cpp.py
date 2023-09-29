@@ -1,5 +1,5 @@
 """
-Unit test of TileWrapperGenerator class.
+Unit test of TaskFunctionGenerator_cpu_cpp class.
 """
 
 from pathlib import Path
@@ -14,42 +14,42 @@ def _create_generator(json_filename):
     tf_spec = milhoja.TaskFunction.from_milhoja_json(json_filename)
     task_function = tf_spec.name
 
-    # TODO: Switch this to generate_data_item and check type
-    return milhoja.TileWrapperGenerator.from_json(
+    # TODO: Switch this to generate_task_function and check type
+    return milhoja.TaskFunctionGenerator_cpu_cpp.from_json(
                        json_filename,
-                       f"Tile_{task_function}.h",
-                       f"Tile_{task_function}.cpp",
+                       f"{task_function}.h",
+                       f"{task_function}.cpp",
                        milhoja.LOG_LEVEL_NONE
                    )
 
-class TestTileWrapperGenerator(milhoja.tests.TestCodeGenerators):
+class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
     def testRuntimeGeneration(self):
         path = _TEST_PATH.joinpath("runtime")
 
         ic = {"json": path.joinpath("cpu_tf_ic.json"),
-              "header": path.joinpath("REF_Tile_cpu_tf_ic.h"),
+              "header": path.joinpath("REF_cpu_tf_ic.h"),
               "header_dim_dependent": False,
-              "source": path.joinpath("REF_Tile_cpu_tf_ic.cpp"),
+              "source": path.joinpath("REF_cpu_tf_ic.cpp"),
               "source_dim_dependent": False}
         dens = {"json": path.joinpath("cpu_tf_dens.json"),
-                "header": path.joinpath("REF_Tile_cpu_tf_dens.h"),
+                "header": path.joinpath("REF_cpu_tf_dens.h"),
                 "header_dim_dependent": False,
-                "source": path.joinpath("REF_Tile_cpu_tf_dens.cpp"),
+                "source": path.joinpath("REF_cpu_tf_dens.cpp"),
                 "source_dim_dependent": False}
         ener = {"json": path.joinpath("cpu_tf_ener.json"),
-                "header": path.joinpath("REF_Tile_cpu_tf_ener.h"),
+                "header": path.joinpath("REF_cpu_tf_ener.h"),
                 "header_dim_dependent": False,
-                "source": path.joinpath("REF_Tile_cpu_tf_ener.cpp"),
+                "source": path.joinpath("REF_cpu_tf_ener.cpp"),
                 "source_dim_dependent": False}
         fused = {"json": path.joinpath("cpu_tf_fused.json"),
-                 "header": path.joinpath("REF_Tile_cpu_tf_fused.h"),
+                 "header": path.joinpath("REF_cpu_tf_fused.h"),
                  "header_dim_dependent": False,
-                 "source": path.joinpath("REF_Tile_cpu_tf_fused.cpp"),
+                 "source": path.joinpath("REF_cpu_tf_fused.cpp"),
                  "source_dim_dependent": False}
         analysis = {"json": path.joinpath("cpu_tf_analysis.json"),
-                    "header": path.joinpath("REF_Tile_cpu_tf_analysis.h"),
+                    "header": path.joinpath("REF_cpu_tf_analysis.h"),
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_Tile_cpu_tf_analysis.cpp"),
+                    "source": path.joinpath("REF_cpu_tf_analysis.cpp"),
                     "source_dim_dependent": False}
 
         tests_all = [ic, dens, ener, fused, analysis]
@@ -59,20 +59,20 @@ class TestTileWrapperGenerator(milhoja.tests.TestCodeGenerators):
         path = _TEST_PATH.joinpath("Sedov")
 
         ic = {"json": path.joinpath("cpu_tf_ic_3D.json"),
-              "header": path.joinpath("REF_Tile_cpu_tf_ic.h"),
+              "header": path.joinpath("REF_cpu_tf_ic.h"),
               "header_dim_dependent": False,
-              "source": path.joinpath("REF_Tile_cpu_tf_ic.cpp"),
+              "source": path.joinpath("REF_cpu_tf_ic.cpp"),
               "source_dim_dependent": False}
         hydro = {"json": path.joinpath("cpu_tf_hydro_3D.json"),
-                 "header": path.joinpath("REF_Tile_cpu_tf_hydro_{}D.h"),
-                 "header_dim_dependent": True,
-                 "source": path.joinpath("REF_Tile_cpu_tf_hydro.cpp"),
-                 "source_dim_dependent": False}
+                "header": path.joinpath("REF_cpu_tf_hydro.h"),
+                "header_dim_dependent": False,
+                "source": path.joinpath("REF_cpu_tf_hydro.cpp"),
+                "source_dim_dependent": False}
         IQ = {"json": path.joinpath("cpu_tf_IQ_3D.json"),
-              "header": path.joinpath("REF_Tile_cpu_tf_IQ_{}D.h"),
-              "header_dim_dependent": True,
-              "source": path.joinpath("REF_Tile_cpu_tf_IQ.cpp"),
-              "source_dim_dependent": False}
+                "header": path.joinpath("REF_cpu_tf_IQ.h"),
+                "header_dim_dependent": False,
+                "source": path.joinpath("REF_cpu_tf_IQ.cpp"),
+                "source_dim_dependent": False}
 
         self.run_tests([ic, hydro, IQ], [1, 2, 3], _create_generator)
 
