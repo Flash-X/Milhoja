@@ -1,4 +1,5 @@
 {
+  "task_function_name": "name",
   "byte_align": 16,
   "n_extra_streams": 0,
   "task_function_argument_list": ["dt", "tile_deltas", "tile_lo", "tile_hi", "tile_loGC", "U", "auxC", "FCX", "FCY", "FCZ"],
