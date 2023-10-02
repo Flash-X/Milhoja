@@ -66,13 +66,15 @@ _HOME_DIR = Path(__file__).resolve().parent
 
 # If a test directory contains this file, we assume that it must be run to
 # automatically generate all code
-_CODE_GENERATION_SCRIPT = "generate_code_for_milhoja.sh"
+_CODE_GENERATION_SCRIPT = "generate_code_for_milhoja.py"
 
 PAR_FILENAME_BASE = 'RuntimeParameters'
 
 if __name__ == '__main__':
     """
     Setup a build directory in accord with the given command line arguments.
+
+    TODO: setup() should be moved into milhoja_pypkg and should use the logger.
     """
     #####----- SPECIFY COMMAND LINE USAGE
     parser = argparse.ArgumentParser(description=_DESCRIPTION, \
@@ -266,7 +268,10 @@ if __name__ == '__main__':
     generatedMakefile = buildDir.joinpath("Makefile.generated")
     if generator.is_file():
         # TODO: Check error code of shell call
-        sbp.call([str(generator), str(buildDir), str(generatedMakefile), str(ndim)])
+        sbp.call(
+            [str(generator), str(buildDir),
+             str(generatedMakefile), str(ndim),
+             "--verbose", str(1)])
     else:
         print(f"No automatic code generation required by test")
         with open(generatedMakefile, "w") as fptr:
@@ -282,4 +287,3 @@ if __name__ == '__main__':
     os.chmod(logfileName,       0o444)
 
     print("Successfully set up build directory!")
-

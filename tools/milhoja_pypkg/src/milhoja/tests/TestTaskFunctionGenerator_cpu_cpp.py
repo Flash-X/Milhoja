@@ -17,8 +17,6 @@ def _create_generator(json_filename):
     # TODO: Switch this to generate_task_function and check type
     return milhoja.TaskFunctionGenerator_cpu_cpp.from_json(
                        json_filename,
-                       f"{task_function}.h",
-                       f"{task_function}.cpp",
                        milhoja.LOG_LEVEL_NONE
                    )
 

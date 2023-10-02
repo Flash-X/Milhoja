@@ -8,6 +8,10 @@ from . import CURRENT_MILHOJA_JSON_VERSION
 class TaskFunction(object):
     """
     """
+    # Main keys into dictionaries returned by output_filenames.
+    CPP_TF_KEY = "cpp_tf"
+    DATA_ITEM_KEY = "data_item"
+
     @staticmethod
     def from_milhoja_json(filename):
         """
@@ -26,9 +30,7 @@ class TaskFunction(object):
         format_name, version = configuration["format"]
 
         # Only one JSON internal format presently
-        # Use MILHOJA_JSON_FORMAT once JSON files are all updated
-#        if format_name.lower() != MILHOJA_JSON_FORMAT.lower():
-        if format_name.lower() != "milhoja-native json":
+        if format_name.lower() != MILHOJA_JSON_FORMAT.lower():
             raise ValueError(f"Unknown JSON format {format_name}")
 
         # Only one version of Milhoja-native JSON format.
@@ -52,7 +54,7 @@ class TaskFunction(object):
         self.__filename = Path(filename).resolve()
         self.__spec = specification
         self.__tf_spec = specification["task_function"]
-        self.__device_spec = specification["device"]
+        self.__data_spec = specification["data_item"]
         self.__subroutine_spec = specification["subroutines"]
 
         # ----- ERROR CHECK ARGUMENTS
@@ -70,12 +72,54 @@ class TaskFunction(object):
         return configuration["format"]
 
     @property
+    def output_filenames(self):
+        """
+        """
+        cpp_tf_hdr = self.__tf_spec["cpp_header"]
+        cpp_tf_src = self.__tf_spec["cpp_source"]
+        c2f_src = self.__tf_spec["c2f_source"]
+        fortran_tf_src = self.__tf_spec["fortran_source"]
+        data_item_hdr = self.__data_spec["header"]
+        data_item_src = self.__data_spec["source"]
+
+        assert cpp_tf_hdr != ""
+        assert cpp_tf_src != ""
+        assert data_item_hdr != ""
+        assert data_item_src != ""
+
+        filenames = {}
+        filenames[TaskFunction.DATA_ITEM_KEY] = \
+            {"header": data_item_hdr, "source": data_item_src}
+        filenames[TaskFunction.CPP_TF_KEY] = \
+            {"header": cpp_tf_hdr, "source": cpp_tf_src}
+
+        # TODO: Each key should be associated with a dictionary that uses
+        # "header" and "source" appropriately
+        processor = self.processor
+        language = self.language
+        if processor.lower() == "cpu" and language.lower() == "c++":
+            assert c2f_src == ""
+            assert fortran_tf_src == ""
+        else:
+            raise NotImplementedError("Wait for Wesley")
+
+        return filenames
+
+    @property
     def name(self):
         return self.__tf_spec["name"]
 
     @property
     def language(self):
         return self.__tf_spec["language"]
+
+    @property
+    def processor(self):
+        return self.__tf_spec["processor"]
+
+    @property
+    def data_item(self):
+        return self.__data_spec["type"]
 
     @property
     def argument_list(self):
@@ -88,20 +132,6 @@ class TaskFunction(object):
         """
         """
         return self.__tf_spec["argument_specifications"][argument]
-
-    @property
-    def device_information(self):
-        """
-        """
-        device = self.__device_spec["hardware"]
-
-        if device.lower() == "cpu":
-            return {"device": "CPU"}
-        elif device.lower() == "gpu":
-            return {"device": "GPU", \
-                    "byte_alignment": self.__device_spec["byte_alignment"]}
-
-        raise ValueError(f"Unable to offload to {device}")
 
     @property
     def tile_metadata(self):

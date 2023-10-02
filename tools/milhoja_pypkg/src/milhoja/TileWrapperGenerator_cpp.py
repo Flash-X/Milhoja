@@ -5,25 +5,23 @@ from pathlib import Path
 from . import LOG_LEVEL_BASIC
 from . import LOG_LEVEL_BASIC_DEBUG
 from . import TaskFunction
-from . import BaseCodeGenerator
+from . import AbcCodeGenerator
 
 
-class TileWrapperGenerator_cpp(BaseCodeGenerator):
+class TileWrapperGenerator_cpp(AbcCodeGenerator):
     """
     A class for generating final, compilable C++ header and source code that
     defines a Milhoja_TileWrapper derived class for constructing the data item
     passed to the task function specified by the specification object given at
     instantiation.
     """
-    __LOG_TAG = "C++ Tile Wrapper"
+    __LOG_TAG = "Milhoja C++ Tile Wrapper"
 
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
     def from_json(
             cls,
             tf_spec_json_filename,
-            header_filename,
-            source_filename,
             log_level=LOG_LEVEL_BASIC,
             indent=4
             ):
@@ -37,10 +35,6 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
 
         :param tf_spec_json_filename: Name of the JSON-format file
         :type  tf_spec_json_filename: str
-        :param header_filename: Name of the C++ header file to generate
-        :type  header_filename: str
-        :param source_filename: Name of the C++ source file to generate
-        :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
         :param indent: The number of spaces used to define the tab to be used
@@ -59,17 +53,6 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         with open(json_fname, "r") as fptr:
             tf_spec = json.load(fptr)
 
-        # TODO: Once it knows how to load the data from the file by extension,
-        # it can determine how to interpret the loaded data using the format
-        # info.
-        if "format" not in tf_spec:
-            raise ValueError('"format" not provided in JSON specification')
-        tf_fmt, tf_version = tf_spec["format"]
-        if tf_fmt.lower() != "milhoja-native json":
-            raise ValueError(f"Unknown JSON format ({tf_fmt} v{tf_version})")
-        elif tf_version.lower() != "1.0.0":
-            raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
-
         tf_spec_new = TaskFunction.from_milhoja_json(json_fname)
 
         # TODO: Once we have a class that wraps the task function
@@ -79,8 +62,6 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         generator = TileWrapperGenerator_cpp(
                         tf_spec,
                         tf_spec_new,
-                        header_filename,
-                        source_filename,
                         log_level,
                         indent
                     )
@@ -94,8 +75,6 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
             self,
             tf_spec,
             tf_spec_new,
-            header_filename,
-            source_filename,
             log_level,
             indent
             ):
@@ -114,16 +93,16 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         :type  tf_spec: XXX
         :param tf_spec_filename: Name of the task function specification file
         :type  tf_spec_filename: str
-        :param header_filename: Name of the C++ header file to generate
-        :type  header_filename: str
-        :param source_filename: Name of the C++ source file to generate
-        :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
         :param indent: The number of spaces used to define the tab to be used
             in both generated files.
         :type  indent: non-negative int
         """
+        outputs = tf_spec_new.output_filenames
+        header_filename = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
+        source_filename = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
+
         super().__init__(
             tf_spec_new,
             header_filename, source_filename,
@@ -134,7 +113,7 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         # ----- STORE ARGUMENTS
         self.__tf_spec = tf_spec["task_function"]
 
-        self.__class_name = Path(self.header_filename.name).stem
+        self.__class_name = Path(self.header_filename).stem
 
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no file at instantiation, but a file could
@@ -235,19 +214,19 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
 
         n_external = len(external_all)
 
-        device = self._tf_spec_new.device_information["device"]
+        processor = self._tf_spec_new.processor
 
         if n_external == 0:
             arg_list = "(void)"
         elif n_external == 1:
             arg_type = external_all[0][1]
-            if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+            if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
                 arg_type = "milhoja::Real"
             arg_list = f"(const {arg_type} {external_all[0][0]})"
         else:
             arg_list = ""
             for j, (arg, arg_type) in enumerate(external_all):
-                if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
                     arg_type = "milhoja::real"
                 arg_list += f"\n{INDENT*5}const {arg_type} {arg}"
                 if j < n_external - 1:
@@ -256,11 +235,16 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
 
         return arg_list
 
-    def generate_source_code(self):
+    def generate_source_code(self, destination, overwrite):
         """Generate the C++ source code"""
         INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Source {self.source_filename}"
+        path = Path(destination).resolve()
+        if not path.is_dir():
+            raise ValueError(f"{path} is not a folder or does not exist")
+        source_filename = path.joinpath(self.source_filename)
+
+        msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
         classname = self.__class_name
@@ -269,15 +253,15 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         scratch_all = self.__scratch_arguments
         n_external = len(external_all)
 
-        device = self._tf_spec_new.device_information["device"]
+        processor = self._tf_spec_new.processor
 
-        if self.source_filename.exists():
-            raise ValueError(f"{self.source_filename} already exists")
+        if (not overwrite) and source_filename.exists():
+            raise ValueError(f"{source_filename} already exists")
 
-        with open(self.source_filename, "w") as fptr:
+        with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
-            fptr.write(f'#include "{self.header_filename.name}"\n')
+            fptr.write(f'#include "{self.header_filename}"\n')
             fptr.write("\n")
 
             # Milhoja header files
@@ -297,7 +281,7 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
             fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
             fptr.write("\n")
             for arg, arg_type, _ in scratch_all:
-                if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
                     arg_type = "milhoja::Real"
 
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
@@ -395,11 +379,16 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
             fptr.write(f"{INDENT}return std::unique_ptr<milhoja::TileWrapper>{{ptr}};\n")
             fptr.write("}\n")
 
-    def generate_header_code(self):
+    def generate_header_code(self, destination, overwrite):
         """Generate the C++ header code"""
         INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Header {self.header_filename}"
+        path = Path(destination).resolve()
+        if not path.is_dir():
+            raise ValueError(f"{path} is not a folder or does not exist")
+        header_filename = path.joinpath(self.header_filename)
+
+        msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
         hdr_macro = f"MILHOJA_GENERATED_{self.__class_name.upper()}_H__"
@@ -407,12 +396,12 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
         external_all = self.__external_arguments
         scratch_all = self.__scratch_arguments
 
-        device = self._tf_spec_new.device_information["device"]
+        processor = self._tf_spec_new.processor
 
-        if self.header_filename.exists():
-            raise ValueError(f"{self.header_filename} already exists")
+        if (not overwrite) and header_filename.exists():
+            raise ValueError(f"{header_filename} already exists")
 
-        with open(self.header_filename, "w") as fptr:
+        with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
             fptr.write(f"#define {hdr_macro}\n")
             fptr.write("\n")
@@ -438,7 +427,7 @@ class TileWrapperGenerator_cpp(BaseCodeGenerator):
             fptr.write("\n")
 
             for arg, arg_type in external_all:
-                if (arg_type.lower()) == "real" and (device.lower() == "cpu"):
+                if (arg_type.lower()) == "real" and (processor.lower() == "cpu"):
                     fptr.write(f"{INDENT}milhoja::Real  {arg}_;\n")
                 else:
                     fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")

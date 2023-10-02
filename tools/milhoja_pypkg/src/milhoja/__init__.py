@@ -29,7 +29,7 @@ from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 # classes
 from .TaskFunction import TaskFunction
 from .CodeGenerationLogger import CodeGenerationLogger
-from .BaseCodeGenerator import BaseCodeGenerator
+from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 

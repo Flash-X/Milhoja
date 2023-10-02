@@ -4,7 +4,7 @@ from pathlib import Path
 
 from . import CodeGenerationLogger
 
-class BaseCodeGenerator(abc.ABC):
+class AbcCodeGenerator(abc.ABC):
     """
     This class takes the task function specification as an argument rather than
     instantiate one from arguments so that application codes can use a custom
@@ -31,8 +31,10 @@ class BaseCodeGenerator(abc.ABC):
 
         self.__indent = indent
 
-        self.__hdr_filename = Path(header_filename).resolve()
-        self.__src_filename = Path(source_filename).resolve()
+        # These should just be filenames with no path.  Concrete classes will
+        # be instructed at generation where the files should be written.
+        self.__hdr_filename = header_filename
+        self.__src_filename = source_filename
 
         self.__logger = CodeGenerationLogger(log_tag, log_level)
 
@@ -90,13 +92,13 @@ class BaseCodeGenerator(abc.ABC):
         return self.__src_filename
 
     @abc.abstractmethod
-    def generate_header_code(self):
+    def generate_header_code(self, destination, overwrite):
         """
         """
         ...
 
     @abc.abstractmethod
-    def generate_source_code(self):
+    def generate_source_code(self, destination, overwrite):
         """
         """
         ...

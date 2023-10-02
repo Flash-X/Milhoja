@@ -5,22 +5,20 @@ from pathlib import Path
 from . import LOG_LEVEL_BASIC
 from . import LOG_LEVEL_BASIC_DEBUG
 from . import TaskFunction
-from . import BaseCodeGenerator
+from . import AbcCodeGenerator
 from . import generate_tile_metadata_extraction
 
 
-class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
+class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     """
     """
-    __LOG_TAG = "C++/CPU Task Function"
+    __LOG_TAG = "Milhoja C++/CPU Task Function"
 
     # ----- INSTANTIATION CLASS METHODS
     @classmethod
     def from_json(
             cls,
             tf_spec_json_filename,
-            header_filename,
-            source_filename,
             log_level=LOG_LEVEL_BASIC,
             indent=4
             ):
@@ -33,10 +31,6 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
 
         :param tf_spec_json_filename: Name of the JSON-format file
         :type  tf_spec_json_filename: str
-        :param header_filename: Name of the C++ header file to generate
-        :type  header_filename: str
-        :param source_filename: Name of the C++ source file to generate
-        :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
         :param indent: The number of spaces used to define the tab to be used
@@ -54,12 +48,6 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
         if "format" not in tf_spec:
             raise ValueError('"format" not provided in JSON specification')
 
-        tf_fmt, tf_version = tf_spec["format"]
-        if tf_fmt.lower() != "milhoja-native json":
-            raise ValueError(f"Unknown JSON format ({tf_fmt} v{tf_version})")
-        elif tf_version.lower() != "1.0.0":
-            raise ValueError(f"Invalid Milhoja-native JSON version (v{tf_version})")
-
         tf_spec_new = TaskFunction.from_milhoja_json(json_fname)
 
         # TODO: Once we have a class that wraps the task function
@@ -69,8 +57,6 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
         generator = TaskFunctionGenerator_cpu_cpp(
                         tf_spec,
                         tf_spec_new,
-                        header_filename,
-                        source_filename,
                         log_level,
                         indent
                     )
@@ -84,8 +70,6 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
             self,
             tf_spec,
             tf_spec_new,
-            header_filename,
-            source_filename,
             log_level,
             indent
             ):
@@ -99,16 +83,16 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
         :type  tf_spec: XXX
         :param tf_spec_filename: Name of the task function specification file
         :type  tf_spec_filename: str
-        :param header_filename: Name of the C++ header file to generate
-        :type  header_filename: str
-        :param source_filename: Name of the C++ source file to generate
-        :type  source_filename: str
         :param logger: Object for logging code generation details
         :type  logger: CodeGenerationLogger or a class derived from that class
         :param indent: The number of spaces used to define the tab to be used
             in both generated files.
         :type  indent: non-negative int, optional
         """
+        outputs = tf_spec_new.output_filenames
+        header_filename = outputs[TaskFunction.CPP_TF_KEY]["header"]
+        source_filename = outputs[TaskFunction.CPP_TF_KEY]["source"]
+
         super().__init__(
             tf_spec_new,
             header_filename, source_filename,
@@ -159,16 +143,21 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
         extents = extents.lstrip("(").rstrip(")")
         return [int(e) for e in extents.split(",")]
 
-    def generate_source_code(self):
+    def generate_source_code(self, destination, overwrite):
         """
         """
         INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Source {self.source_filename}"
+        path = Path(destination).resolve()
+        if not path.is_dir():
+            raise ValueError(f"{path} is not a folder or does not exist")
+        source_filename = path.joinpath(self.source_filename)
+
+        msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
-        if self.source_filename.exists():
-            raise ValueError(f"{self.source_filename} already exists")
+        if (not overwrite) and source_filename.exists():
+            raise ValueError(f"{source_filename} already exists")
 
         args_all = self.__tf_spec["argument_list"]
         arg_specs_all = self.__tf_spec["argument_specifications"]
@@ -177,13 +166,13 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
 
         json_fname = self.specification_filename
 
-        device = self._tf_spec_new.device_information["device"]
+        processor = self._tf_spec_new.processor
 
-        with open(self.source_filename, "w") as fptr:
+        with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
-            fptr.write(f'#include "{self.header_filename.name}"\n')
-            fptr.write(f'#include "Tile_{self.header_filename.name}"\n')
+            fptr.write(f'#include "{self.header_filename}"\n')
+            fptr.write(f'#include "Tile_{self.header_filename}"\n')
             fptr.write("\n")
 
             # Milhoja header files
@@ -247,7 +236,7 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
                     name = arg_spec["name"]
                     param_type = arg_spec["type"]
                     extents = arg_spec["extents"]
-                    if (param_type.lower() == "real") and (device.lower() == "cpu"):
+                    if (param_type.lower() == "real") and (processor.lower() == "cpu"):
                         param_type = "milhoja::Real"
                     if len(extents) == 0:
                         fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
@@ -303,7 +292,7 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
                         error_msg = f"Invalid dimension for {arg} in {json_fname}"
                         raise ValueError(msg)
                     arg_type = arg_spec["type"]
-                    if (arg_type.lower() == "real") and (device.lower() == "cpu"):
+                    if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
                         arg_type = "milhoja::Real"
                     array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
 
@@ -360,21 +349,26 @@ class TaskFunctionGenerator_cpu_cpp(BaseCodeGenerator):
             # ----- CLOSE TASK FUNCTION DEFINITION
             fptr.write("}")
 
-    def generate_header_code(self):
+    def generate_header_code(self, destination, overwrite):
         """
         """
         INDENT = " " * self.indentation
 
-        msg = f"Generating C++ Header {self.header_filename}"
+        path = Path(destination).resolve()
+        if not path.is_dir():
+            raise ValueError(f"{path} is not a folder or does not exist")
+        header_filename = path.joinpath(self.header_filename)
+
+        msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
-        if self.header_filename.exists():
-            raise ValueError(f"{self.header_filename} already exists")
+        if (not overwrite) and header_filename.exists():
+            raise ValueError(f"{header_filename} already exists")
 
-        basename = Path(self.header_filename.name).stem
+        basename = Path(header_filename.name).stem
         hdr_macro = f"MILHOJA_GENERATED_{basename.upper()}_H__"
 
-        with open(self.header_filename, "w") as fptr:
+        with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
             fptr.write(f"#define {hdr_macro}\n")
             fptr.write("\n")

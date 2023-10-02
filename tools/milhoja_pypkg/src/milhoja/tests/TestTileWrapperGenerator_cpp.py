@@ -17,8 +17,6 @@ def _create_generator(json_filename):
     # TODO: Switch this to generate_data_item and check type
     return milhoja.TileWrapperGenerator_cpp.from_json(
                        json_filename,
-                       f"Tile_{task_function}.h",
-                       f"Tile_{task_function}.cpp",
                        milhoja.LOG_LEVEL_NONE
                    )
 

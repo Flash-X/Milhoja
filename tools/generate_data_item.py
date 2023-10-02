@@ -13,17 +13,20 @@ import milhoja
 
 def main():
     # ----- HARDCODED VALUES
+    # Exit codes so that this can be used in CI build server
+    FAILURE = 1
+    SUCCESS = 0
+
     INDENT = 4
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
-    # TODO: Move output file names to specification file
     DESCRIPTION = "Generate Milhoja data item code needed to support the\n" \
                   "task function specified in the given file"
     FILENAME_HELP = "Task function specification file"
     FORMAT_HELP = "Task function specification format"
-    HEADER_HELP = "Filename of the header file to generate"
-    SOURCE_HELP = "Filename of the source file to generate"
+    DESTINATION_HELP = "Pre-existing folder to write files to"
+    OVERWRITE_HELP = "Original files overwritten if given"
     VERBOSE_HELP = f"Verbosity level of logging"
 
     # ----- SPECIFY COMMAND LINE USAGE
@@ -34,8 +37,10 @@ def main():
     parser.add_argument("format", nargs=1,
                         type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
                         help=FORMAT_HELP)
-    parser.add_argument("header", nargs=1, help=HEADER_HELP)
-    parser.add_argument("source", nargs=1, help=SOURCE_HELP)
+    parser.add_argument("destination", nargs=1, help=DESTINATION_HELP)
+    parser.add_argument("--overwrite",
+                        action='store_true', required=False, \
+                        help=OVERWRITE_HELP)
     parser.add_argument("--verbose", "-v",
                         type=int, choices=milhoja.LOG_LEVELS,
                         help=VERBOSE_HELP,
@@ -46,8 +51,8 @@ def main():
 
     filename = Path(args.file[0]).resolve()
     fmt = args.format[0]
-    header_filename = Path(args.header[0]).resolve()
-    source_filename = Path(args.source[0]).resolve()
+    destination = Path(args.destination[0]).resolve()
+    overwrite = args.overwrite
     verbosity_level = args.verbose
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
@@ -57,21 +62,18 @@ def main():
         print()
         print(f"{FAILURE}ERROR - {error_msg}{NC}")
         print()
-        exit(1)
-
-    # ----- BE CONSERVATIVE - DON'T OVERWRITE
-    # TODO: Once we generate Fortran files, see if these return a file or a
-    # list of files.
-    if header_filename.exists():
-        print_and_abort(f"{header_filename} already exists")
-    if source_filename.exists():
-        print_and_abort(f"{source_filename} already exists")
+        exit(FAILURE)
 
     # ----- GET TO GENERATIN'
     try:
+        if fmt.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
+            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename, fmt)
+        else:
+            print_and_abort(f"Unsupported task function format ({fmt})")
+
         milhoja.generate_data_item(
-            filename, fmt,
-            header_filename, source_filename,
+            tf_spec,
+            destination, overwrite,
             verbosity_level, INDENT
         )
     except Exception as error:
@@ -80,7 +82,7 @@ def main():
             error_msg += f"\n{traceback.format_exc()}"
         print_and_abort(error_msg)
 
-    return 0
+    return SUCCESS
 
 if __name__ == "__main__":
     exit(main())

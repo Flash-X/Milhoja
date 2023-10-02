@@ -1,8 +1,13 @@
 {
-    "format": ["Milhoja-native JSON", "1.0.0"],
+    "format": ["Milhoja-JSON", "1.0.0"],
     "task_function": {
         "name": "cpu_tf_analysis",
         "language": "C++", 
+        "processor": "CPU",
+        "cpp_header": "cpu_tf_analysis.h",
+        "cpp_source": "cpu_tf_analysis.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
         "argument_list": ["tile_gridIndex",
                           "tile_lo",
                           "tile_hi",
@@ -33,9 +38,11 @@
             "Analysis::computeErrors"
         ]
     },
-    "device": {
-        "hardware":        "CPU",
-        "byte_alignment":     -1
+    "data_item": {
+        "type": "TileWrapper",
+        "byte_alignment": -1,
+        "header": "Tile_cpu_tf_analysis.h",
+        "source": "Tile_cpu_tf_analysis.cpp"
     },
     "subroutines": {
         "Analysis::computeErrors": {

@@ -1,36 +1,24 @@
-from . import MILHOJA_JSON_FORMAT
-from . import TaskFunction
 from . import TaskFunctionGenerator_cpu_cpp
 
-def generate_task_function(
-        filename, specification_format,
-        header_filename, source_filename,
-        verbosity, indent
-    ):
+def generate_task_function(tf_spec, destination, overwrite, verbosity, indent):
     """
-    TODO: Add in all other code generators.
+    .. todo::
+        Add in all other code generators.
     """
-    if specification_format.lower() == MILHOJA_JSON_FORMAT.lower():
-        tf_spec = TaskFunction.from_milhoja_json(filename)
-        device = tf_spec.device_information["device"]
-        language = tf_spec.language
+    processor = tf_spec.processor
+    language = tf_spec.language
 
-        if (language.lower() == "c++") and (device.lower() == "cpu"):
-            generator = TaskFunctionGenerator_cpu_cpp.from_json(
-                            filename,
-                            header_filename,
-                            source_filename,
-                            verbosity,
-                            indent
-                        )
-            generator.generate_header_code()
-            generator.generate_source_code()
+    if (language.lower() == "c++") and (processor.lower() == "cpu"):
+        generator = TaskFunctionGenerator_cpu_cpp.from_json(
+                        tf_spec.specification_filename,
+                        verbosity,
+                        indent
+                    )
+        generator.generate_header_code(destination, overwrite)
+        generator.generate_source_code(destination, overwrite)
 
-            assert header_filename.is_file()
-            assert source_filename.is_file()
-        else:
-            msg = f"Cannot generate task function code for {device}/{language}"
-            raise ValueError(msg)
+        assert destination.joinpath(generator.header_filename).is_file()
+        assert destination.joinpath(generator.source_filename).is_file()
     else:
-        msg = f"Unknown specification format {specification_format}"
+        msg = f"Cannot generate task function code for {processor}/{language}"
         raise ValueError(msg)

@@ -13,13 +13,17 @@ import milhoja
 
 def main():
     # ----- HARDCODED VALUES
+    # Exit codes so that this can be used in CI build server
+    FAILURE = 1
+    SUCCESS = 0
+
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
     DESCRIPTION = "Upgrade the task function specification to current version"
     FILENAME_HELP = "Task function specification file to upgrade"
     FORMAT_HELP = "Task function specification format"
-    OVERWRITE_HELP = "Original file is overwritten if True.  Default is False."
+    OVERWRITE_HELP = "Original file is overwritten if given"
     VERBOSE_HELP = "Verbosity level of logging"
 
     # ----- SPECIFY COMMAND LINE USAGE
@@ -31,7 +35,7 @@ def main():
                         type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
                         help=FORMAT_HELP)
     parser.add_argument("--overwrite",
-                        type=bool, choices=[True, False], default=False,
+                        action='store_true', required=False, \
                         help=OVERWRITE_HELP)
     parser.add_argument("--verbose", "-v",
                         type=int, choices=milhoja.LOG_LEVELS,
@@ -52,7 +56,7 @@ def main():
         print()
         print(f"{FAILURE}ERROR - {error_msg}{NC}")
         print()
-        exit(1)
+        exit(FAILURE)
 
     # ----- GET TO UPGRADIN'
     print_and_abort("This has never been tested")
@@ -82,7 +86,7 @@ def main():
             error_msg += f"\n{traceback.format_exc()}"
         print_and_abort(error_msg)
 
-    return 0
+    return SUCCESS
 
 if __name__ == "__main__":
     exit(main())
