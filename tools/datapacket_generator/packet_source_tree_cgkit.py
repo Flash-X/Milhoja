@@ -49,6 +49,20 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     #     stree.pushLink( srctree.search_links(tree_l2) )
     #     raise RuntimeError('Linking layer 2 unsuccessful!')
 
+
+def generate_file(data, template_name, output):
+    """Generates a source file given a template and output name"""
+    template = f'{sys.path[0]}/templates/{template_name}'
+    stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
+    _construct_source_tree(stree, template, data)
+    lines = stree.parse()
+    if os.path.isfile(output):
+        # use logger here but for now just print a warning.
+        print(f"Warning: {output} already exists. Overwriting.")
+    with open(output, 'w') as new_file:
+        new_file.write(lines)
+
+
 ####################
 # Main
 ####################
@@ -73,6 +87,7 @@ def generate_packet_code(data):
         with open(dest, 'w') as header:
             header.write(lines)
     print("Assembled datapacket")
+
 
 if __name__ == '__main__':
     generate_packet_code(None)

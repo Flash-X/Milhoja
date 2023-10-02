@@ -28,8 +28,8 @@ def main(tests_all):
     VERBOSE_HELP = f"Verbosity level of logging"
     
     parser = argparse.ArgumentParser(
-                description=DESCRIPTION,
-                formatter_class=argparse.RawTextHelpFormatter
+        description=DESCRIPTION,
+        formatter_class=argparse.RawTextHelpFormatter
     )
 
     parser.add_argument(

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Unit test of WesleyGenerator class.
 """
@@ -11,11 +13,11 @@ import milhoja.tests
 import glob
 import difflib
 import subprocess
-import milhoja
 import sys
+
+from DataPacketGenerator import DataPacketGenerator
 from packet_generation_utility import Language
 from argparse import Namespace
-
 
 _FILE_PATH = Path(__file__).resolve().parent
 _TEST_PATH = _FILE_PATH.joinpath("data")
@@ -81,11 +83,18 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             self.namespace.JSON = file
             self.log_beginning()
 
-            # generate c++ versions first
-            generate_packet.generate_packet(self.namespace)
-            name = os.path.basename(self.namespace.JSON).replace(".json", "")
+            generator = DataPacketGenerator.from_json(self.namespace)
+            name = generator.name
 
-            generated_name_cpp = f'cgkit.{name}.cpp'
+            # generate c++ versions first
+            # generate_packet.generate_packet(self.namespace)
+            # name = os.path.basename(self.namespace.JSON).replace(".json", "")
+            # generated_name_cpp = f'cgkit.{name}.cpp'
+            # correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
+
+            file_names = generator.generate_packet()
+
+            generated_name_cpp = file_names["source"]
             correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
             
             # check c++ source code
@@ -94,7 +103,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # Test generated files.
                 self.check_generated_files(generated_cpp, correct)
                 
-            generated_name_h = f'cgkit.{name}.h'
+            generated_name_h = file_names["header"]
             correct_name_h = f'CppTestData/cgkit.{name}.h'
 
             # check c++ headers

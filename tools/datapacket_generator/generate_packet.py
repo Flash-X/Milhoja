@@ -82,8 +82,11 @@ def _load_json(file: TextIO, args) -> dict:
     # Sizes file should always be provided. Generating a data packet subclass without sorting
     # the pointers based on size is prone to memory alignment errors, and requires extra padding
     # on every variable.
-    with open(args.sizes, 'r') as sizes:
-        data[sections.SIZES] = json.load(sizes)
+    try:
+        with open(args.sizes, 'r') as sizes:
+           data[sections.SIZES] = json.load(sizes)
+    except:
+        raise FileNotFoundError(f'{args.sizes} was not found.')
     return data
 
 
@@ -101,29 +104,30 @@ def generate_packet(args):
     if not args.sizes or not args.sizes.endswith('.json'):
         raise _MissingSizesException("No sizes json file provided.")
 
+    data = None
     with open(args.JSON, "r") as file:
         # load data.
         data = _load_json(file, args)
         # check if the task args list matches the items in the JSON
-        consts.check_json_validity(data)
+    consts.check_json_validity(data)
 
-        # insert nTiles into data after checking json.
-        if sections.GENERAL not in data:
-            data[sections.GENERAL] = {}
-        nTiles_type = 'int' if args.language == consts.Language.fortran else 'std::size_t'
-        data[sections.GENERAL]['nTiles'] = nTiles_type
+    # insert nTiles into data after checking json.
+    if sections.GENERAL not in data:
+        data[sections.GENERAL] = {}
+    nTiles_type = 'int' if args.language == consts.Language.fortran else 'std::size_t'
+    data[sections.GENERAL]['nTiles'] = nTiles_type
 
-        # generate helper templates
-        generate_helpers_tpl.generate_helper_template(data)
-        # assemble data packet
-        ctree.generate_packet_code(data)
+    # generate helper templates
+    generate_helpers_tpl.generate_helper_template(data)
+    # assemble data packet
+    ctree.generate_packet_code(data)
 
-        # generate cpp2c and c2f layers here.
-        if args.language == consts.Language.fortran:
-            if not data.get(sections.TASK_FUNCTION_NAME, ""):
-                raise _NoTaskFunctionNameException(f"Missing {sections.TASK_FUNCTION_NAME}.")
-            c2f_generator.generate_c2f(data)
-            cpp2c_generator.generate_cpp2c(data)
+    # generate cpp2c and c2f layers here.
+    if args.language == consts.Language.fortran:
+        if not data.get(sections.TASK_FUNCTION_NAME, ""):
+            raise _NoTaskFunctionNameException(f"Missing {sections.TASK_FUNCTION_NAME}.")
+        c2f_generator.generate_c2f(data)
+        cpp2c_generator.generate_cpp2c(data)
 
 
 def parse_configuration():
