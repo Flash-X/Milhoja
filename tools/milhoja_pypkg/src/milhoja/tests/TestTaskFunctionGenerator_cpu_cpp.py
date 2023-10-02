@@ -11,14 +11,11 @@ _TEST_PATH = _FILE_PATH.joinpath("data")
 
 
 def _create_generator(json_filename):
+    INDENT = 4
     tf_spec = milhoja.TaskFunction.from_milhoja_json(json_filename)
-    task_function = tf_spec.name
-
-    # TODO: Switch this to generate_task_function and check type
-    return milhoja.TaskFunctionGenerator_cpu_cpp.from_json(
-                       json_filename,
-                       milhoja.LOG_LEVEL_NONE
-                   )
+    return milhoja.TaskFunctionGenerator_cpu_cpp(
+                tf_spec, milhoja.LOG_LEVEL_NONE, INDENT
+           )
 
 class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
     def testRuntimeGeneration(self):

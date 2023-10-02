@@ -27,7 +27,7 @@ class AbcCodeGenerator(abc.ABC):
         # Allow derived class to access specification object directly
         # TODO: Get rid of _new once the code generators use TaskFunction
         # completely.
-        self._tf_spec_new = tf_specification
+        self._tf_spec = tf_specification
 
         self.__indent = indent
 
@@ -50,7 +50,7 @@ class AbcCodeGenerator(abc.ABC):
     def specification_filename(self):
         """
         """
-        return self._tf_spec_new.specification_filename
+        return self._tf_spec.specification_filename
 
     @property
     def indentation(self):

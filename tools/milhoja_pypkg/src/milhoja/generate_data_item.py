@@ -9,11 +9,7 @@ def generate_data_item(tf_spec, destination, overwrite, verbosity, indent):
     language = tf_spec.language
 
     if (language.lower() == "c++") and (data_item.lower() == "tilewrapper"):
-        generator = TileWrapperGenerator_cpp.from_json(
-                        tf_spec.specification_filename,
-                        verbosity,
-                        indent
-                    )
+        generator = TileWrapperGenerator_cpp(tf_spec, verbosity, indent)
         generator.generate_header_code(destination, overwrite)
         generator.generate_source_code(destination, overwrite)
 

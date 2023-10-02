@@ -223,6 +223,54 @@ class TaskFunction(object):
 #    @property
 #    def tile_out(self):
 
+    @property
+    def internal_subroutines(self):
+        """
+        .. todo::
+            This needs to walk our "graph"
+        """
+        return self.internal_subroutine_graph
+
+    @property
+    def internal_subroutine_graph(self):
+        """
+        .. todo::
+            Change field to internal call graph
+        """
+        return self.__tf_spec["subroutine_call_stack"]
+
+    def subroutine_header(self, subroutine):
+        """
+        """
+        spec = self.__subroutine_spec[subroutine]
+        return spec["header_file"]
+
+    def subroutine_dummy_arguments(self, subroutine):
+        """
+        """
+        spec = self.__subroutine_spec[subroutine]
+        return spec["argument_list"]
+
+    def subroutine_actual_arguments(self, subroutine):
+        """
+        """
+        dummies = self.subroutine_dummy_arguments(subroutine)
+        mapping = self.__subroutine_spec[subroutine]["argument_mapping"]
+        return [mapping[dummy] for dummy in dummies]
+
+    @property
+    def n_streams(self):
+        """
+        .. todo::
+            Write this based on internal call graph
+        """
+        if self.data_item.lower() == "tilewrapper":
+            raise ValueError("Streams are not used with TileWrappers")
+        elif self.data_item.lower() == "datapacket":
+            raise NotImplementedError("Waiting for Wesley")
+        
+        raise ValueError(f"Unknown data item type {self.data_item}")
+
     def to_milhoja_json(self, filename):
         """
         Write the object's full configuration to a Milhoja-native JSON file

@@ -14,62 +14,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     """
     __LOG_TAG = "Milhoja C++/CPU Task Function"
 
-    # ----- INSTANTIATION CLASS METHODS
-    @classmethod
-    def from_json(
-            cls,
-            tf_spec_json_filename,
-            log_level=LOG_LEVEL_BASIC,
-            indent=4
-            ):
-        """
-        Instantiate an object and initialize it with the contents of the given
-        JSON-format file, which contains all configuration information needed
-        to generate the associated C++ task function.
-
-        See the constructor's documentation for more information.
-
-        :param tf_spec_json_filename: Name of the JSON-format file
-        :type  tf_spec_json_filename: str
-        :param logger: Object for logging code generation details
-        :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used
-            in both generated files.
-        :type  indent: non-negative int, optional
-        :return: The generator object ready for use
-        :rtype: TaskFunctionGenerator_cpu_cpp
-        """
-        json_fname = Path(tf_spec_json_filename).resolve()
-        if not json_fname.is_file():
-            raise ValueError(f"{json_fname} does not exist or is not a file")
-
-        with open(json_fname, "r") as fptr:
-            tf_spec = json.load(fptr)
-        if "format" not in tf_spec:
-            raise ValueError('"format" not provided in JSON specification')
-
-        tf_spec_new = TaskFunction.from_milhoja_json(json_fname)
-
-        # TODO: Once we have a class that wraps the task function
-        # specification, we should instantiate it here with its .to_json
-        # classmethod and pass it to the constructor.  tf_spec is presently the
-        # standin for that object.
-        generator = TaskFunctionGenerator_cpu_cpp(
-                        tf_spec,
-                        tf_spec_new,
-                        log_level,
-                        indent
-                    )
-
-#        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
-#        logger.log(msg, LOG_LEVEL_BASIC_DEBUG)
-
-        return generator
-
     def __init__(
             self,
             tf_spec,
-            tf_spec_new,
             log_level,
             indent
             ):
@@ -89,21 +36,16 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             in both generated files.
         :type  indent: non-negative int, optional
         """
-        outputs = tf_spec_new.output_filenames
+        outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.CPP_TF_KEY]["header"]
         source_filename = outputs[TaskFunction.CPP_TF_KEY]["source"]
 
         super().__init__(
-            tf_spec_new,
+            tf_spec,
             header_filename, source_filename,
             TaskFunctionGenerator_cpu_cpp.__LOG_TAG, log_level,
             indent
         )
-
-        # ----- STORE ARGUMENTS
-        # TODO: Transfer from these to tf_spec_new
-        self.__tf_spec = tf_spec["task_function"]
-        self.__subroutine_spec = tf_spec["subroutines"]
 
         # ----- CONSTANTS
         # Keys identify the index space of a MFab available through the Milhoja
@@ -132,6 +74,12 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         msg += str(self)
         self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
+    @property
+    def namespace(self):
+        """
+        """
+        return self._tf_spec.name
+
     def __parse_extents_spec(self, spec):
         """
         TODO: This is generic and really should be in a class for accessing a
@@ -159,7 +107,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
 
-        tile_name = f"Tile_{self._tf_spec_new.name}"
+        tile_name = f"Tile_{self._tf_spec.name}"
 
         json_fname = self.specification_filename
 
@@ -190,9 +138,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             # We require a flat call stack for CPU task functions
             # TODO: Confirm this
             headers_all = set()
-            for subroutine in self.__tf_spec["subroutine_call_stack"]:
-                subr_spec = self.__subroutine_spec[subroutine]
-                header = subr_spec["header_file"]
+            for subroutine in self._tf_spec.internal_subroutines:
+                header = self._tf_spec.subroutine_header(subroutine)
                 headers_all = headers_all.union(set([header]))
 
             for header in sorted(headers_all):
@@ -200,7 +147,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- FUNCTION DECLARATION
-            fptr.write(f"void  {self._tf_spec_new.name}::taskFunction(const int threadId,\n")
+            fptr.write(f"void  {self.namespace}::taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
 
             # ----- USE IN NAMESPACES
@@ -215,14 +162,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- EXTRACT TASK FUNCTION TILE METADATA FROM TILE
-            metadata_all = self._tf_spec_new.tile_metadata_arguments
-            code = generate_tile_metadata_extraction(self._tf_spec_new, "tileDesc")
+            metadata_all = self._tf_spec.tile_metadata_arguments
+            code = generate_tile_metadata_extraction(self._tf_spec, "tileDesc")
             for line in code:
                 fptr.write(f"{INDENT}{line}\n")
 
             # ----- EXTRACT ALL OTHER TASK FUNCTION ARGUMENTS FROM TILE
-            for arg in self._tf_spec_new.argument_list:
-                arg_spec = self._tf_spec_new.argument_specification(arg)
+            for arg in self._tf_spec.argument_list:
+                arg_spec = self._tf_spec.argument_specification(arg)
                 src = arg_spec["source"].lower()
 
                 if src in metadata_all:
@@ -325,17 +272,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- CALL SUBROUTINES
-            # We require a flat call stack for CPU task functions
+            # We require a flat call graph for CPU task functions
             # TODO: Confirm this
-            for subroutine in self.__tf_spec["subroutine_call_stack"]:
-                subr_spec = self.__subroutine_spec[subroutine]
-                arg_list = subr_spec["argument_list"]
-                mapping = subr_spec["argument_mapping"]
-
+            for subroutine in self._tf_spec.internal_subroutines:
+                arg_list = \
+                    self._tf_spec.subroutine_actual_arguments(subroutine)
                 fptr.write(f"{INDENT}{subroutine}(\n")
                 for arg in arg_list[:-1]:
-                    fptr.write(f"{INDENT*5}{mapping[arg]},\n")
-                fptr.write(f"{INDENT*5}{mapping[arg_list[-1]]});\n")
+                    fptr.write(f"{INDENT*5}{arg},\n")
+                fptr.write(f"{INDENT*5}{arg_list[-1]});\n")
 
             # ----- CLOSE TASK FUNCTION DEFINITION
             fptr.write("}")
@@ -366,7 +311,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("#include <Milhoja_DataItem.h>\n")
             fptr.write("\n")
 
-            fptr.write(f"namespace {self._tf_spec_new.name} {{\n")
+            fptr.write(f"namespace {self.namespace} {{\n")
             fptr.write(f"{INDENT}void  taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT}                   milhoja::DataItem* dataItem);\n")
             fptr.write("};\n")

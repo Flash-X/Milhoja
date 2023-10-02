@@ -17,64 +17,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
     """
     __LOG_TAG = "Milhoja C++ Tile Wrapper"
 
-    # ----- INSTANTIATION CLASS METHODS
-    @classmethod
-    def from_json(
-            cls,
-            tf_spec_json_filename,
-            log_level=LOG_LEVEL_BASIC,
-            indent=4
-            ):
-        """
-        Instantiate an object and initialize it with the contents of the given
-        JSON-format file, which contains all configuration information needed
-        to generate a derived Milhoja_TileWrapper class for use with the task
-        function specified by the JSON file.
-
-        See the constructor's documentation for more information.
-
-        :param tf_spec_json_filename: Name of the JSON-format file
-        :type  tf_spec_json_filename: str
-        :param logger: Object for logging code generation details
-        :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used
-            in both generated files.
-        :type  indent: non-negative int, optional
-        :return: The generator object ready for use
-        :rtype: TileWrapperGenerator_cpp
-        """
-        json_fname = Path(tf_spec_json_filename).resolve()
-        if not json_fname.is_file():
-            raise ValueError(f"{json_fname} does not exist or is not a file")
-
-        # TODO: Instead of using .from_* classmethods, the constructor of the
-        # TF specification class could guess the format by looking at the file
-        # extension.
-        with open(json_fname, "r") as fptr:
-            tf_spec = json.load(fptr)
-
-        tf_spec_new = TaskFunction.from_milhoja_json(json_fname)
-
-        # TODO: Once we have a class that wraps the task function
-        # specification, we should instantiate it here with its .to_json
-        # classmethod and pass it to the constructor.  tf_spec is presently the
-        # standin for that object.
-        generator = TileWrapperGenerator_cpp(
-                        tf_spec,
-                        tf_spec_new,
-                        log_level,
-                        indent
-                    )
-
-#        msg = f"Created code generator from JSON file {tf_spec_json_filename}"
-#        logger.log(msg, LOG_LEVEL_BASIC_DEBUG)
-
-        return generator
-
     def __init__(
             self,
             tf_spec,
-            tf_spec_new,
             log_level,
             indent
             ):
@@ -99,27 +44,22 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             in both generated files.
         :type  indent: non-negative int
         """
-        outputs = tf_spec_new.output_filenames
+        outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
         source_filename = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
 
         super().__init__(
-            tf_spec_new,
+            tf_spec,
             header_filename, source_filename,
             TileWrapperGenerator_cpp.__LOG_TAG, log_level,
             indent
         )
 
-        # ----- STORE ARGUMENTS
-        self.__tf_spec = tf_spec["task_function"]
-
-        self.__class_name = Path(self.header_filename).stem
-
         # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE
         self.__internal_scratch = set()
         self.__internal_scratch_specs = {}
-        for arg in self._tf_spec_new.argument_list:
-            arg_spec = self._tf_spec_new.argument_specification(arg)
+        for arg in self._tf_spec.argument_list:
+            arg_spec = self._tf_spec.argument_specification(arg)
             if arg_spec["source"].lower() == "tile_cellvolumes":
                 name = "MH_INTERNAL_cellVolumes"
                 assert name not in self.__internal_scratch 
@@ -173,12 +113,18 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     @property
+    def class_name(self):
+        """
+        """
+        return f"Tile_{self._tf_spec.name}"
+
+    @property
     def __scratch_variables(self):
         """
         List of task function's scratch arguments and all Milhoja-internal
         scratch variables needed.
         """
-        tf_arg = self._tf_spec_new.scratch_arguments
+        tf_arg = self._tf_spec.scratch_arguments
         internal = self.__internal_scratch
 
         return sorted(list(tf_arg.union(internal)))
@@ -189,7 +135,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         if arg in self.__internal_scratch_specs:
             return self.__internal_scratch_specs[arg]
 
-        return self._tf_spec_new.argument_specification(arg)
+        return self._tf_spec.argument_specification(arg)
 
     def __parse_extents_spec(self, spec):
         """
@@ -213,7 +159,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         """
         INDENT = " " * self.indentation
 
-        constructor_args = self._tf_spec_new.constructor_argument_list
+        constructor_args = self._tf_spec.constructor_argument_list
         n_args = len(constructor_args)
 
         if n_args == 0:
@@ -243,7 +189,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
-        classname = self.__class_name
+        classname = self.class_name
 
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
@@ -318,7 +264,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- CONSTRUCTOR/DESTRUCTOR
-            constructor_args = self._tf_spec_new.constructor_argument_list
+            constructor_args = self._tf_spec.constructor_argument_list
             arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
@@ -379,16 +325,15 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         if not path.is_dir():
             raise ValueError(f"{path} is not a folder or does not exist")
         header_filename = path.joinpath(self.header_filename)
+        hdr_macro = f"MILHOJA_GENERATED_{header_filename.stem.upper()}_H__"
 
         msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
-        # TODO: TaskFunction should determine this so that we can't have two
-        # CGs accidentally choose the same macro.
-        hdr_macro = f"MILHOJA_GENERATED_{self.__class_name.upper()}_H__"
-
         if (not overwrite) and header_filename.exists():
             raise ValueError(f"{header_filename} already exists")
+
+        classname = self.class_name
 
         with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
@@ -399,16 +344,16 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
             arg_list = self.__generate_constructor_declaration()
 
-            fptr.write(f"struct {self.__class_name} : public milhoja::TileWrapper {{\n")
-            fptr.write(f"{INDENT}{self.__class_name}{arg_list};\n")
-            fptr.write(f"{INDENT}~{self.__class_name}(void);\n")
+            fptr.write(f"struct {classname} : public milhoja::TileWrapper {{\n")
+            fptr.write(f"{INDENT}{classname}{arg_list};\n")
+            fptr.write(f"{INDENT}~{classname}(void);\n")
             fptr.write("\n")
-            fptr.write(f"{INDENT}{self.__class_name}({self.__class_name}&)                  = delete;\n")
-            fptr.write(f"{INDENT}{self.__class_name}(const {self.__class_name}&)            = delete;\n")
-            fptr.write(f"{INDENT}{self.__class_name}({self.__class_name}&&)                 = delete;\n")
-            fptr.write(f"{INDENT}{self.__class_name}& operator=({self.__class_name}&)       = delete;\n")
-            fptr.write(f"{INDENT}{self.__class_name}& operator=(const {self.__class_name}&) = delete;\n")
-            fptr.write(f"{INDENT}{self.__class_name}& operator=({self.__class_name}&&)      = delete;\n")
+            fptr.write(f"{INDENT}{classname}({classname}&)                  = delete;\n")
+            fptr.write(f"{INDENT}{classname}(const {classname}&)            = delete;\n")
+            fptr.write(f"{INDENT}{classname}({classname}&&)                 = delete;\n")
+            fptr.write(f"{INDENT}{classname}& operator=({classname}&)       = delete;\n")
+            fptr.write(f"{INDENT}{classname}& operator=(const {classname}&) = delete;\n")
+            fptr.write(f"{INDENT}{classname}& operator=({classname}&&)      = delete;\n")
             fptr.write("\n")
 
             fptr.write(f"{INDENT}std::unique_ptr<milhoja::TileWrapper> ")
@@ -416,7 +361,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("const override;\n")
             fptr.write("\n")
 
-            constructor_args = self._tf_spec_new.constructor_argument_list
+            constructor_args = self._tf_spec.constructor_argument_list
             for arg, arg_type in constructor_args:
                 fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")
