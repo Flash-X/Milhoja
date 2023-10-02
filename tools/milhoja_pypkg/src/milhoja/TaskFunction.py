@@ -122,7 +122,7 @@ class TaskFunction(object):
         return self.__data_spec["type"]
 
     @property
-    def argument_list(self):
+    def dummy_arguments(self):
         """
         Returned in the proper order
         """
@@ -145,12 +145,12 @@ class TaskFunction(object):
         return spec
 
     @property
-    def constructor_argument_list(self):
+    def constructor_dummy_arguments(self):
         """
         """
         # We want this to always generate the same argument order
         arguments = []
-        for arg in self.argument_list:
+        for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "external":
                 arguments.append((arg, arg_spec["type"]))
@@ -160,23 +160,21 @@ class TaskFunction(object):
     @property
     def tile_metadata_arguments(self):
         """
-        All keys are returned in full lowercase for case-insensitive
-        comparisons by calling code.
         """
         # All keys in this list must be lowercase
-        KEYS_ALL = ["tile_gridindex",
+        KEYS_ALL = ["tile_gridIndex",
                     "tile_level",
                     "tile_lo", "tile_hi",
                     "tile_lbound", "tile_ubound",
                     "tile_deltas",
                     "tile_coordinates",
-                    "tile_faceareas",
-                    "tile_cellvolumes"]
+                    "tile_faceAreas",
+                    "tile_cellVolumes"]
 
         metadata_all = {}
-        for arg in self.argument_list:
+        for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            key = arg_spec["source"].lower()
+            key = arg_spec["source"]
             if key in KEYS_ALL:
                 if key not in metadata_all:
                     metadata_all[key] = [arg]
@@ -190,7 +188,7 @@ class TaskFunction(object):
         """
         """
         external_all = set()
-        for arg in self.argument_list:
+        for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "external":
                 assert arg not in external_all
@@ -206,7 +204,7 @@ class TaskFunction(object):
         needed internally by Milhoja.
         """
         scratch_all = set()
-        for arg in self.argument_list:
+        for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "scratch":
                 assert arg not in scratch_all
@@ -214,14 +212,53 @@ class TaskFunction(object):
 
         return scratch_all
 
-#    @property
-#    def tile_in(self):
-#
-#    @property
-#    def tile_in_out(self):
-#
-#    @property
-#    def tile_out(self):
+    @property
+    def tile_in_arguments(self):
+        """
+        """
+        data_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "grid_data":
+                has_in = ("extents_in" in arg_spec)
+                has_out = ("extents_out" in arg_spec)
+                if has_in and (not has_out):
+                    assert arg not in data_all
+                    data_all.add(arg)
+
+        return data_all
+
+    @property
+    def tile_in_out_arguments(self):
+        """
+        """
+        data_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "grid_data":
+                has_in = ("extents_in" in arg_spec)
+                has_out = ("extents_out" in arg_spec)
+                if has_in and has_out:
+                    assert arg not in data_all
+                    data_all.add(arg)
+
+        return data_all
+
+    @property
+    def tile_out_arguments(self):
+        """
+        """
+        data_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "grid_data":
+                has_in = ("extents_in" in arg_spec)
+                has_out = ("extents_out" in arg_spec)
+                if (not has_in) and has_out:
+                    assert arg not in data_all
+                    data_all.add(arg)
+
+        return data_all
 
     @property
     def internal_subroutines(self):

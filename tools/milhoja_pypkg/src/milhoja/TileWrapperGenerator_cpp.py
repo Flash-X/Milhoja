@@ -58,7 +58,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE
         self.__internal_scratch = set()
         self.__internal_scratch_specs = {}
-        for arg in self._tf_spec.argument_list:
+        for arg in self._tf_spec.dummy_arguments:
             arg_spec = self._tf_spec.argument_specification(arg)
             if arg_spec["source"].lower() == "tile_cellvolumes":
                 name = "MH_INTERNAL_cellVolumes"
@@ -159,7 +159,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         """
         INDENT = " " * self.indentation
 
-        constructor_args = self._tf_spec.constructor_argument_list
+        constructor_args = self._tf_spec.constructor_dummy_arguments
         n_args = len(constructor_args)
 
         if n_args == 0:
@@ -264,7 +264,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- CONSTRUCTOR/DESTRUCTOR
-            constructor_args = self._tf_spec.constructor_argument_list
+            constructor_args = self._tf_spec.constructor_dummy_arguments
             arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
@@ -361,7 +361,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("const override;\n")
             fptr.write("\n")
 
-            constructor_args = self._tf_spec.constructor_argument_list
+            constructor_args = self._tf_spec.constructor_dummy_arguments
             for arg, arg_type in constructor_args:
                 fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")

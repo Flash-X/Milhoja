@@ -168,9 +168,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 fptr.write(f"{INDENT}{line}\n")
 
             # ----- EXTRACT ALL OTHER TASK FUNCTION ARGUMENTS FROM TILE
-            for arg in self._tf_spec.argument_list:
+            for arg in self._tf_spec.dummy_arguments:
                 arg_spec = self._tf_spec.argument_specification(arg)
-                src = arg_spec["source"].lower()
+                src = arg_spec["source"]
 
                 if src in metadata_all:
                     pass

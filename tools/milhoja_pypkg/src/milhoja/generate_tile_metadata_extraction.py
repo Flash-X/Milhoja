@@ -3,7 +3,7 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
     """
     code = []
 
-    args_all = task_function.argument_list
+    args_all = task_function.dummy_arguments
     metadata_all = task_function.tile_metadata_arguments
 
     # ----- ADD TILEMETADATA NEEDED INTERNALLY
@@ -17,8 +17,8 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
     for arg in args_all:
         spec = task_function.argument_specification(arg)
 
-        dependents = ["tile_coordinates", "tile_faceareas", "tile_cellvolumes"]
-        if spec["source"].lower() in dependents:
+        dependents = ["tile_coordinates", "tile_faceAreas", "tile_cellVolumes"]
+        if spec["source"] in dependents:
             if "tile_level" not in metadata_all:
                 variable = "MH_INTERNAL_level"
                 if variable not in internal:
@@ -39,7 +39,7 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
 
     # ----- EXTRACT INDEPENDENT METADATA
     # TODO: This is for CPU/C++
-    order = [("tile_gridindex", "const int", "gridIndex"),
+    order = [("tile_gridIndex", "const int", "gridIndex"),
              ("tile_level", "const unsigned int", "level"),
              ("tile_lo", "const milhoja::IntVect", "lo"),
              ("tile_hi", "const milhoja::IntVect", "hi"),
@@ -56,8 +56,8 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
             code.append(line)
 
     # ----- CREATE THREAD-PRIVATE INTERNAL SCRATCH
-    if "tile_cellvolumes" in metadata_all:
-        arg_list = metadata_all["tile_cellvolumes"]
+    if "tile_cellVolumes" in metadata_all:
+        arg_list = metadata_all["tile_cellVolumes"]
         assert len(arg_list) == 1
         arg = arg_list[0]
         wrapper = f"Tile_{task_function.name}"
@@ -92,11 +92,11 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
                 f"\t\t{lo}, {hi});"
             ]
 
-    if "tile_faceareas" in metadata_all:
+    if "tile_faceAreas" in metadata_all:
         raise NotImplementedError("No test case yet for face areas")
 
-    if "tile_cellvolumes" in metadata_all:
-        arg_list = metadata_all["tile_cellvolumes"]
+    if "tile_cellVolumes" in metadata_all:
+        arg_list = metadata_all["tile_cellVolumes"]
         assert len(arg_list) == 1
         arg = arg_list[0]
         spec = task_function.argument_specification(arg)
