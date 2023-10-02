@@ -159,14 +159,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
 
-        args_all = self.__tf_spec["argument_list"]
-        arg_specs_all = self.__tf_spec["argument_specifications"]
-
         tile_name = f"Tile_{self._tf_spec_new.name}"
 
         json_fname = self.specification_filename
-
-        processor = self._tf_spec_new.processor
 
         with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
@@ -220,14 +215,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- EXTRACT TASK FUNCTION TILE METADATA FROM TILE
-            metadata_all = self._tf_spec_new.tile_metadata
+            metadata_all = self._tf_spec_new.tile_metadata_arguments
             code = generate_tile_metadata_extraction(self._tf_spec_new, "tileDesc")
             for line in code:
                 fptr.write(f"{INDENT}{line}\n")
 
             # ----- EXTRACT ALL OTHER TASK FUNCTION ARGUMENTS FROM TILE
-            for arg in args_all:
-                arg_spec = arg_specs_all[arg]
+            for arg in self._tf_spec_new.argument_list:
+                arg_spec = self._tf_spec_new.argument_specification(arg)
                 src = arg_spec["source"].lower()
 
                 if src in metadata_all:
@@ -236,8 +231,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     name = arg_spec["name"]
                     param_type = arg_spec["type"]
                     extents = arg_spec["extents"]
-                    if (param_type.lower() == "real") and (processor.lower() == "cpu"):
-                        param_type = "milhoja::Real"
                     if len(extents) == 0:
                         fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
                     else:
@@ -292,8 +285,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                         error_msg = f"Invalid dimension for {arg} in {json_fname}"
                         raise ValueError(msg)
                     arg_type = arg_spec["type"]
-                    if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
-                        arg_type = "milhoja::Real"
                     array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
 
                     # TODO: We should get this from extents and tile_lo

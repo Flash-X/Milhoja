@@ -130,11 +130,35 @@ class TaskFunction(object):
 
     def argument_specification(self, argument):
         """
+        .. todo::
+            This should reinterpret variable types so that we return the
+            correct type for the task function's processor.
         """
-        return self.__tf_spec["argument_specifications"][argument]
+        spec = self.__tf_spec["argument_specifications"][argument]
+
+        src_to_adjust = ["external", "scratch"]
+        if      (spec["source"].lower() in src_to_adjust) \
+            and (spec["type"].lower() == "real") \
+            and (self.processor.lower() == "cpu"):
+                spec["type"] = "milhoja::Real"
+
+        return spec
 
     @property
-    def tile_metadata(self):
+    def constructor_argument_list(self):
+        """
+        """
+        # We want this to always generate the same argument order
+        arguments = []
+        for arg in self.argument_list:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "external":
+                arguments.append((arg, arg_spec["type"]))
+
+        return arguments
+
+    @property
+    def tile_metadata_arguments(self):
         """
         All keys are returned in full lowercase for case-insensitive
         comparisons by calling code.
@@ -161,12 +185,35 @@ class TaskFunction(object):
 
         return metadata_all
 
-#    @property
-#    def external(self):
-#
-#    @property
-#    def scratch(self):
-#
+    @property
+    def external_arguments(self):
+        """
+        """
+        external_all = set()
+        for arg in self.argument_list:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "external":
+                assert arg not in external_all
+                external_all.add(arg)
+
+        return external_all
+
+    @property
+    def scratch_arguments(self):
+        """
+        This is only scratch arguments explicitly requested in the
+        specification.  In particular, it does not include scratch variables
+        needed internally by Milhoja.
+        """
+        scratch_all = set()
+        for arg in self.argument_list:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"].lower() == "scratch":
+                assert arg not in scratch_all
+                scratch_all.add(arg)
+
+        return scratch_all
+
 #    @property
 #    def tile_in(self):
 #

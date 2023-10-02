@@ -115,6 +115,22 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         self.__class_name = Path(self.header_filename).stem
 
+        # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE
+        self.__internal_scratch = set()
+        self.__internal_scratch_specs = {}
+        for arg in self._tf_spec_new.argument_list:
+            arg_spec = self._tf_spec_new.argument_specification(arg)
+            if arg_spec["source"].lower() == "tile_cellvolumes":
+                name = "MH_INTERNAL_cellVolumes"
+                assert name not in self.__internal_scratch 
+                self.__internal_scratch.add(name)
+                assert name not in self.__internal_scratch_specs
+                # TODO: How to get this information?
+                self.__internal_scratch_specs[name] = {
+                    "type": "milhoja::Real",
+                    "extents": "(18, 18, 18)"
+                }
+
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no file at instantiation, but a file could
         # appear before calling a generate method, we don't check file
@@ -157,49 +173,29 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     @property
-    def __external_arguments(self):
+    def __scratch_variables(self):
         """
-        TODO: This seems exactly like something that should be in the task
-        function specification class.
+        List of task function's scratch arguments and all Milhoja-internal
+        scratch variables needed.
         """
-        arg_specs_all = self.__tf_spec["argument_specifications"]
+        tf_arg = self._tf_spec_new.scratch_arguments
+        internal = self.__internal_scratch
 
-        external_all = []
-        for arg, arg_spec in arg_specs_all.items():
-            if arg_spec["source"].lower() == "external":
-                external_all.append((arg, arg_spec["type"]))
+        return sorted(list(tf_arg.union(internal)))
 
-        return external_all
-
-    @property
-    def __scratch_arguments(self):
+    def __scratch_specification(self, arg):
         """
-        TODO: This seems exactly like something that should be in the task
-        function specification class.
         """
-        arg_specs_all = self.__tf_spec["argument_specifications"]
+        if arg in self.__internal_scratch_specs:
+            return self.__internal_scratch_specs[arg]
 
-        # Scratch requested by application
-        scratch_all = []
-        for arg, arg_spec in arg_specs_all.items():
-            if arg_spec["source"].lower() == "scratch":
-                scratch_all.append((arg, arg_spec["type"], arg_spec["extents"]))
-
-        # Internal scratch required by Milhoja
-        for arg, arg_spec in arg_specs_all.items():
-            if arg_spec["source"].lower() == "tile_cellvolumes":
-                # TODO: How to get extents and dimensionality of problem as numbers here?
-                name = "MH_INTERNAL_cellVolumes"
-                scratch_type = "milhoja::Real"
-                extents = "(18, 18, 18)"
-                scratch_all.append((name, scratch_type, extents))
-
-        return scratch_all
+        return self._tf_spec_new.argument_specification(arg)
 
     def __parse_extents_spec(self, spec):
         """
         TODO: This is generic and really should be in a class for accessing a
         task function specification.
+        TODO: Make an extents class, which is what TaskFunction gives out?
         """
         extents = spec.strip()
         assert extents.startswith("(")
@@ -207,33 +203,33 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         extents = extents.lstrip("(").rstrip(")")
         return [int(e) for e in extents.split(",")]
 
-    def __generate_constructor_arg_list(self, external_all):
+    def __generate_constructor_declaration(self):
         """
+        Constructor argument declaration needed identically for both the header
+        and source generation.
+
+        :return: Fully-formatted string ready for immediate insertion in
+            constructor declaration/definition.
         """
         INDENT = " " * self.indentation
 
-        n_external = len(external_all)
+        constructor_args = self._tf_spec_new.constructor_argument_list
+        n_args = len(constructor_args)
 
-        processor = self._tf_spec_new.processor
-
-        if n_external == 0:
-            arg_list = "(void)"
-        elif n_external == 1:
-            arg_type = external_all[0][1]
-            if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
-                arg_type = "milhoja::Real"
-            arg_list = f"(const {arg_type} {external_all[0][0]})"
+        if n_args == 0:
+            code = "(void)"
+        elif n_args == 1:
+            arg, arg_type = constructor_args[0]
+            code = f"(const {arg_type} {arg})"
         else:
-            arg_list = ""
-            for j, (arg, arg_type) in enumerate(external_all):
-                if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
-                    arg_type = "milhoja::real"
-                arg_list += f"\n{INDENT*5}const {arg_type} {arg}"
-                if j < n_external - 1:
-                    arg_list += ","
-            arg_list += ")"
+            code = "("
+            for j, arg in enumerate(constructor_args):
+                code += f"\n{INDENT*5}const {arg_type} {arg}"
+                if j < n_args - 1:
+                    code += ","
+            code += ")"
 
-        return arg_list
+        return code
 
     def generate_source_code(self, destination, overwrite):
         """Generate the C++ source code"""
@@ -248,12 +244,6 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self._log(msg, LOG_LEVEL_BASIC)
 
         classname = self.__class_name
-
-        external_all = self.__external_arguments
-        scratch_all = self.__scratch_arguments
-        n_external = len(external_all)
-
-        processor = self._tf_spec_new.processor
 
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
@@ -273,17 +263,16 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- STATIC DEFINITIONS
-            for arg, _, _ in scratch_all:
+            for arg in self.__scratch_variables:
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
             fptr.write("\n")
             fptr.write(f"void {classname}::acquireScratch(void) {{\n")
             fptr.write(f"{INDENT}const unsigned int  nThreads = ")
             fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
             fptr.write("\n")
-            for arg, arg_type, _ in scratch_all:
-                if (arg_type.lower() == "real") and (processor.lower() == "cpu"):
-                    arg_type = "milhoja::Real"
-
+            for arg in self.__scratch_variables:
+                arg_spec = self.__scratch_specification(arg)
+                arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
                 fptr.write(f"{INDENT*2}throw ")
                 fptr.write(f'std::logic_error("[{classname}::acquireScratch] ')
@@ -307,7 +296,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write(f"void {classname}::releaseScratch(void) {{\n")
-            for arg, arg_type, _ in scratch_all:
+            for arg in self.__scratch_variables:
+                arg_spec = self.__scratch_specification(arg)
+                arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if (!{arg}_) {{\n")
                 fptr.write(f"{INDENT*2}throw ")
                 fptr.write(f'std::logic_error("[{classname}::releaseScratch] ')
@@ -327,13 +318,14 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- CONSTRUCTOR/DESTRUCTOR
-            arg_list = self.__generate_constructor_arg_list(external_all)
+            constructor_args = self._tf_spec_new.constructor_argument_list
+            arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
-            fptr.write("\n" if n_external == 0 else ",\n")
-            for j, (arg, _) in enumerate(external_all):
+            fptr.write("\n" if len(constructor_args)== 0 else ",\n")
+            for j, (arg, _) in enumerate(constructor_args):
                 fptr.write(f"{INDENT}  {arg}_{{{arg}}}")
-                fptr.write(",\n" if j < n_external - 1 else "\n")
+                fptr.write(",\n" if j < len(constructor_args)- 1 else "\n")
             fptr.write("{\n")
             fptr.write("}\n")
             fptr.write("\n")
@@ -353,14 +345,14 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("(std::shared_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
             fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
-            if n_external == 0:
+            if len(constructor_args) == 0:
                 fptr.write("{};\n")
-            elif n_external == 1:
-                fptr.write(f"{{{external_all[0][0]}_}};\n")
+            elif len(constructor_args) == 1:
+                fptr.write(f"{{{constructor_args[0][0]}_}};\n")
             else:
-                for j, (arg, _) in enumerate(external_all):
+                for j, (arg, _) in enumerate(constructor_args):
                     fptr.write(f"\n{INDENT*5}{arg}_")
-                    if j < n_external - 1:
+                    if j < len(constructor_args) - 1:
                         fptr.write(",")
                 fptr.write("};\n")
             fptr.write("\n")
@@ -391,12 +383,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
+        # TODO: TaskFunction should determine this so that we can't have two
+        # CGs accidentally choose the same macro.
         hdr_macro = f"MILHOJA_GENERATED_{self.__class_name.upper()}_H__"
-
-        external_all = self.__external_arguments
-        scratch_all = self.__scratch_arguments
-
-        processor = self._tf_spec_new.processor
 
         if (not overwrite) and header_filename.exists():
             raise ValueError(f"{header_filename} already exists")
@@ -408,8 +397,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("#include <Milhoja_TileWrapper.h>\n")
             fptr.write("\n")
 
+            arg_list = self.__generate_constructor_declaration()
+
             fptr.write(f"struct {self.__class_name} : public milhoja::TileWrapper {{\n")
-            arg_list = self.__generate_constructor_arg_list(external_all)
             fptr.write(f"{INDENT}{self.__class_name}{arg_list};\n")
             fptr.write(f"{INDENT}~{self.__class_name}(void);\n")
             fptr.write("\n")
@@ -426,19 +416,18 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("const override;\n")
             fptr.write("\n")
 
-            for arg, arg_type in external_all:
-                if (arg_type.lower()) == "real" and (processor.lower() == "cpu"):
-                    fptr.write(f"{INDENT}milhoja::Real  {arg}_;\n")
-                else:
-                    fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
+            constructor_args = self._tf_spec_new.constructor_argument_list
+            for arg, arg_type in constructor_args:
+                fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")
 
             # TODO: Should we only declare & define these if scratch is needed?
             fptr.write(f"{INDENT}static void acquireScratch(void);\n")
             fptr.write(f"{INDENT}static void releaseScratch(void);\n")
             fptr.write("\n")
-            for arg, _, extents in scratch_all:
-                arg_extents = self.__parse_extents_spec(extents)
+            for arg in self.__scratch_variables:
+                arg_spec = self.__scratch_specification(arg)
+                arg_extents = self.__parse_extents_spec(arg_spec["extents"])
                 fptr.write(f"{INDENT}constexpr static std::size_t  {arg.upper()}_SIZE_ =")
                 if len(arg_extents) == 1:
                     fptr.write(f" {arg_extents[0]};\n")
@@ -450,7 +439,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                             fptr.write(f"\n{INDENT*5}* {each}")
                     fptr.write(";\n")
             fptr.write("\n")
-            for arg, _, _ in scratch_all:
+            for arg in self.__scratch_variables:
                 fptr.write(f"{INDENT}static void* {arg}_;\n")
             fptr.write("};\n")
             fptr.write("\n")

@@ -4,7 +4,7 @@ def generate_tile_metadata_extraction(task_function, tile_desc):
     code = []
 
     args_all = task_function.argument_list
-    metadata_all = task_function.tile_metadata
+    metadata_all = task_function.tile_metadata_arguments
 
     # ----- ADD TILEMETADATA NEEDED INTERNALLY
     # Some tile metadata can only be accessed using other metadata.
