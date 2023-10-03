@@ -29,7 +29,7 @@
                                  "extents":          "(8, 16, 1, 1)",
                                  "lbound":           "(tile_lo, 1)"}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianEnergy"
         ]
     },
@@ -41,7 +41,7 @@
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianEnergy": {
-            "header_file": "computeLaplacianEnergy.h",
+            "interface_file": "computeLaplacianEnergy.h",
             "argument_list": ["lo",
                               "hi",
                               "U",

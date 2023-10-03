@@ -46,7 +46,7 @@
                                "extents":          "(18, 18, 1)",
                                "lbound":           "(tile_lo) - (1, 1, 1)"}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "hy::computeFluxesHll",
             "hy::updateSolutionHll",
             "Eos::idealGammaDensIe"
@@ -60,7 +60,7 @@
     },
     "subroutines": {
         "hy::computeFluxesHll": {
-            "header_file": "Hydro.h",
+            "interface_file": "Hydro.h",
             "argument_list": ["dt",
                               "lo",
                               "hi",
@@ -81,7 +81,7 @@
             }
         },
         "hy::updateSolutionHll": {
-            "header_file": "Hydro.h",
+            "interface_file": "Hydro.h",
             "argument_list": ["lo",
                               "hi",
                               "U",
@@ -96,7 +96,7 @@
             }
         },
         "Eos::idealGammaDensIe": {
-            "header_file": "Eos.h",
+            "interface_file": "Eos.h",
             "argument_list": ["lo",
                               "hi",
                               "U"],

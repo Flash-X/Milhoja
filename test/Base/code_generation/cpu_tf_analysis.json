@@ -34,7 +34,7 @@
                                  "lbound_in":        "(tile_lbound, 1)",
                                  "structure_index": ["CENTER", 1]}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "Analysis::computeErrors"
         ]
     },
@@ -46,7 +46,7 @@
     },
     "subroutines": {
         "Analysis::computeErrors": {
-            "header_file": "Analysis.h",
+            "interface_file": "Analysis.h",
             "argument_list": ["lo",
                               "hi",
                               "xCoords",

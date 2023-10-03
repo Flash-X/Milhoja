@@ -29,7 +29,7 @@
                                  "extents":          "(8, 16, 1, 1)",
                                  "lbound":           "(tile_lo, 1)"}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianDensity"
         ]
     },
@@ -41,7 +41,7 @@
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianDensity": {
-            "header_file": "computeLaplacianDensity.h",
+            "interface_file": "computeLaplacianDensity.h",
             "argument_list": ["lo",
                               "hi",
                               "U",

@@ -10,6 +10,8 @@ class TaskFunction(object):
     """
     # Main keys into dictionaries returned by output_filenames.
     CPP_TF_KEY = "cpp_tf"
+    C2F_KEY = "c2f"
+    FORTRAN_TF_KEY = "fortran_tf"
     DATA_ITEM_KEY = "data_item"
 
     @staticmethod
@@ -74,13 +76,16 @@ class TaskFunction(object):
     @property
     def output_filenames(self):
         """
+        .. todo::
+            Should TaskFunction decide how files are used?  Seems like code
+            generators should make that decision.
         """
-        cpp_tf_hdr = self.__tf_spec["cpp_header"]
-        cpp_tf_src = self.__tf_spec["cpp_source"]
-        c2f_src = self.__tf_spec["c2f_source"]
-        fortran_tf_src = self.__tf_spec["fortran_source"]
-        data_item_hdr = self.__data_spec["header"]
-        data_item_src = self.__data_spec["source"]
+        cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
+        cpp_tf_src = self.__tf_spec["cpp_source"].strip()
+        c2f_src = self.__tf_spec["c2f_source"].strip()
+        fortran_tf_src = self.__tf_spec["fortran_source"].strip()
+        data_item_hdr = self.__data_spec["header"].strip()
+        data_item_src = self.__data_spec["source"].strip()
 
         assert cpp_tf_hdr != ""
         assert cpp_tf_src != ""
@@ -100,8 +105,14 @@ class TaskFunction(object):
         if processor.lower() == "cpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
+        elif processor.lower() == "gpu" and language.lower() == "fortran":
+            assert c2f_src != ""
+            assert fortran_tf_src != ""
+
+            filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
         else:
-            raise NotImplementedError("Wait for Wesley")
+            raise NotImplementedError("Waiting for test cases")
 
         return filenames
 
@@ -261,26 +272,24 @@ class TaskFunction(object):
         return data_all
 
     @property
-    def internal_subroutines(self):
-        """
-        .. todo::
-            This needs to walk our "graph"
-        """
-        return self.internal_subroutine_graph
-
-    @property
     def internal_subroutine_graph(self):
         """
-        .. todo::
-            Change field to internal call graph
+        :return: Generator for iterating in correct order over the nodes in the
+            internal subroutine graph of the task function.  Each node contains
+            one or more subroutines.  If more than one, it is understood that
+            the subroutines in that node can be run concurrently.
         """
-        return self.__tf_spec["subroutine_call_stack"]
+        for node in self.__tf_spec["subroutine_call_graph"]:
+            if isinstance(node, str):
+                yield [node]
+            else:
+                yield node
 
-    def subroutine_header(self, subroutine):
+    def subroutine_interface_file(self, subroutine):
         """
         """
         spec = self.__subroutine_spec[subroutine]
-        return spec["header_file"]
+        return spec["interface_file"]
 
     def subroutine_dummy_arguments(self, subroutine):
         """
@@ -298,14 +307,21 @@ class TaskFunction(object):
     @property
     def n_streams(self):
         """
-        .. todo::
-            Write this based on internal call graph
+        Raises an error if task function's data item does not use streams.
+
+        :return: Maximum number of streams required during execution of a
+            DataPacket-based tasked function.  This is the number of internal
+            subroutines that could be running concurrently during execution of
+            the task function.
         """
         if self.data_item.lower() == "tilewrapper":
             raise ValueError("Streams are not used with TileWrappers")
         elif self.data_item.lower() == "datapacket":
-            raise NotImplementedError("Waiting for Wesley")
-        
+            n_streams = -1
+            for node in self.internal_subroutine_graph:
+                n_streams = max([n_streams, len(node)])
+            return n_streams
+
         raise ValueError(f"Unknown data item type {self.data_item}")
 
     def to_milhoja_json(self, filename):

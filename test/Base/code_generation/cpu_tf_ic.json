@@ -32,7 +32,7 @@
                                  "lbound_out":       "(tile_lbound, 1)",
                                  "structure_index": ["CENTER", 1]}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "StaticPhysicsRoutines::setInitialConditions"
         ]
     },
@@ -44,7 +44,7 @@
     },
     "subroutines": {
         "StaticPhysicsRoutines::setInitialConditions": {
-            "header_file": "setInitialConditions.h",
+            "interface_file": "setInitialConditions.h",
             "argument_list": ["loGC",
                               "hiGC",
                               "xCoords",

@@ -138,9 +138,11 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             # We require a flat call stack for CPU task functions
             # TODO: Confirm this
             headers_all = set()
-            for subroutine in self._tf_spec.internal_subroutines:
-                header = self._tf_spec.subroutine_header(subroutine)
-                headers_all = headers_all.union(set([header]))
+            for node in self._tf_spec.internal_subroutine_graph:
+                for subroutine in node:
+                    header = \
+                        self._tf_spec.subroutine_interface_file(subroutine)
+                    headers_all = headers_all.union(set([header]))
 
             for header in sorted(headers_all):
                 fptr.write(f'#include "{header}"\n')
@@ -274,13 +276,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             # ----- CALL SUBROUTINES
             # We require a flat call graph for CPU task functions
             # TODO: Confirm this
-            for subroutine in self._tf_spec.internal_subroutines:
-                arg_list = \
-                    self._tf_spec.subroutine_actual_arguments(subroutine)
-                fptr.write(f"{INDENT}{subroutine}(\n")
-                for arg in arg_list[:-1]:
-                    fptr.write(f"{INDENT*5}{arg},\n")
-                fptr.write(f"{INDENT*5}{arg_list[-1]});\n")
+            for node in self._tf_spec.internal_subroutine_graph:
+                for subroutine in node:
+                    arg_list = \
+                        self._tf_spec.subroutine_actual_arguments(subroutine)
+                    fptr.write(f"{INDENT}{subroutine}(\n")
+                    for arg in arg_list[:-1]:
+                        fptr.write(f"{INDENT*5}{arg},\n")
+                    fptr.write(f"{INDENT*5}{arg_list[-1]});\n")
 
             # ----- CLOSE TASK FUNCTION DEFINITION
             fptr.write("}")

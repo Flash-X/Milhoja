@@ -24,7 +24,7 @@
                                  "lbound_in":        "(tile_lbound, 1)",
                                  "structure_index": ["CENTER", 1]}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "Io::instance().computeIntegralQuantitiesByBlock"
         ]
     },
@@ -36,7 +36,7 @@
     },
     "subroutines": {
         "Io::instance().computeIntegralQuantitiesByBlock": {
-            "header_file": "Io.h",
+            "interface_file": "Io.h",
             "argument_list": ["threadIdx",
                               "lo",
                               "hi",

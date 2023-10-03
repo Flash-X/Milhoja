@@ -42,7 +42,7 @@
                                "lbound_out":       "(tile_lbound, 1)",
                                "structure_index": ["CENTER", 1]}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "sim::setInitialConditions",
             "Eos::idealGammaDensIe"
         ]
@@ -55,7 +55,7 @@
     },
     "subroutines": {
         "sim::setInitialConditions": {
-            "header_file": "Simulation.h",
+            "interface_file": "Simulation.h",
             "argument_list": ["lo",
                               "hi",
                               "level", 
@@ -76,7 +76,7 @@
             }
         },
         "Eos::idealGammaDensIe": {
-            "header_file": "Eos.h",
+            "interface_file": "Eos.h",
             "argument_list": ["lo",
                               "hi",
                               "solnData"],

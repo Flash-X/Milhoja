@@ -29,7 +29,7 @@
                                  "extents":          "(8, 16, 1, 2)",
                                  "lbound":           "(tile_lo, 1)"}
         },
-        "subroutine_call_stack": [
+        "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianFusedKernels"
         ]
     },
@@ -41,7 +41,7 @@
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianFusedKernels": {
-            "header_file": "computeLaplacianFused.h",
+            "interface_file": "computeLaplacianFused.h",
             "argument_list": ["lo",
                               "hi",
                               "U",
