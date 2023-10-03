@@ -1,5 +1,12 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    3,
+        "nxb":         16,
+        "nyb":         16,
+        "nzb":         16,
+        "nguardcells":  1
+    },
     "task_function": {
         "name": "cpu_tf_IQ",
         "language": "C++", 

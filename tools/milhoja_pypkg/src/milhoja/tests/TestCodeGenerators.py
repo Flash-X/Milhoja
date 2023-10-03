@@ -79,6 +79,13 @@ class TestCodeGenerators(unittest.TestCase):
         tf_spec = milhoja.TaskFunction.from_milhoja_json(json_fname_3D)
 
         json_XD = json_3D.copy()
+
+        json_XD["grid"]["dimension"] = dim
+        if dim <= 2:
+            json_XD["grid"]["nzb"] = 1
+        if dim == 1:
+            json_XD["grid"]["nyb"] = 1
+
         for arg in tf_spec.dummy_arguments:
             arg_spec = tf_spec.argument_specification(arg)
             for field in arg_spec:

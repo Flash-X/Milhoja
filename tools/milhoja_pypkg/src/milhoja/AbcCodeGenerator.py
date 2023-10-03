@@ -11,6 +11,11 @@ class AbcCodeGenerator(abc.ABC):
     class derived from TaskFunction if so desired.  For the same reason, code
     generators derived from this class should also take the specification as an
     object.
+
+    .. todo::
+        * Make ``_logger`` private once all code generators are derived from
+          this class such that they can use the logging interface of this
+          class.
     """
     def __init__(
             self,
@@ -36,7 +41,9 @@ class AbcCodeGenerator(abc.ABC):
         self.__hdr_filename = header_filename
         self.__src_filename = source_filename
 
-        self.__logger = CodeGenerationLogger(log_tag, log_level)
+        # Allow derived classes access to logger in case they need to pass it
+        # to functions external to the class.
+        self._logger = CodeGenerationLogger(log_tag, log_level)
 
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no header or source files at instantiation, but
@@ -62,22 +69,22 @@ class AbcCodeGenerator(abc.ABC):
     def verbosity_level(self):
         """
         """
-        return self.__logger.level
+        return self._logger.level
 
     def _log(self, msg, level):
         """
         """
-        self.__logger.log(msg, level)
+        self._logger.log(msg, level)
 
     def _warn(self, msg):
         """
         """
-        self.__logger.warn(msg)
+        self._logger.warn(msg)
 
     def _error(self, msg):
         """
         """
-        self.__logger.error(msg)
+        self._logger.error(msg)
 
     @property
     def header_filename(self):

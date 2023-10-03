@@ -58,6 +58,7 @@ class TaskFunction(object):
         self.__tf_spec = specification["task_function"]
         self.__data_spec = specification["data_item"]
         self.__subroutine_spec = specification["subroutines"]
+        self.__grid_spec = specification["grid"]
 
         # ----- ERROR CHECK ARGUMENTS
         if not self.__filename.is_file():
@@ -131,6 +132,23 @@ class TaskFunction(object):
     @property
     def data_item(self):
         return self.__data_spec["type"]
+
+    @property
+    def grid_dimension(self):
+        return self.__grid_spec["dimension"]
+
+    @property
+    def block_interior_shape(self):
+        shape = (
+            self.__grid_spec["nxb"],
+            self.__grid_spec["nyb"],
+            self.__grid_spec["nzb"]
+        )
+        return shape
+
+    @property
+    def n_guardcells(self):
+        return self.__grid_spec["nguardcells"]
 
     @property
     def dummy_arguments(self):

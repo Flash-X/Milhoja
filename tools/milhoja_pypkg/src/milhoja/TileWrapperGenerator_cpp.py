@@ -27,22 +27,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         Construct an object for use with the task function specified by the
         given specification object.
 
-        It is intended that all codes that need this generator instatiate
-        generator objects via the .from_* classmethods rather than using this
-        constructor directly.
-
-        The basename of the header file is adopted as the name of the
-        TileWrapper derived class.
-
-        :param tf_spec: The XXX task function specification object
-        :type  tf_spec: XXX
-        :param tf_spec_filename: Name of the task function specification file
-        :type  tf_spec_filename: str
-        :param logger: Object for logging code generation details
-        :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used
-            in both generated files.
-        :type  indent: non-negative int
+        :param tf_spec: TaskFunction specification object
+        :param log_level: Milhoja level to use for logging generation
+        :param indent: Number of spaces in tab to be used in generated files
         """
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
@@ -64,11 +51,22 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 name = "MH_INTERNAL_cellVolumes"
                 assert name not in self.__internal_scratch 
                 self.__internal_scratch.add(name)
+
+                nguard = self._tf_spec.n_guardcells
+                extents = list(self._tf_spec.block_interior_shape)
+                for i in range(self._tf_spec.grid_dimension):
+                    if arg_spec["lo"].lower() == "tile_lbound":
+                        extents[i] += nguard
+                    if arg_spec["hi"].lower() == "tile_ubound":
+                        extents[i] += nguard
+                extents =   "(" \
+                          + ", ".join([str(each) for each in extents]) \
+                          + ")"
+
                 assert name not in self.__internal_scratch_specs
-                # TODO: How to get this information?
                 self.__internal_scratch_specs[name] = {
                     "type": "milhoja::Real",
-                    "extents": "(18, 18, 18)"
+                    "extents": extents
                 }
 
         # ----- SANITY CHECK ARGUMENTS
