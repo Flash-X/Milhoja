@@ -24,7 +24,6 @@ from .constants import LOG_LEVEL_MAX
 from .constants import LOG_LEVELS
 
 # Functions used by classes
-from .generate_tile_metadata_extraction import generate_tile_metadata_extraction
 
 # classes
 from .TaskFunction import TaskFunction
