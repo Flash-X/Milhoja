@@ -26,10 +26,8 @@
                                  "lo":               "tile_lo",
                                  "hi":               "tile_hi"},
             "CC_1":             {"source":           "grid_data",
-                                 "type":             "real",
-                                 "extents_in":       "(18, 18, 1, 8)",
-                                 "lbound_in":        "(tile_lbound, 1)",
-                                 "structure_index": ["CENTER", 1]}
+                                 "structure_index": ["CENTER", 1],
+                                 "variables_in":    [1, 8]}
         },
         "subroutine_call_graph": [
             "Io::instance().computeIntegralQuantitiesByBlock"

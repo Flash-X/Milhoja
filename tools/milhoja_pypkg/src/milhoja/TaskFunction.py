@@ -249,8 +249,8 @@ class TaskFunction(object):
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "grid_data":
-                has_in = ("extents_in" in arg_spec)
-                has_out = ("extents_out" in arg_spec)
+                has_in = ("variables_in" in arg_spec)
+                has_out = ("variables_out" in arg_spec)
                 if has_in and (not has_out):
                     assert arg not in data_all
                     data_all.add(arg)
@@ -265,8 +265,8 @@ class TaskFunction(object):
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "grid_data":
-                has_in = ("extents_in" in arg_spec)
-                has_out = ("extents_out" in arg_spec)
+                has_in = ("variables_in" in arg_spec)
+                has_out = ("variables_out" in arg_spec)
                 if has_in and has_out:
                     assert arg not in data_all
                     data_all.add(arg)
@@ -281,8 +281,8 @@ class TaskFunction(object):
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == "grid_data":
-                has_in = ("extents_in" in arg_spec)
-                has_out = ("extents_out" in arg_spec)
+                has_in = ("variables_in" in arg_spec)
+                has_out = ("variables_out" in arg_spec)
                 if (not has_in) and has_out:
                     assert arg not in data_all
                     data_all.add(arg)

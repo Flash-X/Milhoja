@@ -199,30 +199,24 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                         error_msg += "is not a valid grid data structure"
                         raise ValueError(error_msg)
 
-                    if "extents_in" in arg_spec:
-                        extents_in = self.__parse_extents_spec(arg_spec["extents_in"])
-                        dimension = len(extents_in)
-                    elif "extents_out" in arg_spec:
-                        extents_out = self.__parse_extents_spec(arg_spec["extents_out"])
-                        dimension = len(extents_out)
-                    else:
-                        raise ValueError(f"No extents given for grid_data {arg}")
-                    if (dimension < self.__MIN_DATA_ARRAY_DIM) or \
-                       (dimension > self.__MAX_DATA_ARRAY_DIM):
-                        error_msg = f"Invalid dimension for {arg} in {json_fname}"
-                        raise ValueError(msg)
-                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-
                     # TODO: Once the Milhoja grid interface is expanded to account
                     # for more MFabs
 #                    fptr.write(f'{_INDENT}{arg_type}  {arg} = tileDesc->data("{index_space}", {mfab_idx});\n')
                     if index_space == "CENTER":
+                        dimension = 4
+                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                         fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->data();\n")
                     elif index_space == "FLUXX":
+                        dimension = 4
+                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                         fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::I);\n")
                     elif index_space == "FLUXY":
+                        dimension = 4
+                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                         fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::J);\n")
                     elif index_space == "FLUXZ":
+                        dimension = 4
+                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                         fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::K);\n")
                     else:
                         raise NotImplementedError("This should never happen")

@@ -44,10 +44,8 @@
                                "lo":               "tile_lbound",
                                "hi":               "tile_ubound"},
             "CC_1":           {"source":           "grid_data",
-                               "type":             "real",
-                               "extents_out":      "(18, 18, 18, 10)",
-                               "lbound_out":       "(tile_lbound, 1)",
-                               "structure_index": ["CENTER", 1]}
+                               "structure_index": ["CENTER", 1],
+                               "variables_out":   [1, 10]}
         },
         "subroutine_call_graph": [
             "sim::setInitialConditions",
