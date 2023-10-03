@@ -24,10 +24,10 @@ void  cpu_tf_hydro::taskFunction(const int threadId,
     Tile_cpu_tf_hydro*  wrapper = dynamic_cast<Tile_cpu_tf_hydro*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
+    milhoja::Real& dt = wrapper->dt_;
     const milhoja::IntVect  tile_lo = tileDesc->lo();
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
-    milhoja::Real& dt = wrapper->dt_;
     milhoja::FArray4D  CC_1 = tileDesc->data();
     milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
     milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);

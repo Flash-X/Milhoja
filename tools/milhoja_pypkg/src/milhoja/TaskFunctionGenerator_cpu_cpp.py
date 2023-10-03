@@ -163,107 +163,108 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write(f"{INDENT}milhoja::Tile*  tileDesc = wrapper->tile_.get();\n")
             fptr.write("\n")
 
+            # ----- EXTRACT EXTERNAL VARIABLES
+            # TODO: Why do we need to specify name?  Why not use arg?
+            for arg in sorted(self._tf_spec.external_arguments):
+                arg_spec = self._tf_spec.argument_specification(arg)
+                name = arg_spec["name"]
+                param_type = arg_spec["type"]
+                extents = arg_spec["extents"]
+                if len(extents) == 0:
+                    fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
+                else:
+                    raise NotImplementedError("Need arrays")
+
             # ----- EXTRACT TASK FUNCTION TILE METADATA FROM TILE
             metadata_all = self._tf_spec.tile_metadata_arguments
             code = generate_tile_metadata_extraction(self._tf_spec, "tileDesc")
             for line in code:
                 fptr.write(f"{INDENT}{line}\n")
 
-            # ----- EXTRACT ALL OTHER TASK FUNCTION ARGUMENTS FROM TILE
-            for arg in self._tf_spec.dummy_arguments:
+            # ----- EXTRACT GRID DATA POINTERS
+            grid_args = self._tf_spec.tile_in_arguments
+            grid_args = grid_args.union(self._tf_spec.tile_in_out_arguments)
+            grid_args = grid_args.union(self._tf_spec.tile_out_arguments)
+            for arg in sorted(grid_args):
                 arg_spec = self._tf_spec.argument_specification(arg)
-                src = arg_spec["source"]
+                arg_mfab = arg_spec["structure_index"]
+                if len(arg_mfab) != 2:
+                    error_msg = f"Invalid structure_index for {arg} in {json_fname}"
+                    raise ValueError(error_msg)
+                index_space = arg_mfab[0].upper()
+                mfab_idx = arg_mfab[1]
+                if (index_space not in self.__AVAILABLE_MFABS) or \
+                   (mfab_idx not in self.__AVAILABLE_MFABS[index_space]):
+                    error_msg = f"{arg_mfab} specified for {arg} in {json_fname}"
+                    error_msg += "is not a valid grid data structure"
+                    raise ValueError(error_msg)
 
-                if src in metadata_all:
-                    pass
-                elif src == "external":
-                    name = arg_spec["name"]
-                    param_type = arg_spec["type"]
-                    extents = arg_spec["extents"]
-                    if len(extents) == 0:
-                        fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
-                    else:
-                        raise NotImplementedError("Need arrays")
-                elif src == "lbound":
-                    raise NotImplementedError("lbound arguments are Fortran-specific")
-                elif src == "grid_data":
-                    arg_mfab = arg_spec["structure_index"]
-                    if len(arg_mfab) != 2:
-                        error_msg = f"Invalid structure_index for {arg} in {json_fname}"
-                        raise ValueError(error_msg)
-                    index_space = arg_mfab[0].upper()
-                    mfab_idx = arg_mfab[1]
-                    if (index_space not in self.__AVAILABLE_MFABS) or \
-                       (mfab_idx not in self.__AVAILABLE_MFABS[index_space]):
-                        error_msg = f"{arg_mfab} specified for {arg} in {json_fname}"
-                        error_msg += "is not a valid grid data structure"
-                        raise ValueError(error_msg)
-
-                    # TODO: Once the Milhoja grid interface is expanded to account
-                    # for more MFabs
-#                    fptr.write(f'{_INDENT}{arg_type}  {arg} = tileDesc->data("{index_space}", {mfab_idx});\n')
-                    if index_space == "CENTER":
-                        dimension = 4
-                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                        fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->data();\n")
-                    elif index_space == "FLUXX":
-                        dimension = 4
-                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                        fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::I);\n")
-                    elif index_space == "FLUXY":
-                        dimension = 4
-                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                        fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::J);\n")
-                    elif index_space == "FLUXZ":
-                        dimension = 4
-                        arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                        fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::K);\n")
-                    else:
-                        raise NotImplementedError("This should never happen")
-                elif src == "scratch":
-                    extents = self.__parse_extents_spec(arg_spec["extents"])
-                    dimension = len(extents)
-                    if (dimension < self.__MIN_DATA_ARRAY_DIM) or \
-                       (dimension > self.__MAX_DATA_ARRAY_DIM):
-                        error_msg = f"Invalid dimension for {arg} in {json_fname}"
-                        raise ValueError(msg)
-                    arg_type = arg_spec["type"]
-                    array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-
-                    # TODO: We should get this from extents and tile_lo
-                    if arg == "hydro_op1_auxc":
-                        assert dimension == 3
-                        fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
-                        fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
-                        fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
-                        fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
-                        fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
-                        fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
-                        fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                        fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
-                        fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
-                        fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
-                        fptr.write(f"{INDENT*3}lo_{arg},\n")
-                        fptr.write(f"{INDENT*3}hi_{arg}}};\n")
-                    elif arg == "base_op1_scratch":
-                        assert dimension == 4
-                        fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
-                        fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
-                        fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
-                        fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
-                        fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
-                        fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
-                        fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                        fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
-                        fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
-                        fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
-                        fptr.write(f"{INDENT*3}lo_{arg},\n")
-                        fptr.write(f"{INDENT*3}hi_{arg},\n")
-                        fptr.write(f"{INDENT*3}2}};\n")
-                    else:
-                        raise ValueError(f"Unknown scratch variable {arg}")
+                # TODO: Once the Milhoja grid interface is expanded to account
+                # for more MFabs
+#                fptr.write(f'{_INDENT}{arg_type}  {arg} = tileDesc->data("{index_space}", {mfab_idx});\n')
+                if index_space == "CENTER":
+                    dimension = 4
+                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->data();\n")
+                elif index_space == "FLUXX":
+                    dimension = 4
+                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::I);\n")
+                elif index_space == "FLUXY":
+                    dimension = 4
+                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::J);\n")
+                elif index_space == "FLUXZ":
+                    dimension = 4
+                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::K);\n")
                 else:
-                    raise ValueError(f"Unknown argument type {src}")
+                    raise NotImplementedError("This should never happen")
+
+            # ----- EXTRACT SCRATCH VARIABLES
+            for arg in sorted(self._tf_spec.scratch_arguments):
+                arg_spec = self._tf_spec.argument_specification(arg)
+                extents = self.__parse_extents_spec(arg_spec["extents"])
+                dimension = len(extents)
+                if (dimension < self.__MIN_DATA_ARRAY_DIM) or \
+                   (dimension > self.__MAX_DATA_ARRAY_DIM):
+                    error_msg = f"Invalid dimension for {arg} in {json_fname}"
+                    raise ValueError(msg)
+                arg_type = arg_spec["type"]
+                array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+
+                # TODO: We should get this from extents and tile_lo
+                if arg == "hydro_op1_auxc":
+                    assert dimension == 3
+                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
+                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
+                    fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
+                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
+                    fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
+                    fptr.write(f"{INDENT*3}lo_{arg},\n")
+                    fptr.write(f"{INDENT*3}hi_{arg}}};\n")
+                elif arg == "base_op1_scratch":
+                    assert dimension == 4
+                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
+                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
+                    fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
+                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
+                    fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
+                    fptr.write(f"{INDENT*3}lo_{arg},\n")
+                    fptr.write(f"{INDENT*3}hi_{arg},\n")
+                    fptr.write(f"{INDENT*3}2}};\n")
+                else:
+                    raise ValueError(f"Unknown scratch variable {arg}")
 
             fptr.write("\n")
 
