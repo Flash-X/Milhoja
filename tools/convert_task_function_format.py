@@ -11,8 +11,13 @@ from pathlib import Path
 
 import milhoja
 
+
 def main():
     # ----- HARDCODED VALUES
+    # Exit codes so that this can be used in CI build server
+    FAILURE = 1
+    SUCCESS = 0
+
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
@@ -27,10 +32,10 @@ def main():
     parser = argparse.ArgumentParser(description=DESCRIPTION,
                                      formatter_class=formatter)
     parser.add_argument("file", nargs=1, help=FILENAME_HELP)
-    parser.add_argument("from", nargs=1,
+    parser.add_argument("from_format", nargs=1,
                         type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
                         help=FROM_HELP)
-    parser.add_argument("to", nargs=1,
+    parser.add_argument("to_format", nargs=1,
                         type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
                         help=TO_HELP)
     parser.add_argument("--verbose", "-v",
@@ -42,30 +47,30 @@ def main():
     args = parser.parse_args()
 
     filename = Path(args.file[0]).resolve()
-    from_format = args.from
-    to_format = args.to
+    from_format = args.from_format
+    to_format = args.to_format
     verbosity_level = args.verbose
 
     def print_and_abort(error_msg):
-        FAILURE = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'            # No Color/Not bold
+        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'                  # No Color/Not bold
         print()
-        print(f"{FAILURE}ERROR - {error_msg}{NC}")
+        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
         print()
-        exit(1)
+        exit(FAILURE)
 
     # ----- GET TO CONVERTIN'
     if from_format.lower() == to_format.lower():
-        print_and_error("To and from formats are identical")
+        print_and_abort("To and from formats are identical")
     else:
-        print_and_error("This has never been tested")
+        print_and_abort("This has never been tested")
 
     try:
         if from_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
             tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
         else:
             # This should never happen because argparse should error first
-            error_msg = f"Unknown from specification format {fmt}"
+            error_msg = f"Unknown from specification format {from_format}"
             print_and_abort(error_msg)
 
         if to_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
@@ -74,7 +79,7 @@ def main():
             tf_spec.to_milhoja_json(filename_dst)
         else:
             # This should never happen because argparse should error first
-            error_msg = f"Unknown to specification format {fmt}"
+            error_msg = f"Unknown to specification format {to_format}"
             print_and_abort(error_msg)
     except Exception as error:
         error_msg = str(error)
@@ -82,7 +87,8 @@ def main():
             error_msg += f"\n{traceback.format_exc()}"
         print_and_abort(error_msg)
 
-    return 0
+    return SUCCESS
+
 
 if __name__ == "__main__":
     exit(main())

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import milhoja
 
+
 def main():
     # ----- HARDCODED VALUES
     # Exit codes so that this can be used in CI build server
@@ -39,7 +40,7 @@ def main():
                         help=FORMAT_HELP)
     parser.add_argument("destination", nargs=1, help=DESTINATION_HELP)
     parser.add_argument("--overwrite",
-                        action='store_true', required=False, \
+                        action='store_true', required=False,
                         help=OVERWRITE_HELP)
     parser.add_argument("--verbose", "-v",
                         type=int, choices=milhoja.LOG_LEVELS,
@@ -57,10 +58,10 @@ def main():
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
     def print_and_abort(error_msg):
-        FAILURE = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'            # No Color/Not bold
+        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'                  # No Color/Not bold
         print()
-        print(f"{FAILURE}ERROR - {error_msg}{NC}")
+        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
         print()
         exit(FAILURE)
 
@@ -83,6 +84,7 @@ def main():
         print_and_abort(error_msg)
 
     return SUCCESS
+
 
 if __name__ == "__main__":
     exit(main())
