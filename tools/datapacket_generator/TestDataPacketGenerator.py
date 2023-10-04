@@ -8,7 +8,6 @@ import os
 
 from pathlib import Path
 
-import generate_packet
 import milhoja.tests
 import glob
 import difflib
@@ -82,19 +81,10 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             # generate data packet
             self.namespace.JSON = file
             self.log_beginning()
-
             generator = DataPacketGenerator.from_json(self.namespace)
             name = generator.name
 
-            # generate c++ versions first
-            # generate_packet.generate_packet(self.namespace)
-            # name = os.path.basename(self.namespace.JSON).replace(".json", "")
-            # generated_name_cpp = f'cgkit.{name}.cpp'
-            # correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
-
-            file_names = generator.generate_packet()
-
-            generated_name_cpp = file_names["source"]
+            generated_name_cpp = generator.source_filename
             correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
             
             # check c++ source code
@@ -103,7 +93,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # Test generated files.
                 self.check_generated_files(generated_cpp, correct)
                 
-            generated_name_h = file_names["header"]
+            generated_name_h = generator.header_filename
             correct_name_h = f'CppTestData/cgkit.{name}.h'
 
             # check c++ headers
@@ -133,14 +123,17 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         for file in fortran_jsons:
             # generate fortran packet and test.
             self.namespace.JSON = file
-            print(file)
-            generate_packet.generate_packet(self.namespace)
-            name = os.path.basename(self.namespace.JSON).replace(".json", "")
-
             self.log_beginning()
+            generator = DataPacketGenerator.from_json(self.namespace)
+            name = generator.name
+
+            file_names = generator.generate_packet()
+            generated_name_cpp = file_names["source"]
+            correct_name_cpp = f'FortranTestData/cgkit.{name}.cpp'
+
             # check C++ source code when building for fortran
-            with open(f'cgkit.{name}.cpp', 'r') as generated_cpp, \
-            open(f'FortranTestData/cgkit.{name}.cpp', 'r') as correct:
+            with open(generated_name_cpp, 'r') as generated_cpp, \
+            open(correct_name_cpp, 'r') as correct:
                 # Test generated files.
                 self.check_generated_files(generated_cpp, correct)
             

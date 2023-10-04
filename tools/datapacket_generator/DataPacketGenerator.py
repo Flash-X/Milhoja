@@ -10,38 +10,44 @@ import cpp2c_generator
 import c2f_generator
 
 from pathlib import Path
-from milhoja import BaseCodeGenerator
+from milhoja import AbcCodeGenerator
 from milhoja import CodeGenerationLogger
 from milhoja import TaskFunction
-from milhoja import LOG_LEVEL_BASIC
 
-class DataPacketGenerator(BaseCodeGenerator):
+from milhoja import LOG_LEVEL_NONE
+from milhoja import LOG_LEVEL_BASIC
+from milhoja import LOG_LEVEL_BASIC_DEBUG
+from milhoja import LOG_LEVEL_MAX
+
+class DataPacketGenerator(AbcCodeGenerator):
     """
     TODO: Convert all jsons to new format from Jared.
-    DataPacketGenerator interface uses original json format for now.
+    DataPacketGenerator interface uses datapacket json format for now.
 
     This class serves as a wrapper for all of the packet generation scripts.
     This will eventually be built into the primary means of generating data packets
     instead of calling generate_packet.py.
     """
-    # TODO: This should take a json instead of a namespace or both.
+
+    # TODO: This should take in a new json with format brought in by tile wrapper
     @classmethod
     def from_json(cls, args, log_level=LOG_LEVEL_BASIC, indent=4):
-        instance = cls("", "", "", log_level, indent)
         data_json_file = Path(args.JSON).resolve()
         if not data_json_file.is_file():
             raise ValueError(f'{data_json_file} does not exist or is not a file.')
         
-        instance.json = None
+        json = None
         with open(args.JSON, 'r') as json_file:
-            instance.json = generate_packet._load_json(json_file, args)
+            json = generate_packet._load_json(json_file, args)
+        instance = cls("", f'cgkit.{json[sections.NAME]}.h', f'cgkit.{json[sections.NAME]}.cpp', log_level, indent)
+        instance.json = json
 
         # insert nTiles into data after checking json.
         if sections.GENERAL not in instance.json:
             instance.json[sections.GENERAL] = {}
         nTiles_type = 'int' if args.language == utility.Language.fortran else 'std::size_t'
-
         instance.json[sections.GENERAL]['nTiles'] = nTiles_type
+        
         return instance
         
     def __init__(
@@ -54,7 +60,15 @@ class DataPacketGenerator(BaseCodeGenerator):
     ):
         ...
         self.json = {}
-        #uper().__init__()
+        self.__TOOL_NAME = self.__class__.__name__
+        super().__init__(
+            tf_spec, 
+            header_filename, 
+            source_filename,
+            self.__TOOL_NAME,
+            log_level,
+            indent
+        )
 
 
     @property
@@ -64,14 +78,17 @@ class DataPacketGenerator(BaseCodeGenerator):
 
     def generate_packet(self):
         """Calls all necessary functions to generate a packet."""
+        self._log("Generating templates...", LOG_LEVEL_BASIC)
         self.generate_templates()
-        header = self.generate_header_code()
-        source = self.generate_source_code()
+        self._log("Generating headers...", LOG_LEVEL_BASIC)
+        self.generate_header_code()
+        self._log("Generating source...", LOG_LEVEL_BASIC)
+        self.generate_source_code()
+        self._log("Generating layers...", LOG_LEVEL_BASIC)
         cpp2c = self.generate_cpp2c()
         c2f = self.generate_c2f()
+        self._log("Generation complete.", LOG_LEVEL_BASIC)
         return {
-            "header": header,
-            "source": source,
             "cpp2c": cpp2c,
             "c2f": c2f
         }
@@ -109,18 +126,34 @@ class DataPacketGenerator(BaseCodeGenerator):
 
     # use language to determine which function to call.
     def generate_cpp2c(self, overwrite=True):
+        """
+        Generates translation layers based on the language of the TaskFunction.
+            fortran - Generates c2f and cpp2c layers.
+            cpp - Generates a C++ task function that calls
+        """
+
+        def generate_cpp2c_cpp():
+            ...
+            #raise NotImplementedError("No generator for a pure C++ task function w/ gpus yet.")
+
+        def generate_cpp2c_f():
+            cpp2c_generator.generate_cpp2c(self.json)
+
         lang = self.json[sections.LANG]
         if lang == utility.Language.fortran:
-            self.generate_cpp2c_f()
+            generate_cpp2c_f()
         elif lang == utility.Language.cpp:
-            self.generate_cpp2c_cpp()
-
-        def generate_cpp2c_cpp(self):
-            raise NotImplementedError("No generator for a pure C++ task function w/ gpus yet.")
-
-        def generate_cpp2c_f(self):
-            cpp2c_generator.generate_cpp2c(self.json)
+            generate_cpp2c_cpp()
 
 
     def generate_c2f(self, overwrite=True):
-        c2f_generator.generate_c2f(self.json)
+        if self.json[sections.LANG] == utility.Language.fortran:
+            c2f_generator.generate_c2f(self.json)
+
+    @property
+    def cpp2c_filename(self):
+        return self.__cpp2c_name
+    
+    @property
+    def c2f_filename(self):
+        return self.__c2f_name

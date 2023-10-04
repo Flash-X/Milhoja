@@ -18,7 +18,7 @@ BOUND_MAP = {
 
 
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
-def get_metadata_dependencies(metadata: dict, language: str) -> set:
+def get_metadata_dependencies(metadata: dict, language: str):
     """
     Insert metadata dependencies into the memcpy section for a cpp packet.
     
