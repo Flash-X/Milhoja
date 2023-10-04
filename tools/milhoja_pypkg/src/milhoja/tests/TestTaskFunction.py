@@ -95,7 +95,6 @@ class TestTaskFunction(unittest.TestCase):
         LBOUND = "tile_lbound"
         UBOUND = "tile_ubound"
         COORDS = "tile_coordinates"
-        AREAS = "tile_faceAreas"
         VOLUMES = "tile_cellVolumes"
 
         # ------ RUNTIME/CPU

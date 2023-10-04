@@ -17,6 +17,7 @@ def _create_generator(json_filename):
                 tf_spec, milhoja.LOG_LEVEL_NONE, INDENT
            )
 
+
 class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
     def testRuntimeGeneration(self):
         path = _TEST_PATH.joinpath("runtime")
@@ -59,15 +60,15 @@ class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
               "source": path.joinpath("REF_cpu_tf_ic.cpp"),
               "source_dim_dependent": False}
         hydro = {"json": path.joinpath("cpu_tf_hydro_3D.json"),
-                "header": path.joinpath("REF_cpu_tf_hydro.h"),
-                "header_dim_dependent": False,
-                "source": path.joinpath("REF_cpu_tf_hydro.cpp"),
-                "source_dim_dependent": False}
+                 "header": path.joinpath("REF_cpu_tf_hydro.h"),
+                 "header_dim_dependent": False,
+                 "source": path.joinpath("REF_cpu_tf_hydro.cpp"),
+                 "source_dim_dependent": False}
         IQ = {"json": path.joinpath("cpu_tf_IQ_3D.json"),
-                "header": path.joinpath("REF_cpu_tf_IQ.h"),
-                "header_dim_dependent": False,
-                "source": path.joinpath("REF_cpu_tf_IQ.cpp"),
-                "source_dim_dependent": False}
+              "header": path.joinpath("REF_cpu_tf_IQ.h"),
+              "header_dim_dependent": False,
+              "source": path.joinpath("REF_cpu_tf_IQ.cpp"),
+              "source_dim_dependent": False}
 
         self.run_tests([ic, hydro, IQ], [1, 2, 3], _create_generator)
 

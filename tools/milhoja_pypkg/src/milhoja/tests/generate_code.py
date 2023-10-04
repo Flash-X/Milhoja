@@ -5,10 +5,11 @@ from milhoja import CodeGenerationLogger
 from milhoja import generate_data_item
 from milhoja import generate_task_function
 
+
 def generate_code(
-        tf_specs_all, destination, overwrite, verbosity, indent,
-        makefile_filename
-    ):
+            tf_specs_all, destination, overwrite, verbosity, indent,
+            makefile_filename
+        ):
     """
     Generate all code related to the given task functions and a Makefile that
     indicates which source files need building and where to look for headers.

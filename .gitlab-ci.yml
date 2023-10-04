@@ -69,8 +69,7 @@ test_milhoja_pypkg:
  - pip list
  ##-- Run all tests
  - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
- # TODO: Add in check once all code is passing flake8
- - tox -r -e coverage,report
+ - tox -r -e coverage,report,check
  - popd
  ##-- Save artifacts
  - tar cvfz milhoja_pypkg_coverage.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/htmlcov
@@ -84,14 +83,17 @@ test_gnu:
  script:
  ##-- Setup all environment variables
  - echo $PWD
- - export CI_BASE_PATH=/tmp/milhoja
- - rm -rf $CI_BASE_PATH
- - mkdir $CI_BASE_PATH
-# - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+# UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
+# - export CI_BASE_PATH=/tmp/milhoja
+# - rm -rf $CI_BASE_PATH
+# - mkdir $CI_BASE_PATH
+# UNCOMMENT NEXT LINE FOR NORMAL RUNS
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_WORK_CLONE=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
- - cd ..
- - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
+# UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
+# - cd ..
+# - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
  - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py

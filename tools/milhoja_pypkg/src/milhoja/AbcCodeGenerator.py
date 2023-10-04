@@ -1,8 +1,7 @@
 import abc
 
-from pathlib import Path
-
 from . import CodeGenerationLogger
+
 
 class AbcCodeGenerator(abc.ABC):
     """
@@ -18,13 +17,13 @@ class AbcCodeGenerator(abc.ABC):
           class.
     """
     def __init__(
-            self,
-            tf_specification,
-            header_filename,
-            source_filename,
-            log_tag, log_level,
-            indent
-        ):
+                self,
+                tf_specification,
+                header_filename,
+                source_filename,
+                log_tag, log_level,
+                indent
+            ):
         """
         """
         super().__init__()

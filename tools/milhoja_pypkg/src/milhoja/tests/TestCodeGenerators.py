@@ -58,7 +58,7 @@ class TestCodeGenerators(unittest.TestCase):
         self.assertEqual(4, len(tmp))
 
         extents = [int(e) for e in tmp]
-    
+
         if dim <= 2:
             extents[2] = 1
         if dim == 1:
@@ -86,15 +86,16 @@ class TestCodeGenerators(unittest.TestCase):
         if dim == 1:
             json_XD["grid"]["nyb"] = 1
 
+        TF = "taskfunction"
+        ARG_SPEC = "argument_specifications"
         for arg in tf_spec.dummy_arguments:
             arg_spec = tf_spec.argument_specification(arg)
             for field in arg_spec:
                 if field.strip().lower().startswith("extents_"):
                     extents_3D = arg_spec[field]
                     extents_XD = self.set_extents(extents_3D, dim)
-                    json_XD["task_function"]["argument_specifications"][arg][field] \
-                        = extents_XD
-    
+                    json_XD[TF][ARG_SPEC][arg][field] = extents_XD
+
         with open(json_fname_XD, "w") as fptr:
             json.dump(json_XD, fptr)
 
@@ -115,7 +116,7 @@ class TestCodeGenerators(unittest.TestCase):
             hdr_depends_on_dim = test["header_dim_dependent"]
             src_depends_on_dim = test["source_dim_dependent"]
 
-            json_fname_XD = dst.joinpath(f"tmp.json")
+            json_fname_XD = dst.joinpath("tmp.json")
 
             for dim in dims_all:
                 self.assertTrue(not json_fname_XD.exists())

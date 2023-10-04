@@ -3,6 +3,7 @@ import sys
 from . import LOG_LEVELS
 from . import LOG_LEVEL_NONE
 
+
 class CodeGenerationLogger(object):
     """
     It is intended that all Milhoja code generation tools use this class to

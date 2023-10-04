@@ -17,6 +17,7 @@ def _create_generator(json_filename):
                        tf_spec, milhoja.LOG_LEVEL_NONE, INDENT
                    )
 
+
 class TestTileWrapperGenerator_cpp(milhoja.tests.TestCodeGenerators):
     def testRuntimeGeneration(self):
         path = _TEST_PATH.joinpath("runtime")

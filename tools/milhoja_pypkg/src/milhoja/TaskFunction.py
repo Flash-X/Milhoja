@@ -5,6 +5,7 @@ from pathlib import Path
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
 
+
 class TaskFunction(object):
     """
     """
@@ -72,7 +73,7 @@ class TaskFunction(object):
 
     @property
     def specification_format(self):
-        return configuration["format"]
+        return self.__spec["format"]
 
     @property
     def output_filenames(self):
@@ -166,10 +167,10 @@ class TaskFunction(object):
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = ["external", "scratch"]
-        if      (spec["source"].lower() in src_to_adjust) \
-            and (spec["type"].lower() == "real") \
-            and (self.processor.lower() == "cpu"):
-                spec["type"] = "milhoja::Real"
+        if ((spec["source"].lower() in src_to_adjust) and
+                (spec["type"].lower() == "real") and
+                (self.processor.lower() == "cpu")):
+            spec["type"] = "milhoja::Real"
 
         return spec
 

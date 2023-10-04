@@ -1,5 +1,3 @@
-import json
-
 from pathlib import Path
 
 from . import LOG_LEVEL_BASIC
@@ -49,7 +47,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             arg_spec = self._tf_spec.argument_specification(arg)
             if arg_spec["source"].lower() == "tile_cellvolumes":
                 name = "MH_INTERNAL_cellVolumes"
-                assert name not in self.__internal_scratch 
+                assert name not in self.__internal_scratch
                 self.__internal_scratch.add(name)
 
                 nguard = self._tf_spec.n_guardcells
@@ -59,9 +57,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                         extents[i] += nguard
                     if arg_spec["hi"].lower() == "tile_ubound":
                         extents[i] += nguard
-                extents =   "(" \
-                          + ", ".join([str(each) for each in extents]) \
-                          + ")"
+                extents = "(" + \
+                          ", ".join([str(each) for each in extents]) + \
+                          ")"
 
                 assert name not in self.__internal_scratch_specs
                 self.__internal_scratch_specs[name] = {
@@ -241,10 +239,10 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
-            fptr.write("\n" if len(constructor_args)== 0 else ",\n")
+            fptr.write("\n" if len(constructor_args) == 0 else ",\n")
             for j, (arg, _) in enumerate(constructor_args):
                 fptr.write(f"{INDENT}  {arg}_{{{arg}}}")
-                fptr.write(",\n" if j < len(constructor_args)- 1 else "\n")
+                fptr.write(",\n" if j < len(constructor_args) - 1 else "\n")
             fptr.write("{\n")
             fptr.write("}\n")
             fptr.write("\n")

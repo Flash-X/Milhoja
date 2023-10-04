@@ -1,5 +1,6 @@
 from . import TaskFunctionGenerator_cpu_cpp
 
+
 def generate_task_function(tf_spec, destination, overwrite, verbosity, indent):
     """
     .. todo::
