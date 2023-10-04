@@ -29,19 +29,27 @@ def main():
 
     # ----- SPECIFY COMMAND LINE USAGE
     formatter = argparse.RawTextHelpFormatter
-    parser = argparse.ArgumentParser(description=DESCRIPTION,
-                                     formatter_class=formatter)
+    parser = argparse.ArgumentParser(
+                description=DESCRIPTION,
+                formatter_class=formatter
+             )
     parser.add_argument("file", nargs=1, help=FILENAME_HELP)
-    parser.add_argument("from_format", nargs=1,
-                        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
-                        help=FROM_HELP)
-    parser.add_argument("to_format", nargs=1,
-                        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
-                        help=TO_HELP)
-    parser.add_argument("--verbose", "-v",
-                        type=int, choices=milhoja.LOG_LEVELS,
-                        help=VERBOSE_HELP,
-                        default=DEFAULT_LOG_LEVEL)
+    parser.add_argument(
+        "from_format", nargs=1,
+        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        help=FROM_HELP
+    )
+    parser.add_argument(
+        "to_format", nargs=1,
+        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        help=TO_HELP
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        type=int, choices=milhoja.LOG_LEVELS,
+        help=VERBOSE_HELP,
+        default=DEFAULT_LOG_LEVEL
+    )
 
     # ----- GET COMMAND LINE ARGUMENTS
     args = parser.parse_args()
