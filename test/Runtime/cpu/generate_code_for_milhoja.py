@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
+import traceback
 
 from pathlib import Path
 
 import milhoja.tests
+
 
 def main():
     # ----- HARDCODED VALUES
@@ -69,10 +71,10 @@ def main():
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
     def print_and_abort(error_msg):
-        FAILURE = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'            # No Color/Not bold
+        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'                  # No Color/Not bold
         print()
-        print(f"{FAILURE}ERROR - {error_msg}{NC}")
+        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
         print()
         exit(FAILURE)
 
@@ -97,6 +99,7 @@ def main():
         print_and_abort(error_msg)
 
     return SUCCESS
+
 
 if __name__ == "__main__":
     exit(main())

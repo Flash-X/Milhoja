@@ -10,7 +10,7 @@ import milhoja.tests
 
 def main():
     # ----- HARDCODED VALUES
-    CLONE_PATH = Path(__file__).resolve().parents[3]
+    CLONE_PATH = Path(__file__).resolve().parents[4]
 
     # Location of Milhoja-JSON files
     CG_PATH = CLONE_PATH.joinpath("test", "Sedov", "code_generation")

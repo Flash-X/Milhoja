@@ -1109,7 +1109,6 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
 
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
-        // TODO: Applications should provide this when they call initDomain
         if (!initCpuPrototype_) {
             throw std::logic_error("[GridAmrex::MakeNewLevelFromScratch] Null TileWrapper prototype");
         }

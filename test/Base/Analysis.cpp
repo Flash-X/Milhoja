@@ -8,7 +8,6 @@
 #include <Milhoja_edge.h>
 #include <Milhoja_FArray4D.h>
 #include <Milhoja_Grid.h>
-#include <Milhoja_TileWrapper.h>
 
 #include "Base.h"
 

@@ -19,21 +19,12 @@
 #include "ProcessTimer.h"
 #include "cgkit.DataPacket_Hydro_gpu_3.h"
 
-#if MILHOJA_NDIM == 2
-#include "cpu_tf_ic_2D.h"
-#include "Tile_cpu_tf_ic_2D.h"
-#include "cpu_tf_IQ_2D.h"
-#include "Tile_cpu_tf_IQ_2D.h"
-#include "cpu_tf00_2D.h"
-#include "Tile_cpu_tf00_2D.h"
-#else
-#include "cpu_tf_ic_3D.h"
-#include "Tile_cpu_tf_ic_3D.h"
-#include "cpu_tf_IQ_3D.h"
-#include "Tile_cpu_tf_IQ_3D.h"
-#include "cpu_tf00_3D.h"
-#include "Tile_cpu_tf00_3D.h"
-#endif
+#include "cpu_tf_ic.h"
+#include "Tile_cpu_tf_ic.h"
+#include "cpu_tf_IQ.h"
+#include "Tile_cpu_tf_IQ.h"
+#include "cpu_tf_hydro.h"
+#include "Tile_cpu_tf_hydro.h"
 
 /**
  * Numerically approximate using the third GPU variant the solution to the
@@ -58,24 +49,15 @@ void    Driver::executeSimulation(void) {
     Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
     //------ ACQUIRE PERSISTENT MILHOJA SCRATCH
-#if MILHOJA_NDIM == 2
-    Tile_cpu_tf_IQ_2D::acquireScratch();
-    Tile_cpu_tf00_2D::acquireScratch();
-#else
-    Tile_cpu_tf_IQ_3D::acquireScratch();
-    Tile_cpu_tf00_3D::acquireScratch();
-#endif
+    Tile_cpu_tf_IQ::acquireScratch();
+    Tile_cpu_tf_hydro::acquireScratch();
 
     milhoja::RuntimeAction     initBlock_cpu;
     initBlock_cpu.name            = "initBlock_cpu";
     initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
     initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     initBlock_cpu.nTilesPerPacket = 0;
-#if MILHOJA_NDIM == 2
-    initBlock_cpu.routine         = cpu_tf_ic_2D::taskFunction;
-#else
-    initBlock_cpu.routine         = cpu_tf_ic_3D::taskFunction;
-#endif
+    initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
@@ -83,34 +65,16 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nInitialThreads = RPs.getUnsignedInt("compIQ_bundle", "nThreadsCpu");
     computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-#if MILHOJA_NDIM == 2
-    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ_2D::taskFunction;
-    const Tile_cpu_tf_IQ_2D    int_IQ_prototype{};
-#else
-    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ_3D::taskFunction;
-    const Tile_cpu_tf_IQ_3D    int_IQ_prototype{};
-#endif
+    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ::taskFunction;
+    const Tile_cpu_tf_IQ    int_IQ_prototype{};
 
     Timer::start("Set initial conditions");
-#if MILHOJA_NDIM == 2
-    // TODO: Call these all the time even though they might be no-op?  How
-    // would the Driver code generator know if scratch is needed or not.
-    // Remember that Milhoja's code generators might sneak in internal scratch
-    // memory.
-    Tile_cpu_tf_ic_2D::acquireScratch();
-    const Tile_cpu_tf_ic_2D    ic_prototype{};
-#else
-    Tile_cpu_tf_ic_3D::acquireScratch();
-    const Tile_cpu_tf_ic_3D    ic_prototype{};
-#endif
+    Tile_cpu_tf_ic::acquireScratch();
+    const Tile_cpu_tf_ic    ic_prototype{};
 
     grid.initDomain(initBlock_cpu, &ic_prototype);
 
-#if MILHOJA_NDIM == 2
-    Tile_cpu_tf_ic_2D::releaseScratch();
-#else
-    Tile_cpu_tf_ic_3D::releaseScratch();
-#endif
+    Tile_cpu_tf_ic::releaseScratch();
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
@@ -133,11 +97,7 @@ void    Driver::executeSimulation(void) {
     hydroAdvance_cpu.nInitialThreads = RPs.getUnsignedInt("Hydro_cpu/gpu_bundle", "nThreadsCpu");
     hydroAdvance_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance_cpu.nTilesPerPacket = 0;
-#if MILHOJA_NDIM == 2
-    hydroAdvance_cpu.routine         = cpu_tf00_2D::taskFunction;
-#else
-    hydroAdvance_cpu.routine         = cpu_tf00_3D::taskFunction;
-#endif
+    hydroAdvance_cpu.routine         = cpu_tf_hydro::taskFunction;
 
     milhoja::RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
@@ -194,17 +154,13 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
-#if MILHOJA_NDIM == 2
-        const Tile_cpu_tf00_2D   cpu_tf00_prototype{Driver::dt};
-#else
-        const Tile_cpu_tf00_3D   cpu_tf00_prototype{Driver::dt};
-#endif
+        const Tile_cpu_tf_hydro         cpu_tf_hydro_prototype{Driver::dt};
 	    const DataPacket_Hydro_gpu_3    gpu_tf00_prototype{Driver::dt};
         runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
                                         nDistThreads,
                                         stagger_usec,
                                         hydroAdvance_cpu,
-                                        cpu_tf00_prototype,
+                                        cpu_tf_hydro_prototype,
                                         hydroAdvance_gpu,
                                         gpu_tf00_prototype,
                                         nTilesPerCpuTurn);
@@ -280,13 +236,8 @@ void    Driver::executeSimulation(void) {
     //----- RELEASE PERSISTENT MILHOJA Scratch Memory
     // TODO: It would be good to include this is performance timings since it
     // is extra overhead associated with Milhoja use
-#if MILHOJA_NDIM == 2
-    Tile_cpu_tf_IQ_2D::releaseScratch();
-    Tile_cpu_tf00_2D::releaseScratch();
-#else
-    Tile_cpu_tf_IQ_3D::releaseScratch();
-    Tile_cpu_tf00_3D::releaseScratch();
-#endif
+    Tile_cpu_tf_hydro::releaseScratch();
+    Tile_cpu_tf_IQ::releaseScratch();
 
     if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");

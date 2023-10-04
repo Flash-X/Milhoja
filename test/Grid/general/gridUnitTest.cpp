@@ -436,8 +436,10 @@ TEST(GridUnitTest,LogicErrors){
         initBlock_cpu.nTilesPerPacket = 0;
         initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
+        Tile_cpu_tf_ic::acquireScratch();
         Tile_cpu_tf_ic    prototype{};
         grid.initDomain(initBlock_cpu, &prototype);
+        Tile_cpu_tf_ic::releaseScratch();
     } catch (const std::logic_error& e) {
         caughtErrors++;
     }

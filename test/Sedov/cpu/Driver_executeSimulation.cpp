@@ -67,10 +67,6 @@ void    Driver::executeSimulation(void) {
     const Tile_cpu_tf_IQ    int_IQ_prototype{};
 
     Timer::start("Set initial conditions");
-    // TODO: Call these all the time even though they might be no-op?  How
-    // would the Driver code generator know if scratch is needed or not.
-    // Remember that Milhoja's code generators might sneak in internal scratch
-    // memory.
     Tile_cpu_tf_ic::acquireScratch();
     const Tile_cpu_tf_ic    ic_prototype{};
 
@@ -99,7 +95,6 @@ void    Driver::executeSimulation(void) {
     hydroAdvance.nInitialThreads = RPs.getUnsignedInt("Hydro", "nThreadsForAdvanceSolution");
     hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
-    // TODO: This would need to be inserted by a Driver code generator
     hydroAdvance.routine         = cpu_tf_hydro::taskFunction;
 
     ProcessTimer  hydro{"sedov_timings.dat", "CPU",

@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 
 import argparse
-import traceback
 
 from pathlib import Path
 
 import milhoja.tests
-
 
 def main():
     # ----- HARDCODED VALUES
     CLONE_PATH = Path(__file__).resolve().parents[3]
 
     # Location of Milhoja-JSON files
-    CG_PATH = CLONE_PATH.joinpath("test", "Sedov", "code_generation")
+    CG_PATH = CLONE_PATH.joinpath("test", "Base", "code_generation")
 
     # Milhoja-JSON specifications of all task functions in test
-    TF_PARTIAL_NAMES_ALL = ["cpu_tf_ic_{}D.json",
-                            "cpu_tf_hydro_{}D.json",
-                            "cpu_tf_IQ_{}D.json"]
+    TF_NAMES_ALL = ["cpu_tf_ic.json",
+                    "cpu_tf_dens.json",
+                    "cpu_tf_ener.json",
+                    "cpu_tf_fused.json",
+                    "cpu_tf_analysis.json"]
 
     # Exit codes so that this can be used in CI build server
     FAILURE = 1
@@ -65,21 +65,21 @@ def main():
     overwrite = args.overwrite
     verbosity_level = args.verbose
 
-    tf_names_all = [each.format(dimension) for each in TF_PARTIAL_NAMES_ALL]
+    assert dimension == 2
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
     def print_and_abort(error_msg):
-        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'                  # No Color/Not bold
+        FAILURE = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'            # No Color/Not bold
         print()
-        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
+        print(f"{FAILURE}ERROR - {error_msg}{NC}")
         print()
         exit(FAILURE)
 
     try:
         # ----- LOAD ALL TASK FUNCTIONS SPECIFICATIONS
         tf_specs_all = []
-        for tf_name in tf_names_all:
+        for tf_name in TF_NAMES_ALL:
             filename = CG_PATH.joinpath(tf_name)
             tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
             tf_specs_all.append(tf_spec)
@@ -97,7 +97,6 @@ def main():
         print_and_abort(error_msg)
 
     return SUCCESS
-
 
 if __name__ == "__main__":
     exit(main())
