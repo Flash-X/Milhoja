@@ -32,7 +32,7 @@ stages:
 variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
- MILHOJA_TEST_REPO:      $MILHOJA_PROJECT_PATH/MilhojaTest
+ MILHOJA_TEST_CLONE:     $MILHOJA_PROJECT_PATH/MilhojaTest
  CGKIT_CODE_REPO:        $MILHOJA_PROJECT_PATH/cg-kit
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
@@ -88,7 +88,7 @@ test_gnu:
  - rm -rf $CI_BASE_PATH
  - mkdir $CI_BASE_PATH
 # - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
- - export MILHOJA_WORK_REPO=$CI_BASE_PATH/MilhojaTest
+ - export MILHOJA_WORK_CLONE=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - cd ..
  - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
@@ -96,14 +96,14 @@ test_gnu:
  - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
- - . $MILHOJA_TEST_REPO/gce/available_gce_machines.sh
+ - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
  - set_gce_machine_env_vars $HOSTNAME
  ##-- Print metadata to trace env vars
  - echo $HOSTNAME
  - echo $HWFAMILY
- - echo $MILHOJA_TEST_REPO
+ - echo $MILHOJA_TEST_CLONE
  - echo $MILHOJA_CODE_REPO
- - echo $MILHOJA_WORK_REPO
+ - echo $MILHOJA_WORK_CLONE
  - echo $MILHOJA_INSTALL_PATH
  - echo $CGKIT_CODE_REPO
  - echo $SEDOV_REGRESSION_TEST
@@ -112,14 +112,14 @@ test_gnu:
  - pushd $CI_BASE_PATH
  - ls
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
- - rm -rf $MILHOJA_WORK_REPO
+ - rm -rf $MILHOJA_WORK_CLONE
  - rm -rf $CGKIT_PATH
  - ls
  ##-- Copy cgkit to this space so that it can be installed without needing special
  #    permissions.
  - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
- - cd $MILHOJA_WORK_REPO
+ - cd $MILHOJA_WORK_CLONE
  - git log -1 --oneline
  ##-- Install python packages for use throughout
  # NOTE: I previously ran in this build script the command `pydoc sedov` and found that this
@@ -160,7 +160,7 @@ test_gnu:
  - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
- - cd $MILHOJA_WORK_REPO/gce
+ - cd $MILHOJA_WORK_CLONE/gce
  # Libraries
  - ./buildMilhoja.sh
  # Unittests
@@ -181,7 +181,7 @@ test_gnu:
  - ./runSedovCpu.sh
  # Execute regression tests
  # Setup same SW stack used to build fcompare binary
- - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
+ - . $MILHOJA_TEST_CLONE/gce/setup_current_gnu_mpich_stack.sh
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
