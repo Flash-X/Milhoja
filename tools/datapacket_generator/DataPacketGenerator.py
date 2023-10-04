@@ -13,7 +13,6 @@ from pathlib import Path
 from milhoja import AbcCodeGenerator
 from milhoja import CodeGenerationLogger
 from milhoja import TaskFunction
-
 from milhoja import LOG_LEVEL_NONE
 from milhoja import LOG_LEVEL_BASIC
 from milhoja import LOG_LEVEL_BASIC_DEBUG
@@ -69,6 +68,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             log_level,
             indent
         )
+        self.__cpp2c_name = f'{header_filename.replace(".json", "")}.cpp2c.cpp'
 
 
     @property
@@ -78,50 +78,39 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     def generate_packet(self):
         """Calls all necessary functions to generate a packet."""
-        self._log("Generating templates...", LOG_LEVEL_BASIC)
-        self.generate_templates()
         self._log("Generating headers...", LOG_LEVEL_BASIC)
         self.generate_header_code()
         self._log("Generating source...", LOG_LEVEL_BASIC)
         self.generate_source_code()
         self._log("Generating layers...", LOG_LEVEL_BASIC)
-        cpp2c = self.generate_cpp2c()
-        c2f = self.generate_c2f()
+        self.generate_cpp2c()
+        self.generate_c2f()
         self._log("Generation complete.", LOG_LEVEL_BASIC)
-        return {
-            "cpp2c": cpp2c,
-            "c2f": c2f
-        }
 
 
-    def generate_templates(self, overwrite=True):
+    def check_generate_template(self, overwrite=True):
         """Generates templates for use by cgkit."""
+        self._log("Checking for generated template...", LOG_LEVEL_BASIC_DEBUG)
+        if Path()
         generate_helpers_tpl.generate_helper_template(self.json)
 
 
-    def generate_header_code(self, overwrite=True) -> str:
+    def generate_header_code(self, overwrite=True):
         """
         Generate C++ header
-        
-        :rtype: str
-        :returns: Returns the name of the output.
         """
         # TODO: Replace with new json format
-        output_name = f"cgkit.{self.json[sections.NAME]}.h"
-        datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket_header.cpp', output_name)
-        return output_name
+        datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket_header.cpp', self.header_filename)
 
 
-    def generate_source_code(self, overwrite=True) -> str:
+    def generate_source_code(self, overwrite=True):
         """
-        Generate C++ source code
-        
-        :rtype: str
-        :returns: Returns the name of the output.
+        Generate C++ source code. Also generates the interoperability layers
+        if necessary.
         """
-        output_name = f"cgkit.{self.json[sections.NAME]}.cpp"
-        datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket.cpp', output_name)
-        return output_name
+        datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket.cpp', self.source_filename)
+        self.generate_cpp2c()
+        self.generate_c2f()
 
 
     # use language to determine which function to call.
