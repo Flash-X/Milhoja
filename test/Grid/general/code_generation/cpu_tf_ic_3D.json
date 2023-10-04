@@ -1,0 +1,67 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    3,
+        "nxb":          8,
+        "nyb":          8,
+        "nzb":          8,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "cpu_tf_ic",
+        "language": "C++", 
+        "processor": "CPU",
+        "cpp_header": "cpu_tf_ic.h",
+        "cpp_source": "cpu_tf_ic.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "argument_list": ["tile_lbound",
+                          "tile_ubound",
+                          "tile_xCenters",
+                          "tile_yCenters",
+                          "CC_1"],
+        "argument_specifications": {
+            "tile_lbound":      {"source":           "tile_lbound"},
+            "tile_ubound":      {"source":           "tile_ubound"},
+            "tile_xCenters":    {"source":           "tile_coordinates",
+                                 "axis":             "I",
+                                 "edge":             "center",
+                                 "lo":               "tile_lbound",
+                                 "hi":               "tile_ubound"},
+            "tile_yCenters":    {"source":           "tile_coordinates",
+                                 "axis":             "J",
+                                 "edge":             "center",
+                                 "lo":               "tile_lbound",
+                                 "hi":               "tile_ubound"},
+            "CC_1":             {"source":           "grid_data",
+                                 "structure_index": ["CENTER", 1],
+                                 "variables_out":   [1, 2]}
+        },
+        "subroutine_call_graph": [
+            "StaticPhysicsRoutines::setInitialConditions"
+        ]
+    },
+    "data_item": {
+        "type": "TileWrapper",
+        "byte_alignment": -1,
+        "header": "Tile_cpu_tf_ic.h",
+        "source": "Tile_cpu_tf_ic.cpp"
+    },
+    "subroutines": {
+        "StaticPhysicsRoutines::setInitialConditions": {
+            "interface_file": "setInitialConditions.h",
+            "argument_list": ["loGC",
+                              "hiGC",
+                              "xCoords",
+                              "yCoords",
+                              "U"],
+            "argument_mapping": {
+                "loGC":    "tile_lbound",
+                "hiGC":    "tile_ubound",
+                "xCoords": "tile_xCenters",
+                "yCoords": "tile_yCenters",
+                "U":       "CC_1"
+            }
+        }
+    }
+}

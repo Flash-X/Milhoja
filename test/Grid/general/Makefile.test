@@ -5,8 +5,8 @@ TESTBASEDIR         = $(TESTROOTDIR)/Base
 TESTGRIDDIR         = $(TESTROOTDIR)/Grid
 TESTDIR             = $(TESTGRIDDIR)/general
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST) -I$(TESTBASEDIR)/code_generation
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST) -I$(TESTBASEDIR)/code_generation
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(TESTBASEDIR) -I$(TESTGRIDDIR) -I$(TESTDIR) $(CXXFLAGS_GTEST)
 LDFLAGS_TEST        = $(LIB_GTEST)
 
 SRCS_TEST = \
@@ -16,7 +16,4 @@ SRCS_TEST = \
     $(TESTBASEDIR)/sim_getVariableNames.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
     $(TESTBASEDIR)/setInitialConditions_noRuntime.cpp \
-    $(TESTBASEDIR)/code_generation/cpu_tf_ic.cpp \
-    $(TESTBASEDIR)/code_generation/Tile_cpu_tf_ic.cpp \
     $(TESTGRIDDIR)/errorEstMaximal.cpp
-
