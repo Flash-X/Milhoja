@@ -8,6 +8,8 @@ from . import AbcCodeGenerator
 
 class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     """
+    A class for generating final, compilable C++ header and source code for the
+    task function specified by the specification object given at instantiation.
     """
     __LOG_TAG = "Milhoja C++/CPU Task Function"
 
@@ -18,20 +20,12 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             indent
             ):
         """
-        The basename of the header file is adopted as the name of the task
-        function.  It is assumed that the task function will receive a data
-        item derived from Milhoja_TileWrapper named Tile_<task function name>
-        declared in a header file Tile_<task function name>.h.
+        Construct an object for use with the task function specified by the
+        given specification object.
 
-        :param tf_spec: The XXX task function specification object
-        :type  tf_spec: XXX
-        :param tf_spec_filename: Name of the task function specification file
-        :type  tf_spec_filename: str
-        :param logger: Object for logging code generation details
-        :type  logger: CodeGenerationLogger or a class derived from that class
-        :param indent: The number of spaces used to define the tab to be used
-            in both generated files.
-        :type  indent: non-negative int, optional
+        :param tf_spec: TaskFunction specification object
+        :param log_level: Milhoja level to use for logging generation
+        :param indent: Number of spaces in tab to be used in generated files
         """
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.CPP_TF_KEY]["header"]
@@ -44,27 +38,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             indent
         )
 
-        # ----- CONSTANTS
-        # Keys identify the index space of a MFab available through the Milhoja
-        # Tile interface (i.e., data, etc.).  For each space, there may be one
-        # or more distinct MFabs managed by Grid.  These are indexed with each
-        # class by a different set of positive integers.
-        #
-        # TODO: This is strange.  This information should be encoded in the
-        # library.  Seems like a maintenance nightmare to link the contents
-        # here to the library that others might be using.  Should some of this
-        # information go into the include folder for us to pick out?  What if
-        # people want to use this on a machine different from the platform on
-        # which they will run?  Should the contents here be specified based on
-        # a given library version?
-        self.__AVAILABLE_MFABS = {"CENTER": [1],
-                                  "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
-
         # ----- CODE GENERATION CONSTANTS
         self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D", "milhoja::FArray2D",
                                         "milhoja::FArray3D", "milhoja::FArray4D"]
-        self.__MIN_DATA_ARRAY_DIM = 1
-        self.__MAX_DATA_ARRAY_DIM = len(self.__TILE_DATA_ARRAY_TYPES)
 
         msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
@@ -79,8 +55,11 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
     def __parse_extents_spec(self, spec):
         """
-        TODO: This is generic and really should be in a class for accessing a
-        task function specification.
+        .. todo::
+            * This is generic and really should be in a class for accessing a
+              task function specification.  Make an ArrayInfo class that
+              TaskFunction returns for extents instead of string?  Should that
+              class also manage lbound?
         """
         extents = spec.strip()
         assert extents.startswith("(")
@@ -90,21 +69,22 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
     def __generate_metadata_extraction(self, task_function, tile_desc):
         """
+        .. todo::
+            * Should we have a function that generates variable names since the
+            same MH_INTERNAL_* variables used here are also used in another
+            code generator.
+            * We are assuming a particular name for the TileWrapper class.  How
+            to get that?
         """
         code = []
     
-        args_all = task_function.dummy_arguments
         metadata_all = task_function.tile_metadata_arguments
     
         # ----- ADD TILEMETADATA NEEDED INTERNALLY
         # Some tile metadata can only be accessed using other metadata.
         # Add dependent metadata if not already in list.
-        #
-        # TODO: Should we have a function that generates variable names since the
-        # same MH_INTERNAL_* variables used here are also used in another code
-        # generator.
         internal = {}
-        for arg in args_all:
+        for arg in task_function.dummy_arguments:
             spec = task_function.argument_specification(arg)
     
             dependents = ["tile_coordinates", "tile_faceAreas", "tile_cellVolumes"]
@@ -128,7 +108,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                             metadata_all[key] = [variable]
     
         # ----- EXTRACT INDEPENDENT METADATA
-        # TODO: This is for CPU/C++
         order = [("tile_gridIndex", "const int", "gridIndex"),
                  ("tile_level", "const unsigned int", "level"),
                  ("tile_lo", "const milhoja::IntVect", "lo"),
@@ -207,25 +186,38 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     
         return code
 
-
     def generate_source_code(self, destination, overwrite):
         """
         .. todo::
+            * Write comments at top to indicate that this is generated code and
+              to provide some traceability of how it was generated.
+            * This implementation presently assumes that if you are running on
+              the CPU, then your data item must be a TileWrapper.  This will
+              not necessarily be true if, for instance, Grid data structures
+              are based in remote memory.
             * Only load those header files that are really needed
             * Why do external arguments need to specify name?  Why not use arg?
             * Once the Milhoja grid interface is expanded to account
               for multiple MFabs for each data type, improved the grid_data
-              section.  Also, we should be able to get any data using
-              tileDesc->data(MFab type, ID)
+              section.
             * Scratch data section is hardcoded.  OK for now since CPU task
               functions are presently just for test suite.  See Issue #59.
+            * We are assuming a particular name for the TileWrapper class.
+              How to get that?
+            * Since JSON files can map the TF's threadId onto a subroutine
+              dummy argument, rename that variable to something that reads more
+              clearly in the JSON.
         """
         INDENT = " " * self.indentation
 
-        path = Path(destination).resolve()
-        if not path.is_dir():
-            raise ValueError(f"{path} is not a folder or does not exist")
-        source_filename = path.joinpath(self.source_filename)
+        # Name of tileDesc variable in source.
+        # All code below should use TILE_DESC instead of their own string.
+        TILE_DESC = "tileDesc"
+
+        dst = Path(destination).resolve()
+        if not dst.is_dir():
+            raise ValueError(f"{dst} is not a folder or does not exist")
+        source_filename = dst.joinpath(self.source_filename)
 
         msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
@@ -233,15 +225,17 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
 
-        tile_name = f"Tile_{self._tf_spec.name}"
+        wrapper = f"Tile_{self._tf_spec.name}"
 
         json_fname = self.specification_filename
 
         with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
+            outputs = self._tf_spec.output_filenames
+            data_item_header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
             fptr.write(f'#include "{self.header_filename}"\n')
-            fptr.write(f'#include "Tile_{self.header_filename}"\n')
+            fptr.write(f'#include "{data_item_header}"\n')
             fptr.write("\n")
 
             # Milhoja header files
@@ -260,11 +254,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # Application header files for subroutines
-            # We require a flat call stack for CPU task functions
             headers_all = set()
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
-                    assert len(node) == 1
                     header = \
                         self._tf_spec.subroutine_interface_file(subroutine)
                     headers_all = headers_all.union(set([header]))
@@ -283,24 +275,24 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- ACCESS GIVEN TILE DESCRIPTOR
-            fptr.write(f"{INDENT}{tile_name}*  wrapper = dynamic_cast<{tile_name}*>(dataItem);\n")
-            fptr.write(f"{INDENT}milhoja::Tile*  tileDesc = wrapper->tile_.get();\n")
+            fptr.write(f"{INDENT}{wrapper}*  wrapper = dynamic_cast<{wrapper}*>(dataItem);\n")
+            fptr.write(f"{INDENT}milhoja::Tile*  {TILE_DESC} = wrapper->tile_.get();\n")
             fptr.write("\n")
 
             # ----- EXTRACT EXTERNAL VARIABLES
             for arg in sorted(self._tf_spec.external_arguments):
                 arg_spec = self._tf_spec.argument_specification(arg)
                 name = arg_spec["name"]
-                param_type = arg_spec["type"]
+                arg_type = arg_spec["type"]
                 extents = arg_spec["extents"]
                 if len(extents) == 0:
-                    fptr.write(f"{INDENT}{param_type}& {name} = wrapper->{name}_;\n")
+                    fptr.write(f"{INDENT}{arg_type}& {name} = wrapper->{name}_;\n")
                 else:
                     raise NotImplementedError("Need arrays")
 
             # ----- EXTRACT TASK FUNCTION TILE METADATA FROM TILE
             metadata_all = self._tf_spec.tile_metadata_arguments
-            code = self.__generate_metadata_extraction(self._tf_spec, "tileDesc")
+            code = self.__generate_metadata_extraction(self._tf_spec, TILE_DESC)
             for line in code:
                 fptr.write(f"{INDENT}{line}\n")
 
@@ -311,34 +303,21 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             for arg in sorted(grid_args):
                 arg_spec = self._tf_spec.argument_specification(arg)
                 arg_mfab = arg_spec["structure_index"]
-                if len(arg_mfab) != 2:
-                    error_msg = f"Invalid structure_index for {arg} in {json_fname}"
-                    raise ValueError(error_msg)
+                assert len(arg_mfab) == 2
                 index_space = arg_mfab[0].upper()
                 mfab_idx = arg_mfab[1]
-                if (index_space not in self.__AVAILABLE_MFABS) or \
-                   (mfab_idx not in self.__AVAILABLE_MFABS[index_space]):
-                    error_msg = f"{arg_mfab} specified for {arg} in {json_fname}"
-                    error_msg += "is not a valid grid data structure"
-                    raise ValueError(error_msg)
+                assert mfab_idx == 1
 
-#                fptr.write(f'{_INDENT}{arg_type}  {arg} = tileDesc->data("{index_space}", {mfab_idx});\n')
+                dimension = 4
+                arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                 if index_space == "CENTER":
-                    dimension = 4
-                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->data();\n")
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->data();\n")
                 elif index_space == "FLUXX":
-                    dimension = 4
-                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::I);\n")
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::I);\n")
                 elif index_space == "FLUXY":
-                    dimension = 4
-                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::J);\n")
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::J);\n")
                 elif index_space == "FLUXZ":
-                    dimension = 4
-                    arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                    fptr.write(f"{INDENT}{arg_type}  {arg} = tileDesc->fluxData(milhoja::Axis::K);\n")
+                    fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::K);\n")
                 else:
                     raise NotImplementedError("This should never happen")
 
@@ -347,14 +326,9 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 arg_spec = self._tf_spec.argument_specification(arg)
                 extents = self.__parse_extents_spec(arg_spec["extents"])
                 dimension = len(extents)
-                if (dimension < self.__MIN_DATA_ARRAY_DIM) or \
-                   (dimension > self.__MAX_DATA_ARRAY_DIM):
-                    error_msg = f"Invalid dimension for {arg} in {json_fname}"
-                    raise ValueError(msg)
-                arg_type = arg_spec["type"]
                 array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
+                arg_type = arg_spec["type"]
 
-                # TODO: We should get this from extents and tile_lo
                 if arg == "hydro_op1_auxc":
                     assert dimension == 3
                     fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
@@ -364,8 +338,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
                     fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
@@ -378,8 +352,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
-                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({tile_name}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {tile_name}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg},\n")
@@ -391,8 +365,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
             # ----- CALL SUBROUTINES
             # We require a flat call graph for CPU task functions
-            # TODO: Confirm this
             for node in self._tf_spec.internal_subroutine_graph:
+                assert len(node) == 1
                 for subroutine in node:
                     arg_list = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
@@ -406,13 +380,16 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
     def generate_header_code(self, destination, overwrite):
         """
+        .. todo::
+            * Write comments at top to indicate that this is generated code and
+              to provide some traceability of how it was generated.
         """
         INDENT = " " * self.indentation
 
-        path = Path(destination).resolve()
-        if not path.is_dir():
-            raise ValueError(f"{path} is not a folder or does not exist")
-        header_filename = path.joinpath(self.header_filename)
+        dst = Path(destination).resolve()
+        if not dst.is_dir():
+            raise ValueError(f"{dst} is not a folder or does not exist")
+        header_filename = dst.joinpath(self.header_filename)
 
         msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)

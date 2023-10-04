@@ -74,37 +74,6 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         # appear before calling a generate method, we don't check file
         # existence here.
 
-        # ----- CONSTANTS
-        # Keys identify the index space of a MFab available through the Milhoja
-        # Tile interface (i.e., data, etc.).  For each space, there may be one
-        # or more distinct MFabs managed by Grid.  These are indexed with each
-        # class by a different set of positive integers.
-        #
-        # TODO: This is strange.  This information should be encoded in the
-        # library.  Seems like a maintenance nightmare to link the contents
-        # here to the library that others might be using.  Should some of this
-        # information go into the include folder for us to pick out?  What if
-        # people want to use this on a machine different from the platform on
-        # which they will run?  Should the contents here be specified based on
-        # a given library version?
-        self.__AVAILABLE_MFABS = {"CENTER": [1],
-                                  "FLUXX":  [1], "FLUXY": [1], "FLUXZ": [1]}
-
-        # ----- CODE GENERATION CONSTANTS
-        # TODO: The content here is likely generic to all code generators and
-        # should likely be made available in a constants.py file in the
-        # package.
-        self.__TILE_METADATA_LUT = {"tile_lo":     ("const milhoja::IntVect",  "tileDesc->lo()"),
-                                    "tile_hi":     ("const milhoja::IntVect",  "tileDesc->hi()"),
-                                    "tile_deltas": ("const milhoja::RealVect", "tileDesc->deltas()")}
-
-        self.__TILE_DATA_ARRAY_TYPES = ["milhoja::FArray1D",
-                                        "milhoja::FArray2D",
-                                        "milhoja::FArray3D",
-                                        "milhoja::FArray4D"]
-        self.__MIN_DATA_ARRAY_DIM = 1
-        self.__MAX_DATA_ARRAY_DIM = len(self.__TILE_DATA_ARRAY_TYPES)
-
         msg = "Loaded task function specification\n"
         msg += "-" * 80 + "\n"
         msg += str(self)
@@ -137,9 +106,11 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
     def __parse_extents_spec(self, spec):
         """
-        TODO: This is generic and really should be in a class for accessing a
-        task function specification.
-        TODO: Make an extents class, which is what TaskFunction gives out?
+        .. todo::
+            * This is generic and really should be in a class for accessing a
+              task function specification.  Make an ArrayInfo class that
+              TaskFunction returns for extents instead of string?  Should that
+              class also manage lbound?
         """
         extents = spec.strip()
         assert extents.startswith("(")
@@ -176,8 +147,12 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         return code
 
     def generate_source_code(self, destination, overwrite):
-        """Generate the C++ source code"""
+        """
+        Generate the C++ source code
+        """
         INDENT = " " * self.indentation
+
+        classname = self.class_name
 
         path = Path(destination).resolve()
         if not path.is_dir():
@@ -186,8 +161,6 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
-
-        classname = self.class_name
 
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
@@ -207,14 +180,16 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- STATIC DEFINITIONS
-            for arg in self.__scratch_variables:
+            scratch_vars = self.__scratch_variables
+            for arg in scratch_vars:
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
             fptr.write("\n")
             fptr.write(f"void {classname}::acquireScratch(void) {{\n")
-            fptr.write(f"{INDENT}const unsigned int  nThreads = ")
-            fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
-            fptr.write("\n")
-            for arg in self.__scratch_variables:
+            if len(scratch_vars) > 0:
+                fptr.write(f"{INDENT}const unsigned int  nThreads = ")
+                fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
+                fptr.write("\n")
+            for arg in scratch_vars:
                 arg_spec = self.__scratch_specification(arg)
                 arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
@@ -316,8 +291,12 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("}\n")
 
     def generate_header_code(self, destination, overwrite):
-        """Generate the C++ header code"""
+        """
+        Generate the C++ header code
+        """
         INDENT = " " * self.indentation
+
+        classname = self.class_name
 
         path = Path(destination).resolve()
         if not path.is_dir():
@@ -330,8 +309,6 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         if (not overwrite) and header_filename.exists():
             raise ValueError(f"{header_filename} already exists")
-
-        classname = self.class_name
 
         with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
@@ -364,7 +341,6 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")
 
-            # TODO: Should we only declare & define these if scratch is needed?
             fptr.write(f"{INDENT}static void acquireScratch(void);\n")
             fptr.write(f"{INDENT}static void releaseScratch(void);\n")
             fptr.write("\n")

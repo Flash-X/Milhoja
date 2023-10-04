@@ -8,8 +8,6 @@
 
 
 void Tile_cpu_tf_ic::acquireScratch(void) {
-    const unsigned int  nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
-
 }
 
 void Tile_cpu_tf_ic::releaseScratch(void) {
