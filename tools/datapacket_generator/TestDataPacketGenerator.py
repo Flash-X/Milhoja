@@ -84,6 +84,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             generator = DataPacketGenerator.from_json(self.namespace)
             name = generator.name
 
+            generator.generate_header_code()
+            generator.generate_source_code()
+
             generated_name_cpp = generator.source_filename
             correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
             

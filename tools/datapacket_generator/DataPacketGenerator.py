@@ -48,6 +48,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         instance.json[sections.GENERAL]['nTiles'] = nTiles_type
         
         return instance
+    
         
     def __init__(
         self,
@@ -57,7 +58,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         log_level,
         indent
     ):
-        ...
         self.json = {}
         self.__TOOL_NAME = self.__class__.__name__
         super().__init__(
@@ -68,7 +68,10 @@ class DataPacketGenerator(AbcCodeGenerator):
             log_level,
             indent
         )
+        self._helper_tpl = None
+        self._outer_tpl = None
         self.__cpp2c_name = f'{header_filename.replace(".json", "")}.cpp2c.cpp'
+        self.__c2f_name = f'{header_filename.replace(".json", "")}.c2f.F90'
 
 
     @property
@@ -88,10 +91,17 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._log("Generation complete.", LOG_LEVEL_BASIC)
 
 
+    # TODO: This does not work if the templates need to be overwritten or there is a new version of 
+    # the code generator.
     def check_generate_template(self, overwrite=True):
         """Generates templates for use by cgkit."""
+        if self._helper_tpl and self._outer_tpl:
+            self._log("Templates already created, skipping...", LOG_LEVEL_BASIC_DEBUG)
+
         self._log("Checking for generated template...", LOG_LEVEL_BASIC_DEBUG)
-        if Path()
+        self._helper_tpl = Path(f"cgkit.{self.json[sections.NAME]}_helpers.cpp").resolve()
+        self._outer_tpl = Path(f"cgkit.{self.json[sections.NAME]}_outer.cpp").resolve()
+
         generate_helpers_tpl.generate_helper_template(self.json)
 
 
@@ -100,6 +110,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         Generate C++ header
         """
         # TODO: Replace with new json format
+        self.check_generate_template()
         datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket_header.cpp', self.header_filename)
 
 
@@ -108,6 +119,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         Generate C++ source code. Also generates the interoperability layers
         if necessary.
         """
+        self.check_generate_template()
         datapacket_cgkit.generate_file(self.json, 'cg-tpl.datapacket.cpp', self.source_filename)
         self.generate_cpp2c()
         self.generate_c2f()
@@ -139,10 +151,13 @@ class DataPacketGenerator(AbcCodeGenerator):
         if self.json[sections.LANG] == utility.Language.fortran:
             c2f_generator.generate_c2f(self.json)
 
+
     @property
     def cpp2c_filename(self):
         return self.__cpp2c_name
-    
+
+
     @property
     def c2f_filename(self):
         return self.__c2f_name
+    
