@@ -79,9 +79,11 @@ protected:
         unsigned int    nBlocksY{RPs.getUnsignedInt("Grid", "nBlocksY")};
         unsigned int    nBlocksZ{RPs.getUnsignedInt("Grid", "nBlocksZ")};
         Analysis::initialize( nBlocksX * nBlocksY * nBlocksZ );
+        Tile_cpu_tf_analysis::acquireScratch();
         const Tile_cpu_tf_analysis   prototype{};
         Runtime::instance().executeCpuTasks("Analysis",
                                             computeError, prototype);
+        Tile_cpu_tf_analysis::releaseScratch();
 
         double L_inf1      = 0.0;
         double meanAbsErr1 = 0.0;

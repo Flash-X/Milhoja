@@ -36,10 +36,9 @@ void  cpu_tf_ener::taskFunction(const int threadId,
     milhoja::Real* ptr_base_op1_scratch = 
              static_cast<milhoja::Real*>(Tile_cpu_tf_ener::base_op1_scratch_)
             + Tile_cpu_tf_ener::BASE_OP1_SCRATCH_SIZE_ * threadId;
-    milhoja::FArray4D  base_op1_scratch = milhoja::FArray4D{ptr_base_op1_scratch,
+    milhoja::FArray3D  base_op1_scratch = milhoja::FArray3D{ptr_base_op1_scratch,
             lo_base_op1_scratch,
-            hi_base_op1_scratch,
-            2};
+            hi_base_op1_scratch};
 
     StaticPhysicsRoutines::computeLaplacianEnergy(
                     tile_lo,

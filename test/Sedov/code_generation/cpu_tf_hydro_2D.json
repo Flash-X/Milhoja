@@ -44,7 +44,7 @@
             "hydro_op1_auxc": {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(18, 18, 1)",
-                               "lbound":           "(tile_lo) - (1, 1, 1)"}
+                               "lbound":           "(tile_lo) - (1, 1, 0)"}
         },
         "subroutine_call_graph": [
             "hy::computeFluxesHll",

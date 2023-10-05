@@ -23,7 +23,6 @@ struct Tile_cpu_tf_dens : public milhoja::TileWrapper {
     constexpr static std::size_t  BASE_OP1_SCRATCH_SIZE_ =
                       8
                     * 16
-                    * 1
                     * 1;
 
     static void* base_op1_scratch_;

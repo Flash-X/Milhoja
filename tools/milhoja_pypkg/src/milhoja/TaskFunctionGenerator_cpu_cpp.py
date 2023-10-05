@@ -346,8 +346,20 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
-                elif arg == "base_op1_scratch":
-                    assert dimension == 4
+                elif arg == "base_op1_scratch" and dimension == 3:
+                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
+                    fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
+                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
+                    fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
+                    fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
+                    fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
+                    fptr.write(f"{INDENT*3}lo_{arg},\n")
+                    fptr.write(f"{INDENT*3}hi_{arg}}};\n")
+                elif arg == "base_op1_scratch" and dimension == 4:
                     fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")

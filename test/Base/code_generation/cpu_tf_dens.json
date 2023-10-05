@@ -30,8 +30,8 @@
                                  "variables_out":   [1, 1]},
             "base_op1_scratch": {"source":           "scratch",
                                  "type":             "real",
-                                 "extents":          "(8, 16, 1, 1)",
-                                 "lbound":           "(tile_lo, 1)"}
+                                 "extents":          "(8, 16, 1)",
+                                 "lbound":           "(tile_lo)"}
         },
         "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianDensity"
