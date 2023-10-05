@@ -1,5 +1,5 @@
 /* _connector:datapacket */
-#include "cgkit._param:class_name.h"
+#include "_param:class_name.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
@@ -8,6 +8,7 @@
 
 #if 0
 /* _link:public_members */
+/* _link:size_determination */
 /* _link:includes */
 /* _link:stream_functions_h */
 /* _link:memcpy_tile_scratch */
@@ -41,18 +42,16 @@ _param:class_name::~_param:class_name(void) {
 
 void _param:class_name::pack(void) {
     using namespace milhoja;
-	std::string errMsg = isNull();
-	if (errMsg != "")
-		throw std::logic_error("[_param:class_name pack] " + errMsg);
-	else if (tiles_.size() == 0)
-		throw std::logic_error("[_param:class_name pack] No tiles added.");
+    std::string errMsg = isNull();
+    if (errMsg != "")
+        throw std::logic_error("[_param:class_name pack] " + errMsg);
+    else if (tiles_.size() == 0)
+        throw std::logic_error("[_param:class_name pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     /* _link:nTiles_value */
-    // size determination
-    /* _link:size_determination */
 
-	std::size_t SIZE_CONSTRUCTOR = pad(
+    constexpr std::size_t SIZE_CONSTRUCTOR = pad(
         /* _link:size_constructor */
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
@@ -121,7 +120,7 @@ void _param:class_name::pack(void) {
     //memcopy phase
     /* _link:memcpy_constructor */
     char* char_ptr;
-    for (std::size_t n = 0; n < _nTiles_h; n++) {
+    for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[_param:class_name pack] Bad tiledesc.");
         /* _link:tile_descriptor */
@@ -145,7 +144,6 @@ void _param:class_name::unpack(void) {
         throw std::logic_error("[_param:class_name unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
-    /* _link:pinned_sizes */
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
         /* _link:in_pointers */
@@ -154,3 +152,4 @@ void _param:class_name::unpack(void) {
         /* _link:unpack_tile_out */
     }
 }
+

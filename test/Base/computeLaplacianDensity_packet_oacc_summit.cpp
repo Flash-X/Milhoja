@@ -3,7 +3,7 @@
 #include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_DataPacket.h>
-#include "cgkit.DataPacket_gpu_dens_stream.h"
+#include "DataPacket_gpu_dens_stream.h"
 
 #include "Base.h"
 

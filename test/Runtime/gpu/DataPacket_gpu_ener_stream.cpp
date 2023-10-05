@@ -1,27 +1,9 @@
-#include "cgkit.DataPacket_gpu_ener_stream.h"
+#include "DataPacket_gpu_ener_stream.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
-
-#if 0
-std::size_t _nTiles_h;
-std::size_t* _nTiles_d;
-RealVect* _tile_deltas_d;
-IntVect* _tile_lo_d;
-IntVect* _tile_hi_d;
-real* _Uin_d;
-real* _Uin_p;
-real* _Uout_d;
-real* _Uout_p;
-FArray4D* _f4_Uin_d;
-FArray4D* _f4_Uout_d;
-FArray4D* _f4_Uin_p;
-FArray4D* _f4_Uout_p;
-
-
-#endif
 
 std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_ener_stream::clone(void) const {
     return std::unique_ptr<milhoja::DataPacket>{
@@ -48,10 +30,9 @@ _tile_hi_d{nullptr},
 _Uin_d{nullptr},
 _Uin_p{nullptr},
 _Uout_d{nullptr},
+_Uout_p{nullptr},
 _f4_Uin_d{nullptr},
-_f4_Uout_d{nullptr},
-_f4_Uin_p{nullptr},
-_f4_Uout_p{nullptr}
+_f4_Uout_d{nullptr}
 
     {
 }
@@ -62,24 +43,16 @@ DataPacket_gpu_ener_stream::~DataPacket_gpu_ener_stream(void) {
 
 void DataPacket_gpu_ener_stream::pack(void) {
     using namespace milhoja;
-	std::string errMsg = isNull();
-	if (errMsg != "")
-		throw std::logic_error("[DataPacket_gpu_ener_stream pack] " + errMsg);
-	else if (tiles_.size() == 0)
-		throw std::logic_error("[DataPacket_gpu_ener_stream pack] No tiles added.");
+    std::string errMsg = isNull();
+    if (errMsg != "")
+        throw std::logic_error("[DataPacket_gpu_ener_stream pack] " + errMsg);
+    else if (tiles_.size() == 0)
+        throw std::logic_error("[DataPacket_gpu_ener_stream pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
-    // size determination
-    constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
-    constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
-    constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
-    constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (1 - 0 + 1) * sizeof(real);
-    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 1 - 0 + 1 ) * sizeof(real);
-    
 
-	std::size_t SIZE_CONSTRUCTOR = pad(
+    constexpr std::size_t SIZE_CONSTRUCTOR = pad(
     SIZE_NTILES
     
     );
@@ -87,7 +60,7 @@ void DataPacket_gpu_ener_stream::pack(void) {
         throw std::logic_error("[DataPacket_gpu_ener_stream pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    (2 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + 0
+    (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + 0
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -159,15 +132,15 @@ void DataPacket_gpu_ener_stream::pack(void) {
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
     
-    _f4_Uin_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_Uin_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_Uin_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
-    _f4_Uout_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_Uout_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_Uout_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -195,7 +168,7 @@ void DataPacket_gpu_ener_stream::pack(void) {
     std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
     
     char* char_ptr;
-    for (std::size_t n = 0; n < _nTiles_h; n++) {
+    for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_ener_stream pack] Bad tiledesc.");
         const auto deltas = tileDesc_h->deltas();
@@ -221,12 +194,12 @@ void DataPacket_gpu_ener_stream::pack(void) {
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
         FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), loGC, hiGC, 1 - 0 + 1};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), SIZE_FARRAY4D);
         
         FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), loGC, hiGC, 1 - 0 + 1};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), SIZE_FARRAY4D);
         
         
         
@@ -246,9 +219,6 @@ void DataPacket_gpu_ener_stream::unpack(void) {
         throw std::logic_error("[DataPacket_gpu_ener_stream unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
-    constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (1 - 0 + 1) * sizeof(real);
-    constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 1 - 0 + 1 ) * sizeof(real);
-    
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
         real* _data_h = tileDesc_h->dataPtr();

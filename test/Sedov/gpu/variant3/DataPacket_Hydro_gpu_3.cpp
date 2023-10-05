@@ -1,37 +1,9 @@
-#include "cgkit.DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_Hydro_gpu_3.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
-
-#if 0
-real _dt_h;
-real* _dt_d;
-std::size_t _nTiles_h;
-std::size_t* _nTiles_d;
-RealVect* _tile_deltas_d;
-IntVect* _tile_lo_d;
-IntVect* _tile_hi_d;
-real* _U_d;
-real* _U_p;
-real* _auxC_d;
-real* _flX_d;
-real* _flY_d;
-real* _flZ_d;
-FArray4D* _f4_U_d;
-FArray4D* _f4_auxC_d;
-FArray4D* _f4_flX_d;
-FArray4D* _f4_flY_d;
-FArray4D* _f4_flZ_d;
-FArray4D* _f4_U_p;
-FArray4D* _f4_auxC_p;
-FArray4D* _f4_flX_p;
-FArray4D* _f4_flY_p;
-FArray4D* _f4_flZ_p;
-
-
-#endif
 
 std::unique_ptr<milhoja::DataPacket> DataPacket_Hydro_gpu_3::clone(void) const {
     return std::unique_ptr<milhoja::DataPacket>{
@@ -67,12 +39,7 @@ _f4_U_d{nullptr},
 _f4_auxC_d{nullptr},
 _f4_flX_d{nullptr},
 _f4_flY_d{nullptr},
-_f4_flZ_d{nullptr},
-_f4_U_p{nullptr},
-_f4_auxC_p{nullptr},
-_f4_flX_p{nullptr},
-_f4_flY_p{nullptr},
-_f4_flZ_p{nullptr}
+_f4_flZ_d{nullptr}
 
     {
 }
@@ -83,28 +50,16 @@ DataPacket_Hydro_gpu_3::~DataPacket_Hydro_gpu_3(void) {
 
 void DataPacket_Hydro_gpu_3::pack(void) {
     using namespace milhoja;
-	std::string errMsg = isNull();
-	if (errMsg != "")
-		throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] " + errMsg);
-	else if (tiles_.size() == 0)
-		throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] No tiles added.");
+    std::string errMsg = isNull();
+    if (errMsg != "")
+        throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] " + errMsg);
+    else if (tiles_.size() == 0)
+        throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
-    // size determination
-    constexpr std::size_t SIZE_DT = sizeof(real);
-    constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
-    constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
-    constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
-    constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    constexpr std::size_t SIZE_U = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(real);
-    constexpr std::size_t SIZE_AUXC = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * sizeof(real);
-    constexpr std::size_t SIZE_FLX = ((16 + 2 * 0) + 1) * (16 + 2 * 0) * (1 + 2 * 0) * (5) * sizeof(real);
-    constexpr std::size_t SIZE_FLY = (16 + 2 * 0) * ((16 + 2 * 0) + 1) * (1 + 2 * 0) * (5) * sizeof(real);
-    constexpr std::size_t SIZE_FLZ = (1) * (1) * (1) * (1) * sizeof(real);
-    
 
-	std::size_t SIZE_CONSTRUCTOR = pad(
+    constexpr std::size_t SIZE_CONSTRUCTOR = pad(
     SIZE_DT + SIZE_NTILES
     
     );
@@ -112,7 +67,7 @@ void DataPacket_Hydro_gpu_3::pack(void) {
         throw std::logic_error("[DataPacket_Hydro_gpu_3 pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    (5 * sizeof(FArray4D)) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + 0
+    (5 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + 0
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -201,30 +156,30 @@ void DataPacket_Hydro_gpu_3::pack(void) {
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
     
-    _f4_U_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_U_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_U_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
-    _f4_auxC_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_auxC_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_auxC_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
-    _f4_flX_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_flX_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_flX_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
-    _f4_flY_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_flY_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_flY_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
-    _f4_flZ_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    FArray4D* _f4_flZ_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_flZ_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
-    ptr_p += _nTiles_h * sizeof(FArray4D);
-    ptr_d += _nTiles_h * sizeof(FArray4D);
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -248,7 +203,7 @@ void DataPacket_Hydro_gpu_3::pack(void) {
     std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
     
     char* char_ptr;
-    for (std::size_t n = 0; n < _nTiles_h; n++) {
+    for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_Hydro_gpu_3 pack] Bad tiledesc.");
         const auto deltas = tileDesc_h->deltas();
@@ -268,24 +223,24 @@ void DataPacket_Hydro_gpu_3::pack(void) {
         
         
         FArray4D U_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_U_d) ) + n * SIZE_U)), loGC, hiGC, 8 - 0 + 1};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_device), SIZE_FARRAY4D);
         
         FArray4D auxC_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_auxC_d) ) + n * SIZE_AUXC)), loGC, hiGC, 1};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_auxC_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&auxC_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_auxC_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&auxC_device), SIZE_FARRAY4D);
         
         FArray4D flX_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flX_d) ) + n * SIZE_FLX)), lo, IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }, 5};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flX_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flX_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flX_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flX_device), SIZE_FARRAY4D);
         
         FArray4D flY_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flY_d) ) + n * SIZE_FLY)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }, 5};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flY_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flY_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flY_device), SIZE_FARRAY4D);
         
         FArray4D flZ_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_flZ_d) ) + n * SIZE_FLZ)), lo, IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }, 5};
-        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flZ_p) ) + n * sizeof(FArray4D);
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_device), sizeof(FArray4D));
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_flZ_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&flZ_device), SIZE_FARRAY4D);
         
         
         real* U_d = tileDesc_h->dataPtr();
@@ -311,8 +266,6 @@ void DataPacket_Hydro_gpu_3::unpack(void) {
         throw std::logic_error("[DataPacket_Hydro_gpu_3 unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
-    constexpr std::size_t SIZE_U = (16 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (8 - 0 + 1) * sizeof(real);
-    
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
         real* U_data_h = tileDesc_h->dataPtr();

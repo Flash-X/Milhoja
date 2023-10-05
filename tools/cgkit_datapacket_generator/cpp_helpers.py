@@ -18,23 +18,28 @@ BOUND_MAP = {
 
 
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
-def get_metadata_dependencies(metadata: dict, language: str) -> set:
+def get_metadata_dependencies(metadata: dict, language: str):
     """
     Insert metadata dependencies into the memcpy section for a cpp packet.
     
     :param dict metadata: The dict containing tile-metadata information.
     :param str language: The language to use.
     """
-    if language == util.Language.fortran: return set()
+    if language == util.Language.fortran: return []
     mdata_set = set(metadata.values())
-    return mdata_set.symmetric_difference({"lo", "hi", "loGC", "hiGC"}).intersection({"lo", "hi", "loGC", "hiGC"})
+    # sort the missing tile_metadata set for consistency
+    sorted_set = sorted(
+        set(["lo", "hi", "loGC", "hiGC"]).difference(mdata_set),
+        reverse=True
+    )
+    return sorted_set
 
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:
     """Inserts the total size needed to store all farray pointers."""
     line = connectors[f'size_{jsc.T_MDATA}']
     insert_index = line.find('(')
-    connectors[f'size_{jsc.T_MDATA}'] = f'{line[:insert_index + 1]}({num_arrays} * sizeof(FArray4D)) + {line[insert_index + 1:]}'
+    connectors[f'size_{jsc.T_MDATA}'] = f'{line[:insert_index + 1]}({num_arrays} * SIZE_FARRAY4D) + {line[insert_index + 1:]}'
 
 
 def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str, data_type: str):
@@ -51,17 +56,17 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
     # create metadata pointers for the f4array classes. TODO: THis is probably mentioned elsewhere
     # but when do we use FArray3D / 2D / ND? 
     connectors[f'pointers_{jsc.T_MDATA}'].append(
-        f"""_f4_{item}_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );\n""" + \
+        f"""FArray4D* _f4_{item}_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );\n""" + \
         f"""_f4_{item}_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );\n""" + \
-        f"""ptr_p += _nTiles_h * sizeof(FArray4D);\n""" + \
-        f"""ptr_d += _nTiles_h * sizeof(FArray4D);\n\n"""
+        f"""ptr_p += _nTiles_h * SIZE_FARRAY4D;\n""" + \
+        f"""ptr_d += _nTiles_h * SIZE_FARRAY4D;\n\n"""
     )
     # Does not matter what memcpy section we insert into, so we default to T_IN.
     connectors[f'memcpy_{jsc.T_IN}'].extend([
         f"""FArray4D {item}_device{{ static_cast<{data_type}*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_{item}_d) ) """ + \
         f"""+ n * SIZE_{item.upper()})), {lo}, {hi}, {unks}}};\n""",
-        f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * sizeof(FArray4D);\n'
-        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_device), sizeof(FArray4D));\n\n'
+        f'char_ptr = static_cast<char*>( static_cast<void*>(_f4_{item}_p) ) + n * SIZE_FARRAY4D;\n'
+        f'std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&{item}_device), SIZE_FARRAY4D);\n\n'
     ])
 
 
@@ -80,12 +85,10 @@ def insert_farray_information(data: dict, connectors: dict, section: str, set_me
     farrays = {item: sect[item] for sect in dicts for item in sect}
     # TODO: Use DataPacketMemberVars class for this.
     connectors[section].extend(
-        [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] + 
-        [ f'FArray4D* _f4_{item}_p;\n' for item in farrays ]
+        [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] 
     )
     connectors[set_members].extend(
-        [ f'_f4_{item}_d{{nullptr}}' for item in farrays ] +
-        [ f'_f4_{item}_p{{nullptr}}' for item in farrays ]
+        [ f'_f4_{item}_d{{nullptr}}' for item in farrays ]
     )
 
 

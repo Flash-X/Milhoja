@@ -106,6 +106,7 @@ def _set_pointer_determination(
 def _generate_extra_streams_information(connectors: dict, extra_streams: int):
     """
     Fills the links extra_streams, stream_functions_h/cxx.
+    TODO: Streams in the datapacket should use an array implementation
 
     :param dict connectors: The dictionary containing all connectors to be used with CGKit.
     :param int extra_streams: The number of extra streams specified in the data packet JSON.
@@ -118,12 +119,12 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
         f'void releaseExtraQueue(const unsigned int id) override;\n'
     ])
     connectors[_EXTRA_STREAMS].extend([
-        f'Stream stream{i}_;\n' for i in range(2, extra_streams+2)
+        f'milhoja::Stream stream{i}_;\n' for i in range(2, extra_streams+2)
     ])
     connectors[_DESTRUCTOR].extend([
-        f'if (stream{i}_.isValid())' +
-         ' throw std::logic_error("[_param:class_name::~_param:class_name] ' +
-         'Stream {i} not released");\n'
+        f'if (stream{i}_.isValid())\n' +
+         '\tthrow std::logic_error("[_param:class_name::~_param:class_name] ' +
+         f'Stream {i} not released");\n'
         for i in range(2, extra_streams+2)
     ])
 
@@ -132,32 +133,32 @@ def _generate_extra_streams_information(connectors: dict, extra_streams: int):
     # task function does not use more than 1 stream.
     connectors[_STREAM_FUNCS_CXX].extend([
             f'int _param:class_name::extraAsynchronousQueue(const unsigned int id) {{\n',
-            f'\tif((id < 2) || (id > {extra_streams} + 1))' +
-            f' throw std::invalid_argument("[_param:class_name::extraAsynchronousQueue] Invalid id.");\n',
-            '\tswitch(id) {\n'
+            f'\tif (id > INT_MAX)\n\t\tthrow std::overflow_error("[_param:class_name extraAsynchronousQueue] id is too large for int.");\n'
+            f'\tif((id < 2) || (id > {extra_streams} + 1))\n' +
+            f'\t\tthrow std::invalid_argument("[_param:class_name::extraAsynchronousQueue] Invalid id.");\n\t',
         ] + [
-            f'\t\tcase {i}: if(!stream{i}_.isValid())' +
-            f'{{ throw std::logic_error("[_param:class_name::extraAsynchronousQueue]' +
-            f' Stream {i} invalid."); }} return stream{i}_.accAsyncQueue;\n'
+            f'else if (id == {i}) {{\n' +
+            f'\t\tif (!stream{i}_.isValid()) ' + 
+            f'\n\t\t\tthrow std::logic_error("[_param:class_name::extraAsynchronousQueue] ' +
+            f'Stream {i} invalid.");\n\t\treturn stream{i}_.accAsyncQueue;\n' + 
+            f'\t}} '
             for i in range(2, extra_streams+2)
         ] + [
-            '\t}\n',
-            '\treturn 0;\n',
-            '}\n'
+            '\n\treturn 0;\n',
+            '}\n\n'
         ] + [
             f'void _param:class_name::releaseExtraQueue(const unsigned int id) {{\n',
-            f'\tif((id < 2) || (id > {extra_streams} + 1))' + 
-            f' throw std::invalid_argument("[_param:class_name::releaseExtraQueue] Invalid id.");\n',
-            '\tswitch(id) {\n'
+            f'\tif((id < 2) || (id > {extra_streams} + 1))\n' + 
+            f'\t\tthrow std::invalid_argument("[_param:class_name::releaseExtraQueue] Invalid id.");\n\t',
         ] + [
-            f'\t\tcase {i}:\n'
-            f'\t\t\tif(!stream{i}_.isValid())\n' + 
-            f'\t\t\t\tthrow std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid.");\n' + 
-            f'\t\t\tmilhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n' 
-            f'\t\t\tbreak;\n'
+            f'else if(id == {i}) {{\n'
+            f'\t\tif(!stream{i}_.isValid())\n' + 
+            f'\t\t\tthrow std::logic_error("[_param:class_name::releaseExtraQueue] Stream {i} invalid.");\n' + 
+            f'\t\tmilhoja::RuntimeBackend::instance().releaseStream(stream{i}_);\n' 
+            f'\t}} '
             for i in range(2, extra_streams+2)
         ] + [   
-            '\t}\n'
+            '\n'
             '}\n'
         ]
     )
@@ -191,7 +192,10 @@ def _iterate_constructor(
     
     nTiles_value = '_nTiles_h = tiles_.size();'
     if constructor['nTiles'] != 'std::size_t':
-        nTiles_value = f'_nTiles_h = static_cast<{constructor["nTiles"]}>(tiles_.size());'
+        nTiles_value = f'// Check for overflow first to avoid UB\n' + \
+                       f'// TODO: Should casting be checked here or in base class?\n' + \
+                       f'if (tiles_.size() > INT_MAX)\n\tthrow std::overflow_error("[_param:class_name pack] nTiles was too large for int.");\n' + \
+                       f'_nTiles_h = static_cast<{constructor["nTiles"]}>(tiles_.size());'
     connectors[_NTILES_VALUE] = [nTiles_value]
 
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
@@ -224,7 +228,7 @@ def _iterate_constructor(
             f'{info.device}{{nullptr}}'
         ])
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
+            f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.GENERAL, info)
         connectors[f'memcpy_{jsc.GENERAL}'].append(
@@ -293,7 +297,8 @@ def _iterate_tilemetadata(
     """
     _section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors[_T_DESCRIPTOR] = []
-    if language == util.Language.cpp: 
+    if language == util.Language.cpp:
+        connectors[_SIZE_DET].append("static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);\n") 
         cpp_helpers.insert_farray_size(size_connectors, num_arrays)
     
     for item,name in tilemetadata.items():
@@ -316,7 +321,7 @@ def _iterate_tilemetadata(
         # extend each connector
         connectors[_PUB_MEMBERS].extend( [f'{item_type}* {info.device};\n'] )
         connectors[_SET_MEMBERS].extend( [f'{info.device}{{nullptr}}'] )
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {size_eq};\n' )
+        connectors[_SIZE_DET].append( f'static constexpr std::size_t {info.size} = {size_eq};\n' )
         _set_pointer_determination(connectors, jsc.T_MDATA, info)
 
         # data type depends on the language. If there exists a mapping for a fortran data type for the given item_type,
@@ -377,7 +382,7 @@ def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: OrderedDict
 
         connectors[_PUB_MEMBERS].extend( [f'{dtype}* {info.device};\n'] )
         connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}')
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
+        connectors[_SIZE_DET].append( f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
         connectors[f'pointers_{jsc.T_MDATA}'].append(
             f"""{dtype}* {info.pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
             f"""{info.device} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
@@ -430,10 +435,7 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict
             ]
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
-        )
-        connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
+            f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN, info, True)
         _add_memcpy_connector(connectors, jsc.T_IN, extents, item, start, end, info.size, info.dtype)
@@ -581,6 +583,8 @@ def _iterate_tileinout(
 ) -> None:
     """
     Iterates the tileinout section of the JSON.
+
+    TODO: Any pinned pointer that needs to be a datapacket member variable should be a private variable.
     
     :param dict connectors: The dict containing all connectors for use with cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the JSON.
@@ -617,10 +621,7 @@ def _iterate_tileinout(
             ]
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
-        )
-        connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
+            f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN_OUT, info, True)
         _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, start_in, end_in, info.size, info.dtype)
@@ -640,6 +641,8 @@ def _iterate_tileout(
 ) -> None:
     """
     Iterates the tileout section of the JSON.
+
+    TODO: Any pinned pointer that needs to be a datapacket member variable should be a private variable.
     
     :param dict connectors: The dict containing all connectors for use with cgkit.
     :param dict size_connectors: The dict containing all size connectors for items in the JSON.
@@ -669,13 +672,11 @@ def _iterate_tileout(
             f'{info.dtype}* {info.pinned};\n'
         )
         connectors[_SET_MEMBERS].extend(
-            [f'{info.device}{{nullptr}}']
+            [f'{info.device}{{nullptr}}',
+             f'{info.pinned}{{nullptr}}']
         )
         connectors[_SIZE_DET].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
-        )
-        connectors[_PINNED_SIZES].append(
-            f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
+            f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_OUT, info, True)
         _add_unpack_connector(
@@ -720,7 +721,7 @@ def _iterate_tilescratch(
 
         connectors[_PUB_MEMBERS].append( f'{info.dtype}* {info.device};\n' )
         connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}' )
-        connectors[_SIZE_DET].append( f'constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
+        connectors[_SIZE_DET].append( f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
         connectors[f'pointers_{jsc.T_SCRATCH}'].append(
             f"""{info.device} = static_cast<{info.dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
             f"""ptr_d += {info.total_size};\n\n"""
