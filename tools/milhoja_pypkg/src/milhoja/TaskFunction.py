@@ -144,6 +144,12 @@ class TaskFunction(object):
         return self.__data_spec["type"]
 
     @property
+    def data_item_class_name(self):
+        if self.data_item.lower() == "tilewrapper":
+            return f"Tile_{self.name}"
+        raise NotImplementedError("Only setup for TileWrapper right now")
+
+    @property
     def grid_dimension(self):
         return self.__grid_spec["dimension"]
 

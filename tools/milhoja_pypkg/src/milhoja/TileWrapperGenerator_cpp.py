@@ -81,7 +81,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
     def class_name(self):
         """
         """
-        return f"Tile_{self._tf_spec.name}"
+        return self._tf_spec.data_item_class_name
 
     @property
     def __scratch_variables(self):
@@ -244,6 +244,11 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 fptr.write(f"{INDENT}  {arg}_{{{arg}}}")
                 fptr.write(",\n" if j < len(constructor_args) - 1 else "\n")
             fptr.write("{\n")
+            fptr.write("#ifdef DEBUG_RUNTIME\n")
+            fptr.write(f'{INDENT}std::string   msg = "[{classname}] ')
+            fptr.write('Creating wrapper object";\n')
+            fptr.write(f"{INDENT}milhoja::Logger::instance().log(msg);\n")
+            fptr.write("#endif\n")
             fptr.write("}\n")
             fptr.write("\n")
 

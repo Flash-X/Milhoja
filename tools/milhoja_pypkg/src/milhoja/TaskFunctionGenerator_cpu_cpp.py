@@ -9,7 +9,7 @@ from . import AbcCodeGenerator
 class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     """
     A class for generating final, compilable C++ header and source code for the
-    task function specified by the specification object given at instantiation.
+    task function specified by the TaskFunction object given at instantiation.
     """
     __LOG_TAG = "Milhoja C++/CPU Task Function"
 
@@ -75,8 +75,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             * Should we have a function that generates variable names since the
             same MH_INTERNAL_* variables used here are also used in another
             code generator.
-            * We are assuming a particular name for the TileWrapper class.  How
-            to get that?
         """
         code = []
 
@@ -90,17 +88,19 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             spec = task_function.argument_specification(arg)
 
             dependents = [
-                "tile_coordinates", "tile_faceAreas", "tile_cellVolumes"
+                TaskFunction.TILE_COORDINATES,
+                TaskFunction.TILE_FACE_AREAS,
+                TaskFunction.TILE_CELL_VOLUMES
             ]
             if spec["source"] in dependents:
-                if "tile_level" not in metadata_all:
+                if TaskFunction.TILE_LEVEL not in metadata_all:
                     variable = "MH_INTERNAL_level"
                     if variable not in internal:
-                        internal[variable] = {"source": "tile_level"}
-                        metadata_all["tile_level"] = [variable]
+                        internal[variable] = {"source": TaskFunction.TILE_LEVEL}
+                        metadata_all[TaskFunction.TILE_LEVEL] = [variable]
 
                 for point in ["lo", "hi"]:
-                    key = spec[point].strip().lower()
+                    key = spec[point].strip()
                     if key not in metadata_all:
                         assert key.startswith("tile_")
                         short = key.replace("tile_", "")
@@ -112,13 +112,13 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                             metadata_all[key] = [variable]
 
         # ----- EXTRACT INDEPENDENT METADATA
-        order = [("tile_gridIndex", "const int", "gridIndex"),
-                 ("tile_level", "const unsigned int", "level"),
-                 ("tile_lo", "const milhoja::IntVect", "lo"),
-                 ("tile_hi", "const milhoja::IntVect", "hi"),
-                 ("tile_lbound", "const milhoja::IntVect", "loGC"),
-                 ("tile_ubound", "const milhoja::IntVect", "hiGC"),
-                 ("tile_deltas", "const milhoja::RealVect", "deltas")]
+        order = [(TaskFunction.TILE_GRID_INDEX, "const int", "gridIndex"),
+                 (TaskFunction.TILE_LEVEL, "const unsigned int", "level"),
+                 (TaskFunction.TILE_LO, "const milhoja::IntVect", "lo"),
+                 (TaskFunction.TILE_HI, "const milhoja::IntVect", "hi"),
+                 (TaskFunction.TILE_LBOUND, "const milhoja::IntVect", "loGC"),
+                 (TaskFunction.TILE_UBOUND, "const milhoja::IntVect", "hiGC"),
+                 (TaskFunction.TILE_DELTAS, "const milhoja::RealVect", "deltas")]
         for key, arg_type, getter in order:
             if key in metadata_all:
                 arg = metadata_all[key]
@@ -129,11 +129,11 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 code.append(line)
 
         # ----- CREATE THREAD-PRIVATE INTERNAL SCRATCH
-        if "tile_cellVolumes" in metadata_all:
-            arg_list = metadata_all["tile_cellVolumes"]
+        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
+            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
             assert len(arg_list) == 1
             arg = arg_list[0]
-            wrapper = f"Tile_{task_function.name}"
+            wrapper = task_function.data_item_class_name
             code += [
                 "milhoja::Real*   MH_INTERNAL_cellVolumes_ptr =",
                 f"\tstatic_cast<milhoja::Real*>({wrapper}::MH_INTERNAL_cellVolumes_)",
@@ -146,14 +146,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                    "k": "milhoja::Axis::K"}
         edge_mh = {"center": "milhoja::Edge::Center"}
 
-        if "tile_coordinates" in metadata_all:
-            arg_list = metadata_all["tile_coordinates"]
+        if TaskFunction.TILE_COORDINATES in metadata_all:
+            arg_list = metadata_all[TaskFunction.TILE_COORDINATES]
             assert len(arg_list) <= 3
             for arg in arg_list:
                 spec = task_function.argument_specification(arg)
                 axis = axis_mh[spec["axis"].lower()]
                 edge = edge_mh[spec["edge"].lower()]
-                level = metadata_all["tile_level"][0]
+                level = metadata_all[TaskFunction.TILE_LEVEL][0]
                 lo = metadata_all[spec["lo"]][0]
                 hi = metadata_all[spec["hi"]][0]
                 code += [
@@ -165,15 +165,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     f"\t\t{lo}, {hi});"
                 ]
 
-        if "tile_faceAreas" in metadata_all:
+        if TaskFunction.TILE_FACE_AREAS in metadata_all:
             raise NotImplementedError("No test case yet for face areas")
 
-        if "tile_cellVolumes" in metadata_all:
-            arg_list = metadata_all["tile_cellVolumes"]
+        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
+            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
             assert len(arg_list) == 1
             arg = arg_list[0]
             spec = task_function.argument_specification(arg)
-            level = metadata_all["tile_level"][0]
+            level = metadata_all[TaskFunction.TILE_LEVEL][0]
             lo = metadata_all[spec["lo"]][0]
             hi = metadata_all[spec["hi"]][0]
             code += [
@@ -270,11 +270,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             # ----- FUNCTION DECLARATION
             fptr.write(f"void  {self.namespace}::taskFunction(const int threadId,\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
-
-            # ----- USE IN NAMESPACES
-            for namespace in ["milhoja"]:
-                fptr.write(f"{INDENT}using namespace {namespace};\n")
-            fptr.write("\n")
 
             # ----- ACCESS GIVEN TILE DESCRIPTOR
             fptr.write(f"{INDENT}{wrapper}*  wrapper = dynamic_cast<{wrapper}*>(dataItem);\n")

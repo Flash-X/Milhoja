@@ -14,8 +14,6 @@ import unittest
 
 from pathlib import Path
 
-import milhoja
-
 
 class TestCodeGenerators(unittest.TestCase):
     def __load_code(self, filename):
@@ -75,8 +73,6 @@ class TestCodeGenerators(unittest.TestCase):
 
         with open(json_fname_3D, "r") as fptr:
             json_3D = json.load(fptr)
-
-        tf_spec = milhoja.TaskFunction.from_milhoja_json(json_fname_3D)
 
         json_XD = json_3D.copy()
 
