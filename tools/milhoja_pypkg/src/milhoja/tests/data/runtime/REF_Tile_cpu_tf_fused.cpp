@@ -46,6 +46,10 @@ void Tile_cpu_tf_fused::releaseScratch(void) {
 Tile_cpu_tf_fused::Tile_cpu_tf_fused(void)
     : milhoja::TileWrapper{}
 {
+#ifdef DEBUG_RUNTIME
+    std::string   msg = "[Tile_cpu_tf_fused] Creating wrapper object";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 Tile_cpu_tf_fused::~Tile_cpu_tf_fused(void) {

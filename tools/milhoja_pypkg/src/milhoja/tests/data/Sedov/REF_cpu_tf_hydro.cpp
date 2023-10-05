@@ -19,8 +19,6 @@
 
 void  cpu_tf_hydro::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
-    using namespace milhoja;
-
     Tile_cpu_tf_hydro*  wrapper = dynamic_cast<Tile_cpu_tf_hydro*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 

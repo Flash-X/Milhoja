@@ -14,16 +14,15 @@ def generate_code(
     Generate all code related to the given task functions and a Makefile that
     indicates which source files need building and where to look for headers.
 
-    :param tf_specs_all: List of task functions for which code should be
+    :param tf_specs_all: List of TaskFunction objects for which code should be
         generated
-    :param destination: Pre-existing folder to which all code and makefile
-        should be written
+    :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing header and source files in destination will
         be overwritten if True
     :param verbosity: Logging level
     :param indent: Number of spaces to use for indent in generated code
     :param makefile_filename: Name with path of makefile to generate.  An
-        exception is raised if the file already exists in destination.
+        exception is raised if the file already exists.
     """
     # ----- ERROR CHECK ARGUMENTS
     dst = Path(destination).resolve()

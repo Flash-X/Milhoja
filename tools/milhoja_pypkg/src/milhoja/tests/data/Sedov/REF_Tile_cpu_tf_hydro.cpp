@@ -47,6 +47,10 @@ Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(const milhoja::Real dt)
     : milhoja::TileWrapper{},
       dt_{dt}
 {
+#ifdef DEBUG_RUNTIME
+    std::string   msg = "[Tile_cpu_tf_hydro] Creating wrapper object";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 Tile_cpu_tf_hydro::~Tile_cpu_tf_hydro(void) {

@@ -15,6 +15,19 @@ class TaskFunction(object):
     FORTRAN_TF_KEY = "fortran_tf"
     DATA_ITEM_KEY = "data_item"
 
+    # Case-sensitive tile metadata keys for dictionary returned by
+    # tile_metadata_arguments
+    TILE_GRID_INDEX = "tile_gridIndex"
+    TILE_LEVEL = "tile_level"
+    TILE_LO = "tile_lo"
+    TILE_HI = "tile_hi"
+    TILE_LBOUND = "tile_lbound"
+    TILE_UBOUND = "tile_ubound"
+    TILE_DELTAS = "tile_deltas"
+    TILE_COORDINATES = "tile_coordinates"
+    TILE_FACE_AREAS = "tile_faceAreas"
+    TILE_CELL_VOLUMES = "tile_cellVolumes"
+
     @staticmethod
     def from_milhoja_json(filename):
         """
@@ -22,7 +35,7 @@ class TaskFunction(object):
         # ----- ERROR CHECK ARGUMENTS
         fname = Path(filename).resolve()
         if not fname.is_file():
-            raise ValueError(f"{filename} does not exist")
+            raise ValueError(f"{filename} does not exist or is not a file")
 
         # ----- LOAD CONFIGURATION
         with open(fname, "r") as fptr:
@@ -39,7 +52,7 @@ class TaskFunction(object):
         # Only one version of Milhoja-native JSON format.
         # Therefore, contents already in Milhoja-internal format.
         if version.lower() != CURRENT_MILHOJA_JSON_VERSION.lower():
-            raise ValueError(f"Unknown Milhoja JSON version v{version}")
+            raise ValueError(f"Unknown {format_name} version v{version}")
 
         return TaskFunction(filename, configuration)
 
@@ -49,8 +62,13 @@ class TaskFunction(object):
         so that error checking does not depend on what member functions are
         called and all other member functions can assume correctness.
 
-        Parameters
-            specification - internal Milhoja representation
+        .. todo::
+            * Perform full sanity check of specification
+            * Should correction do automatic fixing of bad case when it does
+              check so that all code generators can be written in
+              case-sensitive way?
+
+        :param specification: Internal Milhoja representation
         """
         super().__init__()
 
@@ -60,12 +78,6 @@ class TaskFunction(object):
         self.__data_spec = specification["data_item"]
         self.__subroutine_spec = specification["subroutines"]
         self.__grid_spec = specification["grid"]
-
-        # ----- ERROR CHECK ARGUMENTS
-        if not self.__filename.is_file():
-            raise ValueError(f"{filename} does not exist")
-
-        # ----- ERROR CHECK CONTENTS
 
     @property
     def specification_filename(self):
@@ -78,9 +90,8 @@ class TaskFunction(object):
     @property
     def output_filenames(self):
         """
-        .. todo::
-            Should TaskFunction decide how files are used?  Seems like code
-            generators should make that decision.
+        :return: Dictionary of filenames where value is a dictionary
+        consisting of the key "source" and potentially "header".
         """
         cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
         cpp_tf_src = self.__tf_spec["cpp_source"].strip()
@@ -100,8 +111,6 @@ class TaskFunction(object):
         filenames[TaskFunction.CPP_TF_KEY] = \
             {"header": cpp_tf_hdr, "source": cpp_tf_src}
 
-        # TODO: Each key should be associated with a dictionary that uses
-        # "header" and "source" appropriately
         processor = self.processor
         language = self.language
         if processor.lower() == "cpu" and language.lower() == "c++":
@@ -191,15 +200,16 @@ class TaskFunction(object):
     def tile_metadata_arguments(self):
         """
         """
-        # All keys in this list must be lowercase
-        KEYS_ALL = ["tile_gridIndex",
-                    "tile_level",
-                    "tile_lo", "tile_hi",
-                    "tile_lbound", "tile_ubound",
-                    "tile_deltas",
-                    "tile_coordinates",
-                    "tile_faceAreas",
-                    "tile_cellVolumes"]
+        KEYS_ALL = [
+            TaskFunction.TILE_GRID_INDEX,
+            TaskFunction.TILE_LEVEL,
+            TaskFunction.TILE_LO, TaskFunction.TILE_HI,
+            TaskFunction.TILE_LBOUND, TaskFunction.TILE_UBOUND,
+            TaskFunction.TILE_DELTAS,
+            TaskFunction.TILE_COORDINATES,
+            TaskFunction.TILE_FACE_AREAS,
+            TaskFunction.TILE_CELL_VOLUMES
+        ]
 
         metadata_all = {}
         for arg in self.dummy_arguments:
@@ -307,14 +317,12 @@ class TaskFunction(object):
     def subroutine_interface_file(self, subroutine):
         """
         """
-        spec = self.__subroutine_spec[subroutine]
-        return spec["interface_file"]
+        return self.__subroutine_spec[subroutine]["interface_file"]
 
     def subroutine_dummy_arguments(self, subroutine):
         """
         """
-        spec = self.__subroutine_spec[subroutine]
-        return spec["argument_list"]
+        return self.__subroutine_spec[subroutine]["argument_list"]
 
     def subroutine_actual_arguments(self, subroutine):
         """

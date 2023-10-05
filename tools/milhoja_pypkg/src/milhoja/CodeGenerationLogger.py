@@ -21,9 +21,7 @@ class CodeGenerationLogger(object):
 
         :param tool_name: The name of the tool that will use the logger.  This
             name will appear in all messages.
-        :type  tool_name: str
-        :param level: The verbosity logging level of the logger.
-        :type  level: int contained in CodeGenerationLogger.LOG_LEVELS
+        :param level: Verbosity level of the logger
         """
         super().__init__()
 
@@ -40,7 +38,7 @@ class CodeGenerationLogger(object):
     @property
     def level(self):
         """
-        All log messages with a level greater than or equal to this value will
+        All log messages with a level less than or equal to this value will
         be logged.  Warning and errors are logged regardless of this value.
         """
         return self.__level
@@ -50,13 +48,10 @@ class CodeGenerationLogger(object):
         Print the given message to stdout if the logger's verbosity level is
         greater than or equal to the given logging threshold level.
 
-        :param msg: The message to potentially log
-        :type  msg: str
-        :param min_level: The threshold logging level
-        :type  min_level: int contained in CodeGenerationLogger.LOG_LEVELS
+        :param msg: Message to potentially log
+        :param min_level: Message's log level
         """
-        valid = set(LOG_LEVELS)
-        valid = valid.difference(set([LOG_LEVEL_NONE]))
+        valid = set(LOG_LEVELS).difference(set([LOG_LEVEL_NONE]))
         if min_level not in valid:
             msg = f"Invalid code generation logging level ({min_level})"
             raise ValueError(msg)
@@ -72,13 +67,12 @@ class CodeGenerationLogger(object):
         regardless of the logger's verbosity level.
 
         :param msg: The warning message to log
-        :type  msg: str
         """
         # ANSI terminal colors
-        FAILURE = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'            # No Color/Not bold
+        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'                  # No Color/Not bold
 
-        msg = f"[{self.__tool_name}] {FAILURE}WARNING{NC} - {msg}\n"
+        msg = f"[{self.__tool_name}] {FAILURE_COLOR}WARNING{NC} - {msg}\n"
         sys.stdout.write(msg)
         sys.stdout.flush()
 
@@ -89,12 +83,11 @@ class CodeGenerationLogger(object):
         regardless of the logger's verbosity level.
 
         :param msg: The error message to log
-        :type  msg: str
         """
         # ANSI terminal colors
-        FAILURE = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'            # No Color/Not bold
+        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
+        NC = '\033[0m'                  # No Color/Not bold
 
-        msg = f"[{self.__tool_name}] {FAILURE}ERROR - {msg}{NC}\n"
+        msg = f"[{self.__tool_name}] {FAILURE_COLOR}ERROR - {msg}{NC}\n"
         sys.stderr.write(msg)
         sys.stderr.flush()

@@ -18,8 +18,6 @@
 
 void  cpu_tf_analysis::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
-    using namespace milhoja;
-
     Tile_cpu_tf_analysis*  wrapper = dynamic_cast<Tile_cpu_tf_analysis*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 

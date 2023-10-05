@@ -46,6 +46,10 @@ void Tile_cpu_tf_dens::releaseScratch(void) {
 Tile_cpu_tf_dens::Tile_cpu_tf_dens(void)
     : milhoja::TileWrapper{}
 {
+#ifdef DEBUG_RUNTIME
+    std::string   msg = "[Tile_cpu_tf_dens] Creating wrapper object";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 Tile_cpu_tf_dens::~Tile_cpu_tf_dens(void) {

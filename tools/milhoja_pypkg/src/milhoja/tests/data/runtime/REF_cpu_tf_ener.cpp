@@ -18,8 +18,6 @@
 
 void  cpu_tf_ener::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
-    using namespace milhoja;
-
     Tile_cpu_tf_ener*  wrapper = dynamic_cast<Tile_cpu_tf_ener*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 

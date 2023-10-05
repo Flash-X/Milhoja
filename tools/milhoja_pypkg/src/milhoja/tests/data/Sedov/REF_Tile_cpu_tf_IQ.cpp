@@ -46,6 +46,10 @@ void Tile_cpu_tf_IQ::releaseScratch(void) {
 Tile_cpu_tf_IQ::Tile_cpu_tf_IQ(void)
     : milhoja::TileWrapper{}
 {
+#ifdef DEBUG_RUNTIME
+    std::string   msg = "[Tile_cpu_tf_IQ] Creating wrapper object";
+    milhoja::Logger::instance().log(msg);
+#endif
 }
 
 Tile_cpu_tf_IQ::~Tile_cpu_tf_IQ(void) {

@@ -5,11 +5,11 @@ from . import CodeGenerationLogger
 
 class AbcCodeGenerator(abc.ABC):
     """
-    This class takes the task function specification as an argument rather than
-    instantiate one from arguments so that application codes can use a custom
-    class derived from TaskFunction if so desired.  For the same reason, code
-    generators derived from this class should also take the specification as an
-    object.
+    This class takes the TaskFunction specification object as an argument
+    rather than instantiate one from arguments so that application codes can
+    use a custom class derived from TaskFunction if so desired.  For the same
+    reason, code generators derived from this class should also take the
+    specification as an object.
 
     .. todo::
         * Make ``_logger`` private once all code generators are derived from
@@ -29,8 +29,6 @@ class AbcCodeGenerator(abc.ABC):
         super().__init__()
 
         # Allow derived class to access specification object directly
-        # TODO: Get rid of _new once the code generators use TaskFunction
-        # completely.
         self._tf_spec = tf_specification
 
         self.__indent = indent
@@ -47,7 +45,7 @@ class AbcCodeGenerator(abc.ABC):
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no header or source files at instantiation, but
         # a file could appear before calling a generate method, we don't check
-        # file existence here.  Rather, concrete derived class' should check
+        # file existence here.  Rather, concrete derived classes should check
         # for pre-existing files.
         if self.__indent < 0:
             raise ValueError(f"Negative code generation indent ({indent})")

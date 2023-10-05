@@ -86,16 +86,6 @@ class TestCodeGenerators(unittest.TestCase):
         if dim == 1:
             json_XD["grid"]["nyb"] = 1
 
-        TF = "taskfunction"
-        ARG_SPEC = "argument_specifications"
-        for arg in tf_spec.dummy_arguments:
-            arg_spec = tf_spec.argument_specification(arg)
-            for field in arg_spec:
-                if field.strip().lower().startswith("extents_"):
-                    extents_3D = arg_spec[field]
-                    extents_XD = self.set_extents(extents_3D, dim)
-                    json_XD[TF][ARG_SPEC][arg][field] = extents_XD
-
         with open(json_fname_XD, "w") as fptr:
             json.dump(json_XD, fptr)
 

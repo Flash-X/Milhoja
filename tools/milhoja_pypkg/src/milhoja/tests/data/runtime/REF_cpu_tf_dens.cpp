@@ -18,8 +18,6 @@
 
 void  cpu_tf_dens::taskFunction(const int threadId,
                     milhoja::DataItem* dataItem) {
-    using namespace milhoja;
-
     Tile_cpu_tf_dens*  wrapper = dynamic_cast<Tile_cpu_tf_dens*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
