@@ -61,6 +61,7 @@ def generate_file(data, template_name, output):
         # use logger here but for now just print a warning.
         print(f"Warning: {output} already exists. Overwriting.")
     with open(output, 'w') as new_file:
+        lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
         new_file.write(lines)
 
 

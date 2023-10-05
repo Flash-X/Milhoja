@@ -88,7 +88,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             generator.generate_source_code()
 
             generated_name_cpp = generator.source_filename
-            correct_name_cpp = f'CppTestData/cgkit.{name}.cpp'
+            correct_name_cpp = f'CppTestData/{name}.cpp'
             
             # check c++ source code
             with open(generated_name_cpp, 'r') as generated_cpp, \
@@ -97,7 +97,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.check_generated_files(generated_cpp, correct)
                 
             generated_name_h = generator.header_filename
-            correct_name_h = f'CppTestData/cgkit.{name}.h'
+            correct_name_h = f'CppTestData/{name}.h'
 
             # check c++ headers
             with open(generated_name_h, 'r') as generated_h, \
@@ -141,7 +141,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.check_generated_files(generated_cpp, correct)
             
             # check C++ header when building for fortran.
-            with open(f'cgkit.{name}.h', 'r') as generated_h, \
+            with open(f'{name}.h', 'r') as generated_h, \
             open(f'FortranTestData/cgkit.{name}.h', 'r') as correct:
                 self.check_generated_files(generated_h, correct)
  

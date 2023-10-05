@@ -38,7 +38,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         json = None
         with open(args.JSON, 'r') as json_file:
             json = generate_packet._load_json(json_file, args)
-        instance = cls("", f'cgkit.{json[sections.NAME]}.h', f'cgkit.{json[sections.NAME]}.cpp', log_level, indent)
+        instance = cls("", f'{json[sections.NAME]}.h', f'{json[sections.NAME]}.cpp', log_level, indent)
         instance.json = json
 
         # insert nTiles into data after checking json.
