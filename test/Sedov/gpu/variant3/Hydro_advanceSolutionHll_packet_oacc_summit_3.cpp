@@ -2,7 +2,7 @@
 
 #include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
-#include "cgkit.DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_Hydro_gpu_3.h"
 
 #include "Sedov.h"
 #include "Eos.h"

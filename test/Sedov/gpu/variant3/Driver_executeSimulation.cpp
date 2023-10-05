@@ -17,7 +17,7 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "cgkit.DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_Hydro_gpu_3.h"
 
 #include "cpu_tf_ic.h"
 #include "Tile_cpu_tf_ic.h"

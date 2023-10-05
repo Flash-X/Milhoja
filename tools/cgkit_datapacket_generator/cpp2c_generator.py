@@ -23,18 +23,16 @@ def _generate_cpp2c_outer(data: dict):
     if os.path.isfile(file_name):
         print(f"Warning: {file_name} already exists. Overwriting.")
 
-    extra_streams = "/* _param:release = packet_h->releaseExtraQueue(id) */"
-    if data.get(sects.EXTRA_STREAMS, 0) == 0:
-        extra_streams = '/* _param:release = 0 */'
-
     with open(file_name, 'w') as outer:
         outer.writelines([
             '/* _connector:cpp2c_outer */\n',
             f'/* _param:class_name = {data["name"]} */\n\n',
             f'/* _param:taskfunctionname = {data[sects.TASK_FUNCTION_NAME]} */\n',
-            f'/* _param:taskfunctionnametf = {data[sects.TASK_FUNCTION_NAME]}_tf */\n'
-            f'/* _param:taskfunctionnamec2f = {data[sects.TASK_FUNCTION_NAME]}_c2f */\n'
-            f'{extra_streams} \n\n',
+            f'/* _param:taskfunctionnametf = {data[sects.TASK_FUNCTION_NAME]}_tf */\n',
+            f'/* _param:taskfunctionnamec2f = {data[sects.TASK_FUNCTION_NAME]}_c2f */\n',
+            f'/* _param:instantiate = instantiate_{data["name"]}_C */\n',
+            f'/* _param:deletion = delete_{data["name"]}_C */\n',
+            f'/* _param:release = release_{data["name"]}_extra_queue_C */\n\n',
             '/* _link:cpp2c */'
         ])
 

@@ -36,7 +36,7 @@ def _generate_advance_c2f(data):
 
     :param dict data: The json file used to generate the data packet associated with this file.
     """
-    file_name = 'c2f.F90'
+    file_name = f'{data["name"]}.c2f.F90'
     if os.path.isfile(file_name):
         print(f'Warning: {file_name} already exists. Overwriting.')
 
