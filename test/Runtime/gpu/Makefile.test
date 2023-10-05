@@ -26,10 +26,10 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/cgkit.DataPacket_gpu_dens_stream.cpp \
-    $(TESTDIR)/cgkit.DataPacket_gpu_ener_stream.cpp \
-    $(TESTDIR)/cgkit.DataPacket_gpu_dens_ener_stream.cpp \
-    $(TESTDIR)/cgkit.DataPacket_gpu_de_1_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_dens_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_ener_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_dens_ener_stream.cpp \
+    $(TESTDIR)/DataPacket_gpu_de_1_stream.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \

@@ -1,9 +1,9 @@
 # TODO: We need to look up AMReX library by platform (e.g., sandybridge,
 # skylake) as well.
 BASEDIR      = $(MILHOJA_CODE_REPO)
-AMREXDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/AMReX_$(NDIM)D
-GTESTDIR     = $(MILHOJA_TEST_REPO)/gce/intel_current/googletest
-JSONDIR      = $(MILHOJA_TEST_REPO)/gce/intel_current/json/single_include
+AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/intel_current/AMReX_$(NDIM)D
+GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/intel_current/googletest
+JSONDIR      = $(MILHOJA_TEST_CLONE)/gce/intel_current/json/single_include
 CUDADIR      =
 
 CXXCOMPNAME  = intel

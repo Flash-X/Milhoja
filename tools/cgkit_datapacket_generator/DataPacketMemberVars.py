@@ -1,6 +1,8 @@
 class DataPacketMemberVars:
     """
     This class stores information from items in the data packet for keeping data mapping consistent.
+
+    TODO: There should be some way to adjust the formatting of variable names for function scoped variables.
     """
 
     def __init__(self, item: str, dtype: str, size_eq: str, per_tile: bool):

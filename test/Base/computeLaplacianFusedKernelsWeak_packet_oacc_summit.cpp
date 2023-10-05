@@ -8,7 +8,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#include "cgkit.DataPacket_gpu_de_1_stream.h"
+#include "DataPacket_gpu_de_1_stream.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
