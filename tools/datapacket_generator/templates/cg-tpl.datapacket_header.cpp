@@ -6,7 +6,6 @@
 /* _link:set_members */
 /* _link:stream_functions_cxx */
 /* _link:destructor */
-/* _link:size_determination */
 /* _link:pointers_tile_scratch */
 /* _link:pointers_constructor */
 /* _link:pointers_tile_metadata */
@@ -33,7 +32,6 @@
 /* _link:size_tile_scratch */
 /* _link:in_pointers */
 /* _link:out_pointers */
-/* _link:pinned_sizes */
 /* _link:nTiles_value */
 #endif
 
@@ -41,14 +39,10 @@
 #include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_DataPacket.h>
-#include <Milhoja_IntVect.h>
-#include <Milhoja_RealVect.h>
-#include <Milhoja_FArray4D.h>
-#include <Milhoja_Stream.h>
+#include <climits>
 
 using real = milhoja::Real;
 using milhoja::FArray4D;
-using milhoja::Stream;
 using milhoja::IntVect;
 using milhoja::RealVect;
 
@@ -66,17 +60,19 @@ public:
     _param:class_name(_param:class_name&) = delete;
     _param:class_name(const _param:class_name&) = delete;
     _param:class_name(_param:class_name&& packet) = delete;
-    _param:class_name& operator=(_param:class_name&)       = delete;
-	_param:class_name& operator=(const _param:class_name&) = delete;
-	_param:class_name& operator=(_param:class_name&& rhs)  = delete;
+    _param:class_name& operator=(_param:class_name&) = delete;
+    _param:class_name& operator=(const _param:class_name&) = delete;
+    _param:class_name& operator=(_param:class_name&& rhs) = delete;
     
     // pack and unpack functions from base class. 
     void pack(void) override;
     void unpack(void) override;
 
+    // TODO: Streams should be stored inside of an array.
+    /* _link:stream_functions_h */
+
     // DataPacket members are made public so a matching task function can easily access them.
     // Since both files are auto-generated and not maintained by humans, this is fine.
-    /* _link:stream_functions_h */
     /* _link:public_members */
 private:
     static constexpr std::size_t ALIGN_SIZE=_param:align_size;
@@ -84,7 +80,11 @@ private:
         return (((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE);
     }
 
+    // TODO: Streams should be stored inside of an array. Doing so would simplify the code 
+    // generation & source code for the stream functions.
     /* _link:extra_streams */
+    
+    /* _link:size_determination */
 };
 
 #endif

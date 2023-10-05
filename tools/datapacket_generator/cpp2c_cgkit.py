@@ -57,10 +57,11 @@ def generate_datapacket_cpp2c_layer(data):
     stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
     _construct_source_tree(stree, f'{sys.path[0]}/templates/cg-tpl.cpp2c.cpp', data)
     # check result
+    output = f'{data["name"]}.cpp2c.cxx'
     lines = stree.parse()
-    if os.path.isfile(_OUTPUT):
-        print(f'Warning: {_OUTPUT} already exists. Overwriting.')
-    with open(_OUTPUT, 'w') as cpp2c:
+    if os.path.isfile(output):
+        print(f'Warning: {output} already exists. Overwriting.')
+    with open(output, 'w') as cpp2c:
         cpp2c.write(lines)
     print("Assembled cpp2c layer.")
 

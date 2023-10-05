@@ -17,7 +17,13 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "cgkit.DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_Hydro_gpu_3.h"
+
+#if MILHOJA_NDIM == 2
+#include "cpu_tf00_2D.h"
+#else
+#include "cpu_tf00_3D.h"
+#endif
 
 /**
  * Numerically approximate using the third GPU variant the solution to the
@@ -79,7 +85,12 @@ void    Driver::executeSimulation(void) {
     hydroAdvance_cpu.nInitialThreads = RPs.getUnsignedInt("Hydro_cpu/gpu_bundle", "nThreadsCpu");
     hydroAdvance_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance_cpu.nTilesPerPacket = 0;
-    hydroAdvance_cpu.routine         = Hydro::advanceSolutionHll_tile_cpu;
+    
+#if MILHOJA_NDIM == 2
+    hydroAdvance_cpu.routine         = cpu_tf00_2D::taskFunction;
+#else 
+    hydroAdvance_cpu.routine         = cpu_tf00_3D::taskFunction;
+#endif
 
     milhoja::RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
