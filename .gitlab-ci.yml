@@ -95,7 +95,6 @@ test_gnu:
  - cd ..
  - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
- - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
  - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
@@ -107,7 +106,6 @@ test_gnu:
  - echo $MILHOJA_CODE_REPO
  - echo $MILHOJA_WORK_CLONE
  - echo $MILHOJA_INSTALL_PATH
- - echo $CGKIT_CODE_REPO
  - echo $SEDOV_REGRESSION_TEST
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
@@ -138,7 +136,6 @@ test_gnu:
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
  - pip install nose
- - pip install --editable=file://${CGKIT_PATH}
  - pip install numpy
  - pip install scipy
  - pip install pandas
