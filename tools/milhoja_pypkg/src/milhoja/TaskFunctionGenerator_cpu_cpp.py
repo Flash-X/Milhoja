@@ -177,7 +177,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             lo = metadata_all[spec["lo"]][0]
             hi = metadata_all[spec["hi"]][0]
             code += [
-                "Grid::instance().fillCellVolumes(",
+                "milhoja::Grid::instance().fillCellVolumes(",
                 f"\t{level},",
                 f"\t{lo},",
                 f"\t{hi},",
@@ -206,8 +206,6 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
               section.
             * Scratch data section is hardcoded.  OK for now since CPU task
               functions are presently just for test suite.  See Issue #59.
-            * We are assuming a particular name for the TileWrapper class.
-              How to get that?
             * Since JSON files can map the TF's threadId onto a subroutine
               dummy argument, rename that variable to something that reads more
               clearly in the JSON.
@@ -229,7 +227,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         if (not overwrite) and source_filename.exists():
             raise ValueError(f"{source_filename} already exists")
 
-        wrapper = f"Tile_{self._tf_spec.name}"
+        wrapper = self._tf_spec.data_item_class_name
 
         with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
@@ -283,7 +281,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 arg_type = arg_spec["type"]
                 extents = arg_spec["extents"]
                 if len(extents) == 0:
-                    fptr.write(f"{INDENT}{arg_type}& {name} = wrapper->{name}_;\n")
+                    fptr.write(f"{INDENT}const {arg_type}& {name} = wrapper->{name}_;\n")
                 else:
                     raise NotImplementedError("Need arrays")
 
@@ -295,26 +293,28 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 fptr.write(f"{INDENT}{line}\n")
 
             # ----- EXTRACT GRID DATA POINTERS
-            grid_args = self._tf_spec.tile_in_arguments
-            grid_args = grid_args.union(self._tf_spec.tile_in_out_arguments)
+            tile_in = self._tf_spec.tile_in_arguments
+            grid_args = tile_in.union(self._tf_spec.tile_in_out_arguments)
             grid_args = grid_args.union(self._tf_spec.tile_out_arguments)
             for arg in sorted(grid_args):
                 arg_spec = self._tf_spec.argument_specification(arg)
                 arg_mfab = arg_spec["structure_index"]
                 assert len(arg_mfab) == 2
-                index_space = arg_mfab[0].upper()
-                mfab_idx = arg_mfab[1]
+                index_space, mfab_idx = arg_mfab
                 assert mfab_idx == 1
 
                 dimension = 4
                 arg_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
-                if index_space == "CENTER":
+                if arg in tile_in:
+                    arg_type = f"const {arg_type}"
+
+                if index_space.upper() == "CENTER":
                     fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->data();\n")
-                elif index_space == "FLUXX":
+                elif index_space.upper() == "FLUXX":
                     fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::I);\n")
-                elif index_space == "FLUXY":
+                elif index_space.upper() == "FLUXY":
                     fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::J);\n")
-                elif index_space == "FLUXZ":
+                elif index_space.upper() == "FLUXZ":
                     fptr.write(f"{INDENT}{arg_type}  {arg} = {TILE_DESC}->fluxData(milhoja::Axis::K);\n")
                 else:
                     raise NotImplementedError("This should never happen")
@@ -329,10 +329,10 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
                 if arg == "hydro_op1_auxc":
                     assert dimension == 3
-                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
                     fptr.write(f"{INDENT}                                   tile_lo.K()-MILHOJA_K3D)}};\n")
-                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,\n")
                     fptr.write(f"{INDENT}                                   tile_hi.J()+MILHOJA_K2D,\n")
                     fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
@@ -342,10 +342,10 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
                 elif arg == "base_op1_scratch" and dimension == 3:
-                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
-                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
                     fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
@@ -355,10 +355,10 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
                 elif arg == "base_op1_scratch" and dimension == 4:
-                    fptr.write(f"{INDENT}milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_lo.K())}};\n")
-                    fptr.write(f"{INDENT}milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
+                    fptr.write(f"{INDENT}const milhoja::IntVect    hi_{arg} = milhoja::IntVect{{LIST_NDIM(tile_hi.I(),\n")
                     fptr.write(f"{INDENT}                                   tile_hi.J(),\n")
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")

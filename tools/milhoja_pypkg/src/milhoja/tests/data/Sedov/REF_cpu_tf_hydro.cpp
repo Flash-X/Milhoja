@@ -22,7 +22,7 @@ void  cpu_tf_hydro::taskFunction(const int threadId,
     Tile_cpu_tf_hydro*  wrapper = dynamic_cast<Tile_cpu_tf_hydro*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
-    milhoja::Real& dt = wrapper->dt_;
+    const milhoja::Real& dt = wrapper->dt_;
     const milhoja::IntVect  tile_lo = tileDesc->lo();
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
@@ -30,10 +30,10 @@ void  cpu_tf_hydro::taskFunction(const int threadId,
     milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
     milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);
     milhoja::FArray4D  FLZ_1 = tileDesc->fluxData(milhoja::Axis::K);
-    milhoja::IntVect    lo_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
+    const milhoja::IntVect    lo_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
-    milhoja::IntVect    hi_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
+    const milhoja::IntVect    hi_hydro_op1_auxc = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
                                        tile_hi.J()+MILHOJA_K2D,
                                        tile_hi.K()+MILHOJA_K3D)};
     milhoja::Real* ptr_hydro_op1_auxc = 

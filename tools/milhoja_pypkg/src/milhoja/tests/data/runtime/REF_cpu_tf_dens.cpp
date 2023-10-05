@@ -25,10 +25,10 @@ void  cpu_tf_dens::taskFunction(const int threadId,
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
     milhoja::FArray4D  CC_1 = tileDesc->data();
-    milhoja::IntVect    lo_base_op1_scratch = milhoja::IntVect{LIST_NDIM(tile_lo.I(),
+    const milhoja::IntVect    lo_base_op1_scratch = milhoja::IntVect{LIST_NDIM(tile_lo.I(),
                                        tile_lo.J(),
                                        tile_lo.K())};
-    milhoja::IntVect    hi_base_op1_scratch = milhoja::IntVect{LIST_NDIM(tile_hi.I(),
+    const milhoja::IntVect    hi_base_op1_scratch = milhoja::IntVect{LIST_NDIM(tile_hi.I(),
                                        tile_hi.J(),
                                        tile_hi.K())};
     milhoja::Real* ptr_base_op1_scratch = 

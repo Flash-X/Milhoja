@@ -37,7 +37,7 @@ void  cpu_tf_analysis::taskFunction(const int threadId,
             milhoja::Edge::Center,
             MH_INTERNAL_level,
             tile_lo, tile_hi);
-    milhoja::FArray4D  CC_1 = tileDesc->data();
+    const milhoja::FArray4D  CC_1 = tileDesc->data();
 
     Analysis::computeErrors(
                     tile_lo,
