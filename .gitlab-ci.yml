@@ -32,7 +32,7 @@ stages:
 variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
- MILHOJA_TEST_REPO:      $MILHOJA_PROJECT_PATH/MilhojaTest
+ MILHOJA_TEST_CLONE:     $MILHOJA_PROJECT_PATH/MilhojaTest
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
@@ -48,12 +48,12 @@ test_gnu:
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
- - . $MILHOJA_TEST_REPO/gce/available_gce_machines.sh
+ - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
  - set_gce_machine_env_vars $HOSTNAME
  ##-- Print metadata to trace env vars
  - echo $HOSTNAME
  - echo $HWFAMILY
- - echo $MILHOJA_TEST_REPO
+ - echo $MILHOJA_TEST_CLONE
  - echo $MILHOJA_CODE_REPO
  - echo $MILHOJA_WORK_REPO
  - echo $MILHOJA_INSTALL_PATH
@@ -65,7 +65,7 @@ test_gnu:
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_REPO
  - ls
- - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
+ - git clone https://gitlabi-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_REPO
  - git log -1 --oneline
  ##-- Install Sedov python package for use throughout
@@ -119,7 +119,7 @@ test_gnu:
  - ./runSedovCpu.sh
  # Execute regression tests
  # Setup same SW stack used to build fcompare binary
- - . $MILHOJA_TEST_REPO/gce/setup_current_gnu_mpich_stack.sh
+ - . $MILHOJA_TEST_CLONE/gce/setup_current_gnu_mpich_stack.sh
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
