@@ -115,11 +115,7 @@ test_gnu:
  - ls
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_CLONE
- - rm -rf $CGKIT_PATH
  - ls
- ##-- Copy cgkit to this space so that it can be installed without needing special
- #    permissions.
- - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_CLONE
  - git log -1 --oneline
@@ -154,12 +150,8 @@ test_gnu:
  - python setup.py sdist && cd dist
  - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
- - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
- - python setup.py sdist && cd dist
- - pip install $(ls milhoja-*.tar.gz)
  ##-- Check python virtual environment
  - pip list
- - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_CLONE/gce
