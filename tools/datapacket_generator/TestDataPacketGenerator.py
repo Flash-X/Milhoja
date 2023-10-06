@@ -18,6 +18,8 @@ from DataPacketGenerator import DataPacketGenerator
 from packet_generation_utility import Language
 from argparse import Namespace
 
+from milhoja import LOG_LEVEL_MAX
+
 _FILE_PATH = Path(__file__).resolve().parent
 _TEST_PATH = _FILE_PATH.joinpath("data")
 
@@ -128,33 +130,33 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             self.namespace.JSON = file
             self.log_beginning()
             generator = DataPacketGenerator.from_json(self.namespace)
-            name = generator.name
 
-            file_names = generator.generate_packet()
-            generated_name_cpp = file_names["source"]
-            correct_name_cpp = f'FortranTestData/cgkit.{name}.cpp'
+            generator.generate_header_code()
+            generator.generate_source_code()
 
             # check C++ source code when building for fortran
-            with open(generated_name_cpp, 'r') as generated_cpp, \
-            open(correct_name_cpp, 'r') as correct:
+            with open(generator.source_filename, 'r') as generated_cpp, \
+            open(f'FortranTestData/{generator.source_filename}', 'r') as correct:
                 # Test generated files.
                 self.check_generated_files(generated_cpp, correct)
             
             # check C++ header when building for fortran.
-            with open(f'{name}.h', 'r') as generated_h, \
-            open(f'FortranTestData/cgkit.{name}.h', 'r') as correct:
+            with open(generator.header_filename, 'r') as generated_h, \
+            open(f'FortranTestData/{generator.header_filename}', 'r') as correct:
                 self.check_generated_files(generated_h, correct)
  
             # TODO: Should cpp2c layers be named something specific? 
             #       Let developer choose the name?
             # Check C++ to C layer
-            with open(f'cgkit.cpp2c.cxx', 'r') as generated, \
-            open(f'FortranTestData/cpp2c.{name}.cxx', 'r') as correct:
+            with open(generator.cpp2c_filename, 'r') as generated, \
+            open(f'FortranTestData/{generator.cpp2c_filename}', 'r') as correct:
                 self.check_generated_files(generated, correct)
 
             # Check C to F layer.
-            with open(f'c2f.F90', 'r') as generated, \
-            open(f'FortranTestData/c2f.{name}.F90', 'r') as correct:
+            with open(generator.c2f_filename, 'r') as generated, \
+            open(f'FortranTestData/{generator.c2f_filename}', 'r') as correct:
                 self.check_generated_files(generated, correct)
 
+    def test_updated_json(self):
+        ...
 

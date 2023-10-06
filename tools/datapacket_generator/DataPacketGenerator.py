@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import json
 import json_sections as sections
 import packet_generation_utility as utility
 import generate_packet
@@ -12,6 +12,7 @@ from pathlib import Path
 from milhoja import AbcCodeGenerator
 from milhoja import LOG_LEVEL_BASIC
 from milhoja import LOG_LEVEL_BASIC_DEBUG
+from milhoja import LOG_LEVEL_MAX
 
 
 class DataPacketGenerator(AbcCodeGenerator):
@@ -76,8 +77,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         )
         self._helper_tpl = None
         self._outer_tpl = None
-        self.__cpp2c_name = f'{header_filename.replace(".json", "")}.cpp2c.cpp'
-        self.__c2f_name = f'{header_filename.replace(".json", "")}.c2f.F90'
+        self.__cpp2c_name = f'{header_filename.replace(".h", "").replace(".json", "")}.cpp2c.cxx'
+        self.__c2f_name = f'{header_filename.replace(".h", "").replace(".json", "")}.c2f.F90'
 
     @property
     def name(self):
@@ -151,6 +152,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             ...
 
         def generate_cpp2c_f():
+            self._log("Generating cpp2c for fortran", LOG_LEVEL_BASIC_DEBUG)
+            self._log(json.dumps(self.json, indent=4, default=str), LOG_LEVEL_MAX)
             cpp2c_generator.generate_cpp2c(self.json)
 
         lang = self.json[sections.LANG]

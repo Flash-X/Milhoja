@@ -68,7 +68,6 @@ def _generate_advance_c2f(data):
         # get argument order and insert nTiles
         # (This affects the CPP2C generator as well.)
         arg_order = data[sects.ORDER]
-        arg_order.insert(0, 'nTiles')
          # TODO: this should probably be renamed to device pointers
         gpu_pointers = {'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])}
 
@@ -201,7 +200,13 @@ def generate_c2f(data: dict):
     :param dict data: The dictionary containing the data packet JSON.
     :return: None
     """
+    # get argument order and insert nTiles
+    # (This affects the CPP2C generator as well.)
+    arg_order = data[sects.ORDER]
+    # Add ntiles to argument order, then remove after generating packet.
+    arg_order.insert(0, 'nTiles')
     _generate_advance_c2f(data)
+    arg_order.pop(0)
     print("Assembled c2f layer.")
 
 

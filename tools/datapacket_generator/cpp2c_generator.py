@@ -126,9 +126,12 @@ def generate_cpp2c(data: dict):
     
     :param dict data: The dict containing the data packet JSON.
     """
+    # add ntiles to argument order then remove after generation.
+    data[sects.ORDER].insert(0, 'nTiles')
     _generate_cpp2c_outer(data)
     _generate_cpp2c_helper(data)
     cpp2c_cgkit.generate_datapacket_cpp2c_layer(data)
+    data[sects.ORDER].pop(0)
 
 
 if __name__ == "__main__":
