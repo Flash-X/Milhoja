@@ -25,7 +25,7 @@ public:
     CpuMemoryManager& operator=(const CpuMemoryManager&) = delete;
     CpuMemoryManager& operator=(CpuMemoryManager&&)      = delete;
 
-    static void                initialize(const std::size_t nBytesInMemoryPools);
+    static void                initialize(const std::size_t nBytesInMemoryPool);
     static CpuMemoryManager&   instance(void);
     void                       finalize(void);
 

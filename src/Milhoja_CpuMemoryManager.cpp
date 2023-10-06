@@ -16,23 +16,24 @@ bool          CpuMemoryManager::finalized_ = false;
 
 /**
  *
+ * \todo Check that memory pools are sized for byte alignment?
+ *
  * \return 
  */
-void CpuMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
+void CpuMemoryManager::initialize(const std::size_t nBytesInMemoryPool) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
         throw std::logic_error("[CpuMemoryManager::initialize] "
                                "Memory manager already initialized");
-    } else if (nBytesInMemoryPools == 0) {
+    } else if (nBytesInMemoryPool == 0) {
         throw std::invalid_argument("[CpuMemoryManager::initialize] "
-                                    "Buffers must be non-empty");
+                                    "Memory pool must be non-empty");
     }
-    // TODO: Check that buffers are sized for byte alignment?
 
     Logger::instance().log("[CpuMemoryManager] Initializing...");
 
-    nBytes_ = nBytesInMemoryPools;
+    nBytes_ = nBytesInMemoryPool;
     initialized_ = true;
 
     instance();
@@ -62,8 +63,7 @@ void    CpuMemoryManager::finalize(void) {
 }
 
 /**
- *
- * \return 
+ * \return Memory manager singleton
  */
 CpuMemoryManager&   CpuMemoryManager::instance(void) {
     if        (!initialized_) {
@@ -78,8 +78,6 @@ CpuMemoryManager&   CpuMemoryManager::instance(void) {
 
 /**
  * 
- *
- * \return 
  */
 CpuMemoryManager::CpuMemoryManager(void) {
     Logger::instance().log(  "[CpuMemoryManager] Allocated " 
@@ -89,8 +87,6 @@ CpuMemoryManager::CpuMemoryManager(void) {
 
 /**
  * 
- *
- * \return 
  */
 CpuMemoryManager::~CpuMemoryManager(void) {
     if (initialized_ && !finalized_) {
@@ -119,7 +115,7 @@ void      CpuMemoryManager::requestMemory(const std::size_t nBytes,
         throw std::invalid_argument(errMsg);
     } else if (nBytes == 0) {
         std::string  errMsg = "[CpuMemoryManager::requestCpuMemory] ";
-        errMsg += "Requests of zero indicate logical error\n";
+        errMsg += "Request of zero bytes indicate logical error\n";
         throw std::invalid_argument(errMsg);
     }
 

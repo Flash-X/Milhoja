@@ -23,8 +23,6 @@ std::size_t    RuntimeBackend::nBytesInGpuMemoryPools_ = 0;
  * class.  This function must be called before using instance() to gain access
  * to the Singleton object.
  *
- * @todo We should have a different memory pool size for the CPU.
- *
  * @param nStreams - the maximum number of streams that the runtime is allowed
  * to use at any point in time.
  * @param nBytesInCpuMemoryPool - the amount of memory to allocate in CPU's
