@@ -42,15 +42,10 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         )
 
         # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE
-        self.__internal_scratch = set()
         self.__internal_scratch_specs = {}
         for arg in self._tf_spec.dummy_arguments:
             arg_spec = self._tf_spec.argument_specification(arg)
             if arg_spec["source"] == TaskFunction.TILE_CELL_VOLUMES:
-                name = "MH_INTERNAL_cellVolumes"
-                assert name not in self.__internal_scratch
-                self.__internal_scratch.add(name)
-
                 nguard = self._tf_spec.n_guardcells
                 extents = list(self._tf_spec.block_interior_shape)
                 for i in range(self._tf_spec.grid_dimension):
@@ -62,6 +57,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                           ", ".join([str(each) for each in extents]) + \
                           ")"
 
+                name = "MH_INTERNAL_cellVolumes"
                 assert name not in self.__internal_scratch_specs
                 self.__internal_scratch_specs[name] = {
                     "type": "milhoja::Real",
@@ -94,7 +90,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             Milhoja-internal scratch variables needed
         """
         tf_arg = self._tf_spec.scratch_arguments
-        internal = self.__internal_scratch
+        internal = self.__internal_scratch_specs.keys()
         return tf_arg.union(internal)
 
     def __scratch_specification(self, arg):
