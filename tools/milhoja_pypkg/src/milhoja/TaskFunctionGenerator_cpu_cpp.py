@@ -16,8 +16,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     def __init__(
             self,
             tf_spec,
-            log_level,
-            indent
+            indent,
+            logger
             ):
         """
         Construct an object for use with the task function specified by the
@@ -32,10 +32,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         source_filename = outputs[TaskFunction.CPP_TF_KEY]["source"]
 
         super().__init__(
-            tf_spec,
-            header_filename, source_filename,
-            TaskFunctionGenerator_cpu_cpp.__LOG_TAG, log_level,
-            indent
+            tf_spec, header_filename, source_filename, indent,
+            TaskFunctionGenerator_cpu_cpp.__LOG_TAG, logger
         )
 
         # ----- CODE GENERATION CONSTANTS

@@ -18,8 +18,8 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
     def __init__(
             self,
             tf_spec,
-            log_level,
-            indent
+            indent,
+            logger
             ):
         """
         Construct an object for use with the task function specified by the
@@ -34,10 +34,8 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         source_filename = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
 
         super().__init__(
-            tf_spec,
-            header_filename, source_filename,
-            TileWrapperGenerator_cpp.__LOG_TAG, log_level,
-            indent
+            tf_spec, header_filename, source_filename, indent,
+            TileWrapperGenerator_cpp.__LOG_TAG, logger
         )
 
         # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE

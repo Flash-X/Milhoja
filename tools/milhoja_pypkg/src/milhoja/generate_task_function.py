@@ -1,7 +1,7 @@
 from . import TaskFunctionGenerator_cpu_cpp
 
 
-def generate_task_function(tf_spec, destination, overwrite, verbosity, indent):
+def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     """
     .. todo::
         Add in all other code generators.
@@ -10,7 +10,7 @@ def generate_task_function(tf_spec, destination, overwrite, verbosity, indent):
     language = tf_spec.language
 
     if (language.lower() == "c++") and (processor.lower() == "cpu"):
-        generator = TaskFunctionGenerator_cpu_cpp(tf_spec, verbosity, indent)
+        generator = TaskFunctionGenerator_cpu_cpp(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
         generator.generate_source_code(destination, overwrite)
 

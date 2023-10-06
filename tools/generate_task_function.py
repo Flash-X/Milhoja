@@ -19,6 +19,7 @@ def main():
     SUCCESS = 0
 
     INDENT = 4
+    LOG_TAG = "Milhoja Tools"
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
@@ -39,7 +40,8 @@ def main():
     parser.add_argument("file", nargs=1, help=FILENAME_HELP)
     parser.add_argument(
         "format", nargs=1,
-        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        type=str.lower,
+        choices=[e.lower() for e in milhoja.TASK_FUNCTION_FORMATS],
         help=FORMAT_HELP
     )
     parser.add_argument("destination", nargs=1, help=DESTINATION_HELP)
@@ -62,34 +64,34 @@ def main():
     fmt = args.format[0]
     destination = Path(args.destination[0]).resolve()
     overwrite = args.overwrite
-    verbosity_level = args.verbose
+    logger = milhoja.BasicLogger(args.verbose)
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
-    def print_and_abort(error_msg):
-        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'                  # No Color/Not bold
-        print()
-        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
-        print()
+    def log_and_abort(error_msg):
+        logger.error(LOG_TAG, error_msg)
         exit(FAILURE)
 
     # ----- GET TO GENERATIN'
     try:
         if fmt.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
-            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename, fmt)
+            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
+            logger.log(
+                LOG_TAG,
+                f"Generating task function code for task function {tf_spec.name}",
+                milhoja.LOG_LEVEL_BASIC
+            )
+            logger.log(LOG_TAG, "-" * 80, milhoja.LOG_LEVEL_BASIC)
         else:
-            print_and_abort(f"Unsupported task function format ({fmt})")
+            log_and_abort(f"Unsupported task function format ({fmt})")
 
         milhoja.generate_task_function(
-            tf_spec,
-            destination, overwrite,
-            verbosity_level, INDENT
+            tf_spec, destination, overwrite, INDENT, logger
         )
     except Exception as error:
         error_msg = str(error)
-        if verbosity_level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
+        if logger.level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
             error_msg += f"\n{traceback.format_exc()}"
-        print_and_abort(error_msg)
+        log_and_abort(error_msg)
 
     return SUCCESS
 

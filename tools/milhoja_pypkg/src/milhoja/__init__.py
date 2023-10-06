@@ -27,7 +27,8 @@ from .constants import LOG_LEVELS
 
 # classes
 from .TaskFunction import TaskFunction
-from .CodeGenerationLogger import CodeGenerationLogger
+from .AbcLogger import AbcLogger
+from .BasicLogger import BasicLogger
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp

@@ -1,14 +1,14 @@
 from pathlib import Path
 
 from milhoja import LOG_LEVEL_BASIC
-from milhoja import CodeGenerationLogger
 from milhoja import generate_data_item
 from milhoja import generate_task_function
 
 
 def generate_code(
-            tf_specs_all, destination, overwrite, verbosity, indent,
-            makefile_filename
+            tf_specs_all, destination, overwrite, indent,
+            makefile_filename,
+            logger
         ):
     """
     Generate all code related to the given task functions and a Makefile that
@@ -19,11 +19,12 @@ def generate_code(
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing header and source files in destination will
         be overwritten if True
-    :param verbosity: Logging level
     :param indent: Number of spaces to use for indent in generated code
     :param makefile_filename: Name with path of makefile to generate.  An
         exception is raised if the file already exists.
     """
+    LOG_TAG = "Milhoja Test"
+
     # ----- ERROR CHECK ARGUMENTS
     dst = Path(destination).resolve()
     makefile = Path(makefile_filename).resolve()
@@ -37,24 +38,20 @@ def generate_code(
     # Keep track of all generated source files
     files_to_compile = []
 
-    logger = CodeGenerationLogger("Milhoja Test", verbosity)
-    logger.log("", LOG_LEVEL_BASIC)
+    logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
     for tf_spec in tf_specs_all:
         logger.log(
-            f"Generating code for task function {tf_spec.name}",
+            LOG_TAG, f"Generating code for task function {tf_spec.name}",
             LOG_LEVEL_BASIC
         )
-        logger.log(
-            "-" * 80,
-            LOG_LEVEL_BASIC
-        )
+        logger.log(LOG_TAG, "-" * 80, LOG_LEVEL_BASIC)
         generate_data_item(
-            tf_spec, destination, overwrite, verbosity, indent
+            tf_spec, destination, overwrite, indent, logger
         )
         generate_task_function(
-            tf_spec, destination, overwrite, verbosity, indent
+            tf_spec, destination, overwrite, indent, logger
         )
-        logger.log("", LOG_LEVEL_BASIC)
+        logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
 
         outputs = tf_spec.output_filenames
         files_to_compile += \
@@ -72,5 +69,5 @@ def generate_code(
             else:
                 fptr.write(f"\t{filename}, \\\n")
 
-    logger.log(f"Generated {makefile}", LOG_LEVEL_BASIC)
-    logger.log("", LOG_LEVEL_BASIC)
+    logger.log(LOG_TAG, f"Generated {makefile}", LOG_LEVEL_BASIC)
+    logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)

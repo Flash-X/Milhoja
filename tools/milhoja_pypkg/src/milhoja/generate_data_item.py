@@ -1,7 +1,7 @@
 from . import TileWrapperGenerator_cpp
 
 
-def generate_data_item(tf_spec, destination, overwrite, verbosity, indent):
+def generate_data_item(tf_spec, destination, overwrite, indent, logger):
     """
     .. todo::
         Add in all other code generators.
@@ -10,7 +10,7 @@ def generate_data_item(tf_spec, destination, overwrite, verbosity, indent):
     language = tf_spec.language
 
     if (language.lower() == "c++") and (data_item.lower() == "tilewrapper"):
-        generator = TileWrapperGenerator_cpp(tf_spec, verbosity, indent)
+        generator = TileWrapperGenerator_cpp(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
         generator.generate_source_code(destination, overwrite)
 

@@ -1,6 +1,6 @@
 import abc
 
-from . import CodeGenerationLogger
+from . import AbcLogger
 
 
 class AbcCodeGenerator(abc.ABC):
@@ -10,6 +10,11 @@ class AbcCodeGenerator(abc.ABC):
     use a custom class derived from TaskFunction if so desired.  For the same
     reason, code generators derived from this class should also take the
     specification as an object.
+
+    This class also takes a logger object instantiated from a concrete class
+    derived from AbcLogger so that application codes can use custom logging if
+    so desired.  For the same reason, code generators derived from this class
+    should also take the logger as an object.
 
     .. todo::
         * Make ``_logger`` private once all code generators are derived from
@@ -21,8 +26,8 @@ class AbcCodeGenerator(abc.ABC):
                 tf_specification,
                 header_filename,
                 source_filename,
-                log_tag, log_level,
-                indent
+                indent,
+                log_tag, logger
             ):
         """
         """
@@ -40,7 +45,8 @@ class AbcCodeGenerator(abc.ABC):
 
         # Allow derived classes access to logger in case they need to pass it
         # to functions external to the class.
-        self._logger = CodeGenerationLogger(log_tag, log_level)
+        self._logger = logger
+        self.__log_tag = log_tag
 
         # ----- SANITY CHECK ARGUMENTS
         # Since there could be no header or source files at instantiation, but
@@ -49,6 +55,8 @@ class AbcCodeGenerator(abc.ABC):
         # for pre-existing files.
         if self.__indent < 0:
             raise ValueError(f"Negative code generation indent ({indent})")
+        if not isinstance(self._logger, AbcLogger):
+            raise ValueError("Logger not derived from milhoja.AbcLogger")
 
     @property
     def specification_filename(self):
@@ -71,17 +79,17 @@ class AbcCodeGenerator(abc.ABC):
     def _log(self, msg, level):
         """
         """
-        self._logger.log(msg, level)
+        self._logger.log(self.__log_tag, msg, level)
 
     def _warn(self, msg):
         """
         """
-        self._logger.warn(msg)
+        self._logger.warn(self.__log_tag, msg)
 
     def _error(self, msg):
         """
         """
-        self._logger.error(msg)
+        self._logger.error(self.__log_tag, msg)
 
     @property
     def header_filename(self):

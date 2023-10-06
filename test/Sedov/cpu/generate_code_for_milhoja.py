@@ -25,6 +25,7 @@ def main():
     SUCCESS = 0
 
     INDENT = 4
+    LOG_TAG = "Milhoja Test"
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
@@ -63,17 +64,13 @@ def main():
     makefile = Path(args.makefile[0]).resolve()
     dimension = args.dimension[0]
     overwrite = args.overwrite
-    verbosity_level = args.verbose
+    logger = milhoja.BasicLogger(args.verbose)
 
     tf_names_all = [each.format(dimension) for each in TF_PARTIAL_NAMES_ALL]
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
-    def print_and_abort(error_msg):
-        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'                  # No Color/Not bold
-        print()
-        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
-        print()
+    def log_and_abort(error_msg):
+        logger.error(LOG_TAG, error_msg)
         exit(FAILURE)
 
     try:
@@ -86,15 +83,15 @@ def main():
 
         # ----- NOW IS GOOD FOR GENERATING CODE
         milhoja.tests.generate_code(
-            tf_specs_all, destination,
-            overwrite, verbosity_level, INDENT,
-            makefile
+            tf_specs_all, destination, overwrite, INDENT,
+            makefile,
+            logger
         )
     except Exception as error:
         error_msg = str(error)
-        if verbosity_level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
+        if logger.level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
             error_msg += f"\n{traceback.format_exc()}"
-        print_and_abort(error_msg)
+        log_and_abort(error_msg)
 
     return SUCCESS
 
