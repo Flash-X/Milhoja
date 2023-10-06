@@ -12,6 +12,9 @@
 #include "setInitialConditions.h"
 #include "errorEstBlank.h"
 
+#include "cpu_tf_ic.h"
+#include "Tile_cpu_tf_ic.h"
+
 int main(int argc, char* argv[]) {
     using namespace milhoja;
 
@@ -59,13 +62,15 @@ int main(int argc, char* argv[]) {
         Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
                             RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
                             RPs.getUnsignedInt("Runtime", "nStreams"),
-                            RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
+                            RPs.getSizeT("Runtime", "cpuMemoryPoolSizeBytes"),
+                            RPs.getSizeT("Runtime", "gpuMemoryPoolSizeBytes"));
 
         try {
             Runtime::initialize(RPs.getUnsignedInt("Runtime", "nThreadTeams"),
                                 RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
                                 RPs.getUnsignedInt("Runtime", "nStreams"),
-                                RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
+                                RPs.getSizeT("Runtime", "cpuMemoryPoolSizeBytes"),
+                                RPs.getSizeT("Runtime", "gpuMemoryPoolSizeBytes"));
             std::cerr << "FAILURE - Runtime::main - Runtime initialized more than once"
                       << std::endl;
             return 2;
@@ -118,9 +123,10 @@ int main(int argc, char* argv[]) {
         initBlock_cpu.teamType        = ThreadTeamDataType::BLOCK;
         initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
         initBlock_cpu.nTilesPerPacket = 0;
-        initBlock_cpu.routine         = ActionRoutines::setInitialConditions_tile_cpu;
+        initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
-        grid.initDomain(initBlock_cpu);
+        Tile_cpu_tf_ic   prototype{};
+        grid.initDomain(initBlock_cpu, &prototype);
 
         // All allocation of test-specific resources occurs in the local scope
         // of the tests.  They are therefore released/destroyed before we do

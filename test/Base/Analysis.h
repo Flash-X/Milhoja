@@ -20,9 +20,5 @@ namespace Analysis {
                          const int idx);
 }
 
-namespace ActionRoutines {
-    void   computeErrors_tile_cpu(const int tId, milhoja::DataItem* dataItem);
-}
-
 #endif
 

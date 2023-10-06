@@ -28,7 +28,8 @@ int main(int argc, char* argv[]) {
                     RPs.getUnsignedInt("Runtime", "nThreadTeams"),
                     RPs.getUnsignedInt("Runtime", "nThreadsPerTeam"),
                     RPs.getUnsignedInt("Runtime", "nStreams"),
-                    RPs.getSizeT("Runtime", "memoryPoolSizeBytes"));
+                    RPs.getSizeT("Runtime", "cpuMemoryPoolSizeBytes"),
+                    RPs.getSizeT("Runtime", "gpuMemoryPoolSizeBytes"));
 
         // Configure in local block so that code cannot accidentally access
         // configuration data after it is consumed by Grid at initialization.

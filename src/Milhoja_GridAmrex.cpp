@@ -18,6 +18,7 @@
 #include "Milhoja_axis.h"
 #include "Milhoja_edge.h"
 #include "Milhoja_TileIterAmrex.h"
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_Runtime.h"
 
 namespace milhoja {
@@ -66,7 +67,8 @@ GridAmrex::GridAmrex(void)
       errorEst_{GridConfiguration::instance().errorEstimation},
       extBcFcn_{GridConfiguration::instance().externalBcRoutine},
       initBlock_noRuntime_{nullptr},
-      initCpuAction_{}
+      initCpuAction_{},
+      initCpuPrototype_{nullptr}
 {
     std::string   msg = "[GridAmrex] Initializing...";
     Logger&   logger = Logger::instance();
@@ -152,6 +154,7 @@ GridAmrex::GridAmrex(void)
     initCpuAction_.nInitialThreads =    0;
     initCpuAction_.nTilesPerPacket = 1000;
     initCpuAction_.routine         = nullptr;
+    initCpuPrototype_              = nullptr;
 
     // Check amrex::Real matches orchestraton::Real
     if(!std::is_same<amrex::Real,Real>::value) {
@@ -426,7 +429,7 @@ void  GridAmrex::destroyDomain(void) {
  * executed one block at a time without the runtime.
  *
  */
-void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
+void    GridAmrex::initDomain(INIT_BLOCK_NO_RUNTIME initBlock) {
     // domainDestroyed_ => domainInitialized_
     // Therefore, no need to check domainDestroyed_.
     if (domainInitialized_) {
@@ -459,7 +462,8 @@ void    GridAmrex::initDomain(ACTION_ROUTINE initBlock) {
  * conditions are resolved in accord with the Grid configuration.  This is
  * carried out by the runtime using the CPU-only thread team configuration.
  */ 
-void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
+void GridAmrex::initDomain(const RuntimeAction& cpuAction,
+                           const TileWrapper* prototype) {
     // domainDestroyed_ => domainInitialized_
     // Therefore, no need to check domainDestroyed_.
     if (domainInitialized_) {
@@ -470,6 +474,7 @@ void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
 
     // Cache given action so that AmrCore routines can access action.
     initCpuAction_ = cpuAction;
+    initCpuPrototype_ = prototype;
 
     InitFromScratch(0.0_wp);
 
@@ -480,6 +485,7 @@ void GridAmrex::initDomain(const RuntimeAction& cpuAction) {
     initCpuAction_.nInitialThreads =    0;
     initCpuAction_.nTilesPerPacket = 1000;
     initCpuAction_.routine         = nullptr;
+    initCpuPrototype_ = nullptr;
 
     domainInitialized_ = true;
 
@@ -1103,17 +1109,22 @@ void    GridAmrex::MakeNewLevelFromScratch(int level, amrex::Real time,
 
     if        ((!initBlock_noRuntime_) && ( initCpuAction_.routine)) {
         // Apply initial conditions using the runtime
-        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch", initCpuAction_);
+        if (!initCpuPrototype_) {
+            throw std::logic_error("[GridAmrex::MakeNewLevelFromScratch] Null TileWrapper prototype");
+        }
+
+        Runtime::instance().executeCpuTasks("MakeNewLevelFromScratch",
+                                            initCpuAction_,
+                                            *initCpuPrototype_);
     } else if (( initBlock_noRuntime_) && (!initCpuAction_.routine)) {
         // Apply initial conditions using just the iterator
         for (auto ti = Grid::instance().buildTileIter(level); ti->isValid(); ti->next()) {
-            std::unique_ptr<Tile> tileDesc = ti->buildCurrentTile();
-            initBlock_noRuntime_(0, tileDesc.get());
+            initBlock_noRuntime_(ti->buildCurrentTile().get());
         }
     } else if ((!initBlock_noRuntime_) && (!initCpuAction_.routine)) {
-        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] No IC routine given");
+        throw std::logic_error("[GridAmrex::MakeNewLevelFromScratch] No IC routine given");
     } else {
-        throw std::logic_error("[GridAmres::MakeNewLevelFromScratch] Two IC routines given");
+        throw std::logic_error("[GridAmrex::MakeNewLevelFromScratch] Two IC routines given");
     }
 
     msg =   "[GridAmrex] Created level "

@@ -6,6 +6,7 @@
 #include "Milhoja.h"
 #include "Milhoja_Stream.h"
 #include "Milhoja_DataPacket.h"
+#include "Milhoja_CpuMemoryManager.h"
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 #include <cuda_runtime.h>
@@ -70,7 +71,8 @@ public:
     RuntimeBackend& operator=(RuntimeBackend&&)      = delete;
 
     static  void              initialize(const unsigned int nStreams,
-                                         const std::size_t  nBytesInMemoryPools);
+                                         const std::size_t nBytesInCpuMemoryPool,
+                                         const std::size_t nBytesInGpuMemoryPools);
     static  RuntimeBackend&   instance(void);
     virtual void              finalize(void);
 
@@ -134,6 +136,11 @@ public:
                                                 void* callbackData) = 0;
 
     //----- MEMORY MANAGEMENT
+    void      requestCpuMemory(const std::size_t nBytes, void** ptr)
+        { CpuMemoryManager::instance().requestMemory(nBytes, ptr); }
+    void      releaseCpuMemory(void** ptr)
+        { CpuMemoryManager::instance().releaseMemory(ptr); }
+
     /**
      * To facilitate the construction of data packets, pinned and GPU memory can
      * be acquired in one call.  The given memory blocks are for exclusive use
@@ -193,7 +200,7 @@ private:
     static bool           initialized_;
     static bool           finalized_;
     static unsigned int   nStreams_;
-    static std::size_t    nBytesInMemoryPools_;
+    static std::size_t    nBytesInGpuMemoryPools_;
 };
 
 }

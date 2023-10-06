@@ -82,6 +82,7 @@
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_Runtime.h"
 #include "Milhoja_RuntimeBackend.h"
+#include "Milhoja_TileWrapper.h"
 
 extern "C" {
     /**
@@ -92,18 +93,22 @@ extern "C" {
      *
      * \todo Allow calling code to specify the log's filename.
      *
-     * \param nThreadTeams        The number of thread teams to use
-     * \param nThreadsPerTeam     The number of threads to be assigned to each
-     *                            team
-     * \param nStreams            The number of streams to use
-     * \param nBytesInMemoryPools The number of bytes to allocate in all memory
-     *                            pools (e.g., pinned and GPU)
+     * \param nThreadTeams           The number of thread teams to use
+     * \param nThreadsPerTeam        The number of threads to be assigned to each
+     *                               team
+     * \param nStreams               The number of streams to use
+     * \param nBytesInCpuMemoryPool  The number of bytes to allocate in CPU memory
+     *                               pool
+     * \param nBytesInGpuMemoryPools The number of bytes to allocate in memory
+     *                               pools associated with GPU (e.g., pinned &
+     *                               GPU)
      *
      * \return The milhoja error code
      */
     int    milhoja_runtime_init_c(const int nThreadTeams, const int nThreadsPerTeam,
                                   const int nStreams,
-                                  const size_t nBytesInMemoryPools) {
+                                  const size_t nBytesInCpuMemoryPool,
+                                  const size_t nBytesInGpuMemoryPools) {
         if (nThreadTeams < 0) {
             std::cerr << "[milhoja_runtime_init_c] nThreadTeams is negative" << std::endl;
             return MILHOJA_ERROR_N_THREAD_TEAMS_NEGATIVE;
@@ -122,7 +127,8 @@ extern "C" {
         try {
             milhoja::Runtime::initialize(nThreadTeams_ui, nThreadsPerTeam_ui,
                                          nStreams_ui,
-                                         nBytesInMemoryPools);
+                                         nBytesInCpuMemoryPool,
+                                         nBytesInGpuMemoryPools);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_INIT_RUNTIME;
@@ -189,12 +195,14 @@ extern "C" {
      *
      * \param taskFunction   The computational work to apply identically to each
      *                       block
+     * \param tileWrapper    C pointer to the prototype TileWrapper
      * \param nThreads       The number of threads that the single thread team
      *                       should activate.
      *
      * \return The milhoja error code
      */
     int   milhoja_runtime_execute_tasks_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              void* tileWrapper,
                                               const int nThreads) {
        if (nThreads < 0) {
            std::cerr << "[milhoja_runtime_execute_tasks_cpu_c] nThreads is negative" << std::endl;
@@ -209,8 +217,11 @@ extern "C" {
        action.nTilesPerPacket = 0;
        action.routine         = taskFunction;
 
+       milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
        try {
-           milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name", action);
+           milhoja::Runtime::instance().executeCpuTasks("Lazy Bundle Name",
+                                                        action, *prototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;

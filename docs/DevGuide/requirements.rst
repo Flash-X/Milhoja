@@ -477,3 +477,87 @@ current runtime telemetry data?
 
 CUDA Backend
 ------------
+
+
+Milhoja Code Generation
+=======================
+
+Logging
+-------
+
+We would like all Milhoja-based code generation to log general information in an
+identical way and to the same target (e.g., stdout).  A similar statement can be
+made for logging warnings and another for errors with the understanding that the
+format and target can differ between general information, warnings, and errors.
+For instance, errors might be logged to stderr so long as all error messages are
+logged to stderr.  This is not only motivated by esthestics, but also by the
+desire for users to quickly and confidently track down all warning or all error
+messages in a log containing contributions from all Milhoja-based tools.
+
+Since Milhoja is a library, we do not want to presume that a Milhoja-based
+logging solution will work for all applications that use Milhoja.  This
+motivates the need for a logging solution that allows applications to provide
+external control for logging by Milhoja.  For instance, an application might
+want to mix Milhoja logging with its own logging.  For this to be effective,
+they might want to dictate how the information to be logged is printed to the
+mixed log.  This could be important so that the way warnings are logged from all
+contributing sources is done such that application developers can be certain
+that their users have a means to search for warnings that finds all warnings
+from all sources.  They might also want to include in other information for each
+log entry that would allow them to find only Milhoja warnings with certainty.
+
+* Milhoja shall specify a logging interface with the intent that all code
+  generators shall use only this interface for communicating all general
+  information, all warnings, and all errors to users.  In addition, Milhoja
+  shall provide a basic implementation of this interface that any application
+  can choose to use with Milhoja.  The specification here of interface rather
+  than implementation is motivated by the use case that applications be able to
+  provide their own custom, external logging implementation that implements up
+  to this interface.
+* The log-based portion of the interfaces of all Milhoja code generators shall
+  be made as similar as possible.   This common interface shall accept an
+  externally constructed logger that implements up to the Milhoja logger
+  interface so that applications can provide their desired logger.  This
+  requirement shall allow for an application to pass different loggers to
+  different Milhoja code generators should this be desiried.
+* The Milhoja logger interface shall provide a means to configure the logger
+  with an immutable log level.  Loggers shall raise an exception if calling code
+  attempts to use the logger before configuring it with this level.  Let the
+  number of log levels defined by the Milhoja logger interface be N.  Then valid
+  log levels shall be 0, 1, ..., N-1 with the interpretation that the smaller
+  the level, the less content logged.  In addition, level M+1 shall log all
+  messages logged at level M as well as some new logging messages.  In
+  particular,
+  - log level 0 will only log warnings and errors,
+  - log level 1 will additionally log general information that users should
+    typically be made aware of (this is likely the default level for most
+    applications),
+  - log level 2 will additionally log general use debug information, and
+  - Any level with a value larger than 2 shall only add in additional layers of
+    debug information.
+  A motivation for extra debug levels is that some debug logging might be
+  prohibitively slow.  Changes to this requirement should not be made lightly
+  since they would require the reassessment of log level for each log message
+  across all code generation tools.
+* The Milhoja logger interface shall contain a `log` command for allowing the
+  logging of a given general information message.  The log command shall also
+  require the specification of a logging level such that this information shall
+  only be logged if its given level is less than or equal to the logger's level.
+  In accord with a previous requirement, the `log` command shall raise an
+  exception if a message is passed a value other than 1, ..., N-1.  It is the
+  responsibility of Milhoja code generator developers/maintainers to ensure that
+  that each message passed to `log` is written such that the message does
+  __not__ convey any notion that the message is a warning or an error.
+* The Milhoja logger interface shall contain a `warning` command for allowing
+  the logging of a given warning message.  Implementations of this command
+  shall add to the logging of the given message some information that clearly
+  and unambiguously indicates that the message is a warning rather than general
+  information or an error.  Therefore, calling code should not include anything in
+  the message to indicate that it is a warning.
+* The Milhoja logger interface shall contain an `error` command for allowing
+  the logging of a given error message.  Implementations of this command shall
+  add to the logging of the given message some information that clearly and
+  unambiguously indicates that the message is an error rather than general
+  information or a warning.  Therefore, calling code need not include anything
+  in the message to indicate that it is an error.
+

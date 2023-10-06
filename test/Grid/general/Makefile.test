@@ -15,6 +15,5 @@ SRCS_TEST = \
     $(TESTDIR)/gridUnitTest.cpp \
     $(TESTBASEDIR)/sim_getVariableNames.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
-    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
+    $(TESTBASEDIR)/setInitialConditions_noRuntime.cpp \
     $(TESTGRIDDIR)/errorEstMaximal.cpp
-

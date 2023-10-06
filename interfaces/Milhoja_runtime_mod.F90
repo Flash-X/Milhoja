@@ -24,6 +24,11 @@ module milhoja_runtime_mod
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
         !> Fortran interface of the runtime's task function.
+        !!
+        !! C_threadId - unique zero-based index of runtime thread calling this
+        !!              routine
+        !! C_dataItemPtr - C pointer to Grid DataItem to which the task
+        !!                 function should be applied
         subroutine milhoja_runtime_taskFunction(C_threadId, C_dataItemPtr) bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
@@ -66,12 +71,14 @@ module milhoja_runtime_mod
 
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_cpu_c(C_taskFunction,            &
+                                                     C_tileWrapperPrototype,    &
                                                      C_nThreads) result(C_ierr) &
                                                      bind(c)
-            use iso_c_binding,     ONLY : C_FUNPTR
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
             type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_cpu_c
@@ -154,13 +161,18 @@ contains
     !! \todo Need to add arguments for specifying the set of blocks.
     !!
     !! @param taskFunction    The task function to execute
+    !! @param prototype_Cptr  WRITE THIS
     !! @param nThreads        The number of threads to activate in team
     !! @param ierr            The milhoja error code
-    subroutine milhoja_runtime_executeTasks_Cpu(taskFunction, nThreads, ierr)
-        use iso_c_binding, ONLY : C_FUNPTR, &
+    subroutine milhoja_runtime_executeTasks_Cpu(taskFunction, &
+                                                prototype_Cptr, &
+                                                nThreads, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_FUNPTR, &
                                   C_FUNLOC
 
         procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        type(C_PTR),                            intent(IN)  :: prototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
@@ -168,7 +180,9 @@ contains
 
         taskFunction_Cptr = C_FUNLOC(taskFunction)
 
-        ierr = milhoja_runtime_execute_tasks_cpu_c(taskFunction_Cptr, nThreads)
+        ierr = milhoja_runtime_execute_tasks_cpu_c(taskFunction_Cptr, &
+                                                   prototype_Cptr, &
+                                                   nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
 
 #ifdef MILHOJA_GPUS_SUPPORTED

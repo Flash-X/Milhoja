@@ -12,14 +12,10 @@ LDFLAGS_TEST        = $(LIB_GTEST)
 SRCS_TEST = \
 	$(TESTROOTDIR)/RuntimeParameters.cpp \
     $(TESTBASEDIR)/setInitialConditions.cpp \
-    $(TESTBASEDIR)/setInitialConditions_tile_cpu.cpp \
     $(TESTBASEDIR)/errorEstBlank.cpp \
     $(TESTBASEDIR)/computeLaplacianDensity.cpp \
-    $(TESTBASEDIR)/computeLaplacianDensity_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianEnergy.cpp \
-    $(TESTBASEDIR)/computeLaplacianEnergy_tile_cpu.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
-    $(TESTBASEDIR)/computeLaplacianFusedKernels_tile_cpu.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp

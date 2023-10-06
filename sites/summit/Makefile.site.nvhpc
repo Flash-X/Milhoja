@@ -5,8 +5,8 @@
 #  - GTESTDIR: Path to the Googletest build directory
 #  - CUDADIR: Path to Cuda installation
 BASEDIR      = $(MILHOJA_CODE_REPO)
-AMREXDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/AMReX_$(NDIM)d
-GTESTDIR     = $(MILHOJA_TEST_REPO)/summit/nvhpc_current/googletest
+AMREXDIR     = $(MILHOJA_TEST_CLONE)/summit/nvhpc_current/AMReX_$(NDIM)d
+GTESTDIR     = $(MILHOJA_TEST_CLONE)/summit/nvhpc_current/googletest
 JSONDIR      = $(OLCF_NLOHMANN_JSON_ROOT)/include
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
@@ -24,7 +24,7 @@ CXXFLAGS_PROD    = -O3 -m64
 CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64
 
 CUCOMP       = nvcc
-CUFLAGS_PROD = -ccbin=pgc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
+CUFLAGS_PROD = -ccbin=nvc++ -O3 -m64 -gencode arch=compute_70,code=sm_70
 
 F90COMP        = mpif90
 F90FLAGS_PROD  = \
@@ -64,5 +64,5 @@ LDFLAGS_COV  = --coverage
 AMREXDIR_OMP  = $(MILHOJA_TEST_REPO)/summit/pgi_current/AMReX_$(NDIM)d_OMP
 OMP_FLAGS     = -mp
 CU_OMP_FLAGS  = -Xcompiler -mp
-OACC_FLAGS    = -acc -ta=tesla:cc70,cuda11.0,ptxinfo -Minfo=accel
+OACC_FLAGS    = -acc -ta=tesla:cc70,cuda11.5,ptxinfo -Minfo=accel
 

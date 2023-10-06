@@ -1,41 +1,42 @@
 {
     "Grid": {
-        "xMin":                           0.0,
-        "xMax":                           1.0,
-        "yMin":                           0.0,
-        "yMax":                           1.0,
-        "zMin":                           0.0,
-        "zMax":                           1.0,
-        "finestRefinementLevel":          1,
-        "nBlocksX":                      32,
-        "nBlocksY":                      32,
-        "nBlocksZ":                       1,
-        "NXB":                           16,
-        "NYB":                           16,
-        "NZB":                            1
+        "xMin":                            0.0,
+        "xMax":                            1.0,
+        "yMin":                            0.0,
+        "yMax":                            1.0,
+        "zMin":                            0.0,
+        "zMax":                            1.0,
+        "finestRefinementLevel":           1,
+        "nBlocksX":                       32,
+        "nBlocksY":                       32,
+        "nBlocksZ":                        1,
+        "NXB":                            16,
+        "NYB":                            16,
+        "NZB":                             1
     },
     "Runtime": {
-        "nThreadsPerTeam":                4,
-        "nThreadTeams":                   1,
-        "nStreams":                       1,
-        "memoryPoolSizeBytes":            0 
+        "nThreadsPerTeam":                 4,
+        "nThreadTeams":                    1,
+        "nStreams":                        1,
+        "cpuMemoryPoolSizeBytes": 1073741824,
+        "gpuMemoryPoolSizeBytes":          0
     },
     "Io": {
-        "nThreadsForIntQuantities":       2
+        "nThreadsForIntQuantities":        2
     },
     "Hydro": {
-        "nThreadsForAdvanceSolution":     2
+        "nThreadsForAdvanceSolution":      2
     },
     "Driver": {
-        "dtAfter":                        2.0e-5,
-        "writeEveryNSteps":           10000
+        "dtAfter":                         2.0e-5,
+        "writeEveryNSteps":            10000
     },
     "Simulation": {
-        "T_0":                            0.0,
-        "dtInit":                         2.8461091707043134e-6,
-        "tMax":                           0.5,
-        "maxSteps":                    1000,
-        "nThreadsForIC":                  2
+        "T_0":                             0.0,
+        "dtInit":                          2.8461091707043134e-6,
+        "tMax":                            0.5,
+        "maxSteps":                     1000,
+        "nThreadsForIC":                   2
     }
 }
 

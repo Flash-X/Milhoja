@@ -33,7 +33,8 @@ bool            Runtime::finalized_         = false;
 void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
                             const unsigned int nStreams,
-                            const std::size_t  nBytesInMemoryPools) {
+                            const std::size_t  nBytesInCpuMemoryPool,
+                            const std::size_t  nBytesInGpuMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
     if (initialized_) {
@@ -52,7 +53,9 @@ void   Runtime::initialize(const unsigned int nTeams,
     maxThreadsPerTeam_ = nThreadsPerTeam;
     initialized_ = true;
 
-    milhoja::RuntimeBackend::initialize(nStreams, nBytesInMemoryPools);
+    milhoja::RuntimeBackend::initialize(nStreams,
+                                        nBytesInCpuMemoryPool,
+                                        nBytesInGpuMemoryPools);
 
     // Create/initialize runtime
     instance();
@@ -131,7 +134,8 @@ Runtime::Runtime(void)
  * \return 
  */
 void Runtime::executeCpuTasks(const std::string& actionName,
-                              const RuntimeAction& cpuAction) {
+                              const RuntimeAction& cpuAction,
+                              const TileWrapper& prototype) {
     Logger::instance().log("[Runtime] Start single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
@@ -167,7 +171,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
     Grid&   grid = Grid::instance();
     for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
-            cpuTeam->enqueue( ti->buildCurrentTile() );
+            cpuTeam->enqueue( prototype.clone( ti->buildCurrentTile() ) );
         }
     }
     cpuTeam->closeQueue(nullptr);
@@ -485,6 +489,7 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
 #ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype) {
     Logger::instance().log("[Runtime] Start CPU/GPU action bundle");
@@ -568,7 +573,7 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
         }
 
         // CPU action parallel pipeline
-        cpuTeam->enqueue( std::move(tile_cpu) );
+        cpuTeam->enqueue( tilePrototype.clone( std::move(tile_cpu) ) );
         if ((tile_cpu != nullptr) || (tile_cpu.use_count() != 0)) {
             throw std::logic_error("[Runtime::executeCpuGpuTasks] tile_cpu ownership not transferred");
         }
@@ -748,6 +753,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const unsigned int stagger_usec,
                                       const RuntimeAction& cpuAction,
+                                      const TileWrapper& tilePrototype,
                                       const RuntimeAction& gpuAction,
                                       const DataPacket& packetPrototype,
                                       const unsigned int nTilesPerCpuTurn) {
@@ -856,7 +862,7 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
             tileDesc = ti->buildCurrentTile();
 
             if (isCpuTurn) {
-                cpuTeam->enqueue( std::move(tileDesc) );
+                cpuTeam->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
 
                 ++nInCpuTurn;
                 if (nInCpuTurn >= nTilesPerCpuTurn) {
@@ -911,6 +917,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
                                             const unsigned int stagger_usec,
                                             const RuntimeAction& cpuAction,
+                                            const TileWrapper& tilePrototype,
                                             const RuntimeAction& gpuAction,
                                             const DataPacket& packetPrototype,
                                             const unsigned int nTilesPerCpuTurn,
@@ -1073,7 +1080,7 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
             tileDesc = ti->buildCurrentTile();
 
             if (isCpuTurn) {
-                cpuTeam->enqueue( std::move(tileDesc) );
+                cpuTeam->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
 
                 ++nInCpuTurn;
                 if (nInCpuTurn >= nTilesPerCpuTurn) {
@@ -1337,6 +1344,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 #ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const RuntimeAction& actionA_cpu,
+                                      const TileWrapper& tilePrototype,
                                       const RuntimeAction& actionA_gpu,
                                       const RuntimeAction& actionB_gpu,
                                       const DataPacket& packetPrototypeA,
@@ -1444,7 +1452,7 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
         // CPU/GPU data parallel pipeline
         if (isCpuTurn) {
-            teamA_cpu->enqueue( std::move(tileA) );
+            teamA_cpu->enqueue( tilePrototype.clone( std::move(tileA) ) );
 
             ++nInCpuTurn;
             if (nInCpuTurn >= nTilesPerCpuTurn) {

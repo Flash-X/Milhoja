@@ -46,7 +46,7 @@ void    Driver::executeSimulation(void) {
     Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
     Timer::start("Set initial conditions");
-    grid.initDomain(Simulation::setInitialConditions_tile_cpu);
+    grid.initDomain(Simulation::setInitialConditions_noRuntime);
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");

@@ -18,12 +18,12 @@
 #include "Simulation.h"
 #include "ProcessTimer.h"
 
-// TODO: This would need to be inserted by a Driver code generator
-#if MILHOJA_NDIM == 2
-#include "cpu_tf00_2D.h"
-#else
-#include "cpu_tf00_3D.h"
-#endif
+#include "cpu_tf_ic.h"
+#include "Tile_cpu_tf_ic.h"
+#include "cpu_tf_IQ.h"
+#include "Tile_cpu_tf_IQ.h"
+#include "cpu_tf_hydro.h"
+#include "Tile_cpu_tf_hydro.h"
 
 void    Driver::executeSimulation(void) {
     constexpr  int          TIMER_RANK          = LEAD_RANK;
@@ -46,12 +46,16 @@ void    Driver::executeSimulation(void) {
     Driver::dt      = RPs.getReal("Simulation", "dtInit");
     Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
+    //------ ACQUIRE PERSISTENT MILHOJA SCRATCH
+    Tile_cpu_tf_IQ::acquireScratch();
+    Tile_cpu_tf_hydro::acquireScratch();
+
     milhoja::RuntimeAction     initBlock_cpu;
     initBlock_cpu.name            = "initBlock_cpu";
     initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
     initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     initBlock_cpu.nTilesPerPacket = 0;
-    initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
+    initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
@@ -59,15 +63,22 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nInitialThreads = RPs.getUnsignedInt("Io", "nThreadsForIntQuantities");
     computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-    computeIntQuantitiesByBlk.routine         
-        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
+    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ::taskFunction;
+    const Tile_cpu_tf_IQ    int_IQ_prototype{};
 
     Timer::start("Set initial conditions");
-    grid.initDomain(initBlock_cpu);
+    Tile_cpu_tf_ic::acquireScratch();
+    const Tile_cpu_tf_ic    ic_prototype{};
+
+    grid.initDomain(initBlock_cpu, &ic_prototype);
+
+    Tile_cpu_tf_ic::releaseScratch();
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    runtime.executeCpuTasks("IntegralQ",
+                            computeIntQuantitiesByBlk,
+                            int_IQ_prototype);
     Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
@@ -84,12 +95,7 @@ void    Driver::executeSimulation(void) {
     hydroAdvance.nInitialThreads = RPs.getUnsignedInt("Hydro", "nThreadsForAdvanceSolution");
     hydroAdvance.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance.nTilesPerPacket = 0;
-    // TODO: This would need to be inserted by a Driver code generator
-#if MILHOJA_NDIM == 2
-    hydroAdvance.routine         = cpu_tf00_2D::taskFunction;
-#else
-    hydroAdvance.routine         = cpu_tf00_3D::taskFunction;
-#endif
+    hydroAdvance.routine         = cpu_tf_hydro::taskFunction;
 
     ProcessTimer  hydro{"sedov_timings.dat", "CPU",
                         N_DIST_THREADS, 0,
@@ -132,14 +138,18 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
-        runtime.executeCpuTasks("Advance Hydro Solution", hydroAdvance);
+        const Tile_cpu_tf_hydro   cpu_tf_hydro_prototype{Driver::dt};
+        runtime.executeCpuTasks("Advance Hydro Solution",
+                                hydroAdvance, cpu_tf_hydro_prototype);
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
         hydro.logTimestep(nStep, wtime_sec);
         Timer::stop("Gather/Write");
 
         Timer::start("computeLocalIQ");
-        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        runtime.executeCpuTasks("IntegralQ",
+                                computeIntQuantitiesByBlk,
+                                int_IQ_prototype);
         Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
@@ -177,7 +187,14 @@ void    Driver::executeSimulation(void) {
 
         ++nStep;
     }
+
     Timer::stop("sedov simulation");
+
+    //----- RELEASE PERSISTENT MILHOJA Scratch Memory
+    // TODO: It would be good to include this is performance timings since it
+    // is extra overhead associated with Milhoja use
+    Tile_cpu_tf_hydro::releaseScratch();
+    Tile_cpu_tf_IQ::releaseScratch();
 
     if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");
