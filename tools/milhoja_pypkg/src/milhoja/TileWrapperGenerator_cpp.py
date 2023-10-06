@@ -25,10 +25,13 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         Construct an object for use with the task function specified by the
         given specification object.
 
-        :param tf_spec: TaskFunction specification object
-        :param log_level: Milhoja level to use for logging generation
+        :param tf_spec: Specification object derived from TaskFunction
         :param indent: Number of spaces in tab to be used in generated files
+        :param logger: Concrete logger derived from AbcLogger
         """
+        if not isinstance(tf_spec, TaskFunction):
+            raise TypeError("Given tf_spec not derived from TaskFunction")
+
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
         source_filename = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
@@ -43,7 +46,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self.__internal_scratch_specs = {}
         for arg in self._tf_spec.dummy_arguments:
             arg_spec = self._tf_spec.argument_specification(arg)
-            if arg_spec["source"].lower() == "tile_cellvolumes":
+            if arg_spec["source"] == TaskFunction.TILE_CELL_VOLUMES:
                 name = "MH_INTERNAL_cellVolumes"
                 assert name not in self.__internal_scratch
                 self.__internal_scratch.add(name)
@@ -51,9 +54,9 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 nguard = self._tf_spec.n_guardcells
                 extents = list(self._tf_spec.block_interior_shape)
                 for i in range(self._tf_spec.grid_dimension):
-                    if arg_spec["lo"].lower() == "tile_lbound":
+                    if arg_spec["lo"] == TaskFunction.TILE_LBOUND:
                         extents[i] += nguard
-                    if arg_spec["hi"].lower() == "tile_ubound":
+                    if arg_spec["hi"] == TaskFunction.TILE_UBOUND:
                         extents[i] += nguard
                 extents = "(" + \
                           ", ".join([str(each) for each in extents]) + \
@@ -84,16 +87,23 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
     @property
     def __scratch_variables(self):
         """
-        List of task function's scratch arguments and all Milhoja-internal
-        scratch variables needed.
+        Code in this class should likely use this instead of accessing scratch
+        argument directly from the TaskFunction object.
+
+        :return: Set of task function's scratch arguments and all
+            Milhoja-internal scratch variables needed
         """
         tf_arg = self._tf_spec.scratch_arguments
         internal = self.__internal_scratch
-
-        return sorted(list(tf_arg.union(internal)))
+        return tf_arg.union(internal)
 
     def __scratch_specification(self, arg):
         """
+        Code in this class should likely use this instead of accessing scratch
+        argument specifications directly from the TaskFunction object.
+
+        :return: Specification for the given task function scratch argument or
+            Milhoja-internal scratch variable.
         """
         if arg in self.__internal_scratch_specs:
             return self.__internal_scratch_specs[arg]
@@ -144,7 +154,14 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
     def generate_source_code(self, destination, overwrite):
         """
-        Generate the C++ source code
+        Generate the C++ source code for the C++ task function's concrete
+        TileWrapper class.
+
+        .. todo::
+            * I suspect that this is a good candidate for CG-Kit.
+
+        :param destination: Path to folder in which file should be written
+        :param overwrite: Overwrite pre-existing file if True
         """
         INDENT = " " * self.indentation
 
@@ -152,14 +169,14 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         path = Path(destination).resolve()
         if not path.is_dir():
-            raise ValueError(f"{path} is not a folder or does not exist")
+            raise RuntimeError(f"{path} is not a folder or does not exist")
         source_filename = path.joinpath(self.source_filename)
 
         msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
         if (not overwrite) and source_filename.exists():
-            raise ValueError(f"{source_filename} already exists")
+            raise RuntimeError(f"{source_filename} already exists")
 
         with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
@@ -177,7 +194,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
             # ----- STATIC DEFINITIONS
             scratch_vars = self.__scratch_variables
-            for arg in scratch_vars:
+            for arg in sorted(list(scratch_vars)):
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
             fptr.write("\n")
             fptr.write(f"void {classname}::acquireScratch(void) {{\n")
@@ -185,7 +202,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 fptr.write(f"{INDENT}const unsigned int  nThreads = ")
                 fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
                 fptr.write("\n")
-            for arg in scratch_vars:
+            for arg in sorted(list(scratch_vars)):
                 arg_spec = self.__scratch_specification(arg)
                 arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
@@ -211,7 +228,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write(f"void {classname}::releaseScratch(void) {{\n")
-            for arg in self.__scratch_variables:
+            for arg in sorted(list(scratch_vars)):
                 arg_spec = self.__scratch_specification(arg)
                 arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if (!{arg}_) {{\n")
@@ -293,7 +310,15 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
     def generate_header_code(self, destination, overwrite):
         """
-        Generate the C++ header code
+        Generate the C++ header code for the C++ task function's concrete
+        TileWrapper class.
+
+        .. todo::
+            * Should scratch variables by correctly typed or all void*?
+            * I suspect that this is a good candidate for CG-Kit.
+
+        :param destination: Path to folder in which file should be written
+        :param overwrite: Overwrite pre-existing file if True
         """
         INDENT = " " * self.indentation
 
@@ -301,7 +326,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         path = Path(destination).resolve()
         if not path.is_dir():
-            raise ValueError(f"{path} is not a folder or does not exist")
+            raise RuntimeError(f"{path} is not a folder or does not exist")
         header_filename = path.joinpath(self.header_filename)
         hdr_macro = f"MILHOJA_GENERATED_{header_filename.stem.upper()}_H__"
 
@@ -309,7 +334,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self._log(msg, LOG_LEVEL_BASIC)
 
         if (not overwrite) and header_filename.exists():
-            raise ValueError(f"{header_filename} already exists")
+            raise RuntimeError(f"{header_filename} already exists")
 
         with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
@@ -345,7 +370,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write(f"{INDENT}static void acquireScratch(void);\n")
             fptr.write(f"{INDENT}static void releaseScratch(void);\n")
             fptr.write("\n")
-            for arg in self.__scratch_variables:
+            for arg in sorted(list(self.__scratch_variables)):
                 arg_spec = self.__scratch_specification(arg)
                 arg_extents = self.__parse_extents_spec(arg_spec["extents"])
                 fptr.write(f"{INDENT}constexpr static std::size_t  {arg.upper()}_SIZE_ =")
@@ -359,7 +384,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                             fptr.write(f"\n{INDENT*5}* {each}")
                     fptr.write(";\n")
             fptr.write("\n")
-            for arg in self.__scratch_variables:
+            for arg in sorted(list(self.__scratch_variables)):
                 fptr.write(f"{INDENT}static void* {arg}_;\n")
             fptr.write("};\n")
             fptr.write("\n")

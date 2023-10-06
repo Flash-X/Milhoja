@@ -23,10 +23,13 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         Construct an object for use with the task function specified by the
         given specification object.
 
-        :param tf_spec: TaskFunction specification object
+        :param tf_spec: Specification object derived from TaskFunction
         :param log_level: Milhoja level to use for logging generation
-        :param indent: Number of spaces in tab to be used in generated files
+        :param logger: Concrete logger derived from AbcLogger
         """
+        if not isinstance(tf_spec, TaskFunction):
+            raise TypeError("Given tf_spec not derived from TaskFunction")
+
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.CPP_TF_KEY]["header"]
         source_filename = outputs[TaskFunction.CPP_TF_KEY]["source"]
@@ -216,14 +219,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
         dst = Path(destination).resolve()
         if not dst.is_dir():
-            raise ValueError(f"{dst} is not a folder or does not exist")
+            raise RuntimeError(f"{dst} is not a folder or does not exist")
         source_filename = dst.joinpath(self.source_filename)
 
         msg = f"Generating C++ Source {source_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
         if (not overwrite) and source_filename.exists():
-            raise ValueError(f"{source_filename} already exists")
+            raise RuntimeError(f"{source_filename} already exists")
 
         wrapper = self._tf_spec.data_item_class_name
 
@@ -396,17 +399,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
 
         dst = Path(destination).resolve()
         if not dst.is_dir():
-            raise ValueError(f"{dst} is not a folder or does not exist")
+            raise RuntimeError(f"{dst} is not a folder or does not exist")
         header_filename = dst.joinpath(self.header_filename)
+        hdr_macro = f"MILHOJA_GENERATED_{header_filename.stem.upper()}_H__"
 
         msg = f"Generating C++ Header {header_filename}"
         self._log(msg, LOG_LEVEL_BASIC)
 
         if (not overwrite) and header_filename.exists():
-            raise ValueError(f"{header_filename} already exists")
-
-        basename = Path(header_filename.name).stem
-        hdr_macro = f"MILHOJA_GENERATED_{basename.upper()}_H__"
+            raise RuntimeError(f"{header_filename} already exists")
 
         with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")

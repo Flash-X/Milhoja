@@ -15,8 +15,16 @@ class TaskFunction(object):
     FORTRAN_TF_KEY = "fortran_tf"
     DATA_ITEM_KEY = "data_item"
 
-    # Case-sensitive tile metadata keys for dictionary returned by
-    # tile_metadata_arguments
+    # Case-sensitive source keys to be used in specification files (e.g.,
+    # Milhoja-JSON files), here, and in code generators.
+    #
+    # Scheme for keys
+    # - concise one word all lowercase for all keys when possible
+    # - tile metadata keys all begin with tile_ (all lowercase) with remainder
+    #   in camelcase with no separation
+    EXTERNAL_ARGUMENT = "external"
+    SCRATCH_ARGUMENT = "scratch"
+    GRID_DATA_ARGUMENT = "grid_data"
     TILE_GRID_INDEX = "tile_gridIndex"
     TILE_LEVEL = "tile_level"
     TILE_LO = "tile_lo"
@@ -181,7 +189,9 @@ class TaskFunction(object):
         """
         spec = self.__tf_spec["argument_specifications"][argument]
 
-        src_to_adjust = ["external", "scratch"]
+        src_to_adjust = [
+            TaskFunction.EXTERNAL_ARGUMENT, TaskFunction.SCRATCH_ARGUMENT
+        ]
         if ((spec["source"].lower() in src_to_adjust) and
                 (spec["type"].lower() == "real") and
                 (self.processor.lower() == "cpu")):
@@ -197,7 +207,7 @@ class TaskFunction(object):
         arguments = []
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "external":
+            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
                 arguments.append((arg, arg_spec["type"]))
 
         return arguments
@@ -236,7 +246,7 @@ class TaskFunction(object):
         external_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "external":
+            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
                 assert arg not in external_all
                 external_all.add(arg)
 
@@ -252,7 +262,7 @@ class TaskFunction(object):
         scratch_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "scratch":
+            if arg_spec["source"].lower() == TaskFunction.SCRATCH_ARGUMENT:
                 assert arg not in scratch_all
                 scratch_all.add(arg)
 
@@ -265,7 +275,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "grid_data":
+            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and (not has_out):
@@ -281,7 +291,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "grid_data":
+            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and has_out:
@@ -297,7 +307,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == "grid_data":
+            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if (not has_in) and has_out:

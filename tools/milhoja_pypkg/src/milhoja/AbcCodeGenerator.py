@@ -1,6 +1,7 @@
 import abc
 
 from . import AbcLogger
+from . import TaskFunction
 
 
 class AbcCodeGenerator(abc.ABC):
@@ -53,10 +54,12 @@ class AbcCodeGenerator(abc.ABC):
         # a file could appear before calling a generate method, we don't check
         # file existence here.  Rather, concrete derived classes should check
         # for pre-existing files.
+        if not isinstance(self._tf_spec, TaskFunction):
+            raise TypeError("Given tf_spec not derived from TaskFunction")
         if self.__indent < 0:
             raise ValueError(f"Negative code generation indent ({indent})")
         if not isinstance(self._logger, AbcLogger):
-            raise ValueError("Logger not derived from milhoja.AbcLogger")
+            raise TypeError("Logger not derived from milhoja.AbcLogger")
 
     @property
     def specification_filename(self):
