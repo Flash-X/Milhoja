@@ -5,8 +5,8 @@ SEDOVDIR            = $(TESTROOTDIR)/Sedov
 SEDOVGPUDIR         = $(SEDOVDIR)/gpu
 TESTDIR             = $(SEDOVGPUDIR)/variant3
 
-CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) -I$(SEDOVDIR)/cpu/code_generation
-CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR) -I$(SEDOVDIR)/cpu/code_generation
+CXXFLAGS_TEST_DEBUG = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
+CXXFLAGS_TEST_PROD  = -I$(TESTROOTDIR) -I$(SEDOVDIR) -I$(SEDOVGPUDIR) -I$(TESTDIR)
 CUFLAGS_TEST        = -I$(SEDOVDIR)
 LDFLAGS_TEST        =
 
@@ -30,5 +30,4 @@ SRCS_TEST = \
 	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
 	$(TESTDIR)/Driver_executeSimulation.cpp \
-	$(SEDOVDIR)/solve_sedov_with_runtime.cpp \
-	$(SEDOVDIR)/cpu/code_generation/cpu_tf00_$(NDIM)D.cpp
+	$(SEDOVDIR)/solve_sedov_with_runtime.cpp

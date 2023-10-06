@@ -387,7 +387,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT*5}{arg_list[-1]});\n")
 
             # ----- CLOSE TASK FUNCTION DEFINITION
-            fptr.write("}")
+            fptr.write("}\n")
 
     def generate_header_code(self, destination, overwrite):
         """
