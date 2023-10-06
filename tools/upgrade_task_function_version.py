@@ -18,6 +18,7 @@ def main():
     FAILURE = 1
     SUCCESS = 0
 
+    LOG_TAG = "Milhoja Tools"
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
@@ -36,7 +37,8 @@ def main():
     parser.add_argument("file", nargs=1, help=FILENAME_HELP)
     parser.add_argument(
         "format", nargs=1,
-        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        type=str.lower,
+        choices=[e.lower() for e in milhoja.TASK_FUNCTION_FORMATS],
         help=FORMAT_HELP
     )
     parser.add_argument(
@@ -57,43 +59,39 @@ def main():
     filename = Path(args.file[0]).resolve()
     fmt = args.format
     overwrite = args.overwrite
-    verbosity_level = args.verbose
+    logger = milhoja.BasicLogger(args.verbose)
 
-    def print_and_abort(error_msg):
-        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'                  # No Color/Not bold
-        print()
-        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
-        print()
+    def log_and_abort(error_msg):
+        logger.error(LOG_TAG, error_msg)
         exit(FAILURE)
 
     # ----- GET TO UPGRADIN'
-    print_and_abort("This has never been tested")
+    log_and_abort("This has never been tested")
 
     if overwrite:
         filename_dest = filename
     else:
         filename_dest = Path(str(filename) + "_new")
         if filename_dest.exists():
-            print_and_abort(f"Upgraded file already exists ({filename_dest})")
+            log_and_abort(f"Upgraded file already exists ({filename_dest})")
 
     try:
         if fmt.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
             tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
             _, version = tf_spec.specification_format
             if version.lower() == milhoja.CURRENT_MILHOJA_JSON_VERSION.lower():
-                print_and_abort("File already at current version")
+                log_and_abort("File already at current version")
             else:
                 tf_spec.to_milhoja_json(filename_dest)
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown specification format {fmt}"
-            print_and_abort(error_msg)
+            log_and_abort(error_msg)
     except Exception as error:
         error_msg = str(error)
-        if verbosity_level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
+        if logger.level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
             error_msg += f"\n{traceback.format_exc()}"
-        print_and_abort(error_msg)
+        log_and_abort(error_msg)
 
     return SUCCESS
 

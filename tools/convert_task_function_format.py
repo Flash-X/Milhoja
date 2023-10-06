@@ -18,6 +18,7 @@ def main():
     FAILURE = 1
     SUCCESS = 0
 
+    LOG_TAG = "Milhoja Tools"
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
@@ -36,12 +37,14 @@ def main():
     parser.add_argument("file", nargs=1, help=FILENAME_HELP)
     parser.add_argument(
         "from_format", nargs=1,
-        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        type=str.lower,
+        choices=[e.lower() for e in milhoja.TASK_FUNCTION_FORMATS],
         help=FROM_HELP
     )
     parser.add_argument(
         "to_format", nargs=1,
-        type=str, choices=milhoja.TASK_FUNCTION_FORMATS,
+        type=str.lower,
+        choices=[e.lower() for e in milhoja.TASK_FUNCTION_FORMATS],
         help=TO_HELP
     )
     parser.add_argument(
@@ -55,23 +58,19 @@ def main():
     args = parser.parse_args()
 
     filename = Path(args.file[0]).resolve()
-    from_format = args.from_format
-    to_format = args.to_format
-    verbosity_level = args.verbose
+    from_format = args.from_format[0]
+    to_format = args.to_format[0]
+    logger = milhoja.BasicLogger(args.verbose)
 
-    def print_and_abort(error_msg):
-        FAILURE_COLOR = '\033[0;91;1m'  # Bright Red/bold
-        NC = '\033[0m'                  # No Color/Not bold
-        print()
-        print(f"{FAILURE_COLOR}ERROR - {error_msg}{NC}")
-        print()
+    def log_and_abort(error_msg):
+        logger.error(LOG_TAG, error_msg)
         exit(FAILURE)
 
     # ----- GET TO CONVERTIN'
     if from_format.lower() == to_format.lower():
-        print_and_abort("To and from formats are identical")
+        log_and_abort("To and from formats are identical")
     else:
-        print_and_abort("This has never been tested")
+        log_and_abort("This has never been tested")
 
     try:
         if from_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
@@ -79,7 +78,7 @@ def main():
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown from specification format {from_format}"
-            print_and_abort(error_msg)
+            log_and_abort(error_msg)
 
         if to_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
             # TODO: Determine new filename from original and format?
@@ -88,12 +87,12 @@ def main():
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown to specification format {to_format}"
-            print_and_abort(error_msg)
+            log_and_abort(error_msg)
     except Exception as error:
         error_msg = str(error)
-        if verbosity_level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
+        if logger.level >= milhoja.LOG_LEVEL_BASIC_DEBUG:
             error_msg += f"\n{traceback.format_exc()}"
-        print_and_abort(error_msg)
+        log_and_abort(error_msg)
 
     return SUCCESS
 

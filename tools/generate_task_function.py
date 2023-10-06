@@ -23,7 +23,7 @@ def main():
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
-    DESCRIPTION = "Generate all Milhoja task function code associated\n" \
+    DESCRIPTION = "Generate all Milhoja task function code associated " \
                   "with the given task function specification"
     FILENAME_HELP = "Task function specification file"
     FORMAT_HELP = "Task function specification format"

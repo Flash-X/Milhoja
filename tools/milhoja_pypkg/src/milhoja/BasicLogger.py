@@ -72,5 +72,4 @@ class BasicLogger(AbcLogger):
         sys.stderr.write("[{}] {}ERROR - {}{}\n".format(
             caller, BasicLogger.__FAILURE_COLOR, msg, BasicLogger.__NO_COLOR
         ))
-        sys.stderr.write(msg)
         sys.stderr.flush()

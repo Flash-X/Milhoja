@@ -23,7 +23,7 @@ def main():
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     # ----- PROGRAM USAGE INFO
-    DESCRIPTION = "Generate Milhoja data item code needed to support the\n" \
+    DESCRIPTION = "Generate Milhoja data item code needed to support the " \
                   "task function specified in the given file"
     FILENAME_HELP = "Task function specification file"
     FORMAT_HELP = "Task function specification format"

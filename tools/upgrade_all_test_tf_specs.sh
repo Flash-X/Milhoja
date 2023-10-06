@@ -1,3 +1,5 @@
 #!/bin/bash
 
-TODO: Write this once we have a new version.
+echo "TODO: Write this once we have a new version"
+
+exit 1
