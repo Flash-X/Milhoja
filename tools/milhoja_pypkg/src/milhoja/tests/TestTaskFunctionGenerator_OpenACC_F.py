@@ -20,6 +20,24 @@ def _create_generator(json_filename):
 
 
 class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
+    def testGeneration(self):
+        path = _TEST_PATH.joinpath("Sedov")
+
+        # Only first node in call graph has concurrent kernel launches
+        test_1 = {"json": path.joinpath("gpu_tf_test_3D.json"),
+                  "header": None,
+                  "header_dim_dependent": False,
+                  "source": path.joinpath("REF_gpu_tf_test_3D.F90"),
+                  "source_dim_dependent": False}
+        # Only final node in call graph has concurrent kernel launches
+        test_2 = {"json": path.joinpath("gpu_tf_test2_3D.json"),
+                  "header": None,
+                  "header_dim_dependent": False,
+                  "source": path.joinpath("REF_gpu_tf_test2_3D.F90"),
+                  "source_dim_dependent": False}
+
+        self.run_tests([test_1, test_2], [3], _create_generator)
+
     def testSedovGeneration(self):
         path = _TEST_PATH.joinpath("Sedov")
 
@@ -33,6 +51,7 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
                       "header_dim_dependent": False,
                       "source": path.joinpath("REF_gpu_tf_hydroFC_2D.F90"),
                       "source_dim_dependent": False}
+        # Only middle node has concurrent kernel launch
         hydro_3D = {"json": path.joinpath("gpu_tf_hydro_3D.json"),
                     "header": None,
                     "header_dim_dependent": False,

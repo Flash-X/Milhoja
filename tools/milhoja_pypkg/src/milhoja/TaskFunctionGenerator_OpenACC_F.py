@@ -2,6 +2,7 @@ from pathlib import Path
 
 from . import LOG_LEVEL_BASIC
 from . import LOG_LEVEL_BASIC_DEBUG
+from . import LogicError
 from . import TaskFunction
 from . import AbcCodeGenerator
 
@@ -239,12 +240,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write("\n")
                 elif (len(current_queues) > 1) and \
                         (next_queues == ["dataQ_h"]):
-                    fptr.write(f"{INDENT*2}!$acc wait( &\n")
                     # We don't have to wait for the data Q explicitly because
                     # there is only one next kernel launch to be scheduled on
                     # the data queue.
                     wait_for = set(current_queues).difference(set(next_queues))
                     wait_for = sorted(list(wait_for))
+                    fptr.write(f"{INDENT*2}!$acc wait( &\n")
                     for queue in wait_for[:-1]:
                         fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{queue}, &\n")
                     fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{wait_for[-1]} &\n")
@@ -257,8 +258,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     # same and we are using more than one stream.  For now we
                     # do *not* assume that the kernel launches can flow from
                     # one launch to the next on these streams.
+                    raise NotImplementedError("Not tested yet")
                     assert len(next_queues) > 1
-                    for queue in current_queues[-1]:
+                    for queue in current_queues[:-1]:
                         fptr.write(f"{INDENT*2}!$acc& {queue}, &\n")
                     fptr.write(f"{INDENT*2}!$acc& {current_queues[-1]} &\n")
                     fptr.write(f"{INDENT*2}!$acc& )\n")
@@ -286,7 +288,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write("\n")
 
             # Final wait for task function
-            fptr.write(f"{INDENT*2}!$acc wait(dataQ_h)\n")
+            fptr.write(f"{INDENT*2}!$acc wait( &\n")
+            for queue in current_queues[:-1]:
+                fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{queue}, &\n")
+            fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{current_queues[-1]} &\n")
+            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n")
             fptr.write("\n")
 
             # Release all extra asynchronous queues after final wait

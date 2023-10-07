@@ -118,7 +118,9 @@ contains
         end do
         !$acc end parallel loop
 
-        !$acc wait(dataQ_h)
+        !$acc wait( &
+        !$acc&      dataQ_h &
+        !$acc&  )
 
         !$acc end data
     end subroutine gpu_tf_hydro

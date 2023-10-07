@@ -152,7 +152,9 @@ contains
         end do
         !$acc end parallel loop
 
-        !$acc wait(dataQ_h)
+        !$acc wait( &
+        !$acc&      dataQ_h &
+        !$acc&  )
     
         MH_idx = INT(2, kind=MILHOJA_INT)
         MH_ierr = release_gpu_tf_hydro_extra_queue_C(C_packet_h, MH_idx)
