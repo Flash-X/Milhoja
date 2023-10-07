@@ -9,4 +9,5 @@ per-file-ignores =
     src/milhoja/tests/__init__.py:F401
     # TODO: Temporarily quiet too long lines for code generators *only*
     src/milhoja/TaskFunctionGenerator_cpu_cpp.py:E501
+    src/milhoja/TaskFunctionGenerator_OpenACC_F.py:E501
     src/milhoja/TileWrapperGenerator_cpp.py:E501

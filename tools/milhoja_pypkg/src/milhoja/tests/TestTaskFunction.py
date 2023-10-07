@@ -65,7 +65,7 @@ class TestTaskFunction(unittest.TestCase):
 
         result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
         self.assertEqual(1, len(result))
-        self.assertEqual("gpu_tf_hydro.F90", result["source"])
+        self.assertEqual("gpu_tf_hydro_mod.F90", result["source"])
 
     def testConstructorDummyArguments(self):
         tests_all = [self.__rt_ic,

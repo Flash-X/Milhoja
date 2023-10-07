@@ -148,6 +148,11 @@ class TaskFunction(object):
         return self.__tf_spec["processor"]
 
     @property
+    def computation_offloading(self):
+        assert self.data_item.lower() == "datapacket"
+        return self.__tf_spec["computation_offloading"]
+
+    @property
     def data_item(self):
         return self.__data_spec["type"]
 
@@ -156,6 +161,55 @@ class TaskFunction(object):
         if self.data_item.lower() == "tilewrapper":
             return f"Tile_{self.name}"
         raise NotImplementedError("Only setup for TileWrapper right now")
+
+    @property
+    def release_stream_C_function(self):
+        if self.language.lower() != "fortran":
+            raise RuntimeError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise RuntimeError("Streams used with DataPacket only")
+
+        return f"release_{self.name}_extra_queue_C"
+
+    @property
+    def fortran_module_name(self):
+        """
+        .. todo::
+            This should raise a LogicError
+        """
+        if self.language.lower() == "fortran":
+            return f"{self.name}_mod"
+        raise RuntimeError("No Fortran module for C++ task function")
+
+    @property
+    def fortran_host_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise RuntimeError("No Fortran host dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise RuntimeError("No Fortran host dummies for host-side TF")
+
+        dummies = ["C_packet_h", "dataQ_h"]
+        n_streams = self.n_streams
+        if n_streams > 1:
+            dummies += [f"queue{i}_h" for i in range(2, n_streams+1)]
+
+        return dummies
+
+    @property
+    def fortran_device_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise RuntimeError("No Fortran device dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise RuntimeError("No Fortran device dummies for host-side TF")
+
+        return ["nTiles_d"] + [f"{each}_d" for each in self.dummy_arguments]
+
+    @property
+    def fortran_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise RuntimeError("No Fortran arguments for non-Fortran TF")
+        return (self.fortran_host_dummy_arguments +
+                self.fortran_device_dummy_arguments)
 
     @property
     def grid_dimension(self):
