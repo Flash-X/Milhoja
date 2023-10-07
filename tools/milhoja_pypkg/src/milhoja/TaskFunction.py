@@ -4,6 +4,7 @@ from pathlib import Path
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
+from . import LogicError
 
 
 class TaskFunction(object):
@@ -165,28 +166,24 @@ class TaskFunction(object):
     @property
     def release_stream_C_function(self):
         if self.language.lower() != "fortran":
-            raise RuntimeError("No F-to-C++ layer for non-Fortran TF")
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
-            raise RuntimeError("Streams used with DataPacket only")
+            raise LogicError("Streams used with DataPacket only")
 
         return f"release_{self.name}_extra_queue_C"
 
     @property
     def fortran_module_name(self):
-        """
-        .. todo::
-            This should raise a LogicError
-        """
         if self.language.lower() == "fortran":
             return f"{self.name}_mod"
-        raise RuntimeError("No Fortran module for C++ task function")
+        raise LogicError("No Fortran module for C++ task function")
 
     @property
     def fortran_host_dummy_arguments(self):
         if self.language.lower() != "fortran":
-            raise RuntimeError("No Fortran host dummies for non-Fortran TF")
+            raise LogicError("No Fortran host dummies for non-Fortran TF")
         if self.data_item.lower() != "datapacket":
-            raise RuntimeError("No Fortran host dummies for host-side TF")
+            raise LogicError("No Fortran host dummies for host-side TF")
 
         dummies = ["C_packet_h", "dataQ_h"]
         n_streams = self.n_streams
@@ -198,16 +195,16 @@ class TaskFunction(object):
     @property
     def fortran_device_dummy_arguments(self):
         if self.language.lower() != "fortran":
-            raise RuntimeError("No Fortran device dummies for non-Fortran TF")
+            raise LogicError("No Fortran device dummies for non-Fortran TF")
         if self.data_item.lower() != "datapacket":
-            raise RuntimeError("No Fortran device dummies for host-side TF")
+            raise LogicError("No Fortran device dummies for host-side TF")
 
         return ["nTiles_d"] + [f"{each}_d" for each in self.dummy_arguments]
 
     @property
     def fortran_dummy_arguments(self):
         if self.language.lower() != "fortran":
-            raise RuntimeError("No Fortran arguments for non-Fortran TF")
+            raise LogicError("No Fortran arguments for non-Fortran TF")
         return (self.fortran_host_dummy_arguments +
                 self.fortran_device_dummy_arguments)
 

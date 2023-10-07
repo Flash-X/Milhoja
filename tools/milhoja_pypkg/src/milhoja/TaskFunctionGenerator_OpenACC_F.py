@@ -62,11 +62,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         return [int(e) for e in extents.split(",")]
 
     def generate_header_code(self, destination, overwrite):
-        """
-        .. todo::
-            * Create a LogicError exception for this package and use here
-        """
-        raise RuntimeError("Fortran task functions do not have a header")
+        raise LogicError("Fortran task functions do not have a header")
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -195,8 +191,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     elif arg in self._tf_spec.tile_out_arguments:
                         intent = "OUT"
                     else:
-                        # TODO: This should be LogicError
-                        raise RuntimeError("Unknown grid data variable class")
+                        raise LogicError("Unknown grid data variable class")
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
                 elif spec["source"] == TaskFunction.SCRATCH_ARGUMENT:
                     arg_type = spec["type"]
@@ -206,8 +201,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     array = "(" + ", ".join(tmp) + ")"
                     fptr.write(f"{INDENT*2}{arg_type}, intent(OUT) :: {arg}_d{array}\n")
                 else:
-                    # TODO: This should be LogicError
-                    raise RuntimeError(f"{arg} of unknown argument class")
+                    raise LogicError(f"{arg} of unknown argument class")
 
             fptr.write("\n")
 

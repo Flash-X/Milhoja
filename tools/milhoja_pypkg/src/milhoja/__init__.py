@@ -23,6 +23,9 @@ from .constants import LOG_LEVEL_BASIC_DEBUG
 from .constants import LOG_LEVEL_MAX
 from .constants import LOG_LEVELS
 
+# Custom exceptions
+from .LogicError import LogicError
+
 # Functions used by classes
 
 # classes
