@@ -150,7 +150,6 @@ class TaskFunction(object):
 
     @property
     def computation_offloading(self):
-        assert self.data_item.lower() == "datapacket"
         return self.__tf_spec["computation_offloading"]
 
     @property
