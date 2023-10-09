@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
             throw;
         }
 
-        grid.initDomain(ActionRoutines::setInitialConditions_tile_cpu);
+        grid.initDomain(sim::setInitialConditions_noRuntime);
 
         // There is a test that confirms that initDomain can be called at most once.
         exitCode = RUN_ALL_TESTS();

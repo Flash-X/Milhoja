@@ -8,12 +8,10 @@
 #include <Milhoja_RealVect.h>
 #include <Milhoja_FArray1D.h>
 #include <Milhoja_FArray4D.h>
-#include <Milhoja_DataItem.h>
+#include <Milhoja_Tile.h>
 
 namespace Simulation {
-    //----- ORCHESTRATION RUNTIME ACTION ROUTINES
-    void setInitialConditions_tile_cpu(const int tId,
-                                       milhoja::DataItem* dataItem);
+    void setInitialConditions_noRuntime(milhoja::Tile* tileDesc);
 }
 
 namespace sim {

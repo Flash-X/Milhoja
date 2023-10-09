@@ -70,10 +70,11 @@ TileAmrex::TileAmrex(const unsigned int level,
  */
 TileAmrex::~TileAmrex(void) {
 #ifdef DEBUG_RUNTIME
-    std::string msg =   "[TileAmrex] Destroyed Tile "
-                      + "(level="   + std::to_string(level_)
+    std::string msg =   "[TileAmrex] Destroyed Tile (level="
+                      + std::to_string(level_)
                       + " / grid ID=" + std::to_string(gridIdx_)
-                      + " / tile ID=" + std::to_string(tileIdx_) + ")";
+                      + " / tile ID=" + std::to_string(tileIdx_)
+                      + ")";
     Logger::instance().log(msg);
 #endif
 }

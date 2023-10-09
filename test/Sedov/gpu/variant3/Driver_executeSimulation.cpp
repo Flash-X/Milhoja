@@ -19,11 +19,12 @@
 #include "ProcessTimer.h"
 #include "DataPacket_Hydro_gpu_3.h"
 
-#if MILHOJA_NDIM == 2
-#include "cpu_tf00_2D.h"
-#else
-#include "cpu_tf00_3D.h"
-#endif
+#include "cpu_tf_ic.h"
+#include "Tile_cpu_tf_ic.h"
+#include "cpu_tf_IQ.h"
+#include "Tile_cpu_tf_IQ.h"
+#include "cpu_tf_hydro.h"
+#include "Tile_cpu_tf_hydro.h"
 
 /**
  * Numerically approximate using the third GPU variant the solution to the
@@ -47,12 +48,16 @@ void    Driver::executeSimulation(void) {
     Driver::dt      = RPs.getReal("Simulation", "dtInit");
     Driver::simTime = RPs.getReal("Simulation", "T_0"); 
 
+    //------ ACQUIRE PERSISTENT MILHOJA SCRATCH
+    Tile_cpu_tf_IQ::acquireScratch();
+    Tile_cpu_tf_hydro::acquireScratch();
+
     milhoja::RuntimeAction     initBlock_cpu;
     initBlock_cpu.name            = "initBlock_cpu";
     initBlock_cpu.nInitialThreads = RPs.getUnsignedInt("Simulation", "nThreadsForIC");
     initBlock_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     initBlock_cpu.nTilesPerPacket = 0;
-    initBlock_cpu.routine         = Simulation::setInitialConditions_tile_cpu;
+    initBlock_cpu.routine         = cpu_tf_ic::taskFunction;
 
     // This only makes sense if the iteration is over LEAF blocks.
     milhoja::RuntimeAction     computeIntQuantitiesByBlk;
@@ -60,15 +65,22 @@ void    Driver::executeSimulation(void) {
     computeIntQuantitiesByBlk.nInitialThreads = RPs.getUnsignedInt("compIQ_bundle", "nThreadsCpu");
     computeIntQuantitiesByBlk.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     computeIntQuantitiesByBlk.nTilesPerPacket = 0;
-    computeIntQuantitiesByBlk.routine         
-        = ActionRoutines::Io_computeIntegralQuantitiesByBlock_tile_cpu;
+    computeIntQuantitiesByBlk.routine         = cpu_tf_IQ::taskFunction;
+    const Tile_cpu_tf_IQ    int_IQ_prototype{};
 
     Timer::start("Set initial conditions");
-    grid.initDomain(initBlock_cpu);
+    Tile_cpu_tf_ic::acquireScratch();
+    const Tile_cpu_tf_ic    ic_prototype{};
+
+    grid.initDomain(initBlock_cpu, &ic_prototype);
+
+    Tile_cpu_tf_ic::releaseScratch();
     Timer::stop("Set initial conditions");
 
     Timer::start("computeLocalIQ");
-    runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+    runtime.executeCpuTasks("IntegralQ",
+                            computeIntQuantitiesByBlk,
+                            int_IQ_prototype);
     Timer::stop("computeLocalIQ");
 
     //----- OUTPUT RESULTS TO FILES
@@ -85,12 +97,7 @@ void    Driver::executeSimulation(void) {
     hydroAdvance_cpu.nInitialThreads = RPs.getUnsignedInt("Hydro_cpu/gpu_bundle", "nThreadsCpu");
     hydroAdvance_cpu.teamType        = milhoja::ThreadTeamDataType::BLOCK;
     hydroAdvance_cpu.nTilesPerPacket = 0;
-    
-#if MILHOJA_NDIM == 2
-    hydroAdvance_cpu.routine         = cpu_tf00_2D::taskFunction;
-#else 
-    hydroAdvance_cpu.routine         = cpu_tf00_3D::taskFunction;
-#endif
+    hydroAdvance_cpu.routine         = cpu_tf_hydro::taskFunction;
 
     milhoja::RuntimeAction     hydroAdvance_gpu;
     hydroAdvance_gpu.name            = "Advance Hydro Solution - GPU";
@@ -120,7 +127,6 @@ void    Driver::executeSimulation(void) {
     milhoja::Real     tMax{RPs.getReal("Simulation", "tMax")};
     milhoja::Real     dtAfter{RPs.getReal("Driver", "dtAfter")};
     unsigned int      writeEveryNSteps{RPs.getUnsignedInt("Driver", "writeEveryNSteps")};
-
     while ((nStep <= maxSteps) && (Driver::simTime < tMax)) {
         //----- ADVANCE TIME
         // Don't let simulation time exceed maximum simulation time
@@ -148,33 +154,34 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
-
-        // TODO: Currently, the test is only using the GPU because it makes testing easier,
-        //       and there's no need to account for roundoff error. Eventually, we should 
-        //       move back to using the CpuGpuSplit thread team config.
-//        runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
-//                                        nDistThreads,
-//                                        stagger_usec,
-//                                        hydroAdvance_cpu,
-//                                        hydroAdvance_gpu,
-//                                        packetPrototype,
-//                                        nTilesPerCpuTurn);
+        const Tile_cpu_tf_hydro         cpu_tf_hydro_prototype{Driver::dt};
+	    const DataPacket_Hydro_gpu_3    gpu_tf00_prototype{Driver::dt};
+        runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
+                                        nDistThreads,
+                                        stagger_usec,
+                                        hydroAdvance_cpu,
+                                        cpu_tf_hydro_prototype,
+                                        hydroAdvance_gpu,
+                                        gpu_tf00_prototype,
+                                        nTilesPerCpuTurn);
 //        runtime.executeCpuGpuSplitTasks_timed("Advance Hydro Solution",
 //                                              nDistThreads,
 //                                              stagger_usec,
 //                                              hydroAdvance_cpu,
+//                                              cpu_tf00_prototype,
 //                                              hydroAdvance_gpu,
-//                                              packetPrototype,
+//                                              gpu_tf00_prototype,
 //                                              nTilesPerCpuTurn,
 //                                              nStep,
 //                                              GLOBAL_COMM);
-
-	    const DataPacket_Hydro_gpu_3    packetPrototype{Driver::dt};
-		runtime.executeGpuTasks("Advance Hydro Solution",
-                                              nDistThreads,
-                                              stagger_usec,
-                                              hydroAdvance_gpu,
-                                              packetPrototype);
+// TODO: Currently, the test is only using the GPU because it makes testing easier,
+//       and there's no need to account for roundoff error. Eventually, we should
+//       move back to using the CpuGpuSplit thread team config.
+//        runtime.executeGpuTasks("Advance Hydro Solution",
+//                                nDistThreads,
+//                                stagger_usec,
+//                                hydroAdvance_gpu,
+//                                gpu_tf00_prototype);
 
         double   wtime_sec = MPI_Wtime() - tStart;
         Timer::start("Gather/Write");
@@ -182,7 +189,9 @@ void    Driver::executeSimulation(void) {
         Timer::stop("Gather/Write");
 
         Timer::start("computeLocalIQ");
-        runtime.executeCpuTasks("IntegralQ", computeIntQuantitiesByBlk);
+        runtime.executeCpuTasks("IntegralQ",
+                                computeIntQuantitiesByBlk,
+                                int_IQ_prototype);
         Timer::stop("computeLocalIQ");
 
         //----- OUTPUT RESULTS TO FILES
@@ -223,6 +232,12 @@ void    Driver::executeSimulation(void) {
         ++nStep;
     }
     Timer::stop("sedov simulation");
+
+    //----- RELEASE PERSISTENT MILHOJA Scratch Memory
+    // TODO: It would be good to include this is performance timings since it
+    // is extra overhead associated with Milhoja use
+    Tile_cpu_tf_hydro::releaseScratch();
+    Tile_cpu_tf_IQ::releaseScratch();
 
     if (Driver::simTime >= tMax) {
         logger.log("[Simulation] Reached max SimTime");

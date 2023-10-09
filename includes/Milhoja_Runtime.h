@@ -14,6 +14,7 @@
 
 #include "Milhoja.h"
 #include "Milhoja_ThreadTeam.h"
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
@@ -37,12 +38,18 @@ public:
     static void          initialize(const unsigned int nTeams,
                                      const unsigned int nThreadsPerTeam,
                                      const unsigned int nStreams,
-                                     const std::size_t nBytesInMemoryPools);
+                                     const std::size_t nBytesInCpuMemoryPool,
+                                     const std::size_t nBytesInGpuMemoryPools);
     static Runtime&      instance(void);
     void                 finalize(void);
 
+    unsigned int   nMaxThreadsPerTeam(void) const {
+        return maxThreadsPerTeam_;
+    }
+
     void executeCpuTasks(const std::string& actionName,
-                         const RuntimeAction& cpuAction);
+                         const RuntimeAction& cpuAction,
+                         const TileWrapper& prototype);
 #ifdef MILHOJA_GPUS_SUPPORTED
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
@@ -58,6 +65,7 @@ public:
                                const MPI_Comm comm);
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
+                            const TileWrapper& tilePrototype,
                             const RuntimeAction& gpuAction,
                             const DataPacket& packetPrototype);
     void executeExtendedGpuTasks(const std::string& bundleName,
@@ -69,6 +77,7 @@ public:
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,
                                  const RuntimeAction& cpuAction,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
@@ -76,6 +85,7 @@ public:
                                        const unsigned int nDistributorThreads,
                                        const unsigned int stagger_usec,
                                        const RuntimeAction& cpuAction,
+                                       const TileWrapper& tilePrototype,
                                        const RuntimeAction& gpuAction,
                                        const DataPacket& packetPrototype,
                                        const unsigned int nTilesPerCpuTurn,
@@ -90,6 +100,7 @@ public:
                                          const unsigned int nTilesPerCpuTurn);
     void executeCpuGpuWowzaTasks(const std::string& bundleName,
                                  const RuntimeAction& actionA_cpu,
+                                 const TileWrapper& tilePrototype,
                                  const RuntimeAction& actionA_gpu,
                                  const RuntimeAction& actionB_gpu,
                                  const DataPacket& packetPrototypeA,

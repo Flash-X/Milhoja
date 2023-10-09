@@ -17,7 +17,7 @@ SRCS_TEST = \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/hy_computeFluxesHll.cpp \
 	$(SEDOVDIR)/hy_updateSolutionHll.cpp \
-	$(SEDOVDIR)/Simulation_setInitialConditions_tile_cpu.cpp \
+	$(SEDOVDIR)/Simulation_setInitialConditions_noRuntime.cpp \
 	$(SEDOVDIR)/sim_setInitialConditions.cpp \
 	$(SEDOVDIR)/sim_getVariableNames.cpp \
 	$(TESTDIR)/Driver_executeSimulation.cpp \

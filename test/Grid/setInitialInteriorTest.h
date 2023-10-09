@@ -1,10 +1,10 @@
 #ifndef SET_INITIAL_INTERIOR_TEST_H__
 #define SET_INITIAL_INTERIOR_TEST_H__
 
-#include <Milhoja_DataItem.h>
+#include <Milhoja_Tile.h>
 
 namespace Simulation {
-    void setInitialInteriorTest(const int tId, milhoja::DataItem* dataItem);
+    void setInitialInteriorTest(milhoja::Tile* tileDesc);
 }
 
 #endif

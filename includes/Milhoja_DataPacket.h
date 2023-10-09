@@ -160,6 +160,8 @@ public:
     /**
      * Obtain a pointer to a new, empty DataPacket of the same concrete type as
      * the calling object.  The main workhorse of the Prototype design pattern.
+     * The object contains *copies* of the variables used to instantiate the
+     * prototype.
      *
      * @return The pointer.  For the main use cases in the runtime, this should
      * be cast to a shared_ptr.  We return a unique_ptr based on the discussion

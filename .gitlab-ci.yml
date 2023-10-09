@@ -32,10 +32,51 @@ stages:
 variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
- MILHOJA_TEST_CLONE:      $MILHOJA_PROJECT_PATH/MilhojaTest
+ MILHOJA_TEST_CLONE:     $MILHOJA_PROJECT_PATH/MilhojaTest
+ CGKIT_CODE_REPO:        $MILHOJA_PROJECT_PATH/cg-kit
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
+
+test_milhoja_pypkg:
+ stage: test
+ script:
+ ##-- Setup all environment variables
+ - echo $PWD
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
+ - echo $MILHOJA_CODE_REPO
+ - echo $CGKIT_CODE_REPO
+ - echo $CGKIT_PATH
+ ##-- Clean-up from prior runs
+ #    Copy cgkit to this space so that it can be installed without needing special
+ #    permissions.  CGKIT_PATH must be set for tox to work below.
+ - rm -rf $CGKIT_PATH
+ - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
+ - ls $CGKIT_PATH
+ ##-- Install tox
+ - module load python/3.8.10-sfhmzp4
+ - rm -rf $CI_BASE_PATH/toxbase
+ - which python
+ - python -m venv $CI_BASE_PATH/toxbase
+ - source $CI_BASE_PATH/toxbase/bin/activate
+ - which python
+ - which pip
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
+ - pip install tox
+ - pip list
+ ##-- Run all tests
+ - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - tox -r -e coverage,report,check
+ - popd
+ ##-- Save artifacts
+ - tar cvfz milhoja_pypkg_coverage.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/htmlcov
+ artifacts:
+    paths:
+     - milhoja_pypkg_coverage.tgz
+    expire_in: never
 
 test_gnu:
  stage: test
@@ -43,17 +84,18 @@ test_gnu:
  ##-- Setup all environment variables
  - echo $PWD
 # UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
- - export CI_BASE_PATH=/tmp/milhoja
- - rm -rf $CI_BASE_PATH
- - mkdir $CI_BASE_PATH
+# - export CI_BASE_PATH=/tmp/milhoja
+# - rm -rf $CI_BASE_PATH
+# - mkdir $CI_BASE_PATH
 # UNCOMMENT NEXT LINE FOR NORMAL RUNS
-# - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_WORK_CLONE=$CI_BASE_PATH/MilhojaTest
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
 # UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
- - cd ..
- - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
+# - cd ..
+# - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
+ - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
  - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
@@ -65,6 +107,7 @@ test_gnu:
  - echo $MILHOJA_CODE_REPO
  - echo $MILHOJA_WORK_CLONE
  - echo $MILHOJA_INSTALL_PATH
+ - echo $CGKIT_CODE_REPO
  - echo $SEDOV_REGRESSION_TEST
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
@@ -72,7 +115,11 @@ test_gnu:
  - ls
  - rm -rf Milhoja_[123]D_${HWFAMILY}_*
  - rm -rf $MILHOJA_WORK_CLONE
+ - rm -rf $CGKIT_PATH
  - ls
+ ##-- Copy cgkit to this space so that it can be installed without needing special
+ #    permissions.
+ - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
  - cd $MILHOJA_WORK_CLONE
  - git log -1 --oneline
@@ -95,6 +142,7 @@ test_gnu:
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
  - pip install nose
+ - pip install --editable=file://${CGKIT_PATH}
  - pip install numpy
  - pip install scipy
  - pip install pandas
@@ -106,8 +154,12 @@ test_gnu:
  - python setup.py sdist && cd dist
  - pip install $(ls Sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
+ - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - python setup.py sdist && cd dist
+ - pip install $(ls milhoja-*.tar.gz)
  ##-- Check python virtual environment
  - pip list
+ - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2
  ##-- Build and run tests
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_CLONE/gce

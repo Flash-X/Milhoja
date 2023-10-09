@@ -5,19 +5,15 @@
 #include <Milhoja_DataItem.h>
 #include <Milhoja_IntVect.h>
 #include <Milhoja_RealVect.h>
+#include <Milhoja_FArray3D.h>
 #include <Milhoja_FArray4D.h>
 
 namespace StaticPhysicsRoutines{
     void computeLaplacianDensity(const milhoja::IntVect& lo,
                                  const milhoja::IntVect& hi,
                                  milhoja::FArray4D& U,
-                                 milhoja::FArray4D& scratch,
+                                 milhoja::FArray3D& scratch,
                                  const milhoja::RealVect& deltas);
-}
-
-namespace ActionRoutines {
-    void computeLaplacianDensity_tile_cpu(const int tId,
-                                          milhoja::DataItem* dataItem);
 }
 
 #ifdef MILHOJA_OPENACC_OFFLOADING

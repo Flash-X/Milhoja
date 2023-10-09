@@ -1,0 +1,63 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    2,
+        "nxb":          8,
+        "nyb":         16,
+        "nzb":          1,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "cpu_tf_fused",
+        "language": "C++", 
+        "processor": "CPU",
+        "cpp_header": "cpu_tf_fused.h",
+        "cpp_source": "cpu_tf_fused.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "argument_list": ["tile_lo",
+                          "tile_hi",
+                          "tile_deltas",
+                          "CC_1",
+                          "base_op1_scratch"],
+        "argument_specifications": {
+            "tile_lo":          {"source":           "tile_lo"},
+            "tile_hi":          {"source":           "tile_hi"},
+            "tile_deltas":      {"source":           "tile_deltas"},
+            "CC_1":             {"source":           "grid_data",
+                                 "structure_index": ["CENTER", 1],
+                                 "variables_in":    [1, 2],
+                                 "variables_out":   [1, 2]},
+            "base_op1_scratch": {"source":           "scratch",
+                                 "type":             "real",
+                                 "extents":          "(8, 16, 1, 2)",
+                                 "lbound":           "(tile_lo, 1)"}
+        },
+        "subroutine_call_graph": [
+            "StaticPhysicsRoutines::computeLaplacianFusedKernels"
+        ]
+    },
+    "data_item": {
+        "type": "TileWrapper",
+        "byte_alignment": -1,
+        "header": "Tile_cpu_tf_fused.h",
+        "source": "Tile_cpu_tf_fused.cpp"
+    },
+    "subroutines": {
+        "StaticPhysicsRoutines::computeLaplacianFusedKernels": {
+            "interface_file": "computeLaplacianFused.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "U",
+                              "scratch",
+                              "deltas"],
+            "argument_mapping": {
+                "lo":      "tile_lo",
+                "hi":      "tile_hi",
+                "deltas":  "tile_deltas",
+                "U":       "CC_1",
+                "scratch": "base_op1_scratch"
+            }
+        }
+    }
+}
