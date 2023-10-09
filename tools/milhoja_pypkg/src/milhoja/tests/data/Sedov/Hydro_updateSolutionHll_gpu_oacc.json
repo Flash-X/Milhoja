@@ -1,0 +1,23 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["lo", "hi", "flX", "flY", "flZ", "U"],
+    "argument_specifications": {
+        "lo":   {"source":           "tile_lo"},
+        "hi":   {"source":           "tile_hi"},
+        "flX":  {"source":           "scratch",
+                 "type":             "real",
+                 "extents":          "(17, 16, 16, 5)",
+                 "lbound":           "(tile_lo, 1)"},
+        "flY":  {"source":           "scratch",
+                 "type":             "real",
+                 "extents":          "(16, 17, 16, 5)",
+                 "lbound":           "(tile_lo, 1)"},
+        "flZ":  {"source":           "scratch",
+                 "type":             "real",
+                 "extents":          "(16, 16, 17, 5)",
+                 "lbound":           "(tile_lo, 1)"},
+        "U":    {"source":           "grid_data",
+                 "structure_index":  ["CENTER", 1]}
+    }
+}

@@ -27,6 +27,7 @@ from .constants import LOG_LEVELS
 
 # classes
 from .TaskFunction import TaskFunction
+from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcLogger import AbcLogger
 from .BasicLogger import BasicLogger
 from .AbcCodeGenerator import AbcCodeGenerator

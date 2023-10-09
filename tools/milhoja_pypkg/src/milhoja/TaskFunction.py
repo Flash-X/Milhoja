@@ -36,6 +36,17 @@ class TaskFunction(object):
     TILE_FACE_AREAS = "tile_faceAreas"
     TILE_CELL_VOLUMES = "tile_cellVolumes"
 
+    TILE_METADATA_ALL = set([
+        TILE_GRID_INDEX,
+        TILE_LEVEL,
+        TILE_LO, TILE_HI,
+        TILE_LBOUND, TILE_UBOUND,
+        TILE_DELTAS,
+        TILE_COORDINATES,
+        TILE_FACE_AREAS,
+        TILE_CELL_VOLUMES
+    ])
+
     @staticmethod
     def from_milhoja_json(filename):
         """
@@ -216,22 +227,11 @@ class TaskFunction(object):
     def tile_metadata_arguments(self):
         """
         """
-        KEYS_ALL = [
-            TaskFunction.TILE_GRID_INDEX,
-            TaskFunction.TILE_LEVEL,
-            TaskFunction.TILE_LO, TaskFunction.TILE_HI,
-            TaskFunction.TILE_LBOUND, TaskFunction.TILE_UBOUND,
-            TaskFunction.TILE_DELTAS,
-            TaskFunction.TILE_COORDINATES,
-            TaskFunction.TILE_FACE_AREAS,
-            TaskFunction.TILE_CELL_VOLUMES
-        ]
-
         metadata_all = {}
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             key = arg_spec["source"]
-            if key in KEYS_ALL:
+            if key in TaskFunction.TILE_METADATA_ALL:
                 if key not in metadata_all:
                     metadata_all[key] = [arg]
                 else:
