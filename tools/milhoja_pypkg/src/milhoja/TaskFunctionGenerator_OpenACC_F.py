@@ -46,17 +46,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             TaskFunctionGenerator_OpenACC_F.__LOG_TAG, logger
         )
 
-        msg = "Loaded task function specification"
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
-        self._log("-" * 80, LOG_LEVEL_BASIC_DEBUG)
-        msg = f"Specification File\t\t\t{self.specification_filename}"
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
-        msg = f"Fortran/OpenCC Module File\t\t{self.source_filename}"
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
-        msg = f"Indentation length\t\t\t{self.indentation}"
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
-        msg = f"Verbosity level\t\t\t\t{self.verbosity_level}"
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
+        msgs_all = [
+            "Loaded task function specification",
+            "-" * 80,
+            f"Specification File\t\t{self.specification_filename}",
+            f"Fortran/OpenCC Module File\t{self.source_filename}",
+            f"Indentation length\t\t{self.indentation}",
+            f"Verbosity level\t\t\t{self.verbosity_level}"
+        ]
+        for msg in msgs_all:
+            self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     def __parse_extents_spec(self, spec):
         """
