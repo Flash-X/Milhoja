@@ -20,6 +20,16 @@ class DataPacketGenerator(AbcCodeGenerator):
     TODO: Convert all jsons to new format from Jared.
     DataPacketGenerator interface uses datapacket json format for now.
 
+    TODO: User should need to pass in a destination path.
+
+    TODO: User needs to create a logger and pass it into this interface.
+
+    TODO: User needs to pass a tf specification into the initializer.
+
+    TODO: Pull in main branch and start integrating TaskFunction class with DataPacketGenerator.
+
+    TOOD: AAAAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
     This class serves as a wrapper for all of the packet generation scripts.
     This will eventually be built into the primary means of generating data
     packets instead of calling generate_packet.py.
@@ -83,17 +93,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def name(self):
         return self.json.get(sections.NAME, "")
-
-    def generate_packet(self):
-        """Calls all necessary functions to generate a packet."""
-        self._log("Generating headers...", LOG_LEVEL_BASIC)
-        self.generate_header_code()
-        self._log("Generating source...", LOG_LEVEL_BASIC)
-        self.generate_source_code()
-        self._log("Generating layers...", LOG_LEVEL_BASIC)
-        self.generate_cpp2c()
-        self.generate_c2f()
-        self._log("Generation complete.", LOG_LEVEL_BASIC)
 
     # TODO: This does not work if the templates need to be overwritten or there
     #  is a new version of the code generator.

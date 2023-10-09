@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Unit test of WesleyGenerator class.
+Unit test of DataPacketGenerator class.
 """
 
 import os
