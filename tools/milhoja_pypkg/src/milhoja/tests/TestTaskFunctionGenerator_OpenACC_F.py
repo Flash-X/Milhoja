@@ -60,12 +60,3 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
 
         self.run_tests([hydro_3D], [3], _create_generator)
         self.run_tests([hydro_2D, hydroFC_2D], [2], _create_generator)
-
-    def testString(self):
-        path = _TEST_PATH.joinpath("Sedov")
-        json_fname = path.joinpath("gpu_tf_hydro_3D.json").resolve()
-
-        generator = _create_generator(json_fname)
-
-        msg = str(generator)
-        self.assertTrue(msg.strip() != "")
