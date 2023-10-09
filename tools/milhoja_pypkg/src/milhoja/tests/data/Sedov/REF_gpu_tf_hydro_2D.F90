@@ -4,6 +4,41 @@ module gpu_tf_hydro_mod
 
     public :: gpu_tf_hydro
 
+    ! NOTE TO MILHOJA USERS:
+    ! The Fortran interfaces defined here should be used to create and manage
+    ! prototype data items to be passed to Milhoja for use with this task
+    ! function.
+    interface
+        ! Instantiate the prototype data packet
+        !
+        ! Arguments
+        !   C_packet - Milhoja-internal handle to the data packet
+        !   All others - user-specified external arguments
+        function instantiate_gpu_tf_hydro_packet_C( &
+                    C_packet, &
+                    C_dt &
+                ) result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            use milhoja_types_mod, ONLY : MILHOJA_REAL
+            type(C_PTR),         intent(IN)        :: C_packet
+            real(MILHOJA_REAL),  intent(IN), value :: C_dt
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function instantiate_gpu_tf_hydro_packet_C
+
+        ! Delete the prototype data packet
+        !
+        ! Arguments
+        !   C_packet - Milhoja-internal handle obtained when instantiating
+        !               data packet
+        function delete_gpu_tf_hydro_packet_C(C_packet) result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            type(C_PTR),         intent(IN), value :: C_packet
+            integer(MILHOJA_INT)                   :: C_ierr
+        end function delete_gpu_tf_hydro_packet_C
+    end interface
+
 contains
 
     subroutine gpu_tf_hydro(         &

@@ -163,11 +163,31 @@ class TaskFunction(object):
         raise NotImplementedError("Only setup for TileWrapper right now")
 
     @property
+    def instantiate_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"instantiate_{self.name}_packet_C"
+
+    @property
+    def delete_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"delete_{self.name}_packet_C"
+
+    @property
     def release_stream_C_function(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
+        elif self.n_streams <= 1:
+            raise LogicError("No extra streams needed")
 
         return f"release_{self.name}_extra_queue_C"
 
