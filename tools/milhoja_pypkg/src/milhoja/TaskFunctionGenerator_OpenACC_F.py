@@ -50,7 +50,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             "Loaded task function specification",
             "-" * 80,
             f"Specification File\t\t{self.specification_filename}",
-            f"Fortran/OpenCC Module File\t{self.source_filename}",
+            f"Fortran/OpenACC Module File\t{self.source_filename}",
             f"Indentation length\t\t{self.indentation}",
             f"Verbosity level\t\t\t{self.verbosity_level}"
         ]
