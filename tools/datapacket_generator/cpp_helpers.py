@@ -71,7 +71,7 @@ def insert_farray_memcpy(connectors: dict, item: str, lo:str, hi:str, unks: str,
 
 
 # can probably shrink this function and insert it into each data section.
-def insert_farray_information(data: dict, connectors: dict, section: str, set_members) -> None:
+def insert_farray_information(tile_data: list, connectors: dict, section: str, set_members) -> None:
     """
     Inserts farray items into the data packet.
     
@@ -80,9 +80,8 @@ def insert_farray_information(data: dict, connectors: dict, section: str, set_me
     :param str section: The connectors section to extend.
     """
     # Get all items in each data array.
-    dicts = [data.get(jsc.T_IN, {}), data.get(jsc.T_IN_OUT, {}), data.get(jsc.T_OUT, {}), data.get(jsc.T_SCRATCH, {})]
     # we need to make an farray object for every possible data array
-    farrays = {item: sect[item] for sect in dicts for item in sect}
+    farrays = {item: sect[item] for sect in tile_data for item in sect}
     # TODO: Use DataPacketMemberVars class for this.
     connectors[section].extend(
         [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] 

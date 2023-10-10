@@ -15,6 +15,8 @@ import json_sections as jsc
 import os
 # import DataPacketMemberVars as dpinfo
 from DataPacketMemberVars import DataPacketMemberVars
+from DataPacketGenerator import DataPacketGenerator
+from milhoja import TaskFunction
 
 _NTILES_VALUE = 'nTiles_value'
 _CON_ARGS = 'constructor_args'
@@ -22,7 +24,6 @@ _SET_MEMBERS = 'set_members'
 _SIZE_DET = 'size_determination'
 _HOST_MEMBERS = 'host_members'
 _PUB_MEMBERS = 'public_members'
-_PINNED_SIZES = 'pinned_sizes'
 _IN_PTRS = 'in_pointers'
 _OUT_PTRS = 'out_pointers'
 _T_DESCRIPTOR = 'tile_descriptor'
@@ -178,8 +179,8 @@ def _iterate_constructor(
     constructor: OrderedDict
 ):
     """
-    Iterates the constructor / thread-private-variables 
-    section and adds the necessary connectors.
+    Iterates the external variables section 
+    and adds the necessary connectors.
 
     :param dict connectors: The dictionary containing all connectors for use with CGKit.
     :param dict size_connectors: The dictionary containing all size connectors for determining the sizes of each item in the packet.
@@ -199,16 +200,19 @@ def _iterate_constructor(
     connectors[_NTILES_VALUE] = [nTiles_value]
 
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
-    for key,item_type in constructor.items():
+    for key,var_data in constructor.items():
+        size_equation = f'sizeof({var_data["type"]})'
+        if var_data["extents"]:
+            size_equation = f'{size_equation} * {" * ".join(var_data["extents"])}'
         info = DataPacketMemberVars(
-            item=key, dtype=item_type, 
-            size_eq=f'sizeof({item_type})', per_tile=False
+            item=key, dtype=var_data["type"], 
+            size_eq=size_equation, per_tile=False
         )
 
         # nTiles is a special case here. nTiles should not be included 
         # in the constructor, and it has its own host variable generation.
         if key != 'nTiles':
-            connectors[_CON_ARGS].append(f'{item_type} {key}')
+            connectors[_CON_ARGS].append(f'{info.dtype} {key}')
             connectors[_HOST_MEMBERS].append(info.host)
         # add the necessary connectors for the constructor section.
         connectors[_PUB_MEMBERS].extend([
@@ -279,6 +283,7 @@ def _tmetadata_memcopy(
         print("Incompatible language.")
 
 
+# TODO: Rework tile metadata to use tf spec
 def _iterate_tilemetadata(
     connectors: dict, 
     size_connectors: dict, 
@@ -355,52 +360,13 @@ def _iterate_tilemetadata(
         for item in missing_dependencies
     ]) 
 
-
-# TODO: This needs to be modified when converting from lbound to bound section.
-# TODO TODO: This setup currently does not work, since lbound sizes may not always be 3 * sizeof(int) or IntVect.
-# This function is kind of confusion and I'm intentionally ignoring it for now,
-# it depends on how bounds is implemented in the JSON. Bits and pieces of this might end up existing
-# within the tile data / array sections.
-# Luckily, this function is relatively straightforward. 
-def _iterate_lbound(connectors: dict, size_connectors: dict, lbound: OrderedDict, lang: str):
-    """
-    Iterates the lbound section of the JSON.
-    
-    :param dict connectors: The dict containing all cgkit connectors.
-    :param dict size_connectors: The dict containing all size connectors for items in the data packet.
-    :param OrderedDict lbound: The dict containing the lbound section (This will likely be removed later).
-    :param str lang: The language to use.
-    """
-    dtype = 'int' if lang == util.Language.fortran else 'IntVect'
-    dtype_size = '3 * sizeof(int)' if lang == util.Language.fortran else 'IntVect'
-    use_ref = '' if lang == util.Language.fortran else '&'
-    lbound_mdata = ' + '.join( f'SIZE_{item.upper()}' for item in lbound ) if lbound else '0'
-    size_connectors[f'size_{jsc.T_MDATA}'] = ' + '.join( [size_connectors[f'size_{jsc.T_MDATA}'], lbound_mdata])
-    for key,bound in lbound.items():
-        constructor_expression,memcpy_list = util.format_lbound_string(key, bound)
-        info = DataPacketMemberVars(item=key, dtype=dtype, size_eq=f'sizeof({dtype_size})', per_tile=True)
-
-        connectors[_PUB_MEMBERS].extend( [f'{dtype}* {info.device};\n'] )
-        connectors[_SET_MEMBERS].append( f'{info.device}{{nullptr}}')
-        connectors[_SIZE_DET].append( f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n' )
-        connectors[f'pointers_{jsc.T_MDATA}'].append(
-            f"""{dtype}* {info.pinned} = static_cast<{dtype}*>( static_cast<void*>(ptr_p) );\n""" + 
-            f"""{info.device} = static_cast<{dtype}*>( static_cast<void*>(ptr_d) );\n""" + 
-            f"""ptr_p += {info.total_size};\n""" + 
-            f"""ptr_d += {info.total_size};\n\n"""
-        )
-        connectors[_T_DESCRIPTOR].append(
-            f'const IntVect {key} = {constructor_expression};\n'
-        )
-        _tmetadata_memcopy(
-            connectors, f"[{len(memcpy_list)}] = {{{','.join(memcpy_list)}}}", 
-            use_ref, info, 
-            '', 
-            lang
-        )
-
-
-def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict, language: str) -> None:
+def _iterate_tilein(
+        connectors: dict, 
+        size_connectors: dict, 
+        tilein: OrderedDict, 
+        block_params: dict, 
+        language: str
+    ) -> None:
     """
     Iterates the tile in section of the JSON.
     
@@ -413,11 +379,14 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict
     pinnedLocation = set()
     for item,data in tilein.items():
         # gather all information from tile_in section.
-        extents = data[jsc.EXTENTS]
-        start = data.get(jsc.START, "")
-        end = data.get(jsc.END, "")
+        # TODO: if extents is not found use block sizes.
+        extents = data.get("extents", None)
+        if not extents:
+            extents = 
+        mask_in = data["variables_in"]
+
         extents = ' * '.join(f'({item})' for item in extents)
-        unks = f'{end if end else 0} - {start if start else 0} + 1'
+        unks = f'{mask_in[1] if mask_in[1] else 0} - {mask_in[0] if mask_in[0] else 0} + 1'
         info = DataPacketMemberVars(
             item=item, dtype=data[jsc.DTYPE], 
             size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True
@@ -438,7 +407,7 @@ def _iterate_tilein(connectors: dict, size_connectors: dict, tilein: OrderedDict
             f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN, info, True)
-        _add_memcpy_connector(connectors, jsc.T_IN, extents, item, start, end, info.size, info.dtype)
+        _add_memcpy_connector(connectors, jsc.T_IN, extents, item, mask_in[0], mask_in[1], info.size, info.dtype)
         # temporary measure until the bounds information in JSON is solidified.
         if language == util.Language.cpp:
             cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', unks, info.dtype)
@@ -751,7 +720,6 @@ def _sort_dict(section, sort_key) -> OrderedDict:
     dict_items = [ (k,v) for k,v in section ]
     dict_items = sorted(dict_items, key=sort_key, reverse=True)
     return OrderedDict(dict_items)
-    # return dict( sorted(section, key = sort_key, reverse = True) )
 
 
 def _write_connectors(template, connectors: dict):
@@ -792,20 +760,18 @@ def _write_connectors(template, connectors: dict):
 
 # Not really necessary to use constant string keys for this function
 # since param keys do not get used outside of this function.
-def _set_default_params(data: dict, params: dict):
+def _set_default_params(generator: DataPacketGenerator, extra_streams: int, params: dict):
     """
     Sets the default parameters for cgkit.
     
     :param dict data: The dict containing the data packet JSON data.
     :param dict params: The dict containing all parameters for the outer template.
     """
-    try:
-        params['align_size'] = int(data.get(jsc.BYTE_ALIGN, 16))
-        params['n_extra_streams'] = int(data.get(jsc.EXTRA_STREAMS, 0))
-    except:
-        print("align_size or n_extra_streams is not an integer.")
-    params['class_name'] = data[jsc.NAME]
-    params['ndef_name'] = f'{data[jsc.NAME].upper()}_UNIQUE_IFNDEF_H_'
+    # should be guaranteed to be integers by TaskFunction class.
+    params['align_size'] = generator.byte_alignment
+    params['n_extra_streams'] = extra_streams  
+    params['class_name'] = generator.class_name
+    params['ndef_name'] = generator.ppd_name
 
 def _generate_outer(name: str, params: dict):
     """
@@ -843,81 +809,75 @@ def _write_size_connectors(size_connectors: dict, file):
 #      the given extents and unk vars. Since the extents are passed in as mathematical expressions, we would
 #      need to write an expression parser in order to get accurate size sorting. Either that, or the expressions
 #      given in the JSON file need to be single constants and not mathematical expressions.
-def generate_helper_template(data: dict) -> None:
+def generate_helper_template(generator: DataPacketGenerator, overwrite: bool) -> None:
     """
     Generates the helper template with the provided JSON data.
     
     :param dict data: The dictionary containing the DataPacket JSON data.
     """
-    if os.path.isfile(data[jsc.HELPERS]):
-        print(f'Warning: {data[jsc.HELPERS]} already exists. Overwriting.')
 
-    with open(data[jsc.HELPERS], 'w') as template:
+    # TODO: Log warnings
+    # TOOD: This file should be moved inside of the DataPacket generator interface
+    if os.path.isfile(generator.helper_template):
+        if overwrite:
+            ...
+        else:
+            ...
+
+    with open(generator.helper_template, 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list) 
         params = defaultdict(str)
-        lang = data[jsc.LANG]
-
-        # # Read every section in the JSON.
+        lang = generator.language
+        n_extra_streams = generator.n_extra_streams
 
         # set defaults for the connectors. 
         connectors[_CON_ARGS] = []
         connectors[_SET_MEMBERS] = []
         connectors[_SIZE_DET] = []
-        _set_default_params(data, params)
+        _set_default_params(generator, n_extra_streams, params)
 
         # # SETUP FOR CONSTRUCTOR  
-        sort_func = lambda key_and_type: sizes.get(key_and_type[1], 0) if sizes else 1
-        sizes = data[jsc.SIZES]
-        tpv = data.get(jsc.GENERAL, {}) # tpv = thread-private-variables
-        tpv = tpv.items()
-        _iterate_constructor(connectors, size_connectors, _sort_dict(tpv, sort_func))
+        external = generator.external_args
+        metadata = generator.tile_metadata_args
+        tile_in = generator.tile_in_args
+        tile_in_out = generator.tile_in_out_args
+        tile_out = generator.tile_out_args
+        scratch = generator.scratch_args
+        block_params = {
+            "shape": generator.block_extents,
+            "nguard": generator.n_guardcells
+        }
+
+        _iterate_constructor(connectors, size_connectors, external)
 
         # # SETUP FOR TILE_METADATA
-        num_arrays = len( data.get(jsc.T_SCRATCH, {}) ) + len(data.get(jsc.T_IN, {})) + \
-                     len(data.get(jsc.T_IN_OUT, {})) + len(data.get(jsc.T_OUT, {}))
-        if sizes:
-            if lang == util.Language.cpp:
-                sort_func = lambda x: sizes.get(
-                    util.TILE_VARIABLE_MAPPING[x[1]], 0
-                )
-            elif lang == util.Language.fortran:
-                sort_func = lambda x: sizes.get(
-                    util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[x[1]]], 0
-                )
-        else:
-            sort_func = 1
-
-        # sort_func = lambda x: sizes.get(util.TILE_VARIABLE_MAPPING[x[1]], 0) if sizes else 1
-        metadata = data.get(jsc.T_MDATA, {}).items()
+        num_arrays = len(scratch) + len(tile_in) + \
+                     len(tile_in_out) + len(tile_out)
+        
         _iterate_tilemetadata(
             connectors, 
             size_connectors, 
-            _sort_dict(metadata, sort_func), 
+            metadata,
             lang, num_arrays
         )
-
-        # # SETUP FOR LBOUND, TODO: Maybe this won't exist anymore
-        lbound = data.get(jsc.LBOUND, {})
-        _iterate_lbound(connectors, size_connectors, lbound, lang)
-
-        # # SETUP EVERY ARRAY SECTION
-        sort_func = lambda x: sizes.get(x[1][jsc.DTYPE], 0) if sizes else 1
-        for section,funct in {jsc.T_IN: _iterate_tilein, jsc.T_IN_OUT: _iterate_tileinout,
-                              jsc.T_OUT: _iterate_tileout }.items():
-            dictionary = data.get(section, {}).items()
-            funct(connectors, size_connectors, _sort_dict(dictionary, sort_func), lang)
-        tilescratch = data.get(jsc.T_SCRATCH, {}).items()
-        _iterate_tilescratch(connectors, size_connectors, _sort_dict(tilescratch, sort_func), lang)
+        _iterate_tilein(connectors, size_connectors, tile_in, block_params, lang)
+        _iterate_tileinout(connectors, size_connectors, tile_in_out, lang)
+        _iterate_tileout(connectors, size_connectors, tile_out, lang)
+        _iterate_tilescratch(connectors, size_connectors, scratch, lang)
 
         # insert farray variables if necessary.
         if lang == util.Language.cpp: 
-            cpp_helpers.insert_farray_information(data, connectors, _PUB_MEMBERS, _SET_MEMBERS)
+            tile_data = [
+                tile_in, tile_in_out, 
+                tile_out, scratch
+            ]
+            cpp_helpers.insert_farray_information(tile_data, connectors, _PUB_MEMBERS, _SET_MEMBERS)
 
         # Write to all files.
-        _generate_outer(data[jsc.OUTER], params)
+        _generate_outer(generator.outer_template, params)
         _write_size_connectors(size_connectors, template)
-        _generate_extra_streams_information(connectors, data.get(jsc.EXTRA_STREAMS, 0))
+        _generate_extra_streams_information(connectors, n_extra_streams)
         _write_connectors(template, connectors)
 
         

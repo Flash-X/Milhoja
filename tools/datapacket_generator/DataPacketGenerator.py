@@ -2,18 +2,19 @@
 import json
 import json_sections as sections
 import packet_generation_utility as utility
-import generate_packet
 import generate_helpers_tpl
 import packet_source_tree_cgkit as datapacket_cgkit
 import cpp2c_generator
 import c2f_generator
 
+from collections import OrderedDict
 from pathlib import Path
 from milhoja import AbcCodeGenerator
 from milhoja import LOG_LEVEL_BASIC
 from milhoja import LOG_LEVEL_BASIC_DEBUG
 from milhoja import LOG_LEVEL_MAX
-
+from milhoja import TaskFunction
+from milhoja import BasicLogger
 
 class DataPacketGenerator(AbcCodeGenerator):
     """
@@ -22,77 +23,96 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     TODO: User should need to pass in a destination path.
 
-    TODO: User needs to create a logger and pass it into this interface.
-
-    TODO: User needs to pass a tf specification into the initializer.
-
-    TODO: Pull in main branch and start integrating TaskFunction class with DataPacketGenerator.
-
-    TOOD: AAAAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-
     This class serves as a wrapper for all of the packet generation scripts.
     This will eventually be built into the primary means of generating data
     packets instead of calling generate_packet.py.
     """
+    TILE_VARIABLE_MAPPING = {
+        'levels': 'unsigned int',
+        'gridIndex': 'int',
+        'tileIndex': 'int',
+        'tile_deltas': 'RealVect',
+        'tile_lo': "IntVect",
+        'tile_hi': "IntVect",
+        'tile_loGC': "IntVect",
+        'tile_hiGC': "IntVect"
+    }
 
-    # TODO: This should take in a new json with format brought in by tile
-    #       wrapper
-    @classmethod
-    def from_json(cls, args, log_level=LOG_LEVEL_BASIC, indent=4):
-        data_json_file = Path(args.JSON).resolve()
-        if not data_json_file.is_file():
-            raise ValueError(
-                f'{data_json_file} does not exist or is not a file.'
-            )
+    FARRAY_MAPPING = {
+        "int": "IntVect",
+        "real": "RealVect"
+    }
 
-        json = None
-        with open(args.JSON, 'r') as json_file:
-            json = generate_packet._load_json(json_file, args)
-        instance = cls(
-            "",
-            f'{json[sections.NAME]}.h',
-            f'{json[sections.NAME]}.cpp',
-            log_level,
-            indent
-        )
-        instance.json = json
+    F_HOST_EQUIVALENT = {
+        'RealVect': 'real',
+        'IntVect': 'int'
+    }
 
-        # insert nTiles into data after checking json.
-        if sections.GENERAL not in instance.json:
-            instance.json[sections.GENERAL] = {}
-        nTiles_type = 'std::size_t'
-        if args.language == utility.Language.fortran:
-            nTiles_type = 'int'
-        instance.json[sections.GENERAL]['nTiles'] = nTiles_type
+    CPP_EQUIVALENT = {
+        "real": "RealVect",
+        "int": "IntVect",
+        "logical": "bool"
+    }
 
-        return instance
+    SOURCE_DATATYPE = {
+        "tile_lo": "IntVect",
+        "tile_hi": "IntVect",
+        "tile_loGC": "IntVect",
+        "tile_hiGC": "IntVect",
+        "levels": "unsigned int",
+        "grid_data": "real",
+        'levels': 'unsigned int',
+
+    }
 
     def __init__(
         self,
-        tf_spec,
-        header_filename,
-        source_filename,
-        log_level,
-        indent
+        tf_spec: TaskFunction,
+        indent: int,
+        logger: BasicLogger,
+        sizes: dict
     ):
+        if not isinstance(tf_spec, TaskFunction):
+            raise TypeError("TF Specification was not derived from task function.")
+
         self.json = {}
-        self.__TOOL_NAME = self.__class__.__name__
+        self._TOOL_NAME = self.__class__.__name__
+        self._sizes = sizes
+
+        outputs = tf_spec.output_filenames
+        header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
+        source = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
+        # TODO: Include layer source files
+        cpp2c_source = ""
+        c2f_source = ""
+
         super().__init__(
             tf_spec,
-            header_filename,
-            source_filename,
-            self.__TOOL_NAME,
-            log_level,
-            indent
+            header,
+            source,
+            indent,
+            self._TOOL_NAME,
+            logger
         )
-        self._helper_tpl = None
-        self._outer_tpl = None
-        self.__cpp2c_name = f'{header_filename.replace(".h", "").replace(".json", "")}.cpp2c.cxx'
-        self.__c2f_name = f'{header_filename.replace(".h", "").replace(".json", "")}.c2f.F90'
+
+        self._log("Loaded tf spec", LOG_LEVEL_BASIC_DEBUG)
+
+        self._helper_tpl = f"cg-tpl.outer_{tf_spec.data_item_class_name}.cpp"
+        self._outer_tpl = f"cg-tpl.outer_{tf_spec.data_item_class_name}.cpp"
+        self.__cpp2c_name = ""
+        self.__c2f_name = ""
 
     @property
-    def name(self):
-        return self.json.get(sections.NAME, "")
+    def language(self):
+        return 
+    
+    @property
+    def class_name(self):
+        return self._tf_spec.data_item_class_name
+    
+    @property
+    def ppd_name(self):
+        return f'{self.class_name.upper()}_UNIQUE_IFNDEF_H_'
 
     # TODO: This does not work if the templates need to be overwritten or there
     #  is a new version of the code generator.
@@ -166,11 +186,11 @@ class DataPacketGenerator(AbcCodeGenerator):
             c2f_generator.generate_c2f(self.json)
 
     @property
-    def packet_outer_tpl(self):
+    def outer_template(self):
         return self._helper_tpl
 
     @property
-    def packet_helper_tpl(self):
+    def helper_template(self):
         return self._helper_tpl
 
     @property
@@ -180,3 +200,109 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def c2f_filename(self):
         return self.__c2f_name
+    
+    @property
+    def n_extra_streams(self) -> int:
+        # for now data packet generator will return the number of 
+        # extra streams.
+        return self._tf_spec.n_streams-1
+    
+    @property
+    def byte_alignment(self) -> int:
+        return self._tf_spec.data_item_byte_alignment
+
+    @property
+    def external_args(self) -> OrderedDict:
+        lang = self._tf_spec.language.lower()
+        args = self._tf_spec.external_arguments
+        external = {
+            'nTiles': {
+                'source': 'internal', # ?
+                'name': 'nTiles',
+                'type': 'int' if lang == "fortran" else 'std::size_t'
+            }
+        }
+        
+        # insert arguments into separate dict for use later
+        for item in args:
+            external[item] = self._tf_spec.argument_specification(item)
+
+        sort_func = lambda key_and_type: self._sizes.get(key_and_type[1]['type'], 0)
+        return self._sort_dict(external.items(), sort_func)
+
+    @property
+    def tile_metadata_args(self) -> OrderedDict:
+        lang = self._tf_spec.language.lower()
+        sort_func = None
+
+        if lang == 'c++':
+            sort_func = lambda kv_pair: self._sizes.get(
+                self.TILE_VARIABLE_MAPPING[kv_pair[1]['source']], 0
+            )
+        elif lang == 'fortran':
+            sort_func = lambda x: self._sizes.get(
+                self.F_HOST_EQUIVALENT[self.TILE_VARIABLE_MAPPING[x[1]['source']]], 0
+            )
+
+        args = self._tf_spec.tile_metadata_arguments
+        for key in args:
+            args[key] = self._tf_spec.argument_specification(key)
+        return self._sort_dict(args.items(), sort_func)
+
+    @property
+    def tile_in_args(self):
+        sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
+        args = self._tf_spec.tile_in_arguments
+        arg_dictionary = {}
+        for arg in args:
+            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+        return self._sort_dict(arg_dictionary.items(), sort_func)
+
+    @property
+    def tile_in_out_args(self):
+        sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
+        args = self._tf_spec.tile_in_out_arguments
+        arg_dictionary = {}
+        for arg in args:
+            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+        return self._sort_dict(arg_dictionary.items(), sort_func)
+
+    @property
+    def tile_out_args(self):
+        sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
+        args = self._tf_spec.tile_out_arguments
+        arg_dictionary = {}
+        for arg in args:
+            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+        return self._sort_dict(arg_dictionary.items(), sort_func)
+
+    @property
+    def scratch_args(self):
+        sort_func = lambda x: self._sizes.get(x[1]["type"], 0)
+        args = self._tf_spec.scratch_arguments
+        arg_dictionary = {}
+        for arg in args:
+            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+        return self._sort_dict(arg_dictionary.items(), sort_func)
+    
+    @property
+    def block_extents(self):
+        return self._tf_spec.block_interior_shape
+    
+    @property
+    def nguard(self):
+        return self._tf_spec.n_guardcells
+
+    def _sort_dict(self, arguments, sort_key) -> OrderedDict:
+        """
+        Sorts a given dictionary using the sort key.
+        
+        :param dict section: The dictionary to sort.
+        :param func sort_key: The function to sort with.
+        """
+        dict_items = [ (k,v) for k,v in arguments ]
+        return OrderedDict(sorted(dict_items, key=sort_key, reverse=True))
+
+    def abort(self, msg: str):
+        # print message and exit
+        ...

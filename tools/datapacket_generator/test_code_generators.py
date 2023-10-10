@@ -24,12 +24,20 @@ _TESTS_ALL = [TestDataPacketGenerator]
 def main(tests_all):
 
     # ----- SPECIFY COMMAND LINE USAGE
-    DESCRIPTION =   "Write me!"
+    DESCRIPTION =   ""
+    SIZES_HELP = "The path to the sizes file associated with the built milhoja library."
     VERBOSE_HELP = f"Verbosity level of logging"
     
     parser = argparse.ArgumentParser(
         description=DESCRIPTION,
         formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    # allow no sizes for now...
+    parser.add_argument(
+        "--sizes", "-s",
+        type=str,
+        help=SIZES_HELP, default=""
     )
 
     parser.add_argument(

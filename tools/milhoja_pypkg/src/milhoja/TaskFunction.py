@@ -121,7 +121,7 @@ class TaskFunction(object):
 
         processor = self.processor
         language = self.language
-        if processor.lower() == "cpu" and language.lower() == "c++":
+        if (processor.lower() == "cpu" or processor.lower() == "gpu") and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
         elif processor.lower() == "gpu" and language.lower() == "fortran":
@@ -155,7 +155,15 @@ class TaskFunction(object):
     def data_item_class_name(self):
         if self.data_item.lower() == "tilewrapper":
             return f"Tile_{self.name}"
-        raise NotImplementedError("Only setup for TileWrapper right now")
+        elif self.data_item.lower() == "datapacket":
+            return f"DataPacket_{self.name}"
+        raise NotImplementedError(f"{self.data_item} has not been implemented.")
+    
+    @property
+    def data_item_byte_alignment(self):
+        if self.data_item.lower() == "datapacket":
+            return self.__data_spec["byte_alignment"]
+        raise NotImplementedError(f"{self.data_item} does not use byte_alignment.")
 
     @property
     def grid_dimension(self):
@@ -185,7 +193,7 @@ class TaskFunction(object):
         """
         .. todo::
             This should reinterpret variable types so that we return the
-            correct type for the task function's processor.
+            correct type for the task function's processor and device.
         """
         spec = self.__tf_spec["argument_specifications"][argument]
 
@@ -249,7 +257,6 @@ class TaskFunction(object):
             if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
                 assert arg not in external_all
                 external_all.add(arg)
-
         return external_all
 
     @property

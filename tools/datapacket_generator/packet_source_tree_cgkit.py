@@ -14,14 +14,11 @@ _SOURCETREE_OPTIONS = {
     'verbosePost': ' */',
 }
 
-_OUTER = 'cg-tpl.datapacket_outer.cpp'
-_HELPERS = "cg-tpl.datapacket_helpers.cpp"
-
 ####################
 # Recipes
 ####################
 
-def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
+def _construct_source_tree(stree: SourceTree, tpl_1: str, helper_path, outer_path):
     """
     Constructs the source tree for the data packet.
     
@@ -30,9 +27,7 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     :param dict data: The dictionary containing DataPacket JSON data.
     :rtype: None
     """
-    init = _OUTER if not data else data[jsc.OUTER]
-    helpers = _HELPERS if not data else data[jsc.HELPERS]
-    stree.initTree(init)
+    stree.initTree(outer_path)
     stree.pushLink( srctree.search_links( stree.getTree() ) )
 
     # link initial template
@@ -43,7 +38,7 @@ def _construct_source_tree(stree: SourceTree, tpl_1: str, data: dict):
     else:
         raise RuntimeError('Linking layer 1 unsuccessful!')
     
-    tree_l2  = srctree.load(helpers)
+    tree_l2  = srctree.load(helper_path)
     pathInfo = stree.link(tree_l2, linkPath=srctree.LINK_PATH_FROM_STACK)
     # if pathInfo is not None and pathInfo:
     # else:
@@ -75,22 +70,22 @@ def generate_packet_code(data):
     
     :param dict data: The dictionary containing the DataPacket JSON.
     """
-    file_names_all = [(f'{sys.path[0]}/templates/cg-tpl.datapacket_header.cpp', f'{data.get(jsc.NAME, "")}.h'), 
-                        (f'{sys.path[0]}/templates/cg-tpl.datapacket.cpp', f'{data.get(jsc.NAME, "")}.cpp')]
-    for src,dest in file_names_all:
-        # assemble from recipe
-        stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
-        _construct_source_tree(stree, src, data)
-        # check result
-        lines = stree.parse()
-        if os.path.isfile(dest):
-            # use logger here but for now just print a warning.
-            print(f"Warning: {dest} already exists. Overwriting.")
-        with open(dest, 'w') as header:
-            # Remove garbage from file between #if 0 and #endif to reduce file size.
-            lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
-            header.write(lines)
-    print("Assembled datapacket")
+    # file_names_all = [(f'{sys.path[0]}/templates/cg-tpl.datapacket_header.cpp', f'{data.get(jsc.NAME, "")}.h'), 
+    #                     (f'{sys.path[0]}/templates/cg-tpl.datapacket.cpp', f'{data.get(jsc.NAME, "")}.cpp')]
+    # for src,dest in file_names_all:
+    #     # assemble from recipe
+    #     stree = SourceTree(**_SOURCETREE_OPTIONS, debug=False)
+    #     _construct_source_tree(stree, src, data)
+    #     # check result
+    #     lines = stree.parse()
+    #     if os.path.isfile(dest):
+    #         # use logger here but for now just print a warning.
+    #         print(f"Warning: {dest} already exists. Overwriting.")
+    #     with open(dest, 'w') as header:
+    #         # Remove garbage from file between #if 0 and #endif to reduce file size.
+    #         lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
+    #         header.write(lines)
+    # print("Assembled datapacket")
 
 
 if __name__ == '__main__':
