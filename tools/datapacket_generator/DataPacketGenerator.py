@@ -3,10 +3,14 @@ import json
 import json_sections as sections
 import packet_generation_utility as utility
 import generate_helpers_tpl
-import packet_source_tree_cgkit as datapacket_cgkit
 import cpp2c_generator
 import c2f_generator
+import cgkit.ctree.srctree as srctree
+import os
+import re
+import pathlib
 
+from cgkit.ctree.srctree import SourceTree
 from collections import OrderedDict
 from pathlib import Path
 from milhoja import AbcCodeGenerator
@@ -55,14 +59,23 @@ class DataPacketGenerator(AbcCodeGenerator):
     }
 
     SOURCE_DATATYPE = {
-        "tile_lo": "IntVect",
-        "tile_hi": "IntVect",
+        TaskFunction.TILE_LO: "IntVect",
+        TaskFunction.TILE_HI: "IntVect",
         "tile_loGC": "IntVect",
         "tile_hiGC": "IntVect",
-        "levels": "unsigned int",
+        TaskFunction.TILE_DELTAS: "RealVect",
+        TaskFunction.TILE_LEVEL: "unsigned int",
         "grid_data": "real",
-        'levels': 'unsigned int',
+        TaskFunction.TILE_FACE_AREAS: "real",
+        TaskFunction.TILE_COORDINATES: "real",
+        TaskFunction.TILE_GRID_INDEX: "int",
+        TaskFunction.TILE_CELL_VOLUMES: "real"
+    }
 
+    FORTRAN_EQUIVALENT = {
+        "IntVect": "int",
+        "RealVect": "real",
+        "bool": "logical"
     }
 
     def __init__(
@@ -70,7 +83,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         tf_spec: TaskFunction,
         indent: int,
         logger: BasicLogger,
-        sizes: dict
+        sizes: dict,
+        templates_path: str,
+        files_destination: str
     ):
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("TF Specification was not derived from task function.")
@@ -78,6 +93,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         self.json = {}
         self._TOOL_NAME = self.__class__.__name__
         self._sizes = sizes
+        self._templates_path = templates_path
+        self._destination = files_destination
 
         outputs = tf_spec.output_filenames
         header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
@@ -97,14 +114,19 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         self._log("Loaded tf spec", LOG_LEVEL_BASIC_DEBUG)
 
-        self._helper_tpl = f"cg-tpl.outer_{tf_spec.data_item_class_name}.cpp"
-        self._outer_tpl = f"cg-tpl.outer_{tf_spec.data_item_class_name}.cpp"
-        self.__cpp2c_name = ""
-        self.__c2f_name = ""
+        self._header_tpl = Path(templates_path, "cg-tpl.datapacket_header.cpp").resolve()
+        self._source_tpl = Path(templates_path, "cg-tpl.datapacket.cpp").resolve()
+        self.__cpp2c_name = None
+        self.__c2f_name = None
+
+        # I need to generate templates immediately.
+        self._helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp").resolve()
+        self._outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp").resolve()
+        generate_helpers_tpl.generate_helper_template(self, True)
 
     @property
     def language(self):
-        return 
+        return self._tf_spec.language
     
     @property
     def class_name(self):
@@ -114,34 +136,22 @@ class DataPacketGenerator(AbcCodeGenerator):
     def ppd_name(self):
         return f'{self.class_name.upper()}_UNIQUE_IFNDEF_H_'
 
-    # TODO: This does not work if the templates need to be overwritten or there
-    #  is a new version of the code generator.
-    def check_generate_template(self, overwrite=True):
-        """Generates templates for use by cgkit."""
-        if self._helper_tpl and self._outer_tpl:
-            self._log(
-                "Templates already created, skipping...",
-                LOG_LEVEL_BASIC_DEBUG
-            )
-
-        self._log("Checking for generated template...", LOG_LEVEL_BASIC_DEBUG)
-        self._helper_tpl = Path(f"{self.json[sections.NAME]}_helpers.cpp")\
-            .resolve()
-        self._outer_tpl = Path(f"{self.json[sections.NAME]}_outer.cpp")\
-            .resolve()
-
-        generate_helpers_tpl.generate_helper_template(self.json)
-
     def generate_header_code(self, overwrite=True):
         """
         Generate C++ header
         """
         # TODO: Replace with new json format
-        self.check_generate_template()
-        datapacket_cgkit.generate_file(
-            self.json,
-            'cg-tpl.datapacket_header.cpp',
-            self.header_filename
+        # self.check_generate_template()
+        self.generate_packet_file(
+            self.header_filename,
+            {
+                'codePath': pathlib.Path.cwd(),
+                'indentSpace': ' '*4,
+                'verbose': False,
+                'verbosePre': '/* ',
+                'verbosePost': ' */',
+            },
+            [self._outer_tpl, self._header_tpl, self._helper_tpl]
         )
 
     def generate_source_code(self, overwrite=True):
@@ -149,14 +159,20 @@ class DataPacketGenerator(AbcCodeGenerator):
         Generate C++ source code. Also generates the
         interoperability layers if necessary.
         """
-        self.check_generate_template()
-        datapacket_cgkit.generate_file(
-            self.json,
-            'cg-tpl.datapacket.cpp',
-            self.source_filename
+        # self.check_generate_template()
+        self.generate_packet_file(
+            self.source_filename,
+            {
+                'codePath': pathlib.Path.cwd(),
+                'indentSpace': ' '*4,
+                'verbose': False,
+                'verbosePre': '/* ',
+                'verbosePost': ' */',
+            },
+            [self._outer_tpl, self._source_tpl, self._helper_tpl]
         )
-        self.generate_cpp2c()
-        self.generate_c2f()
+        # self.generate_cpp2c()
+        # self.generate_c2f()
 
     # use language to determine which function to call.
     def generate_cpp2c(self, overwrite=True):
@@ -172,22 +188,21 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         def generate_cpp2c_f():
             self._log("Generating cpp2c for fortran", LOG_LEVEL_BASIC_DEBUG)
-            self._log(json.dumps(self.json, indent=4, default=str), LOG_LEVEL_MAX)
             cpp2c_generator.generate_cpp2c(self.json)
 
-        lang = self.json[sections.LANG]
-        if lang == utility.Language.fortran:
+        lang = self.language.lower()
+        if lang == "fortran":
             generate_cpp2c_f()
-        elif lang == utility.Language.cpp:
+        elif lang == "c++":
             generate_cpp2c_cpp()
 
     def generate_c2f(self, overwrite=True):
-        if self.json[sections.LANG] == utility.Language.fortran:
+        if self.language.lower() == "fortran":
             c2f_generator.generate_c2f(self.json)
 
     @property
     def outer_template(self):
-        return self._helper_tpl
+        return self._outer_tpl
 
     @property
     def helper_template(self):
@@ -219,7 +234,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             'nTiles': {
                 'source': 'internal', # ?
                 'name': 'nTiles',
-                'type': 'int' if lang == "fortran" else 'std::size_t'
+                'type': 'int' if lang == "fortran" else 'std::size_t',
+                'extents': []
             }
         }
         
@@ -247,15 +263,31 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = self._tf_spec.tile_metadata_arguments
         for key in args:
             args[key] = self._tf_spec.argument_specification(key)
+            args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
+            if lang == "fortran":
+                args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
+        print(args)
         return self._sort_dict(args.items(), sort_func)
 
+    # TODO: The looping code can be made into its own separate function.
     @property
     def tile_in_args(self):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_arguments
         arg_dictionary = {}
+        block_extents = self.block_extents
+        nguard = self.n_guardcells
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
+            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
+            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
+            arg_dictionary[arg]['extents'] = [
+                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
+                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
+                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
+            ]
+            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property
@@ -263,8 +295,19 @@ class DataPacketGenerator(AbcCodeGenerator):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_out_arguments
         arg_dictionary = {}
+        block_extents = self.block_extents
+        nguard = self.n_guardcells
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
+            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
+            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
+            arg_dictionary[arg]['extents'] = [
+                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
+                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
+                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
+            ]
+            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property
@@ -272,17 +315,31 @@ class DataPacketGenerator(AbcCodeGenerator):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_out_arguments
         arg_dictionary = {}
+        block_extents = self.block_extents
+        nguard = self.n_guardcells
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
+            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
+            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
+            arg_dictionary[arg]['extents'] = [
+                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
+                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
+                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
+            ]
+            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property
     def scratch_args(self):
-        sort_func = lambda x: self._sizes.get(x[1]["type"], 0)
+        sort_func = lambda x: (self._sizes.get(x[1]["type"], 0), not x[0])
         args = self._tf_spec.scratch_arguments
         arg_dictionary = {}
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            arg_dictionary[arg]['extents'] = self.__parse_extents(arg_dictionary[arg]['extents'])
+            arg_dictionary[arg]['lbound'] = self.__parse_lbound(arg_dictionary[arg]['lbound'], 'scratch')
+
         return self._sort_dict(arg_dictionary.items(), sort_func)
     
     @property
@@ -290,8 +347,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._tf_spec.block_interior_shape
     
     @property
-    def nguard(self):
+    def n_guardcells(self):
         return self._tf_spec.n_guardcells
+    
+    @property
+    def dimension(self):
+        return self._tf_spec.grid_dimension
 
     def _sort_dict(self, arguments, sort_key) -> OrderedDict:
         """
@@ -306,3 +367,74 @@ class DataPacketGenerator(AbcCodeGenerator):
     def abort(self, msg: str):
         # print message and exit
         ...
+
+    def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list):
+        
+        def construct_source_tree(stree: SourceTree, templates: list):
+            assert len(templates) > 0
+            stree.initTree(templates[0])
+            stree.pushLink(srctree.search_links(stree.getTree()))
+
+            # load and link each template into source tree.
+            for idx,link in enumerate(templates[1:]):
+                print(link)
+                tree_link = srctree.load(link)
+                pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)
+                if pathInfo:
+                    stree.pushLink(srctree.search_links(tree_link))
+                else:
+                    raise RuntimeError(f'Linking layer {idx} ({link}) unsuccessful!')
+
+
+        """Generates a source file given a template and output name"""
+        stree = SourceTree(**sourcetree_opts, debug=False)
+        construct_source_tree(stree, linked_templates)
+        lines = stree.parse()
+        if os.path.isfile(output):
+            # use logger here but for now just print a warning.
+            print(f"Warning: {output} already exists. Overwriting.")
+        with open(output, 'w') as new_file:
+            lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
+            new_file.write(lines)
+
+    def __parse_lbound(self, lbound: str, data_source: str):
+        """
+        Parses an lbound string for use within the generator.
+        
+        :param str lbound: The lbound string to parse.
+        :param str data_source: The source of the data. Eg: scratch or grid data. 
+        """
+        starting_index = "1"
+        # data source is either grid or scratch for tile arrays.
+        if data_source == "grid_data":
+            lbound_info = lbound.split(',')
+            # We control lbound format for grid data structures, 
+            # so the length of this lbound should always be 2.
+            assert len(lbound_info) == 2
+            # get low index
+            low = lbound_info[0]
+            low = low.strip().replace(')', '').replace('(', '')
+            starting_index = lbound_info[-1]
+            starting_index = starting_index.strip().replace('(', '').replace(')', '')
+            return [low, starting_index]
+        elif data_source == "scratch":
+            # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
+            # to find tile data.
+            lookahead = r',\s*(?![^()]*\))'
+            matches = re.split(lookahead, lbound)
+            # Can't assume lbound split is a specific size since we don't have control over
+            # structures of scratch data.
+            for idx,item in enumerate(matches):
+                match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
+                unlabeled_intvects = re.findall(match_intvects, item)
+                # print(unlabeled_intvects)
+                for vect in unlabeled_intvects:
+                    matches[idx] = item.replace(vect, f"IntVect{vect}")
+            return matches
+        # data source was not valid.
+        return ['']
+    
+    def __parse_extents(self, extents: str) -> list:
+        """Parses an extents string."""
+        extents = extents.replace('(', '').replace(')', '')
+        return [ item.strip() for item in extents.split(',') ]

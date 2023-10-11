@@ -1,5 +1,5 @@
 /* _connector:datapacket */
-#include "_param:class_name.h"
+#include "_param:header_name.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>

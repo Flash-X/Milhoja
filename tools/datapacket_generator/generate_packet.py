@@ -119,7 +119,7 @@ def generate_packet(args):
     data[sections.GENERAL]['nTiles'] = nTiles_type
 
     # generate helper templates
-    generate_helpers_tpl.generate_helper_template(data)
+    # generate_helpers_tpl.generate_helper_template(data)
     # assemble data packet
     ctree.generate_packet_code(data)
 

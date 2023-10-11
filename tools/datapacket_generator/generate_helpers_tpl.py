@@ -15,8 +15,8 @@ import json_sections as jsc
 import os
 # import DataPacketMemberVars as dpinfo
 from DataPacketMemberVars import DataPacketMemberVars
-from DataPacketGenerator import DataPacketGenerator
 from milhoja import TaskFunction
+
 
 _NTILES_VALUE = 'nTiles_value'
 _CON_ARGS = 'constructor_args'
@@ -192,11 +192,11 @@ def _iterate_constructor(
     # we need to set nTiles value here as a link, _param does not work as expected.
     
     nTiles_value = '_nTiles_h = tiles_.size();'
-    if constructor['nTiles'] != 'std::size_t':
+    if constructor['nTiles']['type'] != 'std::size_t':
         nTiles_value = f'// Check for overflow first to avoid UB\n' + \
                        f'// TODO: Should casting be checked here or in base class?\n' + \
                        f'if (tiles_.size() > INT_MAX)\n\tthrow std::overflow_error("[_param:class_name pack] nTiles was too large for int.");\n' + \
-                       f'_nTiles_h = static_cast<{constructor["nTiles"]}>(tiles_.size());'
+                       f'_nTiles_h = static_cast<{constructor["nTiles"]["type"]}>(tiles_.size());'
     connectors[_NTILES_VALUE] = [nTiles_value]
 
     # # MOVE THROUGH EVERY CONSTRUCTOR ITEM
@@ -275,9 +275,9 @@ def _tmetadata_memcopy(
     :param str alt_name: The name of the source pointer to be copied in.
     :param str language: The language of the assoc. task function.
     """
-    if language == util.Language.cpp:
+    if language == 'c++':
         cpp_helpers.tmdata_memcpy_cpp(connectors, info, alt_name)
-    elif language == util.Language.fortran:
+    elif language == 'fortran':
         _tmdata_memcpy_f(connectors, construct, use_ref, info)
     else:
         print("Incompatible language.")
@@ -302,24 +302,17 @@ def _iterate_tilemetadata(
     """
     _section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors[_T_DESCRIPTOR] = []
-    if language == util.Language.cpp:
+    if language == "c++":
         connectors[_SIZE_DET].append("static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);\n") 
         cpp_helpers.insert_farray_size(size_connectors, num_arrays)
     
-    for item,name in tilemetadata.items():
-        try:
-            item_type = util.F_HOST_EQUIVALENT[util.TILE_VARIABLE_MAPPING[name]]
-            if language == util.Language.cpp:
-                item_type = util.TILE_VARIABLE_MAPPING[name]
-        except Exception:
-            # TODO: Eventually use the logger to track this.
-            warnings.warn(f"{name} was not found in tile_variable_mapping. Ignoring...")
-            continue
-        
+    for item,data in tilemetadata.items():
+        source = data['source'].replace('tile_', '')
+        item_type = data['type']
         # code generation for the tile_metadata section often depends on the language to properly generate
         # working code
-        size_eq = f"sizeof({ util.FARRAY_MAPPING.get(item_type, item_type) })"
-        if language == util.Language.fortran:
+        size_eq = f"sizeof({ item_type })"
+        if language == 'fortran':
             size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
         info = DataPacketMemberVars(item=item, dtype=item_type, size_eq=size_eq, per_tile=True)
 
@@ -333,7 +326,7 @@ def _iterate_tilemetadata(
         # use that instead.
         info.dtype = util.FARRAY_MAPPING.get(item_type, item_type)
         connectors[_T_DESCRIPTOR].append(
-            f'const auto {name} = tileDesc_h->{name}();\n'
+            f'const auto {source} = tileDesc_h->{source}();\n'
         )
 
         # unsigned does not matter in fortran.
@@ -345,26 +338,25 @@ def _iterate_tilemetadata(
         if info.dtype in util.F_HOST_EQUIVALENT and language == util.Language.fortran:
             fix_index = '+1' if info.dtype == str('IntVect') else '' # indices are 1 based, so bound arrays need to adjust
             info.dtype = util.F_HOST_EQUIVALENT[info.dtype]
-            construct_host = f"[MILHOJA_MDIM] = {{ {name}.I(){fix_index}, {name}.J(){fix_index}, {name}.K(){fix_index} }}"
+            construct_host = f"[MILHOJA_MDIM] = {{ {source}.I(){fix_index}, {source}.J(){fix_index}, {source}.K(){fix_index} }}"
             use_ref = "" # don't need to pass by reference with primitive arrays
         else:
             construct_host = f' = static_cast<{item_type}>({info.host})'
             use_ref = "&" # need a reference for Vect objects.
 
-        _tmetadata_memcopy(connectors, construct_host, use_ref, info, name, language)
+        _tmetadata_memcopy(connectors, construct_host, use_ref, info, source, language)
  
     # TODO: Remove this once bounds information is implemented.
-    missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
-    connectors[_T_DESCRIPTOR].extend([
-        f'const auto {item} = tileDesc_h->{item}();\n'
-        for item in missing_dependencies
-    ]) 
+    # missing_dependencies = cpp_helpers.get_metadata_dependencies(tilemetadata, language)
+    # connectors[_T_DESCRIPTOR].extend([
+    #     f'const auto {item} = tileDesc_h->{item}();\n'
+    #     for item in missing_dependencies
+    # ]) 
 
 def _iterate_tilein(
         connectors: dict, 
         size_connectors: dict, 
         tilein: OrderedDict, 
-        block_params: dict, 
         language: str
     ) -> None:
     """
@@ -379,17 +371,15 @@ def _iterate_tilein(
     pinnedLocation = set()
     for item,data in tilein.items():
         # gather all information from tile_in section.
-        # TODO: if extents is not found use block sizes.
-        extents = data.get("extents", None)
-        if not extents:
-            extents = 
-        mask_in = data["variables_in"]
+        extents = data['extents']
+        mask_in = data['variables_in']
+        dtype = data['type']
 
         extents = ' * '.join(f'({item})' for item in extents)
-        unks = f'{mask_in[1] if mask_in[1] else 0} - {mask_in[0] if mask_in[0] else 0} + 1'
+        unks = f'{mask_in[1]} - {mask_in[0]} + 1'
         info = DataPacketMemberVars(
-            item=item, dtype=data[jsc.DTYPE], 
-            size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', per_tile=True
+            item=item, dtype=dtype, 
+            size_eq=f'{extents} * ({unks}) * sizeof({dtype})', per_tile=True
         )
         
         # Add necessary connectors.
@@ -409,8 +399,8 @@ def _iterate_tilein(
         _set_pointer_determination(connectors, jsc.T_IN, info, True)
         _add_memcpy_connector(connectors, jsc.T_IN, extents, item, mask_in[0], mask_in[1], info.size, info.dtype)
         # temporary measure until the bounds information in JSON is solidified.
-        if language == util.Language.cpp:
-            cpp_helpers.insert_farray_memcpy(connectors, item, 'loGC', 'hiGC', unks, info.dtype)
+        if language == "c++":
+            cpp_helpers.insert_farray_memcpy(connectors, item, 'tileDesc_h->loGC()', 'tileDesc_h->hiGC()', unks, info.dtype)
 
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
@@ -515,13 +505,6 @@ def _add_unpack_connector(
     # variable must be specified by the application (aka, no default sizes).
     offset = f"{extents} * static_cast<std::size_t>({start});"
     nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
-    if not start or not end:
-        if not start: 
-            print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
-        if not end: 
-            print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
-        offset = '0;'
-        nBytes = f'SIZE_{out_ptr.upper()};'
 
     data_pointer_string = get_data_pointer_string(in_ptr)
 
@@ -566,15 +549,14 @@ def _iterate_tileinout(
     pinnedLocation = set()
     # unpack all items in tile_in_out
     for item,data in tileinout.items():
-        start_in = data.get(jsc.START_IN, "")
-        end_in = data.get(jsc.END_IN, "")
-        start_out = data.get(jsc.START_OUT, "")
-        end_out = data.get(jsc.END_OUT, "")
+        in_mask = data['variables_in']
+        out_mask = data['variables_out']
+        dtype = data['type']
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
-        unks = f'{end_in if end_in else 0} - {start_in if start_in else 0} + 1'
+        unks = f'{in_mask[1]} - {in_mask[0]} + 1'
         info = DataPacketMemberVars(
-            item=item, dtype=data[jsc.DTYPE], 
-            size_eq=f'{extents} * ({unks}) * sizeof({data[jsc.DTYPE]})', 
+            item=item, dtype=dtype, 
+            size_eq=f'{extents} * ({unks}) * sizeof({dtype})', 
             per_tile=True
         )
 
@@ -593,12 +575,12 @@ def _iterate_tileinout(
             f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN_OUT, info, True)
-        _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, start_in, end_in, info.size, info.dtype)
+        _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, in_mask[0], in_mask[1], info.size, info.dtype)
         # here we pass in item twice because tile_in_out pointers get packed and unpacked from the same location.
-        _add_unpack_connector(connectors, jsc.T_IN_OUT, extents, start_out, end_out, info.dtype, item, item)
-        if language == util.Language.cpp:
+        _add_unpack_connector(connectors, jsc.T_IN_OUT, extents, out_mask[0], out_mask[1], info.dtype, item, item)
+        if language == "c++":
             # hardcode lo and hi for now.
-            cpp_helpers.insert_farray_memcpy(connectors, item, "loGC", "hiGC", unks, info.dtype)
+            cpp_helpers.insert_farray_memcpy(connectors, item, "tileDesc_h->loGC()", "tileDesc_h->hiGC()", unks, info.dtype)
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
 
@@ -622,13 +604,13 @@ def _iterate_tileout(
     connectors[f'unpack_{jsc.T_OUT}'] = []
     for item,data in tileout.items():
         # ge tile_out information
-        start = data.get(jsc.START, "")
-        end = data.get(jsc.END, "")
+        out_mask = data['variables_out']
         extents = ' * '.join(f'({item})' for item in data[jsc.EXTENTS])
+        dtype = data['type']
         info = DataPacketMemberVars(
             item=item, 
-            dtype=data[jsc.DTYPE], 
-            size_eq=f'{extents} * ( {end if end else 0} - {start if start else 0} + 1 ) * sizeof({data[jsc.DTYPE]})', 
+            dtype=dtype, 
+            size_eq=f'{extents} * ( {out_mask[1]} - {out_mask[0]} + 1 ) * sizeof({dtype})', 
             per_tile=True
         )
 
@@ -649,16 +631,16 @@ def _iterate_tileout(
         )
         _set_pointer_determination(connectors, jsc.T_OUT, info, True)
         _add_unpack_connector(
-            connectors, jsc.T_OUT, extents, start, 
-            end, info.dtype, corresponding_in_data, info.ITEM
+            connectors, jsc.T_OUT, extents, out_mask[0], 
+            out_mask[1], info.dtype, corresponding_in_data, info.ITEM
         )
-        if language == util.Language.cpp:
+        if language == "c++":
             cpp_helpers.insert_farray_memcpy(
                 connectors, 
                 item, 
-                'loGC', 
-                'hiGC', 
-                f'{end} - {start} + 1', 
+                'tileDesc_h->loGC()', 
+                'tileDesc_h->hiGC()', 
+                f'{out_mask[1]} - {out_mask[0]} + 1', 
                 info.dtype
             )
 
@@ -710,18 +692,6 @@ def _iterate_tilescratch(
             )
 
 
-def _sort_dict(section, sort_key) -> OrderedDict:
-    """
-    Sorts a given dictionary using the sort key.
-    
-    :param dict section: The dictionary to sort.
-    :param func sort_key: The function to sort with.
-    """
-    dict_items = [ (k,v) for k,v in section ]
-    dict_items = sorted(dict_items, key=sort_key, reverse=True)
-    return OrderedDict(dict_items)
-
-
 def _write_connectors(template, connectors: dict):
     """
     Writes connectors to the datapacket file.
@@ -760,7 +730,7 @@ def _write_connectors(template, connectors: dict):
 
 # Not really necessary to use constant string keys for this function
 # since param keys do not get used outside of this function.
-def _set_default_params(generator: DataPacketGenerator, extra_streams: int, params: dict):
+def _set_default_params(generator, extra_streams: int, params: dict):
     """
     Sets the default parameters for cgkit.
     
@@ -772,6 +742,8 @@ def _set_default_params(generator: DataPacketGenerator, extra_streams: int, para
     params['n_extra_streams'] = extra_streams  
     params['class_name'] = generator.class_name
     params['ndef_name'] = generator.ppd_name
+    params['header_name'] = generator.header_filename
+
 
 def _generate_outer(name: str, params: dict):
     """
@@ -809,7 +781,7 @@ def _write_size_connectors(size_connectors: dict, file):
 #      the given extents and unk vars. Since the extents are passed in as mathematical expressions, we would
 #      need to write an expression parser in order to get accurate size sorting. Either that, or the expressions
 #      given in the JSON file need to be single constants and not mathematical expressions.
-def generate_helper_template(generator: DataPacketGenerator, overwrite: bool) -> None:
+def generate_helper_template(generator, overwrite: bool) -> None:
     """
     Generates the helper template with the provided JSON data.
     
@@ -818,17 +790,18 @@ def generate_helper_template(generator: DataPacketGenerator, overwrite: bool) ->
 
     # TODO: Log warnings
     # TOOD: This file should be moved inside of the DataPacket generator interface
-    if os.path.isfile(generator.helper_template):
-        if overwrite:
-            ...
-        else:
-            ...
+    # if os.path.isfile(generator.helper_template):
+    #     if overwrite:
+    #         ...
+    #     else:
+    #         ...
 
+    # TODO: I don't need to keep this file open the entire generation process.
     with open(generator.helper_template, 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list) 
         params = defaultdict(str)
-        lang = generator.language
+        lang = generator.language.lower()
         n_extra_streams = generator.n_extra_streams
 
         # set defaults for the connectors. 
@@ -846,7 +819,8 @@ def generate_helper_template(generator: DataPacketGenerator, overwrite: bool) ->
         scratch = generator.scratch_args
         block_params = {
             "shape": generator.block_extents,
-            "nguard": generator.n_guardcells
+            "nguard": generator.n_guardcells,
+            "dimension": generator.dimension
         }
 
         _iterate_constructor(connectors, size_connectors, external)
@@ -861,13 +835,13 @@ def generate_helper_template(generator: DataPacketGenerator, overwrite: bool) ->
             metadata,
             lang, num_arrays
         )
-        _iterate_tilein(connectors, size_connectors, tile_in, block_params, lang)
+        _iterate_tilein(connectors, size_connectors, tile_in, lang)
         _iterate_tileinout(connectors, size_connectors, tile_in_out, lang)
         _iterate_tileout(connectors, size_connectors, tile_out, lang)
         _iterate_tilescratch(connectors, size_connectors, scratch, lang)
 
         # insert farray variables if necessary.
-        if lang == util.Language.cpp: 
+        if lang.lower() == "c++": 
             tile_data = [
                 tile_in, tile_in_out, 
                 tile_out, scratch

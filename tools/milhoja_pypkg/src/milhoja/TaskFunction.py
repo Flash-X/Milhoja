@@ -131,7 +131,7 @@ class TaskFunction(object):
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
         else:
-            raise NotImplementedError("Waiting for test cases")
+            raise NotImplementedError(f"Waiting for test cases for [{processor}, {language}] combination.")
 
         return filenames
 
@@ -198,12 +198,13 @@ class TaskFunction(object):
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = [
-            TaskFunction.EXTERNAL_ARGUMENT, TaskFunction.SCRATCH_ARGUMENT
+            TaskFunction.EXTERNAL_ARGUMENT, TaskFunction.SCRATCH_ARGUMENT,
         ]
         if ((spec["source"].lower() in src_to_adjust) and
                 (spec["type"].lower() == "real") and
                 (self.processor.lower() == "cpu")):
             spec["type"] = "milhoja::Real"
+        # elif (())
 
         return spec
 

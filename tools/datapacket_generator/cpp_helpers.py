@@ -11,9 +11,9 @@ import DataPacketMemberVars as dpinfo
 # This is a temporary measure until the bounds section in the JSON is solidified.
 BOUND_MAP = {
     'auxC': ['loGC', 'hiGC', '1'],
-    'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }', '5'],
-    'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }', '5'],
-    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }', '5']
+    'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }'],
+    'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }'],
+    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }']
 }
 
 
@@ -25,14 +25,14 @@ def get_metadata_dependencies(metadata: dict, language: str):
     :param dict metadata: The dict containing tile-metadata information.
     :param str language: The language to use.
     """
-    if language == util.Language.fortran: return []
-    mdata_set = set(metadata.values())
-    # sort the missing tile_metadata set for consistency
-    sorted_set = sorted(
-        set(["lo", "hi", "loGC", "hiGC"]).difference(mdata_set),
-        reverse=True
-    )
-    return sorted_set
+    # if language.lower() == "fortran": return []
+    # mdata_set = set(metadata.values())
+    # # sort the missing tile_metadata set for consistency
+    # sorted_set = sorted(
+    #     set(["lo", "hi", "loGC", "hiGC"]).difference(mdata_set),
+    #     reverse=True
+    # )
+    # return sorted_set
 
 
 def insert_farray_size(connectors: dict, num_arrays: int) -> None:
@@ -86,6 +86,7 @@ def insert_farray_information(tile_data: list, connectors: dict, section: str, s
     connectors[section].extend(
         [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] 
     )
+    print(connectors[section])
     connectors[set_members].extend(
         [ f'_f4_{item}_d{{nullptr}}' for item in farrays ]
     )
