@@ -5,9 +5,9 @@
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
 
-std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_dens_stream::clone(void) const {
+std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_tf_dens::clone(void) const {
     return std::unique_ptr<milhoja::DataPacket>{
-        new DataPacket_gpu_dens_stream {
+        new DataPacket_gpu_tf_dens {
             
             
         }
@@ -16,7 +16,7 @@ std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_dens_stream::clone(void) con
 
 // Constructor arguments for DataPacket classes are copied by value into non-reference data members.
 // Thus, these values are frozen at instantiation.
-DataPacket_gpu_dens_stream::DataPacket_gpu_dens_stream(
+DataPacket_gpu_tf_dens::DataPacket_gpu_tf_dens(
 
 
 )
@@ -37,17 +37,17 @@ _f4_Uout_d{nullptr}
     {
 }
 
-DataPacket_gpu_dens_stream::~DataPacket_gpu_dens_stream(void) {
+DataPacket_gpu_tf_dens::~DataPacket_gpu_tf_dens(void) {
 }
 
 
-void DataPacket_gpu_dens_stream::pack(void) {
+void DataPacket_gpu_tf_dens::pack(void) {
     using namespace milhoja;
     std::string errMsg = isNull();
     if (errMsg != "")
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] " + errMsg);
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] " + errMsg);
     else if (tiles_.size() == 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] No tiles added.");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
@@ -57,42 +57,42 @@ void DataPacket_gpu_dens_stream::pack(void) {
     
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_CONSTRUCTOR padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + 0
+    (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_TILEMETADATA padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEMETADATA padding failure");
 
     std::size_t SIZE_TILEIN = pad( _nTiles_h * (
     SIZE_UIN
     
     ));
     if (SIZE_TILEIN % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_TILEIN padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEIN padding failure");
 
     std::size_t SIZE_TILEINOUT = pad( _nTiles_h * (
     0
     
     ));
     if (SIZE_TILEINOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_TILEINOUT padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEINOUT padding failure");
 
     std::size_t SIZE_TILEOUT = pad( _nTiles_h * (
     SIZE_UOUT
     
     ));
     if (SIZE_TILEOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_TILEOUT padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
     0
     
     ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream pack] SIZE_TILESCRATCH padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILESCRATCH padding failure");
 
     nCopyToGpuBytes_ = SIZE_CONSTRUCTOR + SIZE_TILEMETADATA + SIZE_TILEIN + SIZE_TILEINOUT;
     nReturnToHostBytes_ = SIZE_TILEINOUT + SIZE_TILEOUT;
@@ -170,7 +170,7 @@ void DataPacket_gpu_dens_stream::pack(void) {
     char* char_ptr;
     for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
-        if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_dens_stream pack] Bad tiledesc.");
+        if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_tf_dens pack] Bad tiledesc.");
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
@@ -188,16 +188,16 @@ void DataPacket_gpu_dens_stream::pack(void) {
         
         
         real* Uin_d = tileDesc_h->dataPtr();
-        constexpr std::size_t offset_Uin = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
-        constexpr std::size_t nBytes_Uin = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
+        constexpr std::size_t offset_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
+        constexpr std::size_t nBytes_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 0 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_Uin_p) ) + n * SIZE_UIN;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
-        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), loGC, hiGC, 0 - 0 + 1};
+        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 0 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), SIZE_FARRAY4D);
         
-        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), loGC, hiGC, 0 - 0 + 1};
+        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 0 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), SIZE_FARRAY4D);
         

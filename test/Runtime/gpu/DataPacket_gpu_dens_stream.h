@@ -1,5 +1,5 @@
-#ifndef DATAPACKET_GPU_DENS_STREAM_UNIQUE_IFNDEF_H_
-#define DATAPACKET_GPU_DENS_STREAM_UNIQUE_IFNDEF_H_
+#ifndef DATAPACKET_GPU_TF_DENS_UNIQUE_IFNDEF_H_
+#define DATAPACKET_GPU_TF_DENS_UNIQUE_IFNDEF_H_
 
 #include <Milhoja.h>
 #include <Milhoja_real.h>
@@ -11,24 +11,24 @@ using milhoja::FArray4D;
 using milhoja::IntVect;
 using milhoja::RealVect;
 
-class DataPacket_gpu_dens_stream : public milhoja::DataPacket {
+class DataPacket_gpu_tf_dens : public milhoja::DataPacket {
 public:
     // constructor
-    DataPacket_gpu_dens_stream(
+    DataPacket_gpu_tf_dens(
     
     
     );
     // destructor
-    ~DataPacket_gpu_dens_stream(void);
+    ~DataPacket_gpu_tf_dens(void);
 
     //helper methods from base DataPacket class.
     std::unique_ptr<milhoja::DataPacket> clone(void) const override;
-    DataPacket_gpu_dens_stream(DataPacket_gpu_dens_stream&) = delete;
-    DataPacket_gpu_dens_stream(const DataPacket_gpu_dens_stream&) = delete;
-    DataPacket_gpu_dens_stream(DataPacket_gpu_dens_stream&& packet) = delete;
-    DataPacket_gpu_dens_stream& operator=(DataPacket_gpu_dens_stream&) = delete;
-    DataPacket_gpu_dens_stream& operator=(const DataPacket_gpu_dens_stream&) = delete;
-    DataPacket_gpu_dens_stream& operator=(DataPacket_gpu_dens_stream&& rhs) = delete;
+    DataPacket_gpu_tf_dens(DataPacket_gpu_tf_dens&) = delete;
+    DataPacket_gpu_tf_dens(const DataPacket_gpu_tf_dens&) = delete;
+    DataPacket_gpu_tf_dens(DataPacket_gpu_tf_dens&& packet) = delete;
+    DataPacket_gpu_tf_dens& operator=(DataPacket_gpu_tf_dens&) = delete;
+    DataPacket_gpu_tf_dens& operator=(const DataPacket_gpu_tf_dens&) = delete;
+    DataPacket_gpu_tf_dens& operator=(DataPacket_gpu_tf_dens&& rhs) = delete;
 
     // pack and unpack functions from base class.
     void pack(void) override;
@@ -64,8 +64,8 @@ private:
     static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     static constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     static constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    static constexpr std::size_t SIZE_UIN = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * (0 - 0 + 1) * sizeof(real);
-    static constexpr std::size_t SIZE_UOUT = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
+    static constexpr std::size_t SIZE_UIN = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 0 * MILHOJA_K3D) * (0 - 0 + 1) * sizeof(real);
+    static constexpr std::size_t SIZE_UOUT = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 0 * MILHOJA_K3D) * ( 0 - 0 + 1 ) * sizeof(real);
     
 };
 

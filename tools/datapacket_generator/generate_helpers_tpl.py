@@ -438,26 +438,9 @@ def _add_memcpy_connector(
     :param str size_item: The string containing the size variable for *item*.
     :param str raw_type: The data type of the item.
     """
-
-    # Developer's Note:
-    # I'm adding the potential for not including a start and an ending index
-    # to satisfy a small requirement by Anshu's requested DataPacket JSON 
-    # generator. Ideally, bounds should always be specified in the 
-    # JSON, and it's up to the application, not the DataPacket Generator, 
-    # to specify defaults. This however, I think is an okay workaround for 
-    # having default starting and ending indices, since copying the size of 
-    # the entire variable is not application specific, and the size of the 
-    # variable must be specified by the application (aka, no default sizes).
     offset = f"{extents} * static_cast<std::size_t>({start})"
     nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type})'
-    if not start or not end:
-        if not start: 
-            print("WARNING: You are missing a starting index. If this is intentional, ignore this warning.")
-        if not end: 
-            print("WARNING: You are missing an ending index. If this is intentional, ignore this warning.")
-        offset = '0'
-        nBytes = size_item
-
+    
     # This exists inside the pack function for copying data from tile_in to the device.
     # Luckily we don't really need to use DataPacketMemberVars here because the temporary device pointer 
     # is locally scoped.
