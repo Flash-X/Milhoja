@@ -265,66 +265,53 @@ class DataPacketGenerator(AbcCodeGenerator):
                 args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
         print(args)
         return self._sort_dict(args.items(), sort_func)
+    
+    def __adjust_tile_data(self, args: dict) -> dict:
+        arg_dictionary = {}
+        block_extents = self.block_extents
+        nguard = self.n_guardcells
+        for arg in args:
+            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
+            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
+            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
+            arg_dictionary[arg]['extents'] = [
+                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
+                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
+                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
+            ]
+
+            # adjust masking.
+            if 'variables_in' in arg_dictionary[arg]:
+                mask = arg_dictionary[arg]['variables_in']
+                arg_dictionary[arg]['variables_in'] = [mask[0]-1, mask[1]-1]
+            if 'variables_out' in arg_dictionary[arg]:
+                mask = arg_dictionary[arg]['variables_out']
+                arg_dictionary[arg]['variables_out'] = [mask[0]-1, mask[1]-1]
+
+            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+        return arg_dictionary
 
     # TODO: The looping code can be made into its own separate function.
     @property
     def tile_in_args(self):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_arguments
-        arg_dictionary = {}
-        block_extents = self.block_extents
-        nguard = self.n_guardcells
-        for arg in args:
-            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
-            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
-            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
-            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
-            arg_dictionary[arg]['extents'] = [
-                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
-                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
-                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
-            ]
-            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+        arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property
     def tile_in_out_args(self):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_out_arguments
-        arg_dictionary = {}
-        block_extents = self.block_extents
-        nguard = self.n_guardcells
-        for arg in args:
-            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
-            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
-            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
-            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
-            arg_dictionary[arg]['extents'] = [
-                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
-                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
-                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
-            ]
-            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+        arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property
     def tile_out_args(self):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_out_arguments
-        arg_dictionary = {}
-        block_extents = self.block_extents
-        nguard = self.n_guardcells
-        for arg in args:
-            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
-            x = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxx' else '{0}'
-            y = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxy' else '{0}'
-            z = '({0}) + 1' if arg_dictionary[arg]['structure_index'][0].lower() == 'fluxz' else '{0}'
-            arg_dictionary[arg]['extents'] = [
-                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
-                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
-                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
-            ]
-            arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+        arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(arg_dictionary.items(), sort_func)
 
     @property

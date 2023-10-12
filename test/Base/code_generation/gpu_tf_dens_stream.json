@@ -26,10 +26,10 @@
             "tile_deltas":      {"source":           "tile_deltas"},
             "Uin":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_in":    [0, 0]},
+                                 "variables_in":    [1, 1]},
             "Uout":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_out":   [0, 0]}
+                                 "variables_out":   [1, 1]}
         },
         "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianDensity"
