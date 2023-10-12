@@ -140,8 +140,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         Generate C++ header
         """
-        # TODO: Replace with new json format
-        # self.check_generate_template()
         self.generate_packet_file(
             self.header_filename,
             {
@@ -159,7 +157,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         Generate C++ source code. Also generates the
         interoperability layers if necessary.
         """
-        # self.check_generate_template()
         self.generate_packet_file(
             self.source_filename,
             {

@@ -15,15 +15,15 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_gpu_dens_stream* packet_h   = dynamic_cast<DataPacket_gpu_dens_stream*>(dataItem_h);
+    DataPacket_gpu_tf_dens* packet_h   = dynamic_cast<DataPacket_gpu_tf_dens*>(dataItem_h);
     const int                   queue_h    = packet_h->asynchronousQueue();
 
     const std::size_t* nTiles_d = packet_h->_nTiles_d;
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
-    FArray4D* CC1_d = packet_h->_f4_Uin_d;
-    FArray4D* CC2_d = packet_h->_f4_Uout_d;
+    FArray4D* CC1_d = packet_h->_f4_CC1_d;
+    FArray4D* CC2_d = packet_h->_f4_CC2_d;
 
     #pragma acc data deviceptr(nTiles_d, deltas_d, lo_d, hi_d, CC1_d, CC2_d)
     {

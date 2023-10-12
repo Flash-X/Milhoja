@@ -18,18 +18,18 @@
         "argument_list": ["tile_lo",
                           "tile_hi",
                           "tile_deltas",
-                          "CC_1",
-                          "CC_2"],
+                          "Uin",
+                          "Uout"],
         "argument_specifications": {
             "tile_lo":          {"source":           "tile_lo"},
             "tile_hi":          {"source":           "tile_hi"},
             "tile_deltas":      {"source":           "tile_deltas"},
-            "CC_1":             {"source":           "grid_data",
+            "Uin":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_in":    [1, 1]},
-            "CC_2":             {"source":           "grid_data",
+                                 "variables_in":    [0, 0]},
+            "Uout":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_out":   [1, 1]}
+                                 "variables_out":   [0, 0]}
         },
         "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianDensity"
@@ -53,8 +53,8 @@
                 "lo":      "tile_lo",
                 "hi":      "tile_hi",
                 "deltas":  "tile_deltas",
-                "Uin":       "CC_1",
-                "Uout":        "CC_2"
+                "Uin":     "Uin",
+                "Uout":    "Uout"
             }
         }
     }

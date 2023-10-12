@@ -13,7 +13,6 @@ import warnings
 import cpp_helpers
 import json_sections as jsc
 import os
-# import DataPacketMemberVars as dpinfo
 from DataPacketMemberVars import DataPacketMemberVars
 from milhoja import TaskFunction
 
@@ -32,6 +31,13 @@ _STREAM_FUNCS_H = 'stream_functions_h'
 _EXTRA_STREAMS = 'extra_streams'
 _DESTRUCTOR = 'destructor'
 _STREAM_FUNCS_CXX = 'stream_functions_cxx'
+
+_SOURCE_TILE_DATA_MAPPING = {
+    "CENTER": "tileDesc_h->dataPtr()",
+    "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
+    "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
+    "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
+}
 
 
 def _add_size_parameter(name: str, section_dict: dict, connectors: dict):
@@ -300,6 +306,9 @@ def _iterate_tilemetadata(
     :param str language: The language to use
     :param int num_arrays: The number of arrays inside tile-in, tile-in-out, tile-out, and tile-scratch.
     """
+    def _source_to_code_mapping(source: str):
+        ...
+
     _section_creation(jsc.T_MDATA, tilemetadata, connectors, size_connectors)
     connectors[_T_DESCRIPTOR] = []
     if language == "c++":
@@ -335,7 +344,7 @@ def _iterate_tilemetadata(
         info.dtype = info.dtype.replace('unsigned', '')
         # if the language is fortran and there exists a fortran data type equivalent (eg, IntVect -> int array.)
         use_ref = ""
-        if info.dtype in util.F_HOST_EQUIVALENT and language == util.Language.fortran:
+        if info.dtype in util.F_HOST_EQUIVALENT and language == "fortran":
             fix_index = '+1' if info.dtype == str('IntVect') else '' # indices are 1 based, so bound arrays need to adjust
             info.dtype = util.F_HOST_EQUIVALENT[info.dtype]
             construct_host = f"[MILHOJA_MDIM] = {{ {source}.I(){fix_index}, {source}.J(){fix_index}, {source}.K(){fix_index} }}"
@@ -397,7 +406,11 @@ def _iterate_tilein(
             f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN, info, True)
-        _add_memcpy_connector(connectors, jsc.T_IN, extents, item, mask_in[0], mask_in[1], info.size, info.dtype)
+        _add_memcpy_connector(
+            connectors, jsc.T_IN, 
+            extents, item, 
+            mask_in[0], mask_in[1], 
+            info.size, info.dtype, data['structure_index'][0])
         # temporary measure until the bounds information in JSON is solidified.
         if language == "c++":
             cpp_helpers.insert_farray_memcpy(connectors, item, 'tileDesc_h->loGC()', 'tileDesc_h->hiGC()', unks, info.dtype)
@@ -405,23 +418,14 @@ def _iterate_tilein(
     connectors[f'memcpy_{jsc.T_IN_OUT}'].extend(pinnedLocation)
 
 
-def get_data_pointer_string(item: str):
-    # todo: get data from structure_index section
-    data_pointer_string = "tileDesc_h->dataPtr()"
-    # TODO: Make this actually good.    
-    # TODO: THis is testing for getting flux data pointers.
-    # TODO: Something like this would probably be a 'per format' thing and not a data packet generator specification.
-    if 'flux' in item.lower() or 'fl' in item.lower():
-        if 'X' in item: data_pointer_string = util.DATA_POINTER_MAP['flX']
-        elif 'Y' in item: data_pointer_string = util.DATA_POINTER_MAP['flY']
-        elif 'Z' in item: data_pointer_string = util.DATA_POINTER_MAP['flZ']
-    return data_pointer_string
-
-
-def _add_memcpy_connector(connectors: dict, section: str, 
-                          extents: str, item: str, 
-                          start: int, end: int, 
-                          size_item: str, raw_type: str):
+def _add_memcpy_connector(
+    connectors: dict, 
+    section: str, 
+    extents: str, item: str, 
+    start: int, end: int, 
+    size_item: str, raw_type: str,
+    source: str
+):
     """
     Adds a memcpy connector based on the information passed in.
     
@@ -458,7 +462,7 @@ def _add_memcpy_connector(connectors: dict, section: str,
     # Luckily we don't really need to use DataPacketMemberVars here because the temporary device pointer 
     # is locally scoped.
 
-    data_pointer_string = get_data_pointer_string(item)
+    data_pointer_string = _SOURCE_TILE_DATA_MAPPING[source.upper()]
 
     # TODO: Use grid data to get data pointer information.
     connectors[f'memcpy_{section}'].extend([
@@ -478,7 +482,8 @@ def _add_unpack_connector(
     end: int, 
     raw_type: str, 
     in_ptr: str, 
-    out_ptr: str
+    out_ptr: str,
+    source: str
 ):
     """
     Adds an unpack connector to the connectors dictionary 
@@ -505,19 +510,18 @@ def _add_unpack_connector(
     # variable must be specified by the application (aka, no default sizes).
     offset = f"{extents} * static_cast<std::size_t>({start});"
     nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
-
-    data_pointer_string = get_data_pointer_string(in_ptr)
+    data_pointer_string = _SOURCE_TILE_DATA_MAPPING[source.upper()]
 
     # TODO: Eventually the tile wrapper class will allow us to pick out the exact data array we need with dataPtr().
     connectors[_IN_PTRS].append(
-        f'{raw_type}* {in_ptr}_data_h = {data_pointer_string};\n'
+        f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'
     )
     connectors[f'unpack_{section}'].extend([
-        f'constexpr std::size_t offset_{in_ptr} = {offset}\n',
-        f'{raw_type}*        start_h_{in_ptr} = {in_ptr}_data_h + offset_{in_ptr};\n'
-        f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{in_ptr};\n'
+        f'constexpr std::size_t offset_{out_ptr} = {offset}\n',
+        f'{raw_type}*        start_h_{out_ptr} = {out_ptr}_data_h + offset_{out_ptr};\n'
+        f'const {raw_type}*  start_p_{out_ptr} = {out_ptr}_data_p + offset_{out_ptr};\n'
         f'constexpr std::size_t nBytes_{out_ptr} = {nBytes}\n',
-        f'std::memcpy(static_cast<void*>(start_h_{in_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{out_ptr});\n\n'
+        f'std::memcpy(static_cast<void*>(start_h_{out_ptr}), static_cast<const void*>(start_p_{out_ptr}), nBytes_{out_ptr});\n\n'
     ])
     # I'm the casting here is awful but I'm not sure there's a way around it that isn't just using c-style casting, 
     # and that is arguably worse than CPP style casting
@@ -575,9 +579,19 @@ def _iterate_tileinout(
             f'static constexpr std::size_t {info.size} = {info.SIZE_EQ};\n'
         )
         _set_pointer_determination(connectors, jsc.T_IN_OUT, info, True)
-        _add_memcpy_connector(connectors, jsc.T_IN_OUT, extents, item, in_mask[0], in_mask[1], info.size, info.dtype)
+        _add_memcpy_connector(
+            connectors, jsc.T_IN_OUT, 
+            extents, item, in_mask[0], 
+            in_mask[1], info.size, info.dtype,
+            data['structure_index'][0]
+        )
         # here we pass in item twice because tile_in_out pointers get packed and unpacked from the same location.
-        _add_unpack_connector(connectors, jsc.T_IN_OUT, extents, out_mask[0], out_mask[1], info.dtype, item, item)
+        _add_unpack_connector(
+            connectors, jsc.T_IN_OUT, 
+            extents, out_mask[0], out_mask[1], 
+            info.dtype, item, item,
+            data['structure_index'][0]
+        )
         if language == "c++":
             # hardcode lo and hi for now.
             cpp_helpers.insert_farray_memcpy(connectors, item, "tileDesc_h->loGC()", "tileDesc_h->hiGC()", unks, info.dtype)
@@ -632,7 +646,8 @@ def _iterate_tileout(
         _set_pointer_determination(connectors, jsc.T_OUT, info, True)
         _add_unpack_connector(
             connectors, jsc.T_OUT, extents, out_mask[0], 
-            out_mask[1], info.dtype, corresponding_in_data, info.ITEM
+            out_mask[1], info.dtype, corresponding_in_data, info.ITEM,
+            data['structure_index'][0]
         )
         if language == "c++":
             cpp_helpers.insert_farray_memcpy(
@@ -683,7 +698,7 @@ def _iterate_tilescratch(
         # TODO: How to insert this FArray into the C++ packet? 
         #       We do not have control over the number of unknowns in scratch arrays, so how do we 
         #       incorporate this with lbound?
-        if language == util.Language.cpp:
+        if language == "c++":
             cpp_helpers.insert_farray_memcpy(
                 connectors, item, 
                 cpp_helpers.BOUND_MAP[item][0], 

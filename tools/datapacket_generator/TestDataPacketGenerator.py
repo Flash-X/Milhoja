@@ -70,24 +70,24 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         
         TODO: Find a better way to remove whitespaces and compare.
         """
-        # generated_string = generated.read().replace(' ', '').replace('\n', '').replace('\t', '')
-        # correct_string = correct.read().replace(' ', '').replace('\n', '').replace('\t', '')
+        generated_string = generated.read().replace(' ', '').replace('\n', '').replace('\t', '')
+        correct_string = correct.read().replace(' ', '').replace('\n', '').replace('\t', '')
 
-        # self.assertTrue(
-        #     len(generated_string) == len(correct_string),
-        #     f"Generated length: {len(generated_string)}, correct length: {len(correct_string)}"
-        # )
-        # self.assertTrue(
-        #     generated_string == correct_string,
-        #     f"Comparison between {generated.name} and {correct.name} returned false."
-        # )
+        self.assertTrue(
+            len(generated_string) == len(correct_string),
+            f"Generated length: {len(generated_string)}, correct length: {len(correct_string)}"
+        )
+        self.assertTrue(
+            generated_string == correct_string,
+            f"Comparison between {generated.name} and {correct.name} returned false."
+        )
  
  
     def testCpp(self):
         """
         Tests all files in CppTestData.
         """
-        for test_set in [self._runtime]:#, self._sedov]:
+        for test_set in [self._runtime]:
             for test in test_set:
                 json_path = test[self.JSON]
                 sizes = test[self.SIZES]
@@ -99,46 +99,40 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 logger = BasicLogger(LOG_LEVEL_MAX)
                 generator = DataPacketGenerator(tf_spec, 4, logger, sizes, "./templates", './')
 
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.external_args, indent=4), LOG_LEVEL_MAX)
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.tile_metadata_args, indent=4), LOG_LEVEL_MAX)
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.tile_in_args, indent=4), LOG_LEVEL_MAX)
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.tile_in_out_args, indent=4), LOG_LEVEL_MAX)
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.tile_out_args, indent=4), LOG_LEVEL_MAX)
-                # logger.log("TestDataPacketGenerator", json.dumps(generator.scratch_args, indent=4), LOG_LEVEL_MAX)
-
-                name = generator.class_name
                 generator.generate_header_code()
                 generator.generate_source_code()
+
+                print(generator.source_filename)
+                print(generator.header_filename)
+
                 generated_name_cpp = generator.source_filename
                 correct_name_cpp = f'CppTestData/{generator.source_filename}'
                 
-                # # check c++ source code
-                # with open(generated_name_cpp, 'r') as generated_cpp, \
-                # open(correct_name_cpp, 'r') as correct:
-                #     # Test generated files.
-                #     self.check_generated_files(generated_cpp, correct)
+                # check c++ source code
+                with open(generated_name_cpp, 'r') as generated_cpp, \
+                open(correct_name_cpp, 'r') as correct:
+                    # Test generated files.
+                    self.check_generated_files(generated_cpp, correct)
                     
-                # generated_name_h = generator.header_filename
-                # correct_name_h = f'CppTestData/{name}.h'
+                generated_name_h = generator.header_filename
+                correct_name_h = f'CppTestData/{generator.source_filename}'
 
-                # # check c++ headers
-                # with open(generated_name_h, 'r') as generated_h, \
-                # open(correct_name_h, 'r') as correct:
-                #     self.check_generated_files(generated_h, correct)
+                # check c++ headers
+                with open(generated_name_h, 'r') as generated_h, \
+                open(correct_name_h, 'r') as correct:
+                    self.check_generated_files(generated_h, correct)
 
-                # # TOOD: Generator should generate TaskFunction call
-                # print("----- Success")
+                # TOOD: Generator should generate TaskFunction call
+                print("----- Success")
 
-                # # clean up generated files if test passes.
-                # try:
-                #     os.remove(generated_name_cpp)
-                #     os.remove(generated_name_h)
-                #     for file in glob.glob("cg-tpl.*.cpp"):
-                #         os.remove(file)
-                # except: 
-                #     print("Could not find files. Continue.")
-
- 
+                # clean up generated files if test passes.
+                try:
+                    os.remove(generated_name_cpp)
+                    os.remove(generated_name_h)
+                    for file in glob.glob("cg-tpl.*.cpp"):
+                        os.remove(file)
+                except: 
+                    print("Could not find files. Continue.")
 
     # TODO: Fortran testing with dpg interface
     def testFortran(self):

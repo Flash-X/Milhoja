@@ -121,7 +121,7 @@ class TaskFunction(object):
 
         processor = self.processor
         language = self.language
-        if (processor.lower() == "cpu" or processor.lower() == "gpu") and language.lower() == "c++":
+        if processor.lower() == "cpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
         elif processor.lower() == "gpu" and language.lower() == "fortran":
@@ -130,6 +130,8 @@ class TaskFunction(object):
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
+        elif processor.lower() == "gpu" and language.lower() == "c++":
+            ...
         else:
             raise NotImplementedError(f"Waiting for test cases for [{processor}, {language}] combination.")
 
