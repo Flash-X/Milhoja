@@ -40,10 +40,10 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         # TODO: Once this is in milhoja package change path
         self._runtime = [
             {
-                self.JSON: _TEST_PATH.joinpath("gpu_tf_dens_stream.json"),
-                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_dens_stream.h"),
+                self.JSON: _TEST_PATH.joinpath("gpu_tf_dens.json"),
+                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_dens.h"),
                 self.HDD: False,
-                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_dens_stream.cpp"),
+                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_dens.cpp"),
                 self.SDD: False,
                 self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json") # temp use summit sizes
             }
@@ -89,6 +89,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         """
         for test_set in [self._runtime]:
             for test in test_set:
+                print(f"""---------------------{test[self.JSON]}---------------------""")
+
                 json_path = test[self.JSON]
                 sizes = test[self.SIZES]
                 with open(str(sizes), 'r') as sizes_json:
@@ -102,9 +104,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 generator.generate_header_code()
                 generator.generate_source_code()
 
-                print(generator.source_filename)
-                print(generator.header_filename)
-
                 generated_name_cpp = generator.source_filename
                 correct_name_cpp = f'CppTestData/{generator.source_filename}'
                 
@@ -115,7 +114,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     self.check_generated_files(generated_cpp, correct)
                     
                 generated_name_h = generator.header_filename
-                correct_name_h = f'CppTestData/{generator.source_filename}'
+                correct_name_h = f'CppTestData/{generator.header_filename}'
 
                 # check c++ headers
                 with open(generated_name_h, 'r') as generated_h, \

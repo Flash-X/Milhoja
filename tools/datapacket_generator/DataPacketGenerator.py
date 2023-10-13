@@ -22,11 +22,6 @@ from milhoja import BasicLogger
 
 class DataPacketGenerator(AbcCodeGenerator):
     """
-    TODO: Convert all jsons to new format from Jared.
-    DataPacketGenerator interface uses datapacket json format for now.
-
-    TODO: User should need to pass in a destination path.
-
     This class serves as a wrapper for all of the packet generation scripts.
     This will eventually be built into the primary means of generating data
     packets instead of calling generate_packet.py.

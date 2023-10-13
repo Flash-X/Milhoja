@@ -6,7 +6,7 @@
 
 #include "Base.h"
 
-#include "DataPacket_gpu_de_1_stream.h"
+#include "DataPacket_gpu_tf_fused_kernels.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
@@ -16,7 +16,7 @@ void ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit(const
                                                                            milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_gpu_de_1_stream* packet_h   = dynamic_cast<DataPacket_gpu_de_1_stream*>(dataItem_h);
+    DataPacket_gpu_tf_fused_kernels* packet_h   = dynamic_cast<DataPacket_gpu_tf_fused_kernels*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();
 
     std::size_t*  nTiles_d = packet_h->_nTiles_d;

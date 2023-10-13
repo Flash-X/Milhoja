@@ -3,7 +3,7 @@
 #include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_gpu_dens_stream.h"
+#include "DataPacket_gpu_tf_dens.h"
 
 #include "Base.h"
 
@@ -22,8 +22,8 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
-    FArray4D* CC1_d = packet_h->_f4_CC1_d;
-    FArray4D* CC2_d = packet_h->_f4_CC2_d;
+    FArray4D* CC1_d = packet_h->_f4_Uin_d;
+    FArray4D* CC2_d = packet_h->_f4_Uout_d;
 
     #pragma acc data deviceptr(nTiles_d, deltas_d, lo_d, hi_d, CC1_d, CC2_d)
     {

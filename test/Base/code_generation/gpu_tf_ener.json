@@ -8,11 +8,11 @@
         "nguardcells":  1
     },
     "task_function": {
-        "name": "gpu_tf_dens",
+        "name": "gpu_tf_ener",
         "language": "C++", 
         "processor": "GPU",
-        "cpp_header": "gpu_tf_dens_stream.h",
-        "cpp_source": "gpu_tf_dens_stream.cpp",
+        "cpp_header": "gpu_tf_ener.h",
+        "cpp_source": "gpu_tf_ener.cpp",
         "c2f_source": "",
         "fortran_source": "",
         "argument_list": ["tile_lo",
@@ -26,24 +26,24 @@
             "tile_deltas":      {"source":           "tile_deltas"},
             "Uin":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_in":    [1, 1]},
+                                 "variables_in":    [1, 2]},
             "Uout":             {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
-                                 "variables_out":   [1, 1]}
+                                 "variables_out":   [2, 2]}
         },
         "subroutine_call_graph": [
-            "StaticPhysicsRoutines::computeLaplacianDensity"
+            "StaticPhysicsRoutines::computeLaplacianEnergy"
         ]
     },
     "data_item": {
         "type": "DataPacket",
         "byte_alignment": 16,
-        "header": "DataPacket_gpu_dens_stream.h",
-        "source": "DataPacket_gpu_dens_stream.cpp"
+        "header": "DataPacket_gpu_tf_ener.h",
+        "source": "DataPacket_gpu_tf_ener.cpp"
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianDensity": {
-            "interface_file": "computeLaplacianDensity.h",
+            "interface_file": "computeLaplacianEnergy.h",
             "argument_list": ["lo",
                               "hi",
                               "Uin",

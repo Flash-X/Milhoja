@@ -8,7 +8,7 @@
 #include "computeLaplacianDensity.h"
 #include "computeLaplacianEnergy.h"
 
-#include "DataPacket_gpu_dens_ener_stream.h"
+#include "DataPacket_gpu_tf_fused_actions.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
@@ -18,7 +18,7 @@ void ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit(const int t
                                                                      milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_gpu_dens_ener_stream* packet_h   = dynamic_cast<DataPacket_gpu_dens_ener_stream*>(dataItem_h);
+    DataPacket_gpu_tf_fused_actions* packet_h   = dynamic_cast<DataPacket_gpu_tf_fused_actions*>(dataItem_h);
     const int                  queue_h    = packet_h->asynchronousQueue();
     const int                  queue2_h   = packet_h->extraAsynchronousQueue(2);
 

@@ -1,13 +1,13 @@
-#include "DataPacket_gpu_dens_stream.h"
+#include "DataPacket_gpu_tf_fused_actions.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
 
-std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_tf_dens::clone(void) const {
+std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_tf_fused_actions::clone(void) const {
     return std::unique_ptr<milhoja::DataPacket>{
-        new DataPacket_gpu_tf_dens {
+        new DataPacket_gpu_tf_fused_actions {
             
             
         }
@@ -16,7 +16,7 @@ std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_tf_dens::clone(void) const {
 
 // Constructor arguments for DataPacket classes are copied by value into non-reference data members.
 // Thus, these values are frozen at instantiation.
-DataPacket_gpu_tf_dens::DataPacket_gpu_tf_dens(
+DataPacket_gpu_tf_fused_actions::DataPacket_gpu_tf_fused_actions(
 
 
 )
@@ -37,17 +37,43 @@ _f4_Uout_d{nullptr}
     {
 }
 
-DataPacket_gpu_tf_dens::~DataPacket_gpu_tf_dens(void) {
+DataPacket_gpu_tf_fused_actions::~DataPacket_gpu_tf_fused_actions(void) {
+    if (stream2_.isValid())
+    	throw std::logic_error("[DataPacket_gpu_tf_fused_actions::~DataPacket_gpu_tf_fused_actions] Stream 2 not released");
+    
+}
+
+int DataPacket_gpu_tf_fused_actions::extraAsynchronousQueue(const unsigned int id) {
+	if (id > INT_MAX)
+		throw std::overflow_error("[DataPacket_gpu_tf_fused_actions extraAsynchronousQueue] id is too large for int.");
+	if((id < 2) || (id > 1 + 1))
+		throw std::invalid_argument("[DataPacket_gpu_tf_fused_actions::extraAsynchronousQueue] Invalid id.");
+	else if (id == 2) {
+		if (!stream2_.isValid())
+			throw std::logic_error("[DataPacket_gpu_tf_fused_actions::extraAsynchronousQueue] Stream 2 invalid.");
+		return stream2_.accAsyncQueue;
+	}
+	return 0;
+}
+
+void DataPacket_gpu_tf_fused_actions::releaseExtraQueue(const unsigned int id) {
+	if((id < 2) || (id > 1 + 1))
+		throw std::invalid_argument("[DataPacket_gpu_tf_fused_actions::releaseExtraQueue] Invalid id.");
+	else if(id == 2) {
+		if(!stream2_.isValid())
+			throw std::logic_error("[DataPacket_gpu_tf_fused_actions::releaseExtraQueue] Stream 2 invalid.");
+		milhoja::RuntimeBackend::instance().releaseStream(stream2_);
+	}
 }
 
 
-void DataPacket_gpu_tf_dens::pack(void) {
+void DataPacket_gpu_tf_fused_actions::pack(void) {
     using namespace milhoja;
     std::string errMsg = isNull();
     if (errMsg != "")
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] " + errMsg);
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] " + errMsg);
     else if (tiles_.size() == 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] No tiles added.");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
     _nTiles_h = tiles_.size();
@@ -57,42 +83,42 @@ void DataPacket_gpu_tf_dens::pack(void) {
     
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_CONSTRUCTOR padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
     (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEMETADATA padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILEMETADATA padding failure");
 
     std::size_t SIZE_TILEIN = pad( _nTiles_h * (
     SIZE_UIN
     
     ));
     if (SIZE_TILEIN % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEIN padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILEIN padding failure");
 
     std::size_t SIZE_TILEINOUT = pad( _nTiles_h * (
     0
     
     ));
     if (SIZE_TILEINOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEINOUT padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILEINOUT padding failure");
 
     std::size_t SIZE_TILEOUT = pad( _nTiles_h * (
     SIZE_UOUT
     
     ));
     if (SIZE_TILEOUT % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILEOUT padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
     0
     
     ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
-        throw std::logic_error("[DataPacket_gpu_tf_dens pack] SIZE_TILESCRATCH padding failure");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILESCRATCH padding failure");
 
     nCopyToGpuBytes_ = SIZE_CONSTRUCTOR + SIZE_TILEMETADATA + SIZE_TILEIN + SIZE_TILEINOUT;
     nReturnToHostBytes_ = SIZE_TILEINOUT + SIZE_TILEOUT;
@@ -170,12 +196,10 @@ void DataPacket_gpu_tf_dens::pack(void) {
     char* char_ptr;
     for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
-        if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_tf_dens pack] Bad tiledesc.");
+        if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_tf_fused_actions pack] Bad tiledesc.");
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto loGC = tileDesc_h->loGC();
-        const auto hiGC = tileDesc_h->hiGC();
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
@@ -189,15 +213,15 @@ void DataPacket_gpu_tf_dens::pack(void) {
         
         real* Uin_d = tileDesc_h->dataPtr();
         constexpr std::size_t offset_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
-        constexpr std::size_t nBytes_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 0 - 0 + 1 ) * sizeof(real);
+        constexpr std::size_t nBytes_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 1 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_Uin_p) ) + n * SIZE_UIN;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
-        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 0 - 0 + 1};
+        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), SIZE_FARRAY4D);
         
-        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 0 - 0 + 1};
+        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), SIZE_FARRAY4D);
         
@@ -208,29 +232,33 @@ void DataPacket_gpu_tf_dens::pack(void) {
 
     stream_ = RuntimeBackend::instance().requestStream(true);
     if (!stream_.isValid())
-        throw std::runtime_error("[DataPacket_gpu_dens_stream pack] Unable to acquire stream 1.");
+        throw std::runtime_error("[DataPacket_gpu_tf_fused_actions pack] Unable to acquire stream 1.");
+    stream2_ = RuntimeBackend::instance().requestStream(true);
+    if(!stream2_.isValid())
+    	throw std::runtime_error("[DataPacket_gpu_tf_fused_actions::pack] Unable to acquire stream 2.");
+    
 }
 
-void DataPacket_gpu_dens_stream::unpack(void) {
+void DataPacket_gpu_tf_fused_actions::unpack(void) {
     using namespace milhoja;
     if (tiles_.size() <= 0)
-        throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Empty data packet.");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions unpack] Empty data packet.");
     if (!stream_.isValid())
-        throw std::logic_error("[DataPacket_gpu_dens_stream unpack] Stream not acquired.");
+        throw std::logic_error("[DataPacket_gpu_tf_fused_actions unpack] Stream not acquired.");
     RuntimeBackend::instance().releaseStream(stream_);
     assert(!stream_.isValid());
     for (auto n = 0; n < _nTiles_h; ++n) {
         Tile* tileDesc_h = tiles_[n].get();
-        real* _data_h = tileDesc_h->dataPtr();
+        real* Uout_data_h = tileDesc_h->dataPtr();
         
         real* Uout_data_p = static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _Uout_p ) ) + n * SIZE_UOUT ) );
         
         
-        constexpr std::size_t offset_ = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * static_cast<std::size_t>(0);
-        real*        start_h_ = _data_h + offset_;
-        const real*  start_p_Uout = Uout_data_p + offset_;
-        constexpr std::size_t nBytes_Uout = (8 + 2 * 1) * (16 + 2 * 1) * (1 + 2 * 0) * ( 0 - 0 + 1 ) * sizeof(real);
-        std::memcpy(static_cast<void*>(start_h_), static_cast<const void*>(start_p_Uout), nBytes_Uout);
+        constexpr std::size_t offset_Uout = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
+        real*        start_h_Uout = Uout_data_h + offset_Uout;
+        const real*  start_p_Uout = Uout_data_p + offset_Uout;
+        constexpr std::size_t nBytes_Uout = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 1 - 0 + 1 ) * sizeof(real);
+        std::memcpy(static_cast<void*>(start_h_Uout), static_cast<const void*>(start_p_Uout), nBytes_Uout);
         
         
     }
