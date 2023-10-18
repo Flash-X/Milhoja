@@ -4,6 +4,7 @@
     "argument_list": ["dt", "lo", "hi", "deltas", "U", "auxC", "flZ"],
     "argument_specifications": {
         "dt":        {"source":             "external",
+                      "source_name":        "dt",
                       "name":               "dt",
                       "type":               "real",
                       "extents":            []},
@@ -13,10 +14,12 @@
         "U":         {"source":             "grid_data",
                       "structure_index":    ["CENTER", 1]},
         "auxC":      {"source":             "scratch",
+                      "source_name":        "_auxc",
                       "type":               "real",
                       "extents":            "(18, 18, 18)",
                       "lbound":             "(tile_lo) - (1, 1, 1)"},
         "flZ":       {"source":             "scratch",
+                      "source_name":        "_flz",
                       "type":               "real",
                       "extents":            "(16, 16, 17, 5)",
                       "lbound":             "(tile_lo, 1)"}

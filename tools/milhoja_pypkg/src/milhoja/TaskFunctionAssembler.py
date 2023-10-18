@@ -1,6 +1,7 @@
 import json
 
 from pathlib import Path
+from collections import OrderedDict
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
@@ -90,103 +91,92 @@ class TaskFunctionAssembler(object):
               for one subroutine can double as scratch variable for another
               subroutine so that we can limit amount of scratch needed by TF.
         """
-        specs = {}
+        # need tfspecs,
+        # argument mapping,
+        # and argument list based on all tf jsons.
+        specs = OrderedDict()
         mapping = {}
         arguments = []
 
         # While the actual argument ordering likely does not matter.  Make sure
         # that our ordering is fixed so that tests will work on all platforms
         # and all versions of python.
-        arguments += sorted(self.external_arguments)
-        arguments += sorted(self.tile_metadata_arguments)
 
-        spaces_all = [
-            ("CENTER", "CC_{}"),
-            ("FLUXX", "FLX_{}"),
-            ("FLUXY", "FLY_{}"),
-            ("FLUXZ", "FLZ_{}")
-        ]
-        grid_all = self.grid_data_structures
-        for space, name in spaces_all:
-            if space in grid_all:
-                for idx in grid_all[space]:
-                    arguments.append(name.format(idx))
+        for arg_specs,arg_mappings in [
+            self.external_arguments, self.tile_metadata_arguments, 
+            self.grid_data_structures, self.scratch_arguments
+        ]:
+            specs.update(arg_specs)
+            mapping.update(arg_mappings)
+        arguments = list(specs.keys())
 
-        for arg in sorted(self.scratch_arguments):
-            if arg.lower() == "auxc":
-                arguments.append("hydro_op1_auxc")
-            elif arg.lower() == "flx":
-                arguments.append("hydro_op1_flX")
-            elif arg.lower() == "fly":
-                arguments.append("hydro_op1_flY")
-            elif arg.lower() == "flz":
-                arguments.append("hydro_op1_flZ")
-            else:
-                raise NotImplementedError(f"New scratch {arg}")
+        print("Arguments: ", arguments)
+        print("Argument specs: ", json.dumps(specs, indent=4))
+        print("Argument mapping: ", json.dumps(mapping, indent=4))
 
-        specs = {
-            "dt":             {"source":           "external",
-                               "name":             "dt",
-                               "type":             "real",
-                               "extents":          []},
-            "tile_deltas":    {"source":           "tile_deltas"},
-            "tile_lo":        {"source":           "tile_lo"},
-            "tile_hi":        {"source":           "tile_hi"},
-            "CC_1":           {"source":           "grid_data",
-                               "structure_index": ["CENTER", 1],
-                               "variables_in":    [1, 9],
-                               "variables_out":   [1, 8]},
-            "hydro_op1_flX":  {"source":           "scratch",
-                               "type":             "real",
-                               "extents":          "(17, 16, 16, 5)",
-                               "lbound":           "(tile_lo, 1)"},
-            "hydro_op1_flY":  {"source":           "scratch",
-                               "type":             "real",
-                               "extents":          "(16, 17, 16, 5)",
-                               "lbound":           "(tile_lo, 1)"},
-            "hydro_op1_flZ":  {"source":           "scratch",
-                               "type":             "real",
-                               "extents":          "(16, 16, 17, 5)",
-                               "lbound":           "(tile_lo, 1)"},
-            "hydro_op1_auxc": {"source":           "scratch",
-                               "type":             "real",
-                               "extents":          "(18, 18, 18)",
-                               "lbound":           "(tile_lo) - (1, 1, 1)"}
-        }
+        # specs = {
+        #     "dt":             {"source":           "external",
+        #                        "name":             "dt",
+        #                        "type":             "real",
+        #                        "extents":          []},
+        #     "tile_deltas":    {"source":           "tile_deltas"},
+        #     "tile_lo":        {"source":           "tile_lo"},
+        #     "tile_hi":        {"source":           "tile_hi"},
+        #     "CC_1":           {"source":           "grid_data",
+        #                        "structure_index": ["CENTER", 1],
+        #                        "variables_in":    [1, 9],
+        #                        "variables_out":   [1, 8]},
+        #     "hydro_op1_flX":  {"source":           "scratch",
+        #                        "type":             "real",
+        #                        "extents":          "(17, 16, 16, 5)",
+        #                        "lbound":           "(tile_lo, 1)"},
+        #     "hydro_op1_flY":  {"source":           "scratch",
+        #                        "type":             "real",
+        #                        "extents":          "(16, 17, 16, 5)",
+        #                        "lbound":           "(tile_lo, 1)"},
+        #     "hydro_op1_flZ":  {"source":           "scratch",
+        #                        "type":             "real",
+        #                        "extents":          "(16, 16, 17, 5)",
+        #                        "lbound":           "(tile_lo, 1)"},
+        #     "hydro_op1_auxc": {"source":           "scratch",
+        #                        "type":             "real",
+        #                        "extents":          "(18, 18, 18)",
+        #                        "lbound":           "(tile_lo) - (1, 1, 1)"}
+        # }
 
-        mapping = {
-            "dt": [("Hydro_computeFluxesHll_X_gpu_oacc", "dt"),
-                   ("Hydro_computeFluxesHll_Y_gpu_oacc", "dt"),
-                   ("Hydro_computeFluxesHll_Z_gpu_oacc", "dt")],
-            "tile_lo": [("Hydro_computeSoundSpeedHll_gpu_oacc", "lo"),
-                        ("Hydro_computeFluxesHll_X_gpu_oacc", "lo"),
-                        ("Hydro_computeFluxesHll_Y_gpu_oacc", "lo"),
-                        ("Hydro_computeFluxesHll_Z_gpu_oacc", "lo"),
-                        ("Hydro_updateSolutionHll_gpu_oacc", "lo")],
-            "tile_hi": [("Hydro_computeSoundSpeedHll_gpu_oacc", "hi"),
-                        ("Hydro_computeFluxesHll_X_gpu_oacc", "hi"),
-                        ("Hydro_computeFluxesHll_Y_gpu_oacc", "hi"),
-                        ("Hydro_computeFluxesHll_Z_gpu_oacc", "hi"),
-                        ("Hydro_updateSolutionHll_gpu_oacc", "hi")],
-            "tile_deltas": [("Hydro_computeFluxesHll_X_gpu_oacc", "deltas"),
-                            ("Hydro_computeFluxesHll_Y_gpu_oacc", "deltas"),
-                            ("Hydro_computeFluxesHll_Z_gpu_oacc", "deltas")],
-            "CC_1": [("Hydro_computeSoundSpeedHll_gpu_oacc", "U"),
-                     ("Hydro_computeFluxesHll_X_gpu_oacc", "U"),
-                     ("Hydro_computeFluxesHll_Y_gpu_oacc", "U"),
-                     ("Hydro_computeFluxesHll_Z_gpu_oacc", "U"),
-                     ("Hydro_updateSolutionHll_gpu_oacc", "U")],
-            "hydro_op1_auxc": [("Hydro_computeSoundSpeedHll_gpu_oacc", "auxC"),
-                               ("Hydro_computeFluxesHll_X_gpu_oacc", "auxC"),
-                               ("Hydro_computeFluxesHll_Y_gpu_oacc", "auxC"),
-                               ("Hydro_computeFluxesHll_Z_gpu_oacc", "auxC")],
-            "hydro_op1_flX": [("Hydro_computeFluxesHll_X_gpu_oacc", "flX"),
-                              ("Hydro_updateSolutionHll_gpu_oacc", "flX")],
-            "hydro_op1_flY": [("Hydro_computeFluxesHll_Y_gpu_oacc", "flY"),
-                              ("Hydro_updateSolutionHll_gpu_oacc", "flY")],
-            "hydro_op1_flZ": [("Hydro_computeFluxesHll_Z_gpu_oacc", "flZ"),
-                              ("Hydro_updateSolutionHll_gpu_oacc", "flZ")]
-        }
+        # mapping = {
+        #     "dt": [("Hydro_computeFluxesHll_X_gpu_oacc", "dt"),
+        #            ("Hydro_computeFluxesHll_Y_gpu_oacc", "dt"),
+        #            ("Hydro_computeFluxesHll_Z_gpu_oacc", "dt")],
+        #     "tile_lo": [("Hydro_computeSoundSpeedHll_gpu_oacc", "lo"),
+        #                 ("Hydro_computeFluxesHll_X_gpu_oacc", "lo"),
+        #                 ("Hydro_computeFluxesHll_Y_gpu_oacc", "lo"),
+        #                 ("Hydro_computeFluxesHll_Z_gpu_oacc", "lo"),
+        #                 ("Hydro_updateSolutionHll_gpu_oacc", "lo")],
+        #     "tile_hi": [("Hydro_computeSoundSpeedHll_gpu_oacc", "hi"),
+        #                 ("Hydro_computeFluxesHll_X_gpu_oacc", "hi"),
+        #                 ("Hydro_computeFluxesHll_Y_gpu_oacc", "hi"),
+        #                 ("Hydro_computeFluxesHll_Z_gpu_oacc", "hi"),
+        #                 ("Hydro_updateSolutionHll_gpu_oacc", "hi")],
+        #     "tile_deltas": [("Hydro_computeFluxesHll_X_gpu_oacc", "deltas"),
+        #                     ("Hydro_computeFluxesHll_Y_gpu_oacc", "deltas"),
+        #                     ("Hydro_computeFluxesHll_Z_gpu_oacc", "deltas")],
+        #     "CC_1": [("Hydro_computeSoundSpeedHll_gpu_oacc", "U"),
+        #              ("Hydro_computeFluxesHll_X_gpu_oacc", "U"),
+        #              ("Hydro_computeFluxesHll_Y_gpu_oacc", "U"),
+        #              ("Hydro_computeFluxesHll_Z_gpu_oacc", "U"),
+        #              ("Hydro_updateSolutionHll_gpu_oacc", "U")],
+        #     "hydro_op1_auxc": [("Hydro_computeSoundSpeedHll_gpu_oacc", "auxC"),
+        #                        ("Hydro_computeFluxesHll_X_gpu_oacc", "auxC"),
+        #                        ("Hydro_computeFluxesHll_Y_gpu_oacc", "auxC"),
+        #                        ("Hydro_computeFluxesHll_Z_gpu_oacc", "auxC")],
+        #     "hydro_op1_flX": [("Hydro_computeFluxesHll_X_gpu_oacc", "flX"),
+        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flX")],
+        #     "hydro_op1_flY": [("Hydro_computeFluxesHll_Y_gpu_oacc", "flY"),
+        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flY")],
+        #     "hydro_op1_flZ": [("Hydro_computeFluxesHll_Z_gpu_oacc", "flZ"),
+        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flZ")]
+        # }
 
         return arguments, specs, mapping
 
@@ -242,42 +232,71 @@ class TaskFunctionAssembler(object):
               should just use the set using the results.
             * Is this needed?
 
-        :return: Set of task function's dummy arguments that are classified as
-            tile metatdata
+        :return: Dict of task function's dummy arguments that are classified as
+            tile metatdata and their arg specs
         """
-        needed = set()
+        needed = OrderedDict()
+        mapping = OrderedDict()
+        source_arg_mapping = {}
+        # TODO: Wow this is ugly
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
+                for idx,arg in enumerate(spec["argument_list"]):
                     source = spec["argument_specifications"][arg]["source"]
+                    arg_spec = spec["argument_specifications"][arg]
+                    mapping_key = arg
                     if source in TaskFunction.TILE_METADATA_ALL:
-                        needed = needed.union(set([source]))
-
-        return needed
+                        if source in source_arg_mapping:
+                            for variable in source_arg_mapping[source]:
+                                var_spec = spec["argument_specifications"][variable]
+                                if var_spec == arg_spec:
+                                    mapping_key = variable
+                                    break
+                            if mapping_key not in needed:
+                                needed[mapping_key] = arg_spec
+                            source_arg_mapping[source].add(mapping_key)
+                        else:
+                            needed[arg] = arg_spec
+                            source_arg_mapping[source] = {arg}
+                        if mapping_key not in mapping:
+                            mapping[mapping_key] = []
+                        mapping[mapping_key].append((subroutine, arg, idx+1))
+        return needed,mapping
 
     @property
     def external_arguments(self):
         """
         .. todo::
             * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
+              helper should determine all unique dummies by itself and this
               should just use the set using the results.
             * Is this needed?
 
         :return: Set of task function's dummy arguments that are classified as
             external arguments
         """
-        needed = set()
+        needed = OrderedDict()
+        mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
+                for idx,arg in enumerate(spec["argument_list"]):
                     source = spec["argument_specifications"][arg]["source"]
+                    source_name = spec["argument_specifications"][arg].get("source_name", None)
                     if source == TaskFunction.EXTERNAL_ARGUMENT:
-                        needed = needed.union(set([arg]))
+                        key = source_name
+                        if not key:
+                            key = f"{subroutine}_{arg}"
+                        else:
+                            del spec["argument_specifications"][arg]["source_name"] # delete source name?
+                        if key not in needed:
+                            needed[key] = spec["argument_specifications"][arg]
+                        if key not in mapping:
+                            mapping[key] = []
+                        mapping[key].append((subroutine, arg, idx+1))
 
-        return needed
+        return needed,mapping
 
     @property
     def grid_data_structures(self):
@@ -293,24 +312,34 @@ class TaskFunctionAssembler(object):
         :return: Set of grid data structures whose data are read from or set by
             the task function
         """
-        needed = {}
+        spaces_mapping = {
+            "center": "CC_{0}",
+            "fluxx": "FLX_{0}",
+            "fluxy": "FLY_{0}",
+            "fluxz": "FLZ_{0}"
+        }
+
+        needed = OrderedDict()
+        mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
+                for idx,arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
                     if source in TaskFunction.GRID_DATA_ARGUMENT:
                         index_space, grid_index = arg_spec["structure_index"]
-                        assert index_space.lower() == "center"
-                        assert grid_index == 1
-                        if index_space not in needed:
-                            needed[index_space] = set([grid_index])
-                        else:
-                            needed[index_space] = \
-                                needed[index_space].union(set([grid_index]))
-
-        return needed
+                        assert index_space.lower() in spaces_mapping
+                        assert grid_index > 0 # should it be 0?
+                        name = spaces_mapping[index_space.lower()].format(grid_index)
+                        if name not in needed:
+                            needed[name] = arg_spec
+                        # TODO: We need to union the variable masking!
+                        # update mapping
+                        if name not in mapping:
+                            mapping[name] = []
+                        mapping[name].append((subroutine, arg, idx+1))
+        return needed,mapping
 
     @property
     def scratch_arguments(self):
@@ -324,16 +353,27 @@ class TaskFunctionAssembler(object):
         :return: Set of task function's dummy arguments that are classified as
             scratch arguments
         """
-        needed = set()
+        
+        needed = OrderedDict()
+        mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
+                for idx,arg in enumerate(spec["argument_list"]):
                     source = spec["argument_specifications"][arg]["source"]
+                    source_name = spec["argument_specifications"][arg].get("source_name", None)
                     if source == TaskFunction.SCRATCH_ARGUMENT:
-                        needed = needed.union(set([arg]))
-
-        return needed
+                        key = source_name
+                        if not key:
+                            key = f"{subroutine}_{arg}"
+                        else:
+                            del spec["argument_specifications"][arg]["source_name"] # delete source name?
+                        if key not in needed:
+                            needed[key] = spec["argument_specifications"][arg]
+                        if key not in mapping:
+                            mapping[key] = []
+                        mapping[key].append((subroutine, arg, idx+1))
+        return needed,{}
 
     def to_milhoja_json(self, filename, overwrite):
         """

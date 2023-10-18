@@ -8,6 +8,7 @@
         "U":    {"source":            "grid_data",
                  "structure_index":  ["CENTER", 1]},
         "auxC": {"source":            "scratch",
+                 "source_name":        "_auxc",
                  "type":              "real",
                  "extents":           "(18, 18, 18)",
                  "lbound":            "(tile_lo) - (1, 1, 1)"}

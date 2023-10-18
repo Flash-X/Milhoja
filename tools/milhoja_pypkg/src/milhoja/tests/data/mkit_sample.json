@@ -1,0 +1,113 @@
+# I am imagining that the setup tool has gone through the Hydro subfolder
+# structure to merge all Hydro_op1.mkit files with correct inheritance to arrive
+# at this final, concrete expression.  This includes the R, RW, & W information
+# extracted from the actual implementations that are to be used.
+#
+# We could take this further and assume that it has copied the correct common
+# variable section into "common_variables" and removed the common variable
+# specifications for all other variants.
+{
+    "scratch": {
+        "no_flux_correction":  {
+            "_auxC": {"extents": "(NXB+2*K1D, NYB+2*K2D, NZB+2*K3D)",
+                      "lbound":  "(tile_lo) - (K1D, K2D, K3D)"},
+            "_flX":  {"extents": "(NXB+1, NYB, NZB, NFLUXES)",
+                      "lbound":  "(tile_lo, 1)"},
+            "_flY":  {"extents": "K2D*(NXB, NYB+1, NZB, NFLUXES) + (1-K2D)*(1, 1, 1, 1)",
+                      "lbound":  "K2D*(tile_lo, 1)"},
+            "_flZ":  {"extents": "K3D*(NXB, NYB, NZB+1, NFLUXES) + (1-K3D)*(1, 1, 1, 1)",
+                      "lbound":  "K3D*(tile_lo, 1)"}
+        },
+        "per_level_flux_correction":  {
+            "_auxC": {"extents": "(NXB+2*K1D, NYB+2*K2D, NZB+2*K3D)",
+                      "lbound":  "(tile_lo) - (K1D, K2D, K3D)"},
+            "_flX":  {"source": "grid_data", "structure_index": [FLUXX, 1]},
+            "_flY":  {"source": "grid_data", "structure_index": [FLUXY, 1]},
+            "_flZ":  {"source": "grid_data", "structure_index": [FLUXZ, 1]}
+        }
+    },
+    "hy_computeSoundSpeed": {
+        "lo":     {"source": "tile_lo"},
+        "hi":     {"source": "tile_hi"},
+        "loU":    {"source": "lbound", "argument": "U"},
+        "U":      {"source": "grid_data", "structure_index": ["CENTER", 1],
+                   "intent": "IN",
+                   "R": [DENS_VAR, PRES_VAR, GAMC_VAR]},
+        "loAuxC": {"source": "lbound", "argument": "auxC"},
+        "auxC":   {"source": "common", "name": "_auxC", "intent": "OUT"}
+    },
+    "hy_computeFluxes_X": {
+        "dt":     {"source": "cgkit_parameter", "key": "dt"},
+        "lo":     {"source": "tile_lo"},
+        "hi":     {"source": "tile_hi"},
+        "deltas": {"source": "tile_deltas"},
+        "loU":    {"source": "lbound", "argument": "U"},
+        "U":      {"source": "grid_data", "structure_index": ["CENTER", 1],
+                   "intent": "IN",
+                   "R": [VELX_VAR, VELY_VAR, VELZ_VAR, DENS_VAR, PRES_VAR, ENER_VAR]},
+        "loAuxC": {"source": "lbound", "argument": "auxC"},
+        "auxC":   {"source": "common", "name": "_auxC", "intent": "IN"},
+        "loFl":   {"source": "lbound", "argument": "flX"},
+        "flX":    {"source": "common", "name": "_flX", "intent": "OUT",
+                   "W": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]}
+    },
+    "hy_computeFluxes_Y": {
+        "dt":     {"source": "cgkit_parameter", "key": "dt"},
+        "lo":     {"source": "tile_lo"},
+        "hi":     {"source": "tile_hi"},
+        "deltas": {"source": "tile_deltas"},
+        "loU":    {"source": "lbound", "argument": "U"},
+        "U":      {"source": "grid_data", "structure_index": ["CENTER", 1],
+                   "intent": "IN",
+                   "R": [VELX_VAR, VELY_VAR, VELZ_VAR, DENS_VAR, PRES_VAR, ENER_VAR]},
+        "loAuxC": {"source": "lbound", "argument": "auxC"},
+        "auxC":   {"source": "common", "name": "_auxC", "intent": "IN"},
+        "loFl":   {"source": "lbound", "argument": "flY"},
+        "flY":    {"source": "common", "name": "_flY", "intent": "OUT",
+                   "W": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]}
+    },
+    "hy_computeFluxes_Z": {
+        "dt":     {"source": "cgkit_parameter", "key": "dt"},
+        "lo":     {"source": "tile_lo"},
+        "hi":     {"source": "tile_hi"},
+        "deltas": {"source": "tile_deltas"},
+        "loU":    {"source": "lbound", "argument": "U"},
+        "U":      {"source": "grid_data", "structure_index": ["CENTER", 1],
+                   "intent": "IN",
+                   "R": [VELX_VAR, VELY_VAR, VELZ_VAR, DENS_VAR, PRES_VAR, ENER_VAR]},
+        "loAuxC": {"source": "lbound", "argument": "auxC"},
+        "auxC":   {"source": "common", "name": "_auxC", "intent": "IN"},
+        "loFl":   {"source": "lbound", "argument": "flZ"},
+        "flZ":    {"source": "common", "name": "_flZ", "intent": "OUT",
+                   "W": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]}
+    },
+    "hy_updateSolution": {
+        "lo":     {"source": "tile_lo"},
+        "hi":     {"source": "tile_hi"},
+        "loFl":   {"source": "lbound",  "argument": "flX"},
+        "flX":    {"source": "common", "name": "_flX",
+                   "intent": "IN",
+                   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]},
+        "flY":    {"source": "common", "name": "_flY",
+                   "intent": "IN",
+                   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]},
+        "flZ":    {"source": "common", "name": "_flZ",
+                   "intent": "IN",
+                   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX, HY_DENS_FLUX, HY_ENER_FLUX]},
+        "loU":    {"source": "lbound",  "argument": "U"},
+        "U":      {"source": "grid_data", "structure_index": ["CENTER", 1],
+                   "intent": "INOUT",
+                   "RW": [VELX_VAR, VELY_VAR, VELZ_VAR, VELX_VAR, VELY_VAR, VELZ_VAR],
+                   "W":  [EINT_VAR]}
+    },
+    "GCFill": {
+        "CENTER": ["DENS_VAR", "PRES_VAR"]
+    },
+    "EoS": {
+        "U": {
+            "data":   {"source": "grid_data", "structure_index": ["CENTER"]},
+            "limits": {"lo": "tile_lo", "hi": "tile_hi"},
+            "mode":   {"source": "cgkit_parameter", "key": "hy_eosModeAfter"}
+        }
+    }
+}
