@@ -38,17 +38,22 @@ class FortranStaticRoutineParser(StaticRoutineParser):
         # TODO: How to get all possible UNKS?
         read_write_mappings = {}
         grid_data = {"U", "flX"}
+
+        for variable in grid_data:
+            read_write_mappings[variable] = {"R": set(), "W": set(), "RW": set()}
+
         unks = {
             "VELX_VAR", "HY_XMOM_FLUX", "HY_YMOM_FLUX", "HY_ZMOM_FLUX", "DENS_VAR", 
-            "HY_ENER_FLUX", "ENER_VAR", "VELY_VAR", "VELZ_VAR"
+            "HY_ENER_FLUX", "ENER_VAR", "VELY_VAR", "VELZ_VAR", "HY_DENS_FLUX", "PRES_VAR"
         }
 
         full_line = ""
         for line in routine_file:
-            if full_line == "" or line.endswith("&\n"):
-                full_line += ' '.join( line.replace("&\n", '').split() )
+            full_line += ' '.join(line.split()) + '\n'
+            if line.endswith("&\n"):
+                full_line = full_line.replace("&\n", '')
                 continue
-            else:
+            elif full_line.endswith("\n"):
                 # print(full_line)
                 # check line for variables
                 # TODO: THis does not work if multiple equal statements on one line (Loops!)
@@ -65,33 +70,31 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                         regex_string = self.__FIND_RW_EXPR_START + variable + self.__FIND_RW_EXPR_END
                         # match pattern in line
                         left_matches = re.findall(regex_string, left)
+                        # print("Left: ", left_matches)
                         right_matches = re.findall(regex_string, right)
-                        
+                        # print("Right: ", right_matches)
+
                         # check reads and writes
                         for unk in unks:
-                            # print("UNK: ", unk)
                             for match in left_matches:
-                                # print("MATCH: ", match)
                                 if unk in match:
-                                    # print(f"Added {unk} to writes")
                                     write.add(unk)
                             for match in right_matches:
-                                # print("MATCH: ", match)
                                 if unk in match:
-                                    # print(f"Added {unk} to reads")
                                     read.add(unk)
 
-                        read_writes = read.intersection(write)
-                        # read = read.difference(read_writes)
-                        # write = write.difference(read_writes)
-
-                        if variable not in read_write_mappings:
-                            read_write_mappings[variable] = {"R": set(), "W": set(), "RW": set()}
-                        # print(read, write, read_writes)
                         read_write_mappings[variable]["R"] = read_write_mappings[variable]["R"].union(read)
                         read_write_mappings[variable]["W"] = read_write_mappings[variable]["W"].union(write)
-                        read_write_mappings[variable]["RW"] = read_write_mappings[variable]["RW"].union(read_writes)
                 full_line = ""
+
+        for var in read_write_mappings:
+            read = read_write_mappings[var]["R"]
+            write = read_write_mappings[var]["W"]
+            
+            read_write_mappings[var]["RW"] = read.intersection(write)
+            read_write_mappings[var]["R"] = read.difference(write)
+            read_write_mappings[var]["W"] = write.difference(read)
+
         self._logger.log(self._TOOL_NAME, json.dumps(read_write_mappings, indent=4, default=serialize_sets), LOG_LEVEL_BASIC_DEBUG) 
 
     def parse_routine(self, routine_file) -> dict:
