@@ -12,7 +12,8 @@ class FortranStaticRoutineParser(StaticRoutineParser):
     __FIND_RW_EXPR_START = r"(?<![^\s(_-])"
     __FIND_RW_EXPR_END = r"(?![^\s(_-])([^)]*)"
 
-    def __init__(self, destination: str, files_to_parse: list, log_level, delimiter: str):
+    def __init__(self, destination: str, files_to_parse: list, log_level, delimiter: str,
+                 grid_vars: set, unks: set):
         """
         Constructor. 
 
@@ -21,6 +22,8 @@ class FortranStaticRoutineParser(StaticRoutineParser):
         """ 
         super().__init__(destination, files_to_parse, log_level)
         self.__DELIMITER = delimiter
+        self.__GRID_VARS = grid_vars
+        self.__UNKS = unks
         
     def __parse_from_directives(self, routine_file) -> dict:
         variables = {}
@@ -33,22 +36,27 @@ class FortranStaticRoutineParser(StaticRoutineParser):
         variables = json.loads(json_string)
         return variables
     
-    def __parse_from_code(self, routine_file):
+    def __parse_from_code(self, routine_file) -> dict:
         # TODO: How to get all grid data units?
         # TODO: How to get all possible UNKS?
         read_write_mappings = {}
-        grid_data = {"U", "flX"}
 
-        for variable in grid_data:
-            read_write_mappings[variable] = {"R": set(), "W": set(), "RW": set()}
-
-        unks = {
-            "VELX_VAR", "HY_XMOM_FLUX", "HY_YMOM_FLUX", "HY_ZMOM_FLUX", "DENS_VAR", 
-            "HY_ENER_FLUX", "ENER_VAR", "VELY_VAR", "VELZ_VAR", "HY_DENS_FLUX", "PRES_VAR"
-        }
-
+        current_subroutine = None
         full_line = ""
         for line in routine_file:
+
+            if "subroutine" in line and not "end subroutine" in line:
+                name_and_args = line[line.find("subroutine") + len("subroutine"):]
+                name_and_args = name_and_args.split('(')
+                assert len(name_and_args) == 2
+                name = name_and_args[0]
+                args = name_and_args[1].replace(')', '').split(',')
+                current_subroutine = name.strip()
+                read_write_mappings[current_subroutine] = {}
+                for variable in self.__GRID_VARS:
+                    read_write_mappings[current_subroutine].update( **{variable: {"R": set(), "W": set(), "RW": set()}} ) 
+                continue
+
             full_line += ' '.join(line.split()) + '\n'
             if line.endswith("&\n"):
                 full_line = full_line.replace("&\n", '')
@@ -62,7 +70,7 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                     left = two_sides[0]
                     right = two_sides[1]
                     
-                    for variable in grid_data:
+                    for variable in self.__GRID_VARS:
                         write = set()
                         read = set()
 
@@ -70,12 +78,10 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                         regex_string = self.__FIND_RW_EXPR_START + variable + self.__FIND_RW_EXPR_END
                         # match pattern in line
                         left_matches = re.findall(regex_string, left)
-                        # print("Left: ", left_matches)
                         right_matches = re.findall(regex_string, right)
-                        # print("Right: ", right_matches)
 
                         # check reads and writes
-                        for unk in unks:
+                        for unk in self.__UNKS:
                             for match in left_matches:
                                 if unk in match:
                                     write.add(unk)
@@ -83,23 +89,25 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                                 if unk in match:
                                     read.add(unk)
 
-                        read_write_mappings[variable]["R"] = read_write_mappings[variable]["R"].union(read)
-                        read_write_mappings[variable]["W"] = read_write_mappings[variable]["W"].union(write)
+                        read_write_mappings[current_subroutine][variable]["R"] = read_write_mappings[current_subroutine][variable]["R"].union(read)
+                        read_write_mappings[current_subroutine][variable]["W"] = read_write_mappings[current_subroutine][variable]["W"].union(write)
                 full_line = ""
 
-        for var in read_write_mappings:
-            read = read_write_mappings[var]["R"]
-            write = read_write_mappings[var]["W"]
-            
-            read_write_mappings[var]["RW"] = read.intersection(write)
-            read_write_mappings[var]["R"] = read.difference(write)
-            read_write_mappings[var]["W"] = write.difference(read)
+        for routine in read_write_mappings.keys():
+            for var in read_write_mappings[routine]:
+                read = read_write_mappings[routine][var]["R"]
+                write = read_write_mappings[routine][var]["W"]
+                
+                read_write_mappings[routine][var]["RW"] = read.intersection(write)
+                read_write_mappings[routine][var]["R"] = read.difference(write)
+                read_write_mappings[routine][var]["W"] = write.difference(read)
 
-        self._logger.log(self._TOOL_NAME, json.dumps(read_write_mappings, indent=4, default=serialize_sets), LOG_LEVEL_BASIC_DEBUG) 
+        # self._logger.log(self._TOOL_NAME, json.dumps(read_write_mappings, indent=4, default=serialize_sets), LOG_LEVEL_BASIC_DEBUG) 
+        return read_write_mappings
 
     def parse_routine(self, routine_file) -> dict:
-        self.__parse_from_code(routine_file)
-        return self.__parse_from_directives(routine_file)
+        return self.__parse_from_code(routine_file)
+        # return self.__parse_from_directives(routine_file)
     
 # SO solution
 def serialize_sets(obj):

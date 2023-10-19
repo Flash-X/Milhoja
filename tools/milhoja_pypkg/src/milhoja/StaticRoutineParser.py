@@ -11,9 +11,6 @@ from . import TaskFunction
 
 class StaticRoutineParser():
     """
-    This class cannot inherit from AbcCodeGenerator because
-    it does not use a TaskFunction class.
-
     This class should be able to be extended or inherited to include other languages
 
     For now, this class will just read from directives and import them into 
@@ -41,12 +38,14 @@ class StaticRoutineParser():
             for file in files_to_parse
         ]
 
-    def generate_files(self):
+    def parse_routines(self) -> dict:
         """
         Generates jsons from the given file list in the constructor.
+
+        :return: A dict containing all information needed from every routine.
         """
+        routines = {}
         for file in self.__files:
-            routine_json = None
             basename = os.path.basename(file)
             self._logger.log(self._TOOL_NAME, f"Parsing {basename}.", LOG_LEVEL_BASIC_DEBUG)
 
@@ -55,12 +54,9 @@ class StaticRoutineParser():
                 exit(-1)
 
             with open(file) as routine_file:
-                routine_json = self.parse_routine(routine_file)
+                routines.update(self.parse_routine(routine_file))
 
-            save_location = Path(self.__destination, basename.replace(file.suffix, '.json') ).resolve()
-            self._logger.log(self._TOOL_NAME, f"Saving to {str(save_location)}", LOG_LEVEL_BASIC_DEBUG)
-            with open(save_location, 'w') as fp:
-                json.dump(routine_json, fp, indent=4)
+        return routines
 
     def parse_routine(self, routine_file) -> dict:
         """
