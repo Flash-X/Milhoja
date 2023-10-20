@@ -17,6 +17,7 @@ class TaskFunctionAssembler(object):
         * Add in logging at different verbosity levels?
     """
 
+    @staticmethod
     def from_milhoja_json(name, internal_call_graph, jsons_all):
         """
         .. todo::
@@ -90,11 +91,18 @@ class TaskFunctionAssembler(object):
             * Very low-priority optimization is determine if a scratch variable
               for one subroutine can double as scratch variable for another
               subroutine so that we can limit amount of scratch needed by TF.
+            * At the moment, tile metadata is evaluated as already being inside 
+              of the json if the argument specification is the exact same as a 
+              different argument specification that has already been inserted into 
+              the json. A small optimization would be to only check subsets of 
+              the information in the arg spec. For example, there might be 2 
+              tile_coordinate sources that use different bounds. This could be 
+              collapsed into one tile_coordinate variable.
         """
         # need tfspecs,
         # argument mapping,
         # and argument list based on all tf jsons.
-        specs = OrderedDict()
+        full_specs = OrderedDict()
         mapping = {}
         arguments = []
 
@@ -103,82 +111,18 @@ class TaskFunctionAssembler(object):
         # and all versions of python.
 
         for arg_specs,arg_mappings in [
-            self.external_arguments, self.tile_metadata_arguments, 
-            self.grid_data_structures, self.scratch_arguments
+            self.__get_external, self.__get_tile_metadata, 
+            self.__get_grid_data, self.__get_scratch
         ]:
-            specs.update(arg_specs)
+            full_specs.update(arg_specs)
             mapping.update(arg_mappings)
-        arguments = list(specs.keys())
 
-        print("Arguments: ", arguments)
-        print("Argument specs: ", json.dumps(specs, indent=4))
-        print("Argument mapping: ", json.dumps(mapping, indent=4))
+        arguments = list(full_specs.keys())
+        # print("Arguments: ", arguments)
+        # print("Argument specs: ", json.dumps(full_specs, indent=4))
+        # print("Argument mapping: ", json.dumps(mapping, indent=4))
 
-        # specs = {
-        #     "dt":             {"source":           "external",
-        #                        "name":             "dt",
-        #                        "type":             "real",
-        #                        "extents":          []},
-        #     "tile_deltas":    {"source":           "tile_deltas"},
-        #     "tile_lo":        {"source":           "tile_lo"},
-        #     "tile_hi":        {"source":           "tile_hi"},
-        #     "CC_1":           {"source":           "grid_data",
-        #                        "structure_index": ["CENTER", 1],
-        #                        "variables_in":    [1, 9],
-        #                        "variables_out":   [1, 8]},
-        #     "hydro_op1_flX":  {"source":           "scratch",
-        #                        "type":             "real",
-        #                        "extents":          "(17, 16, 16, 5)",
-        #                        "lbound":           "(tile_lo, 1)"},
-        #     "hydro_op1_flY":  {"source":           "scratch",
-        #                        "type":             "real",
-        #                        "extents":          "(16, 17, 16, 5)",
-        #                        "lbound":           "(tile_lo, 1)"},
-        #     "hydro_op1_flZ":  {"source":           "scratch",
-        #                        "type":             "real",
-        #                        "extents":          "(16, 16, 17, 5)",
-        #                        "lbound":           "(tile_lo, 1)"},
-        #     "hydro_op1_auxc": {"source":           "scratch",
-        #                        "type":             "real",
-        #                        "extents":          "(18, 18, 18)",
-        #                        "lbound":           "(tile_lo) - (1, 1, 1)"}
-        # }
-
-        # mapping = {
-        #     "dt": [("Hydro_computeFluxesHll_X_gpu_oacc", "dt"),
-        #            ("Hydro_computeFluxesHll_Y_gpu_oacc", "dt"),
-        #            ("Hydro_computeFluxesHll_Z_gpu_oacc", "dt")],
-        #     "tile_lo": [("Hydro_computeSoundSpeedHll_gpu_oacc", "lo"),
-        #                 ("Hydro_computeFluxesHll_X_gpu_oacc", "lo"),
-        #                 ("Hydro_computeFluxesHll_Y_gpu_oacc", "lo"),
-        #                 ("Hydro_computeFluxesHll_Z_gpu_oacc", "lo"),
-        #                 ("Hydro_updateSolutionHll_gpu_oacc", "lo")],
-        #     "tile_hi": [("Hydro_computeSoundSpeedHll_gpu_oacc", "hi"),
-        #                 ("Hydro_computeFluxesHll_X_gpu_oacc", "hi"),
-        #                 ("Hydro_computeFluxesHll_Y_gpu_oacc", "hi"),
-        #                 ("Hydro_computeFluxesHll_Z_gpu_oacc", "hi"),
-        #                 ("Hydro_updateSolutionHll_gpu_oacc", "hi")],
-        #     "tile_deltas": [("Hydro_computeFluxesHll_X_gpu_oacc", "deltas"),
-        #                     ("Hydro_computeFluxesHll_Y_gpu_oacc", "deltas"),
-        #                     ("Hydro_computeFluxesHll_Z_gpu_oacc", "deltas")],
-        #     "CC_1": [("Hydro_computeSoundSpeedHll_gpu_oacc", "U"),
-        #              ("Hydro_computeFluxesHll_X_gpu_oacc", "U"),
-        #              ("Hydro_computeFluxesHll_Y_gpu_oacc", "U"),
-        #              ("Hydro_computeFluxesHll_Z_gpu_oacc", "U"),
-        #              ("Hydro_updateSolutionHll_gpu_oacc", "U")],
-        #     "hydro_op1_auxc": [("Hydro_computeSoundSpeedHll_gpu_oacc", "auxC"),
-        #                        ("Hydro_computeFluxesHll_X_gpu_oacc", "auxC"),
-        #                        ("Hydro_computeFluxesHll_Y_gpu_oacc", "auxC"),
-        #                        ("Hydro_computeFluxesHll_Z_gpu_oacc", "auxC")],
-        #     "hydro_op1_flX": [("Hydro_computeFluxesHll_X_gpu_oacc", "flX"),
-        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flX")],
-        #     "hydro_op1_flY": [("Hydro_computeFluxesHll_Y_gpu_oacc", "flY"),
-        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flY")],
-        #     "hydro_op1_flZ": [("Hydro_computeFluxesHll_Z_gpu_oacc", "flZ"),
-        #                       ("Hydro_updateSolutionHll_gpu_oacc", "flZ")]
-        # }
-
-        return arguments, specs, mapping
+        return arguments, full_specs, mapping
 
     @property
     def task_function_name(self):
@@ -222,60 +166,9 @@ class TaskFunctionAssembler(object):
             raise ValueError(msg)
 
         return self.__dummy_specs[argument]
-
+    
     @property
-    def tile_metadata_arguments(self):
-        """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
-        :return: Dict of task function's dummy arguments that are classified as
-            tile metatdata and their arg specs
-        """
-        needed = OrderedDict()
-        mapping = OrderedDict()
-        source_arg_mapping = {}
-        # TODO: Wow this is ugly
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]):
-                    source = spec["argument_specifications"][arg]["source"]
-                    arg_spec = spec["argument_specifications"][arg]
-                    mapping_key = arg
-                    if source in TaskFunction.TILE_METADATA_ALL:
-                        if source in source_arg_mapping:
-                            for variable in source_arg_mapping[source]:
-                                var_spec = spec["argument_specifications"][variable]
-                                if var_spec == arg_spec:
-                                    mapping_key = variable
-                                    break
-                            if mapping_key not in needed:
-                                needed[mapping_key] = arg_spec
-                            source_arg_mapping[source].add(mapping_key)
-                        else:
-                            needed[arg] = arg_spec
-                            source_arg_mapping[source] = {arg}
-                        if mapping_key not in mapping:
-                            mapping[mapping_key] = []
-                        mapping[mapping_key].append((subroutine, arg, idx+1))
-        return needed,mapping
-
-    @property
-    def external_arguments(self):
-        """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determine all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
-        :return: Set of task function's dummy arguments that are classified as
-            external arguments
-        """
+    def __get_external(self):
         needed = OrderedDict()
         mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
@@ -295,23 +188,47 @@ class TaskFunctionAssembler(object):
                         if key not in mapping:
                             mapping[key] = []
                         mapping[key].append((subroutine, arg, idx+1))
-
         return needed,mapping
+    
+    @property
+    def __get_tile_metadata(self):
+        
+        # def sort_key(value):
+        #     # order = ["tile_deltas", "tile_ho", "tile_hi"]
+        #     return order.index(value[0])
+
+        needed = OrderedDict()
+        mapping = OrderedDict()
+        source_arg_mapping = {}
+        # TODO: Wow this is ugly
+        for node in self.internal_subroutine_graph:
+            for subroutine in node:
+                spec = self.subroutine_specification(subroutine)
+                for idx,arg in enumerate(spec["argument_list"]):
+                    source = spec["argument_specifications"][arg]["source"]
+                    arg_spec = spec["argument_specifications"][arg]
+                    mapping_key = source if len(arg_spec) == 1 else arg
+                    if source in TaskFunction.TILE_METADATA_ALL:
+                        if source in source_arg_mapping:
+                            for variable in source_arg_mapping[source]:
+                                var_spec = needed[variable]
+                                if var_spec == arg_spec:
+                                    mapping_key = variable
+                                    break
+                            if mapping_key not in needed:
+                                needed[mapping_key] = arg_spec
+                            source_arg_mapping[source].add(mapping_key)
+                        else:
+                            needed[mapping_key] = arg_spec
+                            source_arg_mapping[source] = {mapping_key}
+                        if mapping_key not in mapping:
+                            mapping[mapping_key] = []
+                        mapping[mapping_key].append((subroutine, arg, idx+1))
+
+        return OrderedDict(sorted(needed.items())),OrderedDict(sorted(mapping.items()))
 
     @property
-    def grid_data_structures(self):
-        """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-            * We have tests in the package that use FLUX[XYZ].  Use those to
-              expand out the structures that this can work with.
-
-        :return: Set of grid data structures whose data are read from or set by
-            the task function
-        """
+    def __get_grid_data(self):
         spaces_mapping = {
             "center": "CC_{0}",
             "fluxx": "FLX_{0}",
@@ -342,18 +259,13 @@ class TaskFunctionAssembler(object):
         return needed,mapping
 
     @property
-    def scratch_arguments(self):
-        """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
-        :return: Set of task function's dummy arguments that are classified as
-            scratch arguments
-        """
-        
+    def __get_scratch(self):
+        scratch_name_mapping = {
+            "auxc": "hydro_op1_auxc",
+            "flx": "hydro_op1_flX",
+            "fly": "hydro_op1_flY",
+            "flz": "hydro_op1_flZ"
+        }
         needed = OrderedDict()
         mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
@@ -368,12 +280,122 @@ class TaskFunctionAssembler(object):
                             key = f"{subroutine}_{arg}"
                         else:
                             del spec["argument_specifications"][arg]["source_name"] # delete source name?
+                        key = scratch_name_mapping.get(key.lower(), key)
                         if key not in needed:
                             needed[key] = spec["argument_specifications"][arg]
                         if key not in mapping:
                             mapping[key] = []
                         mapping[key].append((subroutine, arg, idx+1))
-        return needed,{}
+        return needed,mapping
+
+    @property
+    def tile_metadata_arguments(self):
+        """
+        .. todo::
+            * This is presently used by __determine_unique_dummies.  That
+              helper should determined all unique dummies by itself and this
+              should just use the set using the results.
+            * Is this needed?
+
+        :return: Dict of task function's dummy arguments that are classified as
+            tile metatdata and their arg specs
+        """
+        needed = set()
+        for node in self.internal_subroutine_graph:
+            for subroutine in node:
+                spec = self.subroutine_specification(subroutine)
+                for arg in spec["argument_list"]:
+                    source = spec["argument_specifications"][arg]["source"]
+                    if source in TaskFunction.TILE_METADATA_ALL:
+                        needed = needed.union(set([source]))
+        return needed
+
+
+    @property
+    def external_arguments(self):
+        """
+        .. todo::
+            * This is presently used by __determine_unique_dummies.  That
+              helper should determine all unique dummies by itself and this
+              should just use the set using the results.
+            * Is this needed?
+
+        :return: Set of task function's dummy arguments that are classified as
+            external arguments
+        """
+        needed = set()
+        for node in self.internal_subroutine_graph:
+            for subroutine in node:
+                spec = self.subroutine_specification(subroutine)
+                for arg in spec["argument_list"]:
+                    source = spec["argument_specifications"][arg]["source"]
+                    if source == TaskFunction.EXTERNAL_ARGUMENT:
+                        needed = needed.union(set([arg]))
+        return needed
+
+
+    @property
+    def grid_data_structures(self):
+        """
+        .. todo::
+            * This is presently used by __determine_unique_dummies.  That
+              helper should determined all unique dummies by itself and this
+              should just use the set using the results.
+            * Is this needed?
+            * We have tests in the package that use FLUX[XYZ].  Use those to
+              expand out the structures that this can work with.
+
+        :return: Set of grid data structures whose data are read from or set by
+            the task function
+        """
+        needed = {}
+        for node in self.internal_subroutine_graph:
+            for subroutine in node:
+                spec = self.subroutine_specification(subroutine)
+                for arg in spec["argument_list"]:
+                    arg_spec = spec["argument_specifications"][arg]
+                    source = arg_spec["source"]
+                    if source in TaskFunction.GRID_DATA_ARGUMENT:
+                        index_space, grid_index = arg_spec["structure_index"]
+                        assert index_space.lower() == "center"
+                        assert grid_index == 1
+                        if index_space not in needed:
+                            needed[index_space] = set([grid_index])
+                        else:
+                            needed[index_space] = \
+                                needed[index_space].union(set([grid_index]))
+        return needed
+
+
+    @property
+    def scratch_arguments(self):
+        """
+        .. todo::
+            * This is presently used by __determine_unique_dummies.  That
+              helper should determined all unique dummies by itself and this
+              should just use the set using the results.
+            * Is this needed?
+
+        :return: Set of task function's dummy arguments that are classified as
+            scratch arguments
+        """
+        scratch_name_mapping = {
+            "auxc": "hydro_op1_auxc",
+            "flx": "hydro_op1_flX",
+            "fly": "hydro_op1_flY",
+            "flz": "hydro_op1_flZ"
+        }
+
+        needed = set()
+        for node in self.internal_subroutine_graph:
+            for subroutine in node:
+                spec = self.subroutine_specification(subroutine)
+                for arg in spec["argument_list"]:
+                    source = spec["argument_specifications"][arg]["source"]
+                    if source == TaskFunction.SCRATCH_ARGUMENT:
+                        needed = needed.union(set([arg]))
+        return needed
+
 
     def to_milhoja_json(self, filename, overwrite):
         """
@@ -391,9 +413,8 @@ class TaskFunctionAssembler(object):
         :param filename: Name and full path of file to write to
         :param overwrite: Raise exception if the file exists and this is True
         """
-        spec = {
-            "format": [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION],
-        }
+        spec = {}
+        spec["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
 
         # ----- INCLUDE GRID SPECIFICATION
         group = "grid"
@@ -451,6 +472,7 @@ class TaskFunctionAssembler(object):
                 for arg in dummies:
                     for key, value in self.__arg_mapping.items():
                         for item in value:
+                            item = (item[0], item[1])
                             if item == (subroutine, arg):
                                 assert arg not in mapping
                                 mapping[arg] = key
@@ -461,6 +483,8 @@ class TaskFunctionAssembler(object):
                     "argument_list": dummies,
                     "argument_mapping": mapping
                 }
+
+        print(json.dumps(spec, indent=4))
 
         if (not overwrite) and Path(filename).exists():
             raise RuntimeError(f"{filename} already exists")

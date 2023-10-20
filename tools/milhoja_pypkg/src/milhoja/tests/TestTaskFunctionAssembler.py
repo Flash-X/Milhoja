@@ -68,7 +68,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         self.assertEqual(expected, self.__Sedov.dummy_arguments)
 
     def testTileMetadata(self):
-        expected = set(["tile_lo", "tile_hi", "tile_deltas"])
+        expected = {"tile_lo", "tile_hi", "tile_deltas"}
         self.assertEqual(expected, self.__Sedov.tile_metadata_arguments)
 
     def testGridData(self):
@@ -78,11 +78,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         self.assertEqual(set([1]), result["CENTER"])
 
     def testScratchArguments(self):
-        expected = set(["auxC", "flX", "flY", "flZ"])
+        expected = {"auxC", "flX", "flY", "flZ"}
         self.assertEqual(expected, self.__Sedov.scratch_arguments)
 
     def testExternalArguments(self):
-        expected = set(["dt"])
+        expected = {"dt"}
         self.assertEqual(expected, self.__Sedov.external_arguments)
 
     def testToMilhojaJson(self):
@@ -94,6 +94,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         self.assertFalse(self.__json_filename.exists())
         self.__Sedov.to_milhoja_json(self.__json_filename, OVERWRITE)
         self.assertTrue(self.__json_filename.is_file())
+        self.maxDiff = None
 
         with open(self.__json_filename, "r") as fptr:
             result = json.load(fptr)

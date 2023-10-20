@@ -36,6 +36,10 @@
                                "structure_index": ["CENTER", 1],
                                "variables_in":    [1, 9],
                                "variables_out":   [1, 8]},
+            "hydro_op1_auxc": {"source":           "scratch",
+                               "type":             "real",
+                               "extents":          "(18, 18, 18)",
+                               "lbound":           "(tile_lo) - (1, 1, 1)"},
             "hydro_op1_flX":  {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(17, 16, 16, 5)",
@@ -47,11 +51,7 @@
             "hydro_op1_flZ":  {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(16, 16, 17, 5)",
-                               "lbound":           "(tile_lo, 1)"},
-            "hydro_op1_auxc": {"source":           "scratch",
-                               "type":             "real",
-                               "extents":          "(18, 18, 18)",
-                               "lbound":           "(tile_lo) - (1, 1, 1)"}
+                               "lbound":           "(tile_lo, 1)"}
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_gpu_oacc",

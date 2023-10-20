@@ -101,16 +101,8 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                 read_write_mappings[routine][var]["RW"] = read.intersection(write)
                 read_write_mappings[routine][var]["R"] = read.difference(write)
                 read_write_mappings[routine][var]["W"] = write.difference(read)
-
-        # self._logger.log(self._TOOL_NAME, json.dumps(read_write_mappings, indent=4, default=serialize_sets), LOG_LEVEL_BASIC_DEBUG) 
         return read_write_mappings
 
     def parse_routine(self, routine_file) -> dict:
         return self.__parse_from_code(routine_file)
         # return self.__parse_from_directives(routine_file)
-    
-# SO solution
-def serialize_sets(obj):
-    if isinstance(obj, set):
-        return list(obj)
-    return obj
