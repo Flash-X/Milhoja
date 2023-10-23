@@ -3,6 +3,8 @@ import re
 
 from .StaticRoutineParser import StaticRoutineParser
 from . import LOG_LEVEL_BASIC_DEBUG
+from . import MILHOJA_JSON_FORMAT
+from . import CURRENT_MILHOJA_JSON_VERSION
 
 # TODO: In order to get a list of unknown variables,
 #       we need the list of all grid data structures being used,
@@ -11,6 +13,13 @@ from . import LOG_LEVEL_BASIC_DEBUG
 class FortranStaticRoutineParser(StaticRoutineParser):
     __FIND_RW_EXPR_START = r"(?<![^\s(_-])"
     __FIND_RW_EXPR_END = r"(?![^\s(_-])([^)]*)"
+    __DEFAULT_DELIMITER = "$milhoja"
+
+    __FORTRAN_TYPE_MAPPING = {
+        "logical": "bool",
+        "integer": "int",
+        "real": "real"
+    }
 
     def __init__(self, destination: str, files_to_parse: list, log_level, delimiter: str,
                  grid_vars: set, unks: set):
@@ -35,74 +44,110 @@ class FortranStaticRoutineParser(StaticRoutineParser):
         self._logger.log(self._TOOL_NAME, json_string, LOG_LEVEL_BASIC_DEBUG)
         variables = json.loads(json_string)
         return variables
+
+# TODO: Write a method for getting all read/write variables for each grid data structure.
+    # def __check_read_write(self):
+    #     full_line += ' '.join(line.split()) + '\n'
+    #     if line.endswith("&\n"):
+    #         full_line = full_line.replace("&\n", '')
+    #         continue
+    #     elif full_line.endswith("\n"):
+    #         # print(full_line)
+    #         # check line for variables
+    #         # TODO: THis does not work if multiple equal statements on one line (Loops!)
+    #         two_sides = full_line.split("=")
+    #         if len(two_sides) == 2:
+    #             left = two_sides[0]
+    #             right = two_sides[1]
+                
+    #             for variable in self.__GRID_VARS:
+    #                 write = set()
+    #                 read = set()
+
+    #                 # TODO: Potential security risk allowing raw variable into a regex pattern.
+    #                 regex_string = self.__FIND_RW_EXPR_START + variable + self.__FIND_RW_EXPR_END
+    #                 # match pattern in line
+    #                 left_matches = re.findall(regex_string, left)
+    #                 right_matches = re.findall(regex_string, right)
+
+    #                 # check reads and writes
+    #                 for unk in self.__UNKS:
+    #                     for match in left_matches:
+    #                         if unk in match:
+    #                             write.add(unk)
+    #                     for match in right_matches:
+    #                         if unk in match:
+    #                             read.add(unk)
+
+    #                 read_write_mappings[current_subroutine][variable]["R"] = read_write_mappings[current_subroutine][variable]["R"].union(read)
+    #                 read_write_mappings[current_subroutine][variable]["W"] = read_write_mappings[current_subroutine][variable]["W"].union(write)
+    #         full_line = ""
+
+    #     for routine in read_write_mappings.keys():
+    #         for var in read_write_mappings[routine]:
+    #             read = read_write_mappings[routine][var]["R"]
+    #             write = read_write_mappings[routine][var]["W"]
+                
+    #             read_write_mappings[routine][var]["RW"] = read.intersection(write)
+    #             read_write_mappings[routine][var]["R"] = read.difference(write)
+    #             read_write_mappings[routine][var]["W"] = write.difference(read)
+    #     return read_write_mappings
+
+    # TODO: Allow directives to use multiple lines.
+    def __parse_directive_statement(self, line):
+        line = line[line.find(self.__DEFAULT_DELIMITER) + len(self.__DEFAULT_DELIMITER):].strip()
+        key_and_arg = line.split("=")
+        assert len(key_and_arg) == 2
+        return { key_and_arg[0]: key_and_arg[1] }
     
-    def __parse_from_code(self, routine_file) -> dict:
+    def __parse_json_information(self, routine_file) -> dict:
         # TODO: How to get all grid data units?
         # TODO: How to get all possible UNKS?
-        read_write_mappings = {}
+        pulling_subroutine_information = False
+        routine_jsons = {}
+        current_arg_spec = dict()
+        used_delimiter = False
 
         current_subroutine = None
         full_line = ""
         for line in routine_file:
 
-            if "subroutine" in line and not "end subroutine" in line:
+            # Collect subroutine information
+            if "subroutine" in line and "end subroutine" not in line:
                 name_and_args = line[line.find("subroutine") + len("subroutine"):]
                 name_and_args = name_and_args.split('(')
+                print(name_and_args)
                 assert len(name_and_args) == 2
                 name = name_and_args[0]
-                args = name_and_args[1].replace(')', '').split(',')
+                args = [ arg.strip() for arg in name_and_args[1].replace(')', '').replace(' ', '').split(',') ]
                 current_subroutine = name.strip()
-                read_write_mappings[current_subroutine] = {}
-                for variable in self.__GRID_VARS:
-                    read_write_mappings[current_subroutine].update( **{variable: {"R": set(), "W": set(), "RW": set()}} ) 
-                continue
-
-            full_line += ' '.join(line.split()) + '\n'
-            if line.endswith("&\n"):
-                full_line = full_line.replace("&\n", '')
-                continue
-            elif full_line.endswith("\n"):
-                # print(full_line)
-                # check line for variables
-                # TODO: THis does not work if multiple equal statements on one line (Loops!)
-                two_sides = full_line.split("=")
-                if len(two_sides) == 2:
-                    left = two_sides[0]
-                    right = two_sides[1]
-                    
-                    for variable in self.__GRID_VARS:
-                        write = set()
-                        read = set()
-
-                        # TODO: Potential security risk allowing raw variable into a regex pattern.
-                        regex_string = self.__FIND_RW_EXPR_START + variable + self.__FIND_RW_EXPR_END
-                        # match pattern in line
-                        left_matches = re.findall(regex_string, left)
-                        right_matches = re.findall(regex_string, right)
-
-                        # check reads and writes
-                        for unk in self.__UNKS:
-                            for match in left_matches:
-                                if unk in match:
-                                    write.add(unk)
-                            for match in right_matches:
-                                if unk in match:
-                                    read.add(unk)
-
-                        read_write_mappings[current_subroutine][variable]["R"] = read_write_mappings[current_subroutine][variable]["R"].union(read)
-                        read_write_mappings[current_subroutine][variable]["W"] = read_write_mappings[current_subroutine][variable]["W"].union(write)
-                full_line = ""
-
-        for routine in read_write_mappings.keys():
-            for var in read_write_mappings[routine]:
-                read = read_write_mappings[routine][var]["R"]
-                write = read_write_mappings[routine][var]["W"]
                 
-                read_write_mappings[routine][var]["RW"] = read.intersection(write)
-                read_write_mappings[routine][var]["R"] = read.difference(write)
-                read_write_mappings[routine][var]["W"] = write.difference(read)
-        return read_write_mappings
+                routine_jsons[current_subroutine] = {}
+                routine_jsons[current_subroutine]["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
+                routine_jsons[current_subroutine]["interface_file"] = routine_file.name
+                routine_jsons[current_subroutine]["argument_list"] = [ arg.replace(' ', '') for arg in args ]
+                routine_jsons[current_subroutine]["argument_specifications"] = current_arg_spec
+
+                if ")" not in line:
+                    pulling_subroutine_information = True
+                continue
+            elif pulling_subroutine_information:
+                if ")" in line:
+                    pulling_subroutine_information = False
+                    line = line.replace(')', '')
+                args = line.strip().replace(' ', '').split(',')
+                routine_jsons[current_subroutine]["argument_list"].append(args)
+                continue
+            elif self.__DEFAULT_DELIMITER in line:
+                current_arg_spec.update(self.__parse_directive_statement(line))
+                used_delimiter = True
+            elif used_delimiter:
+                
+                used_delimiter = False
+            elif "end subroutine" in line:
+                current_subroutine = None
+                continue
+        return routine_jsons
 
     def parse_routine(self, routine_file) -> dict:
-        return self.__parse_from_code(routine_file)
-        # return self.__parse_from_directives(routine_file)
+        return self.__parse_json_information(routine_file)

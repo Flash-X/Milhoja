@@ -3,9 +3,11 @@
 from milhoja.FortranStaticRoutineParser import FortranStaticRoutineParser
 from milhoja import LOG_LEVEL_BASIC_DEBUG
 
+import json
+
 if __name__ == "__main__":
     files = {
-        "/home/wkwiecinski/Flash-X/source/Simulation/SimulationMain/Sedov/Milhoja/Hydro_computeFluxes_X_block_cpu.F90": 
+        "/home/wkwiecinski/Flash-X/source/physics/Eos/EosMain/Gamma/eos_idealGamma.F90": 
         {
             "grid_vars": {"U", "flX"},
             "unks": {
@@ -22,5 +24,5 @@ if __name__ == "__main__":
             destination, list(files.keys()), LOG_LEVEL_BASIC_DEBUG, "$flashx",
             files[file]["grid_vars"], files[file]["unks"]
         )
-        print(generator.parse_routines())
+        print(json.dumps(generator.parse_routines(), indent=4))
         
