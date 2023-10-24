@@ -169,53 +169,73 @@ class TaskFunctionAssembler(object):
     
     @property
     def __get_external(self):
+        """
+        Runs through the call graph and determines the external arguments
+        that need to be placed inside of the TaskFunction json.
+
+        TODO: This function should be combined with the other __get functions so that
+              the graph only needs to be traversed once.
+        TODO: Currently, external variables use an extra parameter inside of the json to
+              expose the name of the common source variable that the external variable originates
+              from. This will probably be removed once the outer json is developed.
+        TODO: This along with the other __get functions probably should not be properties but that's
+              a detail that we can worry about later.
+        """
+        # Use external dicts to track order for dummy argument list.
         needed = OrderedDict()
         mapping = OrderedDict()
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]):
+                for idx,arg in enumerate(spec["argument_list"]): # use enumerate to track index for mapping (maybe this isn't necessary?)
                     source = spec["argument_specifications"][arg]["source"]
                     source_name = spec["argument_specifications"][arg].get("source_name", None)
                     if source == TaskFunction.EXTERNAL_ARGUMENT:
                         key = source_name
                         if not key:
-                            key = f"{subroutine}_{arg}"
+                            key = f"{subroutine}_{arg}" # if there's no source name then we 
                         else:
-                            del spec["argument_specifications"][arg]["source_name"] # delete source name?
-                        if key not in needed:
+                            del spec["argument_specifications"][arg]["source_name"] # delete source name (This is probably unnecessary.)
+                        if key not in needed: # update arg spec if not in arg spec
                             needed[key] = spec["argument_specifications"][arg]
                         if key not in mapping:
                             mapping[key] = []
-                        mapping[key].append((subroutine, arg, idx+1))
+                        mapping[key].append((subroutine, arg, idx+1)) # add the variable to the mapping (do we need argument index?)
         return needed,mapping
     
     @property
     def __get_tile_metadata(self):
-        
-        # def sort_key(value):
-        #     # order = ["tile_deltas", "tile_ho", "tile_hi"]
-        #     return order.index(value[0])
+        """
+        Runs through the call graph and determines all tile_metadata arguments 
+        that need to be placed inside of the TaskFunction json.
 
+        TODO: This can be combined with other functions so the call graph only 
+              needs to be traversed once.
+        TODO: Certain tile_metadata vars may only need a subset of their arguments 
+              checked in order to assume that the var has already been accounted for.
+        """
         needed = OrderedDict()
         mapping = OrderedDict()
-        source_arg_mapping = {}
-        # TODO: Wow this is ugly
+        source_arg_mapping = {} # map a source to all variable names inside *needed* that use it.
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
                 for idx,arg in enumerate(spec["argument_list"]):
                     source = spec["argument_specifications"][arg]["source"]
                     arg_spec = spec["argument_specifications"][arg]
-                    mapping_key = source if len(arg_spec) == 1 else arg
+                    # here, we check if the length of arg_spec only contains a source
+                    # (len should be 1). If that's the case, the we use the name of the 
+                    # source as the argument name. This is so that the test doesn't complain
+                    # about name differences.
+                    mapping_key = source if len(arg_spec) == 1 else arg 
                     if source in TaskFunction.TILE_METADATA_ALL:
                         if source in source_arg_mapping:
-                            for variable in source_arg_mapping[source]:
+                            for variable in source_arg_mapping[source]: # here we check a given source already contains a specific var name.
                                 var_spec = needed[variable]
                                 if var_spec == arg_spec:
                                     mapping_key = variable
                                     break
-                            if mapping_key not in needed:
+                            if mapping_key not in needed: # we include the mapping key if it's not in the dict of needed vars.
                                 needed[mapping_key] = arg_spec
                             source_arg_mapping[source].add(mapping_key)
                         else:
@@ -225,10 +245,19 @@ class TaskFunctionAssembler(object):
                             mapping[mapping_key] = []
                         mapping[mapping_key].append((subroutine, arg, idx+1))
 
+        # return ordered dicts that have been sorted to satisfy the test.
         return OrderedDict(sorted(needed.items())),OrderedDict(sorted(mapping.items()))
 
     @property
     def __get_grid_data(self):
+        """
+        Runs through the call graph and gets all grid_data argments.
+
+        TODO: This can be combined with other functions so the call graph only 
+              needs to be traversed once.
+        TODO: Once variable masking information has been added to the jsons we need 
+              to union it with all other uses of the same variable.
+        """
         spaces_mapping = {
             "center": "CC_{0}",
             "fluxx": "FLX_{0}",
@@ -247,11 +276,15 @@ class TaskFunctionAssembler(object):
                     if source in TaskFunction.GRID_DATA_ARGUMENT:
                         index_space, grid_index = arg_spec["structure_index"]
                         assert index_space.lower() in spaces_mapping
-                        assert grid_index > 0 # should it be 0?
+                        assert grid_index > 0 # 1 based unk index?
+                        # since the name of the variable inside of the json is derived 
+                        # from the structure index, we can just check if the name of 
+                        # the variable is inside the needed mapping.
                         name = spaces_mapping[index_space.lower()].format(grid_index)
                         if name not in needed:
                             needed[name] = arg_spec
                         # TODO: We need to union the variable masking!
+                        #       New mask would be the min and max between each mask.
                         # update mapping
                         if name not in mapping:
                             mapping[name] = []
@@ -260,6 +293,15 @@ class TaskFunctionAssembler(object):
 
     @property
     def __get_scratch(self):
+        """
+        Traverse the call graph and obtains all scratch data for the json.
+        This code is very similar to __get_external.
+
+        TODO: I think you already know what this will say
+        TODO: Scratch data uses the same extra key as external to determine if the 
+              variable is shared or not. Will go away once outer json is introduced.
+        TODO: What about lbound?
+        """
         scratch_name_mapping = {
             "auxc": "hydro_op1_auxc",
             "flx": "hydro_op1_flX",
@@ -279,7 +321,7 @@ class TaskFunctionAssembler(object):
                         if not key:
                             key = f"{subroutine}_{arg}"
                         else:
-                            del spec["argument_specifications"][arg]["source_name"] # delete source name?
+                            del spec["argument_specifications"][arg]["source_name"] # delete source name? Maybe not necessary
                         key = scratch_name_mapping.get(key.lower(), key)
                         if key not in needed:
                             needed[key] = spec["argument_specifications"][arg]

@@ -140,8 +140,18 @@ class FortranStaticRoutineParser(StaticRoutineParser):
                 continue
             elif self.__DEFAULT_DELIMITER in line:
                 current_arg_spec.update(self.__parse_directive_statement(line))
+
                 used_delimiter = True
             elif used_delimiter:
+                # parse line containing variable declaration
+                info_and_names = line.split("::")
+                assert len(info_and_names) == 2
+
+                info = info_and_names[0].strip().replace(' ', '')
+                # fill current arg_spec with extra info
+
+                # then get each name that uses that arg spec and insert into routine json.
+                names = info_and_names[1].strip().replace(' ', '')
                 
                 used_delimiter = False
             elif "end subroutine" in line:

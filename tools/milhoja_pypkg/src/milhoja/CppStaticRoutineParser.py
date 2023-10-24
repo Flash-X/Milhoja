@@ -10,8 +10,6 @@ class CppStaticRoutineParser(StaticRoutineParser):
 
         :param str destination: The desination folder of the json outputs.
         :param list files_to_parse: The static fortran routine paths to parse.
-        :param bool combine: Combines all json outputs into 1 json.
-
         """ 
         super().__init__(destination, files_to_parse, log_level)
         
@@ -20,7 +18,7 @@ class CppStaticRoutineParser(StaticRoutineParser):
         json_string = ""
         for line in routine_file:
             if "$flashx" in line:
-                json_string += line[line.find("$flashx")+len("$flashx"): ].strip()
+                json_string += line[line.find("$flashx")+len("$flashx"):].strip()
         json_string = "{" + json_string + "}"
         self._logger.log(self._TOOL_NAME, json_string, LOG_LEVEL_BASIC_DEBUG)
         variables = json.loads(json_string)
