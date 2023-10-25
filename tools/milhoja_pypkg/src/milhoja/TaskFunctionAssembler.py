@@ -101,7 +101,16 @@ class TaskFunctionAssembler(object):
                 self.__bridge, self.__operation_name
             )
 
+        self.__sanity_check_grid_spec()
+
         # ----- SANITY CHECK GRID SPECIFICATION
+    def __sanity_check_grid_spec(self):
+        """
+        If this does not raise an error, then the specification is acceptable.
+
+        .. todo::
+            * This should also check types
+        """
         expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
         actual = set(self.__grid_spec)
         if actual != expected:
@@ -535,21 +544,101 @@ class TaskFunctionAssembler(object):
                 dummies.add(arg)
         return dummies
 
-    def to_milhoja_json(self, filename, overwrite):
+    def __sanity_check_tf_spec(self, spec):
+        """
+        If this does not raise an error, then the specification is acceptable.
+
+        While this *does* requires that all specifications be provided, it does
+        *not* check the values of specifications that are not used.  For
+        example, a C++ TF can specify any value for the fortran_source value.
+
+        .. todo::
+            * This should also check types
+            * Eventually we might have DataPackets sent to CPUs, in which case
+              we would want the specification to give the byte alignment as
+              well.
+            * Allow applications to not specify unnecessary values?  For
+              example, do C++ applications always have to specify (with
+              whatever value) the Fortran-specific info?
+        """
+        # ----- ROOT
+        expected = {"task_function", "data_item"}
+        actual = set(spec)
+        if actual != expected:
+            msg = f"Invalid root specification keys ({actual})"
+            raise ValueError(msg)
+
+        # ----- TASK FUNCTION
+        tf_spec = spec["task_function"]
+        expected = {"language", "processor",
+                    "cpp_header", "cpp_source",
+                    "c2f_source", "fortran_source"}
+        actual = set(tf_spec)
+        if actual != expected:
+            msg = f"Invalid TF specification keys ({actual})"
+            raise ValueError(msg)
+
+        language = tf_spec["language"]
+        if language.lower() not in ["c++", "fortran"]:
+            raise ValueError(f"Unsupported TF language ({language})")
+
+        processor = tf_spec["processor"]
+        if processor.lower() not in ["cpu", "gpu"]:
+            raise ValueError(f"Unsupported target processor ({processor})")
+
+        for each in ["cpp_header", "cpp_source"]:
+            if tf_spec[each] == "":
+                raise ValueError(f"Empty {each} filename")
+
+        if language.lower() == "fortran":
+            for each in ["c2f_source", "fortran_source"]:
+                if tf_spec[each] == "":
+                    raise ValueError(f"Empty {each} filename")
+
+        # ----- DATA ITEM
+        data_item = spec["data_item"]
+        expected = {"type", "byte_alignment", "header", "source"}
+        actual = set(data_item)
+        if actual != expected:
+            msg = f"Invalid data item specification keys ({actual})"
+            raise ValueError(msg)
+
+        item_type = data_item["type"]
+        if item_type.lower() not in ["tile", "datapacket"]:
+            msg = f"Unsupported data item type ({item_type})"
+            raise ValueError(msg)
+
+        for each in ["header", "source"]:
+            if data_item[each] == "":
+                raise ValueError(f"Empty {each} filename")
+
+        if item_type.lower() == "datapacket":
+            byte_align = data_item["byte_alignment"]
+            if byte_align <= 0:
+                raise ValueError("Non-positive byte alignment ({byte_align})")
+
+    def to_milhoja_json(self, filename, tf_spec_filename, overwrite):
         """
         Write the assembled task function to the given file using the current
         version of the Milhoja-JSON task function specification format.
 
         .. todo::
-            * How to get general task function information?
-            * How do we get data item information?
             * Milhoja should have an internal parser that gets the argument
               list for each subroutine in the internal call graph.  Then the
               given subroutine JSON files don't need to specify that.
 
         :param filename: Name and full path of file to write to
+        :param tf_spec_filename: Name and full path of file that contains
+            concrete task function specification
         :param overwrite: Raise exception if the file exists and this is True
         """
+        if not Path(tf_spec_filename).is_file():
+            msg = f"{tf_spec_filename} does not exist or is not a file"
+            raise ValueError(msg)
+        with open(tf_spec_filename, "r") as fptr:
+            tf_spec = json.load(fptr)
+        self.__sanity_check_tf_spec(tf_spec)
+
         spec = {}
         spec["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
 
@@ -561,14 +650,8 @@ class TaskFunctionAssembler(object):
         # ----- INCLUDE TASK FUNCTION SPECIFICATION
         group = "task_function"
         assert group not in spec
-        spec[group] = {}
+        spec[group] = tf_spec[group]
         spec[group]["name"] = self.task_function_name
-        spec[group]["language"] = "Fortran"
-        spec[group]["processor"] = "GPU"
-        spec[group]["cpp_header"] = "gpu_tf_hydro_Cpp2C.h"
-        spec[group]["cpp_source"] = "gpu_tf_hydro_Cpp2C.cpp"
-        spec[group]["c2f_source"] = "gpu_tf_hydro_C2F.F90"
-        spec[group]["fortran_source"] = "gpu_tf_hydro.F90"
         spec[group]["argument_list"] = self.dummy_arguments
 
         key = "argument_specifications"
@@ -585,11 +668,7 @@ class TaskFunctionAssembler(object):
         # ----- INCLUDE DATA ITEM SPECIFICATION
         group = "data_item"
         assert group not in spec
-        spec[group] = {}
-        spec[group]["type"] = "DataPacket"
-        spec[group]["byte_alignment"] = 16
-        spec[group]["header"] = "DataPacket_gpu_tf_hydro.h"
-        spec[group]["source"] = "DataPacket_gpu_tf_hydro.cpp"
+        spec[group] = tf_spec[group]
 
         # ----- INCLUDE SUBROUTINES SPECIFICATION
         group = "subroutines"

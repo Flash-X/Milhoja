@@ -42,6 +42,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         grid_json = _SEDOV_PATH.joinpath("grid.json")
 
+        self.__tf_spec_json = _SEDOV_PATH.joinpath("gpu_tf_hydro_v100.json")
+
         # The application would then gather together the specifications for
         # each subroutine to be called internally within the TF.  We imagine
         # that the developers of the subroutines encode each subroutine's
@@ -100,7 +102,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             expected = json.load(fptr)
 
         self.assertFalse(self.__json_filename.exists())
-        self.__Sedov.to_milhoja_json(self.__json_filename, OVERWRITE)
+        self.__Sedov.to_milhoja_json(self.__json_filename,
+                                     self.__tf_spec_json,
+                                     OVERWRITE)
         self.assertTrue(self.__json_filename.is_file())
         self.maxDiff = None
 
