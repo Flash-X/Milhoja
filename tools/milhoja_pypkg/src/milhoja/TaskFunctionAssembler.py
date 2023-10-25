@@ -440,100 +440,58 @@ class TaskFunctionAssembler(object):
     @property
     def tile_metadata_arguments(self):
         """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
-        :return: Dict of task function's dummy arguments that are classified as
-            tile metatdata and their arg specs
+        :return: Set of task function's dummy arguments that are classified as
+            tile metatdata
         """
-        needed = set()
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
-                    source = spec["argument_specifications"][arg]["source"]
-                    if source in TaskFunction.TILE_METADATA_ALL:
-                        needed = needed.union(set([source]))
-        return needed
+        dummies = set()
+        for arg, spec in self.__dummy_specs.items():
+            if spec["source"] in TaskFunction.TILE_METADATA_ALL:
+                dummies.add(arg)
+        return dummies
 
     @property
     def external_arguments(self):
         """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determine all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
         :return: Set of task function's dummy arguments that are classified as
             external arguments
         """
-        needed = set()
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
-                    source = spec["argument_specifications"][arg]["source"]
-                    if source == TaskFunction.EXTERNAL_ARGUMENT:
-                        needed = needed.union(set([arg]))
-        return needed
+        dummies = set()
+        for arg, spec in self.__dummy_specs.items():
+            if spec["source"] in TaskFunction.EXTERNAL_ARGUMENT:
+                dummies.add(arg)
+        return dummies
 
     @property
     def grid_data_structures(self):
         """
         .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-            * We have tests in the package that use FLUX[XYZ].  Use those to
-              expand out the structures that this can work with.
+            * Should this include variable-in/-out information as well?
 
         :return: Set of grid data structures whose data are read from or set by
             the task function
         """
-        needed = {}
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
-                    arg_spec = spec["argument_specifications"][arg]
-                    source = arg_spec["source"]
-                    if source in TaskFunction.GRID_DATA_ARGUMENT:
-                        index_space, grid_index = arg_spec["structure_index"]
-                        assert index_space.lower() == "center"
-                        assert grid_index == 1
-                        if index_space not in needed:
-                            needed[index_space] = set([grid_index])
-                        else:
-                            needed[index_space] = \
-                                needed[index_space].union(set([grid_index]))
-        return needed
+        dummies = {}
+        for arg, spec in self.__dummy_specs.items():
+            if spec["source"] in TaskFunction.GRID_DATA_ARGUMENT:
+                space, struct_index = spec["structure_index"]
+                if space not in dummies:
+                    dummies[space] = {struct_index}
+                else:
+                    msg = "Only one structure per index space"
+                    raise NotImplementedError(msg)
+        return dummies
 
     @property
     def scratch_arguments(self):
         """
-        .. todo::
-            * This is presently used by __determine_unique_dummies.  That
-              helper should determined all unique dummies by itself and this
-              should just use the set using the results.
-            * Is this needed?
-
         :return: Set of task function's dummy arguments that are classified as
             scratch arguments
         """
-        needed = set()
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                for arg in spec["argument_list"]:
-                    source = spec["argument_specifications"][arg]["source"]
-                    if source == TaskFunction.SCRATCH_ARGUMENT:
-                        needed = needed.union(set([arg]))
-        return needed
+        dummies = set()
+        for arg, spec in self.__dummy_specs.items():
+            if spec["source"] in TaskFunction.SCRATCH_ARGUMENT:
+                dummies.add(arg)
+        return dummies
 
     def to_milhoja_json(self, filename, overwrite):
         """

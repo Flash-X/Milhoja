@@ -80,11 +80,14 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         self.assertEqual(set([1]), result["CENTER"])
 
     def testScratchArguments(self):
-        expected = {"auxC", "flX", "flY", "flZ"}
+        expected = {
+            "hydro_op1_auxC",
+            "hydro_op1_flX", "hydro_op1_flY", "hydro_op1_flZ"
+        }
         self.assertEqual(expected, self.__Sedov.scratch_arguments)
 
     def testExternalArguments(self):
-        expected = {"dt"}
+        expected = {"hydro_op1_dt"}
         self.assertEqual(expected, self.__Sedov.external_arguments)
 
     def testToMilhojaJson(self):
