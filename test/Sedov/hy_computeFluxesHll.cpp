@@ -13,7 +13,8 @@ void hy::computeFluxesHll(const milhoja::Real dt,
                           LIST_NDIM(milhoja::FArray4D& flX, milhoja::FArray4D& flY, milhoja::FArray4D& flZ),
                           milhoja::FArray3D& auxC) {
     !$milhoja  "U": {
-    !$milhoja&    "R": [VELX_VAR, VELY_VAR, VELZ_VAR,
+    !$milhoja&    "R": [GAMC_VAR,
+    !$milhoja&          VELX_VAR, VELY_VAR, VELZ_VAR,
     !$milhoja&          DENS_VAR, PRES_VAR, ENER_VAR],
     !$milhoja& },
     !$milhoja& "flX": {
