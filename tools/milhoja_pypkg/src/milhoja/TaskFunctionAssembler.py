@@ -1,7 +1,6 @@
 import json
 
 from pathlib import Path
-from collections import OrderedDict
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
@@ -88,7 +87,9 @@ class TaskFunctionAssembler(object):
         self.__operation_name = operation_name
 
         self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \
-            self.__determine_unique_dummies(self.__bridge, self.__operation_name)
+            self.__determine_unique_dummies(
+                self.__bridge, self.__operation_name
+            )
 
     def __determine_unique_dummies(self, bridge, operation_name):
         """
@@ -174,7 +175,7 @@ class TaskFunctionAssembler(object):
             raise ValueError(msg)
 
         return self.__dummy_specs[argument]
-    
+
     def __get_external(self, bridge, operation_name):
         """
         Runs through the each subroutine in the internal call graph, determines
@@ -197,10 +198,10 @@ class TaskFunctionAssembler(object):
             arguments at the level of the single operation to which all
             internal subroutines belong.
         :param operation_name: Name of the operation
-        
+
         :return: tf_dummy_spec, dummy_to_actuals where
-            * tf_dummy_spec is the specification of external dummy arguments for
-              the task function and
+            * tf_dummy_spec is the specification of external dummy arguments
+              for the task function and
             * dummy_to_actuals is the mapping
         """
         bridge_spec = bridge["external"]
@@ -226,10 +227,12 @@ class TaskFunctionAssembler(object):
                             tf_dummy_spec[tf_dummy] = tmp_spec
                             assert tf_dummy not in dummy_to_actuals
                             dummy_to_actuals[tf_dummy] = []
-                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+                        actual = (subroutine, arg, idx+1)
+                        dummy_to_actuals[tf_dummy].append(actual)
 
         return tf_dummy_spec, dummy_to_actuals
-    
+
     def __get_tile_metadata(self):
         """
         Runs through the each subroutine in the internal call graph, determines
@@ -267,11 +270,12 @@ class TaskFunctionAssembler(object):
                         else:
                             raise NotImplementedError("Test case!")
 
-                        if tf_dummy not in tf_dummy_spec: 
+                        if tf_dummy not in tf_dummy_spec:
                             tf_dummy_spec[tf_dummy] = arg_spec
                             assert tf_dummy not in dummy_to_actuals
                             dummy_to_actuals[tf_dummy] = []
-                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+                        actual = (subroutine, arg, idx+1)
+                        dummy_to_actuals[tf_dummy].append(actual)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -375,7 +379,9 @@ class TaskFunctionAssembler(object):
                                         max(vars_out[1], max_out)
                                     ]
                             tf_dummy_spec[tf_dummy] = tmp_spec
-                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+                        actual = (subroutine, arg, idx+1)
+                        dummy_to_actuals[tf_dummy].append(actual)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -425,7 +431,9 @@ class TaskFunctionAssembler(object):
                             tf_dummy_spec[tf_dummy] = tmp_spec
                             assert tf_dummy not in dummy_to_actuals
                             dummy_to_actuals[tf_dummy] = []
-                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+                        actual = (subroutine, arg, idx+1)
+                        dummy_to_actuals[tf_dummy].append(actual)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -451,7 +459,6 @@ class TaskFunctionAssembler(object):
                         needed = needed.union(set([source]))
         return needed
 
-
     @property
     def external_arguments(self):
         """
@@ -473,7 +480,6 @@ class TaskFunctionAssembler(object):
                     if source == TaskFunction.EXTERNAL_ARGUMENT:
                         needed = needed.union(set([arg]))
         return needed
-
 
     @property
     def grid_data_structures(self):
@@ -507,7 +513,6 @@ class TaskFunctionAssembler(object):
                                 needed[index_space].union(set([grid_index]))
         return needed
 
-
     @property
     def scratch_arguments(self):
         """
@@ -520,13 +525,6 @@ class TaskFunctionAssembler(object):
         :return: Set of task function's dummy arguments that are classified as
             scratch arguments
         """
-        scratch_name_mapping = {
-            "auxc": "hydro_op1_auxc",
-            "flx": "hydro_op1_flX",
-            "fly": "hydro_op1_flY",
-            "flz": "hydro_op1_flZ"
-        }
-
         needed = set()
         for node in self.internal_subroutine_graph:
             for subroutine in node:
@@ -536,7 +534,6 @@ class TaskFunctionAssembler(object):
                     if source == TaskFunction.SCRATCH_ARGUMENT:
                         needed = needed.union(set([arg]))
         return needed
-
 
     def to_milhoja_json(self, filename, overwrite):
         """
