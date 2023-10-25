@@ -4,6 +4,9 @@ from pathlib import Path
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
+from . import LOG_LEVEL_BASIC
+from . import LOG_LEVEL_BASIC_DEBUG
+# from . import AbcLogger
 from . import TaskFunction
 
 
@@ -13,12 +16,12 @@ class TaskFunctionAssembler(object):
         * Write documentation here and for all methods in class.
         * internal_call_graph is used here and in TaskFunction.  It should
           likely become a class.
-        * Add in logging at different verbosity levels?
     """
+    __LOG_TAG = "Milhoja TF Assembler"
 
     @staticmethod
     def from_milhoja_json(name, internal_call_graph, jsons_all,
-                          bridge_json, grid_json):
+                          bridge_json, grid_json, logger):
         """
         .. todo::
             * Load JSON files carefully and accounting for different versions
@@ -26,6 +29,7 @@ class TaskFunctionAssembler(object):
             * If the internal call graph includes subroutines from different
               operations, then we likely need multiple bridges.  These are
               really operations.
+            * Log arguments as debug information
 
         :param name: Name of the task function
         :param internal_call_graph: Refer to documentation in constructor for
@@ -34,7 +38,13 @@ class TaskFunctionAssembler(object):
             subroutine specification file for each subroutine in call graph
         :param bridge_json: HACK JUST TO GET THINGS WORKING FOR NOW
         :param grid_json: WRITE THIS
+        :param logger: Logger derived from milhoja.AbcLogger
         """
+        # if not isinstance(logger, AbcLogger):
+        #     raise TypeError("Unknown logger type")
+        msg = f"Loading {name} Milhoja-JSON files"
+        logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC)
+
         if not Path(bridge_json).is_file():
             msg = f"{bridge_json} does not exist or is not a file"
             raise ValueError(msg)
@@ -65,10 +75,11 @@ class TaskFunctionAssembler(object):
             grid_spec = json.load(fptr)
 
         return TaskFunctionAssembler(name, internal_call_graph, specs_all,
-                                     bridge, operation_name, grid_spec)
+                                     bridge, operation_name, grid_spec,
+                                     logger)
 
     def __init__(self, name, internal_call_graph, subroutine_specs_all,
-                 bridge, operation_name, grid_spec):
+                 bridge, operation_name, grid_spec, logger):
         """
         It is intended that users instantiate assemblers using the from_*
         classmethods.
@@ -76,6 +87,7 @@ class TaskFunctionAssembler(object):
         .. todo::
             * Error check graph and each specification here with informative
               error messages
+            * Log arguments as debug information
 
         :param name: Name of the task function
         :param internal_call_graph: Refer to documentation in constructor for
@@ -86,8 +98,17 @@ class TaskFunctionAssembler(object):
         :param bridge: WRITE THIS!
         :param operation_name: WRITE THIS!
         :param grid_spec: WRITE THIS!
+        :param logger: Logger derived from milhoja.AbcLogger
         """
         super().__init__()
+
+        # if not isinstance(logger, AbcLogger):
+        #     raise TypeError("Unknown logger type")
+        self.__logger = logger
+
+        msg = f"Building assembler for task function {name}"
+        self.__logger.log(TaskFunctionAssembler.__LOG_TAG, msg,
+                          LOG_LEVEL_BASIC_DEBUG)
 
         self.__tf_name = name
         self.__call_graph = internal_call_graph
@@ -626,12 +647,17 @@ class TaskFunctionAssembler(object):
             * Milhoja should have an internal parser that gets the argument
               list for each subroutine in the internal call graph.  Then the
               given subroutine JSON files don't need to specify that.
+            * Log arguments as debug information
 
         :param filename: Name and full path of file to write to
         :param tf_spec_filename: Name and full path of file that contains
             concrete task function specification
         :param overwrite: Raise exception if the file exists and this is True
         """
+        msg = "Writing {} spec to Milhoja-JSON file {}"
+        msg = msg.format(self.task_function_name, filename)
+        self.__logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC)
+
         if not Path(tf_spec_filename).is_file():
             msg = f"{tf_spec_filename} does not exist or is not a file"
             raise ValueError(msg)

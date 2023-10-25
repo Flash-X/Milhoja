@@ -17,6 +17,8 @@ _SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
 
 class TestTaskFunctionAssembler(unittest.TestCase):
     def setUp(self):
+        self.__logger = milhoja.BasicLogger(milhoja.LOG_LEVEL_NONE)
+
         self.__json_filename = Path.cwd().joinpath("delete_me.json")
         if self.__json_filename.exists():
             os.remove(self.__json_filename)
@@ -61,7 +63,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
             "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all,
-            bridge_json, grid_json
+            bridge_json, grid_json, self.__logger
         )
 
     def testDummyArguments(self):
