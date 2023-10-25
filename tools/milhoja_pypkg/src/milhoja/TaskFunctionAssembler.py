@@ -17,7 +17,8 @@ class TaskFunctionAssembler(object):
     """
 
     @staticmethod
-    def from_milhoja_json(name, internal_call_graph, jsons_all, bridge_json):
+    def from_milhoja_json(name, internal_call_graph, jsons_all,
+                          bridge_json, grid_json):
         """
         .. todo::
             * Load JSON files carefully and accounting for different versions
@@ -32,9 +33,13 @@ class TaskFunctionAssembler(object):
         :param jsons_all: Dictionary that returns Milhoja-JSON format
             subroutine specification file for each subroutine in call graph
         :param bridge_json: HACK JUST TO GET THINGS WORKING FOR NOW
+        :param grid_json: WRITE THIS
         """
         if not Path(bridge_json).is_file():
             msg = f"{bridge_json} does not exist or is not a file"
+            raise ValueError(msg)
+        if not Path(grid_json).is_file():
+            msg = f"{grid_json} does not exist or is not a file"
             raise ValueError(msg)
 
         specs_all = {}
@@ -56,11 +61,14 @@ class TaskFunctionAssembler(object):
         with open(bridge_json, "r") as fptr:
             bridge = json.load(fptr)
 
-        return TaskFunctionAssembler(name, internal_call_graph,
-                                     specs_all, bridge, operation_name)
+        with open(grid_json, "r") as fptr:
+            grid_spec = json.load(fptr)
 
-    def __init__(self, name, internal_call_graph,
-                 subroutine_specs_all, bridge, operation_name):
+        return TaskFunctionAssembler(name, internal_call_graph, specs_all,
+                                     bridge, operation_name, grid_spec)
+
+    def __init__(self, name, internal_call_graph, subroutine_specs_all,
+                 bridge, operation_name, grid_spec):
         """
         It is intended that users instantiate assemblers using the from_*
         classmethods.
@@ -77,6 +85,7 @@ class TaskFunctionAssembler(object):
             subroutine in call graph
         :param bridge: WRITE THIS!
         :param operation_name: WRITE THIS!
+        :param grid_spec: WRITE THIS!
         """
         super().__init__()
 
@@ -85,11 +94,44 @@ class TaskFunctionAssembler(object):
         self.__subroutine_specs_all = subroutine_specs_all
         self.__bridge = bridge
         self.__operation_name = operation_name
+        self.__grid_spec = grid_spec
 
         self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \
             self.__determine_unique_dummies(
                 self.__bridge, self.__operation_name
             )
+
+        # ----- SANITY CHECK GRID SPECIFICATION
+        expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
+        actual = set(self.__grid_spec)
+        if actual != expected:
+            msg = f"Invalid set of grid specification keys ({actual})"
+            raise ValueError(msg)
+
+        dimension = self.__grid_spec["dimension"]
+        if dimension not in [1, 2, 3]:
+            msg = f"Invalid grid dimension ({dimension})"
+            raise ValueError(msg)
+
+        nxb = self.__grid_spec["nxb"]
+        if nxb <= 0:
+            raise ValueError(f"Non-positive NXB ({nxb})")
+
+        nyb = self.__grid_spec["nyb"]
+        if nyb <= 0:
+            raise ValueError(f"Non-positive NYB ({nyb})")
+        elif (dimension == 1) and (nyb != 1):
+            raise ValueError(f"nyb > 1 for {dimension}D problem")
+
+        nzb = self.__grid_spec["nzb"]
+        if nzb <= 0:
+            raise ValueError(f"Non-positive NZB ({nzb})")
+        elif (dimension < 3) and (nzb != 1):
+            raise ValueError(f"nzb > 1 for {dimension}D problem")
+
+        n_gc = self.__grid_spec["nguardcells"]
+        if n_gc < 0:
+            raise ValueError(f"Negative N guardcells ({n_gc})")
 
     def __determine_unique_dummies(self, bridge, operation_name):
         """
@@ -499,7 +541,6 @@ class TaskFunctionAssembler(object):
         version of the Milhoja-JSON task function specification format.
 
         .. todo::
-            * How do we get the grid information?
             * How to get general task function information?
             * How do we get data item information?
             * Milhoja should have an internal parser that gets the argument
@@ -515,12 +556,7 @@ class TaskFunctionAssembler(object):
         # ----- INCLUDE GRID SPECIFICATION
         group = "grid"
         assert group not in spec
-        spec[group] = {}
-        spec[group]["dimension"] = 3
-        spec[group]["nxb"] = 16
-        spec[group]["nyb"] = 16
-        spec[group]["nzb"] = 16
-        spec[group]["nguardcells"] = 1
+        spec[group] = self.__grid_spec
 
         # ----- INCLUDE TASK FUNCTION SPECIFICATION
         group = "task_function"
@@ -579,8 +615,6 @@ class TaskFunctionAssembler(object):
                     "argument_list": dummies,
                     "argument_mapping": mapping
                 }
-
-        # print(json.dumps(spec, indent=4))
 
         if (not overwrite) and Path(filename).exists():
             raise RuntimeError(f"{filename} already exists")

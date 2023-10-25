@@ -40,6 +40,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         bridge_json = _SEDOV_PATH.joinpath("Hydro_op1.json")
 
+        grid_json = _SEDOV_PATH.joinpath("grid.json")
+
         # The application would then gather together the specifications for
         # each subroutine to be called internally within the TF.  We imagine
         # that the developers of the subroutines encode each subroutine's
@@ -56,7 +58,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                     _SEDOV_PATH.joinpath(f"{subroutine}.json")
 
         self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all, bridge_json
+            "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all,
+            bridge_json, grid_json
         )
 
     def testDummyArguments(self):
