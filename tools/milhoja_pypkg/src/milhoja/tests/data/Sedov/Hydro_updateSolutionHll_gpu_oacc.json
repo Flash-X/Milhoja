@@ -6,21 +6,14 @@
         "lo":   {"source":           "tile_lo"},
         "hi":   {"source":           "tile_hi"},
         "flX":  {"source":           "scratch",
-                 "source_name":      "flx",
-                 "type":             "real",
-                 "extents":          "(17, 16, 16, 5)",
-                 "lbound":           "(tile_lo, 1)"},
+                 "name":             "_flX"},
         "flY":  {"source":           "scratch",
-                 "source_name":      "fly",
-                 "type":             "real",
-                 "extents":          "(16, 17, 16, 5)",
-                 "lbound":           "(tile_lo, 1)"},
+                 "name":             "_flY"},
         "flZ":  {"source":           "scratch",
-                 "source_name":      "flz",
-                 "type":             "real",
-                 "extents":          "(16, 16, 17, 5)",
-                 "lbound":           "(tile_lo, 1)"},
+                 "name":             "_flZ"},
         "U":    {"source":           "grid_data",
-                 "structure_index":  ["CENTER", 1]}
+                 "structure_index":  ["CENTER", 1],
+                 "RW":               [1, 2, 3, 4, 5, 6],
+                 "W":                [8]}
     }
 }

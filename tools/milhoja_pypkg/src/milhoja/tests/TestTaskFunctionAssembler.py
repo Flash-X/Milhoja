@@ -38,6 +38,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             "Hydro_updateSolutionHll_gpu_oacc"
         ]
 
+        bridge_json = _SEDOV_PATH.joinpath("Hydro_op1.json")
+
         # The application would then gather together the specifications for
         # each subroutine to be called internally within the TF.  We imagine
         # that the developers of the subroutines encode each subroutine's
@@ -54,15 +56,15 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                     _SEDOV_PATH.joinpath(f"{subroutine}.json")
 
         self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all
+            "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all, bridge_json
         )
 
     def testDummyArguments(self):
         expected = [
-            "dt",
+            "hydro_op1_dt",
             "tile_deltas", "tile_hi", "tile_lo",
             "CC_1",
-            "hydro_op1_auxc",
+            "hydro_op1_auxC",
             "hydro_op1_flX", "hydro_op1_flY", "hydro_op1_flZ"
         ]
         self.assertEqual(expected, self.__Sedov.dummy_arguments)

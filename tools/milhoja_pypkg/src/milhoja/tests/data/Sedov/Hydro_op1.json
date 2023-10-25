@@ -1,0 +1,21 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "external": {
+        "_dt":      {"type":        "real",
+                     "extents":     []}
+    },
+    "scratch": {
+        "_auxC":    {"type":        "real",
+                     "extents":     "(18, 18, 18)",
+                     "lbound":      "(tile_lo) - (1, 1, 1)"},
+        "_flX":     {"type":        "real",
+                     "extents":     "(17, 16, 16, 5)",
+                     "lbound":      "(tile_lo, 1)"},
+        "_flY":     {"type":        "real",
+                     "extents":     "(16, 17, 16, 5)",
+                     "lbound":      "(tile_lo, 1)"},
+        "_flZ":     {"type":        "real",
+                     "extents":     "(16, 16, 17, 5)",
+                     "lbound":      "(tile_lo, 1)"}
+    }
+}

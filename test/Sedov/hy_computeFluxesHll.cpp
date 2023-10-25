@@ -12,6 +12,15 @@ void hy::computeFluxesHll(const milhoja::Real dt,
                           const milhoja::FArray4D& Uin,
                           LIST_NDIM(milhoja::FArray4D& flX, milhoja::FArray4D& flY, milhoja::FArray4D& flZ),
                           milhoja::FArray3D& auxC) {
+    !$milhoja  "U": {
+    !$milhoja&    "R": [VELX_VAR, VELY_VAR, VELZ_VAR,
+    !$milhoja&          DENS_VAR, PRES_VAR, ENER_VAR],
+    !$milhoja& },
+    !$milhoja& "flX": {
+    !$milhoja&    "W": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX,
+    !$milhoja&          HY_DENS_FLUX, HY_ENER_FLUX]
+    !$milhoja& }
+
     using namespace milhoja;
 
 //  if (hy_fluxCorrect) then

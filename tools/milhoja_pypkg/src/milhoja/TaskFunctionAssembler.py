@@ -18,18 +18,26 @@ class TaskFunctionAssembler(object):
     """
 
     @staticmethod
-    def from_milhoja_json(name, internal_call_graph, jsons_all):
+    def from_milhoja_json(name, internal_call_graph, jsons_all, bridge_json):
         """
         .. todo::
             * Load JSON files carefully and accounting for different versions
               as is done in TaskFunction.from_milhoja_json.
+            * If the internal call graph includes subroutines from different
+              operations, then we likely need multiple bridges.  These are
+              really operations.
 
         :param name: Name of the task function
         :param internal_call_graph: Refer to documentation in constructor for
             same argument
         :param jsons_all: Dictionary that returns Milhoja-JSON format
             subroutine specification file for each subroutine in call graph
+        :param bridge_json: HACK JUST TO GET THINGS WORKING FOR NOW
         """
+        if not Path(bridge_json).is_file():
+            msg = f"{bridge_json} does not exist or is not a file"
+            raise ValueError(msg)
+
         specs_all = {}
         for node in internal_call_graph:
             if isinstance(node, str):
@@ -38,12 +46,22 @@ class TaskFunctionAssembler(object):
                 subroutines_all = node
 
             for subroutine in subroutines_all:
-                with open(jsons_all[subroutine], "r") as fptr:
+                filename = jsons_all[subroutine]
+                if not Path(filename).is_file():
+                    msg = f"{filename} does not exist or is not a file"
+                    raise ValueError(msg)
+                with open(filename, "r") as fptr:
                     specs_all[subroutine] = json.load(fptr)
 
-        return TaskFunctionAssembler(name, internal_call_graph, specs_all)
+        operation_name = Path(bridge_json).stem.lower()
+        with open(bridge_json, "r") as fptr:
+            bridge = json.load(fptr)
 
-    def __init__(self, name, internal_call_graph, subroutine_specs_all):
+        return TaskFunctionAssembler(name, internal_call_graph,
+                                     specs_all, bridge, operation_name)
+
+    def __init__(self, name, internal_call_graph,
+                 subroutine_specs_all, bridge, operation_name):
         """
         It is intended that users instantiate assemblers using the from_*
         classmethods.
@@ -58,29 +76,30 @@ class TaskFunctionAssembler(object):
         :param subroutine_specs_all: Dictionary that returns subroutine
             specification as a Milhoja internal data structure for each
             subroutine in call graph
+        :param bridge: WRITE THIS!
+        :param operation_name: WRITE THIS!
         """
         super().__init__()
 
         self.__tf_name = name
         self.__call_graph = internal_call_graph
         self.__subroutine_specs_all = subroutine_specs_all
+        self.__bridge = bridge
+        self.__operation_name = operation_name
 
-        self.__dummies, self.__dummy_specs, self.__arg_mapping = \
-            self.__determine_unique_dummies()
+        self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \
+            self.__determine_unique_dummies(self.__bridge, self.__operation_name)
 
-    def __determine_unique_dummies(self):
+    def __determine_unique_dummies(self, bridge, operation_name):
         """
-        This is the workhorse of the assembler that identifies the dummy
-        arguments for the task function, writes the specifications for each,
-        and determines the mapping of task function dummy argument onto actual
-        argument for each subroutine in the internal subroutine graph.
+        This is the workhorse of the assembler that identifies the minimal set
+        of dummy arguments for the task function, writes the specifications for
+        each dummy, and determines the mapping of task function dummy argument
+        onto actual argument for each subroutine in the internal subroutine
+        graph.
 
         .. todo::
-            * This is written so that a single, particular test will pass.  It
-              needs to be written for real.  Identification of unique tile
-              metadata and grid data structures should be simple.  How to
-              identify if external variables across all subroutines are the
-              same?  Ditto for scratch?
+            * What about lbound arguments!?
             * Milhoja should have an internal parser that can figure out the
               R/W/RW status of each variable of the grid data arrays in each
               subroutine in the internal call graph.  That information can be
@@ -91,38 +110,27 @@ class TaskFunctionAssembler(object):
             * Very low-priority optimization is determine if a scratch variable
               for one subroutine can double as scratch variable for another
               subroutine so that we can limit amount of scratch needed by TF.
-            * At the moment, tile metadata is evaluated as already being inside 
-              of the json if the argument specification is the exact same as a 
-              different argument specification that has already been inserted into 
-              the json. A small optimization would be to only check subsets of 
-              the information in the arg spec. For example, there might be 2 
-              tile_coordinate sources that use different bounds. This could be 
-              collapsed into one tile_coordinate variable.
         """
-        # need tfspecs,
-        # argument mapping,
-        # and argument list based on all tf jsons.
-        full_specs = OrderedDict()
-        mapping = {}
-        arguments = []
+        tf_dummy_list = []
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
 
         # While the actual argument ordering likely does not matter.  Make sure
         # that our ordering is fixed so that tests will work on all platforms
         # and all versions of python.
-
-        for arg_specs,arg_mappings in [
-            self.__get_external, self.__get_tile_metadata, 
-            self.__get_grid_data, self.__get_scratch
+        for arg_specs, arg_mappings in [
+            self.__get_external(bridge, operation_name),
+            self.__get_tile_metadata(), self.__get_grid_data(),
+            self.__get_scratch(bridge, operation_name)
         ]:
-            full_specs.update(arg_specs)
-            mapping.update(arg_mappings)
+            assert set(arg_specs).intersection(tf_dummy_spec) == set()
+            tf_dummy_spec.update(arg_specs)
+            assert set(arg_mappings).intersection(dummy_to_actuals) == set()
+            dummy_to_actuals.update(arg_mappings)
+            assert set(arg_specs).intersection(tf_dummy_list) == set()
+            tf_dummy_list += sorted(arg_specs.keys())
 
-        arguments = list(full_specs.keys())
-        # print("Arguments: ", arguments)
-        # print("Argument specs: ", json.dumps(full_specs, indent=4))
-        # print("Argument mapping: ", json.dumps(mapping, indent=4))
-
-        return arguments, full_specs, mapping
+        return tf_dummy_list, tf_dummy_spec, dummy_to_actuals
 
     @property
     def task_function_name(self):
@@ -167,97 +175,129 @@ class TaskFunctionAssembler(object):
 
         return self.__dummy_specs[argument]
     
-    @property
-    def __get_external(self):
+    def __get_external(self, bridge, operation_name):
         """
-        Runs through the call graph and determines the external arguments
-        that need to be placed inside of the TaskFunction json.
+        Runs through the each subroutine in the internal call graph, determines
+        the minimum set of external arguments that need to be included in the
+        task function dummy arguments, assembles the specifications for these
+        dummies, and determines how to map each task function dummy argument
+        onto the actual argument list of each internal subroutine.
 
-        TODO: This function should be combined with the other __get functions so that
-              the graph only needs to be traversed once.
-        TODO: Currently, external variables use an extra parameter inside of the json to
-              expose the name of the common source variable that the external variable originates
-              from. This will probably be removed once the outer json is developed.
-        TODO: This along with the other __get functions probably should not be properties but that's
-              a detail that we can worry about later.
+        Note that external dummy variables are named::
+
+                         <operation name>_<variable name>
+
+        to avoid collisions if the task function needs two variables with the
+        same name but from two different operations.
+
+        .. todo::
+            * This is presently restricted to a single operation.
+
+        :param bridge: Data structure that specifies the scratch and external
+            arguments at the level of the single operation to which all
+            internal subroutines belong.
+        :param operation_name: Name of the operation
+        
+        :return: tf_dummy_spec, dummy_to_actuals where
+            * tf_dummy_spec is the specification of external dummy arguments for
+              the task function and
+            * dummy_to_actuals is the mapping
         """
-        # Use external dicts to track order for dummy argument list.
-        needed = OrderedDict()
-        mapping = OrderedDict()
+        bridge_spec = bridge["external"]
+
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]): # use enumerate to track index for mapping (maybe this isn't necessary?)
-                    source = spec["argument_specifications"][arg]["source"]
-                    source_name = spec["argument_specifications"][arg].get("source_name", None)
+                for idx, arg in enumerate(spec["argument_list"]):
+                    # Get copy since we might alter below for internal
+                    # purposes only
+                    arg_spec = spec["argument_specifications"][arg].copy()
+                    source = arg_spec["source"]
                     if source == TaskFunction.EXTERNAL_ARGUMENT:
-                        key = source_name
-                        if not key:
-                            key = f"{subroutine}_{arg}" # if there's no source name then we 
-                        else:
-                            del spec["argument_specifications"][arg]["source_name"] # delete source name (This is probably unnecessary.)
-                        if key not in needed: # update arg spec if not in arg spec
-                            needed[key] = spec["argument_specifications"][arg]
-                        if key not in mapping:
-                            mapping[key] = []
-                        mapping[key].append((subroutine, arg, idx+1)) # add the variable to the mapping (do we need argument index?)
-        return needed,mapping
+                        bridge_name = arg_spec["name"].strip()
+                        assert bridge_name.startswith("_")
+                        tf_dummy = f"{operation_name}{bridge_name}"
+                        if tf_dummy not in tf_dummy_spec:
+                            tmp_spec = bridge_spec[bridge_name].copy()
+                            assert "source" not in tmp_spec
+                            tmp_spec["source"] = "external"
+                            tf_dummy_spec[tf_dummy] = tmp_spec
+                            assert tf_dummy not in dummy_to_actuals
+                            dummy_to_actuals[tf_dummy] = []
+                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+        return tf_dummy_spec, dummy_to_actuals
     
-    @property
     def __get_tile_metadata(self):
         """
-        Runs through the call graph and determines all tile_metadata arguments 
-        that need to be placed inside of the TaskFunction json.
+        Runs through the each subroutine in the internal call graph, determines
+        the minimum set of tile metadata arguments that need to be included in
+        the task function dummy arguments, assembles the specifications for
+        these dummies, and determines how to map each task function dummy
+        argument onto the actual argument list of each internal subroutine.
 
-        TODO: This can be combined with other functions so the call graph only 
-              needs to be traversed once.
-        TODO: Certain tile_metadata vars may only need a subset of their arguments 
-              checked in order to assume that the var has already been accounted for.
+        .. todo::
+            * Certain tile_metadata vars may only need a subset of their
+              arguments checked in order to assume that the var has already
+              been accounted for.
+            * Always use a fixed variable name for metadata that requires
+              extra specs.
+            * If one subroutine needs cell volumes in interior and another
+              needs them on the full block, do we include just the larger one
+              or both?
+
+        :return: tf_dummy_spec, dummy_to_actuals where
+            * tf_dummy_spec is the specification of tile metadata dummy
+              arguments for the task function and
+            * dummy_to_actuals is the mapping
         """
-        needed = OrderedDict()
-        mapping = OrderedDict()
-        source_arg_mapping = {} # map a source to all variable names inside *needed* that use it.
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]):
-                    source = spec["argument_specifications"][arg]["source"]
+                for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
-                    # here, we check if the length of arg_spec only contains a source
-                    # (len should be 1). If that's the case, the we use the name of the 
-                    # source as the argument name. This is so that the test doesn't complain
-                    # about name differences.
-                    mapping_key = source if len(arg_spec) == 1 else arg 
+                    source = arg_spec["source"]
                     if source in TaskFunction.TILE_METADATA_ALL:
-                        if source in source_arg_mapping:
-                            for variable in source_arg_mapping[source]: # here we check a given source already contains a specific var name.
-                                var_spec = needed[variable]
-                                if var_spec == arg_spec:
-                                    mapping_key = variable
-                                    break
-                            if mapping_key not in needed: # we include the mapping key if it's not in the dict of needed vars.
-                                needed[mapping_key] = arg_spec
-                            source_arg_mapping[source].add(mapping_key)
+                        if len(arg_spec) == 1:
+                            tf_dummy = source
                         else:
-                            needed[mapping_key] = arg_spec
-                            source_arg_mapping[source] = {mapping_key}
-                        if mapping_key not in mapping:
-                            mapping[mapping_key] = []
-                        mapping[mapping_key].append((subroutine, arg, idx+1))
+                            raise NotImplementedError("Test case!")
 
-        # return ordered dicts that have been sorted to satisfy the test.
-        return OrderedDict(sorted(needed.items())),OrderedDict(sorted(mapping.items()))
+                        if tf_dummy not in tf_dummy_spec: 
+                            tf_dummy_spec[tf_dummy] = arg_spec
+                            assert tf_dummy not in dummy_to_actuals
+                            dummy_to_actuals[tf_dummy] = []
+                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
 
-    @property
+        return tf_dummy_spec, dummy_to_actuals
+
     def __get_grid_data(self):
         """
-        Runs through the call graph and gets all grid_data argments.
+        Runs through the each subroutine in the internal call graph, determines
+        the minimum set of grid-managed data structure arguments that need to
+        be included in the task function dummy arguments, assembles the
+        specifications for these dummies, and determines how to map each task
+        function dummy argument onto the actual argument list of each internal
+        subroutine.  This also determines the variable-in/-out masks for each
+        dummy argument.
 
-        TODO: This can be combined with other functions so the call graph only 
-              needs to be traversed once.
-        TODO: Once variable masking information has been added to the jsons we need 
-              to union it with all other uses of the same variable.
+        .. note::
+            This presently supports only one grid data structure per index
+            space
+
+        :return: tf_dummy_spec, dummy_to_actuals where
+            * tf_dummy_spec is the specification of grid data dummy arguments
+              for the task function and
+            * dummy_to_actuals is the mapping
         """
+        VARIABLES_IN = "variables_in"
+        VARIABLES_OUT = "variables_out"
+
+        # Specify unique, consistent names for TF dummy arguments
         spaces_mapping = {
             "center": "CC_{0}",
             "fluxx": "FLX_{0}",
@@ -265,70 +305,129 @@ class TaskFunctionAssembler(object):
             "fluxz": "FLZ_{0}"
         }
 
-        needed = OrderedDict()
-        mapping = OrderedDict()
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]):
-                    arg_spec = spec["argument_specifications"][arg]
+                for idx, arg in enumerate(spec["argument_list"]):
+                    # Get copy since we will be updating specs below
+                    arg_spec = spec["argument_specifications"][arg].copy()
                     source = arg_spec["source"]
                     if source in TaskFunction.GRID_DATA_ARGUMENT:
                         index_space, grid_index = arg_spec["structure_index"]
                         assert index_space.lower() in spaces_mapping
-                        assert grid_index > 0 # 1 based unk index?
-                        # since the name of the variable inside of the json is derived 
-                        # from the structure index, we can just check if the name of 
-                        # the variable is inside the needed mapping.
-                        name = spaces_mapping[index_space.lower()].format(grid_index)
-                        if name not in needed:
-                            needed[name] = arg_spec
-                        # TODO: We need to union the variable masking!
-                        #       New mask would be the min and max between each mask.
-                        # update mapping
-                        if name not in mapping:
-                            mapping[name] = []
-                        mapping[name].append((subroutine, arg, idx+1))
-        return needed,mapping
+                        if grid_index != 1:
+                            msg = "Only one {} data structure presently allowed"
+                            raise NotImplementedError(msg.format(index_space))
 
-    @property
-    def __get_scratch(self):
-        """
-        Traverse the call graph and obtains all scratch data for the json.
-        This code is very similar to __get_external.
+                        # Update variable masking
+                        vars_in = []
+                        vars_out = []
+                        if "R" in arg_spec:
+                            vars_in = arg_spec["R"]
+                            del arg_spec["R"]
+                        if "W" in arg_spec:
+                            vars_out = arg_spec["W"]
+                            del arg_spec["W"]
+                        if "RW" in arg_spec:
+                            rw_idx = arg_spec["RW"]
+                            del arg_spec["RW"]
+                            vars_in += rw_idx
+                            vars_out += rw_idx
 
-        TODO: I think you already know what this will say
-        TODO: Scratch data uses the same extra key as external to determine if the 
-              variable is shared or not. Will go away once outer json is introduced.
-        TODO: What about lbound?
+                        space = index_space.lower()
+                        tf_dummy = spaces_mapping[space].format(grid_index)
+                        if tf_dummy not in tf_dummy_spec:
+                            if vars_in:
+                                min_in = min(vars_in)
+                                max_in = max(vars_in)
+                                arg_spec[VARIABLES_IN] = [min_in, max_in]
+                            if vars_out:
+                                min_out = min(vars_out)
+                                max_out = max(vars_out)
+                                arg_spec[VARIABLES_OUT] = [min_out, max_out]
+                            tf_dummy_spec[tf_dummy] = arg_spec
+                            assert tf_dummy not in dummy_to_actuals
+                            dummy_to_actuals[tf_dummy] = []
+                        else:
+                            tmp_spec = tf_dummy_spec[tf_dummy].copy()
+                            if vars_in:
+                                min_in = min(vars_in)
+                                max_in = max(vars_in)
+                                if VARIABLES_IN not in arg_spec:
+                                    tmp_spec[VARIABLES_IN] = [min_in, max_in]
+                                else:
+                                    vars_in = arg_spec[VARIABLES_IN]
+                                    tmp_spec[VARIABLES_IN] = [
+                                        min(vars_in[0], min_in),
+                                        max(vars_in[1], max_in)
+                                    ]
+                            if vars_out:
+                                min_out = min(vars_out)
+                                max_out = max(vars_out)
+                                if VARIABLES_OUT not in arg_spec:
+                                    tmp_spec[VARIABLES_OUT] = [min_out, max_out]
+                                else:
+                                    vars_out = arg_spec[VARIABLES_OUT]
+                                    tmp_spec[VARIABLES_OUT] = [
+                                        min(vars_out[0], min_out),
+                                        max(vars_out[1], max_out)
+                                    ]
+                            tf_dummy_spec[tf_dummy] = tmp_spec
+                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+        return tf_dummy_spec, dummy_to_actuals
+
+    def __get_scratch(self, bridge, operation_name):
         """
-        scratch_name_mapping = {
-            "auxc": "hydro_op1_auxc",
-            "flx": "hydro_op1_flX",
-            "fly": "hydro_op1_flY",
-            "flz": "hydro_op1_flZ"
-        }
-        needed = OrderedDict()
-        mapping = OrderedDict()
+        Runs through each subroutine in the internal call graph, determines the
+        minimum set of scratch arguments that need to be included in the task
+        function dummy arguments, assembles the specifications for these
+        dummies, and determines how to map each task function dummy argument
+        onto the actual argument list of each internal subroutine.
+
+        Note that scratch dummy variables are named::
+
+                         <operation name>_<variable name>
+
+        to avoid collisions if the task function needs two variables with the
+        same name but from two different operations.
+
+        :param bridge: Data structure that specifies the scratch and external
+            arguments at the level of the single operation to which all
+            internal subroutines belong.
+        :param operation_name: Name of the operation
+
+        :return: tf_dummy_spec, dummy_to_actuals where
+            * tf_dummy_spec is the specification of scratch dummy arguments for
+              the task function and
+            * dummy_to_actuals is the mapping
+        """
+        bridge_spec = bridge["scratch"]
+
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
             for subroutine in node:
                 spec = self.subroutine_specification(subroutine)
-                for idx,arg in enumerate(spec["argument_list"]):
-                    source = spec["argument_specifications"][arg]["source"]
-                    source_name = spec["argument_specifications"][arg].get("source_name", None)
+                for idx, arg in enumerate(spec["argument_list"]):
+                    arg_spec = spec["argument_specifications"][arg]
+                    source = arg_spec["source"]
                     if source == TaskFunction.SCRATCH_ARGUMENT:
-                        key = source_name
-                        if not key:
-                            key = f"{subroutine}_{arg}"
-                        else:
-                            del spec["argument_specifications"][arg]["source_name"] # delete source name? Maybe not necessary
-                        key = scratch_name_mapping.get(key.lower(), key)
-                        if key not in needed:
-                            needed[key] = spec["argument_specifications"][arg]
-                        if key not in mapping:
-                            mapping[key] = []
-                        mapping[key].append((subroutine, arg, idx+1))
-        return needed,mapping
+                        bridge_name = arg_spec["name"].strip()
+                        assert bridge_name.startswith("_")
+                        tf_dummy = f"{operation_name}{bridge_name}"
+                        if tf_dummy not in tf_dummy_spec:
+                            tmp_spec = bridge_spec[bridge_name].copy()
+                            assert "source" not in tmp_spec
+                            tmp_spec["source"] = "scratch"
+                            tf_dummy_spec[tf_dummy] = tmp_spec
+                            assert tf_dummy not in dummy_to_actuals
+                            dummy_to_actuals[tf_dummy] = []
+                        dummy_to_actuals[tf_dummy].append((subroutine, arg, idx+1))
+
+        return tf_dummy_spec, dummy_to_actuals
 
     @property
     def tile_metadata_arguments(self):
@@ -512,7 +611,7 @@ class TaskFunctionAssembler(object):
 
                 mapping = {}
                 for arg in dummies:
-                    for key, value in self.__arg_mapping.items():
+                    for key, value in self.__dummy_to_actuals.items():
                         for item in value:
                             item = (item[0], item[1])
                             if item == (subroutine, arg):
@@ -526,7 +625,7 @@ class TaskFunctionAssembler(object):
                     "argument_mapping": mapping
                 }
 
-        print(json.dumps(spec, indent=4))
+        # print(json.dumps(spec, indent=4))
 
         if (not overwrite) and Path(filename).exists():
             raise RuntimeError(f"{filename} already exists")

@@ -15,18 +15,17 @@
         "cpp_source": "gpu_tf_hydro_Cpp2C.cpp",
         "c2f_source": "gpu_tf_hydro_C2F.F90",
         "fortran_source": "gpu_tf_hydro.F90",
-        "argument_list": ["dt",
+        "argument_list": ["hydro_op1_dt",
                           "tile_deltas",
                           "tile_hi",
                           "tile_lo",
                           "CC_1",
-                          "hydro_op1_auxc",
+                          "hydro_op1_auxC",
                           "hydro_op1_flX",
                           "hydro_op1_flY",
                           "hydro_op1_flZ"],
         "argument_specifications": {
-            "dt":             {"source":           "external",
-                               "name":             "dt",
+            "hydro_op1_dt":   {"source":           "external",
                                "type":             "real",
                                "extents":          []},
             "tile_deltas":    {"source":           "tile_deltas"},
@@ -34,9 +33,9 @@
             "tile_hi":        {"source":           "tile_hi"},
             "CC_1":           {"source":           "grid_data",
                                "structure_index": ["CENTER", 1],
-                               "variables_in":    [1, 9],
+                               "variables_in":    [1, 6],
                                "variables_out":   [1, 8]},
-            "hydro_op1_auxc": {"source":           "scratch",
+            "hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(18, 18, 18)",
                                "lbound":           "(tile_lo) - (1, 1, 1)"},
@@ -80,7 +79,7 @@
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "U":      "CC_1",
-                "auxC":   "hydro_op1_auxc"
+                "auxC":   "hydro_op1_auxC"
             }
         },
         "Hydro_computeFluxesHll_X_gpu_oacc": {
@@ -93,12 +92,12 @@
                               "auxC",
                               "flX"],
             "argument_mapping": {
-                "dt":     "dt",
+                "dt":     "hydro_op1_dt",
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
                 "U":      "CC_1",
-                "auxC":   "hydro_op1_auxc",
+                "auxC":   "hydro_op1_auxC",
                 "flX":    "hydro_op1_flX"
             }
         },
@@ -112,12 +111,12 @@
                               "auxC",
                               "flY"],
             "argument_mapping": {
-                "dt":     "dt",
+                "dt":     "hydro_op1_dt",
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
                 "U":      "CC_1",
-                "auxC":   "hydro_op1_auxc",
+                "auxC":   "hydro_op1_auxC",
                 "flY":    "hydro_op1_flY"
             }
         },
@@ -131,12 +130,12 @@
                               "auxC",
                               "flZ"],
             "argument_mapping": {
-                "dt":     "dt",
+                "dt":     "hydro_op1_dt",
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
                 "U":      "CC_1",
-                "auxC":   "hydro_op1_auxc",
+                "auxC":   "hydro_op1_auxC",
                 "flZ":    "hydro_op1_flZ"
             }
         },

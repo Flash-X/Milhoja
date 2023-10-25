@@ -4,24 +4,16 @@
     "argument_list": ["dt", "lo", "hi", "deltas", "U", "auxC", "flY"],
     "argument_specifications": {
         "dt":        {"source":             "external",
-                      "source_name":        "dt",
-                      "name":               "dt",
-                      "type":               "real",
-                      "extents":            []},
+                      "name":               "_dt"},
         "lo":        {"source":             "tile_lo"},
         "hi":        {"source":             "tile_hi"},
         "deltas":    {"source":             "tile_deltas"},
         "U":         {"source":             "grid_data",
-                      "structure_index":    ["CENTER", 1]},
+                      "structure_index":    ["CENTER", 1],
+                      "R":                  [1, 2, 3, 4, 5, 6]},
         "auxC":      {"source":             "scratch",
-                      "source_name":        "auxc",
-                      "type":               "real",
-                      "extents":            "(18, 18, 18)",
-                      "lbound":             "(tile_lo) - (1, 1, 1)"},
+                      "name":               "_auxC"},
         "flY":       {"source":             "scratch",
-                      "source_name":        "fly",
-                      "type":               "real",
-                      "extents":            "(16, 17, 16, 5)",
-                      "lbound":             "(tile_lo, 1)"}
+                      "name":               "_flY"}
     }
 }

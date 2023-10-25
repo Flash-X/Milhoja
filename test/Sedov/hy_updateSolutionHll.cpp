@@ -6,6 +6,23 @@ void hy::updateSolutionHll(const milhoja::IntVect& lo,
                            const milhoja::IntVect& hi,
                            milhoja::FArray4D& U,
                            LIST_NDIM(const milhoja::FArray4D& flX, const milhoja::FArray4D& flY, const milhoja::FArray4D& flZ)) {
+    !$milhoja  "flX": {
+    !$milhoja&   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX,
+    !$milhoja&         HY_DENS_FLUX, HY_ENER_FLUX]
+    !$milhoja& },
+    !$milhoja& "flY": {
+    !$milhoja&   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX,
+    !$milhoja&         HY_DENS_FLUX, HY_ENER_FLUX]
+    !$milhoja& },
+    !$milhoja& "flZ": {
+    !$milhoja&   "R": [HY_XMOM_FLUX, HY_YMOM_FLUX, HY_ZMOM_FLUX,
+    !$milhoja&         HY_DENS_FLUX, HY_ENER_FLUX]
+    !$milhoja& },
+    !$milhoja& "U": {
+    !$milhoja&   "RW": [VELX_VAR, VELY_VAR, VELZ_VAR, DENS_VAR, ENER_VAR],
+    !$milhoja&   "W":  [EINT_VAR]
+    !$milhoja& }
+
     using namespace milhoja;
 
 #ifdef EINT_VAR
