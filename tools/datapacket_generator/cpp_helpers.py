@@ -8,14 +8,6 @@ import packet_generation_utility as util
 import json_sections as jsc
 import DataPacketMemberVars as dpinfo
 
-# This is a temporary measure until the bounds section in the JSON is solidified.
-BOUND_MAP = {
-    'auxC': ['loGC', 'hiGC', '1'],
-    'flX': ['lo', 'IntVect{ LIST_NDIM( hi.I()+1, hi.J(), hi.K() ) }'],
-    'flY': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J()+1, hi.K() ) }'],
-    'flZ': ['lo', 'IntVect{ LIST_NDIM( hi.I(), hi.J(), hi.K()+1 ) }']
-}
-
 
 # TODO: Once bounds are properly introduced into the JSON this is function no longer needed.
 def get_metadata_dependencies(metadata: dict, language: str):
@@ -86,7 +78,6 @@ def insert_farray_information(tile_data: list, connectors: dict, section: str, s
     connectors[section].extend(
         [ f'FArray4D* _f4_{item}_d;\n' for item in farrays ] 
     )
-    print(connectors[section])
     connectors[set_members].extend(
         [ f'_f4_{item}_d{{nullptr}}' for item in farrays ]
     )

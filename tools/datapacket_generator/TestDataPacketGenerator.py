@@ -41,17 +41,33 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         self._runtime = [
             {
                 self.JSON: _TEST_PATH.joinpath("gpu_tf_dens.json"),
-                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_dens.h"),
+                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_tf_dens.h"),
                 self.HDD: False,
-                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_dens.cpp"),
+                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_tf_dens.cpp"),
                 self.SDD: False,
                 self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json") # temp use summit sizes
+            },
+            {
+                self.JSON: _TEST_PATH.joinpath("gpu_tf_fused_actions.json"),
+                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_tf_fused_actions.h"),
+                self.HDD: False,
+                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_tf_fused_actions.cpp"),
+                self.SDD: False,
+                self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json")
+            },
+            {
+                self.JSON: _TEST_PATH.joinpath("gpu_tf_fused_kernels.json"),
+                self.HEADER: _TEST_PATH.joinpath("DataPacket_gpu_tf_fused_kernels.h"),
+                self.HDD: False,
+                self.SOURCE: _TEST_PATH.joinpath("DataPacket_gpu_tf_fused_kernels.cpp"),
+                self.SDD: False,
+                self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json")
             }
         ]
 
         self._sedov = [
             {
-                self.JSON: _TEST_PATH.joinpath("gpu_tf_hydro_3D.json"),
+                self.JSON: _TEST_PATH.joinpath("gpu_tf_hydro_2D.json"),
                 self.HEADER: _TEST_PATH.joinpath(""),
                 self.HDD: False,
                 self.SOURCE: _TEST_PATH.joinpath(""),
@@ -61,7 +77,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         ]
 
     def tearDown(self):
-        ...
+        pass
 
     def check_generated_files(self, generated, correct):
         """
@@ -87,7 +103,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         """
         Tests all files in CppTestData.
         """
-        for test_set in [self._runtime]:
+        for test_set in [self._runtime, self._sedov]:
             for test in test_set:
                 print(f"""---------------------{test[self.JSON]}---------------------""")
 

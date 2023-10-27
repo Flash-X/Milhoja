@@ -91,80 +91,8 @@ def remove_invalid_parens(invalid_string: str) -> str:
     to_remove.extend(stack)
     for (char,idx) in to_remove:
         invalid_string = invalid_string[:idx] + '' + invalid_string[idx + 1:]
-    print(invalid_string)
     return invalid_string
 
-def parse_lbound(lbound: str, data_source: str):
-    """
-    Parses an lbound string for use within the generator.
-    
-    :param str lbound: The lbound string to parse.
-    :param str data_source: The source of the data. Eg: scratch or grid data. 
-    """
-    starting_index = "1"
-    print(lbound)
-    # data source is either grid or scratch for tile arrays.
-    if lbound and data_source == _GRID:
-        # We have control over the extents of grid data structures.
-        lbound_info = lbound.split(',')
-        # We control lbound format for grid data structures, 
-        # so the length of this lbound should always be 2.
-        assert len(lbound_info) == 2
-
-        # get low index
-        low = lbound_info[0]
-        low = low.strip().replace(')', '').replace('(', '')
-        starting_index = lbound_info[-1]
-        starting_index = starting_index.strip().replace('(', '').replace(')', '')
-        return [low, starting_index]
-    
-    elif lbound and data_source == _SCRATCH:
-        # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
-        # to find tile data.
-        lookahead = r',\s*(?![^()]*\))'
-        matches = re.split(lookahead, lbound)
-        # print("Split: ", matches)
-        # Can't assume lbound split is a specific size since we don't have control over
-        # structures of scratch data.
-        for idx,item in enumerate(matches):
-            match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
-            unlabeled_intvects = re.findall(match_intvects, item)
-            # print(unlabeled_intvects)
-            for vect in unlabeled_intvects:
-                matches[idx] = item.replace(vect, f"IntVect{vect}")
-        print(matches)
-        return matches
-    # data source was not valid.
-    return ['']
-
-    
-
-def format_lbound_string(name:str, lbound: list) -> Tuple[str, list]:
-    """
-    TODO: Remove this.
-    Given an lbound string, it formats it and returns the formatted string, as well as a list of the necessary lbound construction arguments.
-    
-    :param str name: The lbound string.
-    :param list lbound: The lbound string split up as a list.
-    :return: A tuple containing the formatted lbound string, as well as a list of formatted lbound items.
-    :rtype: Tuple[str, list]
-    """
-    lbound_list = []
-    formatted = ""
-    for item in lbound:
-        try:
-            lbound_list.append(str(int(item)))
-        except Exception:
-            formatted = item
-            tile_name = formatted.split(' ')[0].replace('tile_', '')
-            tile_name = f'{tile_name}()'
-            start_location = item.find('(')
-            formatted = f'tileDesc_h->{tile_name}'
-            if start_location != -1:
-                formatted = f'tileDesc_h->{tile_name} - IntVect{{ LIST_NDIM{item[start_location:]} }}'
-            lbound_list.extend( [f'{name}.I() + 1', f'{name}.J() + 1', f'{name}.K() + 1'] )
-    return (formatted, lbound_list)
-    
 
 def check_json_validity(data: dict) -> bool:
     """

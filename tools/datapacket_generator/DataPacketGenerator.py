@@ -236,7 +236,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             external[item] = self._tf_spec.argument_specification(item)
 
         sort_func = lambda key_and_type: self._sizes.get(key_and_type[1]['type'], 0)
-        return self._sort_dict(external.items(), sort_func)
+        return self._sort_dict(external.items(), sort_func, True)
 
     @property
     def tile_metadata_args(self) -> OrderedDict:
@@ -258,8 +258,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
             if lang == "fortran":
                 args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
-        print(args)
-        return self._sort_dict(args.items(), sort_func)
+        return self._sort_dict(args.items(), sort_func, True)
     
     def __adjust_tile_data(self, args: dict) -> dict:
         arg_dictionary = {}
@@ -293,33 +292,33 @@ class DataPacketGenerator(AbcCodeGenerator):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_arguments
         arg_dictionary = self.__adjust_tile_data(args)
-        return self._sort_dict(arg_dictionary.items(), sort_func)
+        return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
     def tile_in_out_args(self):
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_out_arguments
         arg_dictionary = self.__adjust_tile_data(args)
-        return self._sort_dict(arg_dictionary.items(), sort_func)
+        return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
-    def tile_out_args(self):
+    def tile_out_args(self) -> OrderedDict:
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_out_arguments
         arg_dictionary = self.__adjust_tile_data(args)
-        return self._sort_dict(arg_dictionary.items(), sort_func)
+        return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
-    def scratch_args(self):
-        sort_func = lambda x: (self._sizes.get(x[1]["type"], 0), not x[0])
+    def scratch_args(self) -> OrderedDict:
+        sort_func = lambda x: (self._sizes.get(x[1]["type"], 0), x[0])
         args = self._tf_spec.scratch_arguments
-        arg_dictionary = {}
+        arg_dictionary = OrderedDict()
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
             arg_dictionary[arg]['extents'] = self.__parse_extents(arg_dictionary[arg]['extents'])
             arg_dictionary[arg]['lbound'] = self.__parse_lbound(arg_dictionary[arg]['lbound'], 'scratch')
 
-        return self._sort_dict(arg_dictionary.items(), sort_func)
+        return self._sort_dict(arg_dictionary.items(), sort_func, False)
     
     @property
     def block_extents(self):
@@ -333,7 +332,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     def dimension(self):
         return self._tf_spec.grid_dimension
 
-    def _sort_dict(self, arguments, sort_key) -> OrderedDict:
+    def _sort_dict(self, arguments, sort_key, reverse) -> OrderedDict:
         """
         Sorts a given dictionary using the sort key.
         
@@ -341,11 +340,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         :param func sort_key: The function to sort with.
         """
         dict_items = [ (k,v) for k,v in arguments ]
-        return OrderedDict(sorted(dict_items, key=sort_key, reverse=True))
-
-    def abort(self, msg: str):
-        # print message and exit
-        ...
+        return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
 
     def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list):
         
@@ -356,7 +351,6 @@ class DataPacketGenerator(AbcCodeGenerator):
 
             # load and link each template into source tree.
             for idx,link in enumerate(templates[1:]):
-                print(link)
                 tree_link = srctree.load(link)
                 pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)
                 if pathInfo:
@@ -397,6 +391,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             starting_index = starting_index.strip().replace('(', '').replace(')', '')
             return [low, starting_index]
         elif data_source == "scratch":
+            lbound = lbound[1:-1].replace("tile_", '') # remove outer parens, and tile_ from bounds
             # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
             # to find tile data.
             lookahead = r',\s*(?![^()]*\))'
@@ -406,9 +401,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             for idx,item in enumerate(matches):
                 match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
                 unlabeled_intvects = re.findall(match_intvects, item)
-                # print(unlabeled_intvects)
                 for vect in unlabeled_intvects:
-                    matches[idx] = item.replace(vect, f"IntVect{vect}")
+                    matches[idx] = item.replace(vect, f"IntVect{{ LIST_NDIM{vect} }}")
             return matches
         # data source was not valid.
         return ['']
@@ -417,3 +411,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         """Parses an extents string."""
         extents = extents.replace('(', '').replace(')', '')
         return [ item.strip() for item in extents.split(',') ]
+
+    def abort(self, msg: str):
+        # print message and exit
+        self._error(msg)
+        exit(-1)

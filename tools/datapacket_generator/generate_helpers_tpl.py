@@ -16,7 +16,6 @@ import os
 from DataPacketMemberVars import DataPacketMemberVars
 from milhoja import TaskFunction
 
-
 _NTILES_VALUE = 'nTiles_value'
 _CON_ARGS = 'constructor_args'
 _SET_MEMBERS = 'set_members'
@@ -59,7 +58,7 @@ def _add_size_parameter(name: str, section_dict: dict, connectors: dict):
 
 def _section_creation(
     name: str, 
-    section: dict, 
+    section: OrderedDict, 
     connectors: dict, 
     size_connectors
 ):
@@ -481,21 +480,10 @@ def _add_unpack_connector(
     :param str in_ptr: The name of the in data pointer
     :param str out_ptr: The name of the out data pointer
     """
-
-    # Developer's Note:
-    # I'm adding the potential for not including a start and an ending index
-    # to satisfy a small requirement by Anshu's requested DataPacket JSON 
-    # generator. Ideally, bounds should always be specified in the 
-    # JSON, and it's up to the application, not the DataPacket Generator, 
-    # to specify defaults. This however, I think is an okay workaround for 
-    # having default starting and ending indices, since copying the size of 
-    # the entire variable is not application specific, and the size of the 
-    # variable must be specified by the application (aka, no default sizes).
     offset = f"{extents} * static_cast<std::size_t>({start});"
     nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
     data_pointer_string = _SOURCE_TILE_DATA_MAPPING[source.upper()]
 
-    # TODO: Eventually the tile wrapper class will allow us to pick out the exact data array we need with dataPtr().
     connectors[_IN_PTRS].append(
         f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'
     )
@@ -659,9 +647,14 @@ def _iterate_tilescratch(
     """
     _section_creation(jsc.T_SCRATCH, tilescratch, connectors, size_connectors)
     for item,data in tilescratch.items():
-        # lbound = f"lo{item[0].capitalize()}{item[1:]}"
-        # hbound = ...
-        extents = ' * '.join(f'({val})' for val in data[jsc.EXTENTS])
+
+        exts = data[jsc.EXTENTS]
+        # need to fill farrays with default args
+        farray = ["1"] * 4
+        for idx,val in enumerate(exts):
+            farray[idx] = str(val)
+
+        extents = ' * '.join(f'({val})' for val in farray)
         info = DataPacketMemberVars(
             item=item, dtype=data[jsc.DTYPE], 
             size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', 
@@ -678,15 +671,14 @@ def _iterate_tilescratch(
         # we don't insert into memcpy or unpack because the scratch is only used in the device memory 
         # and does not come back.
         
-        # TODO: How to insert this FArray into the C++ packet? 
-        #       We do not have control over the number of unknowns in scratch arrays, so how do we 
-        #       incorporate this with lbound?
+        # ..todo:
+        #    * Does this work fine if we allow anything to be scratch?
+        lo = data[jsc.LBOUND][0]
+        hi = f'IntVect{{ LIST_NDIM({", ".join(farray[:-1])}) }}'
+        unks = farray[-1]
         if language == "c++":
             cpp_helpers.insert_farray_memcpy(
-                connectors, item, 
-                cpp_helpers.BOUND_MAP[item][0], 
-                cpp_helpers.BOUND_MAP[item][1], 
-                cpp_helpers.BOUND_MAP[item][2], info.dtype
+                connectors, item, lo, hi, str(unks), info.dtype
             )
 
 
@@ -786,7 +778,8 @@ def generate_helper_template(generator, overwrite: bool) -> None:
     :param dict data: The dictionary containing the DataPacket JSON data.
     """
 
-    # TODO: Log warnings
+    # ..todo:
+    #    * Add logging using basic logger.
     # TOOD: This file should be moved inside of the DataPacket generator interface
     # if os.path.isfile(generator.helper_template):
     #     if overwrite:
@@ -794,7 +787,8 @@ def generate_helper_template(generator, overwrite: bool) -> None:
     #     else:
     #         ...
 
-    # TODO: I don't need to keep this file open the entire generation process.
+    # ..todo:
+    #    * This file does not need to stay open during the entire generation process.
     with open(generator.helper_template, 'w') as template:
         size_connectors = defaultdict(str)
         connectors = defaultdict(list) 
