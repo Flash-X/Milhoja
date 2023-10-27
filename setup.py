@@ -142,7 +142,7 @@ if __name__ == '__main__':
         print_and_exit("Non-positive nxb value")
 
     if args.nyb is None:
-        if dimension > 1:
+        if ndim > 1:
             print_and_exit('Please specify nyb value')
         else:
             nyb = 1
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         print_and_exit("nyb != 1 for 1D problem")
 
     if args.nzb is None:
-        if dimension == 3:
+        if ndim == 3:
             print_and_exit('Please specify nzb value')
         else:
             nzb = 1
