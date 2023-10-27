@@ -1,5 +1,7 @@
 # functions
 from .generate_code import generate_code
+from .generate_grid_tf_specs import generate_grid_tf_specs
+from .generate_grid_code import generate_grid_code
 from .generate_sedov_cpu_tf_specs import generate_sedov_cpu_tf_specs
 from .generate_sedov_cpu_code import generate_sedov_cpu_code
 from .generate_sedov_gpu_tf_specs import generate_sedov_gpu_tf_specs

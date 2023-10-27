@@ -9,10 +9,7 @@
         "finestRefinementLevel":           1,
         "nBlocksX":                       32,
         "nBlocksY":                       32,
-        "nBlocksZ":                        1,
-        "NXB":                            16,
-        "NYB":                            16,
-        "NZB":                             1
+        "nBlocksZ":                        1
     },
     "Runtime": {
         "nThreadsPerTeam":                 7,

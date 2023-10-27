@@ -7,10 +7,10 @@ namespace Eos {
 void idealGammaDensIe(const milhoja::IntVect& lo, 
                       const milhoja::IntVect& hi,
                       milhoja::FArray4D& U) {
-    !$milhoja  "U": {
-    !$milhoja&    "R": [DENS_VAR, EINT_VAR],
-    !$milhoja&    "W": [PRES_VAR, TEMP_VAR]
-    !$milhoja& }
+    //$milhoja  "U": {
+    //$milhoja&    "R": [DENS_VAR, EINT_VAR],
+    //$milhoja&    "W": [PRES_VAR, TEMP_VAR]
+    //$milhoja& }
 
     // Taken from FLASH-X Sedov/setup_params file 
     constexpr milhoja::Real   SINGLE_SPECIES_A = 1.0_wp;
