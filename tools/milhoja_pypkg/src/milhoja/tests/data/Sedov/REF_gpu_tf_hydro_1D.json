@@ -1,10 +1,10 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
     "grid": {
-        "dimension":    3,
+        "dimension":    1,
         "nxb":         16,
-        "nyb":         16,
-        "nzb":         16,
+        "nyb":          1,
+        "nzb":          1,
         "nguardcells":  1
     },
     "task_function": {
@@ -33,24 +33,24 @@
             "tile_hi":        {"source":           "tile_hi"},
             "CC_1":           {"source":           "grid_data",
                                "structure_index": ["CENTER", 1],
-                               "variables_in":    [1, 6],
+                               "variables_in":    [1, 9],
                                "variables_out":   [1, 8]},
             "hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(18, 18, 18)",
-                               "lbound":           "(tile_lo) - (1, 1, 1)"},
+                               "extents":          "(18, 1, 1)",
+                               "lbound":           "(tile_lo) - (1, 0, 0)"},
             "hydro_op1_flX":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(17, 16, 16, 5)",
+                               "extents":          "(17, 1, 1, 5)",
                                "lbound":           "(tile_lo, 1)"},
             "hydro_op1_flY":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(16, 17, 16, 5)",
-                               "lbound":           "(tile_lo, 1)"},
+                               "extents":          "(1, 1, 1, 1)",
+                               "lbound":           "(1, 1, 1, 1)"},
             "hydro_op1_flZ":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(16, 16, 17, 5)",
-                               "lbound":           "(tile_lo, 1)"}
+                               "extents":          "(1, 1, 1, 1)",
+                               "lbound":           "(1, 1, 1, 1)"}
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_gpu_oacc",

@@ -1,5 +1,8 @@
 # functions
 from .generate_code import generate_code
+from .generate_sedov_cpu_tf_specs import generate_sedov_cpu_tf_specs
+from .generate_sedov_cpu_code import generate_sedov_cpu_code
+from .generate_sedov_gpu_tf_specs import generate_sedov_gpu_tf_specs
 
 # ----- Python unittest-based test framework
 # This package autodiscovers tests and has a high-level interface for running

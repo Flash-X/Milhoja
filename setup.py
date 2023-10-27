@@ -260,9 +260,14 @@ if __name__ == '__main__':
     generatedMakefile = buildDir.joinpath("Makefile.generated")
     if generator.is_file():
         # TODO: Check error code of shell call
+        # TODO: Get these from command line
+        nxb = 16
+        nyb = 16 if ndim >= 2 else 1
+        nzb = 16 if ndim == 3 else 1
         sbp.call(
             [str(generator), str(buildDir),
              str(generatedMakefile), str(ndim),
+             str(nxb), str(nyb), str(nzb),
              "--verbose", str(1)])
     else:
         print(f"No automatic code generation required by test")

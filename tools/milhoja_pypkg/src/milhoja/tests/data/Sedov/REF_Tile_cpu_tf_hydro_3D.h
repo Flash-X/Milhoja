@@ -4,7 +4,7 @@
 #include <Milhoja_TileWrapper.h>
 
 struct Tile_cpu_tf_hydro : public milhoja::TileWrapper {
-    Tile_cpu_tf_hydro(const milhoja::Real dt);
+    Tile_cpu_tf_hydro(const milhoja::Real hydro_op1_dt);
     ~Tile_cpu_tf_hydro(void);
 
     Tile_cpu_tf_hydro(Tile_cpu_tf_hydro&)                  = delete;
@@ -16,7 +16,7 @@ struct Tile_cpu_tf_hydro : public milhoja::TileWrapper {
 
     std::unique_ptr<milhoja::TileWrapper> clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const override;
 
-    milhoja::Real  dt_;
+    milhoja::Real  hydro_op1_dt_;
 
     static void acquireScratch(void);
     static void releaseScratch(void);
@@ -26,7 +26,7 @@ struct Tile_cpu_tf_hydro : public milhoja::TileWrapper {
                     * 18
                     * 18;
 
-    static void* hydro_op1_auxc_;
+    static void* hydro_op1_auxC_;
 };
 
 #endif

@@ -47,6 +47,15 @@ class TaskFunction(object):
         TILE_CELL_VOLUMES
     ])
 
+    # Task functions can include subroutines that take as an actual argument
+    # the unique thread index of the runtime thread that is effectively calling
+    # it.  Since this value is purely internal and is passed in, it is managed
+    # differently from other arguments.
+    THREAD_INDEX_ARGUMENT = "milhoja_thread_index"
+    # JSON generators need to insert the same variable name that the TF code
+    # generators use.
+    THREAD_INDEX_VAR_NAME = "threadIndex"
+
     @staticmethod
     def from_milhoja_json(filename):
         """

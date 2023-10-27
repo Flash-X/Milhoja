@@ -8,8 +8,6 @@ can, however, use the unittest self.assert*() methods.
 """
 
 import os
-import json
-import shutil
 import unittest
 
 from pathlib import Path
@@ -64,27 +62,6 @@ class TestCodeGenerators(unittest.TestCase):
 
         return "(" + ", ".join([str(e) for e in extents]) + ")"
 
-    def __dimensionalize(self, json_fname_3D, json_fname_XD, dim):
-        #
-        # Given a file containing the specification of a task function for a 3D
-        # test problem, write the specification to a new file for the version
-        # of the problem associated with the given dimension.
-        #
-
-        with open(json_fname_3D, "r") as fptr:
-            json_3D = json.load(fptr)
-
-        json_XD = json_3D.copy()
-
-        json_XD["grid"]["dimension"] = dim
-        if dim <= 2:
-            json_XD["grid"]["nzb"] = 1
-        if dim == 1:
-            json_XD["grid"]["nyb"] = 1
-
-        with open(json_fname_XD, "w") as fptr:
-            json.dump(json_XD, fptr)
-
     def run_tests(self, tests_all, dims_all, create_generator):
         #
         # For each test in the Cartesian product of tests_all x dims_all,
@@ -98,21 +75,14 @@ class TestCodeGenerators(unittest.TestCase):
         dst = Path.cwd()
 
         for test in tests_all:
-            json_fname_3D = test["json"]
             hdr_depends_on_dim = test["header_dim_dependent"]
             src_depends_on_dim = test["source_dim_dependent"]
 
-            json_fname_XD = dst.joinpath("tmp.json")
-
             for dim in dims_all:
-                self.assertTrue(not json_fname_XD.exists())
-                if hdr_depends_on_dim or src_depends_on_dim:
-                    self.__dimensionalize(json_fname_3D, json_fname_XD, dim)
-                else:
-                    shutil.copy(json_fname_3D, json_fname_XD)
-                self.assertTrue(json_fname_XD.is_file())
+                json_fname = Path(str(test["json"]).format(dim))
+                self.assertTrue(json_fname.is_file())
 
-                generator = create_generator(json_fname_XD)
+                generator = create_generator(json_fname)
 
                 header_filename = dst.joinpath(generator.header_filename)
                 source_filename = dst.joinpath(generator.source_filename)
@@ -149,6 +119,5 @@ class TestCodeGenerators(unittest.TestCase):
                     self.assertEqual(gen_line, ref_line)
 
                 # ----- CLEAN-UP YA LAZY SLOB!
-                os.remove(str(json_fname_XD))
                 os.remove(str(header_filename))
                 os.remove(str(source_filename))

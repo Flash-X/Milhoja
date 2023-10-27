@@ -4,11 +4,13 @@ Automatic unit testing of TaskFunctionAssembler
 
 import os
 import json
+import shutil
 import unittest
 
 from pathlib import Path
 
-import milhoja
+import milhoja.tests
+
 
 _FILE_PATH = Path(__file__).resolve().parent
 _DATA_PATH = _FILE_PATH.joinpath("data")
@@ -17,53 +19,28 @@ _SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
 
 class TestTaskFunctionAssembler(unittest.TestCase):
     def setUp(self):
+        self.__dst = Path.cwd().joinpath("delete_me")
+        if self.__dst.exists():
+            shutil.rmtree(self.__dst)
+        os.makedirs(self.__dst)
+
         self.__logger = milhoja.BasicLogger(milhoja.LOG_LEVEL_NONE)
 
-        self.__json_filename = Path.cwd().joinpath("delete_me.json")
-        if self.__json_filename.exists():
-            os.remove(self.__json_filename)
+        gpu_spec_fname = self.__dst.joinpath("gpu_tf_hydro_3D.json")
+        self.assertFalse(gpu_spec_fname.exists())
+        filename = milhoja.tests.generate_sedov_gpu_tf_specs(
+                     3, [16, 16, 16], _SEDOV_PATH,
+                     self.__dst, False, self.__logger
+                   )
+        self.assertEqual(gpu_spec_fname, filename)
+        self.assertTrue(gpu_spec_fname.is_file())
 
-        # ----- DEFINE SEDOV TEST ASSEMBLER
-        # An application needs to construct each task function by grouping a
-        # collection of subroutines to be included in the TF in the form of a
-        # "graph".  For the moment, our graphs are highly constrained.
-        #
-        # Imagine that the applications recipe system has identified this
-        # internal call graph for our TF under test.
-        tf_call_graph = [
-            "Hydro_computeSoundSpeedHll_gpu_oacc",
-            [
-                "Hydro_computeFluxesHll_X_gpu_oacc",
-                "Hydro_computeFluxesHll_Y_gpu_oacc",
-                "Hydro_computeFluxesHll_Z_gpu_oacc"
-            ],
-            "Hydro_updateSolutionHll_gpu_oacc"
-        ]
-
-        bridge_json = _SEDOV_PATH.joinpath("Hydro_op1.json")
-
-        grid_json = _SEDOV_PATH.joinpath("grid.json")
-
-        self.__tf_spec_json = _SEDOV_PATH.joinpath("gpu_tf_hydro_v100.json")
-
-        # The application would then gather together the specifications for
-        # each subroutine to be called internally within the TF.  We imagine
-        # that the developers of the subroutines encode each subroutine's
-        # specification within Milhoja-JSON format files.
-        subroutine_jsons_all = {}
-        for node in tf_call_graph:
-            if isinstance(node, str):
-                subroutines_all = [node]
-            else:
-                subroutines_all = node.copy()
-
-            for subroutine in subroutines_all:
-                subroutine_jsons_all[subroutine] = \
-                    _SEDOV_PATH.joinpath(f"{subroutine}.json")
-
+        with open(gpu_spec_fname, "r") as fptr:
+            tf_spec = json.load(fptr)
+        tf_call_graph = tf_spec["task_function"]["subroutine_call_graph"]
+        op_spec_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
         self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, subroutine_jsons_all,
-            bridge_json, grid_json, self.__logger
+            "gpu_tf_hydro", tf_call_graph, op_spec_json, self.__logger
         )
 
     def testDummyArguments(self):
@@ -97,50 +74,118 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         expected = {"hydro_op1_dt"}
         self.assertEqual(expected, self.__Sedov.external_arguments)
 
-    def testToMilhojaJson(self):
+    def testSedovCpu(self):
         OVERWRITE = False
+        EXPECTED = [
+            "cpu_tf_ic_{}D.json", "cpu_tf_hydro_{}D.json", "cpu_tf_IQ_{}D.json"
+        ]
 
-        with open(_SEDOV_PATH.joinpath("gpu_tf_hydro_3D.json"), "r") as fptr:
-            expected = json.load(fptr)
+        for dimension in [1, 2, 3]:
+            # Generate all task function specification files
+            nxb = 16
+            nyb = 16 if dimension >= 2 else 1
+            nzb = 16 if dimension == 3 else 1
 
-        self.assertFalse(self.__json_filename.exists())
-        self.__Sedov.to_milhoja_json(self.__json_filename,
-                                     self.__tf_spec_json,
-                                     OVERWRITE)
-        self.assertTrue(self.__json_filename.is_file())
-        self.maxDiff = None
+            for each in EXPECTED:
+                filename = self.__dst.joinpath(each.format(dimension))
+                self.assertFalse(filename.exists())
 
-        with open(self.__json_filename, "r") as fptr:
-            result = json.load(fptr)
+            milhoja.tests.generate_sedov_cpu_tf_specs(
+                dimension, [nxb, nyb, nzb],
+                _SEDOV_PATH, self.__dst,
+                OVERWRITE, self.__logger
+            )
 
-        # ----- TEST AT FINER SCALE AS THIS CAN HELP DEBUG FAILURES
-        key = "format"
-        self.assertTrue(key in expected)
-        self.assertTrue(key in result)
-        self.assertEqual(expected[key], result[key])
+            for each in EXPECTED:
+                filename = self.__dst.joinpath(each.format(dimension))
+                self.assertTrue(filename.is_file())
 
-        groups_all = ["grid", "task_function", "data_item", "subroutines"]
+                ref_fname = "REF_" + each.format(dimension)
+                with open(_SEDOV_PATH.joinpath(ref_fname), "r") as fptr:
+                    reference = json.load(fptr)
+                with open(filename, "r") as fptr:
+                    result = json.load(fptr)
 
-        self.assertEqual(len(expected), len(result))
-        for group in groups_all:
-            # print(group)
-            # print(expected[group])
-            # print(result[group])
-            self.assertTrue(group in expected)
-            self.assertTrue(group in result)
+                # ----- TEST AT FINER SCALE AS THIS CAN HELP DEBUG FAILURES
+                key = "format"
+                self.assertTrue(key in reference)
+                self.assertTrue(key in result)
+                self.assertEqual(reference[key], result[key])
 
-            self.assertEqual(len(expected[group]), len(result[group]))
-            for key in expected[group]:
-                # print(group, key)
-                # print(expected[group][key])
-                # print(result[group][key])
-                self.assertTrue(key in result[group])
-                self.assertEqual(expected[group][key], result[group][key])
+                groups_all = [
+                    "grid", "task_function", "data_item", "subroutines"
+                ]
 
-        # ----- DEBUG AT COARSEST SCALE AS INTENDED
-        self.assertEqual(expected, result)
+                self.assertEqual(len(reference), len(result))
+                for group in groups_all:
+                    # print(group)
+                    # print(expected[group])
+                    # print(result[group])
+                    self.assertTrue(group in reference)
+                    self.assertTrue(group in result)
 
-        # ----- CLEAN-UP
-        # Clean-up manually here rather than in tearDown so file still exists
-        # for inspection if failure detected
-        os.remove(self.__json_filename)
+                    self.assertEqual(len(reference[group]), len(result[group]))
+                    for key in reference[group]:
+                        # print(group, key)
+                        # print(reference[group][key])
+                        # print(result[group][key])
+                        self.assertTrue(key in result[group])
+                        self.assertEqual(reference[group][key],
+                                         result[group][key])
+
+                # ----- DEBUG AT COARSEST SCALE AS INTENDED
+                self.assertEqual(reference, result)
+
+    def testSedovGpu(self):
+        # Start clean
+        if self.__dst.exists():
+            shutil.rmtree(self.__dst)
+        os.makedirs(self.__dst)
+
+        for dimension in [1, 2, 3]:
+            nxb = 16
+            nyb = 16 if dimension >= 2 else 1
+            nzb = 16 if dimension == 3 else 1
+
+            filename = f"gpu_tf_hydro_{dimension}D.json"
+            tf_spec_fname = self.__dst.joinpath(filename)
+            self.assertFalse(tf_spec_fname.exists())
+            filename = milhoja.tests.generate_sedov_gpu_tf_specs(
+                         dimension, [nxb, nyb, nzb], _SEDOV_PATH,
+                         self.__dst, False, self.__logger
+                       )
+            self.assertEqual(tf_spec_fname, filename)
+            self.assertTrue(tf_spec_fname.is_file())
+
+            filename = f"REF_gpu_tf_hydro_{dimension}D.json"
+            with open(_SEDOV_PATH.joinpath(filename), "r") as fptr:
+                expected = json.load(fptr)
+            with open(tf_spec_fname, "r") as fptr:
+                result = json.load(fptr)
+
+            # ----- TEST AT FINER SCALE AS THIS CAN HELP DEBUG FAILURES
+            key = "format"
+            self.assertTrue(key in expected)
+            self.assertTrue(key in result)
+            self.assertEqual(expected[key], result[key])
+
+            groups_all = ["grid", "task_function", "data_item", "subroutines"]
+
+            self.assertEqual(len(expected), len(result))
+            for group in groups_all:
+                # print(group)
+                # print(expected[group])
+                # print(result[group])
+                self.assertTrue(group in expected)
+                self.assertTrue(group in result)
+
+                self.assertEqual(len(expected[group]), len(result[group]))
+                for key in expected[group]:
+                    # print(group, key)
+                    # print(expected[group][key])
+                    # print(result[group][key])
+                    self.assertTrue(key in result[group])
+                    self.assertEqual(expected[group][key], result[group][key])
+
+            # ----- DEBUG AT COARSEST SCALE AS INTENDED
+            self.assertEqual(expected, result)

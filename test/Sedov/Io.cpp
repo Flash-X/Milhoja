@@ -263,6 +263,11 @@ void   Io::computeIntegralQuantitiesByBlock(const int threadIdx,
                                             const milhoja::IntVect& hi,
                                             const milhoja::FArray3D& cellVolumes,
                                             const milhoja::FArray4D& solnData) {
+    !$milhoja  "solnData": {
+    !$milhoja&    "R": [DENS_VAR, ENER_VAR, EINT_VAR,
+    !$milhoja&          VELX_VAR, VELY_VAR, VELZ_VAR]
+    !$milhoja& }
+
     milhoja::Real    dvol = 0.0;
     milhoja::Real    mass = 0.0;
     milhoja::Real    massSum = 0.0;

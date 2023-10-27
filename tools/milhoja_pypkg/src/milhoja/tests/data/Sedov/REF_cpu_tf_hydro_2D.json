@@ -1,10 +1,10 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
     "grid": {
-        "dimension":    3,
+        "dimension":    2,
         "nxb":         16,
         "nyb":         16,
-        "nzb":         16,
+        "nzb":          1,
         "nguardcells":  1
     },
     "task_function": {
@@ -43,11 +43,11 @@
                                "variables_out":   [1, 5]},
             "FLZ_1":          {"source":           "grid_data",
                                "structure_index": ["FLUXZ", 1],
-                               "variables_out":   [1, 5]},
+                               "variables_in":    [1, 5]},
             "hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(18, 18, 18)",
-                               "lbound":           "(tile_lo) - (1, 1, 1)"}
+                               "extents":          "(18, 18, 1)",
+                               "lbound":           "(tile_lo) - (1, 1, 0)"}
         },
         "subroutine_call_graph": [
             "hy::computeFluxesHll",
@@ -71,7 +71,6 @@
                               "Uin",
                               "flX",
                               "flY",
-                              "flZ",
                               "auxC"],
             "argument_mapping": {
                 "dt":     "hydro_op1_dt",
@@ -81,7 +80,6 @@
                 "Uin":    "CC_1",
                 "flX":    "FLX_1",
                 "flY":    "FLY_1",
-                "flZ":    "FLZ_1",
                 "auxC":   "hydro_op1_auxC"
             }
         },

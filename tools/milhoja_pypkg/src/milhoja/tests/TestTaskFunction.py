@@ -33,17 +33,17 @@ class TestTaskFunction(unittest.TestCase):
         self.__rt_analysis = milhoja.TaskFunction.from_milhoja_json(fname)
 
         # ----- SEDOV/3D/CPU TEST
-        fname = _SEDOV_PATH.joinpath("cpu_tf_ic_3D.json")
+        fname = _SEDOV_PATH.joinpath("REF_cpu_tf_ic_3D.json")
         self.__sedov_ic = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _SEDOV_PATH.joinpath("cpu_tf_hydro_3D.json")
+        fname = _SEDOV_PATH.joinpath("REF_cpu_tf_hydro_3D.json")
         self.__sedov_hy = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _SEDOV_PATH.joinpath("cpu_tf_IQ_3D.json")
+        fname = _SEDOV_PATH.joinpath("REF_cpu_tf_IQ_3D.json")
         self.__sedov_IQ = milhoja.TaskFunction.from_milhoja_json(fname)
 
         # ----- SEDOV/3D/GPU/FORTRAN TEST
-        fname = _SEDOV_PATH.joinpath("gpu_tf_hydro_3D.json")
+        fname = _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_3D.json")
         self.__sedov_hy_F_gpu = milhoja.TaskFunction.from_milhoja_json(fname)
 
     def testOutputFilenames(self):
@@ -80,7 +80,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = [("dt", "milhoja::Real")]
+        expected = [("hydro_op1_dt", "milhoja::Real")]
         for test in tests_all:
             result = test.constructor_dummy_arguments
             self.assertEqual(expected, result)
@@ -138,7 +138,9 @@ class TestTaskFunction(unittest.TestCase):
             milhoja.TaskFunction.TILE_UBOUND: ["tile_ubound"],
             milhoja.TaskFunction.TILE_DELTAS: ["tile_deltas"],
             milhoja.TaskFunction.TILE_COORDINATES: [
-                "tile_xCenters", "tile_yCenters", "tile_zCenters"
+                "tile_xCoords_center",
+                "tile_yCoords_center",
+                "tile_zCoords_center"
             ]
         }
         for test in tests_all:
@@ -185,7 +187,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = set(["dt"])
+        expected = set(["hydro_op1_dt"])
         for test in tests_all:
             result = test.external_arguments
             self.assertEqual(expected, result)
@@ -211,7 +213,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = set(["hydro_op1_auxc"])
+        expected = set(["hydro_op1_auxC"])
         for test in tests_all:
             result = test.scratch_arguments
             self.assertEqual(expected, result)

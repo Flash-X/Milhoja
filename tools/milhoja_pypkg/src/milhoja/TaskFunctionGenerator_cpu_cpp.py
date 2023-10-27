@@ -138,7 +138,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             code += [
                 "milhoja::Real*   MH_INTERNAL_cellVolumes_ptr =",
                 f"\tstatic_cast<milhoja::Real*>({wrapper}::MH_INTERNAL_cellVolumes_)",
-                f"\t+ {wrapper}::MH_INTERNAL_CELLVOLUMES_SIZE_ * threadId;"
+                f"\t+ {wrapper}::MH_INTERNAL_CELLVOLUMES_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};"
             ]
 
         # ----- EXTRACT DEPENDENT METADATA
@@ -267,7 +267,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- FUNCTION DECLARATION
-            fptr.write(f"void  {self.namespace}::taskFunction(const int threadId,\n")
+            fptr.write(f"void  {self.namespace}::taskFunction(const int {TaskFunction.THREAD_INDEX_VAR_NAME},\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
 
             # ----- ACCESS GIVEN TILE DESCRIPTOR
@@ -278,11 +278,10 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             # ----- EXTRACT EXTERNAL VARIABLES
             for arg in sorted(self._tf_spec.external_arguments):
                 arg_spec = self._tf_spec.argument_specification(arg)
-                name = arg_spec["name"]
                 arg_type = arg_spec["type"]
                 extents = arg_spec["extents"]
                 if len(extents) == 0:
-                    fptr.write(f"{INDENT}const {arg_type}& {name} = wrapper->{name}_;\n")
+                    fptr.write(f"{INDENT}const {arg_type}& {arg} = wrapper->{arg}_;\n")
                 else:
                     raise NotImplementedError("Need arrays")
 
@@ -328,7 +327,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 array_type = self.__TILE_DATA_ARRAY_TYPES[dimension - 1]
                 arg_type = arg_spec["type"]
 
-                if arg == "hydro_op1_auxc":
+                if arg == "hydro_op1_auxC":
                     assert dimension == 3
                     fptr.write(f"{INDENT}const milhoja::IntVect    lo_{arg} = milhoja::IntVect{{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,\n")
                     fptr.write(f"{INDENT}                                   tile_lo.J()-MILHOJA_K2D,\n")
@@ -338,7 +337,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
@@ -351,7 +350,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
@@ -364,7 +363,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * threadId;\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg},\n")
@@ -417,7 +416,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write(f"namespace {self.namespace} {{\n")
-            fptr.write(f"{INDENT}void  taskFunction(const int threadId,\n")
+            fptr.write(f"{INDENT}void  taskFunction(const int {TaskFunction.THREAD_INDEX_VAR_NAME},\n")
             fptr.write(f"{INDENT}                   milhoja::DataItem* dataItem);\n")
             fptr.write("};\n")
             fptr.write("\n")

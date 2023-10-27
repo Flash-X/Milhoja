@@ -1,0 +1,49 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "operation": {
+        "name":                "simulation_op1",
+        "variable_index_base":                1,
+        "sim::setInitialConditions": {
+            "interface_file": "Simulation.h",
+            "argument_list": ["lo", "hi", "level",
+                              "xCoords", "yCoords", "zCoords",
+                              "deltas", "solnData"],
+            "argument_specifications": {
+                "lo":          {"source":           "tile_lbound"},
+                "hi":          {"source":           "tile_ubound"},
+                "level":       {"source":           "tile_level"},
+                "xCoords":     {"source":           "tile_coordinates",
+                                "axis":             "I",
+                                "edge":             "center",
+                                "lo":               "tile_lbound",
+                                "hi":               "tile_ubound"},
+                "yCoords":     {"source":           "tile_coordinates",
+                                "axis":             "J",
+                                "edge":             "center",
+                                "lo":               "tile_lbound",
+                                "hi":               "tile_ubound"},
+                "zCoords":     {"source":           "tile_coordinates",
+                                "axis":             "K",
+                                "edge":             "center",
+                                "lo":               "tile_lbound",
+                                "hi":               "tile_ubound"},
+                "deltas":      {"source":           "tile_deltas"},
+                "solnData":    {"source":           "grid_data",
+                                "structure_index":  ["CENTER", 1],
+                                "W":                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+            }
+        },
+        "Eos::idealGammaDensIe": {
+            "interface_file": "Eos.h",
+            "argument_list": ["lo", "hi", "solnData"],
+            "argument_specifications": {
+                "lo":          {"source":           "tile_lbound"},
+                "hi":          {"source":           "tile_ubound"},
+                "solnData":    {"source":           "grid_data",
+                                "structure_index":  ["CENTER", 1],
+                                "R":                [1, 8],
+                                "W":                [5, 7]}
+            }
+        }
+    }
+}
