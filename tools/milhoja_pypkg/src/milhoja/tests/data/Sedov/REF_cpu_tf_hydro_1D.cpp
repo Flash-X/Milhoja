@@ -28,8 +28,6 @@ void  cpu_tf_hydro::taskFunction(const int threadIndex,
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
     milhoja::FArray4D  CC_1 = tileDesc->data();
     milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
-    const milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);
-    const milhoja::FArray4D  FLZ_1 = tileDesc->fluxData(milhoja::Axis::K);
     const milhoja::IntVect    lo_hydro_op1_auxC = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
@@ -55,9 +53,7 @@ void  cpu_tf_hydro::taskFunction(const int threadIndex,
                     tile_lo,
                     tile_hi,
                     CC_1,
-                    FLX_1,
-                    FLY_1,
-                    FLZ_1);
+                    FLX_1);
     Eos::idealGammaDensIe(
                     tile_lo,
                     tile_hi,

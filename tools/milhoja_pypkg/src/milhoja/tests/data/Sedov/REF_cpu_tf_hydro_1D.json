@@ -21,8 +21,6 @@
                           "tile_lo",
                           "CC_1",
                           "FLX_1",
-                          "FLY_1",
-                          "FLZ_1",
                           "hydro_op1_auxC"],
         "argument_specifications": {
             "hydro_op1_dt":   {"source":           "external",
@@ -38,12 +36,6 @@
             "FLX_1":          {"source":           "grid_data",
                                "structure_index": ["FLUXX", 1],
                                "variables_out":   [1, 5]},
-            "FLY_1":          {"source":           "grid_data",
-                               "structure_index": ["FLUXY", 1],
-                               "variables_in":    [1, 5]},
-            "FLZ_1":          {"source":           "grid_data",
-                               "structure_index": ["FLUXZ", 1],
-                               "variables_in":    [1, 5]},
             "hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(18, 1, 1)",
@@ -86,16 +78,12 @@
             "argument_list": ["lo",
                               "hi",
                               "U",
-                              "flX",
-                              "flY",
-                              "flZ"],
+                              "flX"],
             "argument_mapping": {
                 "lo":  "tile_lo",
                 "hi":  "tile_hi",
                 "U":   "CC_1",
-                "flX": "FLX_1",
-                "flY": "FLY_1",
-                "flZ": "FLZ_1"
+                "flX": "FLX_1"
             }
         },
         "Eos::idealGammaDensIe": {

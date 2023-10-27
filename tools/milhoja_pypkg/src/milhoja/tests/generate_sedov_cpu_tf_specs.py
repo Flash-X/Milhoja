@@ -78,18 +78,19 @@ def generate_sedov_cpu_tf_specs(dimension, block_size,
         op_spec["grid"] = GRID_SPEC
 
         # Some argument lists change with dimension
-        sub = "hy::computeFluxesHll"
-        if sub in op_spec["operation"]:
-            arg_list = op_spec["operation"][sub]["argument_list"]
-            if dimension == 1:
-                arg_list = [e for e in arg_list if e not in ["flY", "flZ"]]
-                op_spec["operation"][sub]["argument_list"] = arg_list
-                del op_spec["operation"][sub]["argument_specifications"]["flY"]
-                del op_spec["operation"][sub]["argument_specifications"]["flZ"]
-            elif dimension == 2:
-                arg_list = [e for e in arg_list if e not in ["flZ"]]
-                op_spec["operation"][sub]["argument_list"] = arg_list
-                del op_spec["operation"][sub]["argument_specifications"]["flZ"]
+        for sub in ["hy::computeFluxesHll", "hy::updateSolutionHll"]:
+            if sub in op_spec["operation"]:
+                arg_spec_key = "argument_specifications"
+                arg_list = op_spec["operation"][sub]["argument_list"]
+                if dimension == 1:
+                    arg_list = [e for e in arg_list if e not in ["flY", "flZ"]]
+                    op_spec["operation"][sub]["argument_list"] = arg_list
+                    del op_spec["operation"][sub][arg_spec_key]["flY"]
+                    del op_spec["operation"][sub][arg_spec_key]["flZ"]
+                elif dimension == 2:
+                    arg_list = [e for e in arg_list if e not in ["flZ"]]
+                    op_spec["operation"][sub]["argument_list"] = arg_list
+                    del op_spec["operation"][sub][arg_spec_key]["flZ"]
 
         # Scratch extents change with dimension
         if ("scratch" in op_spec["operation"]) and \
