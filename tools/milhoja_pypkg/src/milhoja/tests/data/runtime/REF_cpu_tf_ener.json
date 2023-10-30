@@ -15,23 +15,23 @@
         "cpp_source": "cpu_tf_ener.cpp",
         "c2f_source": "",
         "fortran_source": "",
-        "argument_list": ["tile_lo",
+        "argument_list": ["tile_deltas",
                           "tile_hi",
-                          "tile_deltas",
+                          "tile_lo",
                           "CC_1",
-                          "base_op1_scratch"],
+                          "base_op1_scratch3D"],
         "argument_specifications": {
-            "tile_lo":          {"source":           "tile_lo"},
-            "tile_hi":          {"source":           "tile_hi"},
-            "tile_deltas":      {"source":           "tile_deltas"},
-            "CC_1":             {"source":           "grid_data",
-                                 "structure_index": ["CENTER", 1],
-                                 "variables_in":    [2, 2],
-                                 "variables_out":   [2, 2]},
-            "base_op1_scratch": {"source":           "scratch",
-                                 "type":             "real",
-                                 "extents":          "(8, 16, 1)",
-                                 "lbound":           "(tile_lo)"}
+            "tile_lo":            {"source":           "tile_lo"},
+            "tile_hi":            {"source":           "tile_hi"},
+            "tile_deltas":        {"source":           "tile_deltas"},
+            "CC_1":               {"source":           "grid_data",
+                                   "structure_index": ["CENTER", 1],
+                                   "variables_in":    [2, 2],
+                                   "variables_out":   [2, 2]},
+            "base_op1_scratch3D": {"source":           "scratch",
+                                   "type":             "real",
+                                   "extents":          "(8, 16, 1)",
+                                   "lbound":           "(tile_lo)"}
         },
         "subroutine_call_graph": [
             "StaticPhysicsRoutines::computeLaplacianEnergy"
@@ -56,7 +56,7 @@
                 "hi":      "tile_hi",
                 "deltas":  "tile_deltas",
                 "U":       "CC_1",
-                "scratch": "base_op1_scratch"
+                "scratch": "base_op1_scratch3D"
             }
         }
     }

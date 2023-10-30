@@ -6,39 +6,39 @@
 #include <Milhoja_Logger.h>
 #endif
 
-void*  Tile_cpu_tf_ener::base_op1_scratch_ = nullptr;
+void*  Tile_cpu_tf_ener::base_op1_scratch3D_ = nullptr;
 
 void Tile_cpu_tf_ener::acquireScratch(void) {
     const unsigned int  nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
 
-    if (base_op1_scratch_) {
-        throw std::logic_error("[Tile_cpu_tf_ener::acquireScratch] base_op1_scratch_ scratch already allocated");
+    if (base_op1_scratch3D_) {
+        throw std::logic_error("[Tile_cpu_tf_ener::acquireScratch] base_op1_scratch3D_ scratch already allocated");
     }
 
     const std::size_t nBytes = nThreads
-                    * Tile_cpu_tf_ener::BASE_OP1_SCRATCH_SIZE_
+                    * Tile_cpu_tf_ener::BASE_OP1_SCRATCH3D_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &base_op1_scratch_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &base_op1_scratch3D_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_ener::acquireScratch] Acquired"
                     + std::to_string(nThreads)
-                    + " base_op1_scratch_ scratch blocks"
+                    + " base_op1_scratch3D_ scratch blocks"
     milhoja::Logger::instance().log(msg);
 #endif
 }
 
 void Tile_cpu_tf_ener::releaseScratch(void) {
-    if (!base_op1_scratch_) {
-        throw std::logic_error("[Tile_cpu_tf_ener::releaseScratch] base_op1_scratch_ scratch not allocated");
+    if (!base_op1_scratch3D_) {
+        throw std::logic_error("[Tile_cpu_tf_ener::releaseScratch] base_op1_scratch3D_ scratch not allocated");
     }
 
-    milhoja::RuntimeBackend::instance().releaseCpuMemory(&base_op1_scratch_);
-    base_op1_scratch_ = nullptr;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&base_op1_scratch3D_);
+    base_op1_scratch3D_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_ener::releaseScratch] Released base_op1_scratch_ scratch"
+    std::string   msg = "[Tile_cpu_tf_ener::releaseScratch] Released base_op1_scratch3D_ scratch"
     milhoja::Logger::instance().log(msg);
 #endif
 }

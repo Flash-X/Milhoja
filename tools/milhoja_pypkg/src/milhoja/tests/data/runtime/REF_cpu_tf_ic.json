@@ -17,25 +17,25 @@
         "fortran_source": "",
         "argument_list": ["tile_lbound",
                           "tile_ubound",
-                          "tile_xCenters",
-                          "tile_yCenters",
+                          "tile_xCoords_center",
+                          "tile_yCoords_center",
                           "CC_1"],
         "argument_specifications": {
-            "tile_lbound":      {"source":           "tile_lbound"},
-            "tile_ubound":      {"source":           "tile_ubound"},
-            "tile_xCenters":    {"source":           "tile_coordinates",
-                                 "axis":             "I",
-                                 "edge":             "center",
-                                 "lo":               "tile_lbound",
-                                 "hi":               "tile_ubound"},
-            "tile_yCenters":    {"source":           "tile_coordinates",
-                                 "axis":             "J",
-                                 "edge":             "center",
-                                 "lo":               "tile_lbound",
-                                 "hi":               "tile_ubound"},
-            "CC_1":             {"source":           "grid_data",
-                                 "structure_index": ["CENTER", 1],
-                                 "variables_out":   [1, 2]}
+            "tile_lbound":            {"source":           "tile_lbound"},
+            "tile_ubound":            {"source":           "tile_ubound"},
+            "tile_xCoords_center":    {"source":           "tile_coordinates",
+                                       "axis":             "I",
+                                       "edge":             "center",
+                                       "lo":               "tile_lbound",
+                                       "hi":               "tile_ubound"},
+            "tile_yCoords_center":    {"source":           "tile_coordinates",
+                                       "axis":             "J",
+                                       "edge":             "center",
+                                       "lo":               "tile_lbound",
+                                       "hi":               "tile_ubound"},
+            "CC_1":                   {"source":           "grid_data",
+                                       "structure_index": ["CENTER", 1],
+                                       "variables_out":   [1, 2]}
         },
         "subroutine_call_graph": [
             "StaticPhysicsRoutines::setInitialConditions"
@@ -58,8 +58,8 @@
             "argument_mapping": {
                 "loGC":    "tile_lbound",
                 "hiGC":    "tile_ubound",
-                "xCoords": "tile_xCenters",
-                "yCoords": "tile_yCenters",
+                "xCoords": "tile_xCoords_center",
+                "yCoords": "tile_yCoords_center",
                 "U":       "CC_1"
             }
         }

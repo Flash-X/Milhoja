@@ -16,7 +16,7 @@
 
 #include "Analysis.h"
 
-void  cpu_tf_analysis::taskFunction(const int threadId,
+void  cpu_tf_analysis::taskFunction(const int threadIndex,
                     milhoja::DataItem* dataItem) {
     Tile_cpu_tf_analysis*  wrapper = dynamic_cast<Tile_cpu_tf_analysis*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
@@ -25,13 +25,13 @@ void  cpu_tf_analysis::taskFunction(const int threadId,
     const unsigned int   MH_INTERNAL_level = tileDesc->level();
     const milhoja::IntVect   tile_lo = tileDesc->lo();
     const milhoja::IntVect   tile_hi = tileDesc->hi();
-    const milhoja::FArray1D  tile_xCenters =
+    const milhoja::FArray1D  tile_xCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::I,
             milhoja::Edge::Center,
             MH_INTERNAL_level,
             tile_lo, tile_hi);
-    const milhoja::FArray1D  tile_yCenters =
+    const milhoja::FArray1D  tile_yCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::J,
             milhoja::Edge::Center,
@@ -42,8 +42,8 @@ void  cpu_tf_analysis::taskFunction(const int threadId,
     Analysis::computeErrors(
                     tile_lo,
                     tile_hi,
-                    tile_xCenters,
-                    tile_yCenters,
+                    tile_xCoords_center,
+                    tile_yCoords_center,
                     CC_1,
                     tile_gridIndex);
 }

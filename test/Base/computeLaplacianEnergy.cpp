@@ -7,11 +7,9 @@ void StaticPhysicsRoutines::computeLaplacianEnergy(const milhoja::IntVect& lo,
                                                    milhoja::FArray4D& U,
                                                    milhoja::FArray3D& scratch,
                                                    const milhoja::RealVect& deltas) {
-    /*
-    $flashx "U": {
-    $flashx     "RW": ["ENER_VAR"]
-    $flashx }
-    */
+    //$milhoja  "U": {
+    //$milhoja&     "RW": [ENER_VAR]
+    //$milhoja& }
 
     milhoja::Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
     milhoja::Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());

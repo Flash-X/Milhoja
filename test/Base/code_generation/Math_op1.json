@@ -1,0 +1,68 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    2,
+        "nxb":          8,
+        "nyb":         16,
+        "nzb":          1,
+        "nguardcells":  1
+    },
+    "operation": {
+        "name":                 "base_op1",
+        "variable_index_base":           1,
+        "external": {
+            "_dt":      {"type":        "real",
+                         "extents":     []}
+        },
+        "scratch": {
+            "_scratch3D": {"type":        "real",
+                           "extents":     "(8, 16, 1)",
+                           "lbound":      "(tile_lo)"},
+            "_scratch4D": {"type":        "real",
+                           "extents":     "(8, 16, 1, 2)",
+                           "lbound":      "(tile_lo, 1)"}
+        },
+        "StaticPhysicsRoutines::computeLaplacianDensity": {
+            "interface_file": "computeLaplacianDensity.h",
+            "argument_list": ["lo", "hi", "U", "scratch", "deltas"],
+            "argument_specifications": {
+                "lo":        {"source":             "tile_lo"},
+                "hi":        {"source":             "tile_hi"},
+                "U":         {"source":             "grid_data",
+                              "structure_index":    ["CENTER", 1],
+                              "RW":                 [1]},
+                "scratch":   {"source":             "scratch",
+                              "name":               "_scratch3D"},
+                "deltas":    {"source":             "tile_deltas"}
+            }
+        },
+        "StaticPhysicsRoutines::computeLaplacianEnergy": {
+            "interface_file": "computeLaplacianEnergy.h",
+            "argument_list": ["lo", "hi", "U", "scratch", "deltas"],
+            "argument_specifications": {
+                "lo":        {"source":             "tile_lo"},
+                "hi":        {"source":             "tile_hi"},
+                "U":         {"source":             "grid_data",
+                              "structure_index":    ["CENTER", 1],
+                              "RW":                 [2]},
+                "scratch":   {"source":             "scratch",
+                              "name":               "_scratch3D"},
+                "deltas":    {"source":             "tile_deltas"}
+            }
+        },
+        "StaticPhysicsRoutines::computeLaplacianFusedKernels": {
+            "interface_file": "computeLaplacianFused.h",
+            "argument_list": ["lo", "hi", "U", "scratch", "deltas"],
+            "argument_specifications": {
+                "lo":        {"source":             "tile_lo"},
+                "hi":        {"source":             "tile_hi"},
+                "U":         {"source":             "grid_data",
+                              "structure_index":    ["CENTER", 1],
+                              "RW":                 [1, 2]},
+                "scratch":   {"source":             "scratch",
+                              "name":               "_scratch4D"},
+                "deltas":    {"source":             "tile_deltas"}
+            }
+        }
+    }
+}

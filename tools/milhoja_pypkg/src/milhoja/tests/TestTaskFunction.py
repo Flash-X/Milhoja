@@ -17,19 +17,19 @@ _SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
 class TestTaskFunction(unittest.TestCase):
     def setUp(self):
         # ----- RUNTIME/CPU TEST
-        fname = _RUNTIME_PATH.joinpath("cpu_tf_ic.json")
+        fname = _RUNTIME_PATH.joinpath("REF_cpu_tf_ic.json")
         self.__rt_ic = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _RUNTIME_PATH.joinpath("cpu_tf_dens.json")
+        fname = _RUNTIME_PATH.joinpath("REF_cpu_tf_dens.json")
         self.__rt_dens = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _RUNTIME_PATH.joinpath("cpu_tf_ener.json")
+        fname = _RUNTIME_PATH.joinpath("REF_cpu_tf_ener.json")
         self.__rt_ener = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _RUNTIME_PATH.joinpath("cpu_tf_fused.json")
+        fname = _RUNTIME_PATH.joinpath("REF_cpu_tf_fused.json")
         self.__rt_fused = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        fname = _RUNTIME_PATH.joinpath("cpu_tf_analysis.json")
+        fname = _RUNTIME_PATH.joinpath("REF_cpu_tf_analysis.json")
         self.__rt_analysis = milhoja.TaskFunction.from_milhoja_json(fname)
 
         # ----- SEDOV/3D/CPU TEST
@@ -94,7 +94,7 @@ class TestTaskFunction(unittest.TestCase):
             milhoja.TaskFunction.TILE_LBOUND: ["tile_lbound"],
             milhoja.TaskFunction.TILE_UBOUND: ["tile_ubound"],
             milhoja.TaskFunction.TILE_COORDINATES: [
-                "tile_xCenters", "tile_yCenters"
+                "tile_xCoords_center", "tile_yCoords_center"
             ]
         }
         for test in tests_all:
@@ -121,7 +121,7 @@ class TestTaskFunction(unittest.TestCase):
             milhoja.TaskFunction.TILE_LO: ["tile_lo"],
             milhoja.TaskFunction.TILE_HI: ["tile_hi"],
             milhoja.TaskFunction.TILE_COORDINATES: [
-                "tile_xCenters", "tile_yCenters"
+                "tile_xCoords_center", "tile_yCoords_center"
             ]
         }
         for test in tests_all:
@@ -203,9 +203,17 @@ class TestTaskFunction(unittest.TestCase):
             self.assertEqual(expected, result)
 
         tests_all = [
-            self.__rt_dens, self.__rt_ener, self.__rt_fused
+            self.__rt_dens, self.__rt_ener
         ]
-        expected = set(["base_op1_scratch"])
+        expected = set(["base_op1_scratch3D"])
+        for test in tests_all:
+            result = test.scratch_arguments
+            self.assertEqual(expected, result)
+
+        tests_all = [
+            self.__rt_fused
+        ]
+        expected = set(["base_op1_scratch4D"])
         for test in tests_all:
             result = test.scratch_arguments
             self.assertEqual(expected, result)

@@ -7,11 +7,9 @@ void StaticPhysicsRoutines::computeLaplacianDensity(const milhoja::IntVect& lo,
                                                     milhoja::FArray4D& U,
                                                     milhoja::FArray3D& scratch,
                                                     const milhoja::RealVect& deltas) {
-    /*
-    $flashx "U": {
-    $flashx     "RW": ["DENS_VAR"]
-    $flashx }
-    */
+    //$milhoja  "U": {
+    //$milhoja&     "RW": [DENS_VAR]
+    //$milhoja& }
     
     milhoja::Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
     milhoja::Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());

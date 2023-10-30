@@ -20,30 +20,30 @@ def _create_generator(json_filename):
 
 
 class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
-    def _testRuntimeGeneration(self):
+    def testRuntimeGeneration(self):
         path = _TEST_PATH.joinpath("runtime")
 
-        ic = {"json": path.joinpath("cpu_tf_ic.json"),
+        ic = {"json": path.joinpath("REF_cpu_tf_ic.json"),
               "header": path.joinpath("REF_cpu_tf_ic.h"),
               "header_dim_dependent": False,
               "source": path.joinpath("REF_cpu_tf_ic.cpp"),
               "source_dim_dependent": False}
-        dens = {"json": path.joinpath("cpu_tf_dens.json"),
+        dens = {"json": path.joinpath("REF_cpu_tf_dens.json"),
                 "header": path.joinpath("REF_cpu_tf_dens.h"),
                 "header_dim_dependent": False,
                 "source": path.joinpath("REF_cpu_tf_dens.cpp"),
                 "source_dim_dependent": False}
-        ener = {"json": path.joinpath("cpu_tf_ener.json"),
+        ener = {"json": path.joinpath("REF_cpu_tf_ener.json"),
                 "header": path.joinpath("REF_cpu_tf_ener.h"),
                 "header_dim_dependent": False,
                 "source": path.joinpath("REF_cpu_tf_ener.cpp"),
                 "source_dim_dependent": False}
-        fused = {"json": path.joinpath("cpu_tf_fused.json"),
+        fused = {"json": path.joinpath("REF_cpu_tf_fused.json"),
                  "header": path.joinpath("REF_cpu_tf_fused.h"),
                  "header_dim_dependent": False,
                  "source": path.joinpath("REF_cpu_tf_fused.cpp"),
                  "source_dim_dependent": False}
-        analysis = {"json": path.joinpath("cpu_tf_analysis.json"),
+        analysis = {"json": path.joinpath("REF_cpu_tf_analysis.json"),
                     "header": path.joinpath("REF_cpu_tf_analysis.h"),
                     "header_dim_dependent": False,
                     "source": path.joinpath("REF_cpu_tf_analysis.cpp"),
