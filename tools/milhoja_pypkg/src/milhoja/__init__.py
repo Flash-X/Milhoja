@@ -24,6 +24,7 @@ from .constants import LOG_LEVEL_MAX
 from .constants import LOG_LEVELS
 
 # Functions used by classes
+from .check_grid_specification import check_grid_specification
 
 # classes
 from .TaskFunction import TaskFunction
