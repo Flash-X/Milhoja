@@ -25,6 +25,7 @@ from .constants import LOG_LEVELS
 
 # Functions used by classes
 from .check_grid_specification import check_grid_specification
+from .check_operation_specification import check_operation_specification
 
 # classes
 from .TaskFunction import TaskFunction

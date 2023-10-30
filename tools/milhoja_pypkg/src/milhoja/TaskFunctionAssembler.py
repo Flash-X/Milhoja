@@ -8,7 +8,7 @@ from . import LOG_LEVEL_BASIC
 from . import LOG_LEVEL_BASIC_DEBUG
 # from . import AbcLogger
 from . import TaskFunction
-from . import check_grid_specification
+from . import check_operation_specification
 
 
 class TaskFunctionAssembler(object):
@@ -88,15 +88,7 @@ class TaskFunctionAssembler(object):
         self.__op_spec = operation_spec
 
         # ----- ERROR CHECK ALL INPUTS
-        if "grid" not in self.__op_spec:
-            msg = f"Grid specification not provided in {name}'s operation"
-            raise ValueError(msg)
-        check_grid_specification(self.__op_spec["grid"])
-
-        for node in self.internal_subroutine_graph:
-            for subroutine in node:
-                spec = self.subroutine_specification(subroutine)
-                self.__sanity_check_subroutine(subroutine, spec)
+        check_operation_specification(self.__op_spec)
 
         # ----- EAGER DETERMINATION OF TF SPECIFICATION
         self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \

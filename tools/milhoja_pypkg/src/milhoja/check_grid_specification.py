@@ -5,8 +5,8 @@ def check_grid_specification(spec):
     """
     If this does not raise an error, then the specification is acceptable.
 
-    :param spec: Grid specification obtained directly from Milhoja-JSON
-        operation specification
+    :param spec: Grid specification obtained directly from operation
+        specification
     """
     expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
     actual = set(spec)

@@ -2,6 +2,7 @@
 Automatic unit testing of check_grid_specification()
 """
 
+import copy
 import unittest
 
 import numpy as np
@@ -24,26 +25,26 @@ class TestCheckGridSpecification(unittest.TestCase):
 
     def testKeys(self):
         # Too few
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         del bad_spec["nxb"]
         with self.assertRaises(ValueError):
             check_grid_specification(bad_spec)
 
         # Too many
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         bad_spec["fail"] = 1.1
         with self.assertRaises(ValueError):
             check_grid_specification(bad_spec)
 
         # Right number, but incorrect key name
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         del bad_spec["nxb"]
         bad_spec["fail"] = 1.1
         with self.assertRaises(ValueError):
             check_grid_specification(bad_spec)
 
     def testDimension(self):
-        ok_spec = self.__good.copy()
+        ok_spec = copy.deepcopy(self.__good)
         # These are correct for all dimensions
         ok_spec["nyb"] = 1
         ok_spec["nzb"] = 1
@@ -51,7 +52,7 @@ class TestCheckGridSpecification(unittest.TestCase):
             ok_spec["dimension"] = good
             check_grid_specification(ok_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         for bad in [None, "fail", np.nan, np.inf, [], [1]]:
             bad_spec["dimension"] = bad
             with self.assertRaises(TypeError):
@@ -62,7 +63,7 @@ class TestCheckGridSpecification(unittest.TestCase):
                 check_grid_specification(bad_spec)
 
     def testNxb(self):
-        ok_spec = self.__good.copy()
+        ok_spec = copy.deepcopy(self.__good)
         # These are correct for all dimensions
         ok_spec["nyb"] = 1
         ok_spec["nzb"] = 1
@@ -72,7 +73,7 @@ class TestCheckGridSpecification(unittest.TestCase):
                 ok_spec["nxb"] = good
                 check_grid_specification(ok_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         for bad in [None, "fail", np.nan, np.inf, [], [1]]:
             bad_spec["nxb"] = bad
             with self.assertRaises(TypeError):
@@ -83,7 +84,7 @@ class TestCheckGridSpecification(unittest.TestCase):
                 check_grid_specification(bad_spec)
 
     def testNyb(self):
-        ok_spec = self.__good.copy()
+        ok_spec = copy.deepcopy(self.__good)
         # This is correct for all dimensions
         ok_spec["nzb"] = 1
         ok_spec["dimension"] = 1
@@ -95,7 +96,7 @@ class TestCheckGridSpecification(unittest.TestCase):
                 ok_spec["nyb"] = good
                 check_grid_specification(ok_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         for bad in [None, "fail", np.nan, np.inf, [], [1]]:
             bad_spec["nyb"] = bad
             with self.assertRaises(TypeError):
@@ -105,7 +106,7 @@ class TestCheckGridSpecification(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_grid_specification(bad_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         bad_spec["dimension"] = 1
         for bad in [2, 3, 10, 101, 222]:
             bad_spec["nyb"] = bad
@@ -113,7 +114,7 @@ class TestCheckGridSpecification(unittest.TestCase):
                 check_grid_specification(bad_spec)
 
     def testNzb(self):
-        ok_spec = self.__good.copy()
+        ok_spec = copy.deepcopy(self.__good)
         # This is correct for all dimensions
         ok_spec["nyb"] = 1
         for dim in [1, 2]:
@@ -124,7 +125,7 @@ class TestCheckGridSpecification(unittest.TestCase):
             ok_spec["nzb"] = good
             check_grid_specification(ok_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         for bad in [None, "fail", np.nan, np.inf, [], [1]]:
             bad_spec["nzb"] = bad
             with self.assertRaises(TypeError):
@@ -134,7 +135,7 @@ class TestCheckGridSpecification(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_grid_specification(bad_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         bad_spec["nyb"] = 1
         for dim in [1, 2]:
             bad_spec["dimension"] = dim
@@ -144,12 +145,12 @@ class TestCheckGridSpecification(unittest.TestCase):
                     check_grid_specification(bad_spec)
 
     def testNGuardcells(self):
-        ok_spec = self.__good.copy()
+        ok_spec = copy.deepcopy(self.__good)
         for good in [0, 1, 2, 3, 10, 101, 222]:
             ok_spec["nguardcells"] = good
             check_grid_specification(ok_spec)
 
-        bad_spec = self.__good.copy()
+        bad_spec = copy.deepcopy(self.__good)
         for bad in [None, "fail", np.nan, np.inf, [], [1]]:
             bad_spec["nguardcells"] = bad
             with self.assertRaises(TypeError):
