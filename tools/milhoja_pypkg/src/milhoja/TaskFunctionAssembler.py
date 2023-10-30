@@ -273,6 +273,19 @@ class TaskFunctionAssembler(object):
 
         return self.__dummy_specs[argument]
 
+    @property
+    def variable_index_base(self):
+        """
+        .. todo::
+            * Once we have multiple operation specs, do not assume that each
+              will use the same base.  How to manage this difficulty?
+
+        :return: All variable indices provided in the variable-in/-out fields
+            of the task function specification are part of an index set whose
+            smallest index is this value.  Valid values are either 0 or 1.
+        """
+        return self.__op_spec["operation"]["variable_index_base"]
+
     def __get_milhoja_thread_index(self):
         """
         Runs through the each subroutine in the internal call graph to
@@ -809,6 +822,7 @@ class TaskFunctionAssembler(object):
         spec[group] = tf_spec[group]
         spec[group]["name"] = self.task_function_name
         spec[group]["argument_list"] = self.dummy_arguments
+        spec[group]["variable_index_base"] = self.variable_index_base
 
         key = "argument_specifications"
         assert key not in spec[group]
