@@ -286,16 +286,25 @@ class DataPacketGenerator(AbcCodeGenerator):
             arg_dictionary[arg]['type'] = self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
         return arg_dictionary
 
-    # TODO: The looping code can be made into its own separate function.
     @property
-    def tile_in_args(self):
+    def tile_in_args(self) -> OrderedDict:
+        """
+        Gets all tile_in arguments and formats them for the data packet generator.
+
+        :return: OrderedDict containing all tile_in arguments.
+        """
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_arguments
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
-    def tile_in_out_args(self):
+    def tile_in_out_args(self) -> OrderedDict:
+        """
+        Gets all tile_in_out arguments and formats them for the data packet generator.
+
+        :return: OrderedDict containing all tile_in_out arguments.
+        """
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_in_out_arguments
         arg_dictionary = self.__adjust_tile_data(args)
@@ -303,6 +312,11 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def tile_out_args(self) -> OrderedDict:
+        """
+        Gets all tile_out arguments and formats them for the data packet generator.
+
+        :return: OrderedDict containing all tile_out arguments.
+        """
         sort_func = lambda x: self._sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0)
         args = self._tf_spec.tile_out_arguments
         arg_dictionary = self.__adjust_tile_data(args)
@@ -310,6 +324,11 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def scratch_args(self) -> OrderedDict:
+        """
+        Gets all scratch arguments and formats them for the data packet generator.
+
+        :return: OrderedDict containing all scratch arguments.
+        """
         sort_func = lambda x: (self._sizes.get(x[1]["type"], 0), x[0])
         args = self._tf_spec.scratch_arguments
         arg_dictionary = OrderedDict()
@@ -317,7 +336,6 @@ class DataPacketGenerator(AbcCodeGenerator):
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
             arg_dictionary[arg]['extents'] = self.__parse_extents(arg_dictionary[arg]['extents'])
             arg_dictionary[arg]['lbound'] = self.__parse_lbound(arg_dictionary[arg]['lbound'], 'scratch')
-
         return self._sort_dict(arg_dictionary.items(), sort_func, False)
     
     @property

@@ -647,14 +647,15 @@ def _iterate_tilescratch(
     """
     _section_creation(jsc.T_SCRATCH, tilescratch, connectors, size_connectors)
     for item,data in tilescratch.items():
-
+        
+        lbound = data[jsc.LBOUND]
         exts = data[jsc.EXTENTS]
         # need to fill farrays with default args
-        farray = ["1"] * 4
+        extents4d = ["1"] * 4
         for idx,val in enumerate(exts):
-            farray[idx] = str(val)
+            extents4d[idx] = str(val)
 
-        extents = ' * '.join(f'({val})' for val in farray)
+        extents = ' * '.join(f'({val})' for val in extents4d)
         info = DataPacketMemberVars(
             item=item, dtype=data[jsc.DTYPE], 
             size_eq=f'{extents} * sizeof({data[jsc.DTYPE]})', 
@@ -673,9 +674,13 @@ def _iterate_tilescratch(
         
         # ..todo:
         #    * Does this work fine if we allow anything to be scratch?
-        lo = data[jsc.LBOUND][0]
-        hi = f'IntVect{{ LIST_NDIM({", ".join(farray[:-1])}) }}'
-        unks = farray[-1]
+        #    * this is not an issue for Fortran TF packets, but the current FArray4D implementation 
+        #      for C++ packets seems limiting for scratch arrays.
+        #    * auxC scratch uses loGC and hiGC. How to incorporate this with other scratch arrays?
+        #    * Change data type of scratch array based on length of extents in C++ packet.
+        lo = f"IntVect{{ LIST_NDIM({', '.join(lbound[:-1])}) }}" if len(exts) == len(lbound) else lbound[0]
+        hi = f'( {lo} ) + ( IntVect{{ LIST_NDIM({", ".join(extents4d[:-1])}) }} )'
+        unks = extents4d[-1]
         if language == "c++":
             cpp_helpers.insert_farray_memcpy(
                 connectors, item, lo, hi, str(unks), info.dtype

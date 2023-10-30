@@ -2,7 +2,7 @@
 
 #include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_gpu_tf_hydro_2D.h"
 
 #include "Sedov.h"
 #include "Eos.h"
@@ -15,8 +15,8 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                     milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_Hydro_gpu_3*    packet_h   = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
-    const int                  queue_h    = packet_h->asynchronousQueue();
+    DataPacket_gpu_tf_hydro_2D* packet_h   = dynamic_cast<DataPacket_gpu_tf_hydro_2D*>(dataItem_h);
+    const int                   queue_h    = packet_h->asynchronousQueue();
 
 	const std::size_t* nTiles_d = packet_h->_nTiles_d;
 	const Real* dt_d = packet_h->_dt_d;
@@ -24,10 +24,10 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
     FArray4D* CC1_d = packet_h->_f4_U_d;
-    FArray4D* CC2_d = packet_h->_f4_auxC_d;
-    FArray4D* FCX_d = packet_h->_f4_flX_d;
-    FArray4D* FCY_d = packet_h->_f4_flY_d;
-    FArray4D* FCZ_d = packet_h->_f4_flZ_d;
+    FArray4D* CC2_d = packet_h->_f4_hydro_op1_auxc_d;
+    FArray4D* FCX_d = packet_h->_f4_hydro_op1_flX_d;
+    FArray4D* FCY_d = packet_h->_f4_hydro_op1_flY_d;
+    FArray4D* FCZ_d = packet_h->_f4_hydro_op1_flZ_d;
 
     // This task function neither reads from nor writes to GAME.  While it does
     // read from GAMC, this variable is not written to as part of the task
