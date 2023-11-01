@@ -73,6 +73,14 @@ class DataPacketGenerator(AbcCodeGenerator):
         "bool": "logical"
     }
 
+    __DEFAULT_SOURCE_TREE_OPTS = {
+        'codePath': pathlib.Path.cwd(),
+        'indentSpace': ' '*4,
+        'verbose': False,
+        'verbosePre': '/* ',
+        'verbosePost': ' */',
+    }
+
     def __init__(
         self,
         tf_spec: TaskFunction,
@@ -94,9 +102,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         outputs = tf_spec.output_filenames
         header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
         source = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
-        # TODO: Include layer source files
-        cpp2c_source = ""
-        c2f_source = ""
 
         super().__init__(
             tf_spec,
@@ -107,67 +112,123 @@ class DataPacketGenerator(AbcCodeGenerator):
             logger
         )
 
+        self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
+        if self.language == "fortran":
+            self._c2f_source = outputs[TaskFunction.C2F_KEY]["source"]
+
         self._log("Loaded tf spec", LOG_LEVEL_BASIC_DEBUG)
 
         self._header_tpl = Path(templates_path, "cg-tpl.datapacket_header.cpp").resolve()
         self._source_tpl = Path(templates_path, "cg-tpl.datapacket.cpp").resolve()
-        self.__cpp2c_name = None
-        self.__c2f_name = None
+        self._cpp2c_tpl = Path(templates_path, "cg-tpl.cpp2c.cpp").resolve()
+        self._cpp2c_extra_streams_tpl = Path(templates_path, "cg-tpl.cpp2c_no_extra_queue.cpp")
+        if self.n_extra_streams > 0:
+            self._cpp2c_extra_streams_tpl = Path(templates_path, "cg-tpl.cpp2c_extra_queue.cpp")
+        self._cpp2c_extra_streams_tpl = self._cpp2c_extra_streams_tpl.resolve()
 
-        # I need to generate templates immediately.
+        # I need to generate templates immediately, since both the header and source file for the data packet share 
+        # outer and helper template files with each other.
+        # This avoid generating the files twice and annoying logic to check if the templates have been generated. 
+        # (ex: )
         self._helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp").resolve()
         self._outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp").resolve()
         generate_helpers_tpl.generate_helper_template(self, True)
+
+        # generate cpp2c helpers & outer templates
+        self._cpp2c_helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
+        self._cpp2c_outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
+        # Note: c2f layer does not use cgkit so no templates.
+
+    def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list, overwrite: bool):
+        """
+        Generates a data packet file for creating the entire packet.
+
+        :param str output: The output name for the file. 
+        :param dict sourcetree_opts: The dictionary containing the sourcetree parameters.
+        :param list linked_templates: All templates to be linked. The first in the list is the initial template.
+        """
+        def construct_source_tree(stree: SourceTree, templates: list):
+            assert len(templates) > 0
+            stree.initTree(templates[0])
+            stree.pushLink(srctree.search_links(stree.getTree()))
+
+            # load and link each template into source tree.
+            for idx,link in enumerate(templates[1:]):
+                tree_link = srctree.load(link)
+                pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)
+                if pathInfo:
+                    stree.pushLink(srctree.search_links(tree_link))
+                else:
+                    raise RuntimeError(f'Linking layer {idx} ({link}) unsuccessful!')
+
+        outfile = Path(self._destination, output)
+        """Generates a source file given a template and output name"""
+        stree = SourceTree(**sourcetree_opts, debug=False)
+        construct_source_tree(stree, linked_templates)
+        lines = stree.parse()
+        
+        if outfile.is_file() and overwrite:
+            self.warn(f"{str(outfile)} already exists. Overwriting.")
+        elif outfile.is_file() and not overwrite:
+            self.abort(f"{str(outfile)} is a file. Abort")
+
+        with open(outfile, 'w') as new_file:
+            lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
+            new_file.write(lines)
+
+    @property
+    def name(self):
+        return self._tf_spec.name
+    
+    @property
+    def dummy_arguments(self):
+        return self._tf_spec.dummy_arguments
+
+    # @property:
+    # def delete_funtion(self):
+    #     return self._tf_spec.delete_packet_C_function
 
     @property
     def language(self):
         return self._tf_spec.language
     
     @property
-    def class_name(self):
+    def packet_class_name(self):
         return self._tf_spec.data_item_class_name
     
     @property
     def ppd_name(self):
-        return f'{self.class_name.upper()}_UNIQUE_IFNDEF_H_'
+        return f'{self.packet_class_name.upper()}_UNIQUE_IFNDEF_H_'
 
-    def generate_header_code(self, overwrite=True):
+    def generate_header_code(self, overwrite):
         """
         Generate C++ header
         """
         self.generate_packet_file(
             self.header_filename,
-            {
-                'codePath': pathlib.Path.cwd(),
-                'indentSpace': ' '*4,
-                'verbose': False,
-                'verbosePre': '/* ',
-                'verbosePost': ' */',
-            },
-            [self._outer_tpl, self._header_tpl, self._helper_tpl]
+            self.__DEFAULT_SOURCE_TREE_OPTS,
+            [self._outer_tpl, self._header_tpl, self._helper_tpl],
+            overwrite
         )
 
-    def generate_source_code(self, overwrite=True):
+    def generate_source_code(self, overwrite):
         """
         Generate C++ source code. Also generates the
         interoperability layers if necessary.
         """
         self.generate_packet_file(
-            self.source_filename,
-            {
-                'codePath': pathlib.Path.cwd(),
-                'indentSpace': ' '*4,
-                'verbose': False,
-                'verbosePre': '/* ',
-                'verbosePost': ' */',
-            },
-            [self._outer_tpl, self._source_tpl, self._helper_tpl]
+            Path(self._destination, self.source_filename),
+            self.__DEFAULT_SOURCE_TREE_OPTS,
+            [self._outer_tpl, self._source_tpl, self._helper_tpl],
+            overwrite
         )
-        # self.generate_cpp2c()
-        # self.generate_c2f()
+        self.generate_cpp2c(overwrite)
+        if self._tf_spec.language == "fortran":
+            # self.generate_c2f()
+            ...
 
     # use language to determine which function to call.
-    def generate_cpp2c(self, overwrite=True):
+    def generate_cpp2c(self, overwrite):
         """
         Generates translation layers based on the language
         of the TaskFunction.
@@ -175,38 +236,71 @@ class DataPacketGenerator(AbcCodeGenerator):
             cpp - Generates a C++ task function that calls
         """
 
+        # ..todo::
+        #     * Create new generator for just C++ packets.
         def generate_cpp2c_cpp():
+            self._log("C++ Packet tf generation not implemented.", LOG_LEVEL_BASIC)
             ...
 
         def generate_cpp2c_f():
             self._log("Generating cpp2c for fortran", LOG_LEVEL_BASIC_DEBUG)
-            cpp2c_generator.generate_cpp2c(self.json)
+            cpp2c_generator.generate_cpp2c(self)
+            self.generate_packet_file(
+                self._cpp2c_source,
+                self.__DEFAULT_SOURCE_TREE_OPTS,
+                [self.cpp2c_outer_template, self._cpp2c_tpl, self.cpp2c_streams_template, self.cpp2c_helper_template],
+                overwrite
+            )   
 
         lang = self.language.lower()
         if lang == "fortran":
             generate_cpp2c_f()
+            self.generate_packet_file(
+                self._cpp2c_source, 
+                self.__DEFAULT_SOURCE_TREE_OPTS,
+                [
+                    self._cpp2c_outer_tpl,
+                    self._cpp2c_tpl,
+                    self._cpp2c_helper_tpl,
+                    self._cpp2c_extra_streams_tpl
+                ],
+                overwrite
+            )
         elif lang == "c++":
             generate_cpp2c_cpp()
 
     def generate_c2f(self, overwrite=True):
         if self.language.lower() == "fortran":
-            c2f_generator.generate_c2f(self.json)
+            ...
+            # c2f_generator.generate_c2f(self)
 
     @property
-    def outer_template(self):
+    def outer_template(self) -> Path:
         return self._outer_tpl
 
     @property
-    def helper_template(self):
+    def helper_template(self) -> Path:
         return self._helper_tpl
 
     @property
-    def cpp2c_filename(self):
-        return self.__cpp2c_name
+    def cpp2c_file(self):
+        return self._tf_spec["cpp_source"]
+    
+    @property
+    def cpp2c_outer_template(self) -> Path:
+        return self._cpp2c_outer_tpl
+    
+    @property
+    def cpp2c_helper_template(self) -> Path:
+        return self._cpp2c_helper_tpl
+    
+    @property
+    def cpp2c_streams_template(self) -> Path:
+        return self._cpp2c_extra_streams_tpl
 
     @property
     def c2f_filename(self):
-        return self.__c2f_name
+        ...#return self.__c2f_name
     
     @property
     def n_extra_streams(self) -> int:
@@ -224,7 +318,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = self._tf_spec.external_arguments
         external = {
             'nTiles': {
-                'source': 'internal', # ?
+                'source': 'internal', # -> internal source for items created by the generators? nTiles is not really external but it does get passed around...
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
                 'extents': []
@@ -335,7 +429,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
             arg_dictionary[arg]['extents'] = self.__parse_extents(arg_dictionary[arg]['extents'])
-            arg_dictionary[arg]['lbound'] = self.__parse_lbound(arg_dictionary[arg]['lbound'], 'scratch')
+            arg_dictionary[arg]['lbound'] = self.__parse_lbound(arg_dictionary[arg]['lbound'])
         return self._sort_dict(arg_dictionary.items(), sort_func, False)
     
     @property
@@ -360,75 +454,69 @@ class DataPacketGenerator(AbcCodeGenerator):
         dict_items = [ (k,v) for k,v in arguments ]
         return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
 
-    def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list):
-        
-        def construct_source_tree(stree: SourceTree, templates: list):
-            assert len(templates) > 0
-            stree.initTree(templates[0])
-            stree.pushLink(srctree.search_links(stree.getTree()))
-
-            # load and link each template into source tree.
-            for idx,link in enumerate(templates[1:]):
-                tree_link = srctree.load(link)
-                pathInfo = stree.link(tree_link, linkPath=srctree.LINK_PATH_FROM_STACK)
-                if pathInfo:
-                    stree.pushLink(srctree.search_links(tree_link))
-                else:
-                    raise RuntimeError(f'Linking layer {idx} ({link}) unsuccessful!')
-
-
-        """Generates a source file given a template and output name"""
-        stree = SourceTree(**sourcetree_opts, debug=False)
-        construct_source_tree(stree, linked_templates)
-        lines = stree.parse()
-        if os.path.isfile(output):
-            # use logger here but for now just print a warning.
-            print(f"Warning: {output} already exists. Overwriting.")
-        with open(output, 'w') as new_file:
-            lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
-            new_file.write(lines)
-
-    def __parse_lbound(self, lbound: str, data_source: str):
+    def __parse_lbound(self, lbound: str) -> list:
         """
         Parses an lbound string for use within the generator.
+        ..todo::
+            * This lbound parser only allows simple lbounds. The current format does not allow
+            nested arithmetic expressions or more than 2 intvects being combined.
         
         :param str lbound: The lbound string to parse.
         :param str data_source: The source of the data. Eg: scratch or grid data. 
         """
-        starting_index = "1"
-        # data source is either grid or scratch for tile arrays.
-        if data_source == "grid_data":
-            lbound_info = lbound.split(',')
-            # We control lbound format for grid data structures, 
-            # so the length of this lbound should always be 2.
-            assert len(lbound_info) == 2
-            # get low index
-            low = lbound_info[0]
-            low = low.strip().replace(')', '').replace('(', '')
-            starting_index = lbound_info[-1]
-            starting_index = starting_index.strip().replace('(', '').replace(')', '')
-            return [low, starting_index]
-        elif data_source == "scratch":
-            lbound = lbound[1:-1].replace("tile_", '') # remove outer parens, and tile_ from bounds
-            # Since tile_*** can be anywhere in scratch data we use SO solution for using negative lookahead 
-            # to find tile data.
-            lookahead = r',\s*(?![^()]*\))'
-            matches = re.split(lookahead, lbound)
-            # Can't assume lbound split is a specific size since we don't have control over
-            # structures of scratch data.
-            for idx,item in enumerate(matches):
-                match_intvects = r'\((?:[0-9]+[, ]*)*\)' # use this to match any int vects with only numbers
-                unlabeled_intvects = re.findall(match_intvects, item)
-                for vect in unlabeled_intvects:
-                    matches[idx] = item.replace(vect, f"IntVect{{ LIST_NDIM{vect} }}")
-            return matches
-        # data source was not valid.
-        return ['']
+        lbound = lbound.replace("tile_", '').replace(' ', '') # remove tile_ prefix from keywords
+        lbound_parts = []
+        regexr = r'\(([^\)]+)\)'
+        matches = re.findall(regexr, lbound)
+        stitch = ''
+        
+        # find stitching arithmetic
+        # ..todo::
+        #    * allow math expressions inside intvect constructors?
+        if len(matches) > 1:
+            assert len(matches) == 2 # only allow simple math for now.
+            symbols = re.findall(r'[\+\-\/\*]', lbound)
+            assert len(symbols) == 1 # for now
+            stitch = symbols[0]
+
+        for m in matches:
+            m = m.split(',')
+            assert len(m) > 0
+            if not m[0].isnumeric(): # we have a keyword
+                ncomp = m[1] if len(m) > 1 else None
+                lbound_parts.append((f'({m[0]})', ncomp))
+            elif all([ value.isnumeric() for value in m ]):
+                init_vect = ['1','1','1']
+                ncomp = None
+                for idx,value in enumerate(init_vect):
+                    init_vect[idx] = str(m[idx])
+                if len(m) > len(init_vect):
+                    assert len(m) == 4 # there should never be a case where its greater than 4
+                    ncomp = m[-1]
+                lbound_parts.append((f'IntVect{{LIST_NDIM({",".join(init_vect)})}}', ncomp))
+
+        results = []
+        for item in lbound_parts:
+            if item[0]:
+                if len(results) == 0:
+                    results.append(item[0])
+                else:
+                    results[0] = results[0] + stitch + item[0]
+
+                if item[1]:
+                    if len(results) == 1:
+                        results.append(item[1])
+                    else:
+                        results[1] = results[1] + stitch + item[1]
+        return results
     
     def __parse_extents(self, extents: str) -> list:
         """Parses an extents string."""
         extents = extents.replace('(', '').replace(')', '')
         return [ item.strip() for item in extents.split(',') ]
+    
+    def warn(self, msg: str):
+        self._warn(msg)
 
     def abort(self, msg: str):
         # print message and exit
