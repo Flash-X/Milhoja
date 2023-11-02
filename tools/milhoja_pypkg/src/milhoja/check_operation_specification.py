@@ -58,7 +58,7 @@ def check_operation_specification(spec, logger):
 
     # Keys that must always be provided
     if "name" not in op_spec:
-        msg = "Name of operation not provided in operation spec"
+        msg = "name key not provided in operation spec"
         raise ValueError(msg)
     elif "variable_index_base" not in op_spec:
         msg = "variable_index_base not provided in operation spec"

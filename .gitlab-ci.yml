@@ -161,6 +161,8 @@ test_gnu:
  - pip list
  - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2
  ##-- Build and run tests
+ # Run official scripts just to confirm general functionality
+ - $MILHOJA_CODE_REPO/tools/check_operation_specification.py $MILHOJA_CODE_REPO/test/Base/code_generation/Math_op1.json Milhoja-JSON
  # Build all variants of a single test first and then run all at once
  - cd $MILHOJA_WORK_CLONE/gce
  # Libraries

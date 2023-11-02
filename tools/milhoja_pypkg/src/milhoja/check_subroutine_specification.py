@@ -38,7 +38,7 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
     }
     actual = set(spec)
     if actual != expected:
-        msg = f"Invalid set of {name} specification keys ({actual})"
+        msg = f"Invalid set of subroutine keys for {name} ({actual})"
         raise ValueError(msg)
     interface = spec["interface_file"]
     arg_list = spec["argument_list"]
