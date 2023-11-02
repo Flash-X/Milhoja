@@ -81,8 +81,8 @@ def main():
                            CG_PATH, destination,
                            overwrite, logger
                        )
-        milhoja.tests.generate_grid_code(
-                            tf_spec_json, destination, overwrite,
+        milhoja.tests.generate_code(
+                            [tf_spec_json], destination, overwrite,
                             INDENT, makefile, logger
         )
     except Exception as error:

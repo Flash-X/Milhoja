@@ -85,7 +85,7 @@ def main():
                             CG_PATH, destination,
                             overwrite, logger
                         )
-        milhoja.tests.generate_runtime_cpu_code(
+        milhoja.tests.generate_code(
                             tf_spec_jsons, destination, overwrite,
                             INDENT, makefile, logger
         )
