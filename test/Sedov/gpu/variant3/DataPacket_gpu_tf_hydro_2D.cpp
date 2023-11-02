@@ -224,15 +224,15 @@ void DataPacket_gpu_tf_hydro_2D::pack(void) {
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_U_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&U_device), SIZE_FARRAY4D);
         
-        FArray4D hydro_op1_auxc_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_auxc_d) ) + n * SIZE_HYDRO_OP1_AUXC)), (lo) - IntVect{ LIST_NDIM(1, 1, 1) }, ( (lo) - IntVect{ LIST_NDIM(1, 1, 1) } ) + ( IntVect{ LIST_NDIM(18, 18, 18) } ), 1};
+        FArray4D hydro_op1_auxc_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_auxc_d) ) + n * SIZE_HYDRO_OP1_AUXC)), (lo)-IntVect{LIST_NDIM(1,1,1)}, ((lo)-IntVect{LIST_NDIM(1,1,1)}) + ( IntVect{ LIST_NDIM(18, 18, 18) } ), 1};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_hydro_op1_auxc_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&hydro_op1_auxc_device), SIZE_FARRAY4D);
         
-        FArray4D hydro_op1_flX_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_flX_d) ) + n * SIZE_HYDRO_OP1_FLX)), lo, ( lo ) + ( IntVect{ LIST_NDIM(17, 16, 16) } ), 5};
+        FArray4D hydro_op1_flX_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_flX_d) ) + n * SIZE_HYDRO_OP1_FLX)), (lo), ((lo)) + ( IntVect{ LIST_NDIM(17, 16, 16) } ), 5};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_hydro_op1_flX_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&hydro_op1_flX_device), SIZE_FARRAY4D);
         
-        FArray4D hydro_op1_flY_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_flY_d) ) + n * SIZE_HYDRO_OP1_FLY)), lo, ( lo ) + ( IntVect{ LIST_NDIM(16, 17, 16) } ), 5};
+        FArray4D hydro_op1_flY_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_hydro_op1_flY_d) ) + n * SIZE_HYDRO_OP1_FLY)), (lo), ((lo)) + ( IntVect{ LIST_NDIM(16, 17, 16) } ), 5};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_hydro_op1_flY_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&hydro_op1_flY_device), SIZE_FARRAY4D);
         

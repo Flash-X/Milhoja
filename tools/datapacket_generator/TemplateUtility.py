@@ -8,10 +8,6 @@ TODO: Eventually logging should be more informative and replace all print statem
 """
 from collections import defaultdict
 from collections import OrderedDict
-import json_sections as jsc
-import os
-import abc
-
 from pathlib import Path
 from abc import abstractstaticmethod
 from abc import abstractmethod
@@ -41,6 +37,7 @@ class TemplateUtility():
 
     _STREAM_FUNCS_H = 'stream_functions_h'
     _EXTRA_STREAMS = 'extra_streams'
+    _EXTRA_STREAMS_PACK = "n_extra_streams"
     _DESTRUCTOR = 'destructor'
     _STREAM_FUNCS_CXX = 'stream_functions_cxx'
 
@@ -218,7 +215,7 @@ class TemplateUtility():
         )
 
         # Inserts the code necessary to acquire extra streams. 
-        connectors[jsc.EXTRA_STREAMS].extend([
+        connectors[cls._EXTRA_STREAMS_PACK].extend([
             f'stream{i}_ = RuntimeBackend::instance().requestStream(true);\n' + 
             f'if(!stream{i}_.isValid())\n' +
             f'\tthrow std::runtime_error("[_param:class_name::pack] Unable to acquire stream {i}.");\n'
@@ -273,8 +270,7 @@ class TemplateUtility():
         extents, 
         start: int, 
         end: int, 
-        raw_type: str, 
-        in_ptr: str, 
+        raw_type: str,
         out_ptr: str,
         source: str
     ):

@@ -97,12 +97,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             f"Comparison between {generated.name} and {correct.name} returned false."
         )
  
- 
-    def testCpp(self):
+    def testPacketGeneration(self):
         """
-        Tests all files in CppTestData.
+        Tests all files in the test data folder.
         """
-        for test_set in [self._runtime]:#, self._sedov]:
+        for test_set in [self._runtime, self._sedov]:
             for test in test_set:
                 print(f"""---------------------{test[self.JSON]}---------------------""")
 
@@ -143,6 +142,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # TOOD: Generator should generate TaskFunction call
                 print("----- Success")
 
+                # TODO: Check cpp2c and c2f layers
+
                 # clean up generated files if test passes.
                 try:
                     os.remove(generated_name_cpp)
@@ -151,45 +152,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         os.remove(file)
                 except: 
                     print("Could not find files. Continue.")
-
-    # TODO: Fortran testing with dpg interface
-    def testFortran(self):
-        """
-        Tests all files in FortranTestData.
-        """
-        # fortran_jsons = glob.glob("FortranTestData/*.json")
-        # self.namespace.language = Language.fortran
-        # for file in fortran_jsons:
-        #     # generate fortran packet and test.
-        #     self.namespace.JSON = file
-        #     self.log_beginning()
-        #     generator = DataPacketGenerator.from_json(self.namespace)
-
-        #     generator.generate_header_code()
-        #     generator.generate_source_code()
-
-        #     # check C++ source code when building for fortran
-        #     with open(generator.source_filename, 'r') as generated_cpp, \
-        #     open(f'FortranTestData/{generator.source_filename}', 'r') as correct:
-        #         # Test generated files.
-        #         self.check_generated_files(generated_cpp, correct)
-            
-        #     # check C++ header when building for fortran.
-        #     with open(generator.header_filename, 'r') as generated_h, \
-        #     open(f'FortranTestData/{generator.header_filename}', 'r') as correct:
-        #         self.check_generated_files(generated_h, correct)
- 
-        #     # TODO: Should cpp2c layers be named something specific? 
-        #     #       Let developer choose the name?
-        #     # Check C++ to C layer
-        #     with open(generator.cpp2c_filename, 'r') as generated, \
-        #     open(f'FortranTestData/{generator.cpp2c_filename}', 'r') as correct:
-        #         self.check_generated_files(generated, correct)
-
-        #     # Check C to F layer.
-        #     with open(generator.c2f_filename, 'r') as generated, \
-        #     open(f'FortranTestData/{generator.c2f_filename}', 'r') as correct:
-        #         self.check_generated_files(generated, correct)
 
     def test_updated_json(self):
         ...

@@ -216,7 +216,7 @@ class CppTemplateUtility(TemplateUtility):
             cls.add_unpack_connector(
                 connectors, cls._T_IN_OUT, 
                 extents, out_mask[0], out_mask[1], 
-                info.dtype, item, item,
+                info.dtype, item,
                 data['structure_index'][0]
             )
             cls.insert_farray_memcpy(connectors, item, "tileDesc_h->loGC()", "tileDesc_h->hiGC()", unks, info.dtype)
@@ -252,10 +252,6 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            # TODO: An output array needs the key of the corresponding input array to know which array to pull from if multiple unks exist.
-            #       This may not need to exist once the generated tile wrapper class is created.
-            corresponding_in_data = data.get('in_key', '') 
-
             connectors[cls._PUB_MEMBERS].append(
                 f'{info.dtype}* {info.device};\n'
                 f'{info.dtype}* {info.pinned};\n'
@@ -270,7 +266,7 @@ class CppTemplateUtility(TemplateUtility):
             cls.set_pointer_determination(connectors, cls._T_OUT, info, True)
             cls.add_unpack_connector(
                 connectors, cls._T_OUT, extents, out_mask[0], 
-                out_mask[1], info.dtype, corresponding_in_data, info.ITEM,
+                out_mask[1], info.dtype, info.ITEM,
                 data['structure_index'][0]
             )
             cls.insert_farray_memcpy(
@@ -332,7 +328,7 @@ class CppTemplateUtility(TemplateUtility):
             #    * auxC scratch uses loGC and hiGC. How to incorporate this with other scratch arrays?
             #    * Change data type of scratch array based on length of extents in C++ packet.
             lo = f"IntVect{{ LIST_NDIM({', '.join(lbound[:-1])}) }}" if len(exts) == len(lbound) else lbound[0]
-            hi = f'( {lo} ) + ( IntVect{{ LIST_NDIM({", ".join(extents4d[:-1])}) }} )'
+            hi = f'({lo}) + ( IntVect{{ LIST_NDIM({",".join(extents4d[:-1])}) }} )'
             unks = extents4d[-1]
             cls.insert_farray_memcpy(
                 connectors, item, lo, hi, str(unks), info.dtype

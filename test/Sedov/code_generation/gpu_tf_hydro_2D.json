@@ -51,7 +51,7 @@
             "hydro_op1_auxc": {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(18, 18, 18)",
-                               "lbound":           "((tile_lo) - (1, 1, 1))"}
+                               "lbound":           "(tile_lo) - (1, 1, 1)"}
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_gpu_oacc",
