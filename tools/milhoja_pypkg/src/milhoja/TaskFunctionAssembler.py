@@ -2,13 +2,18 @@ import json
 
 from pathlib import Path
 
-from . import MILHOJA_JSON_FORMAT
-from . import CURRENT_MILHOJA_JSON_VERSION
-from . import LOG_LEVEL_BASIC
-from . import LOG_LEVEL_BASIC_DEBUG
-# from . import AbcLogger
-from . import TaskFunction
-from . import check_operation_specification
+from .constants import MILHOJA_JSON_FORMAT
+from .constants import CURRENT_MILHOJA_JSON_VERSION
+from .constants import LOG_LEVEL_BASIC
+from .constants import LOG_LEVEL_BASIC_DEBUG
+from .constants import EXTERNAL_ARGUMENT
+from .constants import SCRATCH_ARGUMENT
+from .constants import GRID_DATA_ARGUMENT
+from .constants import TILE_ARGUMENTS_ALL
+from .constants import THREAD_INDEX_ARGUMENT
+from .constants import THREAD_INDEX_VAR_NAME
+from .AbcLogger import AbcLogger
+from .check_operation_specification import check_operation_specification
 
 
 class TaskFunctionAssembler(object):
@@ -41,10 +46,10 @@ class TaskFunctionAssembler(object):
         :param internal_call_graph: Refer to documentation in constructor for
             same argument
         :param operation_json: WRITE THIS
-        :param logger: Logger derived from milhoja.AbcLogger
+        :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
         """
-        # if not isinstance(logger, AbcLogger):
-        #     raise TypeError("Unknown logger type")
+        if not isinstance(logger, AbcLogger):
+            raise TypeError("Unknown logger type")
         msg = f"Loading {name} Milhoja-JSON file {operation_json}"
         logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC)
 
@@ -88,97 +93,14 @@ class TaskFunctionAssembler(object):
         self.__op_spec = operation_spec
 
         # ----- ERROR CHECK ALL INPUTS
-        check_operation_specification(self.__op_spec)
+        msg = "Checking full operation spec for building task function {}"
+        msg = msg.format(name)
+        logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC_DEBUG)
+        check_operation_specification(self.__op_spec, self.__logger)
 
         # ----- EAGER DETERMINATION OF TF SPECIFICATION
         self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \
             self.__determine_unique_dummies(self.__op_spec)
-
-    def __sanity_check_subroutine(self, name, spec):
-        """
-        .. todo::
-            * Finish checks
-            * Move this out as own routine in package
-        """
-        expected = {
-            "interface_file", "argument_list", "argument_specifications"
-        }
-        actual = set(spec)
-        if actual != expected:
-            msg = f"Invalid set of {name} specification keys ({actual})"
-            raise ValueError(msg)
-        interface = spec["interface_file"]
-        arg_list = spec["argument_list"]
-        arg_specs_all = spec["argument_specifications"]
-
-        if interface == "":
-            raise ValueError(f"Empty {name} interface filename")
-        if len(arg_list) != len(arg_specs_all):
-            msg = f"Incompatible argument list & specification for {name}"
-            raise ValueError(msg)
-        for arg in arg_list:
-            arg_spec = arg_specs_all[arg]
-            if "source" not in arg_spec:
-                msg = f"{arg} in {name} missing source field"
-                raise ValueError(msg)
-            source = arg_spec["source"]
-            is_thread_idx = (source == TaskFunction.THREAD_INDEX_ARGUMENT)
-            is_external = (source == TaskFunction.EXTERNAL_ARGUMENT)
-            is_tile_metadata = (source in TaskFunction.TILE_METADATA_ALL)
-            is_grid = (source == TaskFunction.GRID_DATA_ARGUMENT)
-            is_scratch = (source == TaskFunction.SCRATCH_ARGUMENT)
-            if (not is_thread_idx) and \
-                    (not is_external) and \
-                    (not is_tile_metadata) and \
-                    (not is_grid) and \
-                    (not is_scratch):
-                msg = f"{arg} in {name} has unknown source {source}"
-                raise ValueError(msg)
-
-    def __sanity_check_grid_spec(self, op_spec):
-        """
-        If this does not raise an error, then the specification is acceptable.
-
-        .. todo::
-            * This should also check types
-            * Move this out as own routine in package
-        """
-        if "grid" not in op_spec:
-            msg = "Operation specification missing grid specification"
-            raise ValueError(msg)
-
-        grid_spec = op_spec["grid"]
-
-        expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
-        actual = set(grid_spec)
-        if actual != expected:
-            msg = f"Invalid set of grid specification keys ({actual})"
-            raise ValueError(msg)
-
-        dimension = grid_spec["dimension"]
-        if dimension not in [1, 2, 3]:
-            msg = f"Invalid grid dimension ({dimension})"
-            raise ValueError(msg)
-
-        nxb = grid_spec["nxb"]
-        if nxb <= 0:
-            raise ValueError(f"Non-positive NXB ({nxb})")
-
-        nyb = grid_spec["nyb"]
-        if nyb <= 0:
-            raise ValueError(f"Non-positive NYB ({nyb})")
-        elif (dimension == 1) and (nyb != 1):
-            raise ValueError("nyb > 1 for 1D problem")
-
-        nzb = grid_spec["nzb"]
-        if nzb <= 0:
-            raise ValueError(f"Non-positive NZB ({nzb})")
-        elif (dimension < 3) and (nzb != 1):
-            raise ValueError(f"nzb > 1 for {dimension}D problem")
-
-        n_gc = grid_spec["nguardcells"]
-        if n_gc < 0:
-            raise ValueError(f"Negative N guardcells ({n_gc})")
 
     def __determine_unique_dummies(self, op_spec):
         """
@@ -299,9 +221,9 @@ class TaskFunctionAssembler(object):
                 for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
-                    if source.lower() == TaskFunction.THREAD_INDEX_ARGUMENT:
+                    if source.lower() == THREAD_INDEX_ARGUMENT:
                         # Use same variable name used by other Milhoja tools
-                        tf_dummy = TaskFunction.THREAD_INDEX_VAR_NAME
+                        tf_dummy = THREAD_INDEX_VAR_NAME
                         if tf_dummy not in dummy_to_actuals:
                             dummy_to_actuals[tf_dummy] = []
                         actual = (subroutine, arg, idx+1)
@@ -349,7 +271,7 @@ class TaskFunctionAssembler(object):
                     # purposes only
                     arg_spec = spec["argument_specifications"][arg].copy()
                     source = arg_spec["source"]
-                    if source == TaskFunction.EXTERNAL_ARGUMENT:
+                    if source == EXTERNAL_ARGUMENT:
                         external_spec = op_spec["operation"]["external"]
                         op_external_name = arg_spec["name"].strip()
                         assert op_external_name.startswith("_")
@@ -400,7 +322,7 @@ class TaskFunctionAssembler(object):
                 for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
-                    if source in TaskFunction.TILE_METADATA_ALL:
+                    if source in TILE_ARGUMENTS_ALL:
                         if len(arg_spec) == 1:
                             tf_dummy = source
                         else:
@@ -475,7 +397,7 @@ class TaskFunctionAssembler(object):
                 for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
-                    if source == TaskFunction.GRID_DATA_ARGUMENT:
+                    if source == GRID_DATA_ARGUMENT:
                         tf_dummy = self.__grid_data_name(
                                         *arg_spec["structure_index"]
                                    )
@@ -570,7 +492,7 @@ class TaskFunctionAssembler(object):
                 for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
-                    if source == TaskFunction.GRID_DATA_ARGUMENT:
+                    if source == GRID_DATA_ARGUMENT:
                         tf_dummy = self.__grid_data_name(
                                         *arg_spec["structure_index"]
                                    )
@@ -634,7 +556,7 @@ class TaskFunctionAssembler(object):
                 for idx, arg in enumerate(spec["argument_list"]):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
-                    if source == TaskFunction.SCRATCH_ARGUMENT:
+                    if source == SCRATCH_ARGUMENT:
                         scratch_spec = op_spec["operation"]["scratch"]
                         op_scratch_name = arg_spec["name"].strip()
                         assert op_scratch_name.startswith("_")
@@ -660,7 +582,7 @@ class TaskFunctionAssembler(object):
         """
         dummies = set()
         for arg, spec in self.__dummy_specs.items():
-            if spec["source"] in TaskFunction.TILE_METADATA_ALL:
+            if spec["source"] in TILE_ARGUMENTS_ALL:
                 dummies.add(arg)
         return dummies
 
@@ -672,7 +594,7 @@ class TaskFunctionAssembler(object):
         """
         dummies = set()
         for arg, spec in self.__dummy_specs.items():
-            if spec["source"] == TaskFunction.EXTERNAL_ARGUMENT:
+            if spec["source"] == EXTERNAL_ARGUMENT:
                 dummies.add(arg)
         return dummies
 
@@ -687,7 +609,7 @@ class TaskFunctionAssembler(object):
         """
         dummies = {}
         for arg, spec in self.__dummy_specs.items():
-            if spec["source"] == TaskFunction.GRID_DATA_ARGUMENT:
+            if spec["source"] == GRID_DATA_ARGUMENT:
                 space, struct_index = spec["structure_index"]
                 if space not in dummies:
                     dummies[space] = {struct_index}
@@ -704,7 +626,7 @@ class TaskFunctionAssembler(object):
         """
         dummies = set()
         for arg, spec in self.__dummy_specs.items():
-            if spec["source"] == TaskFunction.SCRATCH_ARGUMENT:
+            if spec["source"] == SCRATCH_ARGUMENT:
                 dummies.add(arg)
         return dummies
 

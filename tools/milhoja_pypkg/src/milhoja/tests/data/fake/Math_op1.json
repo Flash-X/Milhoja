@@ -10,6 +10,10 @@
     "operation": {
         "name":                 "base_op1",
         "variable_index_base":           1,
+        "external": {
+            "_dt": {"type":      "real",
+                    "extents":   [2, 3]}
+        },
         "scratch": {
             "_scratch3D": {"type":        "real",
                            "extents":     "(8, 16, 1)",
@@ -48,8 +52,10 @@
         },
         "StaticPhysicsRoutines::computeLaplacianFusedKernels": {
             "interface_file": "computeLaplacianFused.h",
-            "argument_list": ["lo", "hi", "U", "scratch", "deltas"],
+            "argument_list": ["dt", "lo", "hi", "U", "scratch", "deltas"],
             "argument_specifications": {
+                "dt":        {"source":             "external",
+                              "name":               "_dt"},
                 "lo":        {"source":             "tile_lo"},
                 "hi":        {"source":             "tile_hi"},
                 "U":         {"source":             "grid_data",

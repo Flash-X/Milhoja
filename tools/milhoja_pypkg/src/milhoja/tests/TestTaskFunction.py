@@ -91,9 +91,9 @@ class TestTaskFunction(unittest.TestCase):
             self.__rt_ic
         ]
         expected = {
-            milhoja.TaskFunction.TILE_LBOUND: ["tile_lbound"],
-            milhoja.TaskFunction.TILE_UBOUND: ["tile_ubound"],
-            milhoja.TaskFunction.TILE_COORDINATES: [
+            milhoja.TILE_LBOUND_ARGUMENT: ["tile_lbound"],
+            milhoja.TILE_UBOUND_ARGUMENT: ["tile_ubound"],
+            milhoja.TILE_COORDINATES_ARGUMENT: [
                 "tile_xCoords_center", "tile_yCoords_center"
             ]
         }
@@ -105,9 +105,9 @@ class TestTaskFunction(unittest.TestCase):
             self.__rt_dens, self.__rt_ener, self.__rt_fused
         ]
         expected = {
-            milhoja.TaskFunction.TILE_LO: ["tile_lo"],
-            milhoja.TaskFunction.TILE_HI: ["tile_hi"],
-            milhoja.TaskFunction.TILE_DELTAS: ["tile_deltas"]
+            milhoja.TILE_LO_ARGUMENT: ["tile_lo"],
+            milhoja.TILE_HI_ARGUMENT: ["tile_hi"],
+            milhoja.TILE_DELTAS_ARGUMENT: ["tile_deltas"]
         }
         for test in tests_all:
             result = test.tile_metadata_arguments
@@ -117,10 +117,10 @@ class TestTaskFunction(unittest.TestCase):
             self.__rt_analysis
         ]
         expected = {
-            milhoja.TaskFunction.TILE_GRID_INDEX: ["tile_gridIndex"],
-            milhoja.TaskFunction.TILE_LO: ["tile_lo"],
-            milhoja.TaskFunction.TILE_HI: ["tile_hi"],
-            milhoja.TaskFunction.TILE_COORDINATES: [
+            milhoja.TILE_GRID_INDEX_ARGUMENT: ["tile_gridIndex"],
+            milhoja.TILE_LO_ARGUMENT: ["tile_lo"],
+            milhoja.TILE_HI_ARGUMENT: ["tile_hi"],
+            milhoja.TILE_COORDINATES_ARGUMENT: [
                 "tile_xCoords_center", "tile_yCoords_center"
             ]
         }
@@ -133,11 +133,11 @@ class TestTaskFunction(unittest.TestCase):
             self.__sedov_ic
         ]
         expected = {
-            milhoja.TaskFunction.TILE_LEVEL: ["tile_level"],
-            milhoja.TaskFunction.TILE_LBOUND: ["tile_lbound"],
-            milhoja.TaskFunction.TILE_UBOUND: ["tile_ubound"],
-            milhoja.TaskFunction.TILE_DELTAS: ["tile_deltas"],
-            milhoja.TaskFunction.TILE_COORDINATES: [
+            milhoja.TILE_LEVEL_ARGUMENT: ["tile_level"],
+            milhoja.TILE_LBOUND_ARGUMENT: ["tile_lbound"],
+            milhoja.TILE_UBOUND_ARGUMENT: ["tile_ubound"],
+            milhoja.TILE_DELTAS_ARGUMENT: ["tile_deltas"],
+            milhoja.TILE_COORDINATES_ARGUMENT: [
                 "tile_xCoords_center",
                 "tile_yCoords_center",
                 "tile_zCoords_center"
@@ -151,9 +151,9 @@ class TestTaskFunction(unittest.TestCase):
             self.__sedov_hy
         ]
         expected = {
-            milhoja.TaskFunction.TILE_DELTAS: ["tile_deltas"],
-            milhoja.TaskFunction.TILE_LO: ["tile_lo"],
-            milhoja.TaskFunction.TILE_HI: ["tile_hi"]
+            milhoja.TILE_DELTAS_ARGUMENT: ["tile_deltas"],
+            milhoja.TILE_LO_ARGUMENT: ["tile_lo"],
+            milhoja.TILE_HI_ARGUMENT: ["tile_hi"]
         }
         for test in tests_all:
             result = test.tile_metadata_arguments
@@ -163,9 +163,9 @@ class TestTaskFunction(unittest.TestCase):
             self.__sedov_IQ
         ]
         expected = {
-            milhoja.TaskFunction.TILE_LO: ["tile_lo"],
-            milhoja.TaskFunction.TILE_HI: ["tile_hi"],
-            milhoja.TaskFunction.TILE_CELL_VOLUMES: ["tile_cellVolumes"]
+            milhoja.TILE_LO_ARGUMENT: ["tile_lo"],
+            milhoja.TILE_HI_ARGUMENT: ["tile_hi"],
+            milhoja.TILE_CELL_VOLUMES_ARGUMENT: ["tile_cellVolumes"]
         }
         for test in tests_all:
             result = test.tile_metadata_arguments

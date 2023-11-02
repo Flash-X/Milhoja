@@ -1,9 +1,20 @@
 from pathlib import Path
 
-from . import LOG_LEVEL_BASIC
-from . import LOG_LEVEL_BASIC_DEBUG
-from . import TaskFunction
-from . import AbcCodeGenerator
+from .constants import LOG_LEVEL_BASIC
+from .constants import LOG_LEVEL_BASIC_DEBUG
+from .constants import TILE_GRID_INDEX_ARGUMENT
+from .constants import TILE_LEVEL_ARGUMENT
+from .constants import TILE_LO_ARGUMENT
+from .constants import TILE_HI_ARGUMENT
+from .constants import TILE_LBOUND_ARGUMENT
+from .constants import TILE_UBOUND_ARGUMENT
+from .constants import TILE_DELTAS_ARGUMENT
+from .constants import TILE_COORDINATES_ARGUMENT
+from .constants import TILE_FACE_AREAS_ARGUMENT
+from .constants import TILE_CELL_VOLUMES_ARGUMENT
+from .constants import THREAD_INDEX_VAR_NAME
+from .TaskFunction import TaskFunction
+from .AbcCodeGenerator import AbcCodeGenerator
 
 
 class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
@@ -89,16 +100,16 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             spec = task_function.argument_specification(arg)
 
             dependents = [
-                TaskFunction.TILE_COORDINATES,
-                TaskFunction.TILE_FACE_AREAS,
-                TaskFunction.TILE_CELL_VOLUMES
+                TILE_COORDINATES_ARGUMENT,
+                TILE_FACE_AREAS_ARGUMENT,
+                TILE_CELL_VOLUMES_ARGUMENT
             ]
             if spec["source"] in dependents:
-                if TaskFunction.TILE_LEVEL not in metadata_all:
+                if TILE_LEVEL_ARGUMENT not in metadata_all:
                     variable = "MH_INTERNAL_level"
                     if variable not in internal:
-                        internal[variable] = {"source": TaskFunction.TILE_LEVEL}
-                        metadata_all[TaskFunction.TILE_LEVEL] = [variable]
+                        internal[variable] = {"source": TILE_LEVEL_ARGUMENT}
+                        metadata_all[TILE_LEVEL_ARGUMENT] = [variable]
 
                 for point in ["lo", "hi"]:
                     key = spec[point].strip()
@@ -113,13 +124,13 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                             metadata_all[key] = [variable]
 
         # ----- EXTRACT INDEPENDENT METADATA
-        order = [(TaskFunction.TILE_GRID_INDEX, "const int", "gridIndex"),
-                 (TaskFunction.TILE_LEVEL, "const unsigned int", "level"),
-                 (TaskFunction.TILE_LO, "const milhoja::IntVect", "lo"),
-                 (TaskFunction.TILE_HI, "const milhoja::IntVect", "hi"),
-                 (TaskFunction.TILE_LBOUND, "const milhoja::IntVect", "loGC"),
-                 (TaskFunction.TILE_UBOUND, "const milhoja::IntVect", "hiGC"),
-                 (TaskFunction.TILE_DELTAS, "const milhoja::RealVect", "deltas")]
+        order = [(TILE_GRID_INDEX_ARGUMENT, "const int", "gridIndex"),
+                 (TILE_LEVEL_ARGUMENT, "const unsigned int", "level"),
+                 (TILE_LO_ARGUMENT, "const milhoja::IntVect", "lo"),
+                 (TILE_HI_ARGUMENT, "const milhoja::IntVect", "hi"),
+                 (TILE_LBOUND_ARGUMENT, "const milhoja::IntVect", "loGC"),
+                 (TILE_UBOUND_ARGUMENT, "const milhoja::IntVect", "hiGC"),
+                 (TILE_DELTAS_ARGUMENT, "const milhoja::RealVect", "deltas")]
         for key, arg_type, getter in order:
             if key in metadata_all:
                 arg = metadata_all[key]
@@ -130,15 +141,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 code.append(line)
 
         # ----- CREATE THREAD-PRIVATE INTERNAL SCRATCH
-        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
+        if TILE_CELL_VOLUMES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_CELL_VOLUMES_ARGUMENT]
             assert len(arg_list) == 1
             arg = arg_list[0]
             wrapper = task_function.data_item_class_name
             code += [
                 "milhoja::Real*   MH_INTERNAL_cellVolumes_ptr =",
                 f"\tstatic_cast<milhoja::Real*>({wrapper}::MH_INTERNAL_cellVolumes_)",
-                f"\t+ {wrapper}::MH_INTERNAL_CELLVOLUMES_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};"
+                f"\t+ {wrapper}::MH_INTERNAL_CELLVOLUMES_SIZE_ * {THREAD_INDEX_VAR_NAME};"
             ]
 
         # ----- EXTRACT DEPENDENT METADATA
@@ -147,14 +158,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                    "k": "milhoja::Axis::K"}
         edge_mh = {"center": "milhoja::Edge::Center"}
 
-        if TaskFunction.TILE_COORDINATES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_COORDINATES]
+        if TILE_COORDINATES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_COORDINATES_ARGUMENT]
             assert len(arg_list) <= 3
             for arg in arg_list:
                 spec = task_function.argument_specification(arg)
                 axis = axis_mh[spec["axis"].lower()]
                 edge = edge_mh[spec["edge"].lower()]
-                level = metadata_all[TaskFunction.TILE_LEVEL][0]
+                level = metadata_all[TILE_LEVEL_ARGUMENT][0]
                 lo = metadata_all[spec["lo"]][0]
                 hi = metadata_all[spec["hi"]][0]
                 code += [
@@ -166,15 +177,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     f"\t\t{lo}, {hi});"
                 ]
 
-        if TaskFunction.TILE_FACE_AREAS in metadata_all:
+        if TILE_FACE_AREAS_ARGUMENT in metadata_all:
             raise NotImplementedError("No test case yet for face areas")
 
-        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
+        if TILE_CELL_VOLUMES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_CELL_VOLUMES_ARGUMENT]
             assert len(arg_list) == 1
             arg = arg_list[0]
             spec = task_function.argument_specification(arg)
-            level = metadata_all[TaskFunction.TILE_LEVEL][0]
+            level = metadata_all[TILE_LEVEL_ARGUMENT][0]
             lo = metadata_all[spec["lo"]][0]
             hi = metadata_all[spec["hi"]][0]
             code += [
@@ -267,7 +278,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- FUNCTION DECLARATION
-            fptr.write(f"void  {self.namespace}::taskFunction(const int {TaskFunction.THREAD_INDEX_VAR_NAME},\n")
+            fptr.write(f"void  {self.namespace}::taskFunction(const int {THREAD_INDEX_VAR_NAME},\n")
             fptr.write(f"{INDENT*5}milhoja::DataItem* dataItem) {{\n")
 
             # ----- ACCESS GIVEN TILE DESCRIPTOR
@@ -337,7 +348,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K()+MILHOJA_K3D)}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
@@ -350,7 +361,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg}}};\n")
@@ -363,7 +374,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     fptr.write(f"{INDENT}                                   tile_hi.K())}};\n")
                     fptr.write(f"{INDENT}{arg_type}* ptr_{arg} = \n")
                     fptr.write(f"{INDENT*3} static_cast<{arg_type}*>({wrapper}::{arg}_)\n")
-                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {TaskFunction.THREAD_INDEX_VAR_NAME};\n")
+                    fptr.write(f"{INDENT*3}+ {wrapper}::{arg.upper()}_SIZE_ * {THREAD_INDEX_VAR_NAME};\n")
                     fptr.write(f"{INDENT}{array_type}  {arg} = {array_type}{{ptr_{arg},\n")
                     fptr.write(f"{INDENT*3}lo_{arg},\n")
                     fptr.write(f"{INDENT*3}hi_{arg},\n")
@@ -416,7 +427,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write(f"namespace {self.namespace} {{\n")
-            fptr.write(f"{INDENT}void  taskFunction(const int {TaskFunction.THREAD_INDEX_VAR_NAME},\n")
+            fptr.write(f"{INDENT}void  taskFunction(const int {THREAD_INDEX_VAR_NAME},\n")
             fptr.write(f"{INDENT}                   milhoja::DataItem* dataItem);\n")
             fptr.write("};\n")
             fptr.write("\n")

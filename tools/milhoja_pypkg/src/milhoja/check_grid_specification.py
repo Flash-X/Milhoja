@@ -5,6 +5,9 @@ def check_grid_specification(spec):
     """
     If this does not raise an error, then the specification is acceptable.
 
+    .. todo::
+        * Will this also work for task function specifications?
+
     :param spec: Grid specification obtained directly from operation
         specification
     """
