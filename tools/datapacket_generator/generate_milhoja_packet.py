@@ -8,7 +8,7 @@ from argparse import RawTextHelpFormatter
 from milhoja import LOG_LEVEL_MAX
 from milhoja import TaskFunction
 from milhoja import BasicLogger
-from DataPacketGenerator import DataPacketGenerator
+from DataPacketGenerator_cpp import DataPacketGenerator_cpp
 
 def parse_configuration():
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -29,6 +29,6 @@ if __name__ == "__main__":
     tf_spec = TaskFunction.from_milhoja_json(f"{code_path}/{args.JSON}")
     # use default logging value for now
     logger = BasicLogger(LOG_LEVEL_MAX)
-    generator = DataPacketGenerator(tf_spec, 4, logger, sizes, f"{code_path}/tools/datapacket_generator/templates", './')
-    generator.generate_header_code()
-    generator.generate_source_code()
+    generator = DataPacketGenerator_cpp(tf_spec, 4, logger, sizes, f"{code_path}/tools/datapacket_generator/templates", './')
+    generator.generate_header_code(True)
+    generator.generate_source_code(True)

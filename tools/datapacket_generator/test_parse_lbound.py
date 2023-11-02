@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-import packet_generation_utility as util
 import re
 
 from milhoja import TaskFunction
@@ -48,6 +46,7 @@ def parse_lbound(lbound: str) -> list:
     # find stitching arithmetic
     # ..todo::
     #    * allow math expressions inside intvect constructors?
+    #    * use dummy packet generator to test lbound parsing
     if len(matches) > 1:
         assert len(matches) == 2 # only allow simple math for now.
         symbols = re.findall(r'[\+\-\/\*]', lbound)

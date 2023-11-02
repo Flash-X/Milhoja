@@ -1,15 +1,14 @@
 #!/usr/bin/env python
-import json
-import json_sections as sections
-import packet_generation_utility as utility
-import generate_helpers_tpl
-import cpp2c_generator
-import c2f_generator
 import cgkit.ctree.srctree as srctree
-import os
 import re
 import pathlib
 
+from TemplateUtility import TemplateUtility
+from FortranTemplateUtility import FortranTemplateUtility
+from CppTemplateUtility import CppTemplateUtility
+from DataPacketMemberVars import DataPacketMemberVars
+from collections import defaultdict
+from abc import abstractmethod
 from cgkit.ctree.srctree import SourceTree
 from collections import OrderedDict
 from pathlib import Path
@@ -37,9 +36,10 @@ class DataPacketGenerator(AbcCodeGenerator):
         'tile_hiGC': "IntVect"
     }
 
-    FARRAY_MAPPING = {
+    CPP_EQUIVALENT = {
+        "real": "RealVect",
         "int": "IntVect",
-        "real": "RealVect"
+        "logical": "bool"
     }
 
     F_HOST_EQUIVALENT = {
@@ -47,11 +47,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         'IntVect': 'int'
     }
 
-    CPP_EQUIVALENT = {
-        "real": "RealVect",
-        "int": "IntVect",
-        "logical": "bool"
-    }
 
     SOURCE_DATATYPE = {
         TaskFunction.TILE_LO: "IntVect",
@@ -81,6 +76,13 @@ class DataPacketGenerator(AbcCodeGenerator):
         'verbosePost': ' */',
     }
 
+    _SOURCE_TILE_DATA_MAPPING = {
+        "CENTER": "tileDesc_h->dataPtr()",
+        "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
+        "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
+        "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
+    }
+
     def __init__(
         self,
         tf_spec: TaskFunction,
@@ -92,12 +94,16 @@ class DataPacketGenerator(AbcCodeGenerator):
     ):
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("TF Specification was not derived from task function.")
-
+        
         self.json = {}
         self._TOOL_NAME = self.__class__.__name__
         self._sizes = sizes
         self._templates_path = templates_path
         self._destination = files_destination
+
+        self._size_connectors = defaultdict(str)
+        self._connectors = defaultdict(list) 
+        self._params = defaultdict(str)
 
         outputs = tf_spec.output_filenames
         header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
@@ -112,11 +118,15 @@ class DataPacketGenerator(AbcCodeGenerator):
             logger
         )
 
+        self._log("Initialized", LOG_LEVEL_BASIC)
         self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
-        if self.language == "fortran":
-            self._c2f_source = outputs[TaskFunction.C2F_KEY]["source"]
 
-        self._log("Loaded tf spec", LOG_LEVEL_BASIC_DEBUG)
+        if self._tf_spec.language.lower() == "c++":
+            self.template_utility = CppTemplateUtility
+        elif self._tf_spec.language.lower() == "fortran":
+            self.tempalte_utility = FortranTemplateUtility
+        else:
+            self.abort("No template utility for specifed language")
 
         self._header_tpl = Path(templates_path, "cg-tpl.datapacket_header.cpp").resolve()
         self._source_tpl = Path(templates_path, "cg-tpl.datapacket.cpp").resolve()
@@ -130,14 +140,104 @@ class DataPacketGenerator(AbcCodeGenerator):
         # outer and helper template files with each other.
         # This avoid generating the files twice and annoying logic to check if the templates have been generated. 
         # (ex: )
+        self._log("Creating templates", LOG_LEVEL_BASIC_DEBUG)
         self._helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp").resolve()
         self._outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp").resolve()
-        generate_helpers_tpl.generate_helper_template(self, True)
+        self.generate_templates()
 
         # generate cpp2c helpers & outer templates
         self._cpp2c_helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
         self._cpp2c_outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
         # Note: c2f layer does not use cgkit so no templates.
+        self._log("Loaded", LOG_LEVEL_MAX)
+
+    # Not really necessary to use constant string keys for this function
+    # since param keys do not get used outside of this function.
+    def _set_default_params(self):
+        """
+        Sets the default parameters for cgkit.
+        
+        :param dict data: The dict containing the data packet JSON data.
+        :param dict params: The dict containing all parameters for the outer template.
+        """
+        # should be guaranteed to be integers by TaskFunction class.
+        self._params['align_size'] = str(self.byte_alignment)
+        self._params['n_extra_streams'] = str(self.n_extra_streams)
+        self._params['class_name'] = self._tf_spec.data_item_class_name
+        self._params['ndef_name'] = self.ppd_name
+        self._params['header_name'] = self.header_filename
+
+    def generate_templates(self):
+        # set defaults for the connectors. 
+        self._connectors[self.template_utility._CON_ARGS] = []
+        self._connectors[self.template_utility._SET_MEMBERS] = []
+        self._connectors[self.template_utility._SIZE_DET] = []
+        self._set_default_params()
+        
+        """Generates the helper template with the provided JSON data."""
+        with open(self._helper_tpl, 'w') as template:
+            # # SETUP FOR CONSTRUCTOR  
+            external = self.external_args
+            metadata = self.tile_metadata_args
+            tile_in = self.tile_in_args
+            tile_in_out = self.tile_in_out_args
+            tile_out = self.tile_out_args
+            scratch = self.scratch_args
+
+            self.template_utility.iterate_externals(
+                self._connectors, self._size_connectors, external
+            )
+
+            # # SETUP FOR TILE_METADATA
+            num_arrays = len(scratch) + len(tile_in) + \
+                        len(tile_in_out) + len(tile_out)
+            
+            self.template_utility.iterate_tilemetadata(self._connectors, self._size_connectors, metadata, num_arrays)
+            self.template_utility.iterate_tile_in(self._connectors, self._size_connectors, tile_in)
+            self.template_utility.iterate_tile_in_out(self._connectors, self._size_connectors, tile_in_out)
+            self.template_utility.iterate_tile_out(self._connectors, self._size_connectors, tile_out)
+            self.template_utility.iterate_tile_scratch(self._connectors, self._size_connectors, scratch)
+
+            tile_data = [ tile_in, tile_in_out, tile_out, scratch ]
+            self.template_utility.insert_farray_information(
+                self._connectors, tile_data
+            )
+
+            # Write to all files.
+            self.template_utility.write_size_connectors(self._size_connectors, template)
+            self.template_utility.generate_extra_streams_information(self._connectors, self.n_extra_streams)
+            self.template_utility.write_connectors(self._connectors, template)
+
+        with open(self._outer_tpl, 'w') as outer:
+            outer.writelines(
+            [
+                '/* _connector:datapacket_outer */\n',
+                '/* _link:datapacket */\n'
+            ] + 
+            ['\n'.join(f'/* _param:{item} = {self._params[item]} */' for item in self._params)]
+        )
+
+    def generate_header_code(self, overwrite):
+        """
+        Generate C++ header
+        """
+        self.generate_packet_file(
+            self.header_filename,
+            self.__DEFAULT_SOURCE_TREE_OPTS,
+            [self._outer_tpl, self._header_tpl, self._helper_tpl],
+            overwrite
+        )
+
+    def generate_source_code(self, overwrite):
+        """
+        Generate C++ source code.
+        """
+        self.generate_packet_file(
+            self.source_filename,
+            self.__DEFAULT_SOURCE_TREE_OPTS,
+            [self._outer_tpl, self._source_tpl, self._helper_tpl],
+            overwrite
+        )
 
     def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list, overwrite: bool):
         """
@@ -184,14 +284,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     def dummy_arguments(self):
         return self._tf_spec.dummy_arguments
 
-    # @property:
-    # def delete_funtion(self):
-    #     return self._tf_spec.delete_packet_C_function
-
-    @property
-    def language(self):
-        return self._tf_spec.language
-    
     @property
     def packet_class_name(self):
         return self._tf_spec.data_item_class_name
@@ -199,88 +291,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def ppd_name(self):
         return f'{self.packet_class_name.upper()}_UNIQUE_IFNDEF_H_'
-
-    def generate_header_code(self, overwrite):
-        """
-        Generate C++ header
-        """
-        self.generate_packet_file(
-            self.header_filename,
-            self.__DEFAULT_SOURCE_TREE_OPTS,
-            [self._outer_tpl, self._header_tpl, self._helper_tpl],
-            overwrite
-        )
-
-    def generate_source_code(self, overwrite):
-        """
-        Generate C++ source code. Also generates the
-        interoperability layers if necessary.
-        """
-        self.generate_packet_file(
-            Path(self._destination, self.source_filename),
-            self.__DEFAULT_SOURCE_TREE_OPTS,
-            [self._outer_tpl, self._source_tpl, self._helper_tpl],
-            overwrite
-        )
-        self.generate_cpp2c(overwrite)
-        if self._tf_spec.language == "fortran":
-            # self.generate_c2f()
-            ...
-
-    # use language to determine which function to call.
-    def generate_cpp2c(self, overwrite):
-        """
-        Generates translation layers based on the language
-        of the TaskFunction.
-            fortran - Generates c2f and cpp2c layers.
-            cpp - Generates a C++ task function that calls
-        """
-
-        # ..todo::
-        #     * Create new generator for just C++ packets.
-        def generate_cpp2c_cpp():
-            self._log("C++ Packet tf generation not implemented.", LOG_LEVEL_BASIC)
-            ...
-
-        def generate_cpp2c_f():
-            self._log("Generating cpp2c for fortran", LOG_LEVEL_BASIC_DEBUG)
-            cpp2c_generator.generate_cpp2c(self)
-            self.generate_packet_file(
-                self._cpp2c_source,
-                self.__DEFAULT_SOURCE_TREE_OPTS,
-                [self.cpp2c_outer_template, self._cpp2c_tpl, self.cpp2c_streams_template, self.cpp2c_helper_template],
-                overwrite
-            )   
-
-        lang = self.language.lower()
-        if lang == "fortran":
-            generate_cpp2c_f()
-            self.generate_packet_file(
-                self._cpp2c_source, 
-                self.__DEFAULT_SOURCE_TREE_OPTS,
-                [
-                    self._cpp2c_outer_tpl,
-                    self._cpp2c_tpl,
-                    self._cpp2c_helper_tpl,
-                    self._cpp2c_extra_streams_tpl
-                ],
-                overwrite
-            )
-        elif lang == "c++":
-            generate_cpp2c_cpp()
-
-    def generate_c2f(self, overwrite=True):
-        if self.language.lower() == "fortran":
-            ...
-            # c2f_generator.generate_c2f(self)
-
-    @property
-    def outer_template(self) -> Path:
-        return self._outer_tpl
-
-    @property
-    def helper_template(self) -> Path:
-        return self._helper_tpl
 
     @property
     def cpp2c_file(self):
@@ -297,10 +307,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def cpp2c_streams_template(self) -> Path:
         return self._cpp2c_extra_streams_tpl
-
-    @property
-    def c2f_filename(self):
-        ...#return self.__c2f_name
     
     @property
     def n_extra_streams(self) -> int:
@@ -318,7 +324,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = self._tf_spec.external_arguments
         external = {
             'nTiles': {
-                'source': 'internal', # -> internal source for items created by the generators? nTiles is not really external but it does get passed around...
+                'source': 'internal', # ?
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
                 'extents': []

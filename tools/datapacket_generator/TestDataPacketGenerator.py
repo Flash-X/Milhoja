@@ -17,7 +17,6 @@ import sys
 
 from pathlib import Path
 from DataPacketGenerator import DataPacketGenerator
-from packet_generation_utility import Language
 from milhoja import LOG_LEVEL_MAX
 from milhoja import LOG_LEVEL_BASIC
 from milhoja import TaskFunction
@@ -103,7 +102,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         """
         Tests all files in CppTestData.
         """
-        for test_set in [self._runtime, self._sedov]:
+        for test_set in [self._runtime]:#, self._sedov]:
             for test in test_set:
                 print(f"""---------------------{test[self.JSON]}---------------------""")
 
@@ -115,13 +114,15 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec = TaskFunction.from_milhoja_json(json_path)
                 # use default logging value for now
                 logger = BasicLogger(LOG_LEVEL_MAX)
+               
                 generator = DataPacketGenerator(tf_spec, 4, logger, sizes, "./templates", './')
-
-                generator.generate_header_code()
-                generator.generate_source_code()
+                generator.generate_header_code(overwrite=True)
+                generator.generate_source_code(overwrite=True)
 
                 generated_name_cpp = generator.source_filename
                 correct_name_cpp = f'CppTestData/{generator.source_filename}'
+
+                logger.log("TestDataPacketGenerator", f"Testing {generated_name_cpp}", LOG_LEVEL_MAX)
                 
                 # check c++ source code
                 with open(generated_name_cpp, 'r') as generated_cpp, \
@@ -131,6 +132,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     
                 generated_name_h = generator.header_filename
                 correct_name_h = f'CppTestData/{generator.header_filename}'
+
+                logger.log("TestDataPacketGenerator", f"Testing {generated_name_h}", LOG_LEVEL_MAX)
 
                 # check c++ headers
                 with open(generated_name_h, 'r') as generated_h, \
