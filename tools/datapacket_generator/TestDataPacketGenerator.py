@@ -72,6 +72,14 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.SOURCE: _TEST_PATH.joinpath(""),
                 self.SDD: False,
                 self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json") # temp use summit sizes
+            },
+            {
+                self.JSON: _TEST_PATH.joinpath("gpu_tf_hydro_3D.json"),
+                self.HEADER: _TEST_PATH.joinpath(""),
+                self.HDD: False,
+                self.SOURCE: _TEST_PATH.joinpath(""),
+                self.SDD: False,
+                self.SIZES: _FILE_PATH.joinpath("sample_jsons", "summit_sizes.json")
             }
         ]
 

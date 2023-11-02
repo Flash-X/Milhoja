@@ -124,7 +124,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         if self._tf_spec.language.lower() == "c++":
             self.template_utility = CppTemplateUtility
         elif self._tf_spec.language.lower() == "fortran":
-            self.tempalte_utility = FortranTemplateUtility
+            self.template_utility = FortranTemplateUtility
         else:
             self.abort("No template utility for specifed language")
 

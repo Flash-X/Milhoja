@@ -15,7 +15,6 @@ class FortranTemplateUtility(TemplateUtility):
     }
 
     @classmethod
-    @classmethod
     def iterate_externals(cls, connectors: dict, size_connectors: dict, externals: OrderedDict):
         """
         Iterates the external variables section 
@@ -82,6 +81,7 @@ class FortranTemplateUtility(TemplateUtility):
         connectors: dict, 
         size_connectors: dict, 
         tilemetadata: OrderedDict,
+        num_arrays: int
     ):
         """
         Iterates the tilemetadata section of the JSON.
@@ -148,12 +148,11 @@ class FortranTemplateUtility(TemplateUtility):
         ])
 
     @classmethod
-    def _iterate_tilein(
+    def iterate_tile_in(
         cls,
         connectors: dict, 
         size_connectors: dict, 
         tilein: OrderedDict, 
-        language: str
     ) -> None:
         """
         Iterates the tile in section of the JSON.
