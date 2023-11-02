@@ -3,12 +3,10 @@ import cgkit.ctree.srctree as srctree
 import re
 import pathlib
 
-from TemplateUtility import TemplateUtility
+from Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from FortranTemplateUtility import FortranTemplateUtility
 from CppTemplateUtility import CppTemplateUtility
-from DataPacketMemberVars import DataPacketMemberVars
 from collections import defaultdict
-from abc import abstractmethod
 from cgkit.ctree.srctree import SourceTree
 from collections import OrderedDict
 from pathlib import Path
@@ -238,6 +236,11 @@ class DataPacketGenerator(AbcCodeGenerator):
             [self._outer_tpl, self._source_tpl, self._helper_tpl],
             overwrite
         )
+
+        # generate cpp2c layer if necessary -> Cpp task function generator? 
+
+        # generate fortran to c layer if necessary
+
 
     def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list, overwrite: bool):
         """
