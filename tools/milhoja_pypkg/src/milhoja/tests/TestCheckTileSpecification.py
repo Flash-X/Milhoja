@@ -5,7 +5,6 @@ Automatic unit testing of check_tile_specification()
 import copy
 import unittest
 
-import numpy as np
 import itertools as it
 
 from milhoja import (
@@ -23,6 +22,9 @@ from milhoja import (
     LogicError,
     BasicLogger,
     check_tile_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST, NOT_LOGGER_LIST
 )
 
 
@@ -69,7 +71,7 @@ class TestCheckTileSpecification(unittest.TestCase):
             check_tile_specification(self.__name, bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good_single)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["source"] = bad
             with self.assertRaises(TypeError):
                 check_tile_specification(self.__name, bad_spec, self.__logger)
@@ -80,7 +82,7 @@ class TestCheckTileSpecification(unittest.TestCase):
             check_tile_specification(self.__name, bad_spec, self.__logger)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_tile_specification(self.__name, self.__good_single, bad)
 
@@ -95,7 +97,6 @@ class TestCheckTileSpecification(unittest.TestCase):
             # Too few keys
             bad_spec = copy.deepcopy(good_spec)
             del bad_spec["source"]
-            self.assertTrue(len(bad_spec) < len(good_spec))
             with self.assertRaises(ValueError):
                 check_tile_specification(name, bad_spec, self.__logger)
 
@@ -121,7 +122,6 @@ class TestCheckTileSpecification(unittest.TestCase):
         for key in ["axis", "edge", "lo", "hi"]:
             bad_spec = copy.deepcopy(self.__good_coords)
             del bad_spec[key]
-            self.assertTrue(len(bad_spec) < len(self.__good_coords))
             with self.assertRaises(ValueError):
                 check_tile_specification(name, bad_spec, self.__logger)
 
@@ -164,7 +164,7 @@ class TestCheckTileSpecification(unittest.TestCase):
 
         # Bad types
         for key in ["axis", "edge", "lo", "hi"]:
-            for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+            for bad in NOT_STR_LIST:
                 bad_spec = copy.deepcopy(self.__good_coords)
                 bad_spec[key] = bad
                 with self.assertRaises(TypeError):
@@ -203,7 +203,6 @@ class TestCheckTileSpecification(unittest.TestCase):
         for key in ["axis", "lo", "hi"]:
             bad_spec = copy.deepcopy(self.__good_areas)
             del bad_spec[key]
-            self.assertTrue(len(bad_spec) < len(self.__good_areas))
             with self.assertRaises(ValueError):
                 check_tile_specification(name, bad_spec, self.__logger)
 
@@ -246,7 +245,7 @@ class TestCheckTileSpecification(unittest.TestCase):
 
         # Bad types
         for key in ["axis", "lo", "hi"]:
-            for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+            for bad in NOT_STR_LIST:
                 bad_spec = copy.deepcopy(self.__good_areas)
                 bad_spec[key] = bad
                 with self.assertRaises(TypeError):
@@ -279,7 +278,6 @@ class TestCheckTileSpecification(unittest.TestCase):
         for key in ["lo", "hi"]:
             bad_spec = copy.deepcopy(self.__good_volumes)
             del bad_spec[key]
-            self.assertTrue(len(bad_spec) < len(self.__good_volumes))
             with self.assertRaises(ValueError):
                 check_tile_specification(name, bad_spec, self.__logger)
 
@@ -321,7 +319,7 @@ class TestCheckTileSpecification(unittest.TestCase):
 
         # Bad types
         for key in ["lo", "hi"]:
-            for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+            for bad in NOT_STR_LIST:
                 bad_spec = copy.deepcopy(self.__good_volumes)
                 bad_spec[key] = bad
                 with self.assertRaises(TypeError):

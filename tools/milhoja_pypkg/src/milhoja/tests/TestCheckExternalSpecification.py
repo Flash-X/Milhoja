@@ -5,8 +5,6 @@ Automatic unit testing of check_external_specification()
 import copy
 import unittest
 
-import numpy as np
-
 from milhoja import (
     LOG_LEVEL_NONE,
     EXTERNAL_ARGUMENT,
@@ -14,6 +12,9 @@ from milhoja import (
     LogicError,
     BasicLogger,
     check_external_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST, NOT_LOGGER_LIST
 )
 
 
@@ -32,7 +33,7 @@ class TestCheckExternalSpecification(unittest.TestCase):
             check_external_specification(self.__name, bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["source"] = bad
             with self.assertRaises(TypeError):
                 check_external_specification(self.__name, bad_spec,
@@ -44,7 +45,7 @@ class TestCheckExternalSpecification(unittest.TestCase):
             check_external_specification(self.__name, bad_spec, self.__logger)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_external_specification(self.__name, self.__good, bad)
 
@@ -52,7 +53,6 @@ class TestCheckExternalSpecification(unittest.TestCase):
         # Too few keys
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["name"]
-        self.assertTrue(len(bad_spec) < len(self.__good))
         with self.assertRaises(ValueError):
             check_external_specification(self.__name, bad_spec, self.__logger)
 
@@ -73,7 +73,7 @@ class TestCheckExternalSpecification(unittest.TestCase):
 
     def testName(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["name"] = bad
             with self.assertRaises(TypeError):
                 check_external_specification(self.__name, bad_spec,

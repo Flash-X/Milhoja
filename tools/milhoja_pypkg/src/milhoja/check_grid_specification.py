@@ -1,7 +1,9 @@
 import numbers
 
+from .AbcLogger import AbcLogger
 
-def check_grid_specification(spec):
+
+def check_grid_specification(spec, logger):
     """
     If this does not raise an error, then the specification is acceptable.
 
@@ -10,7 +12,16 @@ def check_grid_specification(spec):
 
     :param spec: Grid specification obtained directly from operation
         specification
+    :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
+    # ----- HARDCODED VALUES
+    # LOG_NAME = ERROR_CHECK_LOG_TAG
+
+    # ----- ERROR CHECK ARGUMENTS
+    if not isinstance(logger, AbcLogger):
+        raise TypeError("Unknown logger type")
+
+    # ----- GRID SPECIFICATION
     expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
     actual = set(spec)
     if actual != expected:

@@ -6,14 +6,17 @@ import copy
 import json
 import unittest
 
-import numpy as np
-
 from pathlib import Path
 
 from milhoja import (
     LOG_LEVEL_NONE,
     BasicLogger,
     check_subroutine_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST,
+    NOT_LIST_LIST, NOT_DICT_LIST,
+    NOT_LOGGER_LIST
 )
 
 
@@ -40,7 +43,7 @@ class TestCheckSubroutineSpecification(unittest.TestCase):
                                        self.__index, self.__logger)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_subroutine_specification(self.__name, self.__good,
                                                self.__index, bad)
@@ -53,7 +56,7 @@ class TestCheckSubroutineSpecification(unittest.TestCase):
                                            self.__index, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["argument_specifications"]["lo"]["source"] = bad
             with self.assertRaises(TypeError):
                 check_subroutine_specification(self.__name, bad_spec,
@@ -87,7 +90,7 @@ class TestCheckSubroutineSpecification(unittest.TestCase):
 
     def testInterface(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["interface_file"] = bad
             with self.assertRaises(TypeError):
                 check_subroutine_specification(self.__name, bad_spec,
@@ -100,14 +103,14 @@ class TestCheckSubroutineSpecification(unittest.TestCase):
 
     def testArgumentList(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, "fail", 1, 1.1, np.nan, np.inf, (), (1,)]:
+        for bad in NOT_LIST_LIST:
             bad_spec["argument_list"] = bad
             with self.assertRaises(TypeError):
                 check_subroutine_specification(self.__name, bad_spec,
                                                self.__index, self.__logger)
 
         for i in range(len(self.__good["argument_list"])):
-            for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+            for bad in NOT_STR_LIST:
                 bad_spec = copy.deepcopy(self.__good)
                 bad_spec["argument_list"][i] = bad
                 with self.assertRaises(TypeError):
@@ -123,7 +126,7 @@ class TestCheckSubroutineSpecification(unittest.TestCase):
 
     def testArgumentSpecifications(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, "fail", 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_DICT_LIST:
             bad_spec["argument_specifications"] = bad
             with self.assertRaises(TypeError):
                 check_subroutine_specification(self.__name, bad_spec,

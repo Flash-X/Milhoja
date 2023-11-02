@@ -5,14 +5,15 @@ Automatic unit testing of check_thread_index_specification()
 import copy
 import unittest
 
-import numpy as np
-
 from milhoja import (
     LOG_LEVEL_NONE,
     TILE_LO_ARGUMENT, THREAD_INDEX_ARGUMENT,
     LogicError,
     BasicLogger,
     check_thread_index_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST, NOT_LOGGER_LIST
 )
 
 
@@ -33,7 +34,7 @@ class TestCheckThreadIndexSpecification(unittest.TestCase):
                                              self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["source"] = bad
             with self.assertRaises(TypeError):
                 check_thread_index_specification(self.__name, bad_spec,
@@ -45,7 +46,7 @@ class TestCheckThreadIndexSpecification(unittest.TestCase):
                                              self.__logger)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_thread_index_specification(self.__name, self.__good, bad)
 

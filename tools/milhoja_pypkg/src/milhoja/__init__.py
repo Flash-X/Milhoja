@@ -14,32 +14,26 @@ __version__ = version("milhoja")
 #       matching TT configuration.
 
 # constants
-from .constants import MILHOJA_JSON_FORMAT
-from .constants import CURRENT_MILHOJA_JSON_VERSION
-from .constants import TASK_FUNCTION_FORMATS
-from .constants import LOG_LEVEL_NONE
-from .constants import LOG_LEVEL_BASIC
-from .constants import LOG_LEVEL_BASIC_DEBUG
-from .constants import LOG_LEVEL_MAX
-from .constants import LOG_LEVELS
-from .constants import EXTERNAL_ARGUMENT
-from .constants import SCRATCH_ARGUMENT
-from .constants import GRID_DATA_ARGUMENT
-from .constants import TILE_GRID_INDEX_ARGUMENT
-from .constants import TILE_LEVEL_ARGUMENT
-from .constants import TILE_LO_ARGUMENT
-from .constants import TILE_HI_ARGUMENT
-from .constants import TILE_LBOUND_ARGUMENT
-from .constants import TILE_UBOUND_ARGUMENT
-from .constants import TILE_INTERIOR_ARGUMENT
-from .constants import TILE_ARRAY_BOUNDS_ARGUMENT
-from .constants import TILE_DELTAS_ARGUMENT
-from .constants import TILE_COORDINATES_ARGUMENT
-from .constants import TILE_FACE_AREAS_ARGUMENT
-from .constants import TILE_CELL_VOLUMES_ARGUMENT
-from .constants import TILE_ARGUMENTS_ALL
-from .constants import THREAD_INDEX_ARGUMENT
-from .constants import THREAD_INDEX_VAR_NAME
+from .constants import (
+    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
+    TASK_FUNCTION_FORMATS,
+    LOG_LEVEL_NONE, LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    LOG_LEVEL_MAX, LOG_LEVELS,
+    EXTERNAL_ARGUMENT,
+    SCRATCH_ARGUMENT,
+    GRID_DATA_ARGUMENT,
+    TILE_GRID_INDEX_ARGUMENT,
+    TILE_LEVEL_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_DELTAS_ARGUMENT,
+    TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT,
+    TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_ARGUMENTS_ALL,
+    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME
+)
 
 # Custom exceptions
 from .LogicError import LogicError

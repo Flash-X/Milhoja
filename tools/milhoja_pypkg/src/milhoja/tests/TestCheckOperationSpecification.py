@@ -6,7 +6,6 @@ import copy
 import json
 import unittest
 
-import numpy as np
 import itertools as it
 
 from io import StringIO
@@ -19,6 +18,11 @@ from milhoja import (
     LogicError,
     BasicLogger,
     check_operation_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST, NOT_INT_LIST,
+    NOT_LIST_LIST,
+    NOT_LOGGER_LIST
 )
 
 
@@ -53,7 +57,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         self.assertEqual(set(self.__good["operation"]), keys_all)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_operation_specification(self.__good, bad)
 
@@ -61,7 +65,6 @@ class TestCheckOperationSpecification(unittest.TestCase):
         # Too few
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["format"]
-        self.assertTrue(len(self.__good) > len(bad_spec))
         with self.assertRaises(ValueError):
             check_operation_specification(bad_spec, self.__logger)
 
@@ -88,7 +91,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
 
     def testName(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 0, 1.1, np.nan, np.inf, (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["operation"]["name"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
@@ -99,7 +102,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
 
     def testVariableIndexBase(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1.1, "fail", np.nan, np.inf, (), (1,)]:
+        for bad in NOT_INT_LIST:
             bad_spec["operation"]["variable_index_base"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
@@ -181,7 +184,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
 
         # Check bad specifications
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1.1, np.nan, np.inf, [], [1]]:
+        for bad in NOT_STR_LIST:
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["type"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
@@ -191,7 +194,13 @@ class TestCheckOperationSpecification(unittest.TestCase):
             check_operation_specification(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1.1, "fail", np.nan, np.inf, (), (1,)]:
+        custom_not_list = [e for e in NOT_LIST_LIST if not isinstance(e, int)]
+
+        bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = 1
+        with self.assertRaises(TypeError):
+            check_operation_specification(bad_spec, self.__logger)
+
+        for bad in custom_not_list:
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
@@ -291,7 +300,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         VAR = "_scratch3D"
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1]]:
+        for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["type"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
@@ -301,13 +310,13 @@ class TestCheckOperationSpecification(unittest.TestCase):
             check_operation_specification(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1]]:
+        for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["extents"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1]]:
+        for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["lbound"] = bad
             with self.assertRaises(TypeError):
                 check_operation_specification(bad_spec, self.__logger)

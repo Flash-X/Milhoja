@@ -50,7 +50,7 @@ def check_operation_specification(spec, logger):
     # ----- GRID SPECIFICATION
     msg = "Checking grid subsection specification"
     logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
-    check_grid_specification(grid_spec)
+    check_grid_specification(grid_spec, logger)
 
     # ----- OPERATION SPECIFICATION
     msg = "Checking operation subsection specification"

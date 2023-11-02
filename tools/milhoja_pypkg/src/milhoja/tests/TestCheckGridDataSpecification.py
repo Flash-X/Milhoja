@@ -5,7 +5,6 @@ Automatic unit testing of check_grid_data_specification()
 import copy
 import unittest
 
-import numpy as np
 import itertools as it
 
 from milhoja import (
@@ -14,6 +13,9 @@ from milhoja import (
     LogicError,
     BasicLogger,
     check_grid_data_specification
+)
+from milhoja.tests import (
+    NOT_STR_LIST, NOT_INT_LIST, NOT_LIST_LIST, NOT_LOGGER_LIST
 )
 
 
@@ -39,7 +41,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                           self.__index, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["source"] = bad
             with self.assertRaises(TypeError):
                 check_grid_data_specification(self.__name, bad_spec,
@@ -52,7 +54,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                           self.__index, self.__logger)
 
     def testBadLogger(self):
-        for bad in [None, 1, 1.1, "fail", np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_LOGGER_LIST:
             with self.assertRaises(TypeError):
                 check_grid_data_specification(self.__name, self.__good,
                                               self.__index, bad)
@@ -150,7 +152,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
 
     def testBadStructureIndex(self):
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, "fail", 1, 1.1, np.nan, np.inf, (), (1,)]:
+        for bad in NOT_LIST_LIST:
             bad_spec["structure_index"] = bad
             with self.assertRaises(TypeError):
                 check_grid_data_specification(self.__name, bad_spec,
@@ -162,7 +164,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                               self.__index, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, 1, 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_STR_LIST:
             bad_spec["structure_index"][0] = bad
             with self.assertRaises(TypeError):
                 check_grid_data_specification(self.__name, bad_spec,
@@ -173,7 +175,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                           self.__index, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        for bad in [None, "fail", 1.1, np.nan, np.inf, [], [1], (), (1,)]:
+        for bad in NOT_INT_LIST:
             bad_spec["structure_index"][1] = bad
             with self.assertRaises(TypeError):
                 check_grid_data_specification(self.__name, bad_spec,
@@ -187,7 +189,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
     def testBadAccessPatterns(self):
         for access in ["R", "RW", "W"]:
             bad_spec = copy.deepcopy(self.__good)
-            for bad in [None, "fail", 1, 1.1, np.nan, np.inf, (), (1,)]:
+            for bad in NOT_LIST_LIST:
                 bad_spec[access] = bad
                 with self.assertRaises(TypeError):
                     check_grid_data_specification(self.__name, bad_spec,
@@ -199,7 +201,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                 check_grid_data_specification(self.__name, bad_spec,
                                               self.__index, self.__logger)
 
-            for bad in [None, "fail", 1.1, np.nan, np.inf, (), (1,)]:
+            for bad in NOT_INT_LIST:
                 bad_spec[access] = [3, 1, bad, 2]
                 with self.assertRaises(TypeError):
                     check_grid_data_specification(self.__name, bad_spec,
