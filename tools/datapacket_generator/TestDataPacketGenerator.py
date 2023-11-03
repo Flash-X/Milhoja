@@ -11,9 +11,6 @@ from pathlib import Path
 
 import milhoja.tests
 import glob
-import difflib
-import subprocess
-import sys
 
 from pathlib import Path
 from DataPacketGenerator import DataPacketGenerator
@@ -126,8 +123,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 generator.generate_header_code(overwrite=True)
                 generator.generate_source_code(overwrite=True)
 
-                generated_name_cpp = Path(generator._destination, generator.source_filename)
-                correct_name_cpp = Path(_TEST_PATH, generator.source_filename)
+                generated_name_cpp = generator.source_filename
+                correct_name_cpp = Path(_TEST_PATH, os.path.basename(generator.source_filename))
 
                 logger.log("TestDataPacketGenerator", f"Testing {generated_name_cpp}", LOG_LEVEL_MAX)
                 
@@ -137,8 +134,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     # Test generated files.
                     self.check_generated_files(generated_cpp, correct)
                     
-                generated_name_h = Path(generator._destination, generator.header_filename)
-                correct_name_h = Path(_TEST_PATH, generator.header_filename)
+                generated_name_h = generator.header_filename
+                correct_name_h = Path(_TEST_PATH, os.path.basename(generator.header_filename))
 
                 logger.log("TestDataPacketGenerator", f"Testing {generated_name_h}", LOG_LEVEL_MAX)
 
@@ -154,8 +151,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 #       * currently the cpp2c layer is only generated when using a fortran task function
                 #         there should be another "cpp2c layer" that's just for cpp task functions.
                 if generator.language == "fortran":
-                    generated_cpp2c = Path(generator._destination, generator.cpp2c_file)
-                    correct_cpp2c = Path(_TEST_PATH, generator.cpp2c_file)
+                    generated_cpp2c = generator.cpp2c_file
+                    correct_cpp2c = Path(_TEST_PATH, os.path.basename(generator.cpp2c_file))
                     logger.log("TestDataPacketGenerator", f"Testing {generated_cpp2c}", LOG_LEVEL_MAX)
                     with open(generated_cpp2c, 'r') as generated, \
                     open(correct_cpp2c, 'r') as correct:
