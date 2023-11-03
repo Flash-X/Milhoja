@@ -1,19 +1,19 @@
 from pathlib import Path
 
-from .constants import LOG_LEVEL_BASIC
-from .constants import LOG_LEVEL_BASIC_DEBUG
-from .constants import TILE_GRID_INDEX_ARGUMENT
-from .constants import TILE_LEVEL_ARGUMENT
-from .constants import TILE_LO_ARGUMENT
-from .constants import TILE_HI_ARGUMENT
-from .constants import TILE_LBOUND_ARGUMENT
-from .constants import TILE_UBOUND_ARGUMENT
-from .constants import TILE_DELTAS_ARGUMENT
-from .constants import TILE_COORDINATES_ARGUMENT
-from .constants import TILE_FACE_AREAS_ARGUMENT
-from .constants import TILE_CELL_VOLUMES_ARGUMENT
-from .constants import THREAD_INDEX_VAR_NAME
+from .constants import (
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    TILE_GRID_INDEX_ARGUMENT,
+    TILE_LEVEL_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_DELTAS_ARGUMENT,
+    TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT,
+    TILE_CELL_VOLUMES_ARGUMENT,
+    THREAD_INDEX_VAR_NAME,
+)
 from .TaskFunction import TaskFunction
+from .AbcLogger import AbcLogger
 from .AbcCodeGenerator import AbcCodeGenerator
 
 
@@ -24,22 +24,19 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
     """
     __LOG_TAG = "Milhoja C++/CPU Task Function"
 
-    def __init__(
-            self,
-            tf_spec,
-            indent,
-            logger
-            ):
+    def __init__(self, tf_spec, indent, logger):
         """
         Construct an object for use with the task function specified by the
         given specification object.
 
         :param tf_spec: Specification object derived from TaskFunction
         :param log_level: Milhoja level to use for logging generation
-        :param logger: Concrete logger derived from AbcLogger
+        :param logger: Logger derived from :py:class`milhoja.AbcLogger`
         """
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("Given tf_spec not derived from TaskFunction")
+        elif not isinstance(logger, AbcLogger):
+            raise TypeError("Invalid logger type")
 
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.CPP_TF_KEY]["header"]

@@ -2,13 +2,11 @@ import json
 
 from pathlib import Path
 
-from . import MILHOJA_JSON_FORMAT
-from . import CURRENT_MILHOJA_JSON_VERSION
-
-from .constants import EXTERNAL_ARGUMENT
-from .constants import SCRATCH_ARGUMENT
-from .constants import GRID_DATA_ARGUMENT
-from .constants import TILE_ARGUMENTS_ALL
+from .constants import (
+    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, GRID_DATA_ARGUMENT,
+    TILE_ARGUMENTS_ALL
+)
 
 
 class TaskFunction(object):
