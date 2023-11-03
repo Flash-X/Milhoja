@@ -137,7 +137,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         # I need to generate templates immediately, since both the header and source file for the data packet share 
         # outer and helper template files with each other.
         # This avoid generating the files twice and annoying logic to check if the templates have been generated. 
-        # (ex: )
         self._log("Creating templates", LOG_LEVEL_BASIC_DEBUG)
         self._helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp").resolve()
         self._outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp").resolve()
@@ -237,10 +236,18 @@ class DataPacketGenerator(AbcCodeGenerator):
             overwrite
         )
 
-        # generate cpp2c layer if necessary -> Cpp task function generator? 
-
-        # generate fortran to c layer if necessary
-
+        if self._tf_spec.language.lower() == "fortran":
+            # generate cpp2c layer if necessary -> Cpp task function generator? 
+            cpp2c_layer = Cpp2CLayerGenerator(self)
+            cpp2c_layer.generate_cpp2c()
+            self.generate_packet_file(
+                self.cpp2c_file,
+                self.__DEFAULT_SOURCE_TREE_OPTS,
+                [self.cpp2c_outer_template, self._cpp2c_tpl, self.cpp2c_helper_template, self.cpp2c_streams_template], # dev note: ORDER MATTERS HERE!
+                overwrite
+            )
+            # generate fortran to c layer if necessary
+            ...
 
     def generate_packet_file(self, output: str,  sourcetree_opts: dict, linked_templates: list, overwrite: bool):
         """
@@ -281,34 +288,46 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def name(self):
+        """Task function name"""
         return self._tf_spec.name
     
     @property
+    def language(self):
+        return self._tf_spec.language.lower()
+    
+    @property
     def dummy_arguments(self):
+        """Dummy argument list"""
         return self._tf_spec.dummy_arguments
 
     @property
     def packet_class_name(self):
+        """Class name of the data packet"""
         return self._tf_spec.data_item_class_name
     
     @property
     def ppd_name(self):
+        """Preprocessor string for the data packet"""
         return f'{self.packet_class_name.upper()}_UNIQUE_IFNDEF_H_'
 
     @property
     def cpp2c_file(self):
-        return self._tf_spec["cpp_source"]
+        """The cpp2c output file"""
+        return self._tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]['source']
     
     @property
     def cpp2c_outer_template(self) -> Path:
+        """Outer template for the cpp2c layer"""
         return self._cpp2c_outer_tpl
     
     @property
     def cpp2c_helper_template(self) -> Path:
+        """Helper template path for the cpp2c layer"""
         return self._cpp2c_helper_tpl
     
     @property
     def cpp2c_streams_template(self) -> Path:
+        """Extra streams template for the cpp2c layer"""
         return self._cpp2c_extra_streams_tpl
     
     @property

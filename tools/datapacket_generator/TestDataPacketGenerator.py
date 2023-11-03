@@ -126,8 +126,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 generator.generate_header_code(overwrite=True)
                 generator.generate_source_code(overwrite=True)
 
-                generated_name_cpp = generator.source_filename
-                correct_name_cpp = f'CppTestData/{generator.source_filename}'
+                generated_name_cpp = Path(generator._destination, generator.source_filename)
+                correct_name_cpp = Path(_TEST_PATH, generator.source_filename)
 
                 logger.log("TestDataPacketGenerator", f"Testing {generated_name_cpp}", LOG_LEVEL_MAX)
                 
@@ -137,8 +137,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     # Test generated files.
                     self.check_generated_files(generated_cpp, correct)
                     
-                generated_name_h = generator.header_filename
-                correct_name_h = f'CppTestData/{generator.header_filename}'
+                generated_name_h = Path(generator._destination, generator.header_filename)
+                correct_name_h = Path(_TEST_PATH, generator.header_filename)
 
                 logger.log("TestDataPacketGenerator", f"Testing {generated_name_h}", LOG_LEVEL_MAX)
 
@@ -150,13 +150,22 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # TOOD: Generator should generate TaskFunction call
                 print("----- Success")
 
-                # TODO: Check cpp2c and c2f layers
+                # ..todo::
+                #       * currently the cpp2c layer is only generated when using a fortran task function
+                #         there should be another "cpp2c layer" that's just for cpp task functions.
+                if generator.language == "fortran":
+                    generated_cpp2c = Path(generator._destination, generator.cpp2c_file)
+                    correct_cpp2c = Path(_TEST_PATH, generator.cpp2c_file)
+                    logger.log("TestDataPacketGenerator", f"Testing {generated_cpp2c}", LOG_LEVEL_MAX)
+                    with open(generated_cpp2c, 'r') as generated, \
+                    open(correct_cpp2c, 'r') as correct:
+                        self.check_generated_files(generated, correct)
 
                 # clean up generated files if test passes.
                 try:
                     os.remove(generated_name_cpp)
                     os.remove(generated_name_h)
-                    for file in glob.glob("cg-tpl.*.cpp"):
+                    for file in glob.glob(str(Path(generator._destination, "cg-tpl.*.cpp"))): # be careful when cleaning up here
                         os.remove(file)
                 except: 
                     print("Could not find files. Continue.")

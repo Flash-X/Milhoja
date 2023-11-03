@@ -43,6 +43,8 @@ C_hydro_op1_flZ_d) bind(c)
 	type(C_PTR), intent(IN), value :: C_hydro_op1_flZ_d
 
 	integer(kind=acc_handle_kind) :: F_queue1_h
+	integer(kind=acc_handle_kind) :: F_queue2_h
+	integer(kind=acc_handle_kind) :: F_queue3_h
 	integer :: F_nTiles_h
 
 	integer, pointer :: F_nTiles_d

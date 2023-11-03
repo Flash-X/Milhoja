@@ -7,7 +7,7 @@ int _param:release (void* packet, const int id) {
     _param:class_name*   packet_h = static_cast<_param:class_name*>(packet);
 
     try {
-        _param:release
+        packet_h->releaseExtraQueue(id);
     } catch (const std::exception& exc) {
         std::cerr << exc.what() << std::endl;
         return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
