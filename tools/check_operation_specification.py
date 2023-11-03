@@ -67,38 +67,14 @@ def main():
     # ----- CHECK SPECIFICATION
     try:
         if from_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
-            # -- Construct Fake Call Graph
             with open(op_spec, "r") as fptr:
                 spec = json.load(fptr)
-            if "operation" not in spec:
-                log_and_abort(f"{op_spec} missing 'operation' key")
-            op_spec = spec["operation"]
-
-            # Find all subroutines
-            ignore = {"name", "variable_index_base"}
-            for key in ignore:
-                if key not in op_spec:
-                    log_and_abort(f"'{key}' not specified in operation")
-            if milhoja.EXTERNAL_ARGUMENT in op_spec:
-                ignore = ignore.union([milhoja.EXTERNAL_ARGUMENT])
-            if milhoja.SCRATCH_ARGUMENT in op_spec:
-                ignore = ignore.union([milhoja.SCRATCH_ARGUMENT])
-
-            subroutines_all = set(op_spec).difference(ignore)
-            if len(subroutines_all) == 0:
-                log_and_abort("No subroutines in specification")
-
-            # Pick one subroutine to build graph
-            call_graph = [sorted(subroutines_all)[0]]
-
-            # -- Loading runs the full check
-            name = LOG_TAG.replace(' ', '_')
-            milhoja.TaskFunctionAssembler.from_milhoja_json(name, call_graph,
-                                                            op_spec, logger)
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown from specification format {from_format}"
             log_and_abort(error_msg)
+
+        milhoja.check_operation_specification(spec, logger)
     except Exception as error:
         error_msg = str(error)
         if logger.level >= (milhoja.LOG_LEVEL_BASIC_DEBUG + 1):
