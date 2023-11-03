@@ -150,6 +150,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # ..todo::
                 #       * currently the cpp2c layer is only generated when using a fortran task function
                 #         there should be another "cpp2c layer" that's just for cpp task functions.
+                generated_cpp2c = None
+                generated_c2f = None
                 if generator.language == "fortran":
                     generated_cpp2c = generator.cpp2c_file
                     correct_cpp2c = Path(_TEST_PATH, os.path.basename(generator.cpp2c_file))
@@ -158,10 +160,21 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     open(correct_cpp2c, 'r') as correct:
                         self.check_generated_files(generated, correct)
 
+                    generated_c2f = generator.c2f_file
+                    correct_c2f = Path(_TEST_PATH, os.path.basename(generator.c2f_file))
+                    logger.log("TestDataPacketGenerator", f"Testing {generated_c2f}", LOG_LEVEL_MAX)
+                    with open(generated_c2f, 'r') as generated, \
+                    open(correct_c2f, 'r') as correct:
+                        self.check_generated_files(generated, correct)
+
                 # clean up generated files if test passes.
                 try:
                     os.remove(generated_name_cpp)
                     os.remove(generated_name_h)
+                    if generated_cpp2c:
+                        os.remove(generated_cpp2c)
+                    if generated_c2f:
+                        os.remove(generated_c2f)
                     for file in glob.glob(str(Path(generator._destination, "cg-tpl.*.cpp"))): # be careful when cleaning up here
                         os.remove(file)
                 except: 

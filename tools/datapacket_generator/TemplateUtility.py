@@ -48,6 +48,17 @@ class TemplateUtility():
         "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
     }
 
+    TILE_VARIABLE_MAPPING = {
+        'levels': 'unsigned int',
+        'gridIndex': 'int',
+        'tileIndex': 'int',
+        'tile_deltas': 'RealVect',
+        'tile_lo': "IntVect",
+        'tile_hi': "IntVect",
+        'tile_loGC': "IntVect",
+        'tile_hiGC': "IntVect"
+    }
+
     @classmethod
     @abstractmethod
     def iterate_externals(cls, connectors: dict, size_connectors: dict, externals: OrderedDict):

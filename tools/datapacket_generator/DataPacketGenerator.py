@@ -2,8 +2,11 @@
 import cgkit.ctree.srctree as srctree
 import re
 import pathlib
+import functools
 
 from Cpp2CLayerGenerator import Cpp2CLayerGenerator
+from C2FortranLayerGenerator import C2FortranLayerGenerator
+from TemplateUtility import TemplateUtility
 from FortranTemplateUtility import FortranTemplateUtility
 from CppTemplateUtility import CppTemplateUtility
 from collections import defaultdict
@@ -22,18 +25,10 @@ class DataPacketGenerator(AbcCodeGenerator):
     This class serves as a wrapper for all of the packet generation scripts.
     This will eventually be built into the primary means of generating data
     packets instead of calling generate_packet.py.
-    """
-    TILE_VARIABLE_MAPPING = {
-        'levels': 'unsigned int',
-        'gridIndex': 'int',
-        'tileIndex': 'int',
-        'tile_deltas': 'RealVect',
-        'tile_lo': "IntVect",
-        'tile_hi': "IntVect",
-        'tile_loGC': "IntVect",
-        'tile_hiGC': "IntVect"
-    }
 
+    ..todo::
+        * check if lru_caching is necessary on properties that are not tile_scratch.
+    """
     CPP_EQUIVALENT = {
         "real": "RealVect",
         "int": "IntVect",
@@ -45,6 +40,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         'IntVect': 'int'
     }
 
+    TILE_VARIABLE_MAPPING = TemplateUtility.TILE_VARIABLE_MAPPING
+    F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
 
     SOURCE_DATATYPE = {
         TaskFunction.TILE_LO: "IntVect",
@@ -98,6 +95,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._sizes = sizes
         self._templates_path = templates_path
         self._destination = files_destination
+        self._indent = indent
 
         self._size_connectors = defaultdict(str)
         self._connectors = defaultdict(list) 
@@ -137,9 +135,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._log("Creating templates", LOG_LEVEL_BASIC_DEBUG)
         self.generate_templates()
 
-        # generate cpp2c helpers & outer templates
-        self._cpp2c_helper_tpl = Path(self._destination, f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
-        self._cpp2c_outer_tpl = Path(self._destination, f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp").resolve()
         # Note: c2f layer does not use cgkit so no templates.
         self._log("Loaded", LOG_LEVEL_MAX)
 
@@ -233,8 +228,12 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         if self._tf_spec.language.lower() == "fortran":
             # generate cpp2c layer if necessary -> Cpp task function generator? 
-            cpp2c_layer = Cpp2CLayerGenerator(self)
-            cpp2c_layer.generate_cpp2c()
+            cpp2c_layer = Cpp2CLayerGenerator(
+                self._tf_spec, self.cpp2c_outer_template,
+                self.cpp2c_helper_template, self._indent, self._logger.level,
+                self.n_extra_streams, self.external_args
+            )
+            cpp2c_layer.generate_source_code()
             self.generate_packet_file(
                 self.cpp2c_file,
                 self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -247,7 +246,15 @@ class DataPacketGenerator(AbcCodeGenerator):
                 overwrite
             )
             # generate fortran to c layer if necessary
-            ...
+            c2f_layer = C2FortranLayerGenerator(
+                self._tf_spec, self.c2f_file, self._indent,
+                self._logger.level, self.n_extra_streams,
+                self.external_args, self.tile_metadata_args,
+                self.tile_in_args, self.tile_in_out_args,
+                self.tile_out_args, self.scratch_args
+            )
+            # c2f layer does not use cgkit so no need to call generate_packet_file
+            c2f_layer.generate_source_code(overwrite)
 
     def generate_packet_file(self, output: Path,  sourcetree_opts: dict, linked_templates: list, overwrite: bool):
         """
@@ -372,6 +379,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._tf_spec.data_item_byte_alignment
 
     @property
+    @functools.lru_cache
     def external_args(self) -> OrderedDict:
         lang = self._tf_spec.language.lower()
         args = self._tf_spec.external_arguments
@@ -392,6 +400,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._sort_dict(external.items(), sort_func, True)
 
     @property
+    @functools.lru_cache
     def tile_metadata_args(self) -> OrderedDict:
         lang = self._tf_spec.language.lower()
         sort_func = None
@@ -440,6 +449,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return arg_dictionary
 
     @property
+    @functools.lru_cache
     def tile_in_args(self) -> OrderedDict:
         """
         Gets all tile_in arguments and formats them for the data packet generator.
@@ -452,6 +462,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
+    @functools.lru_cache
     def tile_in_out_args(self) -> OrderedDict:
         """
         Gets all tile_in_out arguments and formats them for the data packet generator.
@@ -464,6 +475,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
+    @functools.lru_cache
     def tile_out_args(self) -> OrderedDict:
         """
         Gets all tile_out arguments and formats them for the data packet generator.
@@ -476,6 +488,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
     @property
+    @functools.lru_cache
     def scratch_args(self) -> OrderedDict:
         """
         Gets all scratch arguments and formats them for the data packet generator.
