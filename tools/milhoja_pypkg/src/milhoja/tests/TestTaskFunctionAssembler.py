@@ -41,16 +41,18 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         tf_call_graph = tf_spec["task_function"]["subroutine_call_graph"]
         op_spec_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
         self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, op_spec_json, self.__logger
+            "gpu_tf_hydro", tf_call_graph, [op_spec_json], self.__logger
         )
 
     def testDummyArguments(self):
         expected = [
-            "hydro_op1_dt",
+            "external_hydro_op1_dt",
             "tile_deltas", "tile_hi", "tile_lo",
             "CC_1",
-            "hydro_op1_auxC",
-            "hydro_op1_flX", "hydro_op1_flY", "hydro_op1_flZ"
+            "scratch_hydro_op1_auxC",
+            "scratch_hydro_op1_flX",
+            "scratch_hydro_op1_flY",
+            "scratch_hydro_op1_flZ"
         ]
         self.assertEqual(expected, self.__Sedov.dummy_arguments)
 
@@ -66,13 +68,15 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
     def testScratchArguments(self):
         expected = {
-            "hydro_op1_auxC",
-            "hydro_op1_flX", "hydro_op1_flY", "hydro_op1_flZ"
+            "scratch_hydro_op1_auxC",
+            "scratch_hydro_op1_flX",
+            "scratch_hydro_op1_flY",
+            "scratch_hydro_op1_flZ"
         }
         self.assertEqual(expected, self.__Sedov.scratch_arguments)
 
     def testExternalArguments(self):
-        expected = {"hydro_op1_dt"}
+        expected = {"external_hydro_op1_dt"}
         self.assertEqual(expected, self.__Sedov.external_arguments)
 
     def testRuntimeCpu(self):

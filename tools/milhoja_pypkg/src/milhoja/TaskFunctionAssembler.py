@@ -2,16 +2,20 @@ import json
 
 from pathlib import Path
 
-from .constants import MILHOJA_JSON_FORMAT
-from .constants import CURRENT_MILHOJA_JSON_VERSION
-from .constants import LOG_LEVEL_BASIC
-from .constants import LOG_LEVEL_BASIC_DEBUG
-from .constants import EXTERNAL_ARGUMENT
-from .constants import SCRATCH_ARGUMENT
-from .constants import GRID_DATA_ARGUMENT
-from .constants import TILE_ARGUMENTS_ALL
-from .constants import THREAD_INDEX_ARGUMENT
-from .constants import THREAD_INDEX_VAR_NAME
+from .constants import (
+    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    EXTERNAL_ARGUMENT,
+    SCRATCH_ARGUMENT,
+    GRID_DATA_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT,
+    TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_ARGUMENTS_ALL,
+    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME
+)
+from .LogicError import LogicError
 from .AbcLogger import AbcLogger
 from .check_operation_specification import check_operation_specification
 
@@ -33,55 +37,68 @@ class TaskFunctionAssembler(object):
 
     @staticmethod
     def from_milhoja_json(name, internal_call_graph,
-                          operation_json, logger):
+                          operation_jsons_all, logger):
         """
         .. todo::
             * Load JSON files carefully and accounting for different versions
               as is done in TaskFunction.from_milhoja_json.
-            * If the internal call graph includes subroutines from different
-              operations, then we likely need multiple op specs.
             * Log arguments as debug information
 
         :param name: Name of the task function
         :param internal_call_graph: Refer to documentation in constructor for
             same argument
-        :param operation_json: WRITE THIS
+        :param operation_jsons_all: Filenames with paths of all Milhoja-JSON
+            format operation specification files that together contain the
+            specifications for the subroutines in the internal call graph
         :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
         """
         if not isinstance(logger, AbcLogger):
             raise TypeError("Unknown logger type")
-        msg = f"Loading {name} Milhoja-JSON file {operation_json}"
-        logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC)
 
-        if not Path(operation_json).is_file():
-            msg = f"{operation_json} does not exist or is not a file"
-            raise ValueError(msg)
-        with open(operation_json, "r") as fptr:
-            operation_spec = json.load(fptr)
+        if not isinstance(operation_jsons_all, list):
+            msg = f"operation_jsons_all not list ({operation_jsons_all})"
+            raise TypeError(msg)
+        elif not operation_jsons_all:
+            raise ValueError("No operation specifications provided")
+
+        op_specs_all = []
+        for op_json in operation_jsons_all:
+            msg = f"Loading Milhoja-JSON operation specification {op_json}"
+            logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC)
+            if not Path(op_json).is_file():
+                msg = f"{op_json} does not exist or is not a file"
+                raise ValueError(msg)
+            with open(op_json, "r") as fptr:
+                op_specs_all.append(json.load(fptr))
 
         return TaskFunctionAssembler(name, internal_call_graph,
-                                     operation_spec, logger)
+                                     op_specs_all, logger)
 
     def __init__(self, name, internal_call_graph,
-                 operation_spec, logger):
+                 operation_specs_all, logger):
         """
         It is intended that users instantiate assemblers using the from_*
         classmethods.
 
         .. todo::
-            * Error check graph and each specification here with informative
-              error messages
+            * Error check graph
+            * Check grid specification identical across all op specs.  Does
+              this suggest that the grid info shouldn't be in the op specs?
+            * How to manage possibility of different variable base index
+              across op specs?  Can we force the default value here?
             * Log arguments as debug information
 
         :param name: Name of the task function
         :param internal_call_graph: WRITE THIS
-        :param operation_spec: WRITE THIS
-        :param logger: Logger derived from milhoja.AbcLogger
+        :param operation_specs_all:  Operation specifications that together
+            contain the specifications for the subroutines in the internal call
+            graph
+        :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
         """
         super().__init__()
 
-        # if not isinstance(logger, AbcLogger):
-        #     raise TypeError("Unknown logger type")
+        if not isinstance(logger, AbcLogger):
+            raise TypeError("Unknown logger type")
         self.__logger = logger
 
         msg = f"Building assembler for task function {name}"
@@ -90,19 +107,23 @@ class TaskFunctionAssembler(object):
 
         self.__tf_name = name
         self.__call_graph = internal_call_graph
-        self.__op_spec = operation_spec
+        self.__op_specs = operation_specs_all
 
-        # ----- ERROR CHECK ALL INPUTS
-        msg = "Checking full operation spec for building task function {}"
-        msg = msg.format(name)
-        logger.log(TaskFunctionAssembler.__LOG_TAG, msg, LOG_LEVEL_BASIC_DEBUG)
-        check_operation_specification(self.__op_spec, self.__logger)
+        # ----- ERROR CHECK EACH OPERATION INDIVIDUALLY
+        for i, op_spec in enumerate(self.__op_specs):
+            msg = "Checking full operation spec {} for building TF {}"
+            msg = msg.format(i + 1, name)
+            logger.log(TaskFunctionAssembler.__LOG_TAG,
+                       msg, LOG_LEVEL_BASIC_DEBUG)
+            check_operation_specification(op_spec, self.__logger)
+
+        # ----- ERROR CHECK ACROSS ALL OPERATIONS
 
         # ----- EAGER DETERMINATION OF TF SPECIFICATION
         self.__dummies, self.__dummy_specs, self.__dummy_to_actuals = \
-            self.__determine_unique_dummies(self.__op_spec)
+            self.__determine_unique_dummies(self.__op_specs)
 
-    def __determine_unique_dummies(self, op_spec):
+    def __determine_unique_dummies(self, op_specs_all):
         """
         This is the workhorse of the assembler that identifies the minimal set
         of dummy arguments for the task function, writes the specifications for
@@ -112,6 +133,17 @@ class TaskFunctionAssembler(object):
 
         .. todo::
             * What about lbound arguments!?
+
+        :param op_specs_all:  Operation specifications that together contain the
+            specifications for the subroutines in the internal call graph
+        :return: (tf_dummy_list, tf_dummy_spec, dummy_to_actuals) where
+
+            * **tf_dummy_list :** Ordered dummy argument list for the task
+              function
+            * **tf_dummy_spec :** Specification of each of the task function's
+              dummy arguments
+            * **dummy_to_actuals :** Mapping of task function dummy arguments
+              onto the arguments of the internal subroutines
         """
         tf_dummy_list = []
         tf_dummy_spec = {}
@@ -121,8 +153,8 @@ class TaskFunctionAssembler(object):
         # that our ordering is fixed so that tests will work on all platforms
         # and all versions of python.
         for arg_specs, arg_mappings in [
-            self.__get_external(op_spec), self.__get_tile_metadata(),
-            self.__get_grid_data(), self.__get_scratch(op_spec)
+            self.__get_external(), self.__get_tile_metadata(),
+            self.__get_grid_data(), self.__get_scratch()
         ]:
             assert set(arg_specs).intersection(tf_dummy_spec) == set()
             tf_dummy_spec.update(arg_specs)
@@ -162,16 +194,24 @@ class TaskFunctionAssembler(object):
             else:
                 yield node
 
+    def operation_specification(self, subroutine):
+        """
+        :return: Operation specification that specifies the given subroutine
+        """
+        for op_spec in self.__op_specs:
+            if subroutine in op_spec["operation"]:
+                return op_spec
+
+        name = self.task_function_name
+        msg = "{} not specified in any operation for TF {}"
+        raise ValueError(msg.format(subroutine, name))
+
     def subroutine_specification(self, subroutine):
         """
-        :return: Specification of given subroutine as a dictionary
+        :return: Specification of given subroutine
         """
-        if subroutine not in self.__op_spec["operation"]:
-            name = self.task_function_name
-            msg = "{} not specified in any operation for TF {}"
-            raise ValueError(msg.format(subroutine, name))
-
-        return self.__op_spec["operation"][subroutine]
+        op_spec = self.operation_specification(subroutine)
+        return op_spec["operation"][subroutine]
 
     @property
     def dummy_arguments(self):
@@ -203,7 +243,7 @@ class TaskFunctionAssembler(object):
             of the task function specification are part of an index set whose
             smallest index is this value.  Valid values are either 0 or 1.
         """
-        return self.__op_spec["operation"]["variable_index_base"]
+        return self.__op_specs[0]["operation"]["variable_index_base"]
 
     def __get_milhoja_thread_index(self):
         """
@@ -231,7 +271,7 @@ class TaskFunctionAssembler(object):
 
         return dummy_to_actuals
 
-    def __get_external(self, op_spec):
+    def __get_external(self):
         """
         Runs through the each subroutine in the internal call graph, determines
         the minimum set of external arguments that need to be included in the
@@ -241,26 +281,17 @@ class TaskFunctionAssembler(object):
 
         Note that external dummy variables are named::
 
-                         <operation name>_<variable name>
+                       external_<operation name>_<variable name>
 
         to avoid collisions if the task function needs two variables with the
-        same name but from two different operations.
-
-        .. todo::
-            * This is presently restricted to a single operation.
-
-        :param bridge: Data structure that specifies the scratch and external
-            arguments at the level of the single operation to which all
-            internal subroutines belong.
-        :param operation_name: Name of the operation
+        same name but from two different operations.  Note that the prefix is
+        needed to avoid collisions with scratch variables as well.
 
         :return: tf_dummy_spec, dummy_to_actuals where
             * tf_dummy_spec is the specification of external dummy arguments
               for the task function and
             * dummy_to_actuals is the mapping
         """
-        op_name = op_spec["operation"]["name"]
-
         tf_dummy_spec = {}
         dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
@@ -272,11 +303,13 @@ class TaskFunctionAssembler(object):
                     arg_spec = spec["argument_specifications"][arg].copy()
                     source = arg_spec["source"]
                     if source == EXTERNAL_ARGUMENT:
-                        external_spec = op_spec["operation"]["external"]
+                        op_spec = self.operation_specification(subroutine)
+                        op_name = op_spec["operation"]["name"]
                         op_external_name = arg_spec["name"].strip()
                         assert op_external_name.startswith("_")
-                        tf_dummy = f"{op_name}{op_external_name}"
+                        tf_dummy = f"external_{op_name}{op_external_name}"
                         if tf_dummy not in tf_dummy_spec:
+                            external_spec = op_spec["operation"]["external"]
                             tmp_spec = external_spec[op_external_name].copy()
                             assert "source" not in tmp_spec
                             tmp_spec["source"] = "external"
@@ -297,22 +330,27 @@ class TaskFunctionAssembler(object):
         these dummies, and determines how to map each task function dummy
         argument onto the actual argument list of each internal subroutine.
 
+        If two subroutines need the same geometry data (i.e., coordinates,
+        areas, or volumes) but over different overlapping regions, then we
+        include the data as a single variable that contains data in a region
+        large enough that it contains all data needed by both.  This implies
+        that all subroutines must be written to accept geometry data in arrays
+        potentially larger than what they need.
+
         .. todo::
-            * Certain tile_metadata vars may only need a subset of their
-              arguments checked in order to assume that the var has already
-              been accounted for.
-            * Always use a fixed variable name for metadata that requires
-              extra specs.
-            * If one subroutine needs cell volumes in interior and another
-              needs them on the full block, do we include just the larger one
-              or both?
+            * Should this class include a different geometry variable for each
+              different region?  It seems like it should.  We could then add
+              on an additional optimization layer that can do this merging.
 
         :return: tf_dummy_spec, dummy_to_actuals where
             * tf_dummy_spec is the specification of tile metadata dummy
               arguments for the task function and
             * dummy_to_actuals is the mapping
         """
-        axis_lut = {"i": "x", "j": "y", "k": "z"}
+        REQUIRE_MERGING = [TILE_COORDINATES_ARGUMENT,
+                           TILE_FACE_AREAS_ARGUMENT,
+                           TILE_CELL_VOLUMES_ARGUMENT]
+        AXIS_LUT = {"i": "x", "j": "y", "k": "z"}
 
         tf_dummy_spec = {}
         dummy_to_actuals = {}
@@ -326,20 +364,31 @@ class TaskFunctionAssembler(object):
                         if len(arg_spec) == 1:
                             tf_dummy = source
                         else:
-                            if source.lower() == "tile_coordinates":
-                                axis = axis_lut[arg_spec["axis"].lower()]
+                            if source == TILE_COORDINATES_ARGUMENT:
+                                axis = AXIS_LUT[arg_spec["axis"].lower()]
                                 edge = arg_spec["edge"].lower()
                                 tf_dummy = f"tile_{axis}Coords_{edge}"
-                            elif source.lower() == "tile_cellvolumes":
-                                tf_dummy = "tile_cellVolumes"
+                            elif source == TILE_FACE_AREAS_ARGUMENT:
+                                axis = AXIS_LUT[arg_spec["axis"].lower()]
+                                tf_dummy = f"tile_{axis}FaceAreas"
+                            elif source == TILE_CELL_VOLUMES_ARGUMENT:
+                                tf_dummy = TILE_CELL_VOLUMES_ARGUMENT
                             else:
-                                print(arg, arg_spec)
-                                raise NotImplementedError("Test case!")
+                                msg = "Unhandled tile argument {} of type {}"
+                                raise LogicError(msg.format(arg, source))
 
                         if tf_dummy not in tf_dummy_spec:
                             tf_dummy_spec[tf_dummy] = arg_spec
                             assert tf_dummy not in dummy_to_actuals
                             dummy_to_actuals[tf_dummy] = []
+                        elif source in REQUIRE_MERGING:
+                            if arg_spec["lo"] == TILE_LBOUND_ARGUMENT:
+                                tf_dummy_spec[tf_dummy]["lo"] = \
+                                    TILE_LBOUND_ARGUMENT
+                            if arg_spec["hi"] == TILE_UBOUND_ARGUMENT:
+                                tf_dummy_spec[tf_dummy]["hi"] = \
+                                    TILE_UBOUND_ARGUMENT
+
                         actual = (subroutine, arg, idx+1)
                         dummy_to_actuals[tf_dummy].append(actual)
 
@@ -421,9 +470,10 @@ class TaskFunctionAssembler(object):
         .. note::
             * This assumes that a variable that is RW for the first subroutine
               that uses it is read before it is written to and, therefore, is
-              marked as an in variable.  This seems reasonable.
+              marked as an 'in' variable.  This seems reasonable since
+              otherwise the variable should likely be specified as W.
             * This assumes that a variable that is written to at any time should
-              be marked as an out variable regardless of how it is used
+              be marked as an 'out' variable regardless of how it is used
               afterward.  While this might not always be true, this tool does
               not presently have a means to determine this.
 
@@ -506,7 +556,7 @@ class TaskFunctionAssembler(object):
         # ----- REPLACE R/RW/W INFO WITH VARIABLE MASKS
         variable_accesses = self.determine_access_patterns()
         variable_masks = self.determine_variable_masks(variable_accesses)
-        for dummy, variables_all in tf_dummy_spec.items():
+        for dummy in tf_dummy_spec:
             for each in ["R", "RW", "W"]:
                 if each in tf_dummy_spec[dummy]:
                     del tf_dummy_spec[dummy][each]
@@ -521,7 +571,7 @@ class TaskFunctionAssembler(object):
 
         return tf_dummy_spec, dummy_to_actuals
 
-    def __get_scratch(self, op_spec):
+    def __get_scratch(self):
         """
         Runs through each subroutine in the internal call graph, determines the
         minimum set of scratch arguments that need to be included in the task
@@ -531,23 +581,17 @@ class TaskFunctionAssembler(object):
 
         Note that scratch dummy variables are named::
 
-                         <operation name>_<variable name>
+                         scratch_<operation name>_<variable name>
 
         to avoid collisions if the task function needs two variables with the
-        same name but from two different operations.
-
-        :param bridge: Data structure that specifies the scratch and external
-            arguments at the level of the single operation to which all
-            internal subroutines belong.
-        :param operation_name: Name of the operation
+        same name but from two different operations.  Note that the prefix is
+        needed to avoid collisions with external variables as well.
 
         :return: tf_dummy_spec, dummy_to_actuals where
             * tf_dummy_spec is the specification of scratch dummy arguments for
               the task function and
             * dummy_to_actuals is the mapping
         """
-        op_name = op_spec["operation"]["name"]
-
         tf_dummy_spec = {}
         dummy_to_actuals = {}
         for node in self.internal_subroutine_graph:
@@ -557,11 +601,13 @@ class TaskFunctionAssembler(object):
                     arg_spec = spec["argument_specifications"][arg]
                     source = arg_spec["source"]
                     if source == SCRATCH_ARGUMENT:
-                        scratch_spec = op_spec["operation"]["scratch"]
+                        op_spec = self.operation_specification(subroutine)
+                        op_name = op_spec["operation"]["name"]
                         op_scratch_name = arg_spec["name"].strip()
                         assert op_scratch_name.startswith("_")
-                        tf_dummy = f"{op_name}{op_scratch_name}"
+                        tf_dummy = f"scratch_{op_name}{op_scratch_name}"
                         if tf_dummy not in tf_dummy_spec:
+                            scratch_spec = op_spec["operation"]["scratch"]
                             tmp_spec = scratch_spec[op_scratch_name].copy()
                             assert "source" not in tmp_spec
                             tmp_spec["source"] = "scratch"
@@ -731,9 +777,11 @@ class TaskFunctionAssembler(object):
         spec["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
 
         # ----- INCLUDE GRID SPECIFICATION
+        # Assume that this code already confirmed identical grid specifications
+        # across all operation specifications.
         group = "grid"
         assert group not in spec
-        spec[group] = self.__op_spec["grid"]
+        spec[group] = self.__op_specs[0]["grid"]
 
         # ----- INCLUDE TASK FUNCTION SPECIFICATION
         group = "task_function"

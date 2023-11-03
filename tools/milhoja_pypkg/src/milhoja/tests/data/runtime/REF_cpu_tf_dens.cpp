@@ -25,23 +25,23 @@ void  cpu_tf_dens::taskFunction(const int threadIndex,
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
     milhoja::FArray4D  CC_1 = tileDesc->data();
-    const milhoja::IntVect    lo_base_op1_scratch3D = milhoja::IntVect{LIST_NDIM(tile_lo.I(),
+    const milhoja::IntVect    lo_scratch_base_op1_scratch3D = milhoja::IntVect{LIST_NDIM(tile_lo.I(),
                                        tile_lo.J(),
                                        tile_lo.K())};
-    const milhoja::IntVect    hi_base_op1_scratch3D = milhoja::IntVect{LIST_NDIM(tile_hi.I(),
+    const milhoja::IntVect    hi_scratch_base_op1_scratch3D = milhoja::IntVect{LIST_NDIM(tile_hi.I(),
                                        tile_hi.J(),
                                        tile_hi.K())};
-    milhoja::Real* ptr_base_op1_scratch3D = 
-             static_cast<milhoja::Real*>(Tile_cpu_tf_dens::base_op1_scratch3D_)
-            + Tile_cpu_tf_dens::BASE_OP1_SCRATCH3D_SIZE_ * threadIndex;
-    milhoja::FArray3D  base_op1_scratch3D = milhoja::FArray3D{ptr_base_op1_scratch3D,
-            lo_base_op1_scratch3D,
-            hi_base_op1_scratch3D};
+    milhoja::Real* ptr_scratch_base_op1_scratch3D = 
+             static_cast<milhoja::Real*>(Tile_cpu_tf_dens::scratch_base_op1_scratch3D_)
+            + Tile_cpu_tf_dens::SCRATCH_BASE_OP1_SCRATCH3D_SIZE_ * threadIndex;
+    milhoja::FArray3D  scratch_base_op1_scratch3D = milhoja::FArray3D{ptr_scratch_base_op1_scratch3D,
+            lo_scratch_base_op1_scratch3D,
+            hi_scratch_base_op1_scratch3D};
 
     StaticPhysicsRoutines::computeLaplacianDensity(
                     tile_lo,
                     tile_hi,
                     CC_1,
-                    base_op1_scratch3D,
+                    scratch_base_op1_scratch3D,
                     tile_deltas);
 }

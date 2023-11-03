@@ -6,39 +6,39 @@
 #include <Milhoja_Logger.h>
 #endif
 
-void*  Tile_cpu_tf_dens::base_op1_scratch3D_ = nullptr;
+void*  Tile_cpu_tf_dens::scratch_base_op1_scratch3D_ = nullptr;
 
 void Tile_cpu_tf_dens::acquireScratch(void) {
     const unsigned int  nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
 
-    if (base_op1_scratch3D_) {
-        throw std::logic_error("[Tile_cpu_tf_dens::acquireScratch] base_op1_scratch3D_ scratch already allocated");
+    if (scratch_base_op1_scratch3D_) {
+        throw std::logic_error("[Tile_cpu_tf_dens::acquireScratch] scratch_base_op1_scratch3D_ scratch already allocated");
     }
 
     const std::size_t nBytes = nThreads
-                    * Tile_cpu_tf_dens::BASE_OP1_SCRATCH3D_SIZE_
+                    * Tile_cpu_tf_dens::SCRATCH_BASE_OP1_SCRATCH3D_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &base_op1_scratch3D_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &scratch_base_op1_scratch3D_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_dens::acquireScratch] Acquired"
                     + std::to_string(nThreads)
-                    + " base_op1_scratch3D_ scratch blocks"
+                    + " scratch_base_op1_scratch3D_ scratch blocks"
     milhoja::Logger::instance().log(msg);
 #endif
 }
 
 void Tile_cpu_tf_dens::releaseScratch(void) {
-    if (!base_op1_scratch3D_) {
-        throw std::logic_error("[Tile_cpu_tf_dens::releaseScratch] base_op1_scratch3D_ scratch not allocated");
+    if (!scratch_base_op1_scratch3D_) {
+        throw std::logic_error("[Tile_cpu_tf_dens::releaseScratch] scratch_base_op1_scratch3D_ scratch not allocated");
     }
 
-    milhoja::RuntimeBackend::instance().releaseCpuMemory(&base_op1_scratch3D_);
-    base_op1_scratch3D_ = nullptr;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&scratch_base_op1_scratch3D_);
+    scratch_base_op1_scratch3D_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_dens::releaseScratch] Released base_op1_scratch3D_ scratch"
+    std::string   msg = "[Tile_cpu_tf_dens::releaseScratch] Released scratch_base_op1_scratch3D_ scratch"
     milhoja::Logger::instance().log(msg);
 #endif
 }

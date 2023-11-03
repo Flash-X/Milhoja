@@ -171,6 +171,10 @@ class TaskFunction(object):
             This should reinterpret variable types so that we return the
             correct type for the task function's processor.
         """
+        if argument not in self.__tf_spec["argument_specifications"]:
+            msg = "{} not an argument for task function {}"
+            raise ValueError(msg.format(argument, self.name))
+
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = [

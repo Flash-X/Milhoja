@@ -71,7 +71,7 @@ def generate_runtime_cpu_tf_specs(op_spec_path, destination, overwrite,
         # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
         full_tf_spec = destination.joinpath(f"{name}.json")
         assembler = TaskFunctionAssembler.from_milhoja_json(
-                        name, tf_call_graph, op_spec_json,
+                        name, tf_call_graph, [op_spec_json],
                         logger
                     )
         assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)

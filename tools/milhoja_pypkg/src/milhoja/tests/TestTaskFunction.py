@@ -80,7 +80,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = [("hydro_op1_dt", "milhoja::Real")]
+        expected = [("external_hydro_op1_dt", "milhoja::Real")]
         for test in tests_all:
             result = test.constructor_dummy_arguments
             self.assertEqual(expected, result)
@@ -187,7 +187,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = set(["hydro_op1_dt"])
+        expected = set(["external_hydro_op1_dt"])
         for test in tests_all:
             result = test.external_arguments
             self.assertEqual(expected, result)
@@ -205,7 +205,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__rt_dens, self.__rt_ener
         ]
-        expected = set(["base_op1_scratch3D"])
+        expected = set(["scratch_base_op1_scratch3D"])
         for test in tests_all:
             result = test.scratch_arguments
             self.assertEqual(expected, result)
@@ -213,7 +213,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__rt_fused
         ]
-        expected = set(["base_op1_scratch4D"])
+        expected = set(["scratch_base_op1_scratch4D"])
         for test in tests_all:
             result = test.scratch_arguments
             self.assertEqual(expected, result)
@@ -221,7 +221,7 @@ class TestTaskFunction(unittest.TestCase):
         tests_all = [
             self.__sedov_hy
         ]
-        expected = set(["hydro_op1_auxC"])
+        expected = set(["scratch_hydro_op1_auxC"])
         for test in tests_all:
             result = test.scratch_arguments
             self.assertEqual(expected, result)

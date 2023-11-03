@@ -66,6 +66,9 @@ def check_operation_specification(spec, logger):
     name = op_spec["name"]
     variable_index_base = op_spec["variable_index_base"]
 
+    msg = f"Operation specification under evaluation is {name}"
+    logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
+
     if not isinstance(name, str):
         raise TypeError(f"Operation name not string ({name})")
     elif name == "":

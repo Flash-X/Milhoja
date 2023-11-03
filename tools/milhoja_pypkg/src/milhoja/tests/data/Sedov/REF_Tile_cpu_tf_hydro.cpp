@@ -6,46 +6,46 @@
 #include <Milhoja_Logger.h>
 #endif
 
-void*  Tile_cpu_tf_hydro::hydro_op1_auxC_ = nullptr;
+void*  Tile_cpu_tf_hydro::scratch_hydro_op1_auxC_ = nullptr;
 
 void Tile_cpu_tf_hydro::acquireScratch(void) {
     const unsigned int  nThreads = milhoja::Runtime::instance().nMaxThreadsPerTeam();
 
-    if (hydro_op1_auxC_) {
-        throw std::logic_error("[Tile_cpu_tf_hydro::acquireScratch] hydro_op1_auxC_ scratch already allocated");
+    if (scratch_hydro_op1_auxC_) {
+        throw std::logic_error("[Tile_cpu_tf_hydro::acquireScratch] scratch_hydro_op1_auxC_ scratch already allocated");
     }
 
     const std::size_t nBytes = nThreads
-                    * Tile_cpu_tf_hydro::HYDRO_OP1_AUXC_SIZE_
+                    * Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_AUXC_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &hydro_op1_auxC_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &scratch_hydro_op1_auxC_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_hydro::acquireScratch] Acquired"
                     + std::to_string(nThreads)
-                    + " hydro_op1_auxC_ scratch blocks"
+                    + " scratch_hydro_op1_auxC_ scratch blocks"
     milhoja::Logger::instance().log(msg);
 #endif
 }
 
 void Tile_cpu_tf_hydro::releaseScratch(void) {
-    if (!hydro_op1_auxC_) {
-        throw std::logic_error("[Tile_cpu_tf_hydro::releaseScratch] hydro_op1_auxC_ scratch not allocated");
+    if (!scratch_hydro_op1_auxC_) {
+        throw std::logic_error("[Tile_cpu_tf_hydro::releaseScratch] scratch_hydro_op1_auxC_ scratch not allocated");
     }
 
-    milhoja::RuntimeBackend::instance().releaseCpuMemory(&hydro_op1_auxC_);
-    hydro_op1_auxC_ = nullptr;
+    milhoja::RuntimeBackend::instance().releaseCpuMemory(&scratch_hydro_op1_auxC_);
+    scratch_hydro_op1_auxC_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_hydro::releaseScratch] Released hydro_op1_auxC_ scratch"
+    std::string   msg = "[Tile_cpu_tf_hydro::releaseScratch] Released scratch_hydro_op1_auxC_ scratch"
     milhoja::Logger::instance().log(msg);
 #endif
 }
 
-Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(const milhoja::Real hydro_op1_dt)
+Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(const milhoja::Real external_hydro_op1_dt)
     : milhoja::TileWrapper{},
-      hydro_op1_dt_{hydro_op1_dt}
+      external_hydro_op1_dt_{external_hydro_op1_dt}
 {
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_hydro] Creating wrapper object";
@@ -61,7 +61,7 @@ Tile_cpu_tf_hydro::~Tile_cpu_tf_hydro(void) {
 }
 
 std::unique_ptr<milhoja::TileWrapper> Tile_cpu_tf_hydro::clone(std::shared_ptr<milhoja::Tile>&& tileToWrap) const {
-    Tile_cpu_tf_hydro* ptr = new Tile_cpu_tf_hydro{hydro_op1_dt_};
+    Tile_cpu_tf_hydro* ptr = new Tile_cpu_tf_hydro{external_hydro_op1_dt_};
 
     if (ptr->tile_) {
         throw std::logic_error("[Tile_cpu_tf_hydro::clone] Internal tile_ member not null");

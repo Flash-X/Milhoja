@@ -16,15 +16,15 @@
         "c2f_source": "",
         "fortran_source": "",
         "variable_index_base": 1,
-        "argument_list": ["hydro_op1_dt",
+        "argument_list": ["external_hydro_op1_dt",
                           "tile_deltas",
                           "tile_hi",
                           "tile_lo",
                           "CC_1",
                           "FLX_1",
-                          "hydro_op1_auxC"],
+                          "scratch_hydro_op1_auxC"],
         "argument_specifications": {
-            "hydro_op1_dt":   {"source":           "external",
+            "external_hydro_op1_dt":   {"source":           "external",
                                "type":             "real",
                                "extents":          []},
             "tile_deltas":    {"source":           "tile_deltas"},
@@ -37,7 +37,7 @@
             "FLX_1":          {"source":           "grid_data",
                                "structure_index": ["FLUXX", 1],
                                "variables_out":   [1, 5]},
-            "hydro_op1_auxC": {"source":           "scratch",
+            "scratch_hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
                                "extents":          "(18, 1, 1)",
                                "lbound":           "(tile_lo) - (1, 0, 0)"}
@@ -65,13 +65,13 @@
                               "flX",
                               "auxC"],
             "argument_mapping": {
-                "dt":     "hydro_op1_dt",
+                "dt":     "external_hydro_op1_dt",
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
                 "Uin":    "CC_1",
                 "flX":    "FLX_1",
-                "auxC":   "hydro_op1_auxC"
+                "auxC":   "scratch_hydro_op1_auxC"
             }
         },
         "hy::updateSolutionHll": {

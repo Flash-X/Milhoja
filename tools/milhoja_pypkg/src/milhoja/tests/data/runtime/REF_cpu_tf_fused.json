@@ -20,7 +20,7 @@
                           "tile_hi",
                           "tile_lo",
                           "CC_1",
-                          "base_op1_scratch4D"],
+                          "scratch_base_op1_scratch4D"],
         "argument_specifications": {
             "tile_lo":            {"source":           "tile_lo"},
             "tile_hi":            {"source":           "tile_hi"},
@@ -29,7 +29,7 @@
                                    "structure_index": ["CENTER", 1],
                                    "variables_in":    [1, 2],
                                    "variables_out":   [1, 2]},
-            "base_op1_scratch4D": {"source":           "scratch",
+            "scratch_base_op1_scratch4D": {"source":           "scratch",
                                    "type":             "real",
                                    "extents":          "(8, 16, 1, 2)",
                                    "lbound":           "(tile_lo, 1)"}
@@ -57,7 +57,7 @@
                 "hi":      "tile_hi",
                 "deltas":  "tile_deltas",
                 "U":       "CC_1",
-                "scratch": "base_op1_scratch4D"
+                "scratch": "scratch_base_op1_scratch4D"
             }
         }
     }

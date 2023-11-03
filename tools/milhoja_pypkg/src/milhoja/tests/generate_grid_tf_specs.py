@@ -84,7 +84,7 @@ def generate_grid_tf_specs(dimension, block_size,
     # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
     full_tf_spec = destination.joinpath(f"cpu_tf_ic_{dimension}D.json")
     assembler = TaskFunctionAssembler.from_milhoja_json(
-                    "cpu_tf_ic", TF_CALL_GRAPH, op_spec_json,
+                    "cpu_tf_ic", TF_CALL_GRAPH, [op_spec_json],
                     logger
                 )
     assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)

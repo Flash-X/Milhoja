@@ -22,7 +22,7 @@ void  cpu_tf_hydro::taskFunction(const int threadIndex,
     Tile_cpu_tf_hydro*  wrapper = dynamic_cast<Tile_cpu_tf_hydro*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
 
-    const milhoja::Real& hydro_op1_dt = wrapper->hydro_op1_dt_;
+    const milhoja::Real& external_hydro_op1_dt = wrapper->external_hydro_op1_dt_;
     const milhoja::IntVect  tile_lo = tileDesc->lo();
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
@@ -30,21 +30,21 @@ void  cpu_tf_hydro::taskFunction(const int threadIndex,
     milhoja::FArray4D  FLX_1 = tileDesc->fluxData(milhoja::Axis::I);
     milhoja::FArray4D  FLY_1 = tileDesc->fluxData(milhoja::Axis::J);
     milhoja::FArray4D  FLZ_1 = tileDesc->fluxData(milhoja::Axis::K);
-    const milhoja::IntVect    lo_hydro_op1_auxC = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
+    const milhoja::IntVect    lo_scratch_hydro_op1_auxC = milhoja::IntVect{LIST_NDIM(tile_lo.I()-MILHOJA_K1D,
                                        tile_lo.J()-MILHOJA_K2D,
                                        tile_lo.K()-MILHOJA_K3D)};
-    const milhoja::IntVect    hi_hydro_op1_auxC = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
+    const milhoja::IntVect    hi_scratch_hydro_op1_auxC = milhoja::IntVect{LIST_NDIM(tile_hi.I()+MILHOJA_K1D,
                                        tile_hi.J()+MILHOJA_K2D,
                                        tile_hi.K()+MILHOJA_K3D)};
-    milhoja::Real* ptr_hydro_op1_auxC = 
-             static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::hydro_op1_auxC_)
-            + Tile_cpu_tf_hydro::HYDRO_OP1_AUXC_SIZE_ * threadIndex;
-    milhoja::FArray3D  hydro_op1_auxC = milhoja::FArray3D{ptr_hydro_op1_auxC,
-            lo_hydro_op1_auxC,
-            hi_hydro_op1_auxC};
+    milhoja::Real* ptr_scratch_hydro_op1_auxC = 
+             static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_auxC_)
+            + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_AUXC_SIZE_ * threadIndex;
+    milhoja::FArray3D  scratch_hydro_op1_auxC = milhoja::FArray3D{ptr_scratch_hydro_op1_auxC,
+            lo_scratch_hydro_op1_auxC,
+            hi_scratch_hydro_op1_auxC};
 
     hy::computeFluxesHll(
-                    hydro_op1_dt,
+                    external_hydro_op1_dt,
                     tile_lo,
                     tile_hi,
                     tile_deltas,
@@ -52,7 +52,7 @@ void  cpu_tf_hydro::taskFunction(const int threadIndex,
                     FLX_1,
                     FLY_1,
                     FLZ_1,
-                    hydro_op1_auxC);
+                    scratch_hydro_op1_auxC);
     hy::updateSolutionHll(
                     tile_lo,
                     tile_hi,
