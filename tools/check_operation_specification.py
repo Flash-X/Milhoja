@@ -51,7 +51,7 @@ def main():
     # ----- GET COMMAND LINE ARGUMENTS
     args = parser.parse_args()
 
-    filename = Path(args.file[0]).resolve()
+    op_spec = Path(args.file[0]).resolve()
     from_format = args.from_format[0]
     logger = milhoja.BasicLogger(args.verbose)
 
@@ -61,24 +61,24 @@ def main():
         print()
         exit(FAILURE)
 
-    if not filename.is_file():
-        log_and_abort(f"{filename} does not exist or is not a file")
+    if not op_spec.is_file():
+        log_and_abort(f"{op_spec} does not exist or is not a file")
 
     # ----- CHECK SPECIFICATION
     try:
         if from_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
             # -- Construct Fake Call Graph
-            with open(filename, "r") as fptr:
+            with open(op_spec, "r") as fptr:
                 spec = json.load(fptr)
             if "operation" not in spec:
-                log_and_abort(f"{filename} missing 'operation' key")
+                log_and_abort(f"{op_spec} missing 'operation' key")
             op_spec = spec["operation"]
 
             # Find all subroutines
             ignore = {"name", "variable_index_base"}
             for key in ignore:
                 if key not in op_spec:
-                    log_and_abort(f"{key} not specified in operation")
+                    log_and_abort(f"'{key}' not specified in operation")
             if milhoja.EXTERNAL_ARGUMENT in op_spec:
                 ignore = ignore.union([milhoja.EXTERNAL_ARGUMENT])
             if milhoja.SCRATCH_ARGUMENT in op_spec:
@@ -88,20 +88,21 @@ def main():
             if len(subroutines_all) == 0:
                 log_and_abort("No subroutines in specification")
 
-            # Pick one to build graph
+            # Pick one subroutine to build graph
             call_graph = [sorted(subroutines_all)[0]]
 
             # -- Loading runs the full check
             name = LOG_TAG.replace(' ', '_')
             milhoja.TaskFunctionAssembler.from_milhoja_json(name, call_graph,
-                                                            filename, logger)
+                                                            op_spec, logger)
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown from specification format {from_format}"
             log_and_abort(error_msg)
     except Exception as error:
         error_msg = str(error)
-        if logger.level >= milhoja.LOG_LEVEL_BASIC_DEBUG+1:
+        if logger.level >= (milhoja.LOG_LEVEL_BASIC_DEBUG + 1):
+            # Don't show traceback by default
             error_msg += f"\n{traceback.format_exc()}"
         log_and_abort(error_msg)
 
