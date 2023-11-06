@@ -303,10 +303,7 @@ class TestTaskFunction(unittest.TestCase):
         generator = self.__rt_ic.internal_subroutine_graph
         n = 0
         for result in generator:
-            if len(result) == 1:
-                self.assertEqual(expected[n], result[0])
-            else:
-                self.assertEqual(expected[n], result)
+            self.assertEqual(expected[n], result[0])
             n += 1
         self.assertEqual(len(expected), n)
 
@@ -318,10 +315,7 @@ class TestTaskFunction(unittest.TestCase):
         generator = self.__sedov_hy.internal_subroutine_graph
         n = 0
         for result in generator:
-            if len(result) == 1:
-                self.assertEqual(expected[n], result[0])
-            else:
-                self.assertEqual(expected[n], result)
+            self.assertEqual(expected[n], result[0])
             n += 1
         self.assertEqual(len(expected), n)
 
