@@ -13,10 +13,10 @@ Note: The same JSON file used to generate the data packets
 
 from TemplateUtility import TemplateUtility
 from FortranTemplateUtility import FortranTemplateUtility
-from pathlib import Path
 from dataclasses import dataclass
 from milhoja import AbcCodeGenerator
 from milhoja import BasicLogger
+
 
 @dataclass
 class C2FInfo:
@@ -28,6 +28,7 @@ class C2FInfo:
     ctype: str
     kind: str
     shape: list
+
 
 class C2FortranLayerGenerator(AbcCodeGenerator):
 
