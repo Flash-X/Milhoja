@@ -87,6 +87,10 @@ def check_operation_specification(spec, logger):
             raise LogicError(f"Empty {EXTERNAL_ARGUMENT} subsection")
 
         for variable, var_spec in op_spec[EXTERNAL_ARGUMENT].items():
+            if not variable.startswith("_"):
+                msg = "Global {} variable {} does not start with '_'"
+                raise ValueError(msg.format(EXTERNAL_ARGUMENT, variable))
+
             expected = {"type", "extents"}
             actual = set(var_spec)
             if actual != expected:
@@ -124,6 +128,10 @@ def check_operation_specification(spec, logger):
             raise LogicError(f"Empty {SCRATCH_ARGUMENT} subsection")
 
         for variable, var_spec in op_spec[SCRATCH_ARGUMENT].items():
+            if not variable.startswith("_"):
+                msg = "Global {} variable {} does not start with '_'"
+                raise ValueError(msg.format(SCRATCH_ARGUMENT, variable))
+
             expected = {"type", "extents", "lbound"}
             actual = set(var_spec)
             if actual != expected:

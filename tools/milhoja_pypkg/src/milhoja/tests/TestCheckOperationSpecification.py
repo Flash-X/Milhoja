@@ -139,6 +139,14 @@ class TestCheckOperationSpecification(unittest.TestCase):
         with self.assertRaises(LogicError):
             check_operation_specification(bad_spec, self.__logger)
 
+    def testBadExternalVariableName(self):
+        bad_spec = copy.deepcopy(self.__good)
+        arg_spec = bad_spec["operation"][EXTERNAL_ARGUMENT]["_dt"]
+        del bad_spec["operation"][EXTERNAL_ARGUMENT]["_dt"]
+        bad_spec["operation"][EXTERNAL_ARGUMENT]["dt"] = arg_spec
+        with self.assertRaises(ValueError):
+            check_operation_specification(bad_spec, self.__logger)
+
     def testExternalsKeys(self):
         VAR = "_dt"
 
@@ -267,6 +275,14 @@ class TestCheckOperationSpecification(unittest.TestCase):
         result = msg.getvalue().strip()
         self.assertTrue("WARNING" in result)
         self.assertTrue(expected in result)
+
+    def testBadScratchVariableName(self):
+        bad_spec = copy.deepcopy(self.__good)
+        arg_spec = bad_spec["operation"][SCRATCH_ARGUMENT]["_scratch3D"]
+        del bad_spec["operation"][SCRATCH_ARGUMENT]["_scratch3D"]
+        bad_spec["operation"][SCRATCH_ARGUMENT]["scratch3D"] = arg_spec
+        with self.assertRaises(ValueError):
+            check_operation_specification(bad_spec, self.__logger)
 
     def testScratchKeys(self):
         VAR = "_scratch3D"
