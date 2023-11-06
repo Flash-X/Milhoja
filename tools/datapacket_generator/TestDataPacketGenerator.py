@@ -31,7 +31,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     SDD = "source_dim_dependent"
     SIZES = "sizes"
  
-    def setUp(self) -> None:
+    def setUp(self):
         # load task function spec
         # TODO: Once this is in milhoja package change path
         self._runtime = [
@@ -179,7 +179,3 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         os.remove(file)
                 except: 
                     print("Could not find files. Continue.")
-
-    def test_updated_json(self):
-        ...
-

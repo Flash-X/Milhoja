@@ -1,4 +1,5 @@
 from . import TileWrapperGenerator_cpp
+# from . import DataPacketGenerator
 
 
 def generate_data_item(tf_spec, destination, overwrite, indent, logger):
@@ -16,6 +17,9 @@ def generate_data_item(tf_spec, destination, overwrite, indent, logger):
 
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
+    # elif (language.lower() == "c++" or language.lower() == "fortran")
+    # and (data_item.lower() == "datapacket"):
+    #    generator = DataPacketGenerator(tf_spec, indent, logger)
     else:
         msg = f"Cannot generate data item code for {data_item}/{language}"
         raise ValueError(msg)

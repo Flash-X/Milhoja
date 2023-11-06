@@ -4,6 +4,7 @@ import re
 import pathlib
 import functools
 
+from copy import deepcopy
 from Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from C2FortranLayerGenerator import C2FortranLayerGenerator
 from TemplateUtility import TemplateUtility
@@ -84,16 +85,13 @@ class DataPacketGenerator(AbcCodeGenerator):
         indent: int,
         logger: BasicLogger,
         sizes: dict,
-        templates_path: str,
         files_destination: str
     ):
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("TF Specification was not derived from task function.")
         
-        self.json = {}
         self._TOOL_NAME = self.__class__.__name__
         self._sizes = sizes
-        self._templates_path = templates_path
         self._destination = files_destination
         self._indent = indent
 
@@ -124,7 +122,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         else:
             self.abort("No template utility for specifed language")
 
-        self._templates_path = templates_path
+        self._templates_path = './templates'
         self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
         if self.n_extra_streams > 0:
             self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
@@ -243,6 +241,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     self.cpp2c_helper_template, 
                     self.cpp2c_streams_template
                 ], # dev note: ORDER MATTERS HERE!
+                #  If helpers is put before the base template it will throw an error
                 overwrite
             )
             # generate fortran to c layer if necessary
@@ -378,6 +377,10 @@ class DataPacketGenerator(AbcCodeGenerator):
     def byte_alignment(self) -> int:
         return self._tf_spec.data_item_byte_alignment
 
+    # DEV NOTE: 
+    # we cache these property to avoid generating it twice.
+    # we could probably just store these in a variable instead....
+    
     @property
     @functools.lru_cache
     def external_args(self) -> OrderedDict:
@@ -487,6 +490,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(arg_dictionary.items(), sort_func, True)
 
+    # ..todo::
+    #    * investigate why not using lru_cache here
+    #    * causes an error when the scratch dict is obtained more than once
     @property
     @functools.lru_cache
     def scratch_args(self) -> OrderedDict:
