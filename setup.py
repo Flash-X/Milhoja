@@ -86,6 +86,9 @@ if __name__ == '__main__':
     parser.add_argument('--par',      '-p', type=str,                            help='[mandatory] Name of par file (in site dir)')
     parser.add_argument('--makefile', '-M', type=str, default=_DEFAULT_MAKEFILE, help=_MAKEFILE_HELP)
     parser.add_argument('--dim',      '-d', type=int,                            help='[mandatory] Dimensionality of test.')
+    parser.add_argument('--nxb',      '-x', type=int,                            help='[mandatory] N cells/block along X')
+    parser.add_argument('--nyb',      '-y', type=int,                            help='[mandatory] N cells/block along Y')
+    parser.add_argument('--nzb',      '-z', type=int,                            help='[mandatory] N cells/block along Z')
     parser.add_argument('--runtime',  '-r', type=str, default=_DEFAULT_RUNTIME,  help=_RUNTIME_HELP)
     parser.add_argument('--grid',     '-g', type=str, default=_DEFAULT_GRID,     help=_GRID_HELP)
     parser.add_argument('--offload',  '-o', type=str, default=_DEFAULT_OFFLOAD,  help=_OFFLOAD_HELP)
@@ -131,6 +134,36 @@ if __name__ == '__main__':
     ndim = args.dim
     if ndim is None:
         print_and_exit('Please specify problem dimension')
+
+    if args.nxb is None:
+        print_and_exit('Please specify nxb value')
+    nxb = args.nxb
+    if nxb <= 0:
+        print_and_exit("Non-positive nxb value")
+
+    if args.nyb is None:
+        if ndim > 1:
+            print_and_exit('Please specify nyb value')
+        else:
+            nyb = 1
+    else:
+        nyb = args.nyb
+    if nyb <= 0:
+        print_and_exit("Non-positive nyb value")
+    elif (ndim == 1) and (nyb != 1):
+        print_and_exit("nyb != 1 for 1D problem")
+
+    if args.nzb is None:
+        if ndim == 3:
+            print_and_exit('Please specify nzb value')
+        else:
+            nzb = 1
+    else:
+        nzb = args.nzb
+    if nzb <= 0:
+        print_and_exit("Non-positive nzb value")
+    elif (ndim < 3) and (nzb != 1):
+        print_and_exit(f"nzb != 1 for {ndim}D problem")
 
     # The values of these are error checked by write_library_header.py,
     # so we don't error check here.
@@ -255,6 +288,20 @@ if __name__ == '__main__':
         fptr.write(f'{parFile_dest.name} -->    {parFile_src}\n')
         fptr.write('\n')
 
+    ##-- WRITE BLOCK SIZE TO HEADER
+    print("Writing Milhoja_test.h")
+    constantsName = buildDir.joinpath("Milhoja_test.h")
+    with open(constantsName,'w') as fptr:
+        fptr.write("#ifndef MILHOJA_TEST_H__\n")
+        fptr.write("#define MILHOJA_TEST_H__\n")
+        fptr.write("\n")
+        fptr.write(f"constexpr unsigned int MILHOJA_TEST_NXB = {nxb};\n")
+        fptr.write(f"constexpr unsigned int MILHOJA_TEST_NYB = {nyb};\n")
+        fptr.write(f"constexpr unsigned int MILHOJA_TEST_NZB = {nzb};\n")
+        fptr.write("\n")
+        fptr.write("#endif\n")
+        fptr.write('\n')
+
     #####----- GENERATE CODE FOR MILHOJA
     generator = testDir.joinpath(_CODE_GENERATION_SCRIPT)
     generatedMakefile = buildDir.joinpath("Makefile.generated")
@@ -263,6 +310,7 @@ if __name__ == '__main__':
         sbp.call(
             [str(generator), str(buildDir),
              str(generatedMakefile), str(ndim),
+             str(nxb), str(nyb), str(nzb),
              "--verbose", str(1)])
     else:
         print(f"No automatic code generation required by test")
