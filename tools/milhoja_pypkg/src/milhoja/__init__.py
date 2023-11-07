@@ -32,6 +32,7 @@ from .BasicLogger import BasicLogger
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
+from .DataPacketGenerator import DataPacketGenerator
 
 # Functions that use classes
 from .generate_data_item import generate_data_item
