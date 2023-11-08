@@ -1,5 +1,14 @@
 import re
 
+
+class IncorrectFormatException(BaseException):
+    pass
+
+
+class NonIntegerException(BaseException):
+    pass
+
+
 def parse_lbound(lbound: str) -> list:
     """
     Parses an lbound string for use within the generator.
@@ -84,5 +93,20 @@ def parse_extents(extents: str) -> list:
     This assumes extents strings are of the format (x, y, z, ...).
     A list of integers separated by commas and surrounded by parenthesis.
     """
+    if extents.count('(') != 1 or extents.count(')') != 1:
+        raise IncorrectFormatException(
+            f"Incorrect parenthesis placement for {extents}"
+        )
+
+    if extents[0] != '(' or extents[-1] != ')':
+        raise IncorrectFormatException(
+            f"{extents} is not the correct format of (x, y, z, ...)"
+        )
     extents = extents.replace('(', '').replace(')', '')
-    return [item.strip() for item in extents.split(',')]
+
+    extents_list = [item.strip() for item in extents.split(',') if item]
+    if any( [(not item.isnumeric()) for item in extents_list] ):
+        raise NonIntegerException(
+            f"A value in the extents ({extents_list}) was not an integer."
+        )
+    return extents_list
