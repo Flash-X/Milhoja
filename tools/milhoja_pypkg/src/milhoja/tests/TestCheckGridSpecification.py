@@ -10,7 +10,7 @@ from milhoja import (
     check_grid_specification
 )
 from milhoja.tests import (
-    NOT_INT_LIST, NOT_LOGGER_LIST
+    NOT_INT_LIST, NOT_CLASS_LIST
 )
 
 
@@ -30,7 +30,7 @@ class TestCheckGridSpecification(unittest.TestCase):
         check_grid_specification(self.__good, self.__logger)
 
     def testBadLogger(self):
-        for bad in NOT_LOGGER_LIST:
+        for bad in NOT_CLASS_LIST:
             with self.assertRaises(TypeError):
                 check_grid_specification(self.__good, bad)
 

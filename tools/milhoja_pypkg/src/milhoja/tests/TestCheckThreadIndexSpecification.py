@@ -13,7 +13,7 @@ from milhoja import (
     check_thread_index_specification
 )
 from milhoja.tests import (
-    NOT_STR_LIST, NOT_LOGGER_LIST
+    NOT_STR_LIST, NOT_CLASS_LIST
 )
 
 
@@ -46,7 +46,7 @@ class TestCheckThreadIndexSpecification(unittest.TestCase):
                                              self.__logger)
 
     def testBadLogger(self):
-        for bad in NOT_LOGGER_LIST:
+        for bad in NOT_CLASS_LIST:
             with self.assertRaises(TypeError):
                 check_thread_index_specification(self.__name, self.__good, bad)
 

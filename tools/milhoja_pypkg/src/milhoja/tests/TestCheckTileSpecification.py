@@ -24,7 +24,7 @@ from milhoja import (
     check_tile_specification
 )
 from milhoja.tests import (
-    NOT_STR_LIST, NOT_LOGGER_LIST
+    NOT_STR_LIST, NOT_CLASS_LIST
 )
 
 
@@ -82,7 +82,7 @@ class TestCheckTileSpecification(unittest.TestCase):
             check_tile_specification(self.__name, bad_spec, self.__logger)
 
     def testBadLogger(self):
-        for bad in NOT_LOGGER_LIST:
+        for bad in NOT_CLASS_LIST:
             with self.assertRaises(TypeError):
                 check_tile_specification(self.__name, self.__good_single, bad)
 

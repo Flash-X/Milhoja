@@ -39,9 +39,7 @@ from .constants import (
 from .LogicError import LogicError
 
 # Functions used by classes
-from .check_operation_specification import check_operation_specification
 from .check_grid_specification import check_grid_specification
-from .check_subroutine_specification import check_subroutine_specification
 from .check_tile_specification import check_tile_specification
 from .check_external_specification import check_external_specification
 from .check_scratch_specification import check_scratch_specification
@@ -49,10 +47,11 @@ from .check_grid_data_specification import check_grid_data_specification
 from .check_thread_index_specification import check_thread_index_specification
 
 # classes
-from .TaskFunction import TaskFunction
-from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcLogger import AbcLogger
 from .BasicLogger import BasicLogger
+from .SubroutineGroup import SubroutineGroup
+from .TaskFunction import TaskFunction
+from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp

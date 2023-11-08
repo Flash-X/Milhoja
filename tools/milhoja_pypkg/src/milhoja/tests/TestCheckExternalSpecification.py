@@ -14,7 +14,7 @@ from milhoja import (
     check_external_specification
 )
 from milhoja.tests import (
-    NOT_STR_LIST, NOT_LOGGER_LIST
+    NOT_STR_LIST, NOT_CLASS_LIST
 )
 
 
@@ -45,7 +45,7 @@ class TestCheckExternalSpecification(unittest.TestCase):
             check_external_specification(self.__name, bad_spec, self.__logger)
 
     def testBadLogger(self):
-        for bad in NOT_LOGGER_LIST:
+        for bad in NOT_CLASS_LIST:
             with self.assertRaises(TypeError):
                 check_external_specification(self.__name, self.__good, bad)
 

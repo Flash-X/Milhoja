@@ -1,12 +1,13 @@
 """
-Automatic testing of creating a single TF specification from two operation
-specifications.  This exercises both the TaskFunction and TaskFuncionAssembler
-classes using pathological operation specifications that hopefully stress test
+Automatic testing of creating a single TF specification from two subroutine
+groups.  This exercises both the TaskFunction and TaskFuncionAssembler classes
+using pathological subroutine group specifications that hopefully stress test
 the design and implementation of the class better than real use cases would.
 """
 
 import os
 import json
+import copy
 import shutil
 import unittest
 
@@ -28,6 +29,7 @@ from milhoja import (
     TILE_CELL_VOLUMES_ARGUMENT,
     TILE_ARGUMENTS_ALL,
     BasicLogger,
+    SubroutineGroup,
     TaskFunction,
     TaskFunctionAssembler,
 )
@@ -38,7 +40,7 @@ _DATA_PATH = _FILE_PATH.joinpath("data")
 _FAKE_PATH = _DATA_PATH.joinpath("fake")
 
 
-class TestCombinedOperations(unittest.TestCase):
+class TestMultipleSubroutineGroups(unittest.TestCase):
     def setUp(self):
         # Don't remove on tearDown() so that users can check the results of the
         # last test at the very least.
@@ -48,8 +50,8 @@ class TestCombinedOperations(unittest.TestCase):
         os.mkdir(self.__dst)
 
         TF_NAME = "TestCombined"
-        FAKE_A_OP1_FILENAME = _FAKE_PATH.joinpath("FakeA_op1.json").resolve()
-        FAKE_B_OP2_FILENAME = _FAKE_PATH.joinpath("FakeB_op2.json").resolve()
+        FAKE_A_GROUP1_FILENAME = _FAKE_PATH.joinpath("FakeA_op1.json").resolve()
+        FAKE_B_GROUP2_FILENAME = _FAKE_PATH.joinpath("FakeB_op2.json").resolve()
         INTERNAL_CALL_GRAPH = ["functionC", "functionA"]
         TF_PARTIAL_SPEC = {
             "task_function": {
@@ -81,7 +83,7 @@ class TestCombinedOperations(unittest.TestCase):
         self.assertTrue(not TF_SPEC_FILENAME.exists())
         assembler = TaskFunctionAssembler.from_milhoja_json(
                 TF_NAME, INTERNAL_CALL_GRAPH,
-                [FAKE_A_OP1_FILENAME, FAKE_B_OP2_FILENAME],
+                [FAKE_A_GROUP1_FILENAME, FAKE_B_GROUP2_FILENAME],
                 self.__logger
             )
         assembler.to_milhoja_json(
@@ -100,6 +102,29 @@ class TestCombinedOperations(unittest.TestCase):
         dummy = self.__tf_spec.subroutine_dummy_arguments("functionC")
         actual = self.__tf_spec.subroutine_actual_arguments("functionC")
         self.__fcnC = dict(zip(actual, dummy))
+
+    def testSameVariableIndexBase(self):
+        GROUP1_FNAME = _FAKE_PATH.joinpath("FakeA_op1.json").resolve()
+        GROUP2_FNAME = _FAKE_PATH.joinpath("FakeB_op2.json").resolve()
+        INTERNAL_CALL_GRAPH = ["functionC", "functionA"]
+
+        group_1 = SubroutineGroup.from_milhoja_json(GROUP1_FNAME, self.__logger)
+        group_2 = SubroutineGroup.from_milhoja_json(GROUP2_FNAME, self.__logger)
+        groups_all = [group_1, group_2]
+
+        group_spec_1 = group_1.specification
+        group_spec_2 = group_2.specification
+        self.assertEqual(1, group_spec_1["operation"]["variable_index_base"])
+        self.assertEqual(1, group_spec_2["operation"]["variable_index_base"])
+        TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,
+                              groups_all, self.__logger)
+
+        bad_spec = copy.deepcopy(group_spec_1)
+        bad_spec["operation"]["variable_index_base"] = 0
+        bad_group = SubroutineGroup(bad_spec, self.__logger)
+        with self.assertRaises(NotImplementedError):
+            TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,
+                                  [bad_group, group_2], self.__logger)
 
     def testTileArguments(self):
         # TODO: Replace some of this with code that updates the lo/hi and

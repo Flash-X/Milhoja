@@ -29,9 +29,9 @@ def main():
     NO_COLOR = '\033[0m'            # No Color/Not bold
 
     # ----- PROGRAM USAGE INFO
-    DESCRIPTION = "Check the given operation specification file for errors"
-    FILENAME_HELP = "Operation specification file to check"
-    FROM_HELP = "Format of operation specification file"
+    DESCRIPTION = "Check the given subroutine group specification for errors"
+    FILENAME_HELP = "Subroutine group specification file to check"
+    FROM_HELP = "Format of specification file"
     VERBOSE_HELP = "Verbosity level of logging"
 
     # ----- SPECIFY COMMAND LINE USAGE
@@ -51,7 +51,7 @@ def main():
     # ----- GET COMMAND LINE ARGUMENTS
     args = parser.parse_args()
 
-    op_spec = Path(args.file[0]).resolve()
+    group_spec = Path(args.file[0]).resolve()
     from_format = args.from_format[0]
     logger = milhoja.BasicLogger(args.verbose)
 
@@ -61,20 +61,17 @@ def main():
         print()
         exit(FAILURE)
 
-    if not op_spec.is_file():
-        log_and_abort(f"{op_spec} does not exist or is not a file")
+    if not group_spec.is_file():
+        log_and_abort(f"{group_spec} does not exist or is not a file")
 
     # ----- CHECK SPECIFICATION
     try:
         if from_format.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
-            with open(op_spec, "r") as fptr:
-                spec = json.load(fptr)
+            milhoja.SubroutineGroup.from_milhoja_json(group_spec, logger)
         else:
             # This should never happen because argparse should error first
             error_msg = f"Unknown from specification format {from_format}"
             log_and_abort(error_msg)
-
-        milhoja.check_operation_specification(spec, logger)
     except Exception as error:
         error_msg = str(error)
         if logger.level >= (milhoja.LOG_LEVEL_BASIC_DEBUG + 1):

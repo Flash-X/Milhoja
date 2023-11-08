@@ -1,5 +1,5 @@
 """
-Automatic unit testing of check_operation_specification()
+Automatic unit testing of SubroutineGroup
 """
 
 import copy
@@ -17,12 +17,12 @@ from milhoja import (
     EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
     LogicError,
     BasicLogger,
-    check_operation_specification
+    SubroutineGroup
 )
 from milhoja.tests import (
     NOT_STR_LIST, NOT_INT_LIST,
     NOT_LIST_LIST,
-    NOT_LOGGER_LIST
+    NOT_CLASS_LIST
 )
 
 
@@ -31,18 +31,19 @@ _DATA_PATH = _FILE_PATH.joinpath("data")
 _FAKE_PATH = _DATA_PATH.joinpath("fake")
 
 
-class TestCheckOperationSpecification(unittest.TestCase):
+class TestSubroutineGroup_BadGroup(unittest.TestCase):
     def setUp(self):
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 
-        # Reference must be full operation specification, have both external
+        # Reference must be full group specification, have both external
         # and scratch variables, and contain multiple subroutines
-        ref_fname = "Math_op1.json"
-        with open(_FAKE_PATH.joinpath(ref_fname), "r") as fptr:
+        ref_fname = _FAKE_PATH.joinpath("Math_op1.json")
+        with open(ref_fname, "r") as fptr:
             self.__good = json.load(fptr)
 
         # Confirm base spec is correct
-        check_operation_specification(self.__good, self.__logger)
+        SubroutineGroup.from_milhoja_json(ref_fname, self.__logger)
+        SubroutineGroup(self.__good, self.__logger)
 
         # Manually determined full set of subroutines in operation
         self.__internals = {
@@ -57,23 +58,23 @@ class TestCheckOperationSpecification(unittest.TestCase):
         self.assertEqual(set(self.__good["operation"]), keys_all)
 
     def testBadLogger(self):
-        for bad in NOT_LOGGER_LIST:
+        for bad in NOT_CLASS_LIST:
             with self.assertRaises(TypeError):
-                check_operation_specification(self.__good, bad)
+                SubroutineGroup(self.__good, bad)
 
     def testKeys(self):
         # Too few
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["format"]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Too many
         bad_spec = copy.deepcopy(self.__good)
         bad_spec["fail"] = 1.1
         self.assertTrue(len(self.__good) < len(bad_spec))
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Right number, but incorrect key name
         bad_spec = copy.deepcopy(self.__good)
@@ -81,63 +82,63 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_spec["fail"] = 1.1
         self.assertEqual(len(self.__good), len(bad_spec))
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testMissingName(self):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"]["name"]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
-
-    def testName(self):
-        bad_spec = copy.deepcopy(self.__good)
-        for bad in NOT_STR_LIST:
-            bad_spec["operation"]["name"] = bad
-            with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
-
-        bad_spec["operation"]["name"] = ""
-        with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
-
-    def testVariableIndexBase(self):
-        bad_spec = copy.deepcopy(self.__good)
-        for bad in NOT_INT_LIST:
-            bad_spec["operation"]["variable_index_base"] = bad
-            with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
-
-        for bad in [-100, -2, -1, 2, 3, 4]:
-            bad_spec["operation"]["variable_index_base"] = bad
-            with self.assertRaises(ValueError):
-                check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testMissingVariableIndexBase(self):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"]["variable_index_base"]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testNoSubroutineSpecifications(self):
         bad_spec = copy.deepcopy(self.__good)
         for subroutine in self.__internals:
             del bad_spec["operation"][subroutine]
         with self.assertRaises(LogicError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
+
+    def testName(self):
+        bad_spec = copy.deepcopy(self.__good)
+        for bad in NOT_STR_LIST:
+            bad_spec["operation"]["name"] = bad
+            with self.assertRaises(TypeError):
+                SubroutineGroup(bad_spec, self.__logger)
+
+        bad_spec["operation"]["name"] = ""
+        with self.assertRaises(ValueError):
+            SubroutineGroup(bad_spec, self.__logger)
+
+    def testVariableIndexBase(self):
+        bad_spec = copy.deepcopy(self.__good)
+        for bad in NOT_INT_LIST:
+            bad_spec["operation"]["variable_index_base"] = bad
+            with self.assertRaises(TypeError):
+                SubroutineGroup(bad_spec, self.__logger)
+
+        for bad in [-100, -2, -1, 2, 3, 4]:
+            bad_spec["operation"]["variable_index_base"] = bad
+            with self.assertRaises(ValueError):
+                SubroutineGroup(bad_spec, self.__logger)
 
     def testChecksAllSubroutines(self):
         for subroutine in self.__internals:
             bad_spec = copy.deepcopy(self.__good)
             del bad_spec["operation"][subroutine]["interface_file"]
             with self.assertRaises(ValueError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
     def testEmptyExternals(self):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"][EXTERNAL_ARGUMENT]["_dt"]
         self.assertEqual(0, len(bad_spec["operation"][EXTERNAL_ARGUMENT]))
         with self.assertRaises(LogicError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testBadExternalVariableName(self):
         bad_spec = copy.deepcopy(self.__good)
@@ -145,7 +146,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         del bad_spec["operation"][EXTERNAL_ARGUMENT]["_dt"]
         bad_spec["operation"][EXTERNAL_ARGUMENT]["dt"] = arg_spec
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testExternalsKeys(self):
         VAR = "_dt"
@@ -154,7 +155,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["type"]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Too many
         bad_spec = copy.deepcopy(self.__good)
@@ -163,7 +164,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         n_bad = len(bad_spec["operation"][EXTERNAL_ARGUMENT][VAR])
         self.assertTrue(n_good < n_bad)
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Right number, but incorrect key name
         bad_spec = copy.deepcopy(self.__good)
@@ -173,7 +174,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         n_bad = len(bad_spec["operation"][EXTERNAL_ARGUMENT][VAR])
         self.assertEqual(n_good, n_bad)
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testExternalsValues(self):
         VAR = "_dt"
@@ -188,53 +189,53 @@ class TestCheckOperationSpecification(unittest.TestCase):
         for var_type, extents in GOOD_ARGS:
             good_spec["operation"][EXTERNAL_ARGUMENT][VAR]["type"] = var_type
             good_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = extents
-            check_operation_specification(good_spec, self.__logger)
+            SubroutineGroup(good_spec, self.__logger)
 
         # Check bad specifications
         bad_spec = copy.deepcopy(self.__good)
         for bad in NOT_STR_LIST:
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["type"] = bad
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["type"] = "fail"
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
         custom_not_list = [e for e in NOT_LIST_LIST if not isinstance(e, int)]
 
         bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = 1
         with self.assertRaises(TypeError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         for bad in custom_not_list:
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = bad
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = [bad]
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = [bad, 1]
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
         for bad in [-1111, -1, 0]:
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = [bad]
             with self.assertRaises(ValueError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
             bad_spec["operation"][EXTERNAL_ARGUMENT][VAR]["extents"] = [bad, 1]
             with self.assertRaises(ValueError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
     def testMissingHighLevelExternals(self):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"][EXTERNAL_ARGUMENT]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testEmptyScratch(self):
         bad_spec = copy.deepcopy(self.__good)
@@ -242,7 +243,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         del bad_spec["operation"][SCRATCH_ARGUMENT]["_scratch4D"]
         self.assertEqual(0, len(bad_spec["operation"][SCRATCH_ARGUMENT]))
         with self.assertRaises(LogicError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testBadExternal(self):
         VAR = "dt"
@@ -255,7 +256,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_sub_spec = bad_spec["operation"][subroutine]
         bad_sub_spec["argument_specifications"][VAR]["name"] = bad
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testExternalWarning(self):
         VAR = "dt"
@@ -270,7 +271,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_sub_spec["argument_list"] = bad_arg_list
         del bad_sub_spec["argument_specifications"][VAR]
         with redirect_stdout(StringIO()) as msg:
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         result = msg.getvalue().strip()
         self.assertTrue("WARNING" in result)
@@ -282,7 +283,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         del bad_spec["operation"][SCRATCH_ARGUMENT]["_scratch3D"]
         bad_spec["operation"][SCRATCH_ARGUMENT]["scratch3D"] = arg_spec
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testScratchKeys(self):
         VAR = "_scratch3D"
@@ -291,7 +292,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["type"]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Too many
         bad_spec = copy.deepcopy(self.__good)
@@ -300,7 +301,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         n_bad = len(bad_spec["operation"][SCRATCH_ARGUMENT][VAR])
         self.assertTrue(n_good < n_bad)
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         # Right number, but incorrect key name
         bad_spec = copy.deepcopy(self.__good)
@@ -310,7 +311,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         n_bad = len(bad_spec["operation"][SCRATCH_ARGUMENT][VAR])
         self.assertEqual(n_good, n_bad)
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testScratchValues(self):
         VAR = "_scratch3D"
@@ -319,23 +320,23 @@ class TestCheckOperationSpecification(unittest.TestCase):
         for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["type"] = bad
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["type"] = "fail"
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
         for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["extents"] = bad
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
         for bad in NOT_STR_LIST:
             bad_spec["operation"][SCRATCH_ARGUMENT][VAR]["lbound"] = bad
             with self.assertRaises(TypeError):
-                check_operation_specification(bad_spec, self.__logger)
+                SubroutineGroup(bad_spec, self.__logger)
 
     def testBadScratch(self):
         VAR = "scratch"
@@ -349,13 +350,13 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_arg_specs = bad_sub_spec["argument_specifications"]
         bad_arg_specs[VAR]["name"] = bad
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testMissingHighLevelScratch(self):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec["operation"][SCRATCH_ARGUMENT]
         with self.assertRaises(ValueError):
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
     def testScratchWarning(self):
         VAR = "scratch"
@@ -370,7 +371,7 @@ class TestCheckOperationSpecification(unittest.TestCase):
         bad_sub_spec["argument_list"] = [e for e in bad_arg_list if e != VAR]
         del bad_sub_spec["argument_specifications"][VAR]
         with redirect_stdout(StringIO()) as msg:
-            check_operation_specification(bad_spec, self.__logger)
+            SubroutineGroup(bad_spec, self.__logger)
 
         result = msg.getvalue().strip()
         self.assertTrue("WARNING" in result)

@@ -59,29 +59,29 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     }
 
     # ----- ADJUST OPERATION SPECIFICATION TO SPECIFIC PROBLEM
-    op_spec_json = op_spec_path.joinpath("Hydro_op1_Fortran.json")
-    if not op_spec_json.is_file():
-        msg = f"{op_spec_json} does not exist or is not a file"
+    group_json = op_spec_path.joinpath("Hydro_op1_Fortran.json")
+    if not group_json.is_file():
+        msg = f"{group_json} does not exist or is not a file"
         raise ValueError(msg)
-    with open(op_spec_json, "r") as fptr:
-        op_spec = json.load(fptr)
+    with open(group_json, "r") as fptr:
+        group_spec = json.load(fptr)
 
     # Add in Grid Spec
-    assert "grid" not in op_spec
-    op_spec["grid"] = GRID_SPEC
+    assert "grid" not in group_spec
+    group_spec["grid"] = GRID_SPEC
 
     # Scratch extents change with dimension
     sz_x = block_size[0] + 2
     sz_y = block_size[1] + 2 if dimension >= 2 else 1
     sz_z = block_size[2] + 2 if dimension == 3 else 1
     extents = f"({sz_x}, {sz_y}, {sz_z})"
-    op_spec["operation"]["scratch"]["_auxC"]["extents"] = extents
+    group_spec["operation"]["scratch"]["_auxC"]["extents"] = extents
 
     sz_x = 1
     sz_y = 1 if dimension >= 2 else 0
     sz_z = 1 if dimension == 3 else 0
     lbound = f"(tile_lo) - ({sz_x}, {sz_y}, {sz_z})"
-    op_spec["operation"]["scratch"]["_auxC"]["lbound"] = lbound
+    group_spec["operation"]["scratch"]["_auxC"]["lbound"] = lbound
 
     for i, each in enumerate(["_flX", "_flY", "_flZ"]):
         fl_size = block_size.copy()
@@ -93,18 +93,18 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
         n_flux = 5 if i < dimension else 1
 
         extents = f"({sz_x}, {sz_y}, {sz_z}, {n_flux})"
-        op_spec["operation"]["scratch"][each]["extents"] = extents
+        group_spec["operation"]["scratch"][each]["extents"] = extents
 
         lbound = "(tile_lo, 1)" if i < dimension else "(1, 1, 1, 1)"
-        op_spec["operation"]["scratch"][each]["lbound"] = lbound
+        group_spec["operation"]["scratch"][each]["lbound"] = lbound
 
     # Dump final operation specification for immediate use
     filename = f"Hydro_op1_Fortran_{dimension}D.json"
-    op_spec_json = destination.joinpath(filename)
-    if (not overwrite) and op_spec_json.exists():
-        raise ValueError(f"{op_spec_json} already exists")
-    with open(op_spec_json, "w") as fptr:
-        json.dump(op_spec, fptr,
+    group_json = destination.joinpath(filename)
+    if (not overwrite) and group_json.exists():
+        raise ValueError(f"{group_json} already exists")
+    with open(group_json, "w") as fptr:
+        json.dump(group_spec, fptr,
                   ensure_ascii=True, allow_nan=False, indent=True)
 
     # ----- DUMP PARTIAL TF SPECIFICATION
@@ -120,7 +120,7 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
     full_tf_spec = destination.joinpath(f"gpu_tf_hydro_{dimension}D.json")
     assembler = TaskFunctionAssembler.from_milhoja_json(
-                    "gpu_tf_hydro", TF_CALL_GRAPH, [op_spec_json],
+                    "gpu_tf_hydro", TF_CALL_GRAPH, [group_json],
                     logger
                 )
     assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)

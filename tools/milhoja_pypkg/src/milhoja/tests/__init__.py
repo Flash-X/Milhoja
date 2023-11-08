@@ -2,7 +2,7 @@
 from .constants import (
     NOT_STR_LIST, NOT_INT_LIST,
     NOT_LIST_LIST, NOT_DICT_LIST,
-    NOT_LOGGER_LIST
+    NOT_CLASS_LIST
 )
 
 # functions

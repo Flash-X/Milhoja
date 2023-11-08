@@ -9,7 +9,16 @@ import unittest
 
 from pathlib import Path
 
-import milhoja.tests
+from milhoja import (
+    LOG_LEVEL_NONE,
+    BasicLogger,
+    TaskFunctionAssembler
+)
+from milhoja.tests import (
+    generate_runtime_cpu_tf_specs,
+    generate_sedov_cpu_tf_specs,
+    generate_sedov_gpu_tf_specs
+)
 
 
 _FILE_PATH = Path(__file__).resolve().parent
@@ -25,11 +34,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             shutil.rmtree(self.__dst)
         os.makedirs(self.__dst)
 
-        self.__logger = milhoja.BasicLogger(milhoja.LOG_LEVEL_NONE)
+        self.__logger = BasicLogger(LOG_LEVEL_NONE)
 
         gpu_spec_fname = self.__dst.joinpath("gpu_tf_hydro_3D.json")
         self.assertFalse(gpu_spec_fname.exists())
-        filename = milhoja.tests.generate_sedov_gpu_tf_specs(
+        filename = generate_sedov_gpu_tf_specs(
                      3, [16, 16, 16], _SEDOV_PATH,
                      self.__dst, False, self.__logger
                    )
@@ -39,9 +48,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         with open(gpu_spec_fname, "r") as fptr:
             tf_spec = json.load(fptr)
         tf_call_graph = tf_spec["task_function"]["subroutine_call_graph"]
-        op_spec_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
-        self.__Sedov = milhoja.TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, [op_spec_json], self.__logger
+        group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
+        self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
+            "gpu_tf_hydro", tf_call_graph, [group_json], self.__logger
         )
 
     def testDummyArguments(self):
@@ -96,7 +105,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             filename = self.__dst.joinpath(each)
             self.assertFalse(filename.exists())
 
-        milhoja.tests.generate_runtime_cpu_tf_specs(
+        generate_runtime_cpu_tf_specs(
             _RUNTIME_PATH, self.__dst,
             OVERWRITE, self.__logger
         )
@@ -162,7 +171,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 filename = self.__dst.joinpath(each.format(dimension))
                 self.assertFalse(filename.exists())
 
-            milhoja.tests.generate_sedov_cpu_tf_specs(
+            generate_sedov_cpu_tf_specs(
                 dimension, [nxb, nyb, nzb],
                 _SEDOV_PATH, self.__dst,
                 OVERWRITE, self.__logger
@@ -222,7 +231,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             filename = f"gpu_tf_hydro_{dimension}D.json"
             tf_spec_fname = self.__dst.joinpath(filename)
             self.assertFalse(tf_spec_fname.exists())
-            filename = milhoja.tests.generate_sedov_gpu_tf_specs(
+            filename = generate_sedov_gpu_tf_specs(
                          dimension, [nxb, nyb, nzb], _SEDOV_PATH,
                          self.__dst, False, self.__logger
                        )

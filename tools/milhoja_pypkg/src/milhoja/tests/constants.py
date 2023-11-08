@@ -24,7 +24,7 @@ NOT_DICT_LIST = [
     -1, 0, 1, 1.1, -2.2, np.nan, np.inf,
     (), (1,), [], [1], set(), {1}
 ]
-NOT_LOGGER_LIST = [
+NOT_CLASS_LIST = [
     None,
     "fail",
     -1, 0, 1, 1.1, -2.2, np.nan, np.inf,

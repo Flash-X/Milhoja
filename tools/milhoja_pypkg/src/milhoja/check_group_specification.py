@@ -11,7 +11,7 @@ from .check_grid_specification import check_grid_specification
 from .check_subroutine_specification import check_subroutine_specification
 
 
-def check_operation_specification(spec, logger):
+def check_group_specification(spec, logger):
     """
     If this does not raise an error, then the specification is acceptable.
 
@@ -30,6 +30,9 @@ def check_operation_specification(spec, logger):
     VALID_SCRATCH_TYPES = ["real"]
 
     # ----- ERROR CHECK ARGUMENTS
+    if not isinstance(spec, dict):
+        msg = "Unknown internal subroutine group specification type ({})"
+        raise TypeError(msg.format(type(spec)))
     if not isinstance(logger, AbcLogger):
         raise TypeError("Unknown logger type")
 
@@ -41,7 +44,7 @@ def check_operation_specification(spec, logger):
         raise ValueError(msg)
 
     grid_spec = spec["grid"]
-    op_spec = spec["operation"]
+    group_spec = spec["operation"]
 
     # ----- FORMAT SPECIFICATION
     # The source of the specification is unimportant and was likely used to
@@ -57,14 +60,14 @@ def check_operation_specification(spec, logger):
     logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
 
     # Keys that must always be provided
-    if "name" not in op_spec:
+    if "name" not in group_spec:
         msg = "name key not provided in operation spec"
         raise ValueError(msg)
-    elif "variable_index_base" not in op_spec:
+    elif "variable_index_base" not in group_spec:
         msg = "variable_index_base not provided in operation spec"
         raise ValueError(msg)
-    name = op_spec["name"]
-    variable_index_base = op_spec["variable_index_base"]
+    name = group_spec["name"]
+    variable_index_base = group_spec["variable_index_base"]
 
     msg = f"Operation specification under evaluation is {name}"
     logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
@@ -82,11 +85,11 @@ def check_operation_specification(spec, logger):
         raise ValueError(msg)
 
     # Optional keys for linking actual arguments across routines
-    if EXTERNAL_ARGUMENT in op_spec:
-        if len(op_spec[EXTERNAL_ARGUMENT]) == 0:
+    if EXTERNAL_ARGUMENT in group_spec:
+        if len(group_spec[EXTERNAL_ARGUMENT]) == 0:
             raise LogicError(f"Empty {EXTERNAL_ARGUMENT} subsection")
 
-        for variable, var_spec in op_spec[EXTERNAL_ARGUMENT].items():
+        for variable, var_spec in group_spec[EXTERNAL_ARGUMENT].items():
             if not variable.startswith("_"):
                 msg = "Global {} variable {} does not start with '_'"
                 raise ValueError(msg.format(EXTERNAL_ARGUMENT, variable))
@@ -123,11 +126,11 @@ def check_operation_specification(spec, logger):
                     msg = msg.format(EXTERNAL_ARGUMENT, variable, extents)
                     raise ValueError(msg)
 
-    if SCRATCH_ARGUMENT in op_spec:
-        if len(op_spec[SCRATCH_ARGUMENT]) == 0:
+    if SCRATCH_ARGUMENT in group_spec:
+        if len(group_spec[SCRATCH_ARGUMENT]) == 0:
             raise LogicError(f"Empty {SCRATCH_ARGUMENT} subsection")
 
-        for variable, var_spec in op_spec[SCRATCH_ARGUMENT].items():
+        for variable, var_spec in group_spec[SCRATCH_ARGUMENT].items():
             if not variable.startswith("_"):
                 msg = "Global {} variable {} does not start with '_'"
                 raise ValueError(msg.format(SCRATCH_ARGUMENT, variable))
@@ -164,7 +167,7 @@ def check_operation_specification(spec, logger):
     # ----- SUBROUTINE SPECIFICATIONS
     ignore = {"name", "variable_index_base",
               EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT}
-    subroutines_all = set(op_spec).difference(ignore)
+    subroutines_all = set(group_spec).difference(ignore)
     if len(subroutines_all) == 0:
         raise LogicError("No subroutines included in operation")
 
@@ -172,7 +175,7 @@ def check_operation_specification(spec, logger):
         msg = f"Checking subroutine {subroutine} specification"
         logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
 
-        check_subroutine_specification(subroutine, op_spec[subroutine],
+        check_subroutine_specification(subroutine, group_spec[subroutine],
                                        variable_index_base, logger)
 
     # ----- CHECK EXTERNAL/SCRATCH LINKAGE
@@ -185,18 +188,18 @@ def check_operation_specification(spec, logger):
         # Find all low-level variables
         needed = []
         for subroutine in subroutines_all:
-            arg_specs_all = op_spec[subroutine]["argument_specifications"]
+            arg_specs_all = group_spec[subroutine]["argument_specifications"]
             for arg, arg_spec in arg_specs_all.items():
                 if arg_spec["source"] == var_key:
                     needed.append((arg, arg_spec["name"]))
 
         if len(needed) > 0:
-            if var_key not in op_spec:
+            if var_key not in group_spec:
                 msg = "No high-level {} specifications for mapping to low-level"
                 raise ValueError(msg.format(var_key))
 
             # Keep track of which high-level variables are mapped to low-level
-            variables = op_spec[var_key]
+            variables = group_spec[var_key]
             variables = dict(zip(variables, [False] * len(variables)))
 
             # Confirm all low-level args have a high-level spec
@@ -211,7 +214,7 @@ def check_operation_specification(spec, logger):
                 if not was_used:
                     msg = "{} variable {} not used in any subroutine"
                     logger.warn(LOG_NAME, msg.format(var_key, name))
-        elif var_key in op_spec:
-            variables = set(op_spec[var_key])
+        elif var_key in group_spec:
+            variables = set(group_spec[var_key])
             msg = "{} variables not used in any subroutine ({})"
             logger.warn(LOG_NAME, msg.format(var_key, variables))
