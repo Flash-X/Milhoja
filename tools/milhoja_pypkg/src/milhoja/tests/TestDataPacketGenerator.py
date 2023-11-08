@@ -4,7 +4,7 @@ import milhoja.tests
 import glob
 
 from pathlib import Path
-from milhoja import LOG_LEVEL_MAX
+from milhoja import LOG_LEVEL_NONE
 from milhoja.DataPacketGenerator import DataPacketGenerator
 from milhoja.TaskFunction import TaskFunction
 from milhoja.BasicLogger import BasicLogger
@@ -17,14 +17,19 @@ _TEST_PATH = _FILE_PATH.joinpath("data")
 class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     """
     Unit test of DataPacketGenerator class.
-    """
 
+    ..todo::
+        * move lbound parser tests into package test.
+        * create tests for extents parser.
+    """
+    # keys for test dictionaries.
     JSON = "json"
     HEADER = "header"
     HDD = "header_dim_dependent"
     SOURCE = "source",
     SDD = "source_dim_dependent"
     SIZES = "sizes"
+    FOLDER = "folder"
 
     def setUp(self):
         # load task function spec
@@ -35,6 +40,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     "runtime",
                     "gpu_tf_dens.json"
                 ),
+                self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
                 # temp use summit sizes
@@ -49,7 +55,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 }
             },
             {
-                self.JSON: _TEST_PATH.joinpath("gpu_tf_fused_actions.json"),
+                self.JSON: _TEST_PATH.joinpath(
+                    "runtime",
+                    "gpu_tf_fused_actions.json"
+                ),
+                self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: {
@@ -67,6 +77,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     "runtime",
                     "gpu_tf_fused_kernels.json"
                 ),
+                self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: {
@@ -87,6 +98,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     "Sedov",
                     "gpu_tf_hydro_2D.json"
                 ),
+                self.FOLDER: "Sedov",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: {
@@ -100,7 +112,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 }
             },
             {
-                self.JSON: _TEST_PATH.joinpath("gpu_tf_hydro_3D.json"),
+                self.JSON: _TEST_PATH.joinpath(
+                    "Sedov", 
+                    "gpu_tf_hydro_3D.json"
+                ),
+                self.FOLDER: "Sedov",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: {
@@ -142,9 +158,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         )
 
     def testPacketGeneration(self):
-        """
-        Tests all files in the test data folder.
-        """
+        # Tests all files in the test data folder.
         for test_set in [self._runtime, self._sedov]:
             for test in test_set:
                 json_path = test[self.JSON]
@@ -152,7 +166,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.assertTrue(isinstance(sizes, dict))
                 tf_spec = TaskFunction.from_milhoja_json(json_path)
                 # use default logging value for now
-                logger = BasicLogger(LOG_LEVEL_MAX)
+                logger = BasicLogger(LOG_LEVEL_NONE)
 
                 generator = DataPacketGenerator(
                     tf_spec, 4, logger, sizes, './'
@@ -162,7 +176,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
                 generated_name_cpp = generator.source_filename
                 correct_name_cpp = Path(
-                    _TEST_PATH, os.path.basename(generator.source_filename)
+                    _TEST_PATH,
+                    test[self.FOLDER],
+                    os.path.basename(generator.source_filename)
                 )
 
                 # logger.log(
@@ -179,7 +195,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
                 generated_name_h = generator.header_filename
                 correct_name_h = Path(
-                    _TEST_PATH, os.path.basename(generator.header_filename)
+                    _TEST_PATH,
+                    test[self.FOLDER],
+                    os.path.basename(generator.header_filename)
                 )
 
                 # logger.log(
@@ -195,7 +213,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
                 # ..todo::
                 #   * Generator should generate TaskFunction call
-                print("----- Success")
 
                 # ..todo::
                 #       * currently the cpp2c layer is only generated when
@@ -207,7 +224,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 if generator.language == "fortran":
                     generated_cpp2c = generator.cpp2c_file
                     correct_cpp2c = Path(
-                        _TEST_PATH, os.path.basename(generator.cpp2c_file)
+                        _TEST_PATH,
+                        test[self.FOLDER],
+                        os.path.basename(generator.cpp2c_file)
                     )
                     # logger.log(
                     #     "TestDataPacketGenerator",
@@ -220,7 +239,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
                     generated_c2f = generator.c2f_file
                     correct_c2f = Path(
-                        _TEST_PATH, os.path.basename(generator.c2f_file)
+                        _TEST_PATH,
+                        test[self.FOLDER],
+                        os.path.basename(generator.c2f_file)
                     )
                     # logger.log(
                     #     "TestDataPacketGenerator",

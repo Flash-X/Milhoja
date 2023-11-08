@@ -2,8 +2,8 @@ import cgkit.ctree.srctree as srctree
 import re
 import pathlib
 import functools
-import pkgutil # use pkgutil for backwards compatability older python 3s.
 
+from pkg_resources import resource_filename
 from copy import deepcopy
 from collections import defaultdict
 from cgkit.ctree.srctree import SourceTree
@@ -380,14 +380,19 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def header_template(self) -> Path:
-        return Path(
-            self._templates_path,
-            "cg-tpl.datapacket_header.cpp"
-        ).resolve()
+        template_path = resource_filename(
+            __package__,
+            'templates/cg-tpl.datapacket_header.cpp'
+        )
+        return Path(template_path).resolve()
 
     @property
     def source_template(self) -> Path:
-        return Path(self._templates_path, "cg-tpl.datapacket.cpp").resolve()
+        template_path = resource_filename(
+            __package__,
+            'templates/cg-tpl.datapacket.cpp'
+        )
+        return Path(template_path).resolve()
 
     @property
     def header_filename(self) -> Path:
@@ -407,7 +412,10 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def cpp2c_outer_template(self) -> Path:
-        """Outer template for the cpp2c layer"""
+        """
+        Outer template for the cpp2c layer
+        These are generated so we use the destination location.
+        """
         return Path(
             self._destination,
             f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
@@ -415,7 +423,10 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def cpp2c_helper_template(self) -> Path:
-        """Helper template path for the cpp2c layer"""
+        """
+        Helper template path for the cpp2c layer
+        These are generated so we use the destination location.
+        """
         return Path(
             self._destination,
             f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
@@ -424,11 +435,17 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def cpp2c_streams_template(self) -> Path:
         """Extra streams template for the cpp2c layer"""
-        return Path(self._templates_path, self._cpp2c_extra_streams_tpl)
+        template_path = resource_filename(
+            __package__, f'templates/{self._cpp2c_extra_streams_tpl}'
+        )
+        return Path(template_path).resolve()
 
     @property
     def cpp2c_template(self) -> Path:
-        return Path(self._templates_path, "cg-tpl.cpp2c.cpp")
+        template_path = resource_filename(
+            __package__, 'templates/cg-tpl.cpp2c.cpp'
+        )
+        return Path(template_path).resolve()
 
     @property
     def c2f_file(self) -> Path:
@@ -450,7 +467,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     # DEV NOTE:
     # we cache these property to avoid generating it twice.
     # we could probably just store these in a variable instead...
-
     @property
     @functools.lru_cache
     def external_args(self) -> OrderedDict:

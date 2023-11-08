@@ -56,7 +56,7 @@ class FortranTemplateUtility(TemplateUtility):
                        '[_param:class_name pack]' \
                        ' nTiles was too large for int.");\n' + \
                        '_nTiles_h = static_cast<' \
-                       '{externals["nTiles"]["type"]}>(tiles_.size());'
+                       f'{externals["nTiles"]["type"]}>(tiles_.size());'
         connectors[cls._NTILES_VALUE] = [nTiles_value]
 
         # # MOVE THROUGH EVERY CONSTRUCTOR ITEM

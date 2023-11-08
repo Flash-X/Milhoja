@@ -416,7 +416,7 @@ class CppTemplateUtility(TemplateUtility):
         line = connectors[f'size_{cls._T_MDATA}']
         insert_index = line.find('(')
         connectors[f'size_{cls._T_MDATA}'] = \
-            f'{line[:insert_index + 1]}({num_arrays} * SIZE_FARRAY4D) +' \
+            f'{line[:insert_index + 1]}({num_arrays} * SIZE_FARRAY4D) + ' \
             f'{line[insert_index + 1:]}'
 
     @classmethod
@@ -441,7 +441,7 @@ class CppTemplateUtility(TemplateUtility):
         connectors[f'pointers_{cls._T_MDATA}'].append(
             f'FArray4D* _f4_{item}_p = static_cast<FArray4D*>( '
             'static_cast<void*>( ptr_p ) );\n'
-            '_f4_{item}_d = static_cast<FArray4D*>( '
+            f'_f4_{item}_d = static_cast<FArray4D*>( '
             'static_cast<void*>( ptr_d ) );\n'
             'ptr_p += _nTiles_h * SIZE_FARRAY4D;\n'
             'ptr_d += _nTiles_h * SIZE_FARRAY4D;\n\n'
