@@ -56,7 +56,7 @@ extern "C" {
     /* _link:release_extra_queue */
 
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
-    void _param:taskfunctionnametf (const int tId, void* dataItem_h) {
+    void _param:taskfunctionnametf (const int _param:thread_id, void* dataItem_h) {
         _param:class_name* packet_h = static_cast<_param:class_name*>(dataItem_h);
         /* _link:get_host_members */
 

@@ -2,7 +2,9 @@ from collections import defaultdict
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
 from .BasicLogger import BasicLogger
+
 from milhoja import LOG_LEVEL_MAX
+from milhoja import THREAD_INDEX_VAR_NAME
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -73,7 +75,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'/* _param:deletion = '
                 f'delete_{self._tf_spec.data_item_class_name}_C */\n',
                 f'/* _param:release = release_'
-                f'{self._tf_spec.data_item_class_name}_extra_queue_C */\n\n',
+                f'{self._tf_spec.data_item_class_name}_extra_queue_C */\n',
+                f'/* _param:thread_id = {THREAD_INDEX_VAR_NAME} */\n\n',
                 '/* _link:cpp2c */'
             ])
 

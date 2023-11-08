@@ -22,6 +22,7 @@ from .constants import LOG_LEVEL_BASIC
 from .constants import LOG_LEVEL_BASIC_DEBUG
 from .constants import LOG_LEVEL_MAX
 from .constants import LOG_LEVELS
+from .constants import THREAD_INDEX_VAR_NAME
 
 # Functions used by classes
 
