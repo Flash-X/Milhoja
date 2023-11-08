@@ -17,11 +17,11 @@ def parse_lbound(lbound: str) -> list:
           The current format does not allow nested arithmetic expressions
           or more than 2 intvects being combined. If we wanted complex
           mathematics we would need to incorporate an actual math parser.
-        * Write more concrete tests for lbound parsing. 
-        * What are the restrictions on an lbound string? Because of the 
-          way that FArray4D works in I'm assuming that tile_ can only 
+        * Write more concrete tests for lbound parsing.
+        * What are the restrictions on an lbound string? Because of the
+          way that FArray4D works in I'm assuming that tile_ can only
           appear in the first or last index of the lbound list. Is this a
-          valid assumption? I'm not sure if there's much of a choice with 
+          valid assumption? I'm not sure if there's much of a choice with
           the way lbound works. There's no way to assume that tile_ cam
           appear anywhere
 
@@ -65,7 +65,7 @@ def parse_lbound(lbound: str) -> list:
                 init_vect[idx] = str(m[idx])
             if len(m) > len(init_vect):
                 # there should never be a case where its greater than 4, since
-                # FArray > 4D does not exist anyway. 
+                # FArray > 4D does not exist anyway.
                 assert len(m) == 4
                 ncomp = m[-1]
             # join together wrapped in an int vect
@@ -89,6 +89,7 @@ def parse_lbound(lbound: str) -> list:
                     results[1] = results[1] + stitch + item[1]
     return results
 
+
 def parse_extents(extents: str) -> list:
     """
     Parses an extents string.
@@ -108,7 +109,7 @@ def parse_extents(extents: str) -> list:
     extents = extents.replace('(', '').replace(')', '')
 
     extents_list = [item.strip() for item in extents.split(',') if item]
-    if any( [(not item.isnumeric()) for item in extents_list] ):
+    if any([(not item.isnumeric()) for item in extents_list]):
         raise NonIntegerException(
             f"A value in the extents ({extents_list}) was not an integer."
         )

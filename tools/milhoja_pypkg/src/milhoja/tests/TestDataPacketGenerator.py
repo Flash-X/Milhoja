@@ -1,5 +1,4 @@
 import os
-import json
 import milhoja.tests
 import glob
 
@@ -113,7 +112,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             },
             {
                 self.JSON: _TEST_PATH.joinpath(
-                    "Sedov", 
+                    "Sedov",
                     "gpu_tf_hydro_3D.json"
                 ),
                 self.FOLDER: "Sedov",

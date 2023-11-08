@@ -5,6 +5,7 @@ from milhoja.parse_helpers import parse_lbound
 from milhoja.parse_helpers import IncorrectFormatException
 from milhoja.parse_helpers import NonIntegerException
 
+
 class TestParseHelpers(milhoja.tests.TestCodeGenerators):
     """
     Unit test of extents parser function.
@@ -54,7 +55,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         correct = []
         parsed = parse_extents("()")
         self.assertTrue(
-            correct == parsed, 
+            correct == parsed,
             f'"()" did not retrurn [], but {parsed}.'
         )
 
