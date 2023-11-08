@@ -74,13 +74,13 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     sz_y = block_size[1] + 2 if dimension >= 2 else 1
     sz_z = block_size[2] + 2 if dimension == 3 else 1
     extents = f"({sz_x}, {sz_y}, {sz_z})"
-    group_spec["operation"]["scratch"]["_auxC"]["extents"] = extents
+    group_spec["scratch"]["_auxC"]["extents"] = extents
 
     sz_x = 1
     sz_y = 1 if dimension >= 2 else 0
     sz_z = 1 if dimension == 3 else 0
     lbound = f"(tile_lo) - ({sz_x}, {sz_y}, {sz_z})"
-    group_spec["operation"]["scratch"]["_auxC"]["lbound"] = lbound
+    group_spec["scratch"]["_auxC"]["lbound"] = lbound
 
     for i, each in enumerate(["_flX", "_flY", "_flZ"]):
         fl_size = block_size.copy()
@@ -92,10 +92,10 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
         n_flux = 5 if i < dimension else 1
 
         extents = f"({sz_x}, {sz_y}, {sz_z}, {n_flux})"
-        group_spec["operation"]["scratch"][each]["extents"] = extents
+        group_spec["scratch"][each]["extents"] = extents
 
         lbound = "(tile_lo, 1)" if i < dimension else "(1, 1, 1, 1)"
-        group_spec["operation"]["scratch"][each]["lbound"] = lbound
+        group_spec["scratch"][each]["lbound"] = lbound
 
     # Dump final operation specification
     #

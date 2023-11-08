@@ -91,10 +91,9 @@ class SubroutineGroup(object):
         check_group_specification(self.__spec, self.__logger)
 
         # ----- EAGERLY DETERMINE SUBROUTINES IN GROUP
-        ignore = {"name", "variable_index_base",
+        ignore = {"format", "name", "variable_index_base",
                   EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT}
-        group_spec = self.__spec["operation"]
-        self.__subroutines = set(group_spec).difference(ignore)
+        self.__subroutines = set(self.__spec).difference(ignore)
         assert self.__subroutines
 
         self.__log(f"Loaded {self.name} group")
@@ -137,7 +136,7 @@ class SubroutineGroup(object):
         """
         :return: Name of subroutine group
         """
-        return self.__spec["operation"]["name"]
+        return self.__spec["name"]
 
     @property
     def variable_index_base(self):
@@ -146,7 +145,7 @@ class SubroutineGroup(object):
             subroutine specifications in the group must be elements of a single
             index set whose smallest index is this value.
         """
-        return self.__spec["operation"]["variable_index_base"]
+        return self.__spec["variable_index_base"]
 
     @property
     def subroutines(self):
@@ -169,14 +168,14 @@ class SubroutineGroup(object):
         """
         :return: Set of group-level external variables
         """
-        return set(self.__spec["operation"][EXTERNAL_ARGUMENT])
+        return set(self.__spec[EXTERNAL_ARGUMENT])
 
     @property
     def group_scratch_variables(self):
         """
         :return: Set of group-level scratch variables
         """
-        return set(self.__spec["operation"][SCRATCH_ARGUMENT])
+        return set(self.__spec[SCRATCH_ARGUMENT])
 
     def external_specification(self, external):
         """
@@ -190,7 +189,7 @@ class SubroutineGroup(object):
             msg = "({}) not group-level external variable in {}"
             raise ValueError(msg.format(external, self.name))
 
-        spec = self.__spec["operation"][EXTERNAL_ARGUMENT][external]
+        spec = self.__spec[EXTERNAL_ARGUMENT][external]
         return copy.deepcopy(spec)
 
     def scratch_specification(self, scratch):
@@ -205,7 +204,7 @@ class SubroutineGroup(object):
             msg = "({}) not group-level scratch variable in {}"
             raise ValueError(msg.format(scratch, self.name))
 
-        spec = self.__spec["operation"][SCRATCH_ARGUMENT][scratch]
+        spec = self.__spec[SCRATCH_ARGUMENT][scratch]
         return copy.deepcopy(spec)
 
     def subroutine_specification(self, subroutine):
@@ -215,7 +214,7 @@ class SubroutineGroup(object):
             SubroutineGroup object.
         """
         self.__check_subroutine_arg(subroutine)
-        return copy.deepcopy(self.__spec["operation"][subroutine])
+        return copy.deepcopy(self.__spec[subroutine])
 
     def argument_list(self, subroutine):
         """
@@ -224,8 +223,7 @@ class SubroutineGroup(object):
             the SubroutineGroup object.
         """
         self.__check_subroutine_arg(subroutine)
-        sub_spec = self.__spec["operation"][subroutine]
-        return sub_spec["argument_list"].copy()
+        return self.__spec[subroutine]["argument_list"].copy()
 
     def argument_specification(self, subroutine, argument):
         """

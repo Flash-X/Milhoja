@@ -10,7 +10,7 @@ from .AbcLogger import AbcLogger
 from .check_subroutine_specification import check_subroutine_specification
 
 
-def check_group_specification(spec, logger):
+def check_group_specification(group_spec, logger):
     """
     If this does not raise an error, then the specification is acceptable.
 
@@ -18,7 +18,8 @@ def check_group_specification(spec, logger):
         * Once there are lbound and extents parsers in the package, use those
           to error check scratch specification
 
-    :param spec: Contents obtained directly from operation specification file
+    :param group_spec: Contents obtained directly from subroutine group
+        specification file
     :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
     # ----- HARDCODED VALUES
@@ -29,46 +30,39 @@ def check_group_specification(spec, logger):
     VALID_SCRATCH_TYPES = ["real"]
 
     # ----- ERROR CHECK ARGUMENTS
-    if not isinstance(spec, dict):
+    if not isinstance(group_spec, dict):
         msg = "Unknown internal subroutine group specification type ({})"
-        raise TypeError(msg.format(type(spec)))
+        raise TypeError(msg.format(type(group_spec)))
     if not isinstance(logger, AbcLogger):
         raise TypeError("Unknown logger type")
 
-    # ----- SPECIFICATION ROOT
-    expected = {"format", "operation"}
-    actual = set(spec)
-    if actual != expected:
-        msg = f"Invalid operation specification keys ({actual})"
-        raise ValueError(msg)
-
-    group_spec = spec["operation"]
-
-    # ----- FORMAT SPECIFICATION
-    # The source of the specification is unimportant and was likely used to
-    # load the given specification.
-
-    # ----- OPERATION SPECIFICATION
-    msg = "Checking operation subsection specification"
+    # ----- GROUP SPECIFICATION
+    msg = "Checking group specification"
     logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
 
     # Keys that must always be provided
-    if "name" not in group_spec:
-        msg = "name key not provided in operation spec"
+    if "format" not in group_spec:
+        msg = "format key not provided in group spec"
+        raise ValueError(msg)
+    elif "name" not in group_spec:
+        msg = "name key not provided in group spec"
         raise ValueError(msg)
     elif "variable_index_base" not in group_spec:
-        msg = "variable_index_base not provided in operation spec"
+        msg = "variable_index_base not provided in group spec"
         raise ValueError(msg)
     name = group_spec["name"]
     variable_index_base = group_spec["variable_index_base"]
 
-    msg = f"Operation specification under evaluation is {name}"
+    msg = f"Subroutine group specification under evaluation is {name}"
     logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
 
+    # The source of the specification is unimportant and was likely used to
+    # load the given specification.
+
     if not isinstance(name, str):
-        raise TypeError(f"Operation name not string ({name})")
+        raise TypeError(f"Subroutine group name not string ({name})")
     elif name == "":
-        raise ValueError("Empty operation name")
+        raise ValueError("Empty subroutine group name")
 
     if not isinstance(variable_index_base, numbers.Integral):
         msg = f"variable_index_base not integer ({variable_index_base})"
@@ -158,11 +152,11 @@ def check_group_specification(spec, logger):
                 raise TypeError(msg)
 
     # ----- SUBROUTINE SPECIFICATIONS
-    ignore = {"name", "variable_index_base",
+    ignore = {"format", "name", "variable_index_base",
               EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT}
     subroutines_all = set(group_spec).difference(ignore)
     if len(subroutines_all) == 0:
-        raise LogicError("No subroutines included in operation")
+        raise LogicError("No subroutines included in group")
 
     for subroutine in subroutines_all:
         msg = f"Checking subroutine {subroutine} specification"

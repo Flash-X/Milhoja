@@ -141,31 +141,30 @@ class TestSubroutineGroup(unittest.TestCase):
         self.assertEqual(self.__good, result.specification)
 
         expected = {
-            "name",
-            "variable_index_base",
+            "format", "name", "variable_index_base",
             EXTERNAL_ARGUMENT,
             SCRATCH_ARGUMENT
         }.union(self.__group.subroutines)
-        self.assertEqual(expected, set(group_spec["operation"]))
+        self.assertEqual(expected, set(group_spec))
 
         # Confirm consistency with finer-grained getters
         expected = self.__group.group_external_variables
         self.assertEqual(set(expected),
-                         set(group_spec["operation"][EXTERNAL_ARGUMENT]))
+                         set(group_spec[EXTERNAL_ARGUMENT]))
 
         expected = self.__group.group_scratch_variables
         self.assertEqual(set(expected),
-                         set(group_spec["operation"][SCRATCH_ARGUMENT]))
+                         set(group_spec[SCRATCH_ARGUMENT]))
 
         for subroutine in self.__group.subroutines:
             expected = self.__group.subroutine_specification(subroutine)
-            result = group_spec["operation"][subroutine]
+            result = group_spec[subroutine]
             self.assertEqual(expected, result)
 
         # Confirm that we cannot alter original spec in object
         #
         # If you remove deepcopy in function, then this will fail.
-        group_spec["operation"]["name"] = "do not fail please"
+        group_spec["name"] = "do not fail please"
         result = self.__group.specification
         self.assertNotEqual(group_spec, result)
 

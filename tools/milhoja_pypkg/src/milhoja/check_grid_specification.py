@@ -1,5 +1,8 @@
 import numbers
 
+from .constants import (
+    ERROR_CHECK_LOG_TAG, LOG_LEVEL_BASIC_DEBUG
+)
 from .AbcLogger import AbcLogger
 
 
@@ -15,7 +18,7 @@ def check_grid_specification(spec, logger):
     :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
     # ----- HARDCODED VALUES
-    # LOG_NAME = ERROR_CHECK_LOG_TAG
+    LOG_NAME = ERROR_CHECK_LOG_TAG
 
     # ----- ERROR CHECK ARGUMENTS
     if not isinstance(spec, dict):
@@ -25,6 +28,9 @@ def check_grid_specification(spec, logger):
         raise TypeError("Unknown logger type")
 
     # ----- GRID SPECIFICATION
+    msg = "Checking grid specification"
+    logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
+
     expected = {"dimension", "nxb", "nyb", "nzb", "nguardcells"}
     actual = set(spec)
     if actual != expected:

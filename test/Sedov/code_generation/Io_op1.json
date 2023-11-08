@@ -1,22 +1,20 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
-    "operation": {
-        "name":                   "io_op1",
-        "variable_index_base":           1,
-        "Io::instance().computeIntegralQuantitiesByBlock": {
-            "interface_file": "Io.h",
-            "argument_list": ["threadIdx", "lo", "hi", "cellVolumes", "solnData"],
-            "argument_specifications": {
-                "threadIdx":   {"source":             "milhoja_thread_index"},
-                "lo":          {"source":             "tile_lo"},
-                "hi":          {"source":             "tile_hi"},
-                "cellVolumes": {"source":             "tile_cellVolumes",
-                                "lo":                 "tile_lo",
-                                "hi":                 "tile_hi"},
-                "solnData":    {"source":             "grid_data",
-                                "structure_index":    ["CENTER", 1],
-                                "R":                  [1, 2, 3, 4, 6, 8]}
-            }
+    "name":                   "io_op1",
+    "variable_index_base":           1,
+    "Io::instance().computeIntegralQuantitiesByBlock": {
+        "interface_file": "Io.h",
+        "argument_list": ["threadIdx", "lo", "hi", "cellVolumes", "solnData"],
+        "argument_specifications": {
+            "threadIdx":   {"source":             "milhoja_thread_index"},
+            "lo":          {"source":             "tile_lo"},
+            "hi":          {"source":             "tile_hi"},
+            "cellVolumes": {"source":             "tile_cellVolumes",
+                            "lo":                 "tile_lo",
+                            "hi":                 "tile_hi"},
+            "solnData":    {"source":             "grid_data",
+                            "structure_index":    ["CENTER", 1],
+                            "R":                  [1, 2, 3, 4, 6, 8]}
         }
     }
 }

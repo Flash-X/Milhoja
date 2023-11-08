@@ -128,13 +128,13 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
 
         group_spec_1 = group_1.specification
         group_spec_2 = group_2.specification
-        self.assertEqual(1, group_spec_1["operation"]["variable_index_base"])
-        self.assertEqual(1, group_spec_2["operation"]["variable_index_base"])
+        self.assertEqual(1, group_spec_1["variable_index_base"])
+        self.assertEqual(1, group_spec_2["variable_index_base"])
         TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,
                               groups_all, self.__GRID_SPEC, self.__logger)
 
         bad_spec = copy.deepcopy(group_spec_1)
-        bad_spec["operation"]["variable_index_base"] = 0
+        bad_spec["variable_index_base"] = 0
         bad_group = SubroutineGroup(bad_spec, self.__logger)
         with self.assertRaises(NotImplementedError):
             TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,

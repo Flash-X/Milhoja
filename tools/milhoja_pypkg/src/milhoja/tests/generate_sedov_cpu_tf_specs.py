@@ -78,33 +78,32 @@ def generate_sedov_cpu_tf_specs(dimension, block_size,
 
         # Some argument lists change with dimension
         for sub in ["hy::computeFluxesHll", "hy::updateSolutionHll"]:
-            if sub in group_spec["operation"]:
+            if sub in group_spec:
                 arg_spec_key = "argument_specifications"
-                arg_list = group_spec["operation"][sub]["argument_list"]
+                arg_list = group_spec[sub]["argument_list"]
                 if dimension == 1:
                     arg_list = [e for e in arg_list if e not in ["flY", "flZ"]]
-                    group_spec["operation"][sub]["argument_list"] = arg_list
-                    del group_spec["operation"][sub][arg_spec_key]["flY"]
-                    del group_spec["operation"][sub][arg_spec_key]["flZ"]
+                    group_spec[sub]["argument_list"] = arg_list
+                    del group_spec[sub][arg_spec_key]["flY"]
+                    del group_spec[sub][arg_spec_key]["flZ"]
                 elif dimension == 2:
                     arg_list = [e for e in arg_list if e not in ["flZ"]]
-                    group_spec["operation"][sub]["argument_list"] = arg_list
-                    del group_spec["operation"][sub][arg_spec_key]["flZ"]
+                    group_spec[sub]["argument_list"] = arg_list
+                    del group_spec[sub][arg_spec_key]["flZ"]
 
         # Scratch extents change with dimension
-        if ("scratch" in group_spec["operation"]) and \
-                ("_auxC" in group_spec["operation"]["scratch"]):
+        if ("scratch" in group_spec) and ("_auxC" in group_spec["scratch"]):
             sz_x = block_size[0] + 2
             sz_y = block_size[1] + 2 if dimension >= 2 else 1
             sz_z = block_size[2] + 2 if dimension == 3 else 1
             extents = f"({sz_x}, {sz_y}, {sz_z})"
-            group_spec["operation"]["scratch"]["_auxC"]["extents"] = extents
+            group_spec["scratch"]["_auxC"]["extents"] = extents
 
             sz_x = 1
             sz_y = 1 if dimension >= 2 else 0
             sz_z = 1 if dimension == 3 else 0
             lbound = f"(tile_lo) - ({sz_x}, {sz_y}, {sz_z})"
-            group_spec["operation"]["scratch"]["_auxC"]["lbound"] = lbound
+            group_spec["scratch"]["_auxC"]["lbound"] = lbound
 
         group_spec = SubroutineGroup(group_spec, logger)
 
