@@ -42,6 +42,14 @@ _FAKE_PATH = _DATA_PATH.joinpath("fake")
 
 class TestMultipleSubroutineGroups(unittest.TestCase):
     def setUp(self):
+        self.__GRID_SPEC = {
+            "dimension": 2,
+            "nxb": 8,
+            "nyb": 16,
+            "nzb": 1,
+            "nguardcells": 1
+        }
+
         # Don't remove on tearDown() so that users can check the results of the
         # last test at the very least.
         self.__dst = Path.cwd().joinpath("delete_me")
@@ -50,8 +58,8 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         os.mkdir(self.__dst)
 
         TF_NAME = "TestCombined"
-        FAKE_A_GROUP1_FILENAME = _FAKE_PATH.joinpath("FakeA_op1.json").resolve()
-        FAKE_B_GROUP2_FILENAME = _FAKE_PATH.joinpath("FakeB_op2.json").resolve()
+        GROUP1_FILENAME = _FAKE_PATH.joinpath("FakeA_op1.json").resolve()
+        GROUP2_FILENAME = _FAKE_PATH.joinpath("FakeB_op2.json").resolve()
         INTERNAL_CALL_GRAPH = ["functionC", "functionA"]
         TF_PARTIAL_SPEC = {
             "task_function": {
@@ -80,10 +88,16 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
 
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 
+        group_1 = SubroutineGroup.from_milhoja_json(GROUP1_FILENAME,
+                                                    self.__logger)
+        group_2 = SubroutineGroup.from_milhoja_json(GROUP2_FILENAME,
+                                                    self.__logger)
+        groups = [group_1, group_2]
+
         self.assertTrue(not TF_SPEC_FILENAME.exists())
-        assembler = TaskFunctionAssembler.from_milhoja_json(
+        assembler = TaskFunctionAssembler(
                 TF_NAME, INTERNAL_CALL_GRAPH,
-                [FAKE_A_GROUP1_FILENAME, FAKE_B_GROUP2_FILENAME],
+                groups, self.__GRID_SPEC,
                 self.__logger
             )
         assembler.to_milhoja_json(
@@ -117,14 +131,15 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         self.assertEqual(1, group_spec_1["operation"]["variable_index_base"])
         self.assertEqual(1, group_spec_2["operation"]["variable_index_base"])
         TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,
-                              groups_all, self.__logger)
+                              groups_all, self.__GRID_SPEC, self.__logger)
 
         bad_spec = copy.deepcopy(group_spec_1)
         bad_spec["operation"]["variable_index_base"] = 0
         bad_group = SubroutineGroup(bad_spec, self.__logger)
         with self.assertRaises(NotImplementedError):
             TaskFunctionAssembler("DifferentBase", INTERNAL_CALL_GRAPH,
-                                  [bad_group, group_2], self.__logger)
+                                  [bad_group, group_2], self.__GRID_SPEC,
+                                  self.__logger)
 
     def testTileArguments(self):
         # TODO: Replace some of this with code that updates the lo/hi and

@@ -12,6 +12,7 @@ from pathlib import Path
 from milhoja import (
     LOG_LEVEL_NONE,
     BasicLogger,
+    SubroutineGroup,
     TaskFunctionAssembler
 )
 from milhoja.tests import (
@@ -29,6 +30,14 @@ _RUNTIME_PATH = _DATA_PATH.joinpath("runtime")
 
 class TestTaskFunctionAssembler(unittest.TestCase):
     def setUp(self):
+        GRID_SPEC = {
+            "dimension": 3,
+            "nxb": 16,
+            "nyb": 16,
+            "nzb": 16,
+            "nguardcells": 1
+        }
+
         self.__dst = Path.cwd().joinpath("delete_me")
         if self.__dst.exists():
             shutil.rmtree(self.__dst)
@@ -39,8 +48,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         gpu_spec_fname = self.__dst.joinpath("gpu_tf_hydro_3D.json")
         self.assertFalse(gpu_spec_fname.exists())
         filename = generate_sedov_gpu_tf_specs(
-                     3, [16, 16, 16], _SEDOV_PATH,
-                     self.__dst, False, self.__logger
+                     GRID_SPEC["dimension"],
+                     [GRID_SPEC["nxb"], GRID_SPEC["nyb"], GRID_SPEC["nzb"]],
+                     _SEDOV_PATH, self.__dst, False, self.__logger
                    )
         self.assertEqual(gpu_spec_fname, filename)
         self.assertTrue(gpu_spec_fname.is_file())
@@ -48,9 +58,13 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         with open(gpu_spec_fname, "r") as fptr:
             tf_spec = json.load(fptr)
         tf_call_graph = tf_spec["task_function"]["subroutine_call_graph"]
+
         group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
-        self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", tf_call_graph, [group_json], self.__logger
+        group = SubroutineGroup.from_milhoja_json(group_json, self.__logger)
+
+        self.__Sedov = TaskFunctionAssembler(
+            "gpu_tf_hydro", tf_call_graph, [group], GRID_SPEC,
+            self.__logger
         )
 
     def testDummyArguments(self):

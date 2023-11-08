@@ -1,26 +1,29 @@
 import json
 
-from milhoja import TaskFunctionAssembler
+from milhoja import (
+    SubroutineGroup,
+    TaskFunctionAssembler
+)
 
 
 def generate_sedov_gpu_tf_specs(dimension, block_size,
-                                op_spec_path, destination, overwrite,
+                                group_spec_path, destination, overwrite,
                                 logger):
     """
-    Use the partial operation specifications located in the given path to fill
-    in problem-specific operation specifications and construct the full
-    specification JSON file for each task function needed to solve the given
-    Sedov test problem.
+    Use the partial subroutine group specifications located in the given path
+    to fill in problem-specific subroutine group specifications and construct
+    the full specification JSON file for each task function needed to solve the
+    given Sedov test problem.
 
     :param dimension: Dimension of problem's domain
     :param block_size: (nxb, nyb, nzb) where n[xyz]b is N cells in each block
         along associated dimension of problem's domain
-    :param op_spec_path: Path to location of Sedov problem's partial operation
-        specification JSON files
+    :param group_spec_path: Path to location of Sedov problem's partial
+        subroutine group specification JSON files
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing JSON files in destination will be overwritten
         if True
-    :param logger: Logger derived from milhoja.AbcLogger
+    :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
     # ----- HARDCODED
     TF_CALL_GRAPH = [
@@ -58,17 +61,13 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
         }
     }
 
-    # ----- ADJUST OPERATION SPECIFICATION TO SPECIFIC PROBLEM
-    group_json = op_spec_path.joinpath("Hydro_op1_Fortran.json")
+    # ----- ADJUST SUBROUTINE GROUP SPECIFICATION TO SPECIFIC PROBLEM
+    group_json = group_spec_path.joinpath("Hydro_op1_Fortran.json")
     if not group_json.is_file():
         msg = f"{group_json} does not exist or is not a file"
         raise ValueError(msg)
     with open(group_json, "r") as fptr:
         group_spec = json.load(fptr)
-
-    # Add in Grid Spec
-    assert "grid" not in group_spec
-    group_spec["grid"] = GRID_SPEC
 
     # Scratch extents change with dimension
     sz_x = block_size[0] + 2
@@ -98,7 +97,10 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
         lbound = "(tile_lo, 1)" if i < dimension else "(1, 1, 1, 1)"
         group_spec["operation"]["scratch"][each]["lbound"] = lbound
 
-    # Dump final operation specification for immediate use
+    # Dump final operation specification
+    #
+    # This is not for this function to do its job.  However, it is a necessary
+    # side effect for TestTaskFunctionAssembler
     filename = f"Hydro_op1_Fortran_{dimension}D.json"
     group_json = destination.joinpath(filename)
     if (not overwrite) and group_json.exists():
@@ -106,6 +108,8 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     with open(group_json, "w") as fptr:
         json.dump(group_spec, fptr,
                   ensure_ascii=True, allow_nan=False, indent=True)
+
+    group_spec = SubroutineGroup(group_spec, logger)
 
     # ----- DUMP PARTIAL TF SPECIFICATION
     filename = f"gpu_tf_hydro_partial_{dimension}D.json"
@@ -119,9 +123,9 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
     full_tf_spec = destination.joinpath(f"gpu_tf_hydro_{dimension}D.json")
-    assembler = TaskFunctionAssembler.from_milhoja_json(
-                    "gpu_tf_hydro", TF_CALL_GRAPH, [group_json],
-                    logger
+    assembler = TaskFunctionAssembler(
+                    "gpu_tf_hydro", TF_CALL_GRAPH,
+                    [group_spec], GRID_SPEC, logger
                 )
     assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)
 

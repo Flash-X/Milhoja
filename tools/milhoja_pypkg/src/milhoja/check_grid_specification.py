@@ -18,6 +18,9 @@ def check_grid_specification(spec, logger):
     # LOG_NAME = ERROR_CHECK_LOG_TAG
 
     # ----- ERROR CHECK ARGUMENTS
+    if not isinstance(spec, dict):
+        msg = "Unknown grid specification type ({})"
+        raise TypeError(msg.format(type(spec)))
     if not isinstance(logger, AbcLogger):
         raise TypeError("Unknown logger type")
 

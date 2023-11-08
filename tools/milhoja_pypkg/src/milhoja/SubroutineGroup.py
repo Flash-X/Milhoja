@@ -97,7 +97,7 @@ class SubroutineGroup(object):
         self.__subroutines = set(group_spec).difference(ignore)
         assert self.__subroutines
 
-        self.__log("Loaded {self.name} group")
+        self.__log(f"Loaded {self.name} group")
 
     def __contains__(self, subroutine):
         """

@@ -1,24 +1,34 @@
 import json
 
-from milhoja import TaskFunctionAssembler
+from milhoja import (
+    SubroutineGroup,
+    TaskFunctionAssembler
+)
 
 
-def generate_runtime_cpu_tf_specs(op_spec_path, destination, overwrite,
+def generate_runtime_cpu_tf_specs(group_spec_path, destination, overwrite,
                                   logger):
     """
-    Use the partial operation specifications located in the given path to fill
-    in problem-specific operation specifications and construct the full
-    specification JSON file for each task function needed to solve the given
-    Runtime/CPU test problem.
+    Construct the full specification JSON file for each task function needed to
+    solve the given Runtime/CPU test problem using the problem's subroutine
+    group specification files.
 
-    :param op_spec_path: Path to location of Runtime/CPU problem's partial
-        operation specification JSON files
+    :param group_spec_path: Path to location of Runtime/CPU problem's
+        subroutine group specification JSON files
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing JSON files in destination will be overwritten
         if True
-    :param logger: Logger derived from milhoja.AbcLogger
+    :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
     # ----- HARDCODED
+    GRID_SPEC = {
+        "dimension": 2,
+        "nxb": 8,
+        "nyb": 16,
+        "nzb": 1,
+        "nguardcells": 1
+    }
+
     MILHOJA_INVOCATIONS = [
         ("cpu_tf_ic", "Simulation", "op1"),
         ("cpu_tf_dens", "Math", "op1"),
@@ -52,7 +62,8 @@ def generate_runtime_cpu_tf_specs(op_spec_path, destination, overwrite,
     tf_spec_jsons = []
     for name, unit, operation in MILHOJA_INVOCATIONS:
         tf_call_graph = CALL_GRAPHS[name]
-        op_spec_json = op_spec_path.joinpath(f"{unit}_{operation}.json")
+        group_json = group_spec_path.joinpath(f"{unit}_{operation}.json")
+        group_spec = SubroutineGroup.from_milhoja_json(group_json, logger)
 
         # ----- UPDATE PARTIAL TF SPECIFICATION FOR SPECIFIC PROBLEM
         partial_tf_spec["task_function"]["cpp_header"] = f"{name}.h"
@@ -70,8 +81,8 @@ def generate_runtime_cpu_tf_specs(op_spec_path, destination, overwrite,
 
         # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
         full_tf_spec = destination.joinpath(f"{name}.json")
-        assembler = TaskFunctionAssembler.from_milhoja_json(
-                        name, tf_call_graph, [op_spec_json],
+        assembler = TaskFunctionAssembler(
+                        name, tf_call_graph, [group_spec], GRID_SPEC,
                         logger
                     )
         assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)

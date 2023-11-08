@@ -7,7 +7,6 @@ from .constants import (
 )
 from .LogicError import LogicError
 from .AbcLogger import AbcLogger
-from .check_grid_specification import check_grid_specification
 from .check_subroutine_specification import check_subroutine_specification
 
 
@@ -37,23 +36,17 @@ def check_group_specification(spec, logger):
         raise TypeError("Unknown logger type")
 
     # ----- SPECIFICATION ROOT
-    expected = {"format", "grid", "operation"}
+    expected = {"format", "operation"}
     actual = set(spec)
     if actual != expected:
         msg = f"Invalid operation specification keys ({actual})"
         raise ValueError(msg)
 
-    grid_spec = spec["grid"]
     group_spec = spec["operation"]
 
     # ----- FORMAT SPECIFICATION
     # The source of the specification is unimportant and was likely used to
     # load the given specification.
-
-    # ----- GRID SPECIFICATION
-    msg = "Checking grid subsection specification"
-    logger.log(LOG_NAME, msg, LOG_LEVEL_BASIC_DEBUG)
-    check_grid_specification(grid_spec, logger)
 
     # ----- OPERATION SPECIFICATION
     msg = "Checking operation subsection specification"

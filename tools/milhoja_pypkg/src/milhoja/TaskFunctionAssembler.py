@@ -21,6 +21,7 @@ from .constants import (
 from .LogicError import LogicError
 from .AbcLogger import AbcLogger
 from .SubroutineGroup import SubroutineGroup
+from .check_grid_specification import check_grid_specification
 
 
 class TaskFunctionAssembler(object):
@@ -45,7 +46,7 @@ class TaskFunctionAssembler(object):
 
     @staticmethod
     def from_milhoja_json(name, internal_call_graph,
-                          group_jsons_all, logger):
+                          group_jsons_all, grid_json, logger):
         """
         Construct a TaskFunctionAssembler object using Milhoja-JSON format
         subroutine group specification files.
@@ -56,6 +57,8 @@ class TaskFunctionAssembler(object):
         :param group_jsons_all: Filenames with paths of all Milhoja-JSON
             format subroutine group specification files that together contain
             the specifications for the subroutines in the internal call graph
+        :param grid_json: Filename with path of Milhoja-JSON format grid
+            specification file
         :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
         """
         # ----- ERROR CHECK ARGUMENTS
@@ -66,34 +69,46 @@ class TaskFunctionAssembler(object):
         elif not group_jsons_all:
             raise ValueError("No group specifications provided")
 
+        if (not isinstance(grid_json, str)) and \
+                (not isinstance(grid_json, Path)):
+            raise TypeError("grid_json not string or Path ({grid_json})")
+        elif not Path(grid_json).is_file():
+            msg = f"{grid_json} does not exist or is not file"
+            raise ValueError(msg)
+
         if not isinstance(logger, AbcLogger):
             raise TypeError("Unknown logger type")
 
-        # ----- LOAD & CONVERT GROUPS INTO INTERNAL MILHOJA REPRESENTATION
+        # ----- LOAD & CONVERT SPECS INTO INTERNAL MILHOJA REPRESENTATION
         group_specs_all = []
         for group_json in group_jsons_all:
             group_spec = SubroutineGroup.from_milhoja_json(group_json, logger)
             group_specs_all.append(group_spec)
 
+        # This is simple enough that I am not going to put a format/version on
+        # it for now.
+        with open(grid_json, "r") as fptr:
+            grid_spec = json.load(fptr)
+
         return TaskFunctionAssembler(name, internal_call_graph,
-                                     group_specs_all, logger)
+                                     group_specs_all, grid_spec, logger)
 
     def __init__(self, name, internal_call_graph,
-                 group_specs_all, logger):
+                 group_specs_all, grid_spec, logger):
         """
         It is intended that users instantiate assemblers using the from_*
         classmethods.
 
-        .. todo::
-            * Check grid specification identical across all op specs.  Does
-              this suggest that the grid info shouldn't be in the op specs?
-
         :param name: Name of the task function
         :param internal_call_graph: WRITE THIS
-        :param group_specs_all:  Set of SubroutineGroup objects that together
-            contain the specifications for the subroutines in the internal call
-            graph.  This is stored immediately as a copy so that calling code
-            can continue using the actual arguments passed in as needed.
+        :param group_specs_all:  Set of ``SubroutineGroup`` objects that
+            together contain the specifications for the subroutines in the
+            internal call graph.  This is stored immediately as a copy so that
+            calling code can continue using the actual arguments passed in as
+            needed.
+        :param grid_spec:  Milhoja-internal grid specification ``dict``.  This
+            is stored immediately as a copy so that calling code can continue
+            using the actual argument passed in as needed.
         :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
         """
         super().__init__()
@@ -120,6 +135,9 @@ class TaskFunctionAssembler(object):
                 msg = "Items in group_specs_all not all SubroutineGroup"
                 raise TypeError(msg)
         self.__group_specs = group_specs_all.copy()
+
+        self.__grid = copy.deepcopy(grid_spec)
+        check_grid_specification(self.__grid, self.__logger)
 
         # Check across all subroutine groups
         #
@@ -822,12 +840,8 @@ class TaskFunctionAssembler(object):
         spec["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
 
         # ----- INCLUDE GRID SPECIFICATION
-        # Assume that this code already confirmed identical grid specifications
-        # across all operation specifications.
-        outer = "grid"
-        assert outer not in spec
-        group_spec = self.__group_specs[0].specification
-        spec[outer] = group_spec["grid"]
+        assert "grid" not in spec
+        spec["grid"] = self.__grid
 
         # ----- INCLUDE TASK FUNCTION SPECIFICATION
         outer = "task_function"
