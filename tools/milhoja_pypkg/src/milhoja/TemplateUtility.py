@@ -68,6 +68,62 @@ class TemplateUtility():
         ...
 
     @classmethod
+    def _common_iterate_externals(
+        cls, connectors: dict, size_connectors: dict,
+        externals: OrderedDict
+    ):
+        """
+        Common code in both utility classes for iterating external vars.
+
+        :param dict connectors: All cgkit connectors.
+        :param dict size_connectors: All size_connectors for cgkit.
+        :param OrderedDict externals: All external variables from the TF.
+        """
+        # MOVE THROUGH EVERY EXTERNAL ITEM
+        for key, var_data in externals.items():
+            size_equation = f'sizeof({var_data["type"]})'
+            if var_data["extents"]:
+                size_equation = \
+                    f'{size_equation} * {" * ".join(var_data["extents"])}'
+            info = DataPacketMemberVars(
+                item=key, dtype=var_data["type"],
+                size_eq=size_equation, per_tile=False
+            )
+
+            # nTiles is a special case here. nTiles should not be included
+            # in the constructor, and it has its own host variable generation.
+            if key != 'nTiles':
+                connectors[cls._CON_ARGS].append(f'{info.dtype} {key}')
+                connectors[cls._HOST_MEMBERS].append(info.host)
+            # add the necessary connectors for the constructor section.
+            connectors[cls._PUB_MEMBERS].extend([
+                f'{info.dtype} {info.host};\n',
+                f'{info.dtype}* {info.device};\n'
+            ])
+
+            set_host = f'{{{key}}}'
+            # NOTE: it doesn't matter what we set nTiles to here.
+            #       nTiles always gets set in pack, and we cannot set nTiles
+            #       in here using tiles_ because tiles_ has not been filled at
+            #       the time of this packet's construction.
+            if key == "nTiles":
+                set_host = '{0}'
+
+            connectors[cls._SET_MEMBERS].extend([
+                f'{info.host}{set_host}',
+                f'{info.device}{{nullptr}}'
+            ])
+            connectors[cls._SIZE_DET].append(
+                f'static constexpr std::size_t {info.size} = '
+                f'{info.SIZE_EQ};\n'
+            )
+            cls.set_pointer_determination(connectors, cls._EXT, info)
+            connectors[f'memcpy_{cls._EXT}'].append(
+                f'std::memcpy({info.pinned}, static_cast<void*>(&'
+                f'{info.host}), {info.size});\n'
+            )
+
+    @classmethod
     @abstractmethod
     def iterate_tile_metadata(
         cls, connectors: dict, size_connectors: dict,
@@ -86,9 +142,94 @@ class TemplateUtility():
         ...
 
     @classmethod
+    def _common_iterate_tile_in(
+        cls, data, connectors, info, extents, mask_in
+    ):
+        """
+        Common code found in the iterate_tile_in function for both
+        template utility classes.
+
+        :param dict data: The dict containing a var's information
+        :param dict connectors: All cgkit connectors.
+        :param DataPacketMemberVars info: The var's information struct.
+        :param list extents: The size of the array.
+        :param list mask_in: The range of variables to go into the packet.
+        """
+        # Add necessary connectors.
+        connectors[cls._PUB_MEMBERS].append(
+            f'{info.dtype}* {info.device};\n'
+            f'{info.dtype}* {info.pinned};\n'
+        )
+        connectors[cls._SET_MEMBERS].extend(
+            [
+                f'{info.device}{{nullptr}}',
+                f'{info.pinned}{{nullptr}}'
+            ]
+        )
+        connectors[cls._SIZE_DET].append(
+            f'static constexpr std::size_t {info.size} = '
+            f'{info.SIZE_EQ};\n'
+        )
+        cls.set_pointer_determination(connectors, cls._T_IN, info, True)
+        cls.add_memcpy_connector(
+            connectors, cls._T_IN,
+            extents, info.ITEM,
+            mask_in[0], mask_in[1],
+            info.size, info.dtype, data['structure_index'][0]
+        )
+
+    @classmethod
     @abstractmethod
     def iterate_tile_in_out(cls):
         ...
+
+    @classmethod
+    def _common_iterate_tile_in_out(
+        cls, data, connectors, info, extents, in_mask, out_mask
+    ):
+        """
+        Common code pulled out of each utility class's iterate_tile_in_out
+        function.
+
+        :param dict data: The information of a specific variable
+        :param dict connectors: All connectors for cgkit.
+        :param DataPacketMemberVars info: Information struct for a var.
+        :param list extents: The size of the array.
+        :param list in_mask: The range of vars coming into the packet.
+        :param list out_mask: The range of vars returning from the packet.
+        """
+        # set connectors
+        connectors[cls._PUB_MEMBERS].append(
+            f'{info.dtype}* {info.device};\n'
+            f'{info.dtype}* {info.pinned};\n'
+        )
+        connectors[cls._SET_MEMBERS].extend(
+            [
+                f'{info.device}{{nullptr}}',
+                f'{info.pinned}{{nullptr}}'
+            ]
+        )
+        connectors[cls._SIZE_DET].append(
+            f'static constexpr std::size_t {info.size} = '
+            f'{info.SIZE_EQ};\n'
+        )
+        cls.set_pointer_determination(
+            connectors, cls._T_IN_OUT, info, True
+        )
+        cls.add_memcpy_connector(
+            connectors, cls._T_IN_OUT,
+            extents, info.ITEM, in_mask[0],
+            in_mask[1], info.size, info.dtype,
+            data['structure_index'][0]
+        )
+        # here we pass in item twice because tile_in_out pointers get
+        # packed and unpacked from the same location.
+        cls.add_unpack_connector(
+            connectors, cls._T_IN_OUT,
+            extents, out_mask[0], out_mask[1],
+            info.dtype, info.ITEM,
+            data['structure_index'][0]
+        )
 
     @classmethod
     @abstractmethod
@@ -96,9 +237,74 @@ class TemplateUtility():
         ...
 
     @classmethod
+    def _common_iterate_tile_out(
+        cls, data, connectors, info, extents, out_mask
+    ):
+        """
+        Common code pulled out of the iterate_tile_out function.
+        into its own separate function.
+
+        :param dict data: The data for a specific variable in the TF.
+        :param dict connectors: Dict containing all cgkit connectors
+        :param DataPacketMemberVars info: Data for a specific variable in the
+                                          data packet.
+        :param list extents: The extents of the variable.
+        :param list out_mask: A length 2 array containing the range of vars
+                              to return.
+        """
+        connectors[cls._PUB_MEMBERS].append(
+                f'{info.dtype}* {info.device};\n'
+                f'{info.dtype}* {info.pinned};\n'
+            )
+        connectors[cls._SET_MEMBERS].extend(
+            [
+                f'{info.device}{{nullptr}}',
+                f'{info.pinned}{{nullptr}}'
+            ]
+        )
+        connectors[cls._SIZE_DET].append(
+            f'static constexpr std::size_t {info.size} = '
+            f'{info.SIZE_EQ};\n'
+        )
+        cls.set_pointer_determination(connectors, cls._T_OUT, info, True)
+        cls.add_unpack_connector(
+            connectors, cls._T_OUT, extents, out_mask[0],
+            out_mask[1], info.dtype, info.ITEM,
+            data['structure_index'][0]
+        )
+
+    @classmethod
     @abstractmethod
     def iterate_tile_scratch(cls):
         ...
+
+    @classmethod
+    def _common_iterate_tile_scratch(
+        cls, connectors, info
+    ):
+        """
+        Common code pulled out of each template utility's iterate_scratch
+        function.
+
+        :param dict connectors: Dict containing all cgkit connectors
+        :param DataPacketMemberVars info: Data for a specific variable in the
+                                          data packet.
+        """
+        connectors[cls._PUB_MEMBERS].append(
+            f'{info.dtype}* {info.device};\n'
+        )
+        connectors[cls._SET_MEMBERS].append(
+            f'{info.device}{{nullptr}}'
+        )
+        connectors[cls._SIZE_DET].append(
+            f'static constexpr std::size_t {info.size} = '
+            f'{info.SIZE_EQ};\n'
+        )
+        connectors[f'pointers_{cls._T_SCRATCH}'].append(
+            f"""{info.device} = static_cast<{info.dtype}*>( """
+            f"""static_cast<void*>(ptr_d) );\n"""
+            f"""ptr_d += {info.total_size};\n\n"""
+        )
 
     @staticmethod
     def add_size_parameter(name: str, section_dict: dict, connectors: dict):

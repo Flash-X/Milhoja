@@ -34,49 +34,9 @@ class CppTemplateUtility(TemplateUtility):
         nTiles_value = '_nTiles_h = tiles_.size();'
         connectors[cls._NTILES_VALUE] = [nTiles_value]
 
-        # # MOVE THROUGH EVERY EXTERNAL ITEM
-        for key, var_data in externals.items():
-            size_equation = f'sizeof({var_data["type"]})'
-            if var_data["extents"]:
-                size_equation = \
-                    f'{size_equation} * {" * ".join(var_data["extents"])}'
-            info = DataPacketMemberVars(
-                item=key, dtype=var_data["type"],
-                size_eq=size_equation, per_tile=False
-            )
-
-            # nTiles is a special case here. nTiles should not be included
-            # in the constructor, and it has its own host variable generation.
-            if key != 'nTiles':
-                connectors[cls._CON_ARGS].append(f'{info.dtype} {key}')
-                connectors[cls._HOST_MEMBERS].append(info.host)
-            # add the necessary connectors for the constructor section.
-            connectors[cls._PUB_MEMBERS].extend([
-                f'{info.dtype} {info.host};\n',
-                f'{info.dtype}* {info.device};\n'
-            ])
-
-            set_host = f'{{{key}}}'
-            # NOTE: it doesn't matter what we set nTiles to here.
-            #       nTiles always gets set in pack, and we cannot set nTiles
-            #       in here using tiles_ because tiles_ has not been filled at
-            #       the time of this packet's construction.
-            if key == "nTiles":
-                set_host = '{0}'
-
-            connectors[cls._SET_MEMBERS].extend([
-                f'{info.host}{set_host}',
-                f'{info.device}{{nullptr}}'
-            ])
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = '
-                f'{info.SIZE_EQ};\n'
-            )
-            cls.set_pointer_determination(connectors, cls._EXT, info)
-            connectors[f'memcpy_{cls._EXT}'].append(
-                f'std::memcpy({info.pinned}, static_cast<void*>(&'
-                f'{info.host}), {info.size});\n'
-            )
+        cls._common_iterate_externals(
+            connectors, size_connectors, externals
+        )
 
     @classmethod
     def iterate_tilemetadata(
@@ -169,30 +129,12 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            # Add necessary connectors.
-            connectors[cls._PUB_MEMBERS].append(
-                f'{info.dtype}* {info.device};\n'
-                f'{info.dtype}* {info.pinned};\n'
+            cls._common_iterate_tile_in(
+                data, connectors, info, extents, mask_in
             )
-            connectors[cls._SET_MEMBERS].extend(
-                [
-                    f'{info.device}{{nullptr}}',
-                    f'{info.pinned}{{nullptr}}'
-                ]
-            )
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = '
-                f'{info.SIZE_EQ};\n'
-            )
-            cls.set_pointer_determination(connectors, cls._T_IN, info, True)
-            cls.add_memcpy_connector(
-                connectors, cls._T_IN,
-                extents, item,
-                mask_in[0], mask_in[1],
-                info.size, info.dtype, data['structure_index'][0]
-            )
+
             cls.insert_farray_memcpy(
-                connectors, item, 'tileDesc_h->loGC()',
+                connectors, info.ITEM, 'tileDesc_h->loGC()',
                 'tileDesc_h->hiGC()', unks, info.dtype
             )
 
@@ -233,38 +175,10 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            # set connectors
-            connectors[cls._PUB_MEMBERS].append(
-                f'{info.dtype}* {info.device};\n'
-                f'{info.dtype}* {info.pinned};\n'
+            cls._common_iterate_tile_in_out(
+                data, connectors, info, extents, in_mask, out_mask
             )
-            connectors[cls._SET_MEMBERS].extend(
-                [
-                    f'{info.device}{{nullptr}}',
-                    f'{info.pinned}{{nullptr}}'
-                ]
-            )
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = '
-                f'{info.SIZE_EQ};\n'
-            )
-            cls.set_pointer_determination(
-                connectors, cls._T_IN_OUT, info, True
-            )
-            cls.add_memcpy_connector(
-                connectors, cls._T_IN_OUT,
-                extents, item, in_mask[0],
-                in_mask[1], info.size, info.dtype,
-                data['structure_index'][0]
-            )
-            # here we pass in item twice because tile_in_out pointers get
-            # packed and unpacked from the same location.
-            cls.add_unpack_connector(
-                connectors, cls._T_IN_OUT,
-                extents, out_mask[0], out_mask[1],
-                info.dtype, item,
-                data['structure_index'][0]
-            )
+
             cls.insert_farray_memcpy(
                 connectors, item,
                 "tileDesc_h->loGC()", "tileDesc_h->hiGC()",
@@ -308,26 +222,10 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            connectors[cls._PUB_MEMBERS].append(
-                f'{info.dtype}* {info.device};\n'
-                f'{info.dtype}* {info.pinned};\n'
+            cls._common_iterate_tile_out(
+                data, connectors, info, extents, out_mask
             )
-            connectors[cls._SET_MEMBERS].extend(
-                [
-                    f'{info.device}{{nullptr}}',
-                    f'{info.pinned}{{nullptr}}'
-                ]
-            )
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = '
-                f'{info.SIZE_EQ};\n'
-            )
-            cls.set_pointer_determination(connectors, cls._T_OUT, info, True)
-            cls.add_unpack_connector(
-                connectors, cls._T_OUT, extents, out_mask[0],
-                out_mask[1], info.dtype, info.ITEM,
-                data['structure_index'][0]
-            )
+
             cls.insert_farray_memcpy(
                 connectors,
                 item,
@@ -374,18 +272,8 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            connectors[cls._PUB_MEMBERS].append(
-                f'{info.dtype}* {info.device};\n'
-            )
-            connectors[cls._SET_MEMBERS].append(f'{info.device}{{nullptr}}')
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = '
-                f'{info.SIZE_EQ};\n'
-            )
-            connectors[f'pointers_{cls._T_SCRATCH}'].append(
-                f'{info.device} = static_cast<{info.dtype}*>( '
-                f'static_cast<void*>(ptr_d) );\n'
-                f'ptr_d += {info.total_size};\n\n'
+            cls._common_iterate_tile_scratch(
+                connectors, info
             )
             # we don't insert into memcpy or unpack because the scratch is
             # only used in the device memory and does not come back.
