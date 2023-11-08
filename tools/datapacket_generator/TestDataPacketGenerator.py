@@ -21,7 +21,7 @@ from milhoja import BasicLogger
 
 _FILE_PATH = Path(__file__).resolve().parent
 # temporary
-_TEST_PATH = _FILE_PATH.joinpath("CppTestData")
+_TEST_PATH = _FILE_PATH.joinpath("TestData")
 
 class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     JSON = "json"

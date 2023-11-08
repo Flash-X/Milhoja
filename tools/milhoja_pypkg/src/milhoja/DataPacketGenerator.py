@@ -10,6 +10,8 @@ from cgkit.ctree.srctree import SourceTree
 from collections import OrderedDict
 from pathlib import Path
 
+from .parse_helpers import parse_extents
+from .parse_helpers import parse_lbound
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
 from .TemplateUtility import TemplateUtility
@@ -130,6 +132,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             self.abort("No template utility for specifed language")
 
         self._templates_path = './templates'
+        self._templates_path = ...
 
         self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
         if self.n_extra_streams > 0:
@@ -606,9 +609,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         for arg in args:
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
             arg_dictionary[arg]['extents'] = \
-                self.__parse_extents(arg_dictionary[arg]['extents'])
+                parse_extents(arg_dictionary[arg]['extents'])
             arg_dictionary[arg]['lbound'] = \
-                self.__parse_lbound(arg_dictionary[arg]['lbound'])
+                parse_lbound(arg_dictionary[arg]['lbound'])
         return self._sort_dict(
             arg_dictionary.items(),
             lambda x: (self._sizes.get(x[1]["type"], 0), x[0]),
@@ -636,75 +639,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         dict_items = [(k, v) for k, v in arguments]
         return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
-
-    def __parse_lbound(self, lbound: str) -> list:
-        """
-        Parses an lbound string for use within the generator.
-        ..todo::
-            * This lbound parser only allows simple lbounds.
-              The current format does not allow
-              nested arithmetic expressions or more than 2
-              intvects being combined.
-
-        :param str lbound: The lbound string to parse.
-        :param str data_source: The source of the data.
-                                Eg: scratch or grid data.
-        """
-        # remove tile_ prefix from keywords
-        lbound = lbound.replace("tile_", '').replace(' ', '')
-        lbound_parts = []
-        regexr = r'\(([^\)]+)\)'
-        matches = re.findall(regexr, lbound)
-        stitch = ''
-
-        # find stitching arithmetic
-        # ..todo::
-        #    * allow math expressions inside intvect constructors?
-        if len(matches) > 1:
-            assert len(matches) == 2  # only allow simple math for now.
-            symbols = re.findall(r'[\+\-\/\*]', lbound)
-            assert len(symbols) == 1  # for now
-            stitch = symbols[0]
-
-        for m in matches:
-            m = m.split(',')
-            assert len(m) > 0
-            # we have a keyword
-            if not m[0].isnumeric():
-                ncomp = m[1] if len(m) > 1 else None
-                lbound_parts.append((f'({m[0]})', ncomp))
-            elif all([value.isnumeric() for value in m]):
-                init_vect = ['1', '1', '1']
-                ncomp = None
-                for idx, value in enumerate(init_vect):
-                    init_vect[idx] = str(m[idx])
-                if len(m) > len(init_vect):
-                    # there should never be a case where its greater than 4
-                    assert len(m) == 4
-                    ncomp = m[-1]
-                lbound_parts.append(
-                    (f'IntVect{{LIST_NDIM({",".join(init_vect)})}}', ncomp)
-                )
-
-        results = []
-        for item in lbound_parts:
-            if item[0]:
-                if len(results) == 0:
-                    results.append(item[0])
-                else:
-                    results[0] = results[0] + stitch + item[0]
-
-                if item[1]:
-                    if len(results) == 1:
-                        results.append(item[1])
-                    else:
-                        results[1] = results[1] + stitch + item[1]
-        return results
-
-    def __parse_extents(self, extents: str) -> list:
-        """Parses an extents string."""
-        extents = extents.replace('(', '').replace(')', '')
-        return [item.strip() for item in extents.split(',')]
 
     def warn(self, msg: str):
         self._warn(msg)
