@@ -70,5 +70,42 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
             correct == parsed, f'{parsed} did not return {correct}'
         )
 
+    def check_bound(self, inp, generated, correct):
+        self.assertTrue(
+            generated == correct,
+            f"{inp} returned {generated}, istead of {correct}."
+        )
+
     def testLboundParser(self):
-        ...
+        inp = "(tile_lo, 5) - (1,1,1,1)"
+        bound_array = parse_lbound(inp)
+        correct = ["(lo)-IntVect{LIST_NDIM(1,1,1)}", "5-1"]
+        self.check_bound(inp, bound_array, correct)
+
+        lbound = "(tile_lo) + (1,1,1)"
+        result = parse_lbound(lbound)
+        correct = ["(lo)+IntVect{LIST_NDIM(1,1,1)}"]
+        self.check_bound(lbound, result, correct)
+
+        lbound = "(tile_lbound, 1) - (1,0,0,0)"
+        result = parse_lbound(lbound)
+        correct = ["(lbound)-IntVect{LIST_NDIM(1,0,0)}", "1-0"]
+        self.check_bound(lbound, result, correct)
+
+        lbound = "(tile_lo / 2)"
+        result = parse_lbound(lbound)
+        correct = ["(lo/2)"]
+        self.check_bound(lbound, result, correct)
+
+        lbound = "(1,1,1,1)"
+        result = parse_lbound(lbound)
+        correct = ['IntVect{LIST_NDIM(1,1,1)}', '1']
+        self.check_bound(lbound, result, correct)
+
+        with self.assertRaises(
+            IncorrectFormatException,
+            msg="Lbound has symbols that did not get caught."
+        ):
+            lbound = "(tile_lo) - (2,2,2) / 2"
+            result = parse_lbound(lbound)
+            self.assertFalse(True)

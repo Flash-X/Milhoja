@@ -42,7 +42,10 @@ def parse_lbound(lbound: str) -> list:
     if len(matches) > 1:
         assert len(matches) == 2  # only allow simple math for now.
         symbols = re.findall(r'[\+\-\/\*]', lbound)
-        assert len(symbols) == 1  # for now
+        if len(symbols) > 1:
+            raise IncorrectFormatException(
+                "lbound only supports one math op symbol for now."
+            )
         stitch = symbols[0]
 
     for m in matches:
