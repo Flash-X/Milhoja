@@ -177,14 +177,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 correct_name_cpp = Path(
                     _TEST_PATH,
                     test[self.FOLDER],
-                    os.path.basename(generator.source_filename)
+                    "REF_" + os.path.basename(generator.source_filename)
                 )
-
-                # logger.log(
-                #     "TestDataPacketGenerator",
-                #     f"Testing {generated_name_cpp}",
-                #     LOG_LEVEL_MAX
-                # )
 
                 # check c++ source code
                 with open(generated_name_cpp, 'r') as generated_cpp:
@@ -196,14 +190,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 correct_name_h = Path(
                     _TEST_PATH,
                     test[self.FOLDER],
-                    os.path.basename(generator.header_filename)
+                    "REF_" + os.path.basename(generator.header_filename)
                 )
-
-                # logger.log(
-                #     "TestDataPacketGenerator",
-                #     f"Testing {generated_name_h}",
-                #     LOG_LEVEL_MAX
-                # )
 
                 # check c++ headers
                 with open(generated_name_h, 'r') as generated_h:
@@ -225,13 +213,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     correct_cpp2c = Path(
                         _TEST_PATH,
                         test[self.FOLDER],
-                        os.path.basename(generator.cpp2c_file)
+                        "REF_" + os.path.basename(generator.cpp2c_file)
                     )
-                    # logger.log(
-                    #     "TestDataPacketGenerator",
-                    #     f"Testing {generated_cpp2c}",
-                    #     LOG_LEVEL_MAX
-                    # )
                     with open(generated_cpp2c, 'r') as generated:
                         with open(correct_cpp2c, 'r') as correct:
                             self.check_generated_files(generated, correct)
@@ -240,7 +223,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     correct_c2f = Path(
                         _TEST_PATH,
                         test[self.FOLDER],
-                        os.path.basename(generator.c2f_file)
+                        "REF_" + os.path.basename(generator.c2f_file)
                     )
                     # logger.log(
                     #     "TestDataPacketGenerator",
