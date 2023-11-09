@@ -1,28 +1,26 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
-    "operation": {
-        "name":                "simulation_op1",
-        "variable_index_base":                1,
-        "StaticPhysicsRoutines::setInitialConditions": {
-            "interface_file": "setInitialConditions.h",
-            "argument_list": ["loGC", "hiGC", "xCoords", "yCoords", "U"],
-            "argument_specifications": {
-                "loGC":        {"source":           "tile_lbound"},
-                "hiGC":        {"source":           "tile_ubound"},
-                "xCoords":     {"source":           "tile_coordinates",
-                                "axis":             "I",
-                                "edge":             "center",
-                                "lo":               "tile_lbound",
-                                "hi":               "tile_ubound"},
-                "yCoords":     {"source":           "tile_coordinates",
-                                "axis":             "J",
-                                "edge":             "center",
-                                "lo":               "tile_lbound",
-                                "hi":               "tile_ubound"},
-                "U":           {"source":           "grid_data",
-                                "structure_index":  ["CENTER", 1],
-                                "W":                [1, 2]}
-            }
+    "name":                "simulation_op1",
+    "variable_index_base":                1,
+    "StaticPhysicsRoutines::setInitialConditions": {
+        "interface_file": "setInitialConditions.h",
+        "argument_list": ["loGC", "hiGC", "xCoords", "yCoords", "U"],
+        "argument_specifications": {
+            "loGC":        {"source":           "tile_lbound"},
+            "hiGC":        {"source":           "tile_ubound"},
+            "xCoords":     {"source":           "tile_coordinates",
+                            "axis":             "I",
+                            "edge":             "center",
+                            "lo":               "tile_lbound",
+                            "hi":               "tile_ubound"},
+            "yCoords":     {"source":           "tile_coordinates",
+                            "axis":             "J",
+                            "edge":             "center",
+                            "lo":               "tile_lbound",
+                            "hi":               "tile_ubound"},
+            "U":           {"source":           "grid_data",
+                            "structure_index":  ["CENTER", 1],
+                            "W":                [1, 2]}
         }
     }
 }
