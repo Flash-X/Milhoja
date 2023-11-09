@@ -292,15 +292,14 @@ class TaskFunctionAssembler(object):
               can alter returned spec without altering original spec.
             * **arg_index :** Unique index of current arugment for immediate
               inclusion in a ``dummy_to_actuals`` map.  The index is the
-              subroutine name, argument name, and 1-based position of the
-              argument in the subroutine's argument list.
+              subroutine name and argument name.
             * **group :** :py:class:`SubroutineGroup` object that contains the
               subroutine whose argument is currently being accessed
         """
         for subroutine, group in self.__internal_subroutines:
-            for idx, arg in enumerate(group.argument_list(subroutine)):
+            for arg in group.argument_list(subroutine):
                 arg_spec = group.argument_specification(subroutine, arg)
-                yield arg_spec, (subroutine, arg, idx+1), group
+                yield arg_spec, (subroutine, arg), group
 
     @property
     def dummy_arguments(self):
@@ -859,11 +858,9 @@ class TaskFunctionAssembler(object):
             arg_to_tf_dummies = {}
             for arg in sub_dummies:
                 for tf_dummy, arg_indices in self.__dummy_to_actuals.items():
-                    for arg_index in arg_indices:
-                        item = (arg_index[0], arg_index[1])
-                        if item == (subroutine, arg):
-                            assert arg not in arg_to_tf_dummies
-                            arg_to_tf_dummies[arg] = tf_dummy
+                    if [idx for idx in arg_indices if idx == (subroutine, arg)]:
+                        assert arg not in arg_to_tf_dummies
+                        arg_to_tf_dummies[arg] = tf_dummy
 
             assert subroutine not in spec[outer]
             spec[outer][subroutine] = {
