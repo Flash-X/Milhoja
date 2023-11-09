@@ -166,12 +166,37 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec = TaskFunction.from_milhoja_json(json_path)
                 # use default logging value for now
                 logger = BasicLogger(LOG_LEVEL_NONE)
+                destination = "./"
 
-                generator = DataPacketGenerator(
-                    tf_spec, 4, logger, sizes, './'
-                )
-                generator.generate_header_code(overwrite=True)
-                generator.generate_source_code(overwrite=True)
+                generator = DataPacketGenerator(tf_spec, 4, logger, sizes)
+                generator.generate_templates(destination, overwrite=True)
+                generator.generate_header_code(destination, overwrite=True)
+                generator.generate_source_code(destination, overwrite=True)
+
+                with self.assertRaises(
+                    FileExistsError,
+                    msg="Generator overwrote templates, overwrite==False!!!!"
+                ):
+                    generator.generate_templates(destination, overwrite=False)
+                    self.assertTrue(False)
+
+                with self.assertRaises(
+                    FileExistsError,
+                    msg="Generator overwrote header, overwrite==False!!!!"
+                ):
+                    generator.generate_header_code(
+                        destination, overwrite=False
+                    )
+                    self.assertTrue(False)
+
+                with self.assertRaises(
+                    FileExistsError,
+                    msg="Generator overwrote source, overwrite==False!!!!"
+                ):
+                    generator.generate_source_code(
+                        destination, overwrite=False
+                    )
+                    self.assertTrue(False)
 
                 generated_name_cpp = generator.source_filename
                 correct_name_cpp = Path(
@@ -242,7 +267,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         os.remove(generated_c2f)
                     # be careful when cleaning up here
                     for file in glob.glob(
-                        str(Path(generator._destination, "cg-tpl.*.cpp"))
+                        str(Path(destination, "cg-tpl.*.cpp"))
                     ):
                         os.remove(file)
                 except FileNotFoundError:

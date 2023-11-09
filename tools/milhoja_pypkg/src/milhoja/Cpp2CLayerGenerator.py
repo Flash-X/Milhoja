@@ -1,8 +1,9 @@
 from collections import defaultdict
+from pathlib import Path
+
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
 from .BasicLogger import BasicLogger
-
 from milhoja import LOG_LEVEL_MAX
 from milhoja import THREAD_INDEX_VAR_NAME
 
@@ -12,6 +13,10 @@ _HOST_MEMBERS_KEY = "get_host_members"
 
 
 class Cpp2CLayerGenerator(AbcCodeGenerator):
+    """
+    C++ to C layer generator for Data Packets. Should only be used
+    internally by the DataPacketGenerator.
+    """
 
     def __init__(
         self,
@@ -38,28 +43,34 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
     def generate_header_code(self):
         """No implementation for cpp2c header."""
-        return
+        raise NotImplementedError(
+            "No header file for C++ to C layer. Why was this called?"
+        )
 
-    def generate_source_code(self):
-        self._generate_cpp2c_outer()
-        self._generate_cpp2c_helper()
+    def generate_source_code(self, destination, overwrite):
+        self._generate_cpp2c_outer(destination, overwrite)
+        self._generate_cpp2c_helper(destination, overwrite)
 
-    def _generate_cpp2c_outer(self):
+    def _generate_cpp2c_outer(self, destination, overwrite):
         """
         Generates the outer template for the cpp2c layer.
 
         :param generator: The DataPacketGenerator object that contains
                           the information to build the outer template.
         """
-        if self._outer_template.is_file():
-            self._warn(
-                f"{str(self._outer_template)} already exists. Overwriting."
-            )
+        outer_template = Path(destination, self._outer_template)
+        if outer_template.is_file():
+            self.warn(f"{str(outer_template)} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}",
+                    FileExistsError()
+                )
 
         # ..todo::
         #   * replace delete / release / instantiate function names with
         #     properties in TaskFunction class
-        with open(self._outer_template, 'w') as outer:
+        with open(outer_template, 'w') as outer:
             outer.writelines([
                 '/* _connector:cpp2c_outer */\n',
                 f'/* _param:class_name = '
@@ -119,7 +130,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             [(item.device, 'const void*') for item in dpinfo_order]
         )
 
-    def _generate_cpp2c_helper(self):
+    def _generate_cpp2c_helper(self, destination, overwrite):
         """
         Generates the helper template for the cpp2c layer.
 
@@ -140,6 +151,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             (key, f'{data["type"]}')
             for key, data in self._externals.items() if key != "nTiles"
         ] + [('packet', 'void**')]
+
+        helper_template = Path(destination, self._helper_template)
+        if helper_template.is_file():
+            self.warn(f"{str(helper_template)} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}.",
+                    FileExistsError()
+                )
 
         # insert all connectors into helper template file
         with open(self._helper_template, 'w') as helper:
@@ -177,3 +197,10 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                     ])
                 ]
             )
+
+    def warn(self, msg):
+        self._warn(msg)
+
+    def log_and_abort(self, msg, e: BaseException):
+        self._error(msg)
+        raise e

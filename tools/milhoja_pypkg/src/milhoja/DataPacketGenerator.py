@@ -20,6 +20,7 @@ from .CppTemplateUtility import CppTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .BasicLogger import BasicLogger
+from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC,
     LOG_LEVEL_BASIC_DEBUG,
@@ -86,13 +87,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
     }
 
+    # ..todo::
+    #       * the sizes file is per library installation, 
+    #       * so should this be a part of a milhoja constant?
     def __init__(
         self,
         tf_spec: TaskFunction,
         indent: int,
         logger: BasicLogger,
-        sizes: dict,
-        files_destination: str
+        sizes: dict
     ):
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError(
@@ -101,7 +104,6 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         self._TOOL_NAME = self.__class__.__name__
         self._sizes = sizes
-        self._destination = files_destination
         self._indent = indent
 
         self._size_connectors = defaultdict(str)
@@ -129,23 +131,16 @@ class DataPacketGenerator(AbcCodeGenerator):
         elif self._tf_spec.language.lower() == "fortran":
             self.template_utility = FortranTemplateUtility
         else:
-            self.abort("No template utility for specifed language")
-
-        self._templates_path = './templates'
-        self._templates_path = ...
+            self.log_and_abort(
+                "No template utility for specifed language",
+                LogicError()
+            )
 
         self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
         if self.n_extra_streams > 0:
             self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
 
-        # I need to generate templates immediately, since both the header
-        # and source file for the data packet share
-        # outer and helper template files with each other.
-        # This avoid generating the files twice and annoying logic to check
-        # if the templates have been generated.
-        self._log("Creating templates", LOG_LEVEL_BASIC_DEBUG)
-        self.generate_templates()
-
+        self._generated_templates = False
         # Note: c2f layer does not use cgkit so no templates.
         self._log("Loaded", LOG_LEVEL_MAX)
 
@@ -166,15 +161,24 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._params['ndef_name'] = self.ppd_name
         self._params['header_name'] = super().header_filename
 
-    def generate_templates(self):
+    def generate_templates(self, destination, overwrite):
         # set defaults for the connectors.
         self._connectors[self.template_utility._CON_ARGS] = []
         self._connectors[self.template_utility._SET_MEMBERS] = []
         self._connectors[self.template_utility._SIZE_DET] = []
         self._set_default_params()
 
+        helper_template = Path(destination, self.helper_template)
+
+        if helper_template.is_file():
+            self.warn(f"{str(helper_template)} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite flag is {overwrite}", FileExistsError()
+                )
+
         """Generates the helper template with the provided JSON data."""
-        with open(self.helper_template, 'w') as template:
+        with open(helper_template, 'w') as template:
             # # SETUP FOR CONSTRUCTOR
             external = self.external_args
             metadata = self.tile_metadata_args
@@ -221,6 +225,15 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
             self.template_utility.write_connectors(self._connectors, template)
 
+        outer_template = Path(destination, self.outer_template)
+        if outer_template.is_file():
+            self.warn(f"{str(outer_template)} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}. Abort.",
+                    FileExistsError()
+                )
+
         with open(self.outer_template, 'w') as outer:
             outer.writelines(
                 [
@@ -234,26 +247,50 @@ class DataPacketGenerator(AbcCodeGenerator):
                     )
                 ]
             )
+        # set a flag that allows header and source gen to be called.
+        self._generated_templates = True
 
-    def generate_header_code(self, overwrite):
+    def generate_header_code(self, destination, overwrite):
         """
         Generate C++ header
         """
+        if not self._generated_templates:
+            self.log_and_abort(
+                "Missing internally generated files. "
+                "Did you call DataPackGenerator.generate_templates()?",
+                RuntimeError()
+            )
+
         self.generate_packet_file(
-            self.header_filename,
+            Path(destination, self.header_filename),
             self.__DEFAULT_SOURCE_TREE_OPTS,
-            [self.outer_template, self.header_template, self.helper_template],
+            [
+                Path(destination, self.outer_template).resolve(),
+                self.header_template,  # static path to pkg resource.
+                Path(destination, self.helper_template).resolve()
+            ],
             overwrite
         )
 
-    def generate_source_code(self, overwrite):
+    def generate_source_code(self, destination, overwrite):
         """
         Generate C++ source code.
         """
+        if not self._generated_templates:
+            self.log_and_abort(
+                "Missing internally generated files. "
+                "Did you call DataPackGenerator.generate_templates()?",
+                RuntimeError()
+            )
+
         self.generate_packet_file(
-            self.source_filename,
+            Path(destination, self.source_filename),
             self.__DEFAULT_SOURCE_TREE_OPTS,
-            [self.outer_template, self.source_template, self.helper_template],
+            [
+                Path(destination, self.outer_template).resolve(),
+                self.source_template,  # static path to pkg resource.
+                Path(destination, self.helper_template).resolve()
+            ],
             overwrite
         )
 
@@ -265,14 +302,14 @@ class DataPacketGenerator(AbcCodeGenerator):
                 self.cpp2c_helper_template, self._indent, self._logger.level,
                 self.n_extra_streams, self.external_args
             )
-            cpp2c_layer.generate_source_code()
+            cpp2c_layer.generate_source_code(destination, overwrite)
             self.generate_packet_file(
-                self.cpp2c_file,
+                Path(destination, self.cpp2c_file),
                 self.__DEFAULT_SOURCE_TREE_OPTS,
                 [
-                    self.cpp2c_outer_template,
+                    Path(destination, self.cpp2c_outer_template).resolve(),
                     self.cpp2c_template,
-                    self.cpp2c_helper_template,
+                    Path(destination, self.cpp2c_helper_template).resolve(),
                     self.cpp2c_streams_template
                 ],
                 # dev note: ORDER MATTERS HERE!
@@ -282,16 +319,19 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
             # generate fortran to c layer if necessary
             c2f_layer = C2FortranLayerGenerator(
-                self._tf_spec, self.c2f_file, self._indent,
-                self._logger.level, self.n_extra_streams,
+                self._tf_spec, self._indent,
+                self._logger, self.n_extra_streams,
                 self.external_args, self.tile_metadata_args,
                 self.tile_in_args, self.tile_in_out_args,
                 self.tile_out_args, self.scratch_args
             )
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
-            c2f_layer.generate_source_code(overwrite)
+            c2f_layer.generate_source_code(destination, overwrite)
 
+    # ..todo::
+    #    * based on the organization of the current data packet, it
+    #      seems like this function should be moved out of this class.
     def generate_packet_file(
         self, output: Path,
         sourcetree_opts: dict,
@@ -322,8 +362,9 @@ class DataPacketGenerator(AbcCodeGenerator):
                 if pathInfo:
                     stree.pushLink(srctree.search_links(tree_link))
                 else:
-                    raise RuntimeError(
-                        f'Linking layer {idx} ({link}) unsuccessful!'
+                    self.log_and_abort(
+                        f'Linking layer {idx} ({link}) unsuccessful!',
+                        LogicError()
                     )
 
         """Generates a source file given a template and output name"""
@@ -334,25 +375,18 @@ class DataPacketGenerator(AbcCodeGenerator):
         if output.is_file() and overwrite:
             self.warn(f"{str(output)} already exists. Overwriting.")
         elif output.is_file() and not overwrite:
-            self.abort(f"{str(output)} is a file. Abort")
+            self.log_and_abort(
+                f"{str(output)} is a file. Abort", 
+                e=FileExistsError()
+            )
 
         with open(output, 'w') as new_file:
             lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
             new_file.write(lines)
 
     @property
-    def name(self):
-        """Task function name"""
-        return self._tf_spec.name
-
-    @property
     def language(self):
         return self._tf_spec.language.lower()
-
-    @property
-    def dummy_arguments(self):
-        """Dummy argument list"""
-        return self._tf_spec.dummy_arguments
 
     @property
     def packet_class_name(self):
@@ -365,18 +399,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         return f'{self.packet_class_name.upper()}_UNIQUE_IFNDEF_H_'
 
     @property
-    def helper_template(self) -> Path:
-        return Path(
-            self._destination,
-            f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp"
-        ).resolve()
+    def helper_template(self) -> str:
+        return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp"
 
     @property
-    def outer_template(self) -> Path:
-        return Path(
-            self._destination,
-            f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp"
-        ).resolve()
+    def outer_template(self) -> str:
+        return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp"
 
     @property
     def header_template(self) -> Path:
@@ -395,42 +423,34 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def header_filename(self) -> Path:
-        return Path(self._destination, super().header_filename).resolve()
+    def header_filename(self) -> str:
+        return super().header_filename
 
     @property
-    def source_filename(self) -> Path:
-        return Path(self._destination, super().source_filename).resolve()
+    def source_filename(self) -> str:
+        return super().source_filename
 
     @property
-    def cpp2c_file(self) -> Path:
-        """The cpp2c output file"""
-        return Path(
-            self._destination,
-            self._tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]['source']
-        ).resolve()
+    def cpp2c_file(self) -> str:
+        return self._tf_spec.output_filenames[
+            TaskFunction.CPP_TF_KEY
+        ]["source"]
 
     @property
-    def cpp2c_outer_template(self) -> Path:
+    def cpp2c_outer_template(self) -> str:
         """
         Outer template for the cpp2c layer
         These are generated so we use the destination location.
         """
-        return Path(
-            self._destination,
-            f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
-        ).resolve()
+        return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
 
     @property
-    def cpp2c_helper_template(self) -> Path:
+    def cpp2c_helper_template(self) -> str:
         """
         Helper template path for the cpp2c layer
         These are generated so we use the destination location.
         """
-        return Path(
-            self._destination,
-            f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
-        ).resolve()
+        return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
 
     @property
     def cpp2c_streams_template(self) -> Path:
@@ -446,13 +466,12 @@ class DataPacketGenerator(AbcCodeGenerator):
             __package__, 'templates/cg-tpl.cpp2c.cpp'
         )
         return Path(template_path).resolve()
-
+    
     @property
-    def c2f_file(self) -> Path:
-        return Path(
-            self._destination,
-            self._tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"]
-        )
+    def c2f_file(self) -> str:
+        return self._tf_spec.output_filenames[
+            TaskFunction.C2F_KEY
+        ]["source"]
 
     @property
     def n_extra_streams(self) -> int:
@@ -659,7 +678,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     def warn(self, msg: str):
         self._warn(msg)
 
-    def abort(self, msg: str):
+    def log_and_abort(self, msg: str, e: BaseException):
         # print message and exit
         self._error(msg)
-        exit(-1)
+        raise e

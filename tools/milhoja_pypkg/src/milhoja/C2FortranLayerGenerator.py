@@ -8,13 +8,13 @@ Note: The same JSON file used to generate the data packets
         * Add new tile_metadata functionality (cell_volumes, cell coords, etc.)
         * Add functionality for external arguments with extents.
 """
+from pathlib import Path
 from dataclasses import dataclass
 
 from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
-from .BasicLogger import BasicLogger
-
+from .TaskFunction import TaskFunction
 
 @dataclass
 class C2FInfo:
@@ -29,13 +29,16 @@ class C2FInfo:
 
 
 class C2FortranLayerGenerator(AbcCodeGenerator):
+    """
+    C to Fortran layer generator. Should only be used internally with
+    the DataPacketGenerator.
+    """
 
     def __init__(
         self,
         tf_spec,
-        c2f_file,
         indent,
-        log_level,
+        logger,
         n_ex_streams,
         externals,
         tile_metadata,
@@ -44,7 +47,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         tile_out,
         tile_scratch
     ):
-        self._c2f_file = c2f_file
         self._n_extra_streams = n_ex_streams
         self._externals = externals
         self._tile_metadata = tile_metadata
@@ -53,22 +55,30 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         self._tile_out = tile_out
         self._scratch = tile_scratch
 
-        logger = BasicLogger(log_level)
         super().__init__(
-            tf_spec, "", str(c2f_file),
+            tf_spec, "",
+            tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
             indent, self.__class__.__name__,
             logger
         )
 
-    def generate_header_code(self, overwrite):
-        """No implementation for generating header code for c2f layer."""
-        return
+    @property
+    def c2f_file(self) -> str:
+        return self._tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"]
 
-    def generate_source_code(self, overwrite):
-        self._generate_advance_c2f(overwrite)
+    def generate_header_code(self, destination, overwrite):
+        """No implementation for generating header code for c2f layer."""
+        raise NotImplementedError(
+            "No header file for C to Fortran layer. Please contact your state"
+            " provided Wesley to solve this issue."
+        )
+
+    def generate_source_code(self, destination, overwrite):
+        self._generate_advance_c2f(destination, overwrite)
 
     def _generate_advance_c2f(
         self,
+        destination,
         overwrite
     ):
         """
@@ -78,12 +88,14 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
-        if self._c2f_file.is_file():
-            self._warn("{self.generator.c2f_file} already exists.")
+        c2f_file_path = Path(destination, self.c2f_file)
+
+        if c2f_file_path.is_file():
+            self._warn(f"{self.c2f_file} already exists.")
             if not overwrite:
                 self._error("Abort")
 
-        with open(self._c2f_file, 'w') as fp:
+        with open(c2f_file_path, 'w') as fp:
             # should size_t be translated if using fortran?
             data_mapping = {
                 'int': 'integer',
@@ -251,3 +263,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 ', &\n'.join(f'\t\tF_{ptr}_d' for ptr in arg_order)
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
+
+    def _log_and_abort(self, msg):
+        ...

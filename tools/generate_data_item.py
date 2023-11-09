@@ -73,6 +73,7 @@ def main():
 
     # ----- GET TO GENERATIN'
     try:
+        tf_spec = None
         if fmt.lower() == milhoja.MILHOJA_JSON_FORMAT.lower():
             tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
             logger.log(
