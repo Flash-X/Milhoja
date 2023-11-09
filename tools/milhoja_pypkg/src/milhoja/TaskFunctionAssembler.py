@@ -255,30 +255,52 @@ class TaskFunctionAssembler(object):
         return self.__tf_name
 
     @property
-    def __internal_subroutine_graph(self):
+    def __internal_subroutines(self):
         """
-        :return: Generator for iterating in correct order over the nodes in the
-            internal subroutine graph of the task function.  Each node contains
-            one or more subroutines.  If more than one, it is understood that
-            the subroutines in that node can be run concurrently.  Assume that
-            this accesses each subroutine within a single node in arbitrary
-            order.
+        :return: Generator for iterating in arbitrary order over the
+            subroutines included in the internal subroutine graph.  At each
+            iteration, calling code is given (subroutine, group) where
+
+            * **subroutine :** Name of current subroutine
+            * **group :** :py:class:`SubroutineGroup` object that contains the
+              subroutine whose argument is currently being accessed
         """
         for node in self.__call_graph:
             if isinstance(node, str):
-                yield [node]
+                item = [node]
             else:
-                yield node
+                item = node
+            for subroutine in item:
+                group = None
+                for each in self.__group_specs:
+                    if subroutine in each:
+                        group = each
+                if group is None:
+                    msg = f"Subroutine {subroutine} not specified in any group"
+                    raise LogicError(msg)
+                yield subroutine, group
 
-    def __find_subroutine_group(self, subroutine):
+    @property
+    def __internal_arguments(self):
         """
-        """
-        for group in self.__group_specs:
-            if subroutine in group:
-                return group
+        :return: Generator for iterating in arbitrary order over all
+            arguments across all subroutines included in the internal
+            subroutine graph.  At each iteration, calling code is given
+            (arg_spec, arg_index, group) where
 
-        msg = f"Subroutine {subroutine} not specified in any group"
-        raise LogicError(msg)
+            * **arg_spec :** Specification of current argument.  Calling code
+              can alter returned spec without altering original spec.
+            * **arg_index :** Unique index of current arugment for immediate
+              inclusion in a ``dummy_to_actuals`` map.  The index is the
+              subroutine name, argument name, and 1-based position of the
+              argument in the subroutine's argument list.
+            * **group :** :py:class:`SubroutineGroup` object that contains the
+              subroutine whose argument is currently being accessed
+        """
+        for subroutine, group in self.__internal_subroutines:
+            for idx, arg in enumerate(group.argument_list(subroutine)):
+                arg_spec = group.argument_specification(subroutine, arg)
+                yield arg_spec, (subroutine, arg, idx+1), group
 
     @property
     def dummy_arguments(self):
@@ -319,19 +341,13 @@ class TaskFunctionAssembler(object):
         :return: Dummy to actual arguments mapping
         """
         dummy_to_actuals = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source.lower() == THREAD_INDEX_ARGUMENT:
-                        # Use same variable name used by other Milhoja tools
-                        tf_dummy = THREAD_INDEX_VAR_NAME
-                        if tf_dummy not in dummy_to_actuals:
-                            dummy_to_actuals[tf_dummy] = []
-                        actual = (subroutine, arg, idx+1)
-                        dummy_to_actuals[tf_dummy].append(actual)
+        for arg_spec, arg_index, _ in self.__internal_arguments:
+            if arg_spec["source"] == THREAD_INDEX_ARGUMENT:
+                # Use same variable name used by other Milhoja tools
+                tf_dummy = THREAD_INDEX_VAR_NAME
+                if tf_dummy not in dummy_to_actuals:
+                    dummy_to_actuals[tf_dummy] = []
+                dummy_to_actuals[tf_dummy].append(arg_index)
 
         return dummy_to_actuals
 
@@ -358,29 +374,22 @@ class TaskFunctionAssembler(object):
         """
         tf_dummy_spec = {}
         dummy_to_actuals = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source == EXTERNAL_ARGUMENT:
-                        global_name = arg_spec["name"].strip()
-                        assert global_name.startswith("_")
-                        tf_dummy = f"external_{group.name}{global_name}"
-                        if tf_dummy not in tf_dummy_spec:
-                            # This is deep copy, so we can alter without
-                            # altering original specification
-                            external_spec = \
-                                group.external_specification(global_name)
-                            assert "source" not in external_spec
-                            external_spec["source"] = EXTERNAL_ARGUMENT
-                            tf_dummy_spec[tf_dummy] = external_spec
-                            assert tf_dummy not in dummy_to_actuals
-                            dummy_to_actuals[tf_dummy] = []
+        for arg_spec, arg_index, group in self.__internal_arguments:
+            if arg_spec["source"] == EXTERNAL_ARGUMENT:
+                global_name = arg_spec["name"].strip()
+                assert global_name.startswith("_")
+                tf_dummy = f"external_{group.name}{global_name}"
+                if tf_dummy not in tf_dummy_spec:
+                    # This is deep copy, so we can alter without altering
+                    # original specification
+                    external_spec = group.external_specification(global_name)
+                    assert "source" not in external_spec
+                    external_spec["source"] = EXTERNAL_ARGUMENT
+                    tf_dummy_spec[tf_dummy] = external_spec
+                    assert tf_dummy not in dummy_to_actuals
+                    dummy_to_actuals[tf_dummy] = []
 
-                        actual = (subroutine, arg, idx+1)
-                        dummy_to_actuals[tf_dummy].append(actual)
+                dummy_to_actuals[tf_dummy].append(arg_index)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -416,43 +425,36 @@ class TaskFunctionAssembler(object):
 
         tf_dummy_spec = {}
         dummy_to_actuals = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source in TILE_ARGUMENTS_ALL:
-                        if len(arg_spec) == 1:
-                            tf_dummy = source
-                        else:
-                            if source == TILE_COORDINATES_ARGUMENT:
-                                axis = AXIS_LUT[arg_spec["axis"].lower()]
-                                edge = arg_spec["edge"].lower()
-                                tf_dummy = f"tile_{axis}Coords_{edge}"
-                            elif source == TILE_FACE_AREAS_ARGUMENT:
-                                axis = AXIS_LUT[arg_spec["axis"].lower()]
-                                tf_dummy = f"tile_{axis}FaceAreas"
-                            elif source == TILE_CELL_VOLUMES_ARGUMENT:
-                                tf_dummy = TILE_CELL_VOLUMES_ARGUMENT
-                            else:
-                                msg = "Unhandled tile argument {} of type {}"
-                                raise LogicError(msg.format(arg, source))
+        for arg_spec, arg_index, _ in self.__internal_arguments:
+            source = arg_spec["source"]
+            if source in TILE_ARGUMENTS_ALL:
+                if len(arg_spec) == 1:
+                    tf_dummy = source
+                else:
+                    if source == TILE_COORDINATES_ARGUMENT:
+                        axis = AXIS_LUT[arg_spec["axis"].lower()]
+                        edge = arg_spec["edge"].lower()
+                        tf_dummy = f"tile_{axis}Coords_{edge}"
+                    elif source == TILE_FACE_AREAS_ARGUMENT:
+                        axis = AXIS_LUT[arg_spec["axis"].lower()]
+                        tf_dummy = f"tile_{axis}FaceAreas"
+                    elif source == TILE_CELL_VOLUMES_ARGUMENT:
+                        tf_dummy = TILE_CELL_VOLUMES_ARGUMENT
+                    else:
+                        msg = "Unhandled tile argument {} of type {}"
+                        raise LogicError(msg.format(arg_index[1], source))
 
-                        if tf_dummy not in tf_dummy_spec:
-                            tf_dummy_spec[tf_dummy] = arg_spec
-                            assert tf_dummy not in dummy_to_actuals
-                            dummy_to_actuals[tf_dummy] = []
-                        elif source in REQUIRE_MERGING:
-                            if arg_spec["lo"] == TILE_LBOUND_ARGUMENT:
-                                tf_dummy_spec[tf_dummy]["lo"] = \
-                                    TILE_LBOUND_ARGUMENT
-                            if arg_spec["hi"] == TILE_UBOUND_ARGUMENT:
-                                tf_dummy_spec[tf_dummy]["hi"] = \
-                                    TILE_UBOUND_ARGUMENT
+                if tf_dummy not in tf_dummy_spec:
+                    tf_dummy_spec[tf_dummy] = arg_spec
+                    assert tf_dummy not in dummy_to_actuals
+                    dummy_to_actuals[tf_dummy] = []
+                elif source in REQUIRE_MERGING:
+                    if arg_spec["lo"] == TILE_LBOUND_ARGUMENT:
+                        tf_dummy_spec[tf_dummy]["lo"] = TILE_LBOUND_ARGUMENT
+                    if arg_spec["hi"] == TILE_UBOUND_ARGUMENT:
+                        tf_dummy_spec[tf_dummy]["hi"] = TILE_UBOUND_ARGUMENT
 
-                        actual = (subroutine, arg, idx+1)
-                        dummy_to_actuals[tf_dummy].append(actual)
+                dummy_to_actuals[tf_dummy].append(arg_index)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -502,25 +504,18 @@ class TaskFunctionAssembler(object):
             then written two a few times, and finally read from.
         """
         accesses = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source == GRID_DATA_ARGUMENT:
-                        tf_dummy = self.__grid_data_name(
-                                        *arg_spec["structure_index"]
-                                   )
-                        if tf_dummy not in accesses:
-                            accesses[tf_dummy] = {}
+        for arg_spec, _, _ in self.__internal_arguments:
+            if arg_spec["source"] == GRID_DATA_ARGUMENT:
+                tf_dummy = self.__grid_data_name(*arg_spec["structure_index"])
+                if tf_dummy not in accesses:
+                    accesses[tf_dummy] = {}
 
-                        for access in ["R", "RW", "W"]:
-                            if access in arg_spec:
-                                for idx in arg_spec[access]:
-                                    if idx not in accesses[tf_dummy]:
-                                        accesses[tf_dummy][idx] = []
-                                    accesses[tf_dummy][idx].append(access)
+                for access in ["R", "RW", "W"]:
+                    if access in arg_spec:
+                        for idx in arg_spec[access]:
+                            if idx not in accesses[tf_dummy]:
+                                accesses[tf_dummy][idx] = []
+                            accesses[tf_dummy][idx].append(access)
 
         return accesses
 
@@ -529,11 +524,12 @@ class TaskFunctionAssembler(object):
         This functionality is placed in a public member function for testing
         purposes.
 
+        This assumes that a variable that is RW for the first subroutine that
+        uses it is read before it is written to and, therefore, is marked as an
+        'in' variable.  This seems reasonable since otherwise the variable
+        should likely be specified as W.
+
         .. note::
-            * This assumes that a variable that is RW for the first subroutine
-              that uses it is read before it is written to and, therefore, is
-              marked as an 'in' variable.  This seems reasonable since
-              otherwise the variable should likely be specified as W.
             * This assumes that a variable that is written to at any time should
               be marked as an 'out' variable regardless of how it is used
               afterward.  While this might not always be true, this tool does
@@ -598,22 +594,14 @@ class TaskFunctionAssembler(object):
         # ----- DETERMINE DUMMY SPECS WITHOUT VARIABLE MASKS
         tf_dummy_spec = {}
         dummy_to_actuals = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source == GRID_DATA_ARGUMENT:
-                        tf_dummy = self.__grid_data_name(
-                                        *arg_spec["structure_index"]
-                                   )
-                        if tf_dummy not in tf_dummy_spec:
-                            tf_dummy_spec[tf_dummy] = arg_spec
-                            assert tf_dummy not in dummy_to_actuals
-                            dummy_to_actuals[tf_dummy] = []
-                        actual = (subroutine, arg, idx+1)
-                        dummy_to_actuals[tf_dummy].append(actual)
+        for arg_spec, arg_index, _ in self.__internal_arguments:
+            if arg_spec["source"] == GRID_DATA_ARGUMENT:
+                tf_dummy = self.__grid_data_name(*arg_spec["structure_index"])
+                if tf_dummy not in tf_dummy_spec:
+                    tf_dummy_spec[tf_dummy] = arg_spec
+                    assert tf_dummy not in dummy_to_actuals
+                    dummy_to_actuals[tf_dummy] = []
+                dummy_to_actuals[tf_dummy].append(arg_index)
 
         # ----- REPLACE R/RW/W INFO WITH VARIABLE MASKS
         # tf_dummy_spec values are set to deep copies, so we can change below
@@ -658,29 +646,22 @@ class TaskFunctionAssembler(object):
         """
         tf_dummy_spec = {}
         dummy_to_actuals = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                for idx, arg in enumerate(group.argument_list(subroutine)):
-                    arg_spec = group.argument_specification(subroutine, arg)
-                    source = arg_spec["source"]
-                    if source == SCRATCH_ARGUMENT:
-                        global_name = arg_spec["name"].strip()
-                        assert global_name.startswith("_")
-                        tf_dummy = f"scratch_{group.name}{global_name}"
-                        if tf_dummy not in tf_dummy_spec:
-                            # scratch_spec is a deep copy, so we can change
-                            # without altering original specification
-                            scratch_spec = \
-                                group.scratch_specification(global_name)
-                            assert "source" not in scratch_spec
-                            scratch_spec["source"] = SCRATCH_ARGUMENT
-                            tf_dummy_spec[tf_dummy] = scratch_spec
-                            assert tf_dummy not in dummy_to_actuals
-                            dummy_to_actuals[tf_dummy] = []
+        for arg_spec, arg_index, group in self.__internal_arguments:
+            if arg_spec["source"] == SCRATCH_ARGUMENT:
+                global_name = arg_spec["name"].strip()
+                assert global_name.startswith("_")
+                tf_dummy = f"scratch_{group.name}{global_name}"
+                if tf_dummy not in tf_dummy_spec:
+                    # scratch_spec is a deep copy, so we can change
+                    # without altering original specification
+                    scratch_spec = group.scratch_specification(global_name)
+                    assert "source" not in scratch_spec
+                    scratch_spec["source"] = SCRATCH_ARGUMENT
+                    tf_dummy_spec[tf_dummy] = scratch_spec
+                    assert tf_dummy not in dummy_to_actuals
+                    dummy_to_actuals[tf_dummy] = []
 
-                        actual = (subroutine, arg, idx+1)
-                        dummy_to_actuals[tf_dummy].append(actual)
+                dummy_to_actuals[tf_dummy].append(arg_index)
 
         return tf_dummy_spec, dummy_to_actuals
 
@@ -871,27 +852,25 @@ class TaskFunctionAssembler(object):
         outer = "subroutines"
         assert outer not in spec
         spec[outer] = {}
-        for node in self.__internal_subroutine_graph:
-            for subroutine in node:
-                group = self.__find_subroutine_group(subroutine)
-                sub_spec = group.subroutine_specification(subroutine)
-                dummies = group.argument_list(subroutine)
+        for subroutine, group in self.__internal_subroutines:
+            sub_spec = group.subroutine_specification(subroutine)
+            sub_dummies = group.argument_list(subroutine)
 
-                mapping = {}
-                for arg in dummies:
-                    for key, value in self.__dummy_to_actuals.items():
-                        for item in value:
-                            item = (item[0], item[1])
-                            if item == (subroutine, arg):
-                                assert arg not in mapping
-                                mapping[arg] = key
+            arg_to_tf_dummies = {}
+            for arg in sub_dummies:
+                for tf_dummy, arg_indices in self.__dummy_to_actuals.items():
+                    for arg_index in arg_indices:
+                        item = (arg_index[0], arg_index[1])
+                        if item == (subroutine, arg):
+                            assert arg not in arg_to_tf_dummies
+                            arg_to_tf_dummies[arg] = tf_dummy
 
-                assert subroutine not in spec[outer]
-                spec[outer][subroutine] = {
-                    "interface_file": sub_spec["interface_file"],
-                    "argument_list": dummies,
-                    "argument_mapping": mapping
-                }
+            assert subroutine not in spec[outer]
+            spec[outer][subroutine] = {
+                "interface_file": sub_spec["interface_file"],
+                "argument_list": sub_dummies,
+                "argument_mapping": arg_to_tf_dummies
+            }
 
         if (not overwrite) and Path(filename).exists():
             raise RuntimeError(f"{filename} already exists")
