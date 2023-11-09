@@ -4,7 +4,7 @@
     "variable_index_base":           1,
     "external": {
         "_dt": {"type":      "real",
-                "extents":   [2, 3]}
+                "extents":   "(2, 3)"}
     },
     "scratch": {
         "_scratch3D": {"type":        "real",

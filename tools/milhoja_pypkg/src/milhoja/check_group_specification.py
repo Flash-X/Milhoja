@@ -99,19 +99,10 @@ def check_group_specification(group_spec, logger):
                 msg = msg.format(var_type, EXTERNAL_ARGUMENT, variable)
                 raise ValueError(msg)
 
-            if not isinstance(extents, list):
-                msg = "{} {}'s extents not a list ({})"
+            if not isinstance(extents, str):
+                msg = "{} {}'s extents not string ({})"
                 msg = msg.format(EXTERNAL_ARGUMENT, variable, extents)
                 raise TypeError(msg)
-            for each in extents:
-                if not isinstance(each, numbers.Integral):
-                    msg = "Extents of {} {} not integers ({})"
-                    msg = msg.format(EXTERNAL_ARGUMENT, variable, extents)
-                    raise TypeError(msg)
-                elif each <= 0:
-                    msg = "Extents of {} {} not positive ({})"
-                    msg = msg.format(EXTERNAL_ARGUMENT, variable, extents)
-                    raise ValueError(msg)
 
     if SCRATCH_ARGUMENT in group_spec:
         if len(group_spec[SCRATCH_ARGUMENT]) == 0:

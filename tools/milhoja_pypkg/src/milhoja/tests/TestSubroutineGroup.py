@@ -174,7 +174,7 @@ class TestSubroutineGroup(unittest.TestCase):
     def testExternalSpecification(self):
         # Confirm correct
         arg_spec = self.__group.external_specification("_dt")
-        expected = {"type": "real", "extents": [2, 3]}
+        expected = {"type": "real", "extents": "(2, 3)"}
         self.assertEqual(expected, arg_spec)
 
         # Confirm that we cannot alter original spec in object

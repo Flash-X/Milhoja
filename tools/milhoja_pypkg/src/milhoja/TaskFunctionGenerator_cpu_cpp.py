@@ -288,7 +288,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 arg_spec = self._tf_spec.argument_specification(arg)
                 arg_type = arg_spec["type"]
                 extents = arg_spec["extents"]
-                if len(extents) == 0:
+                if extents == "()":
                     fptr.write(f"{INDENT}const {arg_type}& {arg} = wrapper->{arg}_;\n")
                 else:
                     raise NotImplementedError("Need arrays")

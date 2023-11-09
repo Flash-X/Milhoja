@@ -4,9 +4,9 @@
     "variable_index_base":           1,
     "external": {
         "_dt":     {"type":      "real",
-                    "extents":   []},
+                    "extents":   "()"},
         "_coeffs": {"type":      "real",
-                    "extents":   [2, 3]}
+                    "extents":   "(2, 3)"}
     },
     "scratch": {
         "_same":      {"type":        "real",

@@ -400,7 +400,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         expected = {
             "source": EXTERNAL_ARGUMENT,
             "type": "milhoja::Real",
-            "extents": []
+            "extents": "()"
         }
         keyA = "external_fakeA_op1_dt"
         keyC = "external_fakeB_op2_dt"
@@ -417,7 +417,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         expected = {
             "source": EXTERNAL_ARGUMENT,
             "type": "milhoja::Real",
-            "extents": [2, 3]
+            "extents": "(2, 3)"
         }
         keyA = "external_fakeA_op1_coeffs"
         arg_spec_A = self.__tf_spec.argument_specification(keyA)
@@ -426,7 +426,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         expected = {
             "source": EXTERNAL_ARGUMENT,
             "type": "milhoja::Real",
-            "extents": [3]
+            "extents": "(3)"
         }
         keyC = "external_fakeB_op2_coeffs"
         arg_spec_C = self.__tf_spec.argument_specification(keyC)

@@ -6,8 +6,6 @@ import copy
 import json
 import unittest
 
-import itertools as it
-
 from io import StringIO
 from pathlib import Path
 from contextlib import redirect_stdout
@@ -21,9 +19,7 @@ from milhoja import (
     SubroutineGroup
 )
 from milhoja.tests import (
-    NOT_STR_LIST, NOT_INT_LIST,
-    NOT_LIST_LIST,
-    NOT_CLASS_LIST
+    NOT_STR_LIST, NOT_INT_LIST, NOT_CLASS_LIST
 )
 
 
@@ -168,18 +164,6 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
 
     def testExternalsValues(self):
         VAR = "_dt"
-        VALID_TYPES = ["real", "integer", "logical"]
-        VALID_EXTENTS = [[], [1], [3], [2, 3], list(range(1, 100))]
-        GOOD_ARGS = list(it.product(VALID_TYPES, VALID_EXTENTS))
-        self.assertEqual(len(VALID_TYPES) * len(VALID_EXTENTS),
-                         len(GOOD_ARGS))
-
-        # Confirm correct specifications accepted
-        good_spec = copy.deepcopy(self.__good)
-        for var_type, extents in GOOD_ARGS:
-            good_spec[EXTERNAL_ARGUMENT][VAR]["type"] = var_type
-            good_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = extents
-            SubroutineGroup(good_spec, self.__logger)
 
         # Check bad specifications
         bad_spec = copy.deepcopy(self.__good)
@@ -193,32 +177,9 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
             SubroutineGroup(bad_spec, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
-        custom_not_list = [e for e in NOT_LIST_LIST if not isinstance(e, int)]
-
-        bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = 1
-        with self.assertRaises(TypeError):
-            SubroutineGroup(bad_spec, self.__logger)
-
-        for bad in custom_not_list:
+        for bad in NOT_STR_LIST:
             bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = bad
             with self.assertRaises(TypeError):
-                SubroutineGroup(bad_spec, self.__logger)
-
-            bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = [bad]
-            with self.assertRaises(TypeError):
-                SubroutineGroup(bad_spec, self.__logger)
-
-            bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = [bad, 1]
-            with self.assertRaises(TypeError):
-                SubroutineGroup(bad_spec, self.__logger)
-
-        for bad in [-1111, -1, 0]:
-            bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = [bad]
-            with self.assertRaises(ValueError):
-                SubroutineGroup(bad_spec, self.__logger)
-
-            bad_spec[EXTERNAL_ARGUMENT][VAR]["extents"] = [bad, 1]
-            with self.assertRaises(ValueError):
                 SubroutineGroup(bad_spec, self.__logger)
 
     def testMissingHighLevelExternals(self):

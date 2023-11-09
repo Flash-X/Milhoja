@@ -28,7 +28,7 @@
         "argument_specifications": {
             "external_hydro_op1_dt":   {"source":           "external",
                                "type":             "real",
-                               "extents":          []},
+                               "extents":          "()"},
             "tile_deltas":    {"source":           "tile_deltas"},
             "tile_lo":        {"source":           "tile_lo"},
             "tile_hi":        {"source":           "tile_hi"},
