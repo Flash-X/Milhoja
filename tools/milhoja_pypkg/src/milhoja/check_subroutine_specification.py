@@ -5,14 +5,15 @@ from .constants import (
     EXTERNAL_ARGUMENT,
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
+    LBOUND_ARGUMENT,
     THREAD_INDEX_ARGUMENT
 )
 from .LogicError import LogicError
-from .AbcLogger import AbcLogger
 from .check_tile_specification import check_tile_specification
 from .check_external_specification import check_external_specification
 from .check_scratch_specification import check_scratch_specification
 from .check_grid_data_specification import check_grid_data_specification
+from .check_lbound_specification import check_lbound_specification
 from .check_thread_index_specification import check_thread_index_specification
 
 
@@ -30,9 +31,6 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
     LOG_NAME = ERROR_CHECK_LOG_TAG
 
     # ----- ERROR CHECK ARGUMENTS
-    if not isinstance(logger, AbcLogger):
-        raise TypeError("Unknown logger type")
-
     expected = {
         "interface_file", "argument_list", "argument_specifications"
     }
@@ -67,6 +65,7 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
         msg = f"Incomptabile argument list & specifications in {name}"
         raise ValueError(msg)
 
+    lbdds_all = []
     for arg in arg_list:
         arg_spec = arg_specs_all[arg]
 
@@ -88,8 +87,28 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
         elif source == GRID_DATA_ARGUMENT:
             check_grid_data_specification(arg, arg_spec,
                                           variable_index_base, logger)
+        elif source == LBOUND_ARGUMENT:
+            # Checking lbounds can depend on having correct specifications for
+            # the arrays that they are associated with.  Therefore, we check
+            # lbounds after all other arguments are confirmed OK.
+            lbdds_all.append(arg)
         elif source == THREAD_INDEX_ARGUMENT:
             check_thread_index_specification(arg, arg_spec, logger)
         else:
             msg = f"Unhandled argument {arg} of type {source}"
+            raise LogicError(msg)
+
+    lbdd_targets = {}
+    for arg in lbdds_all:
+        check_lbound_specification(arg, arg_specs_all, logger)
+        array_name = arg_specs_all[arg]["array"]
+        if array_name not in lbdd_targets:
+            lbdd_targets[array_name] = []
+        lbdd_targets[array_name].append(arg)
+
+    # No point in having more than one lbound argument for any single array at
+    # the level of a single subroutine.
+    for target, lbdds in lbdd_targets.items():
+        if len(lbdds) > 1:
+            msg = f"lbounds {lbdds} all associated with array {target}"
             raise LogicError(msg)

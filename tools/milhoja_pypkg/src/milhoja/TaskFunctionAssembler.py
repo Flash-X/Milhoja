@@ -11,6 +11,7 @@ from .constants import (
     EXTERNAL_ARGUMENT,
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
+    LBOUND_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT,
@@ -228,6 +229,11 @@ class TaskFunctionAssembler(object):
         # While the actual argument ordering likely does not matter.  Make sure
         # that our ordering is fixed so that tests will work on all platforms
         # and all versions of python.
+        #
+        # We want the actual arguments to all lbound subroutine arguments to be
+        # the lbound information from TF lbound arguments.  Therefore, we need
+        # to determine the full set of TF array dummy arguments before working
+        # with the lbounds.
         for arg_specs, arg_mappings in [
             self.__get_external(), self.__get_tile_metadata(),
             self.__get_grid_data(), self.__get_scratch()
@@ -238,6 +244,15 @@ class TaskFunctionAssembler(object):
             dummy_to_actuals.update(arg_mappings)
             assert set(arg_specs).intersection(tf_dummy_list) == set()
             tf_dummy_list += sorted(arg_specs.keys())
+
+        # We're ready for the lbounds now ...
+        arg_specs, arg_mappings = self.__get_lbound(dummy_to_actuals)
+        assert set(arg_specs).intersection(tf_dummy_spec) == set()
+        tf_dummy_spec.update(arg_specs)
+        assert set(arg_mappings).intersection(dummy_to_actuals) == set()
+        dummy_to_actuals.update(arg_mappings)
+        assert set(arg_specs).intersection(tf_dummy_list) == set()
+        tf_dummy_list += sorted(arg_specs.keys())
 
         # The Milhoja thread index is immediately available since the calling
         # thread passes it when it calls the TF.  Therefore, it should not
@@ -360,10 +375,10 @@ class TaskFunctionAssembler(object):
 
         Note that external dummy variables are named::
 
-                       external_<operation name>_<variable name>
+                       external_<group name>_<variable name>
 
         to avoid collisions if the task function needs two variables with the
-        same name but from two different operations.  Note that the prefix is
+        same name but from two different groups.  Note that the prefix is
         needed to avoid collisions with scratch variables as well.
 
         :return: tf_dummy_spec, dummy_to_actuals where
@@ -632,10 +647,10 @@ class TaskFunctionAssembler(object):
 
         Note that scratch dummy variables are named::
 
-                         scratch_<operation name>_<variable name>
+                         scratch_<group name>_<variable name>
 
         to avoid collisions if the task function needs two variables with the
-        same name but from two different operations.  Note that the prefix is
+        same name but from two different groups.  Note that the prefix is
         needed to avoid collisions with external variables as well.
 
         :return: tf_dummy_spec, dummy_to_actuals where
@@ -657,6 +672,62 @@ class TaskFunctionAssembler(object):
                     assert "source" not in scratch_spec
                     scratch_spec["source"] = SCRATCH_ARGUMENT
                     tf_dummy_spec[tf_dummy] = scratch_spec
+                    assert tf_dummy not in dummy_to_actuals
+                    dummy_to_actuals[tf_dummy] = []
+
+                dummy_to_actuals[tf_dummy].append(arg_index)
+
+        return tf_dummy_spec, dummy_to_actuals
+
+    def __get_lbound(self, d_to_a):
+        """
+        This function requires that we have already determined the task
+        function argument list for all other argument classes and that we have
+        the mapping from those tf dummy arguments onto the subroutine
+        arguments.  This is necessary as we want the actual arguments to
+        subroutine lbound arguments to be the lbound information of TF array
+        arguments.
+
+        Runs through the each subroutine in the internal call graph, determines
+        the minimum set of lbound arguments that need to be included in the
+        task function dummy arguments, assembles the specifications for these
+        dummies, and determines how to map each task function dummy argument
+        onto the actual argument list of each internal subroutine.
+
+        Note that lbound dummy variables are named::
+
+                             lbdd_<TF dummy array name>
+
+
+        Since the names of all possible TF dummy array arguments should already
+        be unique (including external and scratch arrays), no further
+        information needs to be included to avoid variable name collisions.
+
+        :param d_to_a: ``dummy_to_actuals`` map already constructed for all
+            other classes of arguments.  This is not altered in any way.
+
+        :return: tf_dummy_spec, dummy_to_actuals where
+            * tf_dummy_spec is the specification of lbound dummy arguments
+              for the task function and
+            * dummy_to_actuals is the mapping
+        """
+        tf_dummy_spec = {}
+        dummy_to_actuals = {}
+        for arg_spec, arg_index, group in self.__internal_arguments:
+            if arg_spec["source"] == LBOUND_ARGUMENT:
+                subroutine, _ = arg_index
+                sub_array_idx = (subroutine, arg_spec["array"])
+                tf_array = [d for d, a in d_to_a.items() if sub_array_idx in a]
+                if len(tf_array) != 1:
+                    msg = "Did not find exactly one entry for array"
+                    raise LogicError(msg)
+                tf_array = tf_array[0]
+                tf_dummy = f"lbdd_{tf_array}"
+                if tf_dummy not in tf_dummy_spec:
+                    # arg_spec is deep copy, so can change here without
+                    # changing original spec
+                    arg_spec["array"] = tf_array
+                    tf_dummy_spec[tf_dummy] = arg_spec
                     assert tf_dummy not in dummy_to_actuals
                     dummy_to_actuals[tf_dummy] = []
 

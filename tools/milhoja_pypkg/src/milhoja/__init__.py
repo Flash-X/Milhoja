@@ -22,6 +22,7 @@ from .constants import (
     EXTERNAL_ARGUMENT,
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
+    LBOUND_ARGUMENT,
     TILE_GRID_INDEX_ARGUMENT,
     TILE_LEVEL_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
@@ -44,6 +45,7 @@ from .check_tile_specification import check_tile_specification
 from .check_external_specification import check_external_specification
 from .check_scratch_specification import check_scratch_specification
 from .check_grid_data_specification import check_grid_data_specification
+from .check_lbound_specification import check_lbound_specification
 from .check_thread_index_specification import check_thread_index_specification
 
 # classes

@@ -3,10 +3,9 @@ import numbers
 from .constants import (
     LOG_LEVEL_BASIC_DEBUG,
     ERROR_CHECK_LOG_TAG,
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT
 )
 from .LogicError import LogicError
-from .AbcLogger import AbcLogger
 from .check_subroutine_specification import check_subroutine_specification
 
 
@@ -16,7 +15,8 @@ def check_group_specification(group_spec, logger):
 
     .. todo::
         * Once there are lbound and extents parsers in the package, use those
-          to error check scratch specification
+          to error check scratch specification.  We should not allow for scalar
+          scratch arguments.
 
     :param group_spec: Contents obtained directly from subroutine group
         specification file
@@ -33,8 +33,6 @@ def check_group_specification(group_spec, logger):
     if not isinstance(group_spec, dict):
         msg = "Unknown internal subroutine group specification type ({})"
         raise TypeError(msg.format(type(group_spec)))
-    if not isinstance(logger, AbcLogger):
-        raise TypeError("Unknown logger type")
 
     # ----- GROUP SPECIFICATION
     msg = "Checking group specification"
@@ -162,7 +160,8 @@ def check_group_specification(group_spec, logger):
     #
     # If we get here, then we can assume that the argument specifications are
     # otherwise acceptable so that we don't have to check before accessing.
-    for var_key in [EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT]:
+    OUTER_ARGS = [EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT]
+    for var_key in OUTER_ARGS:
         # Find all low-level variables
         needed = []
         for subroutine in subroutines_all:
@@ -196,3 +195,22 @@ def check_group_specification(group_spec, logger):
             variables = set(group_spec[var_key])
             msg = "{} variables not used in any subroutine ({})"
             logger.warn(LOG_NAME, msg.format(var_key, variables))
+
+    # ----- CHECK LBOUND ARRAYS ARE ACTUALLY ARRAYS
+    for subroutine in subroutines_all:
+        arg_specs_all = group_spec[subroutine]["argument_specifications"]
+        for arg, arg_spec in arg_specs_all.items():
+            if arg_spec["source"] == LBOUND_ARGUMENT:
+                array_name = arg_spec["array"]
+                array_spec = arg_specs_all[array_name]
+                array_source = array_spec["source"]
+                # The lbounds have already been checked to confirm that their
+                # arrays are of an acceptable type.  If we assume that scratch
+                # arguments must always be arrays, then all types other than
+                # external must be arrays.
+                if array_source == EXTERNAL_ARGUMENT:
+                    outer_name = array_spec["name"]
+                    extents = group_spec[array_source][outer_name]["extents"]
+                    if extents == "()":
+                        msg = "lbound {}'s array is scalar external variable {}"
+                        raise ValueError(msg.format(arg, outer_name))

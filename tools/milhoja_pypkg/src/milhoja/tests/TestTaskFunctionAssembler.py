@@ -75,7 +75,12 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             "scratch_hydro_op1_auxC",
             "scratch_hydro_op1_flX",
             "scratch_hydro_op1_flY",
-            "scratch_hydro_op1_flZ"
+            "scratch_hydro_op1_flZ",
+            "lbdd_CC_1",
+            "lbdd_scratch_hydro_op1_auxC",
+            "lbdd_scratch_hydro_op1_flX",
+            "lbdd_scratch_hydro_op1_flY",
+            "lbdd_scratch_hydro_op1_flZ"
         ]
         self.assertEqual(expected, self.__Sedov.dummy_arguments)
 

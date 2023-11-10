@@ -16,6 +16,7 @@ from pathlib import Path
 from milhoja import (
     LOG_LEVEL_NONE,
     GRID_DATA_ARGUMENT,
+    LBOUND_ARGUMENT,
     EXTERNAL_ARGUMENT,
     SCRATCH_ARGUMENT,
     TILE_GRID_INDEX_ARGUMENT,
@@ -497,3 +498,64 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         self.assertTrue(keyC not in self.__fcnA)
         self.assertEqual("scratch5D", self.__fcnA[keyA])
         self.assertEqual("scratch5D", self.__fcnC[keyC])
+
+    def testLboundArguments(self):
+        # ----- INCLUDED ONLY FROM FUNCTIONA
+        expected_A = [
+            ("lbdd_external_fakeA_op1_coeffs", "loCoeffs"),
+            ("lbdd_scratch_fakeA_op1_same", "lo_S4D"),
+            ("lbdd_scratch_fakeA_op1_dt", "lo_S5D")
+        ]
+        for tf_lbdd, sub_lbdd in expected_A:
+            tf_array = tf_lbdd.replace("lbdd_", "")
+            arg_spec = self.__tf_spec.argument_specification(tf_lbdd)
+            self.assertEqual(LBOUND_ARGUMENT, arg_spec["source"])
+            self.assertEqual(tf_array, arg_spec["array"])
+
+            self.assertEqual(sub_lbdd, self.__fcnA[tf_lbdd])
+            self.assertTrue(tf_lbdd not in self.__fcnC)
+
+        # ----- INCLUDED ONLY FROM FUNCTIONC
+        expected_C = [
+            ("lbdd_tile_zCoords_right", "loRightsZ"),
+            ("lbdd_tile_xFaceAreas", "loFacesX"),
+            ("lbdd_FLY_1", "loFluxY"),
+            ("lbdd_external_fakeB_op2_coeffs", "loCoeffs"),
+            ("lbdd_scratch_fakeB_op2_same", "loS_4D"),
+            ("lbdd_scratch_fakeB_op2_dt", "loS_5D")
+        ]
+        for tf_lbdd, sub_lbdd in expected_C:
+            tf_array = tf_lbdd.replace("lbdd_", "")
+            arg_spec = self.__tf_spec.argument_specification(tf_lbdd)
+            self.assertEqual(LBOUND_ARGUMENT, arg_spec["source"])
+            self.assertEqual(tf_array, arg_spec["array"])
+
+            self.assertEqual(sub_lbdd, self.__fcnC[tf_lbdd])
+            self.assertTrue(tf_lbdd not in self.__fcnA)
+
+        # ----- INCLUDED FROM BOTH
+        expected_both = [
+            ("lbdd_tile_yCoords_left", ("loYCoords", "loLeftsY")),
+            ("lbdd_tile_zFaceAreas", ("loZAreas", "loFacesZ")),
+            ("lbdd_tile_cellVolumes", ("loVolumes", "loVols")),
+            ("lbdd_CC_1", ("loU", "loSData")),
+            ("lbdd_FLX_1", ("loFl", "loFlux"))
+        ]
+        for tf_lbdd, (sub_lbdd_A, sub_lbdd_C) in expected_both:
+            tf_array = tf_lbdd.replace("lbdd_", "")
+            arg_spec = self.__tf_spec.argument_specification(tf_lbdd)
+            self.assertEqual(LBOUND_ARGUMENT, arg_spec["source"])
+            self.assertEqual(tf_array, arg_spec["array"])
+
+            self.assertEqual(sub_lbdd_A, self.__fcnA[tf_lbdd])
+            self.assertEqual(sub_lbdd_C, self.__fcnC[tf_lbdd])
+
+        set_A = set([e[0] for e in expected_A])
+        set_C = set([e[0] for e in expected_C])
+        set_both = set([e[0] for e in expected_both])
+        self.assertEqual(set(), set_A.intersection(set_C))
+        self.assertEqual(set(), set_A.intersection(set_both))
+        self.assertEqual(set(), set_C.intersection(set_both))
+
+        expected = set_A.union(set_C, set_both)
+        self.assertEqual(expected, self.__tf_spec.lbound_arguments)

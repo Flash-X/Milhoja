@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .constants import (
     MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, GRID_DATA_ARGUMENT,
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
     TILE_ARGUMENTS_ALL
 )
 
@@ -82,8 +82,8 @@ class TaskFunction(object):
     @property
     def output_filenames(self):
         """
-        :return: Dictionary of filenames where value is a dictionary
-        consisting of the key "source" and potentially "header".
+        :return: ``dict`` of filenames where value is a ``dict``
+            consisting of the key "source" and potentially "header"
         """
         cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
         cpp_tf_src = self.__tf_spec["cpp_source"].strip()
@@ -292,6 +292,20 @@ class TaskFunction(object):
                     data_all.add(arg)
 
         return data_all
+
+    @property
+    def lbound_arguments(self):
+        """
+        :return: Set of lower-bound dummy arguments
+        """
+        lbdd_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"] == LBOUND_ARGUMENT:
+                assert arg not in lbdd_all
+                lbdd_all.add(arg)
+
+        return lbdd_all
 
     @property
     def internal_subroutine_graph(self):
