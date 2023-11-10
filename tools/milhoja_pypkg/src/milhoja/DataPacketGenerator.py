@@ -110,6 +110,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._params = defaultdict(str)
 
         outputs = tf_spec.output_filenames
+
         header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
         source = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
 
@@ -372,13 +373,10 @@ class DataPacketGenerator(AbcCodeGenerator):
         construct_source_tree(stree, linked_templates)
         lines = stree.parse()
 
-        if output.is_file() and overwrite:
-            self.warn(f"{str(output)} already exists. Overwriting.")
-        elif output.is_file() and not overwrite:
-            self.log_and_abort(
-                f"{str(output)} is a file. Abort",
-                e=FileExistsError()
-            )
+        if output.is_file():
+            self.warn(f"{str(output)} already exists.")
+            if not overwrite:
+                self.log_and_abort("Overwrite is False.", FileExistsError())
 
         with open(output, 'w') as new_file:
             lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
@@ -660,10 +658,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def n_guardcells(self):
         return self._tf_spec.n_guardcells
-
-    @property
-    def dimension(self):
-        return self._tf_spec.grid_dimension
 
     def _sort_dict(self, arguments, sort_key, reverse) -> OrderedDict:
         """

@@ -12,6 +12,7 @@ from milhoja.BasicLogger import BasicLogger
 from milhoja.Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from milhoja.C2FortranLayerGenerator import C2FortranLayerGenerator
 from milhoja.FortranTemplateUtility import FortranTemplateUtility
+from milhoja.TemplateUtility import TemplateUtility
 
 _FILE_PATH = Path(__file__).resolve().parent
 # temporary
@@ -311,6 +312,21 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     def testTemplateUtility(self):
         connectors = {}
         size_connectors = {}
+
+        mock_external = OrderedDict({
+            "external_example": {
+                "source": "external",
+                "type": "int",
+                "extents": ['1', '5']
+            }
+        })
+        with self.assertRaises(
+            NotImplementedError,
+            msg="External with extents was used without error."
+        ):
+            TemplateUtility._common_iterate_externals(
+                connectors, size_connectors, mock_external
+            )
 
         mock_tile_in = OrderedDict({
             "test1": {

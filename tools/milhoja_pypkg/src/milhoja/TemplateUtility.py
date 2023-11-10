@@ -85,6 +85,9 @@ class TemplateUtility():
             if var_data["extents"]:
                 size_equation = \
                     f'{size_equation} * {" * ".join(var_data["extents"])}'
+                raise NotImplementedError(
+                    "No test cases for external var with extents."
+                )
             info = DataPacketMemberVars(
                 item=key, dtype=var_data["type"],
                 size_eq=size_equation, per_tile=False

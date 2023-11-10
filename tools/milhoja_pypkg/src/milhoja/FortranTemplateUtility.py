@@ -274,7 +274,6 @@ class FortranTemplateUtility(TemplateUtility):
                         f'* sizeof({dtype})',
                 per_tile=True
             )
-
             cls._common_iterate_tile_out(
                 data, connectors, info, extents, out_mask
             )
