@@ -5,7 +5,8 @@ Note: The same JSON file used to generate the data packets
       must also be used as a parameter for this script.
 
       ..todo::
-        * Add new tile_metadata functionality (cell_volumes, cell coords, etc.)
+        * Add new tile_metadata functionality
+          (cell_volumes, cell coords, etc.)
         * Add functionality for external arguments with extents.
 """
 from pathlib import Path
@@ -15,6 +16,7 @@ from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
+
 
 @dataclass
 class C2FInfo:
@@ -93,7 +95,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         if c2f_file_path.is_file():
             self._warn(f"{self.c2f_file} already exists.")
             if not overwrite:
-                self._error("Abort")
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}",
+                    FileExistsError()
+                )
 
         with open(c2f_file_path, 'w') as fp:
             # should size_t be translated if using fortran?
@@ -175,6 +180,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 ftype = data['type'].lower()
                 if ftype.endswith('int'):
                     ftype = 'integer'
+                    self.log_and_abort(
+                        "No test cases for integer in scratch variables.",
+                        NotImplementedError()
+                    )
                 gpu_pointers[item] = C2FInfo(
                     ftype, 'type(C_PTR)', '',
                     data["extents"] + ['F_nTiles_h']
@@ -264,5 +273,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
 
-    def _log_and_abort(self, msg):
-        ...
+    def log_and_abort(self, msg, e: BaseException):
+        self._error(msg)
+        raise e

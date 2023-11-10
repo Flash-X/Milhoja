@@ -41,7 +41,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         )
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
 
-    def generate_header_code(self):
+    def generate_header_code(self, destination, overwrite):
         """No implementation for cpp2c header."""
         raise NotImplementedError(
             "No header file for C++ to C layer. Why was this called?"

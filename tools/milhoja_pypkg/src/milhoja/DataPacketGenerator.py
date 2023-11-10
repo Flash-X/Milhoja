@@ -23,7 +23,6 @@ from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC,
-    LOG_LEVEL_BASIC_DEBUG,
     LOG_LEVEL_MAX
 )
 
@@ -88,7 +87,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     }
 
     # ..todo::
-    #       * the sizes file is per library installation, 
+    #       * the sizes file is per library installation,
     #       * so should this be a part of a milhoja constant?
     def __init__(
         self,
@@ -330,8 +329,9 @@ class DataPacketGenerator(AbcCodeGenerator):
             c2f_layer.generate_source_code(destination, overwrite)
 
     # ..todo::
-    #    * based on the organization of the current data packet, it
-    #      seems like this function should be moved out of this class.
+    #    * based on the organization of the data packet generator, and
+    #      naming schemes of each internal generator, it might be better for
+    #      this function to be placed outside of this class.
     def generate_packet_file(
         self, output: Path,
         sourcetree_opts: dict,
@@ -376,7 +376,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             self.warn(f"{str(output)} already exists. Overwriting.")
         elif output.is_file() and not overwrite:
             self.log_and_abort(
-                f"{str(output)} is a file. Abort", 
+                f"{str(output)} is a file. Abort",
                 e=FileExistsError()
             )
 
@@ -466,7 +466,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             __package__, 'templates/cg-tpl.cpp2c.cpp'
         )
         return Path(template_path).resolve()
-    
+
     @property
     def c2f_file(self) -> str:
         return self._tf_spec.output_filenames[

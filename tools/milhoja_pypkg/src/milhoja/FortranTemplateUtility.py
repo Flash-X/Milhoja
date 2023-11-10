@@ -118,20 +118,17 @@ class FortranTemplateUtility(TemplateUtility):
             #   * Probably shouldn't always assume I can replace signed
             #   * with unsigned here...
             info.dtype = info.dtype.replace('unsigned', '')
+
+            # indices are 1 based, so bound arrays need to adjust
+            # ..todo::
+            #       * This is not sufficient for lbound
+            fix_index = '+1' if info.dtype == str('IntVect') else ''
+            info.dtype = cls.F_HOST_EQUIVALENT[info.dtype]
+            construct_host = "[MILHOJA_MDIM] = { " \
+                f"{source}.I(){fix_index}, {source}.J(){fix_index}, " + \
+                f"{source}.K(){fix_index} }}"
+
             use_ref = ""
-            if info.dtype in cls.F_HOST_EQUIVALENT:
-                # indices are 1 based, so bound arrays need to adjust
-                fix_index = '+1' if info.dtype == str('IntVect') else ''
-                info.dtype = cls.F_HOST_EQUIVALENT[info.dtype]
-                construct_host = "[MILHOJA_MDIM] = { " \
-                    f"{source}.I(){fix_index}, {source}.J(){fix_index}, " + \
-                    f"{source}.K(){fix_index} }}"
-                # don't need to pass by reference with primitive arrays
-                use_ref = ""
-            else:
-                construct_host = f' = static_cast<{item_type}>({info.host})'
-                # need a reference for Vect objects.
-                use_ref = "&"
             cls.tile_metadata_memcpy(
                 connectors, construct_host, use_ref, info
             )
@@ -180,6 +177,7 @@ class FortranTemplateUtility(TemplateUtility):
         """
         cls.section_creation(cls._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
+            raise NotImplementedError("No test cases for fortran tile_in.")
             # gather all information from tile_in section.
             extents = data['extents']
             mask_in = data['variables_in']
@@ -264,7 +262,8 @@ class FortranTemplateUtility(TemplateUtility):
         )
         connectors[f'unpack_{cls._T_OUT}'] = []
         for item, data in tileout.items():
-            # ge tile_out information
+            raise NotImplementedError("No test cases for fortran tile_out.")
+            # get tile_out information
             out_mask = data['variables_out']
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
             dtype = data['type']
