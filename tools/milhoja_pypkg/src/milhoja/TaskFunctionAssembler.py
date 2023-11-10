@@ -72,7 +72,7 @@ class TaskFunctionAssembler(object):
 
         if (not isinstance(grid_json, str)) and \
                 (not isinstance(grid_json, Path)):
-            raise TypeError("grid_json not string or Path ({grid_json})")
+            raise TypeError(f"grid_json not string or Path ({grid_json})")
         elif not Path(grid_json).is_file():
             msg = f"{grid_json} does not exist or is not file"
             raise ValueError(msg)
@@ -122,6 +122,8 @@ class TaskFunctionAssembler(object):
         # ----- ERROR CHECK OTHER ARGUMENTS
         if not isinstance(name, str):
             raise TypeError(f"name ({name}) is not string")
+        elif name == "":
+            raise ValueError("Empty task function name")
         self.__tf_name = name
 
         msg = "Building assembler for task function {}"
@@ -290,9 +292,7 @@ class TaskFunctionAssembler(object):
                 for each in self.__group_specs:
                     if subroutine in each:
                         group = each
-                if group is None:
-                    msg = f"Subroutine {subroutine} not specified in any group"
-                    raise LogicError(msg)
+                assert group is not None
                 yield subroutine, group
 
     @property
@@ -445,6 +445,11 @@ class TaskFunctionAssembler(object):
                 if len(arg_spec) == 1:
                     tf_dummy = source
                 else:
+                    assert source in [
+                        TILE_COORDINATES_ARGUMENT,
+                        TILE_FACE_AREAS_ARGUMENT,
+                        TILE_CELL_VOLUMES_ARGUMENT
+                    ]
                     if source == TILE_COORDINATES_ARGUMENT:
                         axis = AXIS_LUT[arg_spec["axis"].lower()]
                         edge = arg_spec["edge"].lower()
@@ -454,9 +459,6 @@ class TaskFunctionAssembler(object):
                         tf_dummy = f"tile_{axis}FaceAreas"
                     elif source == TILE_CELL_VOLUMES_ARGUMENT:
                         tf_dummy = TILE_CELL_VOLUMES_ARGUMENT
-                    else:
-                        msg = "Unhandled tile argument {} of type {}"
-                        raise LogicError(msg.format(arg_index[1], source))
 
                 if tf_dummy not in tf_dummy_spec:
                     tf_dummy_spec[tf_dummy] = arg_spec
@@ -490,12 +492,6 @@ class TaskFunctionAssembler(object):
         }
 
         space = index_space.lower()
-        if space not in SPACES_MAPPING:
-            raise ValueError(f"Invalid grid index space ({index_space})")
-        if structure_index != 1:
-            msg = "Only one {} data structure presently allowed"
-            raise NotImplementedError(msg.format(index_space))
-
         return SPACES_MAPPING[space].format(structure_index)
 
     def determine_access_patterns(self):
@@ -718,9 +714,7 @@ class TaskFunctionAssembler(object):
                 subroutine, _ = arg_index
                 sub_array_idx = (subroutine, arg_spec["array"])
                 tf_array = [d for d, a in d_to_a.items() if sub_array_idx in a]
-                if len(tf_array) != 1:
-                    msg = "Did not find exactly one entry for array"
-                    raise LogicError(msg)
+                assert len(tf_array) == 1
                 tf_array = tf_array[0]
                 tf_dummy = f"lbdd_{tf_array}"
                 if tf_dummy not in tf_dummy_spec:
@@ -773,10 +767,8 @@ class TaskFunctionAssembler(object):
             if spec["source"] == GRID_DATA_ARGUMENT:
                 space, struct_index = spec["structure_index"]
                 if space not in dummies:
-                    dummies[space] = {struct_index}
-                else:
-                    msg = "Only one structure per index space"
-                    raise NotImplementedError(msg)
+                    dummies[space] = set()
+                dummies[space] = dummies[space].union({struct_index})
         return dummies
 
     @property

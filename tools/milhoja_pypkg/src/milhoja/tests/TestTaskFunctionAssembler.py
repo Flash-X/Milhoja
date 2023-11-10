@@ -11,11 +11,13 @@ from pathlib import Path
 
 from milhoja import (
     LOG_LEVEL_NONE,
+    LogicError,
     BasicLogger,
     SubroutineGroup,
     TaskFunctionAssembler
 )
 from milhoja.tests import (
+    NOT_STR_LIST, NOT_LIST_LIST, NOT_CLASS_LIST,
     generate_runtime_cpu_tf_specs,
     generate_sedov_cpu_tf_specs,
     generate_sedov_gpu_tf_specs
@@ -30,26 +32,33 @@ _RUNTIME_PATH = _DATA_PATH.joinpath("runtime")
 
 class TestTaskFunctionAssembler(unittest.TestCase):
     def setUp(self):
-        GRID_SPEC = {
+        self.__dst = Path.cwd().joinpath("delete_me")
+        if self.__dst.exists():
+            shutil.rmtree(self.__dst)
+        os.makedirs(self.__dst)
+
+        self.__GRID_SPEC = {
             "dimension": 3,
             "nxb": 16,
             "nyb": 16,
             "nzb": 16,
             "nguardcells": 1
         }
-
-        self.__dst = Path.cwd().joinpath("delete_me")
-        if self.__dst.exists():
-            shutil.rmtree(self.__dst)
-        os.makedirs(self.__dst)
+        self.__GRID_JSON = self.__dst.joinpath("grid.json")
+        with open(self.__GRID_JSON, "w") as fptr:
+            json.dump(self.__GRID_SPEC, fptr)
 
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 
         gpu_spec_fname = self.__dst.joinpath("gpu_tf_hydro_3D.json")
         self.assertFalse(gpu_spec_fname.exists())
+        block_size = [
+            self.__GRID_SPEC["nxb"],
+            self.__GRID_SPEC["nyb"],
+            self.__GRID_SPEC["nzb"]
+        ]
         filename = generate_sedov_gpu_tf_specs(
-                     GRID_SPEC["dimension"],
-                     [GRID_SPEC["nxb"], GRID_SPEC["nyb"], GRID_SPEC["nzb"]],
+                     self.__GRID_SPEC["dimension"], block_size,
                      _SEDOV_PATH, self.__dst, False, self.__logger
                    )
         self.assertEqual(gpu_spec_fname, filename)
@@ -57,15 +66,151 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         with open(gpu_spec_fname, "r") as fptr:
             tf_spec = json.load(fptr)
-        tf_call_graph = tf_spec["task_function"]["subroutine_call_graph"]
+        self.__call_graph = tf_spec["task_function"]["subroutine_call_graph"]
 
-        group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
-        group = SubroutineGroup.from_milhoja_json(group_json, self.__logger)
-
-        self.__Sedov = TaskFunctionAssembler(
-            "gpu_tf_hydro", tf_call_graph, [group], GRID_SPEC,
+        self.__group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
+        self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
+            "gpu_tf_hydro", self.__call_graph,
+            [self.__group_json], self.__GRID_JSON,
             self.__logger
         )
+
+    def testFromMilhojaJson(self):
+        TaskFunctionAssembler.from_milhoja_json(
+            "gpu_tf_hydro", self.__call_graph,
+            [self.__group_json], self.__GRID_JSON,
+            self.__logger
+        )
+
+        for bad in NOT_STR_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    bad, self.__call_graph,
+                    [self.__group_json], self.__GRID_JSON,
+                    self.__logger
+                )
+
+        with self.assertRaises(ValueError):
+            TaskFunctionAssembler.from_milhoja_json(
+                "", self.__call_graph,
+                [self.__group_json], self.__GRID_JSON,
+                self.__logger
+            )
+
+        # TODO: Bad internal call graphs
+
+        for bad in NOT_LIST_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    "gpu_tf_hydro", self.__call_graph,
+                    bad, self.__GRID_JSON,
+                    self.__logger
+                )
+
+        with self.assertRaises(ValueError):
+            TaskFunctionAssembler.from_milhoja_json(
+                "gpu_tf_hydro", self.__call_graph,
+                [], self.__GRID_JSON,
+                self.__logger
+            )
+
+        for bad in ["", self.__dst.joinpath("nope.h5"), self.__dst]:
+            with self.assertRaises(ValueError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [bad], self.__GRID_JSON,
+                    self.__logger
+                )
+
+        for bad in NOT_STR_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [self.__group_json], bad,
+                    self.__logger
+                )
+
+        for bad in ["", self.__dst.joinpath("nope.h5"), self.__dst]:
+            with self.assertRaises(ValueError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [self.__group_json], bad,
+                    self.__logger
+                )
+
+        for bad in NOT_CLASS_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler.from_milhoja_json(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [self.__group_json], self.__GRID_JSON,
+                    bad
+                )
+
+    def testConstruction(self):
+        group = SubroutineGroup.from_milhoja_json(self.__group_json,
+                                                  self.__logger)
+        TaskFunctionAssembler(
+            "gpu_tf_hydro", self.__call_graph,
+            [group], self.__GRID_SPEC,
+            self.__logger
+        )
+
+        for bad in NOT_LIST_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler(
+                    "gpu_tf_hydro", self.__call_graph,
+                    bad, self.__GRID_SPEC,
+                    self.__logger
+                )
+
+        with self.assertRaises(TypeError):
+            TaskFunctionAssembler(
+                "gpu_tf_hydro", self.__call_graph,
+                group, self.__GRID_SPEC,
+                self.__logger
+            )
+
+        # Both groups have same name
+        with self.assertRaises(LogicError):
+            TaskFunctionAssembler(
+                "gpu_tf_hydro", self.__call_graph,
+                [group, group], self.__GRID_SPEC,
+                self.__logger
+            )
+
+        for bad in NOT_CLASS_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [bad], self.__GRID_SPEC,
+                    self.__logger
+                )
+
+        for bad in NOT_CLASS_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler(
+                    "gpu_tf_hydro", self.__call_graph,
+                    [group], self.__GRID_SPEC,
+                    bad
+                )
+
+        good_spec = group.specification
+        group_2 = SubroutineGroup(good_spec, self.__logger)
+        TaskFunctionAssembler(
+            "gpu_tf_hydro", self.__call_graph,
+            [group_2], self.__GRID_SPEC,
+            self.__logger
+        )
+        # Two groups containing subroutines with same names
+        # Rename to avoid same name error
+        good_spec["name"] += "_next!"
+        group_2 = SubroutineGroup(good_spec, self.__logger)
+        with self.assertRaises(LogicError):
+            TaskFunctionAssembler(
+                "gpu_tf_hydro", self.__call_graph,
+                [group, group_2], self.__GRID_SPEC,
+                self.__logger
+            )
 
     def testDummyArguments(self):
         expected = [
@@ -83,6 +228,10 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             "lbdd_scratch_hydro_op1_flZ"
         ]
         self.assertEqual(expected, self.__Sedov.dummy_arguments)
+
+    def testArgumentSpecifications(self):
+        with self.assertRaises(ValueError):
+            self.__Sedov.argument_specification("HeckNo!")
 
     def testTileMetadata(self):
         expected = {"tile_lo", "tile_hi", "tile_deltas"}
