@@ -198,3 +198,42 @@ test_doxygen:
  - doxygen
  - popd
 
+test_sphinx:
+ stage: test
+ script:
+ ##-- Setup all environment variables
+ - echo $PWD
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
+ - echo $MILHOJA_CODE_REPO
+ - echo $CGKIT_CODE_REPO
+ - echo $CGKIT_PATH
+ ##-- Clean-up from prior runs
+ #    Copy cgkit to this space so that it can be installed without needing special
+ #    permissions.  CGKIT_PATH must be set for tox to work below.
+ - rm -rf $CGKIT_PATH
+ - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
+ - ls $CGKIT_PATH
+ ##-- Install tox
+ - module load python/3.8.10-sfhmzp4
+ - rm -rf $CI_BASE_PATH/toxbase
+ - which python
+ - python -m venv $CI_BASE_PATH/toxbase
+ - source $CI_BASE_PATH/toxbase/bin/activate
+ - which python
+ - which pip
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
+ - pip install tox
+ - pip list
+ ##-- Run all tests
+ - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - tox -r -e html,pdf
+ - popd
+ ##-- Save artifacts
+ - tar cvfz milhoja_pypkg_sphinx.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/docs/build
+ artifacts:
+    paths:
+     - milhoja_pypkg_sphinx.tgz
+    expire_in: never
