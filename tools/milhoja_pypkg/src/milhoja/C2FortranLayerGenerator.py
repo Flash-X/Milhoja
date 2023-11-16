@@ -16,7 +16,7 @@ from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
-
+from . import LOG_LEVEL_BASIC
 
 @dataclass
 class C2FInfo:
@@ -101,6 +101,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
+        self._log("Generating c2f layer at {str(file)}...", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
             data_mapping = {
@@ -273,6 +274,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 ', &\n'.join(f'\t\tF_{ptr}_d' for ptr in arg_order)
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
+        self._log("Done", LOG_LEVEL_BASIC)
 
     def log_and_abort(self, msg, e: BaseException):
         self._error(msg)

@@ -123,7 +123,6 @@ class DataPacketGenerator(AbcCodeGenerator):
             logger
         )
 
-        self._log("Initialized", LOG_LEVEL_BASIC)
         self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
 
         if self._tf_spec.language.lower() == "c++":
@@ -180,6 +179,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     f"Overwrite flag is {overwrite}", FileExistsError()
                 )
 
+        self._log("Generating helper template...", LOG_LEVEL_BASIC)
         """Generates the helper template with the provided JSON data."""
         with open(helper_template, 'w') as template:
             # # SETUP FOR CONSTRUCTOR
@@ -227,6 +227,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 self._connectors, self.n_extra_streams
             )
             self.template_utility.write_connectors(self._connectors, template)
+        self._log("Done", LOG_LEVEL_BASIC)
 
         outer_template = \
             destination_path.joinpath(self.outer_template_name).resolve()
@@ -238,6 +239,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     FileExistsError()
                 )
 
+        self._log("Generating outer template...", LOG_LEVEL_BASIC)
         with open(outer_template, 'w') as outer:
             outer.writelines(
                 [
@@ -251,6 +253,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     )
                 ]
             )
+        self._log("Done", LOG_LEVEL_BASIC)
         # save templates for later use.
         self._outer_template = outer_template
         self._helper_template = helper_template
@@ -267,6 +270,8 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         destination_path = self.get_destination_path(destination)
         header = destination_path.joinpath(self.header_filename)
+
+        self._log(f"Generating header at {str(header)}...", LOG_LEVEL_BASIC) 
         self.generate_packet_file(
             header,
             self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -277,6 +282,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             ],
             overwrite
         )
+        self._log(f"Done", LOG_LEVEL_BASIC)
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -291,6 +297,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         destination_path = self.get_destination_path(destination)
         source = destination_path.joinpath(self.source_filename).resolve()
 
+        self._log(f"Generating source at {str(source)}...", LOG_LEVEL_BASIC)
         self.generate_packet_file(
             source,
             self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -301,6 +308,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             ],
             overwrite
         )
+        self._log("Done", LOG_LEVEL_BASIC)
 
         if self._tf_spec.language.lower() == "fortran":
             # generate cpp2c layer if necessary
@@ -320,6 +328,12 @@ class DataPacketGenerator(AbcCodeGenerator):
                 self._logger.level,
                 self.n_extra_streams, self.external_args
             )
+
+            self._log(
+                "Generating cpp2c helper at {str(helper_cpp2c)} and "
+                "cpp2c outer at {str(outer_cpp2c)}...",
+                LOG_LEVEL_BASIC
+            )
             cpp2c_layer.generate_source_code(destination, overwrite)
             self.generate_packet_file(
                 Path(destination, self.cpp2c_filename),
@@ -335,6 +349,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 # template it will throw an error
                 overwrite
             )
+            self._log("Done", LOG_LEVEL_BASIC)
             # generate fortran to c layer if necessary
             c2f_layer = C2FortranLayerGenerator(
                 self._tf_spec, self._indent,
