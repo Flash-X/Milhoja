@@ -172,7 +172,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec = TaskFunction.from_milhoja_json(json_path)
                 # use default logging value for now
                 logger = BasicLogger(LOG_LEVEL_NONE)
-                destination = "./sample"
+                destination = "./"
 
                 generator = DataPacketGenerator(tf_spec, 4, logger, sizes)
 
