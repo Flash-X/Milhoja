@@ -2,7 +2,7 @@
 
 #include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_gpu_tf_hydro_2D.h"
+#include "DataPacket_gpu_tf_hydro.h"
 
 #include "Sedov.h"
 #include "Eos.h"
@@ -15,7 +15,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                     milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_gpu_tf_hydro_2D* packet_h   = dynamic_cast<DataPacket_gpu_tf_hydro_2D*>(dataItem_h);
+    DataPacket_gpu_tf_hydro*    packet_h   = dynamic_cast<DataPacket_gpu_tf_hydro*>(dataItem_h);
     const int                   queue_h    = packet_h->asynchronousQueue();
 
 	const std::size_t* nTiles_d = packet_h->_nTiles_d;
@@ -72,6 +72,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                  U_d, auxC_d);
         }
 
+#if MILHOJA_NDIM == 2
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D* U_d = CC1_d + n;
@@ -94,6 +95,30 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                deltas,
                                                U_d, flY_d, auxC_d);
         }
+#elif MILHOJA_NDIM == 3
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const FArray4D* U_d = CC1_d + n;
+            FArray4D* auxC_d = CC2_d + n;
+            FArray4D* flX_d = FCX_d + n;
+            FArray4D* flY_d = FCY_d + n;
+            FArray4D* flZ_d = FCZ_d + n;
+
+            const RealVect* deltas = deltas_d + n;
+            const IntVect* lo = lo_d + n;
+            const IntVect* hi = hi_d + n;
+
+            hy::computeFluxesHll_X_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flX_d, auxC_d);
+            hy::computeFluxesHll_Y_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flY_d, auxC_d);
+            hy::computeFluxesHll_Z_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flZ_d, auxC_d);
+        }
+#endif
 
         //----- UPDATE SOLUTIONS IN PLACE
         #pragma acc parallel loop gang default(none) async(queue_h)
