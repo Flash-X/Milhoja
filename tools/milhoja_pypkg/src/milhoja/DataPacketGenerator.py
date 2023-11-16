@@ -234,7 +234,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     FileExistsError()
                 )
 
-        with open(self.outer_template, 'w') as outer:
+        with open(outer_template, 'w') as outer:
             outer.writelines(
                 [
                     '/* _connector:datapacket_outer */\n',
