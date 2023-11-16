@@ -24,7 +24,7 @@
             "tile_lo":          {"source":           "tile_lo"},
             "tile_hi":          {"source":           "tile_hi"},
             "tile_deltas":      {"source":           "tile_deltas"},
-            "Uin":             {"source":           "grid_data",
+            "Uin":              {"source":           "grid_data",
                                  "structure_index": ["CENTER", 1],
                                  "variables_in":    [1, 2]},
             "Uout":             {"source":           "grid_data",

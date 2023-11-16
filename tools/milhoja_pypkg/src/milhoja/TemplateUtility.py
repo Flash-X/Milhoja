@@ -59,6 +59,34 @@ class TemplateUtility():
         'tile_hiGC': "IntVect"
     }
 
+    @staticmethod
+    def get_array_size(vars_in: list, vars_out: list) -> int:
+        """
+        Returns the largest array size given a variable mask for copying in
+        and copying out.
+
+        :param list vars_in: The variable masking for copying into the packet.
+        :param list vars_out: The variable masking for copying out.
+        :return: The size of the array given the variable masking.
+        :rtype: int
+        """
+        largest = None
+
+        largest_in = None
+        if vars_in:
+            largest_in = max(vars_in)
+            largest = largest_in 
+
+        largest_out = None
+        if vars_out:
+            largest_out = max(vars_out)
+            largest = largest_out
+
+        if vars_in and vars_out:
+            largest = max([largest_in, largest_out])
+
+        return largest
+
     @classmethod
     @abstractmethod
     def iterate_externals(

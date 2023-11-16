@@ -119,10 +119,15 @@ class CppTemplateUtility(TemplateUtility):
             # gather all information from tile_in section.
             extents = data['extents']
             mask_in = data['variables_in']
-            dtype = data['type']
 
+            # for now just assume the index space for a C++ Tf based packet
+            # has a 0 index space.
+            index_offset = 0
+            array_size = cls.get_array_size(mask_in, None)
+
+            dtype = data['type']
             extents = ' * '.join(f'({item})' for item in extents)
-            unks = f'{mask_in[1]} - {mask_in[0]} + 1'
+            unks = f'{str(array_size)} + 1 - {str(index_offset)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
@@ -166,9 +171,12 @@ class CppTemplateUtility(TemplateUtility):
         for item, data in tileinout.items():
             in_mask = data['variables_in']
             out_mask = data['variables_out']
+            array_size = cls.get_array_size(in_mask, out_mask)
+            index_space = 0
+
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
-            unks = f'{in_mask[1]} - {in_mask[0]} + 1'
+            unks = f'{array_size} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
@@ -212,13 +220,16 @@ class CppTemplateUtility(TemplateUtility):
         for item, data in tileout.items():
             # ge tile_out information
             out_mask = data['variables_out']
+            array_size = cls.get_array_size(None, out_mask)
+            index_space = 0
+
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
             dtype = data['type']
             info = DataPacketMemberVars(
                 item=item,
                 dtype=dtype,
-                size_eq=f'{extents} * ( {out_mask[1]} - '
-                f'{out_mask[0]} + 1 ) * sizeof({dtype})',
+                size_eq=f'{extents} * ( {str(array_size)} + 1 '
+                f'- {str(index_space)} ) * sizeof({dtype})',
                 per_tile=True
             )
 
