@@ -172,7 +172,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec = TaskFunction.from_milhoja_json(json_path)
                 # use default logging value for now
                 logger = BasicLogger(LOG_LEVEL_NONE)
-                destination = "./"
+                destination = "./sample"
 
                 generator = DataPacketGenerator(tf_spec, 4, logger, sizes)
 
@@ -269,12 +269,12 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 if generator.language == "fortran":
                     generated_cpp2c = Path(
                         destination,
-                        generator.cpp2c_file
+                        generator.cpp2c_filename
                     )
                     correct_cpp2c = Path(
                         _TEST_PATH,
                         test[self.FOLDER],
-                        "REF_" + os.path.basename(generator.cpp2c_file)
+                        "REF_" + os.path.basename(generator.cpp2c_filename)
                     )
                     with open(generated_cpp2c, 'r') as generated:
                         with open(correct_cpp2c, 'r') as correct:
@@ -282,12 +282,12 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
                     generated_c2f = Path(
                         destination,
-                        generator.c2f_file
+                        generator.c2f_filename
                     )
                     correct_c2f = Path(
                         _TEST_PATH,
                         test[self.FOLDER],
-                        "REF_" + os.path.basename(generator.c2f_file)
+                        "REF_" + os.path.basename(generator.c2f_filename)
                     )
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:
@@ -372,9 +372,14 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec, 4, logger, sizes
             )
 
+            dest = datapacket_generator.get_destination_path(destination)
+            outer = \
+                dest.joinpath(datapacket_generator.cpp2c_outer_template_name)
+            helper = \
+                dest.joinpath(datapacket_generator.cpp2c_helper_template_name)
+
             cpp2c = Cpp2CLayerGenerator(
-                tf_spec, datapacket_generator.cpp2c_outer_template,
-                datapacket_generator.cpp2c_helper_template,
+                tf_spec, outer, helper,
                 4, LOG_LEVEL_NONE, datapacket_generator.n_extra_streams,
                 datapacket_generator.external_args
             )
@@ -464,7 +469,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
             try:
                 for file in glob.glob(
-                    str(Path(destination, "cg-tpl.*.cpp"))
+                    str(Path(destination, "*.F90"))
                 ):
                     os.remove(file)
             except FileNotFoundError:

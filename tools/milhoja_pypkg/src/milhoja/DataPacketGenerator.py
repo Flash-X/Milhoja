@@ -140,7 +140,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         if self.n_extra_streams > 0:
             self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
 
-        self._generated_templates = False
+        self._outer_template = None
+        self._helper_template = None
         # Note: c2f layer does not use cgkit so no templates.
         self._log("Loaded", LOG_LEVEL_MAX)
 
@@ -168,7 +169,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._connectors[self.template_utility._SIZE_DET] = []
         self._set_default_params()
 
-        helper_template = Path(destination, self.helper_template)
+        destination_path = self.get_destination_path(destination)
+        helper_template = \
+            destination_path.joinpath(self.helper_template_name).resolve()
 
         if helper_template.is_file():
             self.warn(f"{str(helper_template)} already exists.")
@@ -225,7 +228,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
             self.template_utility.write_connectors(self._connectors, template)
 
-        outer_template = Path(destination, self.outer_template)
+        outer_template = \
+            destination_path.joinpath(self.outer_template_name).resolve()
         if outer_template.is_file():
             self.warn(f"{str(outer_template)} already exists.")
             if not overwrite:
@@ -247,27 +251,29 @@ class DataPacketGenerator(AbcCodeGenerator):
                     )
                 ]
             )
-        # set a flag that allows header and source gen to be called.
-        self._generated_templates = True
+        # save templates for later use.
+        self._outer_template = outer_template
+        self._helper_template = helper_template
 
     def generate_header_code(self, destination, overwrite):
         """
         Generate C++ header
         """
-        if not self._generated_templates:
-            self.log_and_abort(
-                "Missing internally generated files. "
-                "Did you call DataPackGenerator.generate_templates()?",
-                RuntimeError()
+        if not self._outer_template or not self._helper_template:
+            raise RuntimeError(
+                "Templates have not been generated. Call generate_templates "
+                "first."
             )
 
+        destination_path = self.get_destination_path(destination)
+        header = destination_path.joinpath(self.header_filename)
         self.generate_packet_file(
-            Path(destination, self.header_filename),
+            header,
             self.__DEFAULT_SOURCE_TREE_OPTS,
             [
-                Path(destination, self.outer_template).resolve(),
+                self._outer_template,
                 self.header_template,  # static path to pkg resource.
-                Path(destination, self.helper_template).resolve()
+                self._helper_template
             ],
             overwrite
         )
@@ -276,20 +282,22 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         Generate C++ source code.
         """
-        if not self._generated_templates:
-            self.log_and_abort(
-                "Missing internally generated files. "
-                "Did you call DataPackGenerator.generate_templates()?",
-                RuntimeError()
+        if not self._outer_template or not self._helper_template:
+            raise RuntimeError(
+                "Templates have not been generated. Call generate_templates "
+                "first."
             )
 
+        destination_path = self.get_destination_path(destination)
+        source = destination_path.joinpath(self.source_filename).resolve()
+
         self.generate_packet_file(
-            Path(destination, self.source_filename),
+            source,
             self.__DEFAULT_SOURCE_TREE_OPTS,
             [
-                Path(destination, self.outer_template).resolve(),
+                self._outer_template,
                 self.source_template,  # static path to pkg resource.
-                Path(destination, self.helper_template).resolve()
+                self._helper_template
             ],
             overwrite
         )
@@ -297,20 +305,30 @@ class DataPacketGenerator(AbcCodeGenerator):
         if self._tf_spec.language.lower() == "fortran":
             # generate cpp2c layer if necessary
             #   -> Cpp task function generator?
+            outer_cpp2c = \
+                destination_path.joinpath(
+                    self.cpp2c_outer_template_name
+                ).resolve()
+            helper_cpp2c = \
+                destination_path.joinpath(
+                    self.cpp2c_helper_template_name
+                ).resolve()
+
             cpp2c_layer = Cpp2CLayerGenerator(
-                self._tf_spec, self.cpp2c_outer_template,
-                self.cpp2c_helper_template, self._indent, self._logger.level,
+                self._tf_spec, outer_cpp2c,
+                helper_cpp2c, self._indent,
+                self._logger.level,
                 self.n_extra_streams, self.external_args
             )
             cpp2c_layer.generate_source_code(destination, overwrite)
             self.generate_packet_file(
-                Path(destination, self.cpp2c_file),
+                Path(destination, self.cpp2c_filename),
                 self.__DEFAULT_SOURCE_TREE_OPTS,
                 [
-                    Path(destination, self.cpp2c_outer_template).resolve(),
+                    outer_cpp2c,
                     self.cpp2c_template,
-                    Path(destination, self.cpp2c_helper_template).resolve(),
-                    self.cpp2c_streams_template
+                    helper_cpp2c,
+                    self.cpp2c_streams_template_name
                 ],
                 # dev note: ORDER MATTERS HERE!
                 # If helpers is put before the base
@@ -397,11 +415,11 @@ class DataPacketGenerator(AbcCodeGenerator):
         return f'{self.packet_class_name.upper()}_UNIQUE_IFNDEF_H_'
 
     @property
-    def helper_template(self) -> str:
+    def helper_template_name(self) -> str:
         return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}.cpp"
 
     @property
-    def outer_template(self) -> str:
+    def outer_template_name(self) -> str:
         return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp"
 
     @property
@@ -429,13 +447,13 @@ class DataPacketGenerator(AbcCodeGenerator):
         return super().source_filename
 
     @property
-    def cpp2c_file(self) -> str:
+    def cpp2c_filename(self) -> str:
         return self._tf_spec.output_filenames[
             TaskFunction.CPP_TF_KEY
         ]["source"]
 
     @property
-    def cpp2c_outer_template(self) -> str:
+    def cpp2c_outer_template_name(self) -> str:
         """
         Outer template for the cpp2c layer
         These are generated so we use the destination location.
@@ -443,7 +461,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
 
     @property
-    def cpp2c_helper_template(self) -> str:
+    def cpp2c_helper_template_name(self) -> str:
         """
         Helper template path for the cpp2c layer
         These are generated so we use the destination location.
@@ -451,7 +469,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
 
     @property
-    def cpp2c_streams_template(self) -> Path:
+    def cpp2c_streams_template_name(self) -> Path:
         """Extra streams template for the cpp2c layer"""
         template_path = resource_filename(
             __package__, f'templates/{self._cpp2c_extra_streams_tpl}'
@@ -466,7 +484,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def c2f_file(self) -> str:
+    def c2f_filename(self) -> str:
         return self._tf_spec.output_filenames[
             TaskFunction.C2F_KEY
         ]["source"]
@@ -668,6 +686,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         dict_items = [(k, v) for k, v in arguments]
         return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
+    
+    def get_destination_path(self, destination: str) -> Path:
+        destination_path = Path(destination).resolve()
+        if not destination_path.is_dir():
+            raise RuntimeError(f"{destination_path} does not exist")
+        return destination_path
 
     def warn(self, msg: str):
         self._warn(msg)

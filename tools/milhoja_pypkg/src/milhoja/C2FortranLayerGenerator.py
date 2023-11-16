@@ -76,13 +76,24 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         )
 
     def generate_source_code(self, destination, overwrite):
-        self._generate_advance_c2f(destination, overwrite)
+        destination_path = Path(destination).resolve()
+        if not destination_path.is_dir():
+            raise RuntimeError(
+                f"{destination_path} does not exist."
+            )
+        c2f_path = destination_path.joinpath(self.c2f_file).resolve()
 
-    def _generate_advance_c2f(
-        self,
-        destination,
-        overwrite
-    ):
+        if c2f_path.is_file():
+            self._warn(f"{c2f_path} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}",
+                    FileExistsError()
+                )
+
+        self._generate_advance_c2f(c2f_path)
+
+    def _generate_advance_c2f(self, file):
         """
         Generates the code for passing a data packet from
         the C layer to the Fortran layer to c2f.F90
@@ -90,17 +101,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
-        c2f_file_path = Path(destination, self.c2f_file)
-
-        if c2f_file_path.is_file():
-            self._warn(f"{self.c2f_file} already exists.")
-            if not overwrite:
-                self.log_and_abort(
-                    f"Overwrite is {overwrite}",
-                    FileExistsError()
-                )
-
-        with open(c2f_file_path, 'w') as fp:
+        with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
             data_mapping = {
                 'int': 'integer',

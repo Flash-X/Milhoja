@@ -1,3 +1,5 @@
+import os
+
 from collections import defaultdict
 from pathlib import Path
 
@@ -37,7 +39,9 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
         logger = BasicLogger(log_level)
         super().__init__(
-            tf_spec, outer, helper, indent, self.__TOOL_NAME, logger
+            tf_spec, os.path.basename(outer), 
+            os.path.basename(helper), indent, 
+            self.__TOOL_NAME, logger
         )
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
 
@@ -55,12 +59,17 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         """
         Generates the outer template for the cpp2c layer.
 
+        Note: The paths for each template file get passed into the 
+              constructor so destination is unused. This class is exclusively
+              used by the data packet generator so it doesn't make
+              sense to recreate the path instead of just passing it in at
+              construction. The same could be argued for overwrite as well.
+
         :param generator: The DataPacketGenerator object that contains
                           the information to build the outer template.
         """
-        outer_template = Path(destination, self._outer_template)
-        if outer_template.is_file():
-            self.warn(f"{str(outer_template)} already exists.")
+        if self._outer_template.is_file():
+            self.warn(f"{str(self._outer_template)} already exists.")
             if not overwrite:
                 self.log_and_abort(
                     f"Overwrite is {overwrite}",
@@ -70,7 +79,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         # ..todo::
         #   * replace delete / release / instantiate function names with
         #     properties in TaskFunction class
-        with open(outer_template, 'w') as outer:
+        with open(self._outer_template, 'w') as outer:
             outer.writelines([
                 '/* _connector:cpp2c_outer */\n',
                 f'/* _param:class_name = '
@@ -134,6 +143,12 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         """
         Generates the helper template for the cpp2c layer.
 
+        Note: The paths for each template file get passed into the 
+              constructor so destination is unused. This class is exclusively
+              used by the data packet generator so it doesn't make
+              sense to recreate the path instead of just passing it in at
+              construction. The same could be argued for overwrite as well.
+
         :param DataPacketGenerator data: The DataPacketGenerator calling this
                                          set of functions that contains a
                                          TaskFunction.
@@ -152,9 +167,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             for key, data in self._externals.items() if key != "nTiles"
         ] + [('packet', 'void**')]
 
-        helper_template = Path(destination, self._helper_template)
-        if helper_template.is_file():
-            self.warn(f"{str(helper_template)} already exists.")
+        if self._helper_template.is_file():
+            self.warn(f"{str(self._helper_template)} already exists.")
             if not overwrite:
                 self.log_and_abort(
                     f"Overwrite is {overwrite}.",
