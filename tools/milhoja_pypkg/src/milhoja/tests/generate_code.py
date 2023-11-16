@@ -53,9 +53,18 @@ def generate_code(
         )
         logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
 
+        data_item = tf_spec.data_item
+        language = tf_spec.language
         outputs = tf_spec.output_filenames
-        files_to_compile += \
-            [dst.joinpath(value["source"]) for _, value in outputs.items()]
+        to_compile = []
+        for _, value in outputs.items():
+            if (language.lower() in ["c++", "fortran"]) and \
+                    (data_item.lower() == "datapacket"):
+                if not value["source"].startswith("gpu_"):
+                    to_compile.append(dst.joinpath(value["source"]))
+            else:
+                to_compile.append(dst.joinpath(value["source"]))
+        files_to_compile += to_compile
 
     # ----- GENERATE GENERATED-CODE MAKEFILE
     with open(makefile, "w") as fptr:
