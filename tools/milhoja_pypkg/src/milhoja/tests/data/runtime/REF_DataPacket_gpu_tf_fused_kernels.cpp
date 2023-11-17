@@ -121,7 +121,7 @@ void DataPacket_gpu_tf_fused_kernels::pack(void) {
     _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
     ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
-    
+  
     IntVect* _tile_lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
     _tile_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LO;
@@ -130,8 +130,8 @@ void DataPacket_gpu_tf_fused_kernels::pack(void) {
     IntVect* _tile_hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
     _tile_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
-    ptr_d+=_nTiles_h * SIZE_TILE_HI;
-    
+    ptr_d+=_nTiles_h * SIZE_TILE_HI;  
+
     FArray4D* _f4_Uin_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_Uin_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
     ptr_p += _nTiles_h * SIZE_FARRAY4D;
@@ -174,10 +174,10 @@ void DataPacket_gpu_tf_fused_kernels::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        
+
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
-        
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);       
+
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_lo_p ) ) + n * SIZE_TILE_LO;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
         
@@ -191,11 +191,11 @@ void DataPacket_gpu_tf_fused_kernels::pack(void) {
         char_ptr = static_cast<char*>( static_cast<void*>(_Uin_p) ) + n * SIZE_UIN;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
-        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
+        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 + 1 - 0};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), SIZE_FARRAY4D);
         
-        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
+        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 + 1 - 0};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), SIZE_FARRAY4D);
         

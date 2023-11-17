@@ -40,9 +40,9 @@ public:
     // Since both files are auto-generated and not maintained by humans, this is fine.
     std::size_t _nTiles_h;
     std::size_t* _nTiles_d;
+    RealVect* _tile_deltas_d;
     IntVect* _tile_lo_d;
     IntVect* _tile_hi_d;
-    RealVect* _tile_deltas_d;
     real* _Uin_d;
     real* _Uin_p;
     real* _Uout_d;
@@ -61,9 +61,9 @@ private:
 
     static constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
     static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);
+    static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     static constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     static constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     static constexpr std::size_t SIZE_UIN = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (1 + 1 - 0) * sizeof(real);
     static constexpr std::size_t SIZE_UOUT = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (1 + 1 - 0) * sizeof(real);
     

@@ -87,7 +87,6 @@ void DataPacket_gpu_tf_fused_actions::pack(void) {
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
     (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI
-    
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
         throw std::logic_error("[DataPacket_gpu_tf_fused_actions pack] SIZE_TILEMETADATA padding failure");
@@ -147,7 +146,7 @@ void DataPacket_gpu_tf_fused_actions::pack(void) {
     _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
     ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
-    
+ 
     IntVect* _tile_lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
     _tile_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LO;
@@ -156,7 +155,7 @@ void DataPacket_gpu_tf_fused_actions::pack(void) {
     IntVect* _tile_hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
     _tile_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
-    ptr_d+=_nTiles_h * SIZE_TILE_HI;
+    ptr_d+=_nTiles_h * SIZE_TILE_HI;   
     
     FArray4D* _f4_Uin_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_Uin_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
@@ -200,7 +199,7 @@ void DataPacket_gpu_tf_fused_actions::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        
+  
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
         
@@ -210,18 +209,18 @@ void DataPacket_gpu_tf_fused_actions::pack(void) {
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_hi_p ) ) + n * SIZE_TILE_HI;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
         
-        
+              
         real* Uin_d = tileDesc_h->dataPtr();
         constexpr std::size_t offset_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
         constexpr std::size_t nBytes_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 1 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_Uin_p) ) + n * SIZE_UIN;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(Uin_d + offset_Uin), nBytes_Uin);
         
-        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
+        FArray4D Uin_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uin_d) ) + n * SIZE_UIN)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 + 1 - 0};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uin_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uin_device), SIZE_FARRAY4D);
         
-        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 - 0 + 1};
+        FArray4D Uout_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_Uout_d) ) + n * SIZE_UOUT)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 1 + 1 - 0};
         char_ptr = static_cast<char*>( static_cast<void*>(_f4_Uout_p) ) + n * SIZE_FARRAY4D;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&Uout_device), SIZE_FARRAY4D);
         

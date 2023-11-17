@@ -24,9 +24,9 @@ DataPacket_gpu_tf_ener::DataPacket_gpu_tf_ener(
     milhoja::DataPacket{},
 _nTiles_h{0},
 _nTiles_d{nullptr},
+_tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
-_tile_deltas_d{nullptr},
 _Uin_d{nullptr},
 _Uin_p{nullptr},
 _Uout_d{nullptr},
@@ -60,7 +60,7 @@ void DataPacket_gpu_tf_ener::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_ener pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    (2 * SIZE_FARRAY4D) + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_DELTAS
+    (2 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -117,6 +117,11 @@ void DataPacket_gpu_tf_ener::pack(void) {
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
+    RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
+    _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
+    ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
+ 
     IntVect* _tile_lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
     _tile_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LO;
@@ -126,12 +131,7 @@ void DataPacket_gpu_tf_ener::pack(void) {
     _tile_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
-    
-    RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
-    _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
-    ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
-    ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
-    
+   
     FArray4D* _f4_Uin_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
     _f4_Uin_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
     ptr_p += _nTiles_h * SIZE_FARRAY4D;
@@ -171,19 +171,19 @@ void DataPacket_gpu_tf_ener::pack(void) {
     for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_tf_ener pack] Bad tiledesc.");
+        const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto deltas = tileDesc_h->deltas();
+
+        char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_lo_p ) ) + n * SIZE_TILE_LO;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
         
         char_ptr = static_cast<char*>( static_cast<void*>( _tile_hi_p ) ) + n * SIZE_TILE_HI;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
-        
-        char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
-        
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);        
+       
         
         real* Uin_d = tileDesc_h->dataPtr();
         constexpr std::size_t offset_Uin = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);

@@ -567,6 +567,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             sort_func = cpp_sort
         elif lang == 'fortran':
             sort_func = fortran_sort
+        else:
+            raise RuntimeError("Language is not supported.")
 
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
