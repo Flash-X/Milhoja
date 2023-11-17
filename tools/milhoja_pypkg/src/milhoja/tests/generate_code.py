@@ -6,8 +6,8 @@ from milhoja import generate_task_function
 
 
 def generate_code(
-            tf_specs_all, destination, overwrite, indent,
-            makefile_filename,
+            tf_specs_all, destination, overwrite, library_path,
+            indent, makefile_filename,
             logger
         ):
     """
@@ -19,9 +19,12 @@ def generate_code(
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing header and source files in destination will
         be overwritten if True
+    :param library_path: Full path to Milhoja library installation that will use
+        generated code
     :param indent: Number of spaces to use for indent in generated code
     :param makefile_filename: Name with path of makefile to generate.  An
         exception is raised if the file already exists.
+    :param logger: Derived from :py:class:`AbcLogger`
     """
     LOG_TAG = "Milhoja Test"
 
@@ -46,7 +49,7 @@ def generate_code(
         )
         logger.log(LOG_TAG, "-" * 80, LOG_LEVEL_BASIC)
         generate_data_item(
-            tf_spec, destination, overwrite, indent, logger
+            tf_spec, destination, overwrite, library_path, indent, logger
         )
         generate_task_function(
             tf_spec, destination, overwrite, indent, logger
