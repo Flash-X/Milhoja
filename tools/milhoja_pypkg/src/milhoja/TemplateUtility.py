@@ -55,8 +55,8 @@ class TemplateUtility():
         'tile_deltas': 'RealVect',
         'tile_lo': "IntVect",
         'tile_hi': "IntVect",
-        'tile_loGC': "IntVect",
-        'tile_hiGC': "IntVect"
+        'tile_lbound': "IntVect",
+        'tile_ubound': "IntVect"
     }
 
     # C++ Index space is always 0.

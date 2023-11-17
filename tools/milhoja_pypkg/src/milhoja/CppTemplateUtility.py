@@ -69,7 +69,15 @@ class CppTemplateUtility(TemplateUtility):
         cls.insert_farray_size(size_connectors, num_arrays)
 
         for item, data in tilemetadata.items():
-            source = data['source'].replace('tile_', '')
+            source = data['source']
+
+            # ..todo:: Temporary fix for generating flash-x packet
+            if source == "tile_lbound":
+                source = "tile_loGC"
+            elif source == "tile_ubound":
+                source = "tile_hiGC"
+
+            source = source.replace('tile_', '')
             item_type = data['type']
             size_eq = f"sizeof({ item_type })"
             info = DataPacketMemberVars(

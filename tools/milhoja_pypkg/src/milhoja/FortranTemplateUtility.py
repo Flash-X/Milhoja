@@ -90,7 +90,14 @@ class FortranTemplateUtility(TemplateUtility):
         connectors[cls._T_DESCRIPTOR] = []
 
         for item, data in tilemetadata.items():
-            source = data['source'].replace('tile_', '')
+            source = data['source']
+            # temporary fix for generating packet for flash-x sim
+            if source == 'tile_lbound':
+                source = 'tile_loGC'
+            elif source == 'tile_ubound':
+                source = 'tile_hiGC'
+            source = source.replace('tile_', '')
+            
             item_type = data['type']
             size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
             info = DataPacketMemberVars(
@@ -182,9 +189,11 @@ class FortranTemplateUtility(TemplateUtility):
             extents = data['extents']
             mask_in = data['variables_in']
             dtype = data['type']
+            index_space = cls.DEFAULT_INDEX_SPACE
+            array_size = cls.get_array_size(mask_in, None)
 
             extents = ' * '.join(f'({item})' for item in extents)
-            unks = f'{mask_in[1]} - {mask_in[0]} + 1'
+            unks = f'{str(array_size)} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
@@ -223,8 +232,11 @@ class FortranTemplateUtility(TemplateUtility):
             in_mask = data['variables_in']
             out_mask = data['variables_out']
             dtype = data['type']
+            index_space = cls.DEFAULT_INDEX_SPACE
+            array_size = cls.get_array_size(in_mask, out_mask)            
+
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
-            unks = f'{in_mask[1]} - {in_mask[0]} + 1'
+            unks = f'{str(array_size)} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
@@ -265,12 +277,15 @@ class FortranTemplateUtility(TemplateUtility):
             raise NotImplementedError("No test cases for fortran tile_out.")
             # get tile_out information
             out_mask = data['variables_out']
+            array_size = cls.get_array_size(None, out_mask)
+            index_space = cls.DEFAULT_INDEX_SPACE
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
             dtype = data['type']
+            unks = f'{str(array_size)} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item,
                 dtype=dtype,
-                size_eq=f'{extents} * ( {out_mask[1]} - {out_mask[0]} + 1 ) '
+                size_eq=f'{extents} * ({unks}) '
                         f'* sizeof({dtype})',
                 per_tile=True
             )

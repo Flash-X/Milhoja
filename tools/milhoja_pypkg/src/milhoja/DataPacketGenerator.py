@@ -54,8 +54,8 @@ class DataPacketGenerator(AbcCodeGenerator):
     SOURCE_DATATYPE = {
         TaskFunction.TILE_LO: "IntVect",
         TaskFunction.TILE_HI: "IntVect",
-        "tile_loGC": "IntVect",
-        "tile_hiGC": "IntVect",
+        "tile_lbound": "IntVect",
+        "tile_ubound": "IntVect",
         TaskFunction.TILE_DELTAS: "RealVect",
         TaskFunction.TILE_LEVEL: "unsigned int",
         "grid_data": "real",
@@ -572,10 +572,12 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
+            print(key)
             args[key] = self._tf_spec.argument_specification(key)
             args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
             if lang == "fortran":
                 args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
+           
         return self._sort_dict(args.items(), sort_func, True)
 
     def __adjust_tile_data(self, args: dict) -> dict:

@@ -168,10 +168,18 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                     shape = ['F_nTiles_h']
                     var_in = data.get("variables_in", None)
                     var_out = data.get("variables_out", None)
-
+                    
+                    # TODO: Fortran index space?1 
+                    array_size = TemplateUtility.get_array_size(
+                        var_in, var_out
+                    )
+                    index_space = TemplateUtility.DEFAULT_INDEX_SPACE
+                    
                     if var_in or var_out:
                         mask = var_in if var_in else var_out
-                        shape.insert(0, f'{mask[1]} - {mask[0]} + 1')
+                        shape.insert(
+                            0, f'{str(array_size)} + 1 - {str(index_space)}'
+                        )
 
                     gpu_pointers[item] = C2FInfo(
                         ftype, 'type(C_PTR)', '', data["extents"] + shape
