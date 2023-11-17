@@ -28,6 +28,7 @@ def main():
     FILENAME_HELP = "Task function specification file"
     FORMAT_HELP = "Task function specification format"
     DESTINATION_HELP = "Pre-existing folder to write files to"
+    LIBRARY_HELP = "Path to Milhoja library installation that will use code"
     OVERWRITE_HELP = "Original files overwritten if given"
     VERBOSE_HELP = "Verbosity level of logging"
 
@@ -45,6 +46,7 @@ def main():
         help=FORMAT_HELP
     )
     parser.add_argument("destination", nargs=1, help=DESTINATION_HELP)
+    parser.add_argument("library_path", nargs=1, help=LIBRARY_HELP)
     parser.add_argument(
         "--overwrite",
         action='store_true', required=False,
@@ -63,6 +65,7 @@ def main():
     filename = Path(args.file[0]).resolve()
     fmt = args.format[0]
     destination = Path(args.destination[0]).resolve()
+    library_path = Path(args.library_path[0]).resolve()
     overwrite = args.overwrite
     logger = milhoja.BasicLogger(args.verbose)
 
@@ -86,7 +89,7 @@ def main():
             log_and_abort(f"Unsupported task function format ({fmt})")
 
         milhoja.generate_data_item(
-            tf_spec, destination, overwrite, INDENT, logger
+            tf_spec, destination, overwrite, library_path, INDENT, logger
         )
     except Exception as error:
         error_msg = str(error)
