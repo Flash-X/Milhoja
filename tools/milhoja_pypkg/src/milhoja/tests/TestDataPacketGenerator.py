@@ -62,6 +62,24 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             {
                 self.JSON: _TEST_PATH.joinpath(
                     "runtime",
+                    "gpu_tf_ener.json"
+                ),
+                self.FOLDER: "runtime",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: {
+                    "real": 8,
+                    "int": 4,
+                    "unsigned int": 4,
+                    "std::size_t": 8,
+                    "IntVect": 8,
+                    "RealVect": 16,
+                    "bool": 1
+                }
+            },
+            {
+                self.JSON: _TEST_PATH.joinpath(
+                    "runtime",
                     "gpu_tf_fused_actions.json"
                 ),
                 self.FOLDER: "runtime",

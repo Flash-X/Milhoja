@@ -59,6 +59,9 @@ class TemplateUtility():
         'tile_hiGC': "IntVect"
     }
 
+    # C++ Index space is always 0.
+    DEFAULT_INDEX_SPACE = 0
+
     @staticmethod
     def get_array_size(vars_in: list, vars_out: list) -> int:
         """

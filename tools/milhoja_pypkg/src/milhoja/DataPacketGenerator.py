@@ -593,6 +593,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             ]
 
             # adjust masking.
+            # ..todo::
+            #   * adjust masking based on given index space.
             if 'variables_in' in arg_dictionary[arg]:
                 mask = arg_dictionary[arg]['variables_in']
                 arg_dictionary[arg]['variables_in'] = [mask[0]-1, mask[1]-1]

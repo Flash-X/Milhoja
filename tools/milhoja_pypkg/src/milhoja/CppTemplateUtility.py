@@ -119,11 +119,14 @@ class CppTemplateUtility(TemplateUtility):
             # gather all information from tile_in section.
             extents = data['extents']
             mask_in = data['variables_in']
+            print(mask_in)
 
-            # for now just assume the index space for a C++ Tf based packet
-            # has a 0 index space.
-            index_offset = 0
+            # for now just assume that all index spaces are 1 based
+            # since all arrays in the packet are 1 based. 
+            index_offset = cls.DEFAULT_INDEX_SPACE
             array_size = cls.get_array_size(mask_in, None)
+
+            print(array_size)
 
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in extents)
@@ -172,7 +175,7 @@ class CppTemplateUtility(TemplateUtility):
             in_mask = data['variables_in']
             out_mask = data['variables_out']
             array_size = cls.get_array_size(in_mask, out_mask)
-            index_space = 0
+            index_space = cls.DEFAULT_INDEX_SPACE
 
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
@@ -221,15 +224,15 @@ class CppTemplateUtility(TemplateUtility):
             # ge tile_out information
             out_mask = data['variables_out']
             array_size = cls.get_array_size(None, out_mask)
-            index_space = 0
+            index_space = cls.DEFAULT_INDEX_SPACE
+            unks = f"{str(array_size)} + 1 - {str(index_space)}"
 
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
             dtype = data['type']
             info = DataPacketMemberVars(
                 item=item,
                 dtype=dtype,
-                size_eq=f'{extents} * ( {str(array_size)} + 1 '
-                f'- {str(index_space)} ) * sizeof({dtype})',
+                size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
                 per_tile=True
             )
 
@@ -242,7 +245,7 @@ class CppTemplateUtility(TemplateUtility):
                 item,
                 'tileDesc_h->loGC()',
                 'tileDesc_h->hiGC()',
-                f'{out_mask[1]} - {out_mask[0]} + 1',
+                unks,
                 info.dtype
             )
 
