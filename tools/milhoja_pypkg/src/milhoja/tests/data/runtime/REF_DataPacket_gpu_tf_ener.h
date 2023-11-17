@@ -65,7 +65,7 @@ private:
     static constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
     static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     static constexpr std::size_t SIZE_UIN = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (1 + 1 - 0) * sizeof(real);
-    static constexpr std::size_t SIZE_UOUT = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 1 + 1 - 0 ) * sizeof(real);
+    static constexpr std::size_t SIZE_UOUT = (8 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (1 + 1 - 0) * sizeof(real);
     
 };
 
