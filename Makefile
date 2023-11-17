@@ -83,7 +83,7 @@ $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
 .PHONY: all install clean
-all:     $(TARGET)
+all:     $(TARGET)	$(BUILDDIR)/createSizesJson
 install:
 	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/include
@@ -91,7 +91,11 @@ install:
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
-	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include	
+	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include
+	cp $(BUILDDIR)/createSizesJson $(LIB_MILHOJA_PREFIX)/include
+	$(LIB_MILHOJA_PREFIX)/include/createSizesJson
+	mv sizes.json $(LIB_MILHOJA_PREFIX)/include/
+	rm $(LIB_MILHOJA_PREFIX)/include/createSizesJson
 clean:
 	$(RM) $(BUILDDIR)/*.o
 	$(RM) $(BUILDDIR)/*.d
@@ -112,6 +116,9 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
+
+$(BUILDDIR)/createSizesJson: $(SRCDIR)/createSizesJson.cpp $(MILHOJA_H) $(MAKEFILES)
+	$(CXXCOMP) $(SRCDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson
 
 $(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
