@@ -116,7 +116,7 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed
 $(SIZES_JSON): $(TOOLSDIR)/createSizesJson.cpp $(MILHOJA_H) $(CPP_HDRS) $(MAKEFILES)
-	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
+	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -I$(JSONDIR) -o $(BUILDDIR)/createSizesJson.x
 	$(BUILDDIR)/createSizesJson.x $(SIZES_JSON)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
