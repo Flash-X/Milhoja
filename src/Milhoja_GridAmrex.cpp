@@ -801,7 +801,7 @@ Real  GridAmrex::getCellFaceAreaLo(const unsigned int axis,
 Real  GridAmrex::getCellVolume(const unsigned int level,
                                const IntVect& coord) const {
     const amrex::Geometry&   geomLevel = geom[level];
-    return geomLevel.Volume(amrex::IntVect(coord));
+    return geomLevel.Volume(amrex::IntVect(coord), geomLevel.data());
 }
 
 /** Obtain the coordinates along a given axis for either the left edge, center,

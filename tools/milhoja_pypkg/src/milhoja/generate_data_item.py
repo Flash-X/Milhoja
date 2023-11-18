@@ -56,7 +56,9 @@ def generate_data_item(tf_spec, destination, overwrite, library_path,
             sizes = json.load(fptr)
         expected = {
             "real", "int", "unsigned int", "std::size_t",
-            "IntVect", "RealVect"
+            "IntVect", "RealVect",
+            "FArray1D", "FArray2D", "FArray3D", "FArray4D",
+            "byte_align"
         }
         assert set(sizes) == expected
         for name, sz in sizes.items():

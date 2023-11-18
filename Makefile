@@ -17,9 +17,11 @@ INCDIR          := ./includes
 SRCDIR          := ./src
 BUILDDIR        := ./build
 INTERFACEDIR    := ./interfaces
+TOOLSDIR        := ./tools
 CONFIG_MAKEFILE := ./Makefile.configure
 TARGET          := $(BUILDDIR)/libmilhoja.a
 MILHOJA_H       := $(BUILDDIR)/Milhoja.h
+SIZES_JSON      := $(BUILDDIR)/sizes.json
 
 include $(CONFIG_MAKEFILE)
 include $(SITE_MAKEFILE)
@@ -83,7 +85,7 @@ $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
 .PHONY: all install clean
-all:     $(TARGET)	$(BUILDDIR)/createSizesJson
+all:     $(TARGET) $(SIZES_JSON)
 install:
 	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/include
@@ -92,10 +94,7 @@ install:
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
 	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include
-	cp $(BUILDDIR)/createSizesJson $(LIB_MILHOJA_PREFIX)/include
-	$(LIB_MILHOJA_PREFIX)/include/createSizesJson
-	mv sizes.json $(LIB_MILHOJA_PREFIX)/include/
-	rm $(LIB_MILHOJA_PREFIX)/include/createSizesJson
+	cp $(SIZES_JSON) $(LIB_MILHOJA_PREFIX)/include
 clean:
 	$(RM) $(BUILDDIR)/*.o
 	$(RM) $(BUILDDIR)/*.d
@@ -114,16 +113,19 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
                                      --offload $(COMPUTATION_OFFLOADING) \
                                      $(MILHOJA_H)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
+# - Program depends directly on Milhoja.h and other Milhoja headers
+# - Sizes might change if compiler flags are changed
+$(SIZES_JSON): $(TOOLSDIR)/createSizesJson.cpp $(MILHOJA_H) $(CPP_HDRS) $(MAKEFILES)
+	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
+	$(BUILDDIR)/createSizesJson.x $(SIZES_JSON)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
-$(BUILDDIR)/createSizesJson: $(SRCDIR)/createSizesJson.cpp $(MILHOJA_H) $(MAKEFILES)
-	$(CXXCOMP) $(SRCDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson
-
-$(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) $(MAKEFILES)
+$(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) $(MAKEFILES)
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
 

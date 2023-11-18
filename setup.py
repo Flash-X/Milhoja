@@ -303,9 +303,6 @@ if __name__ == '__main__':
         fptr.write('\n')
 
     #####----- GENERATE CODE FOR MILHOJA
-    # TODO: Use libraryDir here instead once sizes.json is installed with
-    # library.
-    libraryPath = _HOME_DIR.joinpath("test")
     generator = testDir.joinpath(_CODE_GENERATION_SCRIPT)
     generatedMakefile = buildDir.joinpath("Makefile.generated")
     if generator.is_file():
@@ -314,7 +311,7 @@ if __name__ == '__main__':
             [str(generator), str(buildDir),
              str(generatedMakefile), str(ndim),
              str(nxb), str(nyb), str(nzb),
-             libraryPath,
+             libraryDir,
              "--verbose", str(1)])
     else:
         print(f"No automatic code generation required by test")
