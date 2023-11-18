@@ -101,7 +101,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 "TF Specification was not derived from task function."
             )
 
-        self._TOOL_NAME = self.__class__.__name__
+        self._TOOL_NAME = "Milhoja DataPacket"
         self._sizes = sizes
         self._indent = indent
 
@@ -273,7 +273,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         destination_path = self.get_destination_path(destination)
         header = destination_path.joinpath(self.header_filename)
 
-        self._log("Generating header at {str(header)}", LOG_LEVEL_BASIC)
+        self._log(f"Generating header at {str(header)}", LOG_LEVEL_BASIC)
         self.generate_packet_file(
             header,
             self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -310,7 +310,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             ],
             overwrite
         )
-        self._log("Done", LOG_LEVEL_BASIC)
+        self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
         if self._tf_spec.language.lower() == "fortran":
             # generate cpp2c layer if necessary
@@ -351,7 +351,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 # template it will throw an error
                 overwrite
             )
-            self._log("Done", LOG_LEVEL_BASIC)
+            self._log("Done", LOG_LEVEL_BASIC_DEBUG)
             # generate fortran to c layer if necessary
             c2f_layer = C2FortranLayerGenerator(
                 self._tf_spec, self._indent,
