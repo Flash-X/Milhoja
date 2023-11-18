@@ -16,7 +16,10 @@ from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
-from . import LOG_LEVEL_BASIC
+from .constants import (
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG
+)
+
 
 @dataclass
 class C2FInfo:
@@ -101,7 +104,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
-        self._log("Generating c2f layer at {str(file)}...", LOG_LEVEL_BASIC)
+        self._log("Generating c2f layer at {str(file)}", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
             data_mapping = {
@@ -168,15 +171,16 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                     shape = ['F_nTiles_h']
                     var_in = data.get("variables_in", None)
                     var_out = data.get("variables_out", None)
-                    
-                    # TODO: Fortran index space?1 
+
+                    # TODO: Fortran index space?1
                     array_size = TemplateUtility.get_array_size(
                         var_in, var_out
                     )
                     index_space = TemplateUtility.DEFAULT_INDEX_SPACE
-                    
+
                     if var_in or var_out:
-                        mask = var_in if var_in else var_out
+                        # TODO: Is this needed Wesley?
+                        # mask = var_in if var_in else var_out
                         shape.insert(
                             0, f'{str(array_size)} + 1 - {str(index_space)}'
                         )
@@ -282,7 +286,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 ', &\n'.join(f'\t\tF_{ptr}_d' for ptr in arg_order)
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
-        self._log("Done", LOG_LEVEL_BASIC)
+        self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
     def log_and_abort(self, msg, e: BaseException):
         self._error(msg)

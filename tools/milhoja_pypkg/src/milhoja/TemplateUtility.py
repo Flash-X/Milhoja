@@ -78,7 +78,7 @@ class TemplateUtility():
         largest_in = None
         if vars_in:
             largest_in = max(vars_in)
-            largest = largest_in 
+            largest = largest_in
 
         largest_out = None
         if vars_out:

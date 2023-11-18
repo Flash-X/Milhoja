@@ -1,7 +1,8 @@
 import os
 
 from collections import defaultdict
-from pathlib import Path
+# TODO: Is this necessary Wesley?
+# from pathlib import Path
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
@@ -39,8 +40,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
         logger = BasicLogger(log_level)
         super().__init__(
-            tf_spec, os.path.basename(outer), 
-            os.path.basename(helper), indent, 
+            tf_spec, os.path.basename(outer),
+            os.path.basename(helper), indent,
             self.__TOOL_NAME, logger
         )
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
@@ -59,7 +60,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         """
         Generates the outer template for the cpp2c layer.
 
-        Note: The paths for each template file get passed into the 
+        Note: The paths for each template file get passed into the
               constructor so destination is unused. This class is exclusively
               used by the data packet generator so it doesn't make
               sense to recreate the path instead of just passing it in at
@@ -143,7 +144,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         """
         Generates the helper template for the cpp2c layer.
 
-        Note: The paths for each template file get passed into the 
+        Note: The paths for each template file get passed into the
               constructor so destination is unused. This class is exclusively
               used by the data packet generator so it doesn't make
               sense to recreate the path instead of just passing it in at

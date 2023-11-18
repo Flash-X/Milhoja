@@ -129,7 +129,7 @@ class CppTemplateUtility(TemplateUtility):
             mask_in = data['variables_in']
 
             # for now just assume that all index spaces are 1 based
-            # since all arrays in the packet are 1 based. 
+            # since all arrays in the packet are 1 based.
             index_offset = cls.DEFAULT_INDEX_SPACE
             array_size = cls.get_array_size(mask_in, None)
 

@@ -22,7 +22,7 @@ from .TaskFunction import TaskFunction
 from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from .constants import (
-    LOG_LEVEL_BASIC,
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
     LOG_LEVEL_MAX
 )
 
@@ -179,7 +179,8 @@ class DataPacketGenerator(AbcCodeGenerator):
                     f"Overwrite flag is {overwrite}", FileExistsError()
                 )
 
-        self._log("Generating helper template...", LOG_LEVEL_BASIC)
+        msg = f"Generating helper template {helper_template}"
+        self._log(msg, LOG_LEVEL_BASIC)
         """Generates the helper template with the provided JSON data."""
         with open(helper_template, 'w') as template:
             # # SETUP FOR CONSTRUCTOR
@@ -227,7 +228,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 self._connectors, self.n_extra_streams
             )
             self.template_utility.write_connectors(self._connectors, template)
-        self._log("Done", LOG_LEVEL_BASIC)
+        self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
         outer_template = \
             destination_path.joinpath(self.outer_template_name).resolve()
@@ -239,7 +240,8 @@ class DataPacketGenerator(AbcCodeGenerator):
                     FileExistsError()
                 )
 
-        self._log("Generating outer template...", LOG_LEVEL_BASIC)
+        msg = f"Generating outer template {outer_template}"
+        self._log(msg, LOG_LEVEL_BASIC)
         with open(outer_template, 'w') as outer:
             outer.writelines(
                 [
@@ -253,7 +255,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                     )
                 ]
             )
-        self._log("Done", LOG_LEVEL_BASIC)
+        self._log("Done", LOG_LEVEL_BASIC_DEBUG)
         # save templates for later use.
         self._outer_template = outer_template
         self._helper_template = helper_template
@@ -271,7 +273,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         destination_path = self.get_destination_path(destination)
         header = destination_path.joinpath(self.header_filename)
 
-        self._log(f"Generating header at {str(header)}...", LOG_LEVEL_BASIC) 
+        self._log("Generating header at {str(header)}", LOG_LEVEL_BASIC)
         self.generate_packet_file(
             header,
             self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -282,7 +284,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             ],
             overwrite
         )
-        self._log(f"Done", LOG_LEVEL_BASIC)
+        self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -297,7 +299,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         destination_path = self.get_destination_path(destination)
         source = destination_path.joinpath(self.source_filename).resolve()
 
-        self._log(f"Generating source at {str(source)}...", LOG_LEVEL_BASIC)
+        self._log(f"Generating source at {str(source)}", LOG_LEVEL_BASIC)
         self.generate_packet_file(
             source,
             self.__DEFAULT_SOURCE_TREE_OPTS,
@@ -577,7 +579,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
             if lang == "fortran":
                 args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
-           
+
         return self._sort_dict(args.items(), sort_func, True)
 
     def __adjust_tile_data(self, args: dict) -> dict:
@@ -707,7 +709,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         dict_items = [(k, v) for k, v in arguments]
         return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
-    
+
     def get_destination_path(self, destination: str) -> Path:
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():

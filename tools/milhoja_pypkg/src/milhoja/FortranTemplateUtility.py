@@ -97,7 +97,7 @@ class FortranTemplateUtility(TemplateUtility):
             elif source == 'tile_ubound':
                 source = 'tile_hiGC'
             source = source.replace('tile_', '')
-            
+
             item_type = data['type']
             size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
             info = DataPacketMemberVars(
@@ -233,7 +233,7 @@ class FortranTemplateUtility(TemplateUtility):
             out_mask = data['variables_out']
             dtype = data['type']
             index_space = cls.DEFAULT_INDEX_SPACE
-            array_size = cls.get_array_size(in_mask, out_mask)            
+            array_size = cls.get_array_size(in_mask, out_mask)
 
             extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
             unks = f'{str(array_size)} + 1 - {str(index_space)}'

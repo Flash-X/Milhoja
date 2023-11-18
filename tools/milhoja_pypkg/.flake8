@@ -10,3 +10,4 @@ per-file-ignores =
     # TODO: Temporarily quiet too long lines for code generators *only*
     src/milhoja/TaskFunctionGenerator_cpu_cpp.py:E501
     src/milhoja/TileWrapperGenerator_cpp.py:E501
+max-line-length = 80
