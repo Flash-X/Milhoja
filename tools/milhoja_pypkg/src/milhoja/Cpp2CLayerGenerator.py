@@ -1,8 +1,7 @@
 import os
 
 from collections import defaultdict
-# TODO: Is this necessary Wesley?
-# from pathlib import Path
+from pathlib import Path
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
