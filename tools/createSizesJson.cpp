@@ -70,8 +70,10 @@ int main(int argc, char* argv[]) {
         //       type and its size by using a std::tuple object as well as
         //       typeid(T).name(). This way we can create a tuple object filled
         //       with types, making it easy to loop over as well as add new 
-        //       types if necessary. However, for the sake of getting the 
-        //       datapacket_tests into main, I'll ignore this for now.
+        //       types if necessary. Also, GCC would not need a special env
+        //       variable for using a specific json library. However, for the
+        //       sake of getting the datapacket_tests into main, I'll ignore
+        //       this for now.
         //output << "    \"byte_align\": " << BYTE_ALIGNMENT << "," << std::endl;
         //output << "    \"int\": " << sizeof(int) << "," << std::endl;
         //output << "    \"unsigned int\": " << sizeof(unsigned int) << "," << std::endl;

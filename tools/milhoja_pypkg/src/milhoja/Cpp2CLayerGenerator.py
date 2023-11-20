@@ -24,8 +24,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
     def __init__(
         self,
         tf_spec,
-        outer,
-        helper,
+        outer: Path,
+        helper: Path,
         indent,
         log_level,
         n_extra_streams,
