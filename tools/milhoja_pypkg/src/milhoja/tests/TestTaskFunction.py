@@ -42,12 +42,16 @@ class TestTaskFunction(unittest.TestCase):
         fname = _SEDOV_PATH.joinpath("cpu_tf_IQ_3D.json")
         self.__sedov_IQ = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        # ----- SEDOV/3D/GPU/FORTRAN TEST
+        # ----- SEDOV/3D/GPU/CPP TEST
         fname = _SEDOV_PATH.joinpath("gpu_tf_hydro_3D.json")
+        self.__sedov_hy_CPP_gpu = milhoja.TaskFunction.from_milhoja_json(fname)
+
+        # ----- SEDOV/3D/GPU/FORTRAN TEST
+        fname = _SEDOV_PATH.joinpath("gpu_tf_hydro_3DF.json")
         self.__sedov_hy_F_gpu = milhoja.TaskFunction.from_milhoja_json(fname)
 
     def testOutputFilenames(self):
-        results_all = self.__sedov_hy_F_gpu.output_filenames
+        results_all = self.__sedov_hy_CPP_gpu.output_filenames
 
         result = results_all[milhoja.TaskFunction.DATA_ITEM_KEY]
         self.assertEqual(2, len(result))
@@ -56,16 +60,18 @@ class TestTaskFunction(unittest.TestCase):
 
         result = results_all[milhoja.TaskFunction.CPP_TF_KEY]
         self.assertEqual(2, len(result))
-        self.assertEqual("gpu_tf_hydro_Cpp2C.h", result["header"])
-        self.assertEqual("gpu_tf_hydro_Cpp2C.cpp", result["source"])
+        self.assertEqual("gpu_tf_hydro.h", result["header"])
+        self.assertEqual("gpu_tf_hydro.cpp", result["source"])
 
-        result = results_all[milhoja.TaskFunction.C2F_KEY]
-        self.assertEqual(1, len(result))
-        self.assertEqual("gpu_tf_hydro_C2F.F90", result["source"])
+        self.assertFalse(milhoja.TaskFunction.C2F_KEY in results_all)
+        self.assertFalse(milhoja.TaskFunction.FORTRAN_TF_KEY in results_all)
+        #result = results_all[milhoja.TaskFunction.C2F_KEY]
+        #self.assertEqual(1, len(result))
+        #self.assertEqual("", result["source"])
 
-        result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
-        self.assertEqual(1, len(result))
-        self.assertEqual("gpu_tf_hydro.F90", result["source"])
+        #result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
+        #self.assertEqual(1, len(result))
+        #self.assertEqual("", result["source"])
 
     def testConstructorDummyArguments(self):
         tests_all = [self.__rt_ic,
@@ -317,14 +323,12 @@ class TestTaskFunction(unittest.TestCase):
 
         expected = [
             "Hydro_computeSoundSpeedHll_gpu_oacc",
-            [
-                "Hydro_computeFluxesHll_X_gpu_oacc",
-                "Hydro_computeFluxesHll_Y_gpu_oacc",
-                "Hydro_computeFluxesHll_Z_gpu_oacc"
-            ],
+            "Hydro_computeFluxesHll_X_gpu_oacc",
+            "Hydro_computeFluxesHll_Y_gpu_oacc",
+            "Hydro_computeFluxesHll_Z_gpu_oacc",
             "Hydro_updateSolutionHll_gpu_oacc"
         ]
-        generator = self.__sedov_hy_F_gpu.internal_subroutine_graph
+        generator = self.__sedov_hy_CPP_gpu.internal_subroutine_graph
         n = 0
         for result in generator:
             if len(result) == 1:
@@ -345,4 +349,4 @@ class TestTaskFunction(unittest.TestCase):
             with self.assertRaises(Exception):
                 test.n_streams
 
-        self.assertEqual(3, self.__sedov_hy_F_gpu.n_streams)
+        self.assertEqual(1, self.__sedov_hy_CPP_gpu.n_streams)
