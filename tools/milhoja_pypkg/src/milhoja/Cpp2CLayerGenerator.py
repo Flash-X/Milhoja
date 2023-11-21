@@ -32,7 +32,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
     ):
         self._outer_template = outer
         self._helper_template = helper
-        self.__TOOL_NAME = self.__class__.__name__
+        self.__TOOL_NAME = "Milhoja Cpp2C"
         self._n_extra_streams = n_extra_streams
         self._connectors = defaultdict(list)
         self._externals = external_args
@@ -87,15 +87,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'/* _param:taskfunctionname = '
                 f'{self._tf_spec.name} */\n',
                 f'/* _param:taskfunctionnametf = '
-                f'{self._tf_spec.name}_Cpp2C */\n',
+                f'{self._tf_spec.name}_cpp2c */\n',
                 f'/* _param:taskfunctionnamec2f = '
-                f'{self._tf_spec.name}_C2F */\n',
+                f'{self._tf_spec.name}_c2f */\n',
                 f'/* _param:instantiate = instantiate_'
-                f'{self._tf_spec.name}_packet_C */\n',
+                f'{self._tf_spec.name}_packet_c */\n',
                 f'/* _param:deletion = '
-                f'delete_{self._tf_spec.name}_packet_C */\n',
+                f'delete_{self._tf_spec.name}_packet_c */\n',
                 f'/* _param:release = release_'
-                f'{self._tf_spec.name}_extra_queue_C */\n',
+                f'{self._tf_spec.name}_extra_queue_c */\n',
                 f'/* _param:thread_id = {THREAD_INDEX_VAR_NAME} */\n\n',
                 '/* _link:cpp2c */'
             ])
@@ -125,7 +125,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         self._connectors[_HOST_MEMBERS_KEY].extend([
             f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
             f'if (queue{i}_h < 0)\n'
-            f'\tthrow std::overflow_error("[{self._tf_spec.name}_Cpp2C] '
+            f'\tthrow std::overflow_error("[{self._tf_spec.name}_cpp2c] '
             'Potential overflow error when accessing async queue id.");\n'
             for i in range(2, n_ex_streams+2)
         ])

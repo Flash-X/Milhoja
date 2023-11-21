@@ -15,7 +15,7 @@ using milhoja::Real;
 
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
-    void gpu_tf_hydro_C2F (
+    void gpu_tf_hydro_c2f (
     void* packet_h,
     const int queue1_h,
     const int queue2_h,
@@ -35,15 +35,15 @@ extern "C" {
     
     );
 
-    int instantiate_gpu_tf_hydro_packet_C (
+    int instantiate_gpu_tf_hydro_packet_c (
     real dt,void** packet
     
         ) {
         if ( packet == nullptr) {
-            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] packet is NULL" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         } else if (*packet != nullptr) {
-            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] *packet not NULL" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_c] *packet not NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL;
         }
 
@@ -55,25 +55,25 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         } catch (...) {
-            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] Unknown error caught" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         }
 
         return MILHOJA_SUCCESS;
     }
 
-    int delete_gpu_tf_hydro_packet_C (void* packet) {
+    int delete_gpu_tf_hydro_packet_c (void* packet) {
         if (packet == nullptr) {
-            std::cerr << "[delete_gpu_tf_hydro_packet_C] packet is NULL" << std::endl;
+            std::cerr << "[delete_gpu_tf_hydro_packet_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         delete static_cast< DataPacket_gpu_tf_hydro *>(packet);
         return MILHOJA_SUCCESS;
     }
 
-    int release_gpu_tf_hydro_extra_queue_C (void* packet, const int id) {
+    int release_gpu_tf_hydro_extra_queue_c (void* packet, const int id) {
         if (packet == nullptr) {
-            std::cerr << "[release_gpu_tf_hydro_extra_queue_C] packet is NULL" << std::endl;
+            std::cerr << "[release_gpu_tf_hydro_extra_queue_c] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         DataPacket_gpu_tf_hydro*   packet_h = static_cast<DataPacket_gpu_tf_hydro*>(packet);
@@ -84,7 +84,7 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         } catch (...) {
-            std::cerr << "[release_gpu_tf_hydro_extra_queue_C] Unknown error caught" << std::endl;
+            std::cerr << "[release_gpu_tf_hydro_extra_queue_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         }
     
@@ -92,16 +92,16 @@ extern "C" {
     }
 
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
-    void gpu_tf_hydro_Cpp2C(const int threadIndex, void* dataItem_h) {
+    void gpu_tf_hydro_cpp2c(const int threadIndex, void* dataItem_h) {
         DataPacket_gpu_tf_hydro* packet_h = static_cast<DataPacket_gpu_tf_hydro*>(dataItem_h);
         const int queue1_h = packet_h->asynchronousQueue();
         const int _nTiles_h = packet_h->_nTiles_h;
         const int queue2_h = packet_h->extraAsynchronousQueue(2);
         if (queue2_h < 0)
-        	throw std::overflow_error("[gpu_tf_hydro_Cpp2C] Potential overflow error when accessing async queue id.");
+        	throw std::overflow_error("[gpu_tf_hydro_cpp2c] Potential overflow error when accessing async queue id.");
         const int queue3_h = packet_h->extraAsynchronousQueue(3);
         if (queue3_h < 0)
-        	throw std::overflow_error("[gpu_tf_hydro_Cpp2C] Potential overflow error when accessing async queue id.");
+        	throw std::overflow_error("[gpu_tf_hydro_cpp2c] Potential overflow error when accessing async queue id.");
         
 
         void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );
@@ -118,7 +118,7 @@ extern "C" {
         
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
-        gpu_tf_hydro_C2F (
+        gpu_tf_hydro_c2f (
         packet_h,
         queue1_h,
         queue2_h,

@@ -500,5 +500,13 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def testGetArraySizes(self):
         # test none on both
-        # self
+        # mask_in = None
+        # mask_out = None
+        # with self.assertRaises(TypeError):
+        #     TemplateUtility.get_array_size([], [])
+
+        # mask_in = [1, 2]
+        # mask_out = [1, 2]
+        # size = TemplateUtility.get_array_size(mask_in, mask_out)
+        # self.assertTrue(size == 2)
         ...

@@ -63,7 +63,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
-            indent, self.__class__.__name__,
+            indent, "Milhoja C2F",
             logger
         )
 

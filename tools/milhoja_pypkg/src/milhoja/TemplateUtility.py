@@ -74,6 +74,8 @@ class TemplateUtility():
         :rtype: int
         """
         largest = None
+        # if not vars_in and not vars_out:
+        #     raise TypeError("No variable masking for given array in tf spec.")
 
         largest_in = None
         if vars_in:
@@ -86,9 +88,13 @@ class TemplateUtility():
             largest = largest_out
 
         if vars_in and vars_out:
+            assert largest_in is not None
+            assert largest_out is not None
             largest = max([largest_in, largest_out])
 
         return largest
+        # if not largest:
+        #     raise TypeError("No variable masking in json.")
 
     @classmethod
     @abstractmethod
