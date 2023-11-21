@@ -213,7 +213,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
                 '\tuse openacc, ONLY : acc_handle_kind\n',
                 '\tuse milhoja_types_mod, ONLY : MILHOJA_INT\n',
-                f'\tuse {self._tf_spec.name}_bundle_mod, ONLY : ' \
+                f'\tuse {self._tf_spec.name}_mod, ONLY : ' \
                 f'{self._tf_spec.name}\n',
                 '\timplicit none\n\n'
             ])

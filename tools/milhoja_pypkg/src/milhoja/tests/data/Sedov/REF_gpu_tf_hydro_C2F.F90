@@ -10,18 +10,19 @@ C_queue3_h, &
 C_nTiles_h, &
 C_nTiles_d, &
 C_dt_d, &
+C_tile_deltas_d, &
 C_tile_lo_d, &
 C_tile_hi_d, &
-C_tile_deltas_d, &
-C_CC_1_d, &
+C_tile_lbound_d, &
+C_U_d, &
+C_hydro_op1_auxc_d, &
 C_hydro_op1_flX_d, &
 C_hydro_op1_flY_d, &
-C_hydro_op1_flZ_d, &
-C_hydro_op1_auxc_d) bind(c)
+C_hydro_op1_flZ_d) bind(c)
 	use iso_c_binding, ONLY : C_PTR, C_F_POINTER
 	use openacc, ONLY : acc_handle_kind
 	use milhoja_types_mod, ONLY : MILHOJA_INT
-	use gpu_tf_hydro_bundle_mod, ONLY : gpu_tf_hydro
+	use gpu_tf_hydro_mod, ONLY : gpu_tf_hydro
 	implicit none
 
 	type(C_PTR), intent(IN), value :: C_packet_h
@@ -35,23 +36,25 @@ C_hydro_op1_auxc_d) bind(c)
 	type(C_PTR), intent(IN), value :: C_tile_deltas_d
 	type(C_PTR), intent(IN), value :: C_tile_lo_d
 	type(C_PTR), intent(IN), value :: C_tile_hi_d
-	type(C_PTR), intent(IN), value :: C_CC_1_d
+	type(C_PTR), intent(IN), value :: C_tile_lbound_d
+	type(C_PTR), intent(IN), value :: C_U_d
 	type(C_PTR), intent(IN), value :: C_hydro_op1_auxc_d
 	type(C_PTR), intent(IN), value :: C_hydro_op1_flX_d
 	type(C_PTR), intent(IN), value :: C_hydro_op1_flY_d
 	type(C_PTR), intent(IN), value :: C_hydro_op1_flZ_d
 
-	integer(kind=acc_handle_kind) :: F_queue1_h
-	integer(kind=acc_handle_kind) :: F_queue2_h
-	integer(kind=acc_handle_kind) :: F_queue3_h
-	integer :: F_nTiles_h
+	integer(kind=acc_handle_kind):: F_queue1_h
+	integer(kind=acc_handle_kind):: F_queue2_h
+	integer(kind=acc_handle_kind):: F_queue3_h
+	integer:: F_nTiles_h
 
 	integer, pointer :: F_nTiles_d
 	real, pointer :: F_dt_d
 	real, pointer :: F_tile_deltas_d(:,:)
 	integer, pointer :: F_tile_lo_d(:,:)
 	integer, pointer :: F_tile_hi_d(:,:)
-	real, pointer :: F_CC_1_d(:,:,:,:,:)
+	integer, pointer :: F_tile_lbound_d(:,:)
+	real, pointer :: F_U_d(:,:,:,:,:)
 	real, pointer :: F_hydro_op1_auxc_d(:,:,:,:)
 	real, pointer :: F_hydro_op1_flX_d(:,:,:,:,:)
 	real, pointer :: F_hydro_op1_flY_d(:,:,:,:,:)
@@ -67,11 +70,12 @@ C_hydro_op1_auxc_d) bind(c)
 	CALL C_F_POINTER(C_tile_deltas_d, F_tile_deltas_d, shape=[MILHOJA_MDIM, F_nTiles_h])
 	CALL C_F_POINTER(C_tile_lo_d, F_tile_lo_d, shape=[MILHOJA_MDIM, F_nTiles_h])
 	CALL C_F_POINTER(C_tile_hi_d, F_tile_hi_d, shape=[MILHOJA_MDIM, F_nTiles_h])
-	CALL C_F_POINTER(C_CC_1_d, F_CC_1_d, shape=[16 + 2 * 1 * MILHOJA_K1D, 16 + 2 * 1 * MILHOJA_K2D, 16 + 2 * 1 * MILHOJA_K3D, 8 - 0 + 1, F_nTiles_h])
-	CALL C_F_POINTER(C_hydro_op1_auxc_d, F_hydro_op1_auxc_d, shape=[18, 18, 18, F_nTiles_h])
-	CALL C_F_POINTER(C_hydro_op1_flX_d, F_hydro_op1_flX_d, shape=[17, 16, 16, 5, F_nTiles_h])
-	CALL C_F_POINTER(C_hydro_op1_flY_d, F_hydro_op1_flY_d, shape=[16, 17, 16, 5, F_nTiles_h])
-	CALL C_F_POINTER(C_hydro_op1_flZ_d, F_hydro_op1_flZ_d, shape=[16, 16, 17, 5, F_nTiles_h])
+	CALL C_F_POINTER(C_tile_lbound_d, F_tile_lbound_d, shape=[MILHOJA_MDIM, F_nTiles_h])
+	CALL C_F_POINTER(C_U_d, F_U_d, shape=[8 + 2 * 1 * MILHOJA_K1D, 8 + 2 * 1 * MILHOJA_K2D, 8 + 2 * 1 * MILHOJA_K3D, 9 + 1 - 0, F_nTiles_h])
+	CALL C_F_POINTER(C_hydro_op1_auxc_d, F_hydro_op1_auxc_d, shape=[10, 10, 10, F_nTiles_h])
+	CALL C_F_POINTER(C_hydro_op1_flX_d, F_hydro_op1_flX_d, shape=[11, 10, 10, 5, F_nTiles_h])
+	CALL C_F_POINTER(C_hydro_op1_flY_d, F_hydro_op1_flY_d, shape=[10, 11, 10, 5, F_nTiles_h])
+	CALL C_F_POINTER(C_hydro_op1_flZ_d, F_hydro_op1_flZ_d, shape=[10, 10, 11, 5, F_nTiles_h])
 
 	CALL gpu_tf_hydro(C_packet_h, &
 		F_queue1_h, &
@@ -79,12 +83,13 @@ C_hydro_op1_auxc_d) bind(c)
 		F_queue3_h, &
 		F_nTiles_d, &
 		F_dt_d, &
+		F_tile_deltas_d, &
 		F_tile_lo_d, &
 		F_tile_hi_d, &
-		F_tile_deltas_d, &
-		F_CC_1_d, &
+		F_tile_lbound_d, &
+		F_U_d, &
+		F_hydro_op1_auxc_d, &
 		F_hydro_op1_flX_d, &
 		F_hydro_op1_flY_d, &
-		F_hydro_op1_flZ_d, &
-		F_hydro_op1_auxc_d)
+		F_hydro_op1_flZ_d)
 end subroutine gpu_tf_hydro_C2F

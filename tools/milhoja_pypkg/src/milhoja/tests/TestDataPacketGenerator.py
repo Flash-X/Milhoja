@@ -137,7 +137,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             {
                 self.JSON: _TEST_PATH.joinpath(
                     "Sedov",
-                    "gpu_tf_hydro_3D.json"
+                    "gpu_tf_hydro_3DF.json"
                 ),
                 self.FOLDER: "Sedov",
                 self.HDD: False,
@@ -382,6 +382,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             sizes = test[self.SIZES]
             self.assertTrue(isinstance(sizes, dict))
             tf_spec = TaskFunction.from_milhoja_json(json_path)
+
+            # only testing fortran files with cpp2c for now.
+            if tf_spec.language.lower() == "c++":
+                continue
+
             # use default logging value for now
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = "./"

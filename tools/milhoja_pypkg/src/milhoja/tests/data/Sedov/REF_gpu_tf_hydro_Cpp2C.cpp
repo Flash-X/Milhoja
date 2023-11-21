@@ -23,26 +23,27 @@ extern "C" {
     const int _nTiles_h,
     const void* _nTiles_d,
     const void* _dt_d,
+    const void* _tile_deltas_d,
     const void* _tile_lo_d,
     const void* _tile_hi_d,
-    const void* _tile_deltas_d,
-    const void* _CC_1_d,
+    const void* _tile_lbound_d,
+    const void* _U_d,
+    const void* _hydro_op1_auxc_d,
     const void* _hydro_op1_flX_d,
     const void* _hydro_op1_flY_d,
-    const void* _hydro_op1_flZ_d,
-    const void* _hydro_op1_auxc_d
+    const void* _hydro_op1_flZ_d
     
     );
 
-    int instantiate_DataPacket_gpu_tf_hydro_C (
+    int instantiate_gpu_tf_hydro_packet_C (
     real dt,void** packet
     
         ) {
         if ( packet == nullptr) {
-            std::cerr << "[instantiate_DataPacket_gpu_tf_hydro_C] packet is NULL" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         } else if (*packet != nullptr) {
-            std::cerr << "[instantiate_DataPacket_gpu_tf_hydro_C] *packet not NULL" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] *packet not NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_NOT_NULL;
         }
 
@@ -54,25 +55,25 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         } catch (...) {
-            std::cerr << "[instantiate_DataPacket_gpu_tf_hydro_C] Unknown error caught" << std::endl;
+            std::cerr << "[instantiate_gpu_tf_hydro_packet_C] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET;
         }
 
         return MILHOJA_SUCCESS;
     }
 
-    int delete_DataPacket_gpu_tf_hydro_C (void* packet) {
+    int delete_gpu_tf_hydro_packet_C (void* packet) {
         if (packet == nullptr) {
-            std::cerr << "[delete_DataPacket_gpu_tf_hydro_C] packet is NULL" << std::endl;
+            std::cerr << "[delete_gpu_tf_hydro_packet_C] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         delete static_cast< DataPacket_gpu_tf_hydro *>(packet);
         return MILHOJA_SUCCESS;
     }
 
-    int release_DataPacket_gpu_tf_hydro_extra_queue_C (void* packet, const int id) {
+    int release_gpu_tf_hydro_extra_queue_C (void* packet, const int id) {
         if (packet == nullptr) {
-            std::cerr << "[release_DataPacket_gpu_tf_hydro_extra_queue_C] packet is NULL" << std::endl;
+            std::cerr << "[release_gpu_tf_hydro_extra_queue_C] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         DataPacket_gpu_tf_hydro*   packet_h = static_cast<DataPacket_gpu_tf_hydro*>(packet);
@@ -83,7 +84,7 @@ extern "C" {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         } catch (...) {
-            std::cerr << "[release_DataPacket_gpu_tf_hydro_extra_queue_C] Unknown error caught" << std::endl;
+            std::cerr << "[release_gpu_tf_hydro_extra_queue_C] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         }
     
@@ -91,7 +92,7 @@ extern "C" {
     }
 
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
-    void gpu_tf_hydro_Cpp2C (const int threadIndex, void* dataItem_h) {
+    void gpu_tf_hydro_Cpp2C(const int threadIndex, void* dataItem_h) {
         DataPacket_gpu_tf_hydro* packet_h = static_cast<DataPacket_gpu_tf_hydro*>(dataItem_h);
         const int queue1_h = packet_h->asynchronousQueue();
         const int _nTiles_h = packet_h->_nTiles_h;
@@ -105,14 +106,15 @@ extern "C" {
 
         void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );
         void* _dt_d = static_cast<void*>( packet_h->_dt_d );
+        void* _tile_deltas_d = static_cast<void*>( packet_h->_tile_deltas_d );
         void* _tile_lo_d = static_cast<void*>( packet_h->_tile_lo_d );
         void* _tile_hi_d = static_cast<void*>( packet_h->_tile_hi_d );
-        void* _tile_deltas_d = static_cast<void*>( packet_h->_tile_deltas_d );
-        void* _CC_1_d = static_cast<void*>( packet_h->_CC_1_d );
+        void* _tile_lbound_d = static_cast<void*>( packet_h->_tile_lbound_d );
+        void* _U_d = static_cast<void*>( packet_h->_U_d );
+        void* _hydro_op1_auxc_d = static_cast<void*>( packet_h->_hydro_op1_auxc_d );
         void* _hydro_op1_flX_d = static_cast<void*>( packet_h->_hydro_op1_flX_d );
         void* _hydro_op1_flY_d = static_cast<void*>( packet_h->_hydro_op1_flY_d );
         void* _hydro_op1_flZ_d = static_cast<void*>( packet_h->_hydro_op1_flZ_d );
-        void* _hydro_op1_auxc_d = static_cast<void*>( packet_h->_hydro_op1_auxc_d );
         
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
@@ -124,14 +126,15 @@ extern "C" {
         _nTiles_h,
         _nTiles_d,
         _dt_d,
+        _tile_deltas_d,
         _tile_lo_d,
         _tile_hi_d,
-        _tile_deltas_d,
-        _CC_1_d,
+        _tile_lbound_d,
+        _U_d,
+        _hydro_op1_auxc_d,
         _hydro_op1_flX_d,
         _hydro_op1_flY_d,
-        _hydro_op1_flZ_d,
-        _hydro_op1_auxc_d
+        _hydro_op1_flZ_d
         
         );
     }

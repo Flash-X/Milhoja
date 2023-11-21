@@ -574,7 +574,6 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
-            print(key)
             args[key] = self._tf_spec.argument_specification(key)
             args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
             if lang == "fortran":

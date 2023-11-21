@@ -91,11 +91,11 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'/* _param:taskfunctionnamec2f = '
                 f'{self._tf_spec.name}_C2F */\n',
                 f'/* _param:instantiate = instantiate_'
-                f'{self._tf_spec.data_item_class_name}_C */\n',
+                f'{self._tf_spec.name}_packet_C */\n',
                 f'/* _param:deletion = '
-                f'delete_{self._tf_spec.data_item_class_name}_C */\n',
+                f'delete_{self._tf_spec.name}_packet_C */\n',
                 f'/* _param:release = release_'
-                f'{self._tf_spec.data_item_class_name}_extra_queue_C */\n',
+                f'{self._tf_spec.name}_extra_queue_C */\n',
                 f'/* _param:thread_id = {THREAD_INDEX_VAR_NAME} */\n\n',
                 '/* _link:cpp2c */'
             ])
