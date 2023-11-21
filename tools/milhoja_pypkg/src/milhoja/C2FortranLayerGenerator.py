@@ -67,6 +67,8 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             logger
         )
 
+        self.INDENT = " " * indent
+
     @property
     def c2f_file(self) -> str:
         return self._tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"]
@@ -210,28 +212,28 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 # data packet at this point
                 ', &\n'.join(f'C_{item}_d' for item in arg_order),
                 ') bind(c)\n',
-                '\tuse iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
-                '\tuse openacc, ONLY : acc_handle_kind\n',
-                '\tuse milhoja_types_mod, ONLY : MILHOJA_INT\n',
-                f'\tuse {self._tf_spec.name}_mod, ONLY : ' \
+                f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
+                f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
+                f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
+                f'{self.INDENT}use {self._tf_spec.name}_mod, ONLY : ' \
                 f'{self._tf_spec.name}_Fortran\n',
-                '\timplicit none\n\n'
+                f'{self.INDENT}implicit none\n\n'
             ])
 
             # write c pointer & host fortran declarations
             fp.writelines([
-                f'\t{data.ctype}, intent(IN), value :: C_{item}_h\n'
+                f'{self.INDENT}{data.ctype}, intent(IN), value :: C_{item}_h\n'
                 for item, data in host_pointers.items() if data.ctype] +
                 ['\n']
             )
             fp.writelines([
-                f'\t{data.ctype}, intent(IN), value :: C_{item}_d\n'
+                f'{self.INDENT}{data.ctype}, intent(IN), value :: C_{item}_d\n'
                 for item, data in gpu_pointers.items() if data.ctype] +
                 ['\n']
             )
             fp.writelines([
                 (
-                    f'\t{data.ftype}'
+                    f'{self.INDENT}{data.ftype}'
                     f'{"" if not data.kind else f"(kind={ data.kind })"}'
                     f':: F_{item}_h\n'
                 )
@@ -241,7 +243,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             # write Fortran pointer declarations
             fp.writelines([
-                f"""\t{data.ftype}, pointer :: F_{item}_d{''
+                f"""{self.INDENT}{data.ftype}, pointer :: F_{item}_d{''
                     if not data.shape else '(' + ','.join(
                         ':' for _ in range(0, len(data.shape))
                     ) + ')'}\n"""
@@ -251,7 +253,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             fp.writelines([
                 (
-                    f"\tF_{item}_h = INT(C_{item}_h"
+                    f"{self.INDENT}F_{item}_h = INT(C_{item}_h"
                     f"{f', kind={data.kind}' if data.kind else ''})\n"
                 )
                 for item, data in host_pointers.items() if data.ftype] +
@@ -264,7 +266,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 host_pointers.pop(item)
 
             c2f_pointers = [
-                f"""\tCALL C_F_POINTER(C_{item}_d, F_{item}_d{
+                f"""{self.INDENT}CALL C_F_POINTER(C_{item}_d, F_{item}_d{
                     f', shape=[{", ".join(ext for ext in data.shape)}]'
                     if data.shape else ''
                 })\n"""
@@ -274,13 +276,13 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             # CALL STATIC FORTRAN LAYER
             fp.writelines([
-                f'\tCALL {self._tf_spec.name}_Fortran(',
+                f'{self.INDENT}CALL {self._tf_spec.name}_Fortran(',
                 ', &\n'.join(
-                    f'\t\tF_{ptr}_h' if data.ftype else f'C_{ptr}_h'
+                    f'{self.INDENT * 2}F_{ptr}_h' if data.ftype else f'C_{ptr}_h'
                     for ptr, data in host_pointers.items()
                 ),
                 ', &\n',
-                ', &\n'.join(f'\t\tF_{ptr}_d' for ptr in arg_order)
+                ', &\n'.join(f'{self.INDENT * 2}F_{ptr}_d' for ptr in arg_order)
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
