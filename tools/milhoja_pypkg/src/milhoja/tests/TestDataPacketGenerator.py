@@ -497,3 +497,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     os.remove(file)
             except FileNotFoundError:
                 print("Could not find files. Continue.")
+
+    def testGetArraySizes(self):
+        # test none on both
+        # self
+        ...

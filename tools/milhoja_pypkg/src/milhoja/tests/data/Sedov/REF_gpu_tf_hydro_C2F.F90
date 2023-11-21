@@ -22,7 +22,7 @@ C_hydro_op1_flZ_d) bind(c)
 	use iso_c_binding, ONLY : C_PTR, C_F_POINTER
 	use openacc, ONLY : acc_handle_kind
 	use milhoja_types_mod, ONLY : MILHOJA_INT
-	use gpu_tf_hydro_mod, ONLY : gpu_tf_hydro
+	use gpu_tf_hydro_mod, ONLY : gpu_tf_hydro_Fortran
 	implicit none
 
 	type(C_PTR), intent(IN), value :: C_packet_h
@@ -77,7 +77,7 @@ C_hydro_op1_flZ_d) bind(c)
 	CALL C_F_POINTER(C_hydro_op1_flY_d, F_hydro_op1_flY_d, shape=[10, 11, 10, 5, F_nTiles_h])
 	CALL C_F_POINTER(C_hydro_op1_flZ_d, F_hydro_op1_flZ_d, shape=[10, 10, 11, 5, F_nTiles_h])
 
-	CALL gpu_tf_hydro(C_packet_h, &
+	CALL gpu_tf_hydro_Fortran(C_packet_h, &
 		F_queue1_h, &
 		F_queue2_h, &
 		F_queue3_h, &

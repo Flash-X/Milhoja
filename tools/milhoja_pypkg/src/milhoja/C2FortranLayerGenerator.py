@@ -214,7 +214,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 '\tuse openacc, ONLY : acc_handle_kind\n',
                 '\tuse milhoja_types_mod, ONLY : MILHOJA_INT\n',
                 f'\tuse {self._tf_spec.name}_mod, ONLY : ' \
-                f'{self._tf_spec.name}\n',
+                f'{self._tf_spec.name}_Fortran\n',
                 '\timplicit none\n\n'
             ])
 
@@ -274,7 +274,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             # CALL STATIC FORTRAN LAYER
             fp.writelines([
-                f'\tCALL {self._tf_spec.name}(',
+                f'\tCALL {self._tf_spec.name}_Fortran(',
                 ', &\n'.join(
                     f'\t\tF_{ptr}_h' if data.ftype else f'C_{ptr}_h'
                     for ptr, data in host_pointers.items()

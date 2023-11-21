@@ -65,13 +65,13 @@ class TestTaskFunction(unittest.TestCase):
 
         self.assertFalse(milhoja.TaskFunction.C2F_KEY in results_all)
         self.assertFalse(milhoja.TaskFunction.FORTRAN_TF_KEY in results_all)
-        #result = results_all[milhoja.TaskFunction.C2F_KEY]
-        #self.assertEqual(1, len(result))
-        #self.assertEqual("", result["source"])
+        # result = results_all[milhoja.TaskFunction.C2F_KEY]
+        # self.assertEqual(1, len(result))
+        # self.assertEqual("", result["source"])
 
-        #result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
-        #self.assertEqual(1, len(result))
-        #self.assertEqual("", result["source"])
+        # result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
+        # self.assertEqual(1, len(result))
+        # self.assertEqual("", result["source"])
 
     def testConstructorDummyArguments(self):
         tests_all = [self.__rt_ic,
