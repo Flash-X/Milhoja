@@ -332,8 +332,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
 
             self._log(
-                "Generating cpp2c helper at {str(helper_cpp2c)} and "
-                "cpp2c outer at {str(outer_cpp2c)}...",
+                f"Generating cpp2c helper at {str(helper_cpp2c)} and "
+                f"cpp2c outer at {str(outer_cpp2c)}",
                 LOG_LEVEL_BASIC
             )
             cpp2c_layer.generate_source_code(destination, overwrite)
