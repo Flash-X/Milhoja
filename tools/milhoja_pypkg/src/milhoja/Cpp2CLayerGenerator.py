@@ -88,7 +88,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 '/* _connector:cpp2c_outer */\n',
                 f'/* _param:class_name = '
                 f'{self._tf_spec.data_item_class_name} */\n\n',
-                f'/* _param:file_name = ',
+                '/* _param:file_name = ',
                 f'{file_name} */\n',
                 f'/* _param:taskfunctionname = '
                 f'{self._tf_spec.name} */\n',

@@ -166,16 +166,19 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: {
-                    "real": 8,
+                    "FArray1D": 24,
+                    "FArray2D": 24,
+                    "FArray3D": 40,
+                    "FArray4D": 48,
+                    "IntVect": 12,
+                    "RealVect": 24,
+                    "byte_align": 16,
                     "int": 4,
-                    "unsigned int": 4,
+                    "real": 8,
                     "std::size_t": 8,
-                    "IntVect": 8,
-                    "RealVect": 16,
-                    "bool": 1
+                    "unsigned int": 4
                 }
-            },
-            
+            }
         ]
 
     def tearDown(self):

@@ -22,21 +22,21 @@ extern "C" {
     const int queue3_h,
     const int _nTiles_h,
     const void* _nTiles_d,
-    const void* _dt_d,
+    const void* _external_hydro_op1_dt_d,
     const void* _tile_deltas_d,
     const void* _tile_lo_d,
     const void* _tile_hi_d,
     const void* _tile_lbound_d,
-    const void* _U_d,
-    const void* _hydro_op1_auxc_d,
-    const void* _hydro_op1_flX_d,
-    const void* _hydro_op1_flY_d,
-    const void* _hydro_op1_flZ_d
+    const void* _CC_1_d,
+    const void* _scratch_hydro_op1_auxC_d,
+    const void* _scratch_hydro_op1_flX_d,
+    const void* _scratch_hydro_op1_flY_d,
+    const void* _scratch_hydro_op1_flZ_d
     
     );
 
     int instantiate_gpu_tf_hydro_packet_c (
-    real dt,void** packet
+    real external_hydro_op1_dt,void** packet
     
         ) {
         if ( packet == nullptr) {
@@ -49,7 +49,7 @@ extern "C" {
 
         try {
             *packet = static_cast<void*>(new DataPacket_gpu_tf_hydro(
-            dt
+            external_hydro_op1_dt
             ));
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
@@ -105,16 +105,16 @@ extern "C" {
         
 
         void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );
-        void* _dt_d = static_cast<void*>( packet_h->_dt_d );
+        void* _external_hydro_op1_dt_d = static_cast<void*>( packet_h->_external_hydro_op1_dt_d );
         void* _tile_deltas_d = static_cast<void*>( packet_h->_tile_deltas_d );
         void* _tile_lo_d = static_cast<void*>( packet_h->_tile_lo_d );
         void* _tile_hi_d = static_cast<void*>( packet_h->_tile_hi_d );
         void* _tile_lbound_d = static_cast<void*>( packet_h->_tile_lbound_d );
-        void* _U_d = static_cast<void*>( packet_h->_U_d );
-        void* _hydro_op1_auxc_d = static_cast<void*>( packet_h->_hydro_op1_auxc_d );
-        void* _hydro_op1_flX_d = static_cast<void*>( packet_h->_hydro_op1_flX_d );
-        void* _hydro_op1_flY_d = static_cast<void*>( packet_h->_hydro_op1_flY_d );
-        void* _hydro_op1_flZ_d = static_cast<void*>( packet_h->_hydro_op1_flZ_d );
+        void* _CC_1_d = static_cast<void*>( packet_h->_CC_1_d );
+        void* _scratch_hydro_op1_auxC_d = static_cast<void*>( packet_h->_scratch_hydro_op1_auxC_d );
+        void* _scratch_hydro_op1_flX_d = static_cast<void*>( packet_h->_scratch_hydro_op1_flX_d );
+        void* _scratch_hydro_op1_flY_d = static_cast<void*>( packet_h->_scratch_hydro_op1_flY_d );
+        void* _scratch_hydro_op1_flZ_d = static_cast<void*>( packet_h->_scratch_hydro_op1_flZ_d );
         
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
@@ -125,16 +125,16 @@ extern "C" {
         queue3_h,
         _nTiles_h,
         _nTiles_d,
-        _dt_d,
+        _external_hydro_op1_dt_d,
         _tile_deltas_d,
         _tile_lo_d,
         _tile_hi_d,
         _tile_lbound_d,
-        _U_d,
-        _hydro_op1_auxc_d,
-        _hydro_op1_flX_d,
-        _hydro_op1_flY_d,
-        _hydro_op1_flZ_d
+        _CC_1_d,
+        _scratch_hydro_op1_auxC_d,
+        _scratch_hydro_op1_flX_d,
+        _scratch_hydro_op1_flY_d,
+        _scratch_hydro_op1_flZ_d
         
         );
     }
