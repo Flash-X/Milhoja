@@ -556,7 +556,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     @functools.lru_cache
     def tile_metadata_args(self) -> OrderedDict:
         """
-        Gets all tile metadata arguments from the TaskFunction 
+        Gets all tile metadata arguments from the TaskFunction
         and formats it for easy use with this class.
         """
         lang = self._tf_spec.language.lower()
