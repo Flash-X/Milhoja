@@ -20,7 +20,7 @@ extern "C" {
 
     int _param:instantiate (
         /* _link:instance_args */
-        ) {
+    ) {
         if ( packet == nullptr) {
             std::cerr << "[_param:instantiate] packet is NULL" << std::endl;
             return MILHOJA_ERROR_POINTER_IS_NULL;
