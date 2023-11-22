@@ -208,7 +208,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         )
 
     def testPacketGeneration(self):
-        # Tests all files in the test data folder.
+        """
+        Runs through all tests in test_set.
+        This function generates all necessary files for a complete
+        data packet and compares them with existing reference benchmarks.
+        """
         for test_set in [self._runtime, self._sedov]:
             for test in test_set:
                 json_path = test[self.JSON]
@@ -218,7 +222,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # use default logging value for now
                 logger = BasicLogger(LOG_LEVEL_NONE)
                 destination = "./"
-
                 generator = DataPacketGenerator(tf_spec, 4, logger, sizes)
 
                 # check for no template generation
@@ -241,6 +244,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     )
                     self.assertTrue(False)
 
+                # generate source code
                 generator.generate_templates(destination, overwrite=True)
                 generator.generate_header_code(destination, overwrite=True)
                 generator.generate_source_code(destination, overwrite=True)
@@ -302,7 +306,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         self.check_generated_files(generated_h, correct)
 
                 # ..todo::
-                #   * Generator should generate TaskFunction call
+                #   * Generator should generate TaskFunction
 
                 # ..todo::
                 #       * currently the cpp2c layer is only generated when
@@ -355,9 +359,13 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     print("Could not find files. Continue.")
 
     def testTemplateUtility(self):
+        """
+        Function for testing the template utility classes.
+        """
         connectors = {}
         size_connectors = {}
 
+        # give a sample external variable set.
         mock_external = OrderedDict({
             "external_example": {
                 "source": "external",
@@ -373,6 +381,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 connectors, size_connectors, mock_external
             )
 
+        # sample tile_in variable set.
         mock_tile_in = OrderedDict({
             "test1": {
                 "source": "tile_in",
@@ -404,6 +413,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             )
 
     def testCpp2CGenerator(self):
+        """
+        Testing overwrites in the cpp2c layer generator.
+        """
         for test in self._sedov:
             json_path = test[self.JSON]
             sizes = test[self.SIZES]
@@ -411,6 +423,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             tf_spec = TaskFunction.from_milhoja_json(json_path)
 
             # only testing fortran files with cpp2c for now.
+            # Some files in the Sedov test use C++ so this should be here.
             if tf_spec.language.lower() == "c++":
                 continue
 
@@ -449,6 +462,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 cpp2c.generate_source_code(destination, overwrite=False)
                 self.assertTrue(False)
 
+            # cleanup
             try:
                 for file in glob.glob(
                     str(Path(destination, "cg-tpl.*.cpp"))
@@ -458,6 +472,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testC2fGenerator(self):
+        """
+        Function for testing the c to fortran layer.
+        """
         for test in self._sedov:
             json_path = test[self.JSON]
             sizes = test[self.SIZES]
@@ -526,6 +543,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testGetArraySizes(self):
+        """
+        Tests the get_array_sizes function in the TemplateUtility class.
+        """
         # test none on both
         mask_in = None
         mask_out = None
