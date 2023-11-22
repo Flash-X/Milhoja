@@ -208,11 +208,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         )
 
     def testPacketGeneration(self):
-        """
-        Runs through all tests in test_set.
-        This function generates all necessary files for a complete
-        data packet and compares them with existing reference benchmarks.
-        """
+        # Runs through all tests in test_set.
+        # This function generates all necessary files for a complete
+        # data packet and compares them with existing reference benchmarks.
         for test_set in [self._runtime, self._sedov]:
             for test in test_set:
                 json_path = test[self.JSON]
@@ -413,9 +411,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             )
 
     def testCpp2CGenerator(self):
-        """
-        Testing overwrites in the cpp2c layer generator.
-        """
         for test in self._sedov:
             json_path = test[self.JSON]
             sizes = test[self.SIZES]
@@ -472,9 +467,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testC2fGenerator(self):
-        """
-        Function for testing the c to fortran layer.
-        """
         for test in self._sedov:
             json_path = test[self.JSON]
             sizes = test[self.SIZES]
@@ -543,9 +535,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testGetArraySizes(self):
-        """
-        Tests the get_array_sizes function in the TemplateUtility class.
-        """
         # test none on both
         mask_in = None
         mask_out = None

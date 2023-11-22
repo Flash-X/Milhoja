@@ -1,14 +1,3 @@
-"""
-Generates the C to Fortran layer for data packets.
-
-Note: The same JSON file used to generate the data packets
-      must also be used as a parameter for this script.
-
-      ..todo::
-        * Add new tile_metadata functionality
-          (cell_volumes, cell coords, etc.)
-        * Add functionality for external arguments with extents.
-"""
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -37,6 +26,20 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
     """
     C to Fortran layer generator. Should only be used internally with
     the DataPacketGenerator.
+
+    Generates the C to Fortran layer for data packets.
+
+    Note: The same JSON file used to generate the data packets
+        must also be used as a parameter for this script.
+
+        ..todo::
+            * Add new tile_metadata functionality
+            (cell_volumes, cell coords, etc.)
+            * Add functionality for external arguments with extents.
+            * Full lbound functionality?
+            * Jared mentioned that this and the cpp2c layers should probably
+            be separated out from the data packet generator class and moved
+            over into generate_task_function.
     """
 
     def __init__(
@@ -52,6 +55,21 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         tile_out,
         tile_scratch
     ):
+        """
+        Constructor. The data packet generator automatically passes in the
+        data it uses to construct the data packet classes.
+
+        :param tf_spec: The task function specification
+        :param int indent: The indent size
+        :param logger: The logger to be used with the class
+        :param n_ex_streams: The number of extra streams
+        :param externals: All external vars
+        :param tile_metadata: All tile_metadata vars
+        :param tile_in: All tile_in vars
+        :param tile_in_out: All tile_in_out vars
+        :param tile_out: All tile_out vars
+        :param tile_scratch: All tile_scratch args.
+        """
         self._n_extra_streams = n_ex_streams
         self._externals = externals
         self._tile_metadata = tile_metadata
@@ -60,6 +78,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         self._tile_out = tile_out
         self._scratch = tile_scratch
 
+        # pass in an empty file for the header name since there is no header.
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
@@ -71,7 +90,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
     @property
     def c2f_file(self) -> str:
-        return self._tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"]
+        return super().source_filename
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for generating header code for c2f layer."""
@@ -81,6 +100,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         )
 
     def generate_source_code(self, destination, overwrite):
+        """
+        Wrapper for _generate_advance_c2f. Checks if the destination exists
+        and the overwrite flag.
+        """
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():
             raise RuntimeError(
@@ -139,7 +162,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             # get argument order and insert nTiles
             # (This affects the CPP2C generator as well.)
             arg_order = ["nTiles"] + self._tf_spec.dummy_arguments
-            # TODO: this should probably be renamed to device pointers
+            # ..todo:: this should probably be renamed to device pointers
             gpu_pointers = {
                 'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])
             }
