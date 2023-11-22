@@ -8,6 +8,7 @@ from .AbcCodeGenerator import AbcCodeGenerator
 from .BasicLogger import BasicLogger
 from milhoja import LOG_LEVEL_MAX
 from milhoja import THREAD_INDEX_VAR_NAME
+from milhoja import TaskFunction
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -76,6 +77,9 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                     FileExistsError()
                 )
 
+        file_name = self._tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]
+        file_name = file_name['header']
+
         # ..todo::
         #   * replace delete / release / instantiate function names with
         #     properties in TaskFunction class
@@ -84,6 +88,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 '/* _connector:cpp2c_outer */\n',
                 f'/* _param:class_name = '
                 f'{self._tf_spec.data_item_class_name} */\n\n',
+                f'/* _param:file_name = ',
+                f'{file_name} */\n',
                 f'/* _param:taskfunctionname = '
                 f'{self._tf_spec.name} */\n',
                 f'/* _param:taskfunctionnametf = '

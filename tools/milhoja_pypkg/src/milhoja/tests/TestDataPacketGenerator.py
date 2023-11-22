@@ -138,6 +138,28 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             {
                 self.JSON: _TEST_PATH.joinpath(
                     "Sedov",
+                    "gpu_tf_hydro_2DF.json"
+                ),
+                self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: {
+                    "FArray1D": 24,
+                    "FArray2D": 24,
+                    "FArray3D": 40,
+                    "FArray4D": 48,
+                    "IntVect": 8,
+                    "RealVect": 16,
+                    "byte_align": 16,
+                    "int": 4,
+                    "real": 8,
+                    "std::size_t": 8,
+                    "unsigned int": 4
+                }
+            },
+            {
+                self.JSON: _TEST_PATH.joinpath(
+                    "Sedov",
                     "gpu_tf_hydro_3DF.json"
                 ),
                 self.FOLDER: "Sedov",
@@ -152,7 +174,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     "RealVect": 16,
                     "bool": 1
                 }
-            }
+            },
+            
         ]
 
     def tearDown(self):
