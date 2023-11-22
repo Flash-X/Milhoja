@@ -18,7 +18,6 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         pass
 
     def testExtentsParser(self):
-
         with self.assertRaises(
             IncorrectFormatException,
             msg="parse_extents did not raise an error."
@@ -52,29 +51,42 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
             f'"()" should return an empty list. Instead, {parsed}'
         )
 
+        inpt = "()"
         correct = []
-        parsed = parse_extents("()")
-        self.assertTrue(
-            correct == parsed,
-            f'"()" did not retrurn [], but {parsed}.'
-        )
+        parsed = parse_extents(inpt)
+        self.check_extents(inpt, parsed, correct)
 
+        inpt = "(1,1,1,1)"
         correct = ['1', '1', '1', '1']
-        parsed = parse_extents("(1,1,1,1)")
-        self.assertTrue(
-            correct == parsed, f"{parsed} did not return {correct}"
-        )
+        parsed = parse_extents(inpt)
+        self.check_extents(inpt, parsed, correct)
 
+        inpt = "(1)"
         correct = ['1']
-        parsed = parse_extents("(1)")
-        self.assertTrue(
-            correct == parsed, f'{parsed} did not return {correct}'
-        )
+        parsed = parse_extents(inpt)
+        self.check_extents(inpt, parsed, correct)
 
-    def check_bound(self, inp, generated, correct):
+    def check_extents(self, input, generated, correct):
+        """
+        Alias for check_bound function. Reused for checking extents.
+
+        :param list input: The input that created *generated*.
+        :param list generated: The result after parsing input.
+        :param list correct: The expected result.
+        """
+        self.check_bound(input, generated, correct)
+
+    def check_bound(self, input, generated, correct):
+        """
+        A function that compares a generated to a correct input.
+
+        :param list input: The input that created *generated*.
+        :param list generated: The result after parsing input.
+        :param list correct: The expected result.
+        """
         self.assertTrue(
             generated == correct,
-            f"{inp} returned {generated}, istead of {correct}."
+            f"{input} returned {generated}, istead of {correct}."
         )
 
     def testLboundParser(self):
