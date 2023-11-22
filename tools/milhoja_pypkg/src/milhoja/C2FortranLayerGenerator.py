@@ -203,6 +203,11 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 )
 
             host_pointers.update(extents_set)
+            fortran_mod = self._tf_spec.output_filenames[
+                TaskFunction.FORTRAN_TF_KEY
+            ]
+            fortran_mod = fortran_mod["source"]
+            fortran_mod = fortran_mod[:fortran_mod.rfind(".")]
             # get pointers for every section
             fp.writelines([
                 # put all host items into func declaration
@@ -215,7 +220,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
-                f'{self.INDENT}use {self._tf_spec.name}_mod, ONLY : ' \
+                f'{self.INDENT}use {fortran_mod}, ONLY : ' \
                 f'{self._tf_spec.name}_Fortran\n',
                 f'{self.INDENT}implicit none\n\n'
             ])

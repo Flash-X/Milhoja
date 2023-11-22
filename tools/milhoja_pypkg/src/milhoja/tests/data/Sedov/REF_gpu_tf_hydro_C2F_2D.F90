@@ -5,8 +5,6 @@
 
 subroutine gpu_tf_hydro_C2F(C_packet_h, &
 C_queue1_h, &
-C_queue2_h, &
-C_queue3_h, &
 C_nTiles_h, &
 C_nTiles_d, &
 C_external_hydro_op1_dt_d, &
@@ -27,8 +25,6 @@ C_scratch_hydro_op1_flZ_d) bind(c)
 
     type(C_PTR), intent(IN), value :: C_packet_h
     integer(MILHOJA_INT), intent(IN), value :: C_queue1_h
-    integer(MILHOJA_INT), intent(IN), value :: C_queue2_h
-    integer(MILHOJA_INT), intent(IN), value :: C_queue3_h
     integer(MILHOJA_INT), intent(IN), value :: C_nTiles_h
 
     type(C_PTR), intent(IN), value :: C_nTiles_d
@@ -44,8 +40,6 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     type(C_PTR), intent(IN), value :: C_scratch_hydro_op1_flZ_d
 
     integer(kind=acc_handle_kind):: F_queue1_h
-    integer(kind=acc_handle_kind):: F_queue2_h
-    integer(kind=acc_handle_kind):: F_queue3_h
     integer:: F_nTiles_h
 
     integer, pointer :: F_nTiles_d
@@ -61,8 +55,6 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     real, pointer :: F_scratch_hydro_op1_flZ_d(:,:,:,:,:)
 
     F_queue1_h = INT(C_queue1_h, kind=acc_handle_kind)
-    F_queue2_h = INT(C_queue2_h, kind=acc_handle_kind)
-    F_queue3_h = INT(C_queue3_h, kind=acc_handle_kind)
     F_nTiles_h = INT(C_nTiles_h)
 
     CALL C_F_POINTER(C_nTiles_d, F_nTiles_d)
@@ -71,16 +63,14 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     CALL C_F_POINTER(C_tile_lo_d, F_tile_lo_d, shape=[MILHOJA_MDIM, F_nTiles_h])
     CALL C_F_POINTER(C_tile_hi_d, F_tile_hi_d, shape=[MILHOJA_MDIM, F_nTiles_h])
     CALL C_F_POINTER(C_tile_lbound_d, F_tile_lbound_d, shape=[MILHOJA_MDIM, F_nTiles_h])
-    CALL C_F_POINTER(C_CC_1_d, F_CC_1_d, shape=[16 + 2 * 1 * MILHOJA_K1D, 16 + 2 * 1 * MILHOJA_K2D, 16 + 2 * 1 * MILHOJA_K3D, 8 + 1 - 0, F_nTiles_h])
-    CALL C_F_POINTER(C_scratch_hydro_op1_auxC_d, F_scratch_hydro_op1_auxC_d, shape=[18, 18, 18, F_nTiles_h])
-    CALL C_F_POINTER(C_scratch_hydro_op1_flX_d, F_scratch_hydro_op1_flX_d, shape=[19, 18, 18, 5, F_nTiles_h])
-    CALL C_F_POINTER(C_scratch_hydro_op1_flY_d, F_scratch_hydro_op1_flY_d, shape=[18, 19, 18, 5, F_nTiles_h])
-    CALL C_F_POINTER(C_scratch_hydro_op1_flZ_d, F_scratch_hydro_op1_flZ_d, shape=[18, 18, 19, 5, F_nTiles_h])
+    CALL C_F_POINTER(C_CC_1_d, F_CC_1_d, shape=[8 + 2 * 1 * MILHOJA_K1D, 8 + 2 * 1 * MILHOJA_K2D, 1 + 2 * 1 * MILHOJA_K3D, 8 + 1 - 0, F_nTiles_h])
+    CALL C_F_POINTER(C_scratch_hydro_op1_auxC_d, F_scratch_hydro_op1_auxC_d, shape=[10, 10, 1, F_nTiles_h])
+    CALL C_F_POINTER(C_scratch_hydro_op1_flX_d, F_scratch_hydro_op1_flX_d, shape=[11, 10, 1, 5, F_nTiles_h])
+    CALL C_F_POINTER(C_scratch_hydro_op1_flY_d, F_scratch_hydro_op1_flY_d, shape=[10, 11, 1, 5, F_nTiles_h])
+    CALL C_F_POINTER(C_scratch_hydro_op1_flZ_d, F_scratch_hydro_op1_flZ_d, shape=[1, 1, 1, 1, F_nTiles_h])
 
     CALL gpu_tf_hydro_Fortran(C_packet_h, &
         F_queue1_h, &
-        F_queue2_h, &
-        F_queue3_h, &
         F_nTiles_d, &
         F_external_hydro_op1_dt_d, &
         F_tile_deltas_d, &
