@@ -22,7 +22,7 @@ class CppTemplateUtility(TemplateUtility):
         :param dict size_connectors: The dictionary containing all size
                                      connectors for determining the sizes of
                                      each item in the packet.
-        :param OrderedDict constructor: The dictionary containing the data for
+        :param OrderedDict externals: The dictionary containing the data for
                                         the externals section in the TF JSON
         :rtype: None
         """
@@ -54,7 +54,6 @@ class CppTemplateUtility(TemplateUtility):
                                      for variable sizes.
         :param OrderedDict tilemetadata: The dict containing information from
                                          the tile-metadata section in the JSON
-        :param str language: The language to use
         :param int num_arrays: The number of arrays inside tile_in,
                                tile_in_out, tile_out, and tile_scratch.
         """
@@ -120,7 +119,6 @@ class CppTemplateUtility(TemplateUtility):
                                      for items in the data packet.
         :param OrderedDict tilein: The dict containing the information in the
                                    tile_in section.
-        :param str language: The language of the corresponding task function.
         """
         cls.section_creation(cls._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
@@ -131,7 +129,7 @@ class CppTemplateUtility(TemplateUtility):
             # for now just assume that all index spaces are 1 based
             # since all arrays in the packet are 1 based.
             index_offset = cls.DEFAULT_INDEX_SPACE
-            array_size = cls.get_array_size(mask_in, None)
+            array_size = cls.get_array_size(mask_in, [])
 
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in extents)
@@ -168,7 +166,6 @@ class CppTemplateUtility(TemplateUtility):
         :param OrderedDict tileinout: The dict containing the data from the
                                       tile-in-out section of the datapacket
                                       json.
-        :param str language: The language to use.
         """
         cls.section_creation(
             cls._T_IN_OUT, tileinout, connectors, size_connectors
@@ -221,14 +218,13 @@ class CppTemplateUtility(TemplateUtility):
                                     for items in the JSON.
         :param OrderedDict tileout: The dict containing information from the
                                     tile-out section of the data packet JSON.
-        :param str language: The language to use.
         """
         cls.section_creation(cls._T_OUT, tileout, connectors, size_connectors)
         connectors[f'unpack_{cls._T_OUT}'] = []
         for item, data in tileout.items():
             # ge tile_out information
             out_mask = data['variables_out']
-            array_size = cls.get_array_size(None, out_mask)
+            array_size = cls.get_array_size([], out_mask)
             index_space = cls.DEFAULT_INDEX_SPACE
             unks = f"{str(array_size)} + 1 - {str(index_space)}"
 

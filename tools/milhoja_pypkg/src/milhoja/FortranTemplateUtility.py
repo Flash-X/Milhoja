@@ -36,10 +36,9 @@ class FortranTemplateUtility(TemplateUtility):
         :param dict size_connectors: The dictionary containing all size
                                      connectors for determining the sizes
                                      of each item in the packet.
-        :param OrderedDict constructor: The dictionary containing the data
-                                        for the ptv section in the DataPacket
-                                        JSON.
-        :rtype: None
+        :param OrderedDict externals: The dictionary containing the data
+                                      for the ptv section in the DataPacket
+                                      JSON.
         """
         cls.section_creation(
             cls._EXT, externals, connectors, size_connectors
@@ -180,7 +179,6 @@ class FortranTemplateUtility(TemplateUtility):
                                      connectors for items in the data packet.
         :param OrderedDict tilein: The dict containing the information in
                                    the tile_in section.
-        :param str language: The language of the corresponding task function.
         """
         cls.section_creation(cls._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
@@ -220,7 +218,6 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tileinout: The dict containing the data from
                                       the tile-in-out section of the
                                       datapacket json.
-        :param str language: The language to use.
         """
         cls.section_creation(
             cls._T_IN_OUT, tileinout, connectors, size_connectors
@@ -267,7 +264,6 @@ class FortranTemplateUtility(TemplateUtility):
                                      for items in the JSON.
         :param OrderedDict tileout: The dict containing information from the
                                     tile-out section of the data packet JSON.
-        :param str language: The language to use.
         """
         cls.section_creation(
             cls._T_OUT, tileout, connectors, size_connectors
@@ -309,7 +305,6 @@ class FortranTemplateUtility(TemplateUtility):
                                      connectors for variable sizes.
         :param OrderedDict tilescratch: The dict containing information from
                                         the tilescratch section of the JSON.
-        :param str language: The language to use when generating the packet.
         """
         cls.section_creation(
             cls._T_SCRATCH, tilescratch, connectors, size_connectors
