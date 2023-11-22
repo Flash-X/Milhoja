@@ -162,7 +162,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._params['header_name'] = super().header_filename
 
     def generate_templates(self, destination, overwrite):
-        # set defaults for the connectors.
+        """
+        Generates templates from creating the data packet source code.
+        """
         self._connectors[self.template_utility._CON_ARGS] = []
         self._connectors[self.template_utility._SET_MEMBERS] = []
         self._connectors[self.template_utility._SIZE_DET] = []
@@ -522,6 +524,10 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     @functools.lru_cache
     def external_args(self) -> OrderedDict:
+        """
+        Gets all external variables from the TaskFunction and formats them
+        for convenience. Also inserts nTiles.
+        """
         lang = self._tf_spec.language.lower()
         # ..todo::
         #   * do we need deep copy?
@@ -549,6 +555,10 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     @functools.lru_cache
     def tile_metadata_args(self) -> OrderedDict:
+        """
+        Gets all tile metadata arguments from the TaskFunction 
+        and formats it for easy use with this class.
+        """
         lang = self._tf_spec.language.lower()
         sort_func = None
 
@@ -582,6 +592,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._sort_dict(args.items(), sort_func, True)
 
     def __adjust_tile_data(self, args: dict) -> dict:
+        """
+        Adjust the tile data from the TaskFunction class for use with the
+        DataPacketGenerator.
+
+        :param dicts args: The dict of variables from the TF.
+        """
         arg_dictionary = {}
         block_extents = self.block_extents
         nguard = self.n_guardcells

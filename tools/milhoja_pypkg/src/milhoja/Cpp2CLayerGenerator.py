@@ -53,6 +53,12 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         )
 
     def generate_source_code(self, destination, overwrite):
+        """
+        Wrapper for generating the outer and helper templates.
+        Note the destination gets passed into the constructor as the
+        full file path for the output files, so destination gets unused in
+        both functions.
+        """
         self._generate_cpp2c_outer(destination, overwrite)
         self._generate_cpp2c_helper(destination, overwrite)
 
@@ -78,7 +84,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 )
 
         file_name = self._tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]
-        file_name = file_name['header']
+        packet_file_name = file_name['header']
 
         # ..todo::
         #   * replace delete / release / instantiate function names with
@@ -89,7 +95,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'/* _param:class_name = '
                 f'{self._tf_spec.data_item_class_name} */\n\n',
                 '/* _param:file_name = ',
-                f'{file_name} */\n',
+                f'{packet_file_name} */\n',
                 f'/* _param:taskfunctionname = '
                 f'{self._tf_spec.name} */\n',
                 f'/* _param:taskfunctionnametf = '
@@ -158,6 +164,10 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         :param DataPacketGenerator data: The DataPacketGenerator calling this
                                          set of functions that contains a
                                          TaskFunction.
+        :param destination: The destination of the file. This gets passed into
+                            the constructor from the data packet generator so
+                            this is unused.
+        :param overwrite: The overwrite flag.
         """
         # generate DataPacketMemberVars instance for each item in TFAL.
         dummy_args = ["nTiles"] + self._tf_spec.dummy_arguments
