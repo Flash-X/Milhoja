@@ -13,6 +13,7 @@ from collections import OrderedDict
 from abc import abstractmethod
 
 from .DataPacketMemberVars import DataPacketMemberVars
+from .LogicError import LogicError
 
 
 class TemplateUtility():
@@ -73,9 +74,9 @@ class TemplateUtility():
         :return: The size of the array given the variable masking.
         :rtype: int
         """
-        largest = None
-        # if not vars_in and not vars_out:
-        #     raise TypeError("No variable masking for given array in tf spec.")
+        largest = -1
+        if not vars_in and not vars_out:
+            raise TypeError("No variable masking for given array in tf spec.")
 
         largest_in = None
         if vars_in:
@@ -90,11 +91,18 @@ class TemplateUtility():
         if vars_in and vars_out:
             assert largest_in is not None
             assert largest_out is not None
+
+            # No test cases for a mariable mask in an out array that's
+            # larger than the in mask. Need to create test cases or have
+            # an existing use case.
+            if largest_out > largest_in:
+                raise LogicError("No test cases for larger mask_out!")
+
             largest = max([largest_in, largest_out])
 
+        if largest == -1:
+            raise LogicError("Negative array size, check variable masking.")
         return largest
-        # if not largest:
-        #     raise TypeError("No variable masking in json.")
 
     @classmethod
     @abstractmethod

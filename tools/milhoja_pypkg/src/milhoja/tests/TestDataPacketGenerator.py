@@ -6,6 +6,7 @@ from pathlib import Path
 from collections import OrderedDict
 
 from milhoja import LOG_LEVEL_NONE
+from milhoja.LogicError import LogicError
 from milhoja.DataPacketGenerator import DataPacketGenerator
 from milhoja.TaskFunction import TaskFunction
 from milhoja.BasicLogger import BasicLogger
@@ -500,13 +501,35 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def testGetArraySizes(self):
         # test none on both
-        # mask_in = None
-        # mask_out = None
-        # with self.assertRaises(TypeError):
-        #     TemplateUtility.get_array_size([], [])
+        mask_in = None
+        mask_out = None
+        with self.assertRaises(TypeError):
+            TemplateUtility.get_array_size([], [])
 
-        # mask_in = [1, 2]
-        # mask_out = [1, 2]
-        # size = TemplateUtility.get_array_size(mask_in, mask_out)
-        # self.assertTrue(size == 2)
-        ...
+        mask_in = [1, 2]
+        mask_out = [1, 2]
+        size = TemplateUtility.get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 2)
+
+        mask_in = [2, 8]
+        mask_out = [2, 2]
+        size = TemplateUtility.get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 8)
+
+        with self.assertRaises(
+            LogicError,
+            msg="No test cases for out size > in size, but no error thrown."
+        ):
+            mask_in = [1, 2]
+            mask_out = [1, 6]
+            TemplateUtility.get_array_size(mask_in, mask_out)
+
+        mask_in = [1, 10]
+        mask_out = []
+        size = TemplateUtility.get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 10)
+
+        mask_in = []
+        mask_out = [1, 10]
+        size = TemplateUtility.get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 10)

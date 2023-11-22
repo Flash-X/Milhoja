@@ -212,7 +212,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 # data packet at this point
                 ', &\n'.join(f'C_{item}_d' for item in arg_order),
                 ') bind(c)\n',
-                f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n',
+                f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
                 f'{self.INDENT}use {self._tf_spec.name}_mod, ONLY : ' \
@@ -278,11 +278,14 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             fp.writelines([
                 f'{self.INDENT}CALL {self._tf_spec.name}_Fortran(',
                 ', &\n'.join(
-                    f'{self.INDENT * 2}F_{ptr}_h' if data.ftype else f'C_{ptr}_h'
+                    f'{self.INDENT * 2}F_{ptr}_h'
+                    if data.ftype else f'C_{ptr}_h'
                     for ptr, data in host_pointers.items()
                 ),
                 ', &\n',
-                ', &\n'.join(f'{self.INDENT * 2}F_{ptr}_d' for ptr in arg_order)
+                ', &\n'.join(
+                    f'{self.INDENT * 2}F_{ptr}_d' for ptr in arg_order
+                )
             ])
             fp.write(f')\nend subroutine {self._tf_spec.name}_C2F')
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
