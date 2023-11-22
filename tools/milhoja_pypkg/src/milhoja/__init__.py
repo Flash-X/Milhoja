@@ -47,6 +47,7 @@ from .check_scratch_specification import check_scratch_specification
 from .check_grid_data_specification import check_grid_data_specification
 from .check_lbound_specification import check_lbound_specification
 from .check_thread_index_specification import check_thread_index_specification
+from .check_partial_tf_specification import check_partial_tf_specification
 
 # classes
 from .AbcLogger import AbcLogger

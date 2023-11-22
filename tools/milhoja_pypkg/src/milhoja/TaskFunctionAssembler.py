@@ -23,6 +23,7 @@ from .LogicError import LogicError
 from .AbcLogger import AbcLogger
 from .SubroutineGroup import SubroutineGroup
 from .check_grid_specification import check_grid_specification
+from .check_partial_tf_specification import check_partial_tf_specification
 
 
 class TaskFunctionAssembler(object):
@@ -51,6 +52,11 @@ class TaskFunctionAssembler(object):
         """
         Construct a TaskFunctionAssembler object using Milhoja-JSON format
         subroutine group specification files.
+
+        .. todo::
+            * grid_json is information that the application provides and
+              should therefore be passed in as a dict.  There is no
+              Milhoja-JSON format for that file.
 
         :param name: Name of the task function
         :param internal_call_graph: Refer to documentation in constructor for
@@ -203,6 +209,12 @@ class TaskFunctionAssembler(object):
         """
         self.__logger.log(TaskFunctionAssembler.__LOG_TAG, msg,
                           LOG_LEVEL_BASIC_DEBUG)
+
+    def __warn(self, msg):
+        """
+        Log given warning
+        """
+        self.__logger.warn(TaskFunctionAssembler.__LOG_TAG, msg)
 
     def __determine_unique_dummies(self):
         """
@@ -783,76 +795,6 @@ class TaskFunctionAssembler(object):
                 dummies.add(arg)
         return dummies
 
-    def __sanity_check_tf_spec(self, spec):
-        """
-        If this does not raise an error, then the specification is acceptable.
-
-        While this *does* requires that all specifications be provided, it does
-        *not* check the values of specifications that are not used.  For
-        example, a C++ TF can specify any value for the fortran_source value.
-
-        .. todo::
-            * This should also check types
-            * Eventually we might have DataPackets sent to CPUs, in which case
-              we would want the specification to give the byte alignment as
-              well.
-            * Allow applications to not specify unnecessary values?  For
-              example, do C++ applications always have to specify (with
-              whatever value) the Fortran-specific info?
-        """
-        # ----- ROOT
-        expected = {"task_function", "data_item"}
-        actual = set(spec)
-        if actual != expected:
-            msg = f"Invalid root specification keys ({actual})"
-            raise ValueError(msg)
-        tf_spec = spec["task_function"]
-        data_item = spec["data_item"]
-
-        # ----- TASK FUNCTION
-        expected = {"language", "processor",
-                    "cpp_header", "cpp_source",
-                    "c2f_source", "fortran_source"}
-        actual = set(tf_spec)
-        if actual != expected:
-            msg = f"Invalid TF specification keys ({actual})"
-            raise ValueError(msg)
-        language = tf_spec["language"]
-        processor = tf_spec["processor"]
-
-        if language.lower() not in ["c++", "fortran"]:
-            raise ValueError(f"Unsupported TF language ({language})")
-        if processor.lower() not in ["cpu", "gpu"]:
-            raise ValueError(f"Unsupported target processor ({processor})")
-        for each in ["cpp_header", "cpp_source"]:
-            if tf_spec[each] == "":
-                raise ValueError(f"Empty {each} filename")
-        if language.lower() == "fortran":
-            for each in ["c2f_source", "fortran_source"]:
-                if tf_spec[each] == "":
-                    raise ValueError(f"Empty {each} filename")
-
-        # ----- DATA ITEM
-        expected = {"type", "byte_alignment", "header", "source"}
-        actual = set(data_item)
-        if actual != expected:
-            msg = f"Invalid data item specification keys ({actual})"
-            raise ValueError(msg)
-
-        item_type = data_item["type"]
-        if item_type.lower() not in ["tilewrapper", "datapacket"]:
-            msg = f"Unsupported data item type ({item_type})"
-            raise ValueError(msg)
-
-        for each in ["header", "source"]:
-            if data_item[each] == "":
-                raise ValueError(f"Empty {each} filename")
-
-        if item_type.lower() == "datapacket":
-            byte_align = data_item["byte_alignment"]
-            if byte_align <= 0:
-                raise ValueError("Non-positive byte alignment ({byte_align})")
-
     def to_milhoja_json(self, filename, tf_spec_filename, overwrite):
         """
         Write the assembled task function to the given file using the current
@@ -863,6 +805,9 @@ class TaskFunctionAssembler(object):
               list for each subroutine in the internal call graph.  Then the
               given subroutine JSON files don't need to specify that.
             * Log arguments as debug information
+            * partial tf spec is information that the application provides and
+              should therefore be passed in as a dict.  There is no
+              Milhoja-JSON format for that file.
 
         :param filename: Name and full path of file to write to
         :param tf_spec_filename: Name and full path of file that contains
@@ -872,12 +817,26 @@ class TaskFunctionAssembler(object):
         msg = "Writing {} spec to Milhoja-JSON file {}"
         self.__log(msg.format(self.task_function_name, filename))
 
-        if not Path(tf_spec_filename).is_file():
+        # ----- ERROR CHECK ARGUMENTS
+        if (not isinstance(filename, str)) and (not isinstance(filename, Path)):
+            raise TypeError(f"filename not string or Path ({filename})")
+        elif (not isinstance(tf_spec_filename, str)) \
+                and (not isinstance(tf_spec_filename, Path)):
+            msg = f"tf_spec_filename not string or Path ({tf_spec_filename})"
+            raise TypeError(msg)
+        elif not isinstance(overwrite, bool):
+            raise TypeError(f"overwrite not boolean ({overwrite})")
+
+        if Path(filename).exists():
+            self.__warn(f"{filename} already exists")
+            if not overwrite:
+                raise RuntimeError(f"{filename} already exists")
+        elif not Path(tf_spec_filename).is_file():
             msg = f"{tf_spec_filename} does not exist or is not a file"
             raise ValueError(msg)
         with open(tf_spec_filename, "r") as fptr:
             tf_spec = json.load(fptr)
-        self.__sanity_check_tf_spec(tf_spec)
+        check_partial_tf_specification(tf_spec)
 
         spec = {}
         spec["format"] = [MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION]
@@ -931,9 +890,6 @@ class TaskFunctionAssembler(object):
                 "argument_list": sub_dummies,
                 "argument_mapping": arg_to_tf_dummies
             }
-
-        if (not overwrite) and Path(filename).exists():
-            raise RuntimeError(f"{filename} already exists")
 
         with open(filename, "w") as fptr:
             json.dump(

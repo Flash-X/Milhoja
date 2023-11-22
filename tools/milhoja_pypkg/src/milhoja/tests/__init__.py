@@ -1,6 +1,6 @@
 # constants
 from .constants import (
-    NOT_STR_LIST, NOT_INT_LIST,
+    NOT_STR_LIST, NOT_INT_LIST, NOT_BOOL_LIST,
     NOT_LIST_LIST, NOT_DICT_LIST,
     NOT_CLASS_LIST
 )

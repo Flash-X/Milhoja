@@ -7,7 +7,9 @@ import json
 import shutil
 import unittest
 
+from io import StringIO
 from pathlib import Path
+from contextlib import redirect_stdout
 
 from milhoja import (
     LOG_LEVEL_NONE,
@@ -17,7 +19,7 @@ from milhoja import (
     TaskFunctionAssembler
 )
 from milhoja.tests import (
-    NOT_STR_LIST, NOT_LIST_LIST, NOT_CLASS_LIST,
+    NOT_STR_LIST, NOT_LIST_LIST, NOT_BOOL_LIST, NOT_CLASS_LIST,
     generate_runtime_cpu_tf_specs,
     generate_sedov_cpu_tf_specs,
     generate_sedov_gpu_tf_specs
@@ -438,3 +440,106 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
             # ----- DEBUG AT COARSEST SCALE AS INTENDED
             self.assertEqual(expected, result)
+
+    def testToMilhojaJson(self):
+        FILENAME = self.__dst.joinpath("cpu_tf_test.json")
+        TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
+
+        tf_partial_spec = {
+            "task_function": {
+                "language":       "Fortran",
+                "processor":      "CPU",
+                "cpp_header":     "cpu_tf_test_Cpp2C.h",
+                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":     "cpu_tf_test_C2F.F90",
+                "fortran_source": "cpu_tf_test_mod.F90"
+            },
+            "data_item": {
+                "type":           "TileWrapper",
+                "byte_alignment": -1,
+                "header":         "Tile_cpu_tf_test.h",
+                "source":         "Tile_cpu_tf_test.cxx"
+            }
+        }
+        self.assertFalse(TF_PARTIAL_JSON.exists())
+        with open(TF_PARTIAL_JSON, "w") as fptr:
+            json.dump(tf_partial_spec, fptr)
+        self.assertTrue(TF_PARTIAL_JSON.is_file())
+
+        # Confirm correct arguments/functionality
+        self.assertFalse(FILENAME.exists())
+        self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+        self.assertTrue(FILENAME.is_file())
+
+        # Confirm we won't overwrite but does warn
+        with self.assertRaises(RuntimeError):
+            with redirect_stdout(StringIO()) as msg:
+                self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+                warn = msg.getvalue().strip()
+            self.assertTrue("WARNING" in warn)
+            self.assertTrue(warn.endswith(f"{FILENAME} already exists"))
+
+        # Confirm will overwrite but still warns
+        with redirect_stdout(StringIO()) as msg:
+            self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, True)
+            warn = msg.getvalue().strip()
+        self.assertTrue("WARNING" in warn)
+        self.assertTrue(warn.endswith(f"{FILENAME} already exists"))
+
+    def testToMilhojaJsonErrors(self):
+        FILENAME = self.__dst.joinpath("cpu_tf_test.json")
+        TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
+
+        tf_partial_spec = {
+            "task_function": {
+                "language":       "Fortran",
+                "processor":      "CPU",
+                "cpp_header":     "cpu_tf_test_Cpp2C.h",
+                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":     "cpu_tf_test_C2F.F90",
+                "fortran_source": "cpu_tf_test_mod.F90"
+            },
+            "data_item": {
+                "type":           "TileWrapper",
+                "byte_alignment": -1,
+                "header":         "Tile_cpu_tf_test.h",
+                "source":         "Tile_cpu_tf_test.cxx"
+            }
+        }
+        self.assertFalse(TF_PARTIAL_JSON.exists())
+        with open(TF_PARTIAL_JSON, "w") as fptr:
+            json.dump(tf_partial_spec, fptr)
+        self.assertTrue(TF_PARTIAL_JSON.is_file())
+
+        # Confirm correct arguments/functionality
+        self.assertFalse(FILENAME.exists())
+        self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+        self.assertTrue(FILENAME.is_file())
+        os.remove(FILENAME)
+
+        # Bad output filename
+        for bad in NOT_STR_LIST:
+            self.assertFalse(FILENAME.exists())
+            with self.assertRaises(TypeError):
+                self.__Sedov.to_milhoja_json(bad, TF_PARTIAL_JSON, False)
+            self.assertFalse(FILENAME.exists())
+
+        # Bad partial TF spec filename
+        for bad in NOT_STR_LIST:
+            self.assertFalse(FILENAME.exists())
+            with self.assertRaises(TypeError):
+                self.__Sedov.to_milhoja_json(FILENAME, bad, False)
+            self.assertFalse(FILENAME.exists())
+
+        # partial TF spec file already exists
+        self.assertFalse(FILENAME.exists())
+        with self.assertRaises(ValueError):
+            self.__Sedov.to_milhoja_json(FILENAME, FILENAME, False)
+        self.assertFalse(FILENAME.exists())
+
+        # Bad overwrite argument
+        for bad in NOT_BOOL_LIST:
+            self.assertFalse(FILENAME.exists())
+            with self.assertRaises(TypeError):
+                self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, bad)
+            self.assertFalse(FILENAME.exists())
