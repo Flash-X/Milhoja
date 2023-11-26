@@ -1,10 +1,10 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
     "grid": {
-        "dimension":    3,
-        "nxb":         16,
-        "nyb":         16,
-        "nzb":         16,
+        "dimension":    2,
+        "nxb":          8,
+        "nyb":          8,
+        "nzb":          1,
         "nguardcells":  1
     },
     "task_function": {
@@ -27,8 +27,7 @@
                                 "lbdd_CC_1",
                                 "lbdd_scratch_hydro_op1_auxC",
                                 "lbdd_scratch_hydro_op1_flX",
-                                "lbdd_scratch_hydro_op1_flY",
-                                "lbdd_scratch_hydro_op1_flZ"],
+                                "lbdd_scratch_hydro_op1_flY"],
         "argument_specifications": {
             "external_hydro_op1_dt":       {"source":           "external",
                                             "type":             "real",
@@ -45,20 +44,20 @@
                                             "variables_out":    [1, 8]},
             "scratch_hydro_op1_auxC":      {"source":           "scratch",
                                             "type":             "real",
-                                            "extents":          "(18, 18, 18)",
-                                            "lbound":           "(tile_lo) - (1, 1, 1)"},
+                                            "extents":          "(10, 10, 1)",
+                                            "lbound":           "(tile_lo) - (1, 1, 0)"},
             "scratch_hydro_op1_flX":       {"source":           "scratch",
                                             "type":             "real",
-                                            "extents":          "(17, 16, 16, 5)",
+                                            "extents":          "(9, 8, 1, 5)",
                                             "lbound":           "(tile_lo, 1)"},
             "scratch_hydro_op1_flY":       {"source":           "scratch",
                                             "type":             "real",
-                                            "extents":          "(16, 17, 16, 5)",
+                                            "extents":          "(8, 9, 1, 5)",
                                             "lbound":           "(tile_lo, 1)"},
             "scratch_hydro_op1_flZ":       {"source":           "scratch",
                                             "type":             "real",
-                                            "extents":          "(16, 16, 17, 5)",
-                                            "lbound":           "(tile_lo, 1)"},
+                                            "extents":          "(1, 1, 1, 1)",
+                                            "lbound":           "(1, 1, 1, 1)"},
             "lbdd_CC_1":                   {"source":           "lbound", 
                                             "array":            "CC_1"},
             "lbdd_scratch_hydro_op1_auxC": {"source":           "lbound",
@@ -66,17 +65,12 @@
             "lbdd_scratch_hydro_op1_flX":  {"source":           "lbound",
                                             "array":            "scratch_hydro_op1_flX"},
             "lbdd_scratch_hydro_op1_flY":  {"source":           "lbound",
-                                            "array":            "scratch_hydro_op1_flY"},
-            "lbdd_scratch_hydro_op1_flZ":  {"source":           "lbound",
-                                            "array":            "scratch_hydro_op1_flZ"}
+                                            "array":            "scratch_hydro_op1_flY"}
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_block_cpu",
-            [
-                "Hydro_computeFluxesHll_X_block_cpu",
-                "Hydro_computeFluxesHll_Y_block_cpu",
-                "Hydro_computeFluxesHll_Z_block_cpu"
-            ],
+            "Hydro_computeFluxesHll_X_block_cpu",
+            "Hydro_computeFluxesHll_Y_block_cpu",
             "Hydro_updateSolutionHll_block_cpu",
             "Eos_wrapped"
         ]
@@ -136,25 +130,6 @@
                 "loAuxC": "lbdd_scratch_hydro_op1_auxC",
                 "flY":    "scratch_hydro_op1_flY",
                 "loFl":   "lbdd_scratch_hydro_op1_flY"
-            }
-        },
-        "Hydro_computeFluxesHll_Z_block_cpu": {
-            "interface_file": "Hydro_advanceSolution_variants_mod.F90",
-            "argument_list": ["dt", "lo", "hi", "deltas",
-                              "U", "loU",
-                              "auxC", "loAuxC",
-                              "flZ", "loFl"],
-            "argument_mapping": {
-                "dt":     "external_hydro_op1_dt",
-                "lo":     "tile_lo",
-                "hi":     "tile_hi",
-                "deltas": "tile_deltas",
-                "U":      "CC_1",
-                "loU":    "lbdd_CC_1",
-                "auxC":   "scratch_hydro_op1_auxC",
-                "loAuxC": "lbdd_scratch_hydro_op1_auxC",
-                "flZ":    "scratch_hydro_op1_flZ",
-                "loFl":   "lbdd_scratch_hydro_op1_flZ"
             }
         },
         "Hydro_updateSolutionHll_block_cpu": {

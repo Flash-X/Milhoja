@@ -475,9 +475,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             with redirect_stdout(StringIO()) as msg:
                 self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
-                warn = msg.getvalue().strip()
-            self.assertTrue("WARNING" in warn)
-            self.assertTrue(warn.endswith(f"{FILENAME} already exists"))
+        warn = msg.getvalue().strip()
+        self.assertTrue("WARNING" in warn)
+        self.assertTrue(warn.endswith(f"{FILENAME} already exists"))
 
         # Confirm will overwrite but still warns
         with redirect_stdout(StringIO()) as msg:

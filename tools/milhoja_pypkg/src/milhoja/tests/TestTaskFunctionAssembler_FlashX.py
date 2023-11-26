@@ -191,4 +191,41 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
         assembler.to_milhoja_json(TF_JSON, PARTIAL_TF_JSON, NO_OVERWRITE)
         self.assertTrue(TF_JSON.is_file())
 
-        # TODO: Load result and check against benchmark
+        with open(grid_json, "r") as fptr:
+            grid_spec = json.load(fptr)
+        ndim = grid_spec["dimension"]
+
+        filename = f"REF_cpu_tf_hydro_FlashX_{ndim}D.json"
+        with open(_SEDOV_PATH.joinpath(filename), "r") as fptr:
+            expected = json.load(fptr)
+        with open(TF_JSON, "r") as fptr:
+            result = json.load(fptr)
+
+        # ----- TEST AT FINER SCALE AS THIS CAN HELP DEBUG FAILURES
+        self.maxDiff = None
+
+        key = "format"
+        self.assertTrue(key in expected)
+        self.assertTrue(key in result)
+        self.assertEqual(expected[key], result[key])
+
+        groups_all = ["grid", "task_function", "data_item", "subroutines"]
+
+        self.assertEqual(len(expected), len(result))
+        for group in groups_all:
+            # print(group)
+            # print(expected[group].keys())
+            # print(result[group].keys())
+            self.assertTrue(group in expected)
+            self.assertTrue(group in result)
+
+            self.assertEqual(len(expected[group]), len(result[group]))
+            for key in expected[group]:
+                # print(group, key)
+                # print(expected[group][key])
+                # print(result[group][key])
+                self.assertTrue(key in result[group])
+                self.assertEqual(expected[group][key], result[group][key])
+
+        # ----- DEBUG AT COARSEST SCALE AS INTENDED
+        self.assertEqual(expected, result)
