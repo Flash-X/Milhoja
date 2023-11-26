@@ -34,34 +34,6 @@ class TestCodeGenerators(unittest.TestCase):
 
         return cleaned
 
-    def set_extents(self, extents_str, dim):
-        #
-        # Given a string that expresses the extents for an array for a 3D
-        # version of its test, return the extents for the test in the given
-        # dimension.
-        #
-
-        self.assertTrue(dim in [1, 2, 3])
-        if dim == 3:
-            return extents_str
-
-        tmp = extents_str.strip()
-        self.assertTrue(tmp.startswith("("))
-        self.assertTrue(tmp.endswith(")"))
-        tmp = tmp.lstrip("(").rstrip(")")
-
-        tmp = tmp.split(",")
-        self.assertEqual(4, len(tmp))
-
-        extents = [int(e) for e in tmp]
-
-        if dim <= 2:
-            extents[2] = 1
-        if dim == 1:
-            extents[1] = 1
-
-        return "(" + ", ".join([str(e) for e in extents]) + ")"
-
     def run_tests(self, tests_all, dims_all, create_generator):
         #
         # For each test in the Cartesian product of tests_all x dims_all,
