@@ -1,19 +1,19 @@
+import numbers
+
+
 def check_partial_tf_specification(spec):
     """
     If this does not raise an error, then the specification is acceptable.
 
-    While this *does* requires that all specifications be provided, it does
-    *not* check the values of specifications that are not used.  For
-    example, a C++ TF can specify any value for the fortran_source value.
+    While this **does** require that all specifications be provided, it does
+    **not** check the values of specifications that are not used.  For
+    example, a C++ TF can specify any value for the fortran_source value
+    without this function raising an error.
 
     .. todo::
-        * This should also check types
         * Eventually we might have DataPackets sent to CPUs, in which case
           we would want the specification to give the byte alignment as
           well.
-        * Allow applications to not specify unnecessary values?  For
-          example, do C++ applications always have to specify (with
-          whatever value) the Fortran-specific info?
     """
     # ----- ROOT
     expected = {"task_function", "data_item"}
@@ -21,10 +21,9 @@ def check_partial_tf_specification(spec):
     if actual != expected:
         msg = f"Invalid root specification keys ({actual})"
         raise ValueError(msg)
-    tf_spec = spec["task_function"]
-    data_item = spec["data_item"]
 
     # ----- TASK FUNCTION
+    tf_spec = spec["task_function"]
     expected = {"language", "processor",
                 "cpp_header", "cpp_source",
                 "c2f_source", "fortran_source"}
@@ -32,22 +31,36 @@ def check_partial_tf_specification(spec):
     if actual != expected:
         msg = f"Invalid TF specification keys ({actual})"
         raise ValueError(msg)
-    language = tf_spec["language"]
-    processor = tf_spec["processor"]
 
-    if language.lower() not in ["c++", "fortran"]:
+    language = tf_spec["language"]
+    if not isinstance(language, str):
+        raise TypeError(f"language not string ({language})")
+    elif language.lower() not in ["c++", "fortran"]:
         raise ValueError(f"Unsupported TF language ({language})")
-    if processor.lower() not in ["cpu", "gpu"]:
+
+    processor = tf_spec["processor"]
+    if not isinstance(processor, str):
+        raise TypeError(f"processor not string ({processor})")
+    elif processor.lower() not in ["cpu", "gpu"]:
         raise ValueError(f"Unsupported target processor ({processor})")
+
     for each in ["cpp_header", "cpp_source"]:
-        if tf_spec[each] == "":
+        fname = tf_spec[each]
+        if not isinstance(fname, str):
+            raise TypeError(f"{each} not string ({fname})")
+        elif fname == "":
             raise ValueError(f"Empty {each} filename")
+
     if language.lower() == "fortran":
         for each in ["c2f_source", "fortran_source"]:
-            if tf_spec[each] == "":
+            fname = tf_spec[each]
+            if not isinstance(fname, str):
+                raise TypeError(f"{each} not string ({fname})")
+            elif fname == "":
                 raise ValueError(f"Empty {each} filename")
 
     # ----- DATA ITEM
+    data_item = spec["data_item"]
     expected = {"type", "byte_alignment", "header", "source"}
     actual = set(data_item)
     if actual != expected:
@@ -55,15 +68,23 @@ def check_partial_tf_specification(spec):
         raise ValueError(msg)
 
     item_type = data_item["type"]
-    if item_type.lower() not in ["tilewrapper", "datapacket"]:
+    if not isinstance(item_type, str):
+        raise TypeError(f"Data item type not string ({item_type})")
+    elif item_type.lower() not in ["tilewrapper", "datapacket"]:
         msg = f"Unsupported data item type ({item_type})"
         raise ValueError(msg)
 
-    for each in ["header", "source"]:
-        if data_item[each] == "":
-            raise ValueError(f"Empty {each} filename")
-
     if item_type.lower() == "datapacket":
         byte_align = data_item["byte_alignment"]
-        if byte_align <= 0:
-            raise ValueError("Non-positive byte alignment ({byte_align})")
+        if not isinstance(byte_align, numbers.Integral):
+            msg = f"Data item byte alignment not integer ({byte_align})"
+            raise TypeError(msg)
+        elif byte_align <= 0:
+            raise ValueError(f"Non-positive byte alignment ({byte_align})")
+
+    for each in ["header", "source"]:
+        fname = data_item[each]
+        if not isinstance(fname, str):
+            raise TypeError(f"Data item {each} not string ({fname})")
+        elif fname == "":
+            raise ValueError(f"Empty data item {each} filename")
