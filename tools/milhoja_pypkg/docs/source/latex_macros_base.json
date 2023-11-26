@@ -6,7 +6,6 @@
         "Z":          "\\mathbb{Z}",
         "Q":          "\\mathbb{Q}",
         "R":          "\\mathbb{R}",
-        "C":          "\\mathbb{C}",
         "F":          "\\mathbb{F}",
         "half":       "\\frac{1}{2}",
         "avec":       "\\vec{a}",
