@@ -21,6 +21,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
     internally by the DataPacketGenerator.
     """
 
+    # todo::
+    #   * init should be passing in an actual logger, not a log level.
     def __init__(
         self,
         tf_spec,

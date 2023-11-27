@@ -14,6 +14,7 @@ from .parse_helpers import parse_extents
 from .parse_helpers import parse_lbound
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
+from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
@@ -365,6 +366,16 @@ class DataPacketGenerator(AbcCodeGenerator):
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
             c2f_layer.generate_source_code(destination, overwrite)
+
+            # todo::
+            #   * file name should be gotten from tf_spec.y
+
+            # generate data packet module file.
+            c2f_module = DataPacketC2FModuleGenerator(
+                self._tf_spec, self._indent, self._logger,
+                self.external_args
+            )
+            c2f_module.generate_source_code()
 
     # ..todo::
     #    * based on the organization of the data packet generator, and
