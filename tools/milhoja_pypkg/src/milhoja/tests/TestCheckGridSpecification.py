@@ -15,6 +15,12 @@ from milhoja.tests import (
 
 
 class TestCheckGridSpecification(unittest.TestCase):
+    """
+    .. todo::
+        * Adjust so that this checks check_grid_specification()
+          indirectly by ensuring that SubroutineGroup correctly detects
+          input failures.
+    """
     def setUp(self):
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 

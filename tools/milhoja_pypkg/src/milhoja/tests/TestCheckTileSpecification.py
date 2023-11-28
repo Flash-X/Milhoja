@@ -29,6 +29,12 @@ from milhoja.tests import (
 
 
 class TestCheckTileSpecification(unittest.TestCase):
+    """
+    .. todo::
+        * Adjust so that this checks check_tile_specification()
+          indirectly by ensuring that SubroutineGroup correctly detects
+          input failures.
+    """
     def setUp(self):
         self.__singletons = [
             TILE_GRID_INDEX_ARGUMENT,

@@ -162,6 +162,14 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
         with self.assertRaises(ValueError):
             SubroutineGroup(bad_spec, self.__logger)
 
+        # Check that "application_specific" is acceptable.
+        # We already checked that its not necessary.
+        key = "application_specific"
+        good_spec = copy.deepcopy(self.__good)
+        self.assertTrue(key not in good_spec[EXTERNAL_ARGUMENT][VAR])
+        good_spec[EXTERNAL_ARGUMENT][VAR][key] = {}
+        SubroutineGroup(good_spec, self.__logger)
+
     def testExternalsValues(self):
         VAR = "_dt"
 
@@ -186,14 +194,6 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
         bad_spec = copy.deepcopy(self.__good)
         del bad_spec[EXTERNAL_ARGUMENT]
         with self.assertRaises(ValueError):
-            SubroutineGroup(bad_spec, self.__logger)
-
-    def testEmptyScratch(self):
-        bad_spec = copy.deepcopy(self.__good)
-        del bad_spec[SCRATCH_ARGUMENT]["_scratch3D"]
-        del bad_spec[SCRATCH_ARGUMENT]["_scratch4D"]
-        self.assertEqual(0, len(bad_spec[SCRATCH_ARGUMENT]))
-        with self.assertRaises(LogicError):
             SubroutineGroup(bad_spec, self.__logger)
 
     def testBadExternal(self):
@@ -234,6 +234,14 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
         del bad_spec[SCRATCH_ARGUMENT]["_scratch3D"]
         bad_spec[SCRATCH_ARGUMENT]["scratch3D"] = arg_spec
         with self.assertRaises(ValueError):
+            SubroutineGroup(bad_spec, self.__logger)
+
+    def testEmptyScratch(self):
+        bad_spec = copy.deepcopy(self.__good)
+        del bad_spec[SCRATCH_ARGUMENT]["_scratch3D"]
+        del bad_spec[SCRATCH_ARGUMENT]["_scratch4D"]
+        self.assertEqual(0, len(bad_spec[SCRATCH_ARGUMENT]))
+        with self.assertRaises(LogicError):
             SubroutineGroup(bad_spec, self.__logger)
 
     def testScratchKeys(self):

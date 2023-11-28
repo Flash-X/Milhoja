@@ -20,6 +20,12 @@ from milhoja.tests import (
 
 
 class TestCheckGridDataSpecification(unittest.TestCase):
+    """
+    .. todo::
+        * Adjust so that this checks check_grid_data_specification()
+          indirectly by ensuring that SubroutineGroup correctly detects
+          input failures.
+    """
     def setUp(self):
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 
@@ -210,6 +216,9 @@ class TestCheckGridDataSpecification(unittest.TestCase):
         # Check for bad access patterns based on variable index set's base
         for access in ["R", "RW", "W"]:
             bad_spec = copy.deepcopy(self.__good)
+            del bad_spec["R"]
+            self.assertTrue("RW" not in bad_spec)
+            self.assertTrue("W" not in bad_spec)
             index = 1
             for bad in [-2, -1, 0]:
                 bad_spec[access] = [bad]
@@ -234,11 +243,24 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                     check_grid_data_specification(self.__name, bad_spec,
                                                   index, self.__logger)
 
+        # Catch repeated index
+        for access in ["R", "RW", "W"]:
+            bad_spec = copy.deepcopy(self.__good)
+            del bad_spec["R"]
+            self.assertTrue("RW" not in bad_spec)
+            self.assertTrue("W" not in bad_spec)
+            bad_spec[access] = [3, 1, 1, 2]
+            with self.assertRaises(LogicError):
+                check_grid_data_specification(self.__name, bad_spec,
+                                              self.__index, self.__logger)
+
         # Variables can have only one access pattern
         common = 3
         for a1, a2 in it.combinations(["R", "RW", "W"], 2):
             bad_spec = copy.deepcopy(self.__good)
             del bad_spec["R"]
+            self.assertTrue("RW" not in bad_spec)
+            self.assertTrue("W" not in bad_spec)
             bad_spec[a1] = [1, common, 5]
             bad_spec[a2] = [9, 2, common]
             with self.assertRaises(ValueError):

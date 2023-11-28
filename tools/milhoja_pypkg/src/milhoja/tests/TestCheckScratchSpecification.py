@@ -18,6 +18,12 @@ from milhoja.tests import (
 
 
 class TestCheckScratchSpecification(unittest.TestCase):
+    """
+    .. todo::
+        * Adjust so that this checks check_scratch_specification()
+          indirectly by ensuring that SubroutineGroup correctly detects
+          input failures.
+    """
     def setUp(self):
         self.__logger = BasicLogger(LOG_LEVEL_NONE)
 

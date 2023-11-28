@@ -93,6 +93,9 @@ def check_grid_data_specification(arg, spec, variable_index_base, logger):
             elif idx < variable_index_base:
                 msg = "{}'s {} access ({}) less than variable_index_base"
                 raise ValueError(msg.format(arg, access, idx))
+        if len(pattern) > len(set(pattern)):
+            msg = f"Repeated variable in {arg} for {access} access ({pattern})"
+            raise LogicError(msg)
 
     # No variable can have more than one access pattern
     for i, access_i in enumerate(var_specs_all):

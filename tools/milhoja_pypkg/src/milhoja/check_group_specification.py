@@ -81,9 +81,19 @@ def check_group_specification(group_spec, logger):
 
             expected = {"type", "extents"}
             actual = set(var_spec)
-            if actual != expected:
-                msg = "Invalid {} variable specification keys ({})"
-                raise ValueError(msg.format(EXTERNAL_ARGUMENT, actual))
+            for key in expected:
+                if key not in actual:
+                    msg = f"{key} not in {variable}'s specification ({actual})"
+                    raise ValueError(msg)
+
+            # Allow applications to store in JSON information about where
+            # external variables come from.  Permit each application to store
+            # this information however they see fit by simply ignoring this
+            # optional field.
+            optionals = actual.difference(expected)
+            if (len(optionals) > 0) and (optionals != {"application_specific"}):
+                msg = f"Invalid extra external keys ({optionals})"
+                raise ValueError(msg)
 
             var_type = var_spec["type"]
             extents = var_spec["extents"]
