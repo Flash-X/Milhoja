@@ -22,7 +22,7 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
     If this does not raise an error, then the specification is acceptable.
 
     :param name: Name of subroutine
-    :param spec: Subroutine specification obtained directly from operation
+    :param spec: Subroutine specification obtained directly from group
         specification
     :param variable_index_base: Minimum value in variable index set
     :param logger: Logger derived from :py:class:`milhoja.AbcLogger`

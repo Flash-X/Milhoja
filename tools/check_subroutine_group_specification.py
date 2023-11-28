@@ -4,7 +4,6 @@
 Run the script with -h to obtain more information regarding the script.
 """
 
-import json
 import argparse
 import traceback
 

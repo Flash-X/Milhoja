@@ -13,8 +13,7 @@ def check_grid_specification(spec, logger):
     .. todo::
         * Will this also work for task function specifications?
 
-    :param spec: Grid specification obtained directly from operation
-        specification
+    :param spec: Grid specification passed to Milhoja tools by application
     :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
     """
     # ----- HARDCODED VALUES

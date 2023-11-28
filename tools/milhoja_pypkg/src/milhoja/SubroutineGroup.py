@@ -27,6 +27,9 @@ class SubroutineGroup(object):
         The given group specification is error checked completely so that
         results obtained from the returned object can be assumed to be correct.
 
+        .. todo::
+            * Add error checking of format info.
+
         :param filename: Filename and path to Milhoja-JSON format subroutine
             group specification file.  This function does not alter the file.
         :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
@@ -168,6 +171,8 @@ class SubroutineGroup(object):
         """
         :return: Set of group-level external variables
         """
+        if EXTERNAL_ARGUMENT not in self.__spec:
+            return set()
         return set(self.__spec[EXTERNAL_ARGUMENT])
 
     @property
@@ -175,12 +180,16 @@ class SubroutineGroup(object):
         """
         :return: Set of group-level scratch variables
         """
+        if SCRATCH_ARGUMENT not in self.__spec:
+            return set()
         return set(self.__spec[SCRATCH_ARGUMENT])
 
     def external_specification(self, external):
         """
         :param external: Name of group-level external variable
-        :return: Specification of given variable
+        :return: Specification of given variable.  Calling code can alter the
+            obtained data structure without affecting the contents of the
+            SubroutineGroup object.
         """
         if not isinstance(external, str):
             msg = f"External variable name ({external}) not a string"
@@ -195,7 +204,9 @@ class SubroutineGroup(object):
     def scratch_specification(self, scratch):
         """
         :param scratch: Name of group-level scratch variable
-        :return: Specification of given variable
+        :return: Specification of given variable.  Calling code can alter the
+            obtained data structure without affecting the contents of the
+            SubroutineGroup object.
         """
         if not isinstance(scratch, str):
             msg = f"Scratch variable name ({scratch}) not a string"
