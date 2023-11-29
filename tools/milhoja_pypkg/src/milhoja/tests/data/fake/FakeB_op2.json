@@ -31,7 +31,7 @@
             "dt":        {"source":             "external",
                           "name":               "_dt"},
             "loCoeffs":  {"source":             "lbound",
-                         "array":               "coeffs"},
+                          "array":              "coeffs"},
             "coeffs":    {"source":             "external",
                           "name":               "_coeffs"},
             "level":     {"source":             "tile_level"},

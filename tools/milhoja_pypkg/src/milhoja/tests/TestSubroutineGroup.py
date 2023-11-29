@@ -51,7 +51,8 @@ class TestSubroutineGroup(unittest.TestCase):
             shutil.rmtree(dst)
         os.makedirs(dst)
 
-        TMP_FNAME = dst.joinpath("FAIL.FAIL.loog")
+        BAD_FNAME = "FAIL.FAIL.loog"
+        TMP_FNAME = dst.joinpath(BAD_FNAME)
 
         # Correct use already tested in setUp()
 
@@ -60,13 +61,12 @@ class TestSubroutineGroup(unittest.TestCase):
             with self.assertRaises(TypeError):
                 SubroutineGroup.from_milhoja_json(bad, self.__logger)
 
-        bad_fname = "FAIL.FAIL.log"
-        bad = Path.cwd().joinpath(bad_fname)
+        bad = Path.cwd().joinpath(BAD_FNAME)
         self.assertFalse(bad.is_file())
         with self.assertRaises(ValueError):
             SubroutineGroup.from_milhoja_json(bad, self.__logger)
         with self.assertRaises(ValueError):
-            SubroutineGroup.from_milhoja_json(bad_fname, self.__logger)
+            SubroutineGroup.from_milhoja_json(BAD_FNAME, self.__logger)
         with self.assertRaises(ValueError):
             SubroutineGroup.from_milhoja_json(dst, self.__logger)
 
@@ -104,6 +104,8 @@ class TestSubroutineGroup(unittest.TestCase):
             with self.assertRaises(TypeError):
                 SubroutineGroup(self.__good, bad)
 
+        # Bad spec tested in TestSubroutine_Bad*.py test cases
+
     def testContains(self):
         for good in self.__subroutines:
             self.assertTrue(good in self.__group)
@@ -123,6 +125,7 @@ class TestSubroutineGroup(unittest.TestCase):
         self.assertEqual("base_op1", self.__group.name)
 
     def testVariableIndexBase(self):
+        # TODO: This should change it to 0 and recheck.
         self.assertEqual(1, self.__group.variable_index_base)
 
     def testSubroutines(self):

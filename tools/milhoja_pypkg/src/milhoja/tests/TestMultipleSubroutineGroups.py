@@ -146,6 +146,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         # TODO: Replace some of this with code that updates the lo/hi and
         # confirms correctness?
         result = self.__tf_spec.tile_metadata_arguments
+        # tile_interior/_arrayBounds not included in TF arg list
         self.assertEqual(10, len(result))
 
         # ----- INCLUDED ONLY FROM FUNCTIONA
@@ -234,7 +235,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
                     "tile_zCoords_right"}
         self.assertTrue(TILE_COORDINATES_ARGUMENT in result)
         self.assertEqual(expected, set(result[TILE_COORDINATES_ARGUMENT]))
-        for actual in expected:
+        for key in expected:
             self.assertTrue(key in self.__fcnA)
             self.assertTrue(key in self.__fcnC)
         self.assertEqual("xCoords", self.__fcnA["tile_xCoords_center"])
