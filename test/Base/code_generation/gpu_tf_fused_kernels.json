@@ -32,7 +32,7 @@
                                  "variables_out":   [1, 2]}
         },
         "subroutine_call_graph": [
-            "StaticPhysicsRoutines::computeLaplacianFusedKernels"
+            "StaticPhysicsRoutines::computeLaplacianFusedKernelsStirng_packet_oacc_summit"
         ]
     },
     "data_item": {

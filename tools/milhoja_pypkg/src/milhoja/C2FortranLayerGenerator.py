@@ -5,6 +5,7 @@ from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
+from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG
 )
@@ -94,7 +95,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for generating header code for c2f layer."""
-        raise NotImplementedError(
+        raise LogicError(
             "No header file for C to Fortran layer. Please contact your state"
             " provided Wesley to solve this issue."
         )
@@ -176,7 +177,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             for key, data in self._tile_metadata.items():
                 ftype = FortranTemplateUtility \
                     .F_HOST_EQUIVALENT[
-                        TemplateUtility.TILE_VARIABLE_MAPPING[data["source"]]
+                        TemplateUtility.SOURCE_DATATYPE[data["source"]]
                     ].lower()
                 ftype = data_mapping[ftype]
                 gpu_pointers[key] = C2FInfo(

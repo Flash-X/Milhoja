@@ -57,10 +57,7 @@ class FortranTemplateUtility(TemplateUtility):
                        '_nTiles_h = static_cast<' \
                        f'{externals["nTiles"]["type"]}>(tiles_.size());'
         connectors[cls._NTILES_VALUE] = [nTiles_value]
-
-        cls._common_iterate_externals(
-            connectors, size_connectors, externals
-        )
+        cls._common_iterate_externals(connectors, externals)
 
     @classmethod
     def iterate_tilemetadata(
@@ -197,8 +194,8 @@ class FortranTemplateUtility(TemplateUtility):
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
                 per_tile=True
             )
-            cls._common_iterate_tile_in(
-                data, connectors, info, extents, mask_in
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents, mask_in, None, cls._T_IN
             )
 
     @classmethod
@@ -240,8 +237,9 @@ class FortranTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_in_out(
-                data, connectors, info, extents, in_mask, out_mask
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents,
+                in_mask, out_mask, cls._T_IN_OUT
             )
 
     @classmethod
@@ -285,8 +283,8 @@ class FortranTemplateUtility(TemplateUtility):
                         f'* sizeof({dtype})',
                 per_tile=True
             )
-            cls._common_iterate_tile_out(
-                data, connectors, info, extents, out_mask
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents, out_mask, cls._T_OUT
             )
 
     @classmethod
@@ -313,11 +311,8 @@ class FortranTemplateUtility(TemplateUtility):
             exts = data[cls._EXTENTS]
             dtype = data["type"]
             # need to fill farrays with default args
-            extents4d = ["1"] * 4
-            for idx, val in enumerate(exts):
-                extents4d[idx] = str(val)
 
-            extents = ' * '.join(f'({val})' for val in extents4d)
+            extents = ' * '.join(f'({val})' for val in exts)
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
                 size_eq=f'{extents} * sizeof({dtype})',

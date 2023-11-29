@@ -33,10 +33,7 @@ class CppTemplateUtility(TemplateUtility):
 
         nTiles_value = '_nTiles_h = tiles_.size();'
         connectors[cls._NTILES_VALUE] = [nTiles_value]
-
-        cls._common_iterate_externals(
-            connectors, size_connectors, externals
-        )
+        cls._common_iterate_externals(connectors, externals)
 
     @classmethod
     def iterate_tilemetadata(
@@ -78,7 +75,7 @@ class CppTemplateUtility(TemplateUtility):
 
             source = source.replace('tile_', '')
             item_type = data['type']
-            size_eq = f"sizeof({ item_type })"
+            size_eq = f"sizeof({item_type})"
             info = DataPacketMemberVars(
                 item=item, dtype=item_type, size_eq=size_eq, per_tile=True
             )
@@ -140,8 +137,8 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_in(
-                data, connectors, info, extents, mask_in
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents, mask_in, None, cls._T_IN
             )
 
             cls.insert_farray_memcpy(
@@ -188,8 +185,9 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_in_out(
-                data, connectors, info, extents, in_mask, out_mask
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents,
+                in_mask, out_mask, cls._T_IN_OUT
             )
 
             cls.insert_farray_memcpy(
@@ -237,8 +235,8 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_out(
-                data, connectors, info, extents, out_mask
+            cls._common_iterate_tile_data(
+                data, connectors, info, extents, None, out_mask, cls._T_OUT
             )
 
             cls.insert_farray_memcpy(

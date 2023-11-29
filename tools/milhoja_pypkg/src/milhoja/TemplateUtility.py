@@ -8,12 +8,20 @@ fill out the various CGKkit dictionaries for generating every template.
     * Eventually logging should be more informative and replace
       all print statements.
 """
-
+from sys import maxsize
 from collections import OrderedDict
 from abc import abstractmethod
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
+
+from . import (
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+)
 
 
 class TemplateUtility():
@@ -49,15 +57,18 @@ class TemplateUtility():
         "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
     }
 
-    TILE_VARIABLE_MAPPING = {
-        'levels': 'unsigned int',
-        'gridIndex': 'int',
-        'tileIndex': 'int',
-        'tile_deltas': 'RealVect',
-        'tile_lo': "IntVect",
-        'tile_hi': "IntVect",
-        'tile_lbound': "IntVect",
-        'tile_ubound': "IntVect"
+    SOURCE_DATATYPE = {
+        TILE_LO_ARGUMENT: "IntVect",
+        TILE_HI_ARGUMENT: "IntVect",
+        TILE_LBOUND_ARGUMENT: "IntVect",
+        TILE_UBOUND_ARGUMENT: "IntVect",
+        TILE_DELTAS_ARGUMENT: "RealVect",
+        TILE_LEVEL_ARGUMENT: "unsigned int",
+        GRID_DATA_ARGUMENT: "real",
+        TILE_FACE_AREAS_ARGUMENT: "real",
+        TILE_COORDINATES_ARGUMENT: "real",
+        TILE_GRID_INDEX_ARGUMENT: "int",
+        TILE_CELL_VOLUMES_ARGUMENT: "real"
     }
 
     # C++ Index space is always 0.
@@ -74,7 +85,7 @@ class TemplateUtility():
         :return: The size of the array given the variable masking.
         :rtype: int
         """
-        largest = -1
+        largest = -maxsize
         if not vars_in and not vars_out:
             raise TypeError("No variable masking for given array in tf spec.")
 
@@ -96,26 +107,29 @@ class TemplateUtility():
             # larger than the in mask. Need to create test cases or have
             # an existing use case.
             if largest_out > largest_in:
-                raise LogicError("No test cases for larger mask_out!")
+                raise NotImplementedError(
+                    "No test cases when vars_out is larger than vars_in!"
+                )
 
             largest = max([largest_in, largest_out])
 
-        if largest == -1:
+        if largest == -maxsize:
             raise LogicError("Negative array size, check variable masking.")
         return largest
 
     @classmethod
     @abstractmethod
     def iterate_externals(
-        cls, connectors: dict, size_connectors: dict,
+        cls,
+        connectors: dict,
+        size_connectors: dict,
         externals: OrderedDict
     ):
         ...
 
     @classmethod
     def _common_iterate_externals(
-        cls, connectors: dict, size_connectors: dict,
-        externals: OrderedDict
+        cls, connectors: dict, externals: OrderedDict
     ):
         """
         Common code in both utility classes for iterating external vars.
@@ -190,63 +204,20 @@ class TemplateUtility():
         ...
 
     @classmethod
-    def _common_iterate_tile_in(
-        cls, data, connectors, info, extents, mask_in
+    def _common_iterate_tile_data(
+        cls, data, connectors, info, extents, mask_in, mask_out, arg_type
     ):
         """
-        Common code found in the iterate_tile_in function for both
-        template utility classes.
+        Common code for iterating over tile data (tile_in, in_out, out).
 
-        :param dict data: The dict containing a var's information
-        :param dict connectors: All cgkit connectors.
-        :param DataPacketMemberVars info: The var's information struct.
-        :param list extents: The size of the array.
-        :param list mask_in: The range of variables to go into the packet.
+        :param data: The arguments for the variable.
+        :param connectors: The connectors dictionary.
+        :param info: The information struct for the tile variable.
+        :param extents: The size extents array for the variable.
+        :param mask_in: The variable mask for packing, if it exists.
+        :param mask_out: The variable mask for unpacking, if it exists.
+        :param arg_type: The type of tile data (in, in_out, out).
         """
-        # Add necessary connectors.
-        connectors[cls._PUB_MEMBERS].append(
-            f'{info.dtype}* {info.device};\n'
-            f'{info.dtype}* {info.pinned};\n'
-        )
-        connectors[cls._SET_MEMBERS].extend(
-            [
-                f'{info.device}{{nullptr}}',
-                f'{info.pinned}{{nullptr}}'
-            ]
-        )
-        connectors[cls._SIZE_DET].append(
-            f'static constexpr std::size_t {info.size} = '
-            f'{info.SIZE_EQ};\n'
-        )
-        cls.set_pointer_determination(connectors, cls._T_IN, info, True)
-        cls.add_memcpy_connector(
-            connectors, cls._T_IN,
-            extents, info.ITEM,
-            mask_in[0], mask_in[1],
-            info.size, info.dtype, data['structure_index'][0]
-        )
-
-    @classmethod
-    @abstractmethod
-    def iterate_tile_in_out(cls):
-        ...
-
-    @classmethod
-    def _common_iterate_tile_in_out(
-        cls, data, connectors, info, extents, in_mask, out_mask
-    ):
-        """
-        Common code pulled out of each utility class's iterate_tile_in_out
-        function.
-
-        :param dict data: The information of a specific variable
-        :param dict connectors: All connectors for cgkit.
-        :param DataPacketMemberVars info: Information struct for a var.
-        :param list extents: The size of the array.
-        :param list in_mask: The range of vars coming into the packet.
-        :param list out_mask: The range of vars returning from the packet.
-        """
-        # set connectors
         connectors[cls._PUB_MEMBERS].append(
             f'{info.dtype}* {info.device};\n'
             f'{info.dtype}* {info.pinned};\n'
@@ -262,64 +233,34 @@ class TemplateUtility():
             f'{info.SIZE_EQ};\n'
         )
         cls.set_pointer_determination(
-            connectors, cls._T_IN_OUT, info, True
+            connectors, arg_type, info, True
         )
-        cls.add_memcpy_connector(
-            connectors, cls._T_IN_OUT,
-            extents, info.ITEM, in_mask[0],
-            in_mask[1], info.size, info.dtype,
-            data['structure_index'][0]
-        )
+        if mask_in:
+            cls.add_memcpy_connector(
+                connectors, arg_type,
+                extents, info.ITEM, mask_in[0],
+                mask_in[1], info.size, info.dtype,
+                data['structure_index'][0]
+            )
         # here we pass in item twice because tile_in_out pointers get
         # packed and unpacked from the same location.
-        cls.add_unpack_connector(
-            connectors, cls._T_IN_OUT,
-            extents, out_mask[0], out_mask[1],
-            info.dtype, info.ITEM,
-            data['structure_index'][0]
-        )
+        if mask_out:
+            cls.add_unpack_connector(
+                connectors, arg_type,
+                extents, mask_out[0], mask_out[1],
+                info.dtype, info.ITEM,
+                data['structure_index'][0]
+            )
+
+    @classmethod
+    @abstractmethod
+    def iterate_tile_in_out(cls):
+        ...
 
     @classmethod
     @abstractmethod
     def iterate_tile_out(cls):
         ...
-
-    @classmethod
-    def _common_iterate_tile_out(
-        cls, data, connectors, info, extents, out_mask
-    ):
-        """
-        Common code pulled out of the iterate_tile_out function.
-        into its own separate function.
-
-        :param dict data: The data for a specific variable in the TF.
-        :param dict connectors: Dict containing all cgkit connectors
-        :param DataPacketMemberVars info: Data for a specific variable in the
-                                          data packet.
-        :param list extents: The extents of the variable.
-        :param list out_mask: A length 2 array containing the range of vars
-                              to return.
-        """
-        connectors[cls._PUB_MEMBERS].append(
-                f'{info.dtype}* {info.device};\n'
-                f'{info.dtype}* {info.pinned};\n'
-            )
-        connectors[cls._SET_MEMBERS].extend(
-            [
-                f'{info.device}{{nullptr}}',
-                f'{info.pinned}{{nullptr}}'
-            ]
-        )
-        connectors[cls._SIZE_DET].append(
-            f'static constexpr std::size_t {info.size} = '
-            f'{info.SIZE_EQ};\n'
-        )
-        cls.set_pointer_determination(connectors, cls._T_OUT, info, True)
-        cls.add_unpack_connector(
-            connectors, cls._T_OUT, extents, out_mask[0],
-            out_mask[1], info.dtype, info.ITEM,
-            data['structure_index'][0]
-        )
 
     @classmethod
     @abstractmethod
@@ -349,9 +290,9 @@ class TemplateUtility():
             f'{info.SIZE_EQ};\n'
         )
         connectors[f'pointers_{cls._T_SCRATCH}'].append(
-            f"""{info.device} = static_cast<{info.dtype}*>( """
-            f"""static_cast<void*>(ptr_d) );\n"""
-            f"""ptr_d += {info.total_size};\n\n"""
+            f"{info.device} = static_cast<{info.dtype}*>( "
+            f"static_cast<void*>(ptr_d) );\n"
+            f"ptr_d += {info.total_size};\n\n"
         )
 
     @staticmethod
@@ -371,7 +312,7 @@ class TemplateUtility():
         """
         size = '0'
         if section_dict:
-            size = ' + '.join(f'SIZE_{item.upper()}' for item in section_dict)
+            size = '\n + '.join(f'SIZE_{item.upper()}' for item in section_dict)
         connectors[f'size_{name}'] = size
 
     @staticmethod
@@ -452,7 +393,10 @@ class TemplateUtility():
                                   the data packet JSON.
         :rtype: None
         """
+        # throw an error if we have a negative amount of streams.
         if extra_streams < 1:
+            if extra_streams < 0:
+                raise LogicError("N streams should not be negative!")
             return
 
         connectors[cls._STREAM_FUNCS_H].extend([

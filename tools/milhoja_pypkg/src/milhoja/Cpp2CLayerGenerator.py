@@ -1,5 +1,3 @@
-import os
-
 from collections import defaultdict
 from pathlib import Path
 
@@ -9,6 +7,7 @@ from .BasicLogger import BasicLogger
 from milhoja import LOG_LEVEL_MAX
 from milhoja import THREAD_INDEX_VAR_NAME
 from milhoja import TaskFunction
+from .LogicError import LogicError
 
 _ARG_LIST_KEY = "c2f_argument_list"
 _INST_ARGS_KEY = "instance_args"
@@ -21,13 +20,11 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
     internally by the DataPacketGenerator.
     """
 
-    # todo::
-    #   * init should be passing in an actual logger, not a log level.
     def __init__(
         self,
         tf_spec,
-        outer: Path,
-        helper: Path,
+        outer,
+        helper,
         indent,
         log_level,
         n_extra_streams,
@@ -42,17 +39,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
         logger = BasicLogger(log_level)
         super().__init__(
-            tf_spec, os.path.basename(outer),
-            os.path.basename(helper), indent,
+            tf_spec, outer,
+            helper, indent,
             self.__TOOL_NAME, logger
         )
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for cpp2c header."""
-        raise NotImplementedError(
-            "No header file for C++ to C layer. Why was this called?"
-        )
+        raise LogicError("No header file for C++ to C layer.")
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -61,10 +56,13 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         full file path for the output files, so destination gets unused in
         both functions.
         """
-        self._generate_cpp2c_outer(destination, overwrite)
-        self._generate_cpp2c_helper(destination, overwrite)
+        outer = destination.joinpath(Path(self._outer_template))
+        helper = destination.joinpath(Path(self._helper_template))
 
-    def _generate_cpp2c_outer(self, destination, overwrite):
+        self._generate_cpp2c_outer(outer, overwrite)
+        self._generate_cpp2c_helper(helper, overwrite)
+
+    def _generate_cpp2c_outer(self, outer, overwrite):
         """
         Generates the outer template for the cpp2c layer.
 
@@ -77,8 +75,8 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         :param generator: The DataPacketGenerator object that contains
                           the information to build the outer template.
         """
-        if self._outer_template.is_file():
-            self.warn(f"{str(self._outer_template)} already exists.")
+        if outer.is_file():
+            self.warn(f"{str(outer)} already exists.")
             if not overwrite:
                 self.log_and_abort(
                     f"Overwrite is {overwrite}",
@@ -153,7 +151,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             [(item.device, 'const void*') for item in dpinfo_order]
         )
 
-    def _generate_cpp2c_helper(self, destination, overwrite):
+    def _generate_cpp2c_helper(self, helper, overwrite):
         """
         Generates the helper template for the cpp2c layer.
 
@@ -171,6 +169,14 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                             this is unused.
         :param overwrite: The overwrite flag.
         """
+        if helper.is_file():
+            self.warn(f"{str(helper)} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}",
+                    FileExistsError()
+                )
+
         # generate DataPacketMemberVars instance for each item in TFAL.
         dummy_args = ["nTiles"] + self._tf_spec.dummy_arguments
         dpinfo_order = ([
@@ -184,14 +190,6 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             (key, f'{data["type"]}')
             for key, data in self._externals.items() if key != "nTiles"
         ] + [('packet', 'void**')]
-
-        if self._helper_template.is_file():
-            self.warn(f"{str(self._helper_template)} already exists.")
-            if not overwrite:
-                self.log_and_abort(
-                    f"Overwrite is {overwrite}.",
-                    FileExistsError()
-                )
 
         # insert all connectors into helper template file
         with open(self._helper_template, 'w') as helper:

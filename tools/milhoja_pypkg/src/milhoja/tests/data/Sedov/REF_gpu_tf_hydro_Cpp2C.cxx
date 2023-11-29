@@ -77,9 +77,15 @@ extern "C" {
             return MILHOJA_ERROR_POINTER_IS_NULL;
         }
         DataPacket_gpu_tf_hydro*   packet_h = static_cast<DataPacket_gpu_tf_hydro*>(packet);
+
+        if(id < 0) {
+            std::cerr << "[release_gpu_tf_hydro_extra_queue_c] id is negative." << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
+        }
+        unsigned int cast_id = static_cast<unsigned int>(id);
     
         try {
-            packet_h->releaseExtraQueue(id);
+            packet_h->releaseExtraQueue(cast_id);
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;

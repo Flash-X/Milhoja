@@ -46,7 +46,7 @@
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianDensity": {
-            "interface_file": "computeLaplacianFused.h",
+            "interface_file": "computeLaplacianDensity.h",
             "argument_list": ["lo",
                               "hi",
                               "Uin",
@@ -58,6 +58,21 @@
                 "deltas_d":  "tile_deltas",
                 "Uin_d":     "Uin",
                 "Uout_d":    "Uout"
+            }
+        },
+        "StaticPhysicsRoutines::computeLaplacianEnergy": {
+            "interface_file": "computeLaplacianEnergy.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "Uin",
+                              "Uout",
+                              "deltas"],
+            "argument_mapping": {
+                "lo":      "tile_lo",
+                "hi":      "tile_hi",
+                "deltas":  "tile_deltas",
+                "Uin":     "Uin",
+                "Uout":    "Uout"
             }
         }
     }

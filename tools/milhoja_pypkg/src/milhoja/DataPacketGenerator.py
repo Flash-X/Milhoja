@@ -1,20 +1,17 @@
-import cgkit.ctree.srctree as srctree
-import re
 import pathlib
 import functools
 
 from pkg_resources import resource_filename
 from copy import deepcopy
 from collections import defaultdict
-from cgkit.ctree.srctree import SourceTree
 from collections import OrderedDict
 from pathlib import Path
 
 from .parse_helpers import parse_extents
 from .parse_helpers import parse_lbound
+from .generate_packet_file import generate_packet_file
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
-from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
@@ -22,9 +19,9 @@ from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .BasicLogger import BasicLogger
 from .LogicError import LogicError
-from .constants import (
+from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    LOG_LEVEL_MAX
+    LOG_LEVEL_MAX, INTERNAL_ARGUMENT
 )
 
 
@@ -38,39 +35,14 @@ class DataPacketGenerator(AbcCodeGenerator):
         * check if lru_caching is necessary on properties that
           are not tile_scratch.
     """
-    CPP_EQUIVALENT = {
-        "real": "RealVect",
-        "int": "IntVect",
-        "logical": "bool"
-    }
-
-    F_HOST_EQUIVALENT = {
-        'RealVect': 'real',
-        'IntVect': 'int'
-    }
-
-    TILE_VARIABLE_MAPPING = TemplateUtility.TILE_VARIABLE_MAPPING
-    F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
-
-    SOURCE_DATATYPE = {
-        TaskFunction.TILE_LO: "IntVect",
-        TaskFunction.TILE_HI: "IntVect",
-        "tile_lbound": "IntVect",
-        "tile_ubound": "IntVect",
-        TaskFunction.TILE_DELTAS: "RealVect",
-        TaskFunction.TILE_LEVEL: "unsigned int",
-        "grid_data": "real",
-        TaskFunction.TILE_FACE_AREAS: "real",
-        TaskFunction.TILE_COORDINATES: "real",
-        TaskFunction.TILE_GRID_INDEX: "int",
-        TaskFunction.TILE_CELL_VOLUMES: "real"
-    }
-
     FORTRAN_EQUIVALENT = {
         "IntVect": "int",
         "RealVect": "real",
         "bool": "logical"
     }
+
+    SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
+    F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
 
     __DEFAULT_SOURCE_TREE_OPTS = {
         'codePath': pathlib.Path.cwd(),
@@ -80,16 +52,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         'verbosePost': ' */',
     }
 
-    _SOURCE_TILE_DATA_MAPPING = {
-        "CENTER": "tileDesc_h->dataPtr()",
-        "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
-        "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
-        "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
-    }
-
-    # ..todo::
-    #       * the sizes file is per library installation,
-    #       * so should this be a part of a milhoja constant?
     def __init__(
         self,
         tf_spec: TaskFunction,
@@ -103,7 +65,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
 
         self._TOOL_NAME = "Milhoja DataPacket"
-        self._sizes = sizes
+        self._sizes = deepcopy(sizes)
         self._indent = indent
 
         self._size_connectors = defaultdict(str)
@@ -277,15 +239,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         header = destination_path.joinpath(self.header_filename)
 
         self._log(f"Generating header at {str(header)}", LOG_LEVEL_BASIC)
-        self.generate_packet_file(
+        generate_packet_file(
             header,
             self.__DEFAULT_SOURCE_TREE_OPTS,
             [
                 self._outer_template,
-                self.header_template,  # static path to pkg resource.
+                self.header_template_path,  # static path to pkg resource.
                 self._helper_template
             ],
-            overwrite
+            overwrite, self._logger
         )
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
@@ -303,29 +265,23 @@ class DataPacketGenerator(AbcCodeGenerator):
         source = destination_path.joinpath(self.source_filename).resolve()
 
         self._log(f"Generating source at {str(source)}", LOG_LEVEL_BASIC)
-        self.generate_packet_file(
+        generate_packet_file(
             source,
             self.__DEFAULT_SOURCE_TREE_OPTS,
             [
                 self._outer_template,
-                self.source_template,  # static path to pkg resource.
+                self.source_template_path,  # static path to pkg resource.
                 self._helper_template
             ],
-            overwrite
+            overwrite, self._logger
         )
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
         if self._tf_spec.language.lower() == "fortran":
             # generate cpp2c layer if necessary
             #   -> Cpp task function generator?
-            outer_cpp2c = \
-                destination_path.joinpath(
-                    self.cpp2c_outer_template_name
-                ).resolve()
-            helper_cpp2c = \
-                destination_path.joinpath(
-                    self.cpp2c_helper_template_name
-                ).resolve()
+            outer_cpp2c = self.cpp2c_outer_template_name
+            helper_cpp2c = self.cpp2c_helper_template_name
 
             cpp2c_layer = Cpp2CLayerGenerator(
                 self._tf_spec, outer_cpp2c,
@@ -340,19 +296,19 @@ class DataPacketGenerator(AbcCodeGenerator):
                 LOG_LEVEL_BASIC
             )
             cpp2c_layer.generate_source_code(destination, overwrite)
-            self.generate_packet_file(
-                Path(destination, self.cpp2c_filename),
+            generate_packet_file(
+                Path(destination, self.cpp2c_file_name),
                 self.__DEFAULT_SOURCE_TREE_OPTS,
-                [
-                    outer_cpp2c,
-                    self.cpp2c_template,
-                    helper_cpp2c,
-                    self.cpp2c_streams_template_name
-                ],
                 # dev note: ORDER MATTERS HERE!
                 # If helpers is put before the base
                 # template it will throw an error
-                overwrite
+                [
+                    outer_cpp2c,
+                    self.cpp2c_template_path,
+                    helper_cpp2c,
+                    self.cpp2c_streams_template_name
+                ],
+                overwrite, self._logger
             )
             self._log("Done", LOG_LEVEL_BASIC_DEBUG)
             # generate fortran to c layer if necessary
@@ -366,69 +322,6 @@ class DataPacketGenerator(AbcCodeGenerator):
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
             c2f_layer.generate_source_code(destination, overwrite)
-
-            # todo::
-            #   * file name should be gotten from tf_spec.y
-
-            # generate data packet module file.
-            c2f_module = DataPacketC2FModuleGenerator(
-                self._tf_spec, self._indent, self._logger,
-                self.external_args
-            )
-            c2f_module.generate_source_code()
-
-    # ..todo::
-    #    * based on the organization of the data packet generator, and
-    #      naming schemes of each internal generator, it might be better for
-    #      this function to be placed outside of this class.
-    def generate_packet_file(
-        self, output: Path,
-        sourcetree_opts: dict,
-        linked_templates: list,
-        overwrite: bool
-    ):
-        """
-        Generates a data packet file for creating the entire packet.
-
-        :param str output: The output name for the file.
-        :param dict sourcetree_opts: The dictionary containing the
-                                     sourcetree parameters.
-        :param list linked_templates: All templates to be linked.
-                                      The first in the list is
-                                      the initial template.
-        """
-        def construct_source_tree(stree: SourceTree, templates: list):
-            assert len(templates) > 0
-            stree.initTree(templates[0])
-            stree.pushLink(srctree.search_links(stree.getTree()))
-
-            # load and link each template into source tree.
-            for idx, link in enumerate(templates[1:]):
-                tree_link = srctree.load(link)
-                pathInfo = stree.link(
-                    tree_link, linkPath=srctree.LINK_PATH_FROM_STACK
-                )
-                if pathInfo:
-                    stree.pushLink(srctree.search_links(tree_link))
-                else:
-                    self.log_and_abort(
-                        f'Linking layer {idx} ({link}) unsuccessful!',
-                        LogicError()
-                    )
-
-        """Generates a source file given a template and output name"""
-        stree = SourceTree(**sourcetree_opts, debug=False)
-        construct_source_tree(stree, linked_templates)
-        lines = stree.parse()
-
-        if output.is_file():
-            self.warn(f"{str(output)} already exists.")
-            if not overwrite:
-                self.log_and_abort("Overwrite is False.", FileExistsError())
-
-        with open(output, 'w') as new_file:
-            lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
-            new_file.write(lines)
 
     @property
     def language(self):
@@ -453,7 +346,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}.cpp"
 
     @property
-    def header_template(self) -> Path:
+    def header_template_path(self) -> Path:
         template_path = resource_filename(
             __package__,
             'templates/cg-tpl.datapacket_header.cpp'
@@ -461,7 +354,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def source_template(self) -> Path:
+    def source_template_path(self) -> Path:
         template_path = resource_filename(
             __package__,
             'templates/cg-tpl.datapacket.cpp'
@@ -469,15 +362,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def header_filename(self) -> str:
+    def header_file_name(self) -> str:
         return super().header_filename
 
     @property
-    def source_filename(self) -> str:
+    def source_file_name(self) -> str:
         return super().source_filename
 
     @property
-    def cpp2c_filename(self) -> str:
+    def cpp2c_file_name(self) -> str:
         return self._tf_spec.output_filenames[
             TaskFunction.CPP_TF_KEY
         ]["source"]
@@ -507,14 +400,14 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def cpp2c_template(self) -> Path:
+    def cpp2c_template_path(self) -> Path:
         template_path = resource_filename(
             __package__, 'templates/cg-tpl.cpp2c.cpp'
         )
         return Path(template_path).resolve()
 
     @property
-    def c2f_filename(self) -> str:
+    def c2f_file_name(self) -> str:
         return self._tf_spec.output_filenames[
             TaskFunction.C2F_KEY
         ]["source"]
@@ -540,13 +433,11 @@ class DataPacketGenerator(AbcCodeGenerator):
         for convenience. Also inserts nTiles.
         """
         lang = self._tf_spec.language.lower()
-        # ..todo::
-        #   * do we need deep copy?
         args = deepcopy(self._tf_spec.external_arguments)
         external = {
             'nTiles': {
                 # placeholder source name
-                'source': 'internal',
+                'source': INTERNAL_ARGUMENT,
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
                 'extents': []
@@ -575,13 +466,13 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         def cpp_sort(kv_pair):
             return self._sizes.get(
-                self.TILE_VARIABLE_MAPPING[kv_pair[1]['source']], 0
+                self.SOURCE_DATATYPE[kv_pair[1]['source']], 0
             )
 
         def fortran_sort(x):
             return self._sizes.get(
                 self.F_HOST_EQUIVALENT[
-                    self.TILE_VARIABLE_MAPPING[x[1]['source']]
+                    self.SOURCE_DATATYPE[x[1]['source']]
                 ],
                 0
             )

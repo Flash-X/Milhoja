@@ -24,7 +24,12 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         ):
             input = "1,2,3"
             parsed = parse_extents(input)
-            self.assertFalse(True)
+
+            input = "(1,2,3"
+            parsed = parse_extents(input)
+
+            input = "1,2,3)"
+            parsed = parse_extents(input)
 
         with self.assertRaises(
             NonIntegerException,
@@ -32,22 +37,25 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         ):
             input = "(1, 2, 3A, VBNVN)"
             parsed = parse_extents(input)
-            self.assertFalse(True)
 
-        # ...technically valid since we remove all parenthesis....
-        # should this even be a valid input?
+        with self.assertRaises(
+            RuntimeError,
+            msg="parse_extents should raise a RuntimeError if value is < 0."
+        ):
+            input = "(1, -2, 3, -4)"
+            parsed = parse_extents(input)
+
         with self.assertRaises(
             IncorrectFormatException,
             msg="Extents format should not be valid."
         ):
             input = "(((((((((((((((((()()()()1, 2, 3, 4,())))))))))))))))))"
             parsed = parse_extents(input)
-            self.assertFalse(True)
 
-        incorrect = ['']
+        incorrect = []
         parsed = parse_extents("()")
         self.assertTrue(
-            incorrect != parsed,
+            incorrect == parsed,
             f'"()" should return an empty list. Instead, {parsed}'
         )
 
@@ -56,8 +64,8 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         parsed = parse_extents(inpt)
         self.check_extents(inpt, parsed, correct)
 
-        inpt = "(1,1,1,1)"
-        correct = ['1', '1', '1', '1']
+        inpt = "(1,2,3,4)"
+        correct = ['1', '2', '3', '4']
         parsed = parse_extents(inpt)
         self.check_extents(inpt, parsed, correct)
 
@@ -90,19 +98,84 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         )
 
     def testLboundParser(self):
-        inp = "(tile_lo, 5) - (1,1,1,1)"
+        inp = "(tile_lo, 5) - (1,2,3,-4)"
         bound_array = parse_lbound(inp)
-        correct = ["(lo)-IntVect{LIST_NDIM(1,1,1)}", "5-1"]
+        correct = ["(lo)-IntVect{LIST_NDIM(1,2,3)}", "5--4"]
         self.check_bound(inp, bound_array, correct)
 
-        lbound = "(tile_lo) + (1,1,1)"
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(5, tile_lo) - (1, 3, 4, 5)"
+            parse_lbound(inp)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(tile_lo, 2) * (2, tile_lo)"
+            parse_lbound(inp)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(3, 2, infinity, 4)"
+            parse_lbound(inp)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(7, 7, infinity) + (tile_lo)"
+            parse_lbound(inp)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(tile_lo, infinity) + (7, 7, 8, 2)"
+            result = parse_lbound(inp)
+            print(result)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(1, tile_lo, 4)"
+            parse_lbound(inp)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="This lbound type has not been implemented yet!"
+        ):
+            inp = "(tile_lo, tile_hi)"
+            parse_lbound(inp)
+
+        inp = "(2*4+2-1, 32+2/2/3, 4, 1)"
+        result = parse_lbound(inp)
+        correct = ['IntVect{LIST_NDIM(2*4+2-1,32+2/2/3,4)}', '1']
+        self.check_bound(inp, result, correct)
+
+        inp = "(tile_lo, 3*7) + (2, 3, 4, 5)"
+        result = parse_lbound(inp)
+        correct = ["(lo)+IntVect{LIST_NDIM(2,3,4)}", "3*7+5"]
+        self.check_bound(inp, result, correct)
+
+        inp = "(7, 7, 7) * (tile_lo)"
+        result = parse_lbound(inp)
+        correct = ["IntVect{LIST_NDIM(7,7,7)}*(lo)"]
+        self.check_bound(inp, result, correct)
+
+        lbound = "(tile_lo) + (1,2,3)"
         result = parse_lbound(lbound)
-        correct = ["(lo)+IntVect{LIST_NDIM(1,1,1)}"]
+        correct = ["(lo)+IntVect{LIST_NDIM(1,2,3)}"]
         self.check_bound(lbound, result, correct)
 
-        lbound = "(tile_lbound, 1) - (1,0,0,0)"
+        lbound = "(tile_lbound, 3) - (1,0,-1,2)"
         result = parse_lbound(lbound)
-        correct = ["(lbound)-IntVect{LIST_NDIM(1,0,0)}", "1-0"]
+        correct = ["(lbound)-IntVect{LIST_NDIM(1,0,-1)}", "3-2"]
         self.check_bound(lbound, result, correct)
 
         lbound = "(tile_lo / 2)"
@@ -110,15 +183,15 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         correct = ["(lo/2)"]
         self.check_bound(lbound, result, correct)
 
-        lbound = "(1,1,1,1)"
+        lbound = "(1,-2,-3,4)"
         result = parse_lbound(lbound)
-        correct = ['IntVect{LIST_NDIM(1,1,1)}', '1']
+        correct = ['IntVect{LIST_NDIM(1,-2,-3)}', '4']
         self.check_bound(lbound, result, correct)
 
+        # this type of input would require a more complex math parser.
         with self.assertRaises(
             IncorrectFormatException,
             msg="Lbound has symbols that did not get caught."
         ):
             lbound = "(tile_lo) - (2,2,2) / 2"
             result = parse_lbound(lbound)
-            self.assertFalse(True)

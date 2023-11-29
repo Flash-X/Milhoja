@@ -69,7 +69,7 @@ private:
     static constexpr std::size_t SIZE_TILE_HI = MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_TILE_LBOUND = MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_CC_1 = (8 + 2 * 1 * MILHOJA_K1D) * (8 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (8 + 1 - 0) * sizeof(real);
-    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_AUXC = (10) * (10) * (1) * (1) * sizeof(real);
+    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_AUXC = (10) * (10) * (1) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLX = (11) * (10) * (1) * (5) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLY = (10) * (11) * (1) * (5) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLZ = (1) * (1) * (1) * (1) * sizeof(real);

@@ -4,6 +4,14 @@ from pathlib import Path
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
+from . import (
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+)
 
 
 class TaskFunction(object):
@@ -14,27 +22,6 @@ class TaskFunction(object):
     C2F_KEY = "c2f"
     FORTRAN_TF_KEY = "fortran_tf"
     DATA_ITEM_KEY = "data_item"
-
-    # Case-sensitive source keys to be used in specification files (e.g.,
-    # Milhoja-JSON files), here, and in code generators.
-    #
-    # Scheme for keys
-    # - concise one word all lowercase for all keys when possible
-    # - tile metadata keys all begin with tile_ (all lowercase) with remainder
-    #   in camelcase with no separation
-    EXTERNAL_ARGUMENT = "external"
-    SCRATCH_ARGUMENT = "scratch"
-    GRID_DATA_ARGUMENT = "grid_data"
-    TILE_GRID_INDEX = "tile_gridIndex"
-    TILE_LEVEL = "tile_level"
-    TILE_LO = "tile_lo"
-    TILE_HI = "tile_hi"
-    TILE_LBOUND = "tile_lbound"
-    TILE_UBOUND = "tile_ubound"
-    TILE_DELTAS = "tile_deltas"
-    TILE_COORDINATES = "tile_coordinates"
-    TILE_FACE_AREAS = "tile_faceAreas"
-    TILE_CELL_VOLUMES = "tile_cellVolumes"
 
     @staticmethod
     def from_milhoja_json(filename):
@@ -209,7 +196,7 @@ class TaskFunction(object):
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = [
-            TaskFunction.EXTERNAL_ARGUMENT, TaskFunction.SCRATCH_ARGUMENT,
+            EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
         ]
         if ((spec["source"].lower() in src_to_adjust) and
                 (spec["type"].lower() == "real") and
@@ -227,7 +214,7 @@ class TaskFunction(object):
         arguments = []
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
+            if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 arguments.append((arg, arg_spec["type"]))
 
         return arguments
@@ -237,14 +224,14 @@ class TaskFunction(object):
         """
         """
         KEYS_ALL = [
-            TaskFunction.TILE_GRID_INDEX,
-            TaskFunction.TILE_LEVEL,
-            TaskFunction.TILE_LO, TaskFunction.TILE_HI,
-            TaskFunction.TILE_LBOUND, TaskFunction.TILE_UBOUND,
-            TaskFunction.TILE_DELTAS,
-            TaskFunction.TILE_COORDINATES,
-            TaskFunction.TILE_FACE_AREAS,
-            TaskFunction.TILE_CELL_VOLUMES
+            TILE_GRID_INDEX_ARGUMENT,
+            TILE_LEVEL_ARGUMENT,
+            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+            TILE_DELTAS_ARGUMENT,
+            TILE_COORDINATES_ARGUMENT,
+            TILE_FACE_AREAS_ARGUMENT,
+            TILE_CELL_VOLUMES_ARGUMENT
         ]
 
         metadata_all = {}
@@ -266,7 +253,7 @@ class TaskFunction(object):
         external_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
+            if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 assert arg not in external_all
                 external_all.add(arg)
         return external_all
@@ -281,7 +268,7 @@ class TaskFunction(object):
         scratch_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.SCRATCH_ARGUMENT:
+            if arg_spec["source"].lower() == SCRATCH_ARGUMENT:
                 assert arg not in scratch_all
                 scratch_all.add(arg)
 
@@ -294,7 +281,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and (not has_out):
@@ -310,7 +297,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and has_out:
@@ -326,7 +313,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if (not has_in) and has_out:
