@@ -9,17 +9,17 @@
     },
     "task_function": {
         "name": "gpu_tf_hydro",
-        "language": "Fortran", 
+        "language": "C++", 
         "processor": "GPU",
-        "cpp_header": "gpu_tf_hydro_Cpp2C.h",
-        "cpp_source": "gpu_tf_hydro_Cpp2C.cpp",
-        "c2f_source": "gpu_tf_hydro_C2F.F90",
-        "fortran_source": "gpu_tf_hydro.F90",
+        "cpp_header": "gpu_tf_hydro.h",
+        "cpp_source": "gpu_tf_hydro.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
         "argument_list": ["dt",
                           "tile_lo",
                           "tile_hi",
                           "tile_deltas",
-                          "CC_1",
+                          "U",
                           "hydro_op1_flX",
                           "hydro_op1_flY",
                           "hydro_op1_flZ",
@@ -32,7 +32,7 @@
             "tile_deltas":    {"source":           "tile_deltas"},
             "tile_lo":        {"source":           "tile_lo"},
             "tile_hi":        {"source":           "tile_hi"},
-            "CC_1":           {"source":           "grid_data",
+            "U":              {"source":           "grid_data",
                                "structure_index": ["CENTER", 1],
                                "variables_in":    [1, 9],
                                "variables_out":   [1, 8]},
@@ -55,11 +55,9 @@
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_gpu_oacc",
-            [
-                "Hydro_computeFluxesHll_X_gpu_oacc",
-                "Hydro_computeFluxesHll_Y_gpu_oacc",
-                "Hydro_computeFluxesHll_Z_gpu_oacc"
-            ],
+            "Hydro_computeFluxesHll_X_gpu_oacc",
+            "Hydro_computeFluxesHll_Y_gpu_oacc",
+            "Hydro_computeFluxesHll_Z_gpu_oacc",
             "Hydro_updateSolutionHll_gpu_oacc"
         ]
     },
@@ -71,7 +69,7 @@
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
+            "interface_file": "Hydro.h",
             "argument_list": ["lo",
                               "hi",
                               "U",
@@ -79,12 +77,12 @@
             "argument_mapping": {
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
-                "U":      "CC_1",
+                "U":      "U",
                 "auxC":   "hydro_op1_auxc"
             }
         },
         "Hydro_computeFluxesHll_X_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
+            "interface_file": "Hydro.h",
             "argument_list": ["dt",
                               "lo",
                               "hi",
@@ -97,13 +95,13 @@
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
-                "U":      "CC_1",
+                "U":      "U",
                 "auxC":   "hydro_op1_auxc",
                 "flX":    "hydro_op1_flX"
             }
         },
         "Hydro_computeFluxesHll_Y_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
+            "interface_file": "Hydro.h",
             "argument_list": ["dt",
                               "lo",
                               "hi",
@@ -116,13 +114,13 @@
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
-                "U":      "CC_1",
+                "U":      "U",
                 "auxC":   "hydro_op1_auxc",
                 "flY":    "hydro_op1_flY"
             }
         },
         "Hydro_computeFluxesHll_Z_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
+            "interface_file": "Hydro.h",
             "argument_list": ["dt",
                               "lo",
                               "hi",
@@ -135,13 +133,13 @@
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
                 "deltas": "tile_deltas",
-                "U":      "CC_1",
+                "U":      "U",
                 "auxC":   "hydro_op1_auxc",
                 "flZ":    "hydro_op1_flZ"
             }
         },
         "Hydro_updateSolutionHll_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
+            "interface_file": "Hydro.h",
             "argument_list": ["lo",
                               "hi",
                               "flX",
@@ -154,7 +152,7 @@
                 "flX":    "hydro_op1_flX",
                 "flY":    "hydro_op1_flY",
                 "flZ":    "hydro_op1_flZ",
-                "U":      "CC_1"
+                "U":      "U"
             }
         }
     }

@@ -1,9 +1,12 @@
 from pathlib import Path
 
-from . import LOG_LEVEL_BASIC
-from . import LOG_LEVEL_BASIC_DEBUG
 from . import TaskFunction
 from . import AbcCodeGenerator
+from . import (
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_CELL_VOLUMES_ARGUMENT
+)
 
 
 class TileWrapperGenerator_cpp(AbcCodeGenerator):
@@ -45,13 +48,13 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         self.__internal_scratch_specs = {}
         for arg in self._tf_spec.dummy_arguments:
             arg_spec = self._tf_spec.argument_specification(arg)
-            if arg_spec["source"] == TaskFunction.TILE_CELL_VOLUMES:
+            if arg_spec["source"] == TILE_CELL_VOLUMES_ARGUMENT:
                 nguard = self._tf_spec.n_guardcells
                 extents = list(self._tf_spec.block_interior_shape)
                 for i in range(self._tf_spec.grid_dimension):
-                    if arg_spec["lo"] == TaskFunction.TILE_LBOUND:
+                    if arg_spec["lo"] == TILE_LBOUND_ARGUMENT:
                         extents[i] += nguard
-                    if arg_spec["hi"] == TaskFunction.TILE_UBOUND:
+                    if arg_spec["hi"] == TILE_UBOUND_ARGUMENT:
                         extents[i] += nguard
                 extents = "(" + \
                           ", ".join([str(each) for each in extents]) + \
