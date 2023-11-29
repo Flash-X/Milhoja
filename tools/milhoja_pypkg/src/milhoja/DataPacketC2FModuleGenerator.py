@@ -1,10 +1,17 @@
 from pathlib import Path
 
 from . import AbcCodeGenerator
-from . import TaskFunction
+from . import LOG_LEVEL_BASIC_DEBUG
+from . import INTERNAL_ARGUMENT
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
+
+    _TYPE_MAPPING = {
+        "real": "real(MILHOJA_REAL)",
+        "int": "integer(MILHOJA_INT)",
+        "bool": "logical"
+    }
 
     def __init__(self, tf_spec, indent, logger, external_args):
         file_name = tf_spec.data_item_class_name + "_C2F_mod.F90"
@@ -24,18 +31,23 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
     def generate_source_code(self, destination, overwrite):
 
-        # destination_path = Path(destination).resolve()
-        # if not destination_path.is_dir():
-        #     raise RuntimeError(
-        #         f"{destination_path} does not exist."
-        #     )
-        # c2f_path = destination_path.joinpath(self.c2f_file).resolve()
+        destination_path = Path(destination).resolve()
+        if not destination_path.is_dir():
+            raise RuntimeError(
+                f"{destination_path} does not exist."
+            )
+        mod_path = destination_path.joinpath(self.source_filename).resolve()
+        if mod_path.is_file():
+            self._log(f"{mod_path} already exists.", LOG_LEVEL_BASIC_DEBUG)
+            if overwrite:
+                self._error("Overwrite is set to false.")
 
-        with open(destination, 'w') as module:
+        with open(mod_path, 'w') as module:
             dataitem_name = self._tf_spec.data_item_class_name
-            module_name = f"{dataitem_name}_C2F_mod"
+            module_name = f"{dataitem_name}_c2f_mod"
             tf_name = self._tf_spec.name
 
+            # todo:: get these from tf_spec.
             instance = f"instantiate_{tf_name}_packet_c"
             delete = f"delete_{tf_name}_packet_c"
             release = f"release_{tf_name}_extra_queue_c"
@@ -49,21 +61,48 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT}public :: {release}\n\n")
 
             # write functions
-            module.write(f"{self.INDENT}interface")
-            module.write(f"{self.INDENT * 2}function {instance}(\n")
+            module.write(f"{self.INDENT}interface\n")
+            module.write(f"{self.INDENT * 2}function {instance}( &\n")
             # todo:: write arg list
-            module.write(") result(C_ierr) bind (c)\n")
-            module.write(f"{self.INDENT * 3}\n")
-            # todo:: write instance
+
+            arg_list = []
+            var_declarations = []
+            for var, data in self._externals.items():
+                if data["source"] == INTERNAL_ARGUMENT:
+                    continue
+                dtype = data["type"]
+                name = f"C_{var}"
+                arg_list.append(name)
+                var_declarations.append(
+                    f"{self._TYPE_MAPPING[dtype]}, "
+                    f"intent(IN), value :: {name}"
+                )
+
+            args = f' &\n{self.INDENT * 3}'.join(arg_list)
+            module.write(f'{self.INDENT * 3}' + args)
+            module.write(f" &\n{self.INDENT*2}) result(C_ierr) bind (c)\n")
+            module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
+            module.write(
+                f"{self.INDENT * 3}use milhoja_type_mod, "
+                "ONLY: MILHOJA_INT, MILHOJA_REAL\n"
+            )
+            vars = f'\n{self.INDENT * 3}'.join(var_declarations)
+            module.write(f"{self.INDENT * 3}" + vars + "\n")
+            module.write(
+                f"{self.INDENT * 3}type(C_PTR), "
+                "intent(IN), value :: C_packet\n")
+            module.write(f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n")
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
 
-            module.write(f"{self.INDENT * 2}function {delete}(\n")
+            module.write(f"{self.INDENT * 2}function {delete}(")
             module.write("C_packet) result(C_ierr) bind (c)\n")
 
             module.writelines([
-                f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR",
-                f"{self.INDENT * 3}use milhoja_types_mod, ONLY : MILHOJA_INT",
-                f"{self.INDENT * 3}type(C_PTR), intent(IN), value :: C_packet\n"
+                f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
+                f"{self.INDENT * 3}"
+                "use milhoja_types_mod, ONLY : MILHOJA_INT\n",
+                f"{self.INDENT * 3}"
+                "type(C_PTR), intent(IN), value :: C_packet\n"
                 f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n"
             ])
 
@@ -73,15 +112,18 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
             # write interface release function for task function
             module.write(f"{self.INDENT}interface\n")
-            module.write(f"{self.INDENT * 2}function {release}(\n")
-            module.write(f"C_packet, C_id) result(C_ierr) bind(c)\n")
+            module.write(f"{self.INDENT * 2}function {release}(")
+            module.write("C_packet, C_id) result(C_ierr) bind(c)\n")
 
             # write function
             module.writelines([
-                f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR",
-                f"{self.INDENT * 3}use milhoja_types_mod, ONLY : MILHOJA_INT",
-                f"{self.INDENT * 3}type(C_PTR), intent(IN), value :: C_packet\n"
-                f"{self.INDENT * 3}integer(MILHOJA_INT), intent(IN), value :: C_id"
+                f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
+                f"{self.INDENT * 3}"
+                "use milhoja_types_mod, ONLY : MILHOJA_INT\n",
+                f"{self.INDENT * 3}"
+                "type(C_PTR), intent(IN), value :: C_packet\n"
+                f"{self.INDENT * 3}"
+                "integer(MILHOJA_INT), intent(IN), value :: C_id\n"
                 f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n"
             ])
 

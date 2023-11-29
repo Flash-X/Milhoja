@@ -268,6 +268,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 #         functions.
                 generated_cpp2c = None
                 generated_c2f = None
+                generated_dp_mod = None
                 if generator.language == "fortran":
                     generated_cpp2c = Path(
                         destination,
@@ -294,6 +295,13 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:
                             self.check_generated_files(generated, correct)
+                    generated_dp_mod = generator.module_file_name
+                    generated_dp_mod = Path(
+                        destination,
+                        generated_dp_mod
+                    )
+                    # todo:: test module file
+                    ...
 
                 # clean up generated files if test passes.
                 try:
@@ -303,6 +311,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         os.remove(generated_cpp2c)
                     if generated_c2f:
                         os.remove(generated_c2f)
+                    if generated_dp_mod:
+                        os.remove(generated_dp_mod)
                     # be careful when cleaning up here
                     for file in Path(destination).glob("cg-tpl.*.cpp"):
                         os.remove(file)
