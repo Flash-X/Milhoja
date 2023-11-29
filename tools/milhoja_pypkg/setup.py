@@ -29,7 +29,8 @@ install_requires = code_requires + test_requires
 
 package_data = {"milhoja": ["tests/data/*",
                             "tests/data/runtime/*",
-                            "tests/data/Sedov/*"]}
+                            "tests/data/Sedov/*",
+                            "templates/*"]}
 
 project_urls = {
     "Source": "Git Hub",

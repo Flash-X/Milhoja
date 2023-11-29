@@ -17,7 +17,7 @@
 #include "Driver.h"
 #include "Simulation.h"
 #include "ProcessTimer.h"
-#include "DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_gpu_tf_hydro.h"
 
 #include "cpu_tf_ic.h"
 #include "Tile_cpu_tf_ic.h"
@@ -154,8 +154,8 @@ void    Driver::executeSimulation(void) {
         }
 
         double   tStart = MPI_Wtime();
-        const Tile_cpu_tf_hydro         cpu_tf_hydro_prototype{Driver::dt};
-	    const DataPacket_Hydro_gpu_3    gpu_tf00_prototype{Driver::dt};
+        const Tile_cpu_tf_hydro          cpu_tf_hydro_prototype{Driver::dt};
+	    const DataPacket_gpu_tf_hydro    gpu_tf00_prototype{Driver::dt};
         runtime.executeCpuGpuSplitTasks("Advance Hydro Solution",
                                         nDistThreads,
                                         stagger_usec,

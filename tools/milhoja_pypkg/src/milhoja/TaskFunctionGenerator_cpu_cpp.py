@@ -1,9 +1,15 @@
 from pathlib import Path
 
-from . import LOG_LEVEL_BASIC
-from . import LOG_LEVEL_BASIC_DEBUG
 from . import TaskFunction
 from . import AbcCodeGenerator
+from . import (
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_LEVEL_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+)
 
 
 class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
@@ -89,16 +95,16 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             spec = task_function.argument_specification(arg)
 
             dependents = [
-                TaskFunction.TILE_COORDINATES,
-                TaskFunction.TILE_FACE_AREAS,
-                TaskFunction.TILE_CELL_VOLUMES
+                TILE_COORDINATES_ARGUMENT,
+                TILE_FACE_AREAS_ARGUMENT,
+                TILE_CELL_VOLUMES_ARGUMENT
             ]
             if spec["source"] in dependents:
-                if TaskFunction.TILE_LEVEL not in metadata_all:
+                if TILE_LEVEL_ARGUMENT not in metadata_all:
                     variable = "MH_INTERNAL_level"
                     if variable not in internal:
-                        internal[variable] = {"source": TaskFunction.TILE_LEVEL}
-                        metadata_all[TaskFunction.TILE_LEVEL] = [variable]
+                        internal[variable] = {"source": TILE_LEVEL_ARGUMENT}
+                        metadata_all[TILE_LEVEL_ARGUMENT] = [variable]
 
                 for point in ["lo", "hi"]:
                     key = spec[point].strip()
@@ -113,13 +119,13 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                             metadata_all[key] = [variable]
 
         # ----- EXTRACT INDEPENDENT METADATA
-        order = [(TaskFunction.TILE_GRID_INDEX, "const int", "gridIndex"),
-                 (TaskFunction.TILE_LEVEL, "const unsigned int", "level"),
-                 (TaskFunction.TILE_LO, "const milhoja::IntVect", "lo"),
-                 (TaskFunction.TILE_HI, "const milhoja::IntVect", "hi"),
-                 (TaskFunction.TILE_LBOUND, "const milhoja::IntVect", "loGC"),
-                 (TaskFunction.TILE_UBOUND, "const milhoja::IntVect", "hiGC"),
-                 (TaskFunction.TILE_DELTAS, "const milhoja::RealVect", "deltas")]
+        order = [(TILE_GRID_INDEX_ARGUMENT, "const int", "gridIndex"),
+                 (TILE_LEVEL_ARGUMENT, "const unsigned int", "level"),
+                 (TILE_LO_ARGUMENT, "const milhoja::IntVect", "lo"),
+                 (TILE_HI_ARGUMENT, "const milhoja::IntVect", "hi"),
+                 (TILE_LBOUND_ARGUMENT, "const milhoja::IntVect", "loGC"),
+                 (TILE_UBOUND_ARGUMENT, "const milhoja::IntVect", "hiGC"),
+                 (TILE_DELTAS_ARGUMENT, "const milhoja::RealVect", "deltas")]
         for key, arg_type, getter in order:
             if key in metadata_all:
                 arg = metadata_all[key]
@@ -130,8 +136,8 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                 code.append(line)
 
         # ----- CREATE THREAD-PRIVATE INTERNAL SCRATCH
-        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
+        if TILE_CELL_VOLUMES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_CELL_VOLUMES_ARGUMENT]
             assert len(arg_list) == 1
             arg = arg_list[0]
             wrapper = task_function.data_item_class_name
@@ -147,14 +153,14 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                    "k": "milhoja::Axis::K"}
         edge_mh = {"center": "milhoja::Edge::Center"}
 
-        if TaskFunction.TILE_COORDINATES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_COORDINATES]
+        if TILE_COORDINATES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_COORDINATES_ARGUMENT]
             assert len(arg_list) <= 3
             for arg in arg_list:
                 spec = task_function.argument_specification(arg)
                 axis = axis_mh[spec["axis"].lower()]
                 edge = edge_mh[spec["edge"].lower()]
-                level = metadata_all[TaskFunction.TILE_LEVEL][0]
+                level = metadata_all[TILE_LEVEL_ARGUMENT][0]
                 lo = metadata_all[spec["lo"]][0]
                 hi = metadata_all[spec["hi"]][0]
                 code += [
@@ -166,15 +172,15 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
                     f"\t\t{lo}, {hi});"
                 ]
 
-        if TaskFunction.TILE_FACE_AREAS in metadata_all:
+        if TILE_FACE_AREAS_ARGUMENT in metadata_all:
             raise NotImplementedError("No test case yet for face areas")
 
-        if TaskFunction.TILE_CELL_VOLUMES in metadata_all:
-            arg_list = metadata_all[TaskFunction.TILE_CELL_VOLUMES]
+        if TILE_CELL_VOLUMES_ARGUMENT in metadata_all:
+            arg_list = metadata_all[TILE_CELL_VOLUMES_ARGUMENT]
             assert len(arg_list) == 1
             arg = arg_list[0]
             spec = task_function.argument_specification(arg)
-            level = metadata_all[TaskFunction.TILE_LEVEL][0]
+            level = metadata_all[TILE_LEVEL_ARGUMENT][0]
             lo = metadata_all[spec["lo"]][0]
             hi = metadata_all[spec["hi"]][0]
             code += [
