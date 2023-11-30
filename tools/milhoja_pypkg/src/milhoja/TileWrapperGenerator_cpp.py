@@ -72,10 +72,17 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         # appear before calling a generate method, we don't check file
         # existence here.
 
-        msg = "Loaded task function specification\n"
-        msg += "-" * 80 + "\n"
-        msg += str(self)
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
+        msgs_all = [
+            "Loaded task function specification",
+            "-" * 80,
+            f"Specification File\t\t{self.specification_filename}",
+            f"TileWrapper Header\t\t{self.header_filename}",
+            f"TileWrapper Source\t\t{self.source_filename}",
+            f"Indentation length\t\t{self.indentation}",
+            f"Verbosity level\t\t{self.verbosity_level}"
+        ]
+        for msg in msgs_all:
+            self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     @property
     def class_name(self):
@@ -389,13 +396,3 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write("#endif\n")
-
-    def __str__(self):
-        json_fname = self.specification_filename
-        msg = f"Task Function Specification File\t{json_fname}\n"
-        msg += f"TileWrapper C++ Header File\t\t{self.header_filename}\n"
-        msg += f"TileWrapper C++ Source File\t\t{self.source_filename}\n"
-        msg += f"Indentation length\t\t\t{self.indentation}\n"
-        msg += f"Verbosity level\t\t\t\t{self.verbosity_level}"
-
-        return msg

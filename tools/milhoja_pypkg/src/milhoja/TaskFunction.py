@@ -4,6 +4,7 @@ from pathlib import Path
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
+from . import LogicError
 from . import (
     EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
@@ -142,6 +143,10 @@ class TaskFunction(object):
         return self.__tf_spec["processor"]
 
     @property
+    def computation_offloading(self):
+        return self.__tf_spec["computation_offloading"]
+
+    @property
     def data_item(self):
         return self.__data_spec["type"]
 
@@ -162,6 +167,71 @@ class TaskFunction(object):
         raise NotImplementedError(
             f"{self.data_item} does not use byte_alignment."
         )
+
+    @property
+    def instantiate_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"instantiate_{self.name}_packet_C"
+
+    @property
+    def delete_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"delete_{self.name}_packet_C"
+
+    @property
+    def release_stream_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Streams used with DataPacket only")
+        elif self.n_streams <= 1:
+            raise LogicError("No extra streams needed")
+
+        return f"release_{self.name}_extra_queue_C"
+
+    @property
+    def fortran_module_name(self):
+        if self.language.lower() == "fortran":
+            return f"{self.name}_mod"
+        raise LogicError("No Fortran module for C++ task function")
+
+    @property
+    def fortran_host_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran host dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise LogicError("No Fortran host dummies for host-side TF")
+
+        dummies = ["C_packet_h", "dataQ_h"]
+        n_streams = self.n_streams
+        if n_streams > 1:
+            dummies += [f"queue{i}_h" for i in range(2, n_streams+1)]
+
+        return dummies
+
+    @property
+    def fortran_device_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran device dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise LogicError("No Fortran device dummies for host-side TF")
+
+        return ["nTiles_d"] + [f"{each}_d" for each in self.dummy_arguments]
+
+    @property
+    def fortran_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran arguments for non-Fortran TF")
+        return (self.fortran_host_dummy_arguments +
+                self.fortran_device_dummy_arguments)
 
     @property
     def grid_dimension(self):

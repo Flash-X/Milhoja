@@ -51,10 +51,17 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             "milhoja::FArray3D", "milhoja::FArray4D"
         ]
 
-        msg = "Loaded task function specification\n"
-        msg += "-" * 80 + "\n"
-        msg += str(self)
-        self._log(msg, LOG_LEVEL_BASIC_DEBUG)
+        msgs_all = [
+            "Loaded task function specification",
+            "-" * 80,
+            f"Specification File\t\t{self.specification_filename}",
+            f"Task Function Header\t\t{self.header_filename}",
+            f"Task Function Source\t\t{self.source_filename}",
+            f"Indentation length\t\t{self.indentation}",
+            f"Verbosity level\t\t\t{self.verbosity_level}"
+        ]
+        for msg in msgs_all:
+            self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     @property
     def namespace(self):
@@ -429,12 +436,3 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write("#endif\n")
-
-    def __str__(self):
-        msg = f"Task Function Specification File\t{self.specification_filename}\n"
-        msg += f"TileWrapper C++ Header File\t\t{self.header_filename}\n"
-        msg += f"TileWrapper C++ Source File\t\t{self.source_filename}\n"
-        msg += f"Indentation length\t\t\t{self.indentation}\n"
-        msg += f"Verbosity level\t\t\t\t{self.verbosity_level}"
-
-        return msg

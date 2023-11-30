@@ -11,6 +11,7 @@
         "name": "cpu_tf_fused",
         "language": "C++", 
         "processor": "CPU",
+        "computation_offloading": "",
         "cpp_header": "cpu_tf_fused.h",
         "cpp_source": "cpu_tf_fused.cpp",
         "c2f_source": "",

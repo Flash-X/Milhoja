@@ -1,28 +1,29 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
     "grid": {
-        "dimension":    2,
+        "dimension":    3,
         "nxb":         16,
         "nyb":         16,
-        "nzb":          1,
+        "nzb":         16,
         "nguardcells":  1
     },
     "task_function": {
-        "name": "gpu_tf_hydroFC",
+        "name": "gpu_tf_test2",
         "language": "Fortran", 
         "processor": "GPU",
-        "cpp_header": "gpu_tf_hydroFC_Cpp2C.h",
-        "cpp_source": "gpu_tf_hydroFC_Cpp2C.cpp",
-        "c2f_source": "gpu_tf_hydroFC_C2F.F90",
-        "fortran_source": "gpu_tf_hydroFC_mod.F90",
+        "computation_offloading": "OpenACC",
+        "cpp_header": "gpu_tf_test2_Cpp2C.h",
+        "cpp_source": "gpu_tf_test2_Cpp2C.cpp",
+        "c2f_source": "gpu_tf_test2_C2F.F90",
+        "fortran_source": "gpu_tf_test2_mod.F90",
         "argument_list": ["dt",
                           "tile_lo",
                           "tile_hi",
                           "tile_deltas",
                           "CC_1",
-                          "FLX_1",
-                          "FLY_1",
-                          "FLZ_1",
+                          "hydro_op1_flX",
+                          "hydro_op1_flY",
+                          "hydro_op1_flZ",
                           "hydro_op1_auxc"],
         "argument_specifications": {
             "dt":             {"source":           "external",
@@ -36,32 +37,37 @@
                                "structure_index": ["CENTER", 1],
                                "variables_in":    [1, 9],
                                "variables_out":   [1, 8]},
-            "FLX_1":          {"source":           "grid_data",
-                               "structure_index": ["FLUXX", 1],
-                               "variables_out":   [1, 5]},
-            "FLY_1":          {"source":           "grid_data",
-                               "structure_index": ["FLUXY", 1],
-                               "variables_out":   [1, 5]},
-            "FLZ_1":          {"source":           "grid_data",
-                               "structure_index": ["FLUXZ", 1],
-                               "variables_out":   [1, 1]},
+            "hydro_op1_flX":  {"source":           "scratch",
+                               "type":             "real",
+                               "extents":          "(17, 16, 16, 5)",
+                               "lbound":           "(tile_lo, 1)"},
+            "hydro_op1_flY":  {"source":           "scratch",
+                               "type":             "real",
+                               "extents":          "(16, 17, 16, 5)",
+                               "lbound":           "(tile_lo, 1)"},
+            "hydro_op1_flZ":  {"source":           "scratch",
+                               "type":             "real",
+                               "extents":          "(16, 16, 17, 5)",
+                               "lbound":           "(tile_lo, 1)"},
             "hydro_op1_auxc": {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(18, 18, 1)",
-                               "lbound":           "(tile_lo) - (1, 1, 0)"}
+                               "extents":          "(18, 18, 18)",
+                               "lbound":           "(tile_lo) - (1, 1, 1)"}
         },
         "subroutine_call_graph": [
             "Hydro_computeSoundSpeedHll_gpu_oacc",
-            "Hydro_computeFluxesHll_X_gpu_oacc",
-            "Hydro_computeFluxesHll_Y_gpu_oacc",
-            "Hydro_updateSolutionHll_gpu_oacc"
+            [
+                "Hydro_computeFluxesHll_X_gpu_oacc",
+                "Hydro_computeFluxesHll_Y_gpu_oacc",
+                "Hydro_computeFluxesHll_Z_gpu_oacc"
+            ]
         ]
     },
     "data_item": {
         "type": "DataPacket",
         "byte_alignment": 16,
-        "header": "DataPacket_gpu_tf_hydroFC.h",
-        "source": "DataPacket_gpu_tf_hydroFC.cpp"
+        "header": "DataPacket_gpu_tf_test2.h",
+        "source": "DataPacket_gpu_tf_test2.cpp"
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_gpu_oacc": {
@@ -93,7 +99,7 @@
                 "deltas": "tile_deltas",
                 "U":      "CC_1",
                 "auxC":   "hydro_op1_auxc",
-                "flX":    "FLX_1"
+                "flX":    "hydro_op1_flX"
             }
         },
         "Hydro_computeFluxesHll_Y_gpu_oacc": {
@@ -112,24 +118,26 @@
                 "deltas": "tile_deltas",
                 "U":      "CC_1",
                 "auxC":   "hydro_op1_auxc",
-                "flY":    "FLY_1"
+                "flY":    "hydro_op1_flY"
             }
         },
-        "Hydro_updateSolutionHll_gpu_oacc": {
+        "Hydro_computeFluxesHll_Z_gpu_oacc": {
             "interface_file": "dr_cg_hydroAdvance_mod.F90",
-            "argument_list": ["lo",
+            "argument_list": ["dt",
+                              "lo",
                               "hi",
-                              "flX",
-                              "flY",
-                              "flZ",
-                              "U"],
+                              "deltas",
+                              "U",
+                              "auxC",
+                              "flZ"],
             "argument_mapping": {
+                "dt":     "dt",
                 "lo":     "tile_lo",
                 "hi":     "tile_hi",
-                "flX":    "FLX_1",
-                "flY":    "FLY_1",
-                "flZ":    "FLZ_1",
-                "U":      "CC_1"
+                "deltas": "tile_deltas",
+                "U":      "CC_1",
+                "auxC":   "hydro_op1_auxc",
+                "flZ":    "hydro_op1_flZ"
             }
         }
     }

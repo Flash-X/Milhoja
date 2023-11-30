@@ -72,12 +72,3 @@ class TestTaskFunctionGenerator_cpu_cpp(milhoja.tests.TestCodeGenerators):
               "source_dim_dependent": False}
 
         self.run_tests([ic, hydro, IQ], [1, 2, 3], _create_generator)
-
-    def testString(self):
-        path = _TEST_PATH.joinpath("Sedov")
-        json_fname = path.joinpath("cpu_tf_IQ_3D.json").resolve()
-
-        generator = _create_generator(json_fname)
-
-        msg = str(generator)
-        self.assertTrue(msg.strip() != "")
