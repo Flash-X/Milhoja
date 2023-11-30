@@ -151,21 +151,24 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
         TODO: Find a better way to remove whitespaces and compare.
         """
-        generated_string = generated.read().replace(' ', '') \
+        try:
+            generated_string = generated.read().replace(' ', '') \
                                     .replace('\n', '').replace('\t', '')
-        correct_string = correct.read().replace(' ', '') \
-                                .replace('\n', '').replace('\t', '')
+            correct_string = correct.read().replace(' ', '') \
+                                    .replace('\n', '').replace('\t', '')
 
-        self.assertTrue(
-            len(generated_string) == len(correct_string),
-            f"Generated length: {len(generated_string)}, "
-            f"correct length: {len(correct_string)}"
-        )
-        self.assertTrue(
-            generated_string == correct_string,
-            f"Comparison between {generated.name}"
-            f"and {correct.name} returned false."
-        )
+            self.assertTrue(
+                len(generated_string) == len(correct_string),
+                f"Generated length: {len(generated_string)}, "
+                f"correct length: {len(correct_string)}"
+            )
+            self.assertTrue(
+                generated_string == correct_string,
+                f"Comparison between {generated.name}"
+                f"and {correct.name} returned false."
+            )
+        except IOError:
+            raise RuntimeError(f"{generated} could not be read.")
 
     def testPacketGeneration(self):
         # Runs through all tests in test_set.
@@ -270,6 +273,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 generated_c2f = None
                 generated_dp_mod = None
                 if generator.language == "fortran":
+                    # check cpp2c layer.
                     generated_cpp2c = Path(
                         destination,
                         generator.cpp2c_file_name
@@ -283,6 +287,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         with open(correct_cpp2c, 'r') as correct:
                             self.check_generated_files(generated, correct)
 
+                    # check c2f layer.
                     generated_c2f = Path(
                         destination,
                         generator.c2f_file_name
@@ -295,13 +300,22 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:
                             self.check_generated_files(generated, correct)
+
+                    # check module file
                     generated_dp_mod = generator.module_file_name
                     generated_dp_mod = Path(
                         destination,
                         generated_dp_mod
                     )
+                    correct_dp_mod = Path(
+                        _DATA_PATH,
+                        test[self.FOLDER],
+                        "REF_" + os.path.basename(generator.module_file_name)
+                    )
                     # todo:: test module file
-                    ...
+                    with open(generated_dp_mod, 'r') as generated:
+                        with open(correct_dp_mod, 'r') as correct:
+                            self.check_generated_files(generated, correct)
 
                 # clean up generated files if test passes.
                 try:

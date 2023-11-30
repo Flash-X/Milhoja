@@ -418,10 +418,11 @@ class DataPacketGenerator(AbcCodeGenerator):
             TaskFunction.C2F_KEY
         ]["source"]
 
-    # todo:: get this from tf_spec.
     @property
     def module_file_name(self) -> str:
-        return self._tf_spec.data_item_class_name + "_C2F_mod.F90"
+        return self._tf_spec.output_filenames[
+            TaskFunction.DATA_ITEM_KEY
+        ]["module"]
 
     @property
     def n_extra_streams(self) -> int:

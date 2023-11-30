@@ -112,13 +112,16 @@ class TaskFunction(object):
             assert c2f_src == ""
             assert fortran_tf_src == ""
         elif processor.lower() == "gpu" and language.lower() == "fortran":
+            data_item_mod = self.__data_spec["module"].strip()
             assert c2f_src != ""
             assert fortran_tf_src != ""
+            assert data_item_mod != ""
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {
                 "source": fortran_tf_src
             }
+            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
         elif processor.lower() == "gpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""

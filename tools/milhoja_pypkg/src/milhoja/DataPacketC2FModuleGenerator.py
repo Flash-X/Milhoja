@@ -3,6 +3,7 @@ from pathlib import Path
 from . import AbcCodeGenerator
 from . import LOG_LEVEL_BASIC_DEBUG
 from . import INTERNAL_ARGUMENT
+from . import TaskFunction
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
@@ -14,7 +15,9 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
     }
 
     def __init__(self, tf_spec, indent, logger, external_args):
-        file_name = tf_spec.data_item_class_name + "_C2F_mod.F90"
+        file_name = tf_spec.output_filenames[
+            TaskFunction.DATA_ITEM_KEY
+        ]["module"]
         super().__init__(
             # todo:: use name from tf_spec
             tf_spec, "", file_name,
@@ -63,7 +66,6 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             # write functions
             module.write(f"{self.INDENT}interface\n")
             module.write(f"{self.INDENT * 2}function {instance}( &\n")
-            # todo:: write arg list
 
             arg_list = []
             var_declarations = []
@@ -80,17 +82,20 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
             args = f' &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args)
-            module.write(f" &\n{self.INDENT*2}) result(C_ierr) bind (c)\n")
+            module.write(
+                f", &\n{self.INDENT*3}C_packet &\n"
+                f"{self.INDENT * 2})result(C_ierr) bind (c)\n"
+            )
             module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
             module.write(
-                f"{self.INDENT * 3}use milhoja_type_mod, "
+                f"{self.INDENT * 3}use milhoja_types_mod, "
                 "ONLY: MILHOJA_INT, MILHOJA_REAL\n"
             )
             vars = f'\n{self.INDENT * 3}'.join(var_declarations)
             module.write(f"{self.INDENT * 3}" + vars + "\n")
             module.write(
-                f"{self.INDENT * 3}type(C_PTR), "
-                "intent(IN), value :: C_packet\n")
+                f"{self.INDENT * 3}type(C_PTR), intent(IN) :: C_packet\n"
+            )
             module.write(f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n")
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
 

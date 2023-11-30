@@ -61,7 +61,8 @@
         "type": "DataPacket",
         "byte_alignment": 16,
         "header": "DataPacket_gpu_tf_hydroFC.h",
-        "source": "DataPacket_gpu_tf_hydroFC.cpp"
+        "source": "DataPacket_gpu_tf_hydroFC.cpp",
+        "module": "DataPacket_gpu_tf_hydroFC_C2F_mod.cpp"
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_gpu_oacc": {
