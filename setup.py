@@ -311,6 +311,7 @@ if __name__ == '__main__':
             [str(generator), str(buildDir),
              str(generatedMakefile), str(ndim),
              str(nxb), str(nyb), str(nzb),
+             libraryDir,
              "--verbose", str(1)])
     else:
         print(f"No automatic code generation required by test")

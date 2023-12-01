@@ -8,8 +8,8 @@ from milhoja import (
 
 
 def generate_code(
-            tf_spec_jsons_all, destination, overwrite, indent,
-            makefile_filename,
+            tf_spec_jsons_all, destination, overwrite, library_path,
+            indent, makefile_filename,
             logger
         ):
     """
@@ -21,9 +21,12 @@ def generate_code(
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing header and source files in destination will
         be overwritten if True
+    :param library_path: Full path to Milhoja library installation that will use
+        generated code
     :param indent: Number of spaces to use for indent in generated code
     :param makefile_filename: Name with path of makefile to generate.  An
         exception is raised if the file already exists.
+    :param logger: Derived from :py:class:`AbcLogger`
     """
     LOG_TAG = "Milhoja Test"
 
@@ -50,16 +53,25 @@ def generate_code(
 
         tf_spec = TaskFunction.from_milhoja_json(tf_spec_json)
         generate_data_item(
-            tf_spec, destination, overwrite, indent, logger
+            tf_spec, destination, overwrite, library_path, indent, logger
         )
         generate_task_function(
             tf_spec, destination, overwrite, indent, logger
         )
         logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
 
+        data_item = tf_spec.data_item
+        language = tf_spec.language
         outputs = tf_spec.output_filenames
-        files_to_compile += \
-            [dst.joinpath(value["source"]) for _, value in outputs.items()]
+        to_compile = []
+        for _, value in outputs.items():
+            if (language.lower() in ["c++", "fortran"]) and \
+                    (data_item.lower() == "datapacket"):
+                if not value["source"].startswith("gpu_"):
+                    to_compile.append(dst.joinpath(value["source"]))
+            else:
+                to_compile.append(dst.joinpath(value["source"]))
+        files_to_compile += to_compile
 
     # ----- GENERATE GENERATED-CODE MAKEFILE
     with open(makefile, "w") as fptr:

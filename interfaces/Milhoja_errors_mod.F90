@@ -52,6 +52,10 @@ contains
             errorMsg = "Unable to execute tasks with runtime"
         case (MILHOJA_ERROR_UNABLE_TO_CREATE_PACKET)
             errorMsg = "Unable to instantiate a data packet"
+        case (MILHOJA_ERROR_UNABLE_TO_CREATE_WRAPPER)
+            errorMsg = "Unable to instantiate a tile wrapper"
+        case (MILHOJA_ERROR_UNABLE_TO_ACCESS_WRAPPER)
+            errorMsg = "Unable to access contents of a tile wrapper"
         case (MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM)
             errorMsg = "Unable to release stream/async queue"
         case (MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME)

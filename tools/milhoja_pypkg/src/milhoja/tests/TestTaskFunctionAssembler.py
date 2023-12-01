@@ -408,7 +408,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             self.assertEqual(tf_spec_fname, filename)
             self.assertTrue(tf_spec_fname.is_file())
 
-            filename = f"REF_gpu_tf_hydro_{dimension}D.json"
+            filename = f"REF_gpu_tf_hydro_FlashX_{dimension}D.json"
             with open(_SEDOV_PATH.joinpath(filename), "r") as fptr:
                 expected = json.load(fptr)
             with open(tf_spec_fname, "r") as fptr:

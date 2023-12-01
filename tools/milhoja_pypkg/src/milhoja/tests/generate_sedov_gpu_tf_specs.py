@@ -51,7 +51,7 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
             "cpp_header":     "gpu_tf_hydro_Cpp2C.h",
             "cpp_source":     "gpu_tf_hydro_Cpp2C.cpp",
             "c2f_source":     "gpu_tf_hydro_C2F.F90",
-            "fortran_source": "gpu_tf_hydro.F90"
+            "fortran_source": "gpu_tf_hydro_mod.F90"
         },
         "data_item": {
             "type":           "DataPacket",
@@ -62,7 +62,7 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     }
 
     # ----- ADJUST SUBROUTINE GROUP SPECIFICATION TO SPECIFIC PROBLEM
-    group_json = group_spec_path.joinpath("Hydro_op1_Fortran.json")
+    group_json = group_spec_path.joinpath("Hydro_op1_FlashX_gpu.json")
     if not group_json.is_file():
         msg = f"{group_json} does not exist or is not a file"
         raise ValueError(msg)

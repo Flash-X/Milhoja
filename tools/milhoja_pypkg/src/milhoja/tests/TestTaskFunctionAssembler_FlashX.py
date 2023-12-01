@@ -55,7 +55,7 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
         ]
 
         GRID_JSON = self.__dst.joinpath("grid.json")
-        GROUP_JSON = _SEDOV_PATH.joinpath("Hydro_op1_FlashX.json")
+        GROUP_JSON = _SEDOV_PATH.joinpath("Hydro_op1_FlashX_cpu.json")
         GROUP_JSON_XD = self.__dst.joinpath(f"Hydro_op1_FlashX_{NDIM}D.json")
 
         # ----- DUMP BOILDER PLATE SPECS TO FILE
@@ -115,7 +115,7 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
         ]
 
         GRID_JSON = self.__dst.joinpath("grid.json")
-        GROUP_JSON = _SEDOV_PATH.joinpath("Hydro_op1_FlashX.json")
+        GROUP_JSON = _SEDOV_PATH.joinpath("Hydro_op1_FlashX_cpu.json")
         GROUP_JSON_XD = self.__dst.joinpath(f"Hydro_op1_FlashX_{NDIM}D.json")
 
         # ----- DUMP BOILDER PLATE SPECS TO FILE

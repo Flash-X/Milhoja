@@ -1,0 +1,61 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    2,
+        "nxb":          8,
+        "nyb":         16,
+        "nzb":          1,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "gpu_tf_ener",
+        "language": "C++", 
+        "processor": "GPU",
+        "cpp_header": "gpu_tf_ener.h",
+        "cpp_source": "gpu_tf_ener.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "argument_list": ["tile_lo",
+                          "tile_hi",
+                          "tile_deltas",
+                          "Uin",
+                          "Uout"],
+        "argument_specifications": {
+            "tile_lo":          {"source":           "tile_lo"},
+            "tile_hi":          {"source":           "tile_hi"},
+            "tile_deltas":      {"source":           "tile_deltas"},
+            "Uin":              {"source":           "grid_data",
+                                 "structure_index": ["CENTER", 1],
+                                 "variables_in":    [1, 2]},
+            "Uout":             {"source":           "grid_data",
+                                 "structure_index": ["CENTER", 1],
+                                 "variables_out":   [2, 2]}
+        },
+        "subroutine_call_graph": [
+            "StaticPhysicsRoutines::computeLaplacianEnergy"
+        ]
+    },
+    "data_item": {
+        "type": "DataPacket",
+        "byte_alignment": 16,
+        "header": "DataPacket_gpu_tf_ener.h",
+        "source": "DataPacket_gpu_tf_ener.cpp"
+    },
+    "subroutines": {
+        "StaticPhysicsRoutines::computeLaplacianDensity": {
+            "interface_file": "computeLaplacianEnergy.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "Uin",
+                              "Uout",
+                              "deltas"],
+            "argument_mapping": {
+                "lo":      "tile_lo",
+                "hi":      "tile_hi",
+                "deltas":  "tile_deltas",
+                "Uin":     "Uin",
+                "Uout":    "Uout"
+            }
+        }
+    }
+}

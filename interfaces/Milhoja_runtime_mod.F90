@@ -42,16 +42,18 @@ module milhoja_runtime_mod
     ! The C-to-Fortran interoperability layer
     interface
         !> Fortran interface on routine in C interface of same name.
-        function milhoja_runtime_init_c(C_nThreadTeams, C_nThreadsPerTeam,    &
-                                        C_nStreams,                         &
-                                        C_nBytesInMemoryPools) result(C_ierr) &
+        function milhoja_runtime_init_c(C_nThreadTeams, C_nThreadsPerTeam, &
+                                        C_nStreams,                        &
+                                        C_nBytesInCpuMemoryPool,           &
+                                        C_nBytesInGpuMemoryPools) result(C_ierr) &
                                         bind(c)
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_SIZE_T
             implicit none
             integer(MILHOJA_INT),    intent(IN), value :: C_nThreadTeams
             integer(MILHOJA_INT),    intent(IN), value :: C_nThreadsPerTeam
             integer(MILHOJA_INT),    intent(IN), value :: C_nStreams
-            integer(MILHOJA_SIZE_T), intent(IN), value :: C_nBytesInMemoryPools
+            integer(MILHOJA_SIZE_T), intent(IN), value :: C_nBytesInCpuMemoryPool
+            integer(MILHOJA_SIZE_T), intent(IN), value :: C_nBytesInGpuMemoryPools
             integer(MILHOJA_INT)                       :: C_ierr
         end function milhoja_runtime_init_c
 
@@ -109,26 +111,31 @@ contains
     !> Initialize the runtime.  Calling code should only call this routine after
     !! the Milhoja Grid infrastructure has been initialized.
     !!
-    !! @param nThreadTeams        The number of thread teams to create
-    !! @param nThreadsPerTeam     The number of threads to create in each team
-    !! @param nStreams            The number of streams to create
-    !! @param nBytesInMemoryPools The size of memory pools that should be
-    !!                            eagerly acquired in all memory spaces.  Note
-    !!                            the abnormal integer kind.
-    !! @param ierr                The milhoja error code
+    !! @param nThreadTeams           Number of thread teams to create
+    !! @param nThreadsPerTeam        Number of threads to create in each team
+    !! @param nStreams               Number of streams to create
+    !! @param nBytesInCpuMemoryPool  Number of bytes to allocate in CPU memory pool.
+    !!                               Note the abnormal integer kind.
+    !! @param nBytesInGpuMemoryPools Number of bytes to allocate in memory pools
+    !!                               associated with GPU (e.g., pinned & GPU).
+    !!                               Note the abnormal integer kind.
+    !! @param ierr                   Milhoja error code
     subroutine milhoja_runtime_init(nThreadTeams, nThreadsPerTeam, &
                                     nStreams,                      &
-                                    nBytesInMemoryPools,           &
+                                    nBytesInCpuMemoryPool,         &
+                                    nBytesInGpuMemoryPools,        &
                                     ierr)
         integer(MILHOJA_INT),    intent(IN)  :: nThreadTeams
         integer(MILHOJA_INT),    intent(IN)  :: nThreadsPerTeam
         integer(MILHOJA_INT),    intent(IN)  :: nStreams
-        integer(MILHOJA_SIZE_T), intent(IN)  :: nBytesInMemoryPools
+        integer(MILHOJA_SIZE_T), intent(IN)  :: nBytesInCpuMemoryPool
+        integer(MILHOJA_SIZE_T), intent(IN)  :: nBytesInGpuMemoryPools
         integer(MILHOJA_INT),    intent(OUT) :: ierr
 
         ierr = milhoja_runtime_init_c(nThreadTeams, nThreadsPerTeam, &
                                       nStreams,                      &
-                                      nBytesInMemoryPools)
+                                      nBytesInCpuMemoryPool,         &
+                                      nBytesInGpuMemoryPools)
     end subroutine milhoja_runtime_init
 
     !> Finalize the runtime.  Calling code should call this routine before

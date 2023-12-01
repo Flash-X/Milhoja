@@ -26,10 +26,10 @@
 #include "cpu_tf_analysis.h"
 #include "Tile_cpu_tf_analysis.h"
 
-#include "DataPacket_gpu_dens_stream.h"
-#include "DataPacket_gpu_ener_stream.h"
-#include "DataPacket_gpu_dens_ener_stream.h"
-#include "DataPacket_gpu_de_1_stream.h"
+#include "DataPacket_gpu_tf_dens.h"
+#include "DataPacket_gpu_tf_ener.h"
+#include "DataPacket_gpu_tf_fused_actions.h"
+#include "DataPacket_gpu_tf_fused_kernels.h"
 
 using namespace milhoja;
 
@@ -191,8 +191,8 @@ TEST_F(TestRuntime, TestGpuOnlyConfig) {
     computeLaplacianEnergy.nTilesPerPacket = 20;
     computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
 
-    const DataPacket_gpu_dens_stream&   packetPrototypeDens{};
-    const DataPacket_gpu_ener_stream&   packetPrototypeEner{}; 
+    const DataPacket_gpu_tf_dens&   packetPrototypeDens{};
+    const DataPacket_gpu_tf_ener&   packetPrototypeEner{}; 
     
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("LapDens", 1, 0, computeLaplacianDensity,
@@ -228,7 +228,7 @@ TEST_F(TestRuntime, TestCpuGpuConfig) {
     Tile_cpu_tf_dens::acquireScratch();
 
     const Tile_cpu_tf_dens    tilePrototypeDens{};
-    const DataPacket_gpu_ener_stream&   packetPrototypeEner{};
+    const DataPacket_gpu_tf_ener&   packetPrototypeEner{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuTasks("ConcurrentCpuGpu",
@@ -272,8 +272,8 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
 
     const Tile_cpu_tf_dens           tilePrototypeDens{};
     const Tile_cpu_tf_ener           tilePrototypeEner{};
-    const DataPacket_gpu_dens_stream&   packetPrototypeDens{};
-    const DataPacket_gpu_ener_stream&   packetPrototypeEner{};
+    const DataPacket_gpu_tf_dens&   packetPrototypeDens{};
+    const DataPacket_gpu_tf_ener&   packetPrototypeEner{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelDensity",
@@ -336,8 +336,8 @@ TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     Tile_cpu_tf_dens::acquireScratch();
 
     const Tile_cpu_tf_dens           tilePrototypeDens{};
-    const DataPacket_gpu_dens_stream& packetPrototypeDens{};
-    const DataPacket_gpu_ener_stream& packetPrototypeEner{};
+    const DataPacket_gpu_tf_dens& packetPrototypeDens{};
+    const DataPacket_gpu_tf_ener& packetPrototypeEner{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuWowzaTasks("CPU/GPU Wowza",
@@ -369,7 +369,7 @@ TEST_F(TestRuntime, TestFusedActions) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedActions_packet_oacc_summit;
 
-    const DataPacket_gpu_dens_ener_stream&   packetPrototype{};
+    const DataPacket_gpu_tf_fused_actions&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("Fused Actions GPU", 1, 0, computeLaplacianFused_gpu,
@@ -398,7 +398,7 @@ TEST_F(TestRuntime, TestFusedKernelsStrong) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsStrong_packet_oacc_summit;
 
-    const DataPacket_gpu_de_1_stream&   packetPrototype{};
+    const DataPacket_gpu_tf_fused_kernels&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("Fused Kernels Strong GPU", 1, 0, computeLaplacianFused_gpu,
@@ -422,7 +422,7 @@ TEST_F(TestRuntime, TestFusedKernelsWeak) {
     computeLaplacianFused_gpu.nTilesPerPacket = 20;
     computeLaplacianFused_gpu.routine         = ActionRoutines::computeLaplacianFusedKernelsWeak_packet_oacc_summit;
 
-    const DataPacket_gpu_de_1_stream&   packetPrototype{}; 
+    const DataPacket_gpu_tf_fused_kernels&   packetPrototype{}; 
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeGpuTasks("Fused Kernels Weak GPU", 1, 0, computeLaplacianFused_gpu,
@@ -458,7 +458,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedActions) {
     Tile_cpu_tf_fused::acquireScratch();
 
     const Tile_cpu_tf_fused   tilePrototype{};
-    const DataPacket_gpu_dens_ener_stream&   packetPrototype{};
+    const DataPacket_gpu_tf_fused_actions&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",
@@ -501,7 +501,7 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfigFusedKernels) {
     Tile_cpu_tf_fused::acquireScratch();
 
     const Tile_cpu_tf_fused   tilePrototype{};
-    const DataPacket_gpu_de_1_stream&   packetPrototype{};
+    const DataPacket_gpu_tf_fused_kernels&   packetPrototype{};
 
     double tStart = MPI_Wtime(); 
     Runtime::instance().executeCpuGpuSplitTasks("DataParallelFused",

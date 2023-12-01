@@ -114,8 +114,13 @@ class TaskFunction(object):
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
+        elif processor.lower() == "gpu" and language.lower() == "c++":
+            assert c2f_src == ""
+            assert fortran_tf_src == ""
         else:
-            raise NotImplementedError("Waiting for test cases")
+            raise NotImplementedError(
+                f"Waiting for test cases for [{processor}, {language}] combo."
+            )
 
         return filenames
 
@@ -139,7 +144,19 @@ class TaskFunction(object):
     def data_item_class_name(self):
         if self.data_item.lower() == "tilewrapper":
             return f"Tile_{self.name}"
-        raise NotImplementedError("Only setup for TileWrapper right now")
+        elif self.data_item.lower() == "datapacket":
+            return f"DataPacket_{self.name}"
+        raise NotImplementedError(
+            f"{self.data_item} has not been implemented."
+        )
+
+    @property
+    def data_item_byte_alignment(self):
+        if self.data_item.lower() == "datapacket":
+            return self.__data_spec["byte_alignment"]
+        raise NotImplementedError(
+            f"{self.data_item} does not use byte_alignment."
+        )
 
     @property
     def grid_dimension(self):
@@ -169,7 +186,7 @@ class TaskFunction(object):
         """
         .. todo::
             This should reinterpret variable types so that we return the
-            correct type for the task function's processor.
+            correct type for the task function's processor and device.
         """
         if argument not in self.__tf_spec["argument_specifications"]:
             msg = "{} not an argument for task function {}"
@@ -226,7 +243,6 @@ class TaskFunction(object):
             if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 assert arg not in external_all
                 external_all.add(arg)
-
         return external_all
 
     @property
@@ -311,7 +327,7 @@ class TaskFunction(object):
     def internal_subroutine_graph(self):
         """
         :return: Generator for iterating in correct order over the nodes in the
-            internal subroutine graph of the task function.  Each node contains
+            internal subroutine graph of the task function. Each node contains
             one or more subroutines.  If more than one, it is understood that
             the subroutines in that node can be run concurrently.
         """

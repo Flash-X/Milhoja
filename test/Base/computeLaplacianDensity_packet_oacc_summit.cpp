@@ -3,7 +3,7 @@
 #include <Milhoja.h>
 #include <Milhoja_DataItem.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_gpu_dens_stream.h"
+#include "DataPacket_gpu_tf_dens.h"
 
 #include "Base.h"
 
@@ -15,7 +15,7 @@ void ActionRoutines::computeLaplacianDensity_packet_oacc_summit(const int tId,
                                                                 milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_gpu_dens_stream* packet_h   = dynamic_cast<DataPacket_gpu_dens_stream*>(dataItem_h);
+    DataPacket_gpu_tf_dens* packet_h   = dynamic_cast<DataPacket_gpu_tf_dens*>(dataItem_h);
     const int                   queue_h    = packet_h->asynchronousQueue();
 
     const std::size_t* nTiles_d = packet_h->_nTiles_d;

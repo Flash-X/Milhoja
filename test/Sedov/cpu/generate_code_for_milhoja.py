@@ -30,6 +30,7 @@ def main():
     NXB_HELP = "N cells in each block along x-axis"
     NYB_HELP = "N cells in each block along y-axis"
     NZB_HELP = "N cells in each block along z-axis"
+    LIBRARY_HELP = "Path to Milhoja library installation that will use code"
     MAKEFILE_HELP = "Filename with path of Makefile to generate"
     OVERWRITE_HELP = "Original files overwritten if given"
     VERBOSE_HELP = "Verbosity level of logging"
@@ -48,6 +49,7 @@ def main():
     parser.add_argument("nxb", nargs=1, type=int, help=NXB_HELP)
     parser.add_argument("nyb", nargs=1, type=int, help=NYB_HELP)
     parser.add_argument("nzb", nargs=1, type=int, help=NZB_HELP)
+    parser.add_argument("library_path", nargs=1, help=LIBRARY_HELP)
     parser.add_argument(
         "--overwrite", action='store_true', required=False,
         help=OVERWRITE_HELP
@@ -67,6 +69,7 @@ def main():
     nxb = args.nxb[0]
     nyb = args.nyb[0]
     nzb = args.nzb[0]
+    library_path = Path(args.library_path[0]).resolve()
     overwrite = args.overwrite
     logger = milhoja.BasicLogger(args.verbose)
 
@@ -83,7 +86,8 @@ def main():
                         )
         milhoja.tests.generate_code(
                             tf_spec_jsons, destination, overwrite,
-                            INDENT, makefile, logger
+                            library_path, INDENT, makefile,
+                            logger
         )
     except Exception as error:
         error_msg = str(error)

@@ -12,9 +12,29 @@
 #include "Milhoja_IntVect.h"
 #include "Milhoja_axis.h"
 #include "Milhoja_Tile.h"
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_interface_error_codes.h"
 
 extern "C" {
+    /**
+     * Obtain from the given generic TileWrapper C pointer the C pointer to its
+     * underlying tile.
+     */
+    int   milhoja_tile_from_wrapper_c(void* item, void** tile) {
+        if (!item || !tile) {
+            std::cerr << "[milhoja_tile_from_wrapper_c] Null pointer" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        } else if (*tile) {
+            std::cerr << "[milhoja_tile_from_wrapper_c] *tile must be null" << std::endl;
+            return MILHOJA_ERROR_POINTER_NOT_NULL;
+        }
+
+        milhoja::TileWrapper*   wrapper = static_cast<milhoja::TileWrapper*>(item);
+        *tile = static_cast<void*>(wrapper->tile_.get());
+
+        return MILHOJA_SUCCESS;
+    }
+
     /**
      * gId is specific to the AMR library and is only used by the library.
      * Therefore, its index set specification is unimportant.

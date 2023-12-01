@@ -29,6 +29,7 @@ ERROR_CHECK_LOG_TAG = "Milhoja Cordura"
 # - concise one word all lowercase for all keys when possible
 # - tile metadata keys all begin with tile_ (all lowercase) with remainder
 #   in camelcase with no separation
+INTERNAL_ARGUMENT = "internal"
 EXTERNAL_ARGUMENT = "external"
 SCRATCH_ARGUMENT = "scratch"
 GRID_DATA_ARGUMENT = "grid_data"

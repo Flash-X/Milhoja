@@ -42,8 +42,8 @@ class TestTaskFunction(unittest.TestCase):
         fname = _SEDOV_PATH.joinpath("REF_cpu_tf_IQ_3D.json")
         self.__sedov_IQ = milhoja.TaskFunction.from_milhoja_json(fname)
 
-        # ----- SEDOV/3D/GPU/FORTRAN TEST
-        fname = _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_3D.json")
+        # ----- SEDOV/3D/GPU/Flash-X TEST
+        fname = _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_FlashX_3D.json")
         self.__sedov_hy_F_gpu = milhoja.TaskFunction.from_milhoja_json(fname)
 
     def testOutputFilenames(self):
@@ -65,7 +65,7 @@ class TestTaskFunction(unittest.TestCase):
 
         result = results_all[milhoja.TaskFunction.FORTRAN_TF_KEY]
         self.assertEqual(1, len(result))
-        self.assertEqual("gpu_tf_hydro.F90", result["source"])
+        self.assertEqual("gpu_tf_hydro_mod.F90", result["source"])
 
     def testConstructorDummyArguments(self):
         tests_all = [self.__rt_ic,

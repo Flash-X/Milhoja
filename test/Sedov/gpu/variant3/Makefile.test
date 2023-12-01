@@ -27,7 +27,6 @@ SRCS_TEST = \
 	$(SEDOVGPUDIR)/Eos_idealGammaDensIe_oacc_summit.cpp \
 	$(SEDOVDIR)/Io.cpp \
 	$(SEDOVDIR)/Driver_data.cpp \
-	$(TESTDIR)/DataPacket_Hydro_gpu_3.cpp \
 	$(TESTDIR)/Hydro_advanceSolutionHll_packet_oacc_summit_3.cpp \
 	$(TESTDIR)/Driver_executeSimulation.cpp \
 	$(SEDOVDIR)/solve_sedov_with_runtime.cpp
