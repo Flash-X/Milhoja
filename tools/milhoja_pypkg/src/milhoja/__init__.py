@@ -34,9 +34,12 @@ from .constants import (
     TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT,
     TILE_ARGUMENTS_ALL,
-    GRID_DATA_LBOUNDS, GRID_DATA_EXTENTS, THREAD_INDEX_ARGUMENT,
-    THREAD_INDEX_VAR_NAME, C2F_TYPE_MAPPING, VECTOR_ARRAY_EQUIVALENT,
-    GRID_DATA_PTRS, SOURCE_DATATYPES, F2C_TYPE_MAPPING
+    GRID_DATA_LBOUNDS, GRID_DATA_EXTENTS,
+    C2F_TYPE_MAPPING, VECTOR_ARRAY_EQUIVALENT,
+    GRID_DATA_PTRS, SOURCE_DATATYPES, F2C_TYPE_MAPPING,
+    THREAD_INDEX_ARGUMENT,
+    THREAD_INDEX_VAR_NAME,
+    SOURCE_DATATYPES
 )
 
 # Custom exceptions
@@ -62,6 +65,7 @@ from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .DataPacketGenerator import DataPacketGenerator
+from .TaskFunctionCpp2CGenerator_cpu_f import TaskFunctionCpp2CGenerator_cpu_f
 
 # Functions that use classes
 from .generate_data_item import generate_data_item

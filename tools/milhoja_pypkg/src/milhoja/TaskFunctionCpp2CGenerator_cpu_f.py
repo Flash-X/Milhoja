@@ -6,7 +6,16 @@ from pkg_resources import resource_filename
 from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
-from . import generate_packet_file
+from .generate_packet_file import generate_packet_file
+from . import GRID_DATA_FUNC_MAPPING
+from . import SOURCE_DATATYPE_MAPPING
+from . import (
+    TILE_LO_ARGUMENT,
+    TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT,
+    F_HOST_EQUIVALENT
+)
 
 
 class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
@@ -14,13 +23,19 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
     Generates the Cpp2C layer for a TaskFunction using a CPU data item
     with a fortran based task function.
     """
+    C2F_ARG_LIST = "c2f_dummy_args"
+    TILE_DATA = "tile_data"
+    AC_SCRATCH = "acquire_scratch"
+    CONSOLIDATE_TILE_DATA = "consolidate_tile_data"
+    REAL_ARGS = "real_args"
+
     def __init__(self, tf_spec: TaskFunction, indent, logger):
         header = None
         source = tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         self.tf_cpp2c_name = 'cg-tpl.tf_cpp2c.cxx'
         self.tf_cpp2c_template = Path(
             resource_filename(
-                __package__, 'templates/cg-tpl.tf_cpp2c.cxx'
+                __package__, 'templates/cg-tpl.tf_cpp2c.cpp'
             )
         ).resolve()
 
@@ -31,6 +46,8 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             'verbosePre': '/* ',
             'verbosePost': ' */',
         }
+
+        self.connectors = {}
 
         super().__init__(
             tf_spec, header, source, indent,
@@ -64,6 +81,7 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             cpp2c_func = self._tf_spec.name + "_cpp2c"
 
             outer.writelines([
+                f'/* _connector:tf_cpp2c */\n'
                 '/* _param:data_item_header_file_name = ',
                 f'{class_header} */\n',
                 '/* _param:c2f_function_name = ',
@@ -78,7 +96,7 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
 
     def _generate_helper_template(self, destination: Path, overwrite) -> Path:
         helper_template = destination.joinpath(
-            f"cg-tpl.{self._tf_spec.data_item_class_name}_outer.cpp"
+            f"cg-tpl.{self._tf_spec.data_item_class_name}_helper.cpp"
         ).resolve()
 
         if helper_template.is_file():
@@ -86,6 +104,73 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             if overwrite:
                 self._error("Overwrite is set to False.")
                 raise FileExistsError()
+
+        # generate all connectors
+        # append to c2f arg list.
+        self.connectors[self.C2F_ARG_LIST] = []
+        self.connectors[self.REAL_ARGS] = []
+        for ext in self._tf_spec.external_arguments:
+            spec = self._tf_spec.argument_specification(ext)
+            dtype = spec["type"]
+            self.connectors[self.C2F_ARG_LIST].append(f"const {dtype} {ext}")
+            self.connectors[self.REAL_ARGS].append(f"wrapper->{ext}")
+
+        # generate tile_data connector.
+        tile_desc_name = "tileDesc"
+        metadata = self._tf_spec.tile_metadata_arguments
+        interior = set()
+
+        self.connectors[self.TILE_DATA] = []
+        for mdata in self._tf_spec.tile_metadata_arguments:
+            arg_spec = self._tf_spec.argument_specification(mdata)
+            source = arg_spec["source"]
+            tile_desc_func = source
+
+            # todo:: temporary
+            if source == TILE_LBOUND_ARGUMENT:
+                tile_desc_func = "tile_loGC"
+            elif source == TILE_UBOUND_ARGUMENT:
+                tile_desc_func = "tile_hiGC"
+
+            # determines if we need to make a tile interior argument
+            if source == TILE_HI_ARGUMENT or source == TILE_LO_ARGUMENT:
+                interior.add(source)
+            
+            dtype = SOURCE_DATATYPE_MAPPING[source]
+            if dtype in F_HOST_EQUIVALENT:
+                raw = F_HOST_EQUIVALENT[dtype]
+                if raw == "real":
+                    raw = "milhoja::Real"
+                self.connectors[self.TILE_DATA].append(
+                    f"{raw} {source}_array[] = {{{mdata}.I(), {mdata}.J()," 
+                    f"{mdata}.K()}}"
+                )
+                self.connectors[self.REAL_ARGS].append(
+                    f"static_cast<void*>({source}_array)"
+                )
+
+            self.connectors["tile_data"].append(
+                f"const milhoja::{SOURCE_DATATYPE_MAPPING[source]} {mdata} = "
+                f"{tile_desc_name}->{tile_desc_func.replace('tile_', '')}();"
+            )
+
+        if TILE_LO_ARGUMENT in interior and TILE_HI_ARGUMENT in interior:
+            ...
+
+        # generate acquire_scratch connector.
+        self.connectors["acquire_scratch"] = []
+        class_name = self._tf_spec.data_item_class_name
+        for scratch in self._tf_spec.scratch_arguments:
+            spec = self._tf_spec.argument_specification(scratch)
+            lbound = ...
+            dtype = spec["type"]
+            dtype = dtype.capitalize() if dtype == "real" else dtype
+            dtype = f"milhoja::{dtype}"
+
+            self.connectors["acquire_scratch"].append(
+                f"{dtype}* {scratch} = static_cast<{dtype}*>("
+                f"{class_name}::{scratch}"
+            )
 
         # generate helper template
         with open(helper_template, 'w') as helper:

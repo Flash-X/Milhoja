@@ -28,7 +28,7 @@
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     void _param:c2f_function_name (
-        /* _link:constructor_dummy_args */
+        /* _link:c2f_dummy_args */
     );
 
     //----- C DECLARATION OF ACTUAL TASK FUNCTION TO PASS TO RUNTIME

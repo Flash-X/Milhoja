@@ -2,6 +2,7 @@ import milhoja.tests
 
 from milhoja.parse_helpers import parse_extents
 from milhoja.parse_helpers import parse_lbound
+from milhoja.parse_helpers import parse_lbound_f
 from milhoja.parse_helpers import IncorrectFormatException
 from milhoja.parse_helpers import NonIntegerException
 
@@ -195,3 +196,31 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         ):
             lbound = "(tile_lo) - (2,2,2) / 2"
             result = parse_lbound(lbound)
+
+    def testLboundFParser(self):
+        lb_input = "(tile_lo) - (1,2,3) + (2,3,4)"
+        correct = ["tile_lo.I()-1+2", "tile_lo.J()-2+3", "tile_lo.K()-3+4"]
+        result = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="Keyword not implemented"
+        ):
+            lb_input = "(infinity) - (1,2,3)"
+            result = parse_lbound_f(lb_input)
+
+        lb_input = "(tile_hi, -1)"
+        correct = ["tile_hi.I()", "tile_hi.J()", "tile_hi.K()", "-1"]
+        result = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        lb_input = "(1, -2, 3, -4)"
+        correct = ["1", "-2", "3", "-4"]
+        result = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        lb_input = "(1, tile_lo, 6)"
+        correct = ["1", "tile_lo.I()", "tile_lo.J()", "tile_lo.K()", '6']
+        result = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
