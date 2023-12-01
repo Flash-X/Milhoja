@@ -61,6 +61,39 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
+
+SOURCE_DATATYPE_MAPPING = {
+    TILE_LO_ARGUMENT: "IntVect",
+    TILE_HI_ARGUMENT: "IntVect",
+    TILE_LBOUND_ARGUMENT: "IntVect",
+    TILE_UBOUND_ARGUMENT: "IntVect",
+    TILE_DELTAS_ARGUMENT: "RealVect",
+    TILE_LEVEL_ARGUMENT: "unsigned int",
+    GRID_DATA_ARGUMENT: "real",
+    TILE_FACE_AREAS_ARGUMENT: "real",
+    TILE_COORDINATES_ARGUMENT: "real",
+    TILE_GRID_INDEX_ARGUMENT: "int",
+    TILE_CELL_VOLUMES_ARGUMENT: "real"
+}
+
+# If we want to convert a native milhoja type to it's raw type for use
+# with fortran.
+F_HOST_EQUIVALENT = {
+    'RealVect': 'real',
+    'IntVect': 'int'
+}
+
+# The mapping for the grid data structure index to the 
+# appropriate tile descriptor function. The strings have
+# format placeholders so the calling code can use whatever
+# name it wants for the tile descriptor reference.
+GRID_DATA_FUNC_MAPPING = {
+    "CENTER": "{0}->dataPtr()",
+    "FLUXX": "&{0}->fluxData(milhoja::Axis::I)",
+    "FLUXY": "&{0}->fluxData(milhoja::Axis::J)",
+    "FLUXZ": "&{0}->fluxData(milhoja::Axis::K)"
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed

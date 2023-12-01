@@ -1,4 +1,5 @@
 import re
+import os
 
 from pathlib import Path
 from . import LogicError
@@ -25,6 +26,17 @@ def generate_packet_file(
                                 the initial template.
     """
     caller = "Milhoja generate_packet_file"
+
+    # This is necessary because the current version of cgkit does not
+    # support files that use the .cxx suffix. So we need to convert the 
+    # file extension to .cpp, generate it, and then rename the file to its
+    # appropriate name.
+    filename, ext = os.path.splitext(output)
+    temp_path = Path(filename)
+    if ext != ".cpp":
+        temp_path = temp_path.joinpath(".cpp")
+    else:
+        temp_path = None
 
     def construct_source_tree(stree: SourceTree, templates: list):
         assert len(templates) > 0

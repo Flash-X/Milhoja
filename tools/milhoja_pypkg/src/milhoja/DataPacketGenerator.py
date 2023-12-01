@@ -21,7 +21,7 @@ from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    LOG_LEVEL_MAX, INTERNAL_ARGUMENT
+    LOG_LEVEL_MAX, INTERNAL_ARGUMENT, SOURCE_DATATYPE_MAPPING
 )
 
 
@@ -40,8 +40,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         "RealVect": "real",
         "bool": "logical"
     }
-
-    SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
     F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
 
     __DEFAULT_SOURCE_TREE_OPTS = {
@@ -466,13 +464,13 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         def cpp_sort(kv_pair):
             return self._sizes.get(
-                self.SOURCE_DATATYPE[kv_pair[1]['source']], 0
+                SOURCE_DATATYPE_MAPPING[kv_pair[1]['source']], 0
             )
 
         def fortran_sort(x):
             return self._sizes.get(
                 self.F_HOST_EQUIVALENT[
-                    self.SOURCE_DATATYPE[x[1]['source']]
+                    SOURCE_DATATYPE_MAPPING[x[1]['source']]
                 ],
                 0
             )
@@ -487,7 +485,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
             args[key] = self._tf_spec.argument_specification(key)
-            args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
+            args[key]['type'] = SOURCE_DATATYPE_MAPPING[args[key]["source"]]
             if lang == "fortran":
                 args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
 
@@ -526,7 +524,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 arg_dictionary[arg]['variables_out'] = [mask[0]-1, mask[1]-1]
 
             arg_dictionary[arg]['type'] = \
-                self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+                SOURCE_DATATYPE_MAPPING[arg_dictionary[arg]['source']]
         return arg_dictionary
 
     @property
@@ -543,7 +541,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPE_MAPPING[x[1]["source"]], 0),
             True
         )
 
@@ -561,7 +559,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPE_MAPPING[x[1]["source"]], 0),
             True
         )
 
@@ -579,7 +577,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPE_MAPPING[x[1]["source"]], 0),
             True
         )
 

@@ -20,7 +20,8 @@ from . import (
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
+    GRID_DATA_FUNC_MAPPING
 )
 
 
@@ -49,27 +50,6 @@ class TemplateUtility():
     _EXTRA_STREAMS_PACK = "n_extra_streams"
     _DESTRUCTOR = 'destructor'
     _STREAM_FUNCS_CXX = 'stream_functions_cxx'
-
-    _SOURCE_TILE_DATA_MAPPING = {
-        "CENTER": "tileDesc_h->dataPtr()",
-        "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
-        "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
-        "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
-    }
-
-    SOURCE_DATATYPE = {
-        TILE_LO_ARGUMENT: "IntVect",
-        TILE_HI_ARGUMENT: "IntVect",
-        TILE_LBOUND_ARGUMENT: "IntVect",
-        TILE_UBOUND_ARGUMENT: "IntVect",
-        TILE_DELTAS_ARGUMENT: "RealVect",
-        TILE_LEVEL_ARGUMENT: "unsigned int",
-        GRID_DATA_ARGUMENT: "real",
-        TILE_FACE_AREAS_ARGUMENT: "real",
-        TILE_COORDINATES_ARGUMENT: "real",
-        TILE_GRID_INDEX_ARGUMENT: "int",
-        TILE_CELL_VOLUMES_ARGUMENT: "real"
-    }
 
     # C++ Index space is always 0.
     DEFAULT_INDEX_SPACE = 0
@@ -502,7 +482,8 @@ class TemplateUtility():
         # Luckily we don't really need to use DataPacketMemberVars here
         # because the temporary device pointer is locally scoped.
 
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+        data_pointer_string = \
+            GRID_DATA_FUNC_MAPPING[source.upper()].format("tileDesc_h")
 
         # TODO: Use grid data to get data pointer information.
         connectors[f'memcpy_{section}'].extend([
@@ -543,7 +524,8 @@ class TemplateUtility():
         """
         offset = f"{extents} * static_cast<std::size_t>({start});"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+        data_pointer_string = \
+            GRID_DATA_FUNC_MAPPING[source.upper()].format("tileDesc_h")
 
         connectors[cls._IN_PTRS].append(
             f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'
