@@ -7,6 +7,7 @@ from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
 from .generate_packet_file import generate_packet_file
+from .parse_helpers import parse_lbound_f
 from . import GRID_DATA_FUNC_MAPPING
 from . import SOURCE_DATATYPE_MAPPING
 from . import (
@@ -14,7 +15,8 @@ from . import (
     TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
-    F_HOST_EQUIVALENT
+    F_HOST_EQUIVALENT,
+    THREAD_INDEX_VAR_NAME
 )
 
 
@@ -112,13 +114,16 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
         for ext in self._tf_spec.external_arguments:
             spec = self._tf_spec.argument_specification(ext)
             dtype = spec["type"]
+            if dtype == "real":
+                dtype = "milhoja::Real"
             self.connectors[self.C2F_ARG_LIST].append(f"const {dtype} {ext}")
             self.connectors[self.REAL_ARGS].append(f"wrapper->{ext}")
 
         # generate tile_data connector.
         tile_desc_name = "tileDesc"
         metadata = self._tf_spec.tile_metadata_arguments
-        interior = set()
+        metadata_source_mapping = {}
+        interior = [None, None]
 
         self.connectors[self.TILE_DATA] = []
         for mdata in self._tf_spec.tile_metadata_arguments:
@@ -133,48 +138,78 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
                 tile_desc_func = "tile_hiGC"
 
             # determines if we need to make a tile interior argument
-            if source == TILE_HI_ARGUMENT or source == TILE_LO_ARGUMENT:
-                interior.add(source)
-            
+            # todo: Not sure what happens if lo or hi appears twice.
+            #       TaskFunction handles this beforehand?
+            if source == TILE_LO_ARGUMENT:
+                interior[0] = mdata
+            elif source == TILE_HI_ARGUMENT:
+                interior[1] = mdata
+
+            self.connectors["tile_data"].append(
+                f"const milhoja::{SOURCE_DATATYPE_MAPPING[source]} {mdata} = "
+                f"{tile_desc_name}->{tile_desc_func.replace('tile_', '')}()"
+            )
+
             dtype = SOURCE_DATATYPE_MAPPING[source]
             if dtype in F_HOST_EQUIVALENT:
                 raw = F_HOST_EQUIVALENT[dtype]
                 if raw == "real":
                     raw = "milhoja::Real"
                 self.connectors[self.TILE_DATA].append(
-                    f"{raw} {source}_array[] = {{{mdata}.I(), {mdata}.J()," 
+                    f"{raw} {source}_array[] = {{{mdata}.I(),{mdata}.J()," 
                     f"{mdata}.K()}}"
                 )
                 self.connectors[self.REAL_ARGS].append(
                     f"static_cast<void*>({source}_array)"
                 )
 
-            self.connectors["tile_data"].append(
-                f"const milhoja::{SOURCE_DATATYPE_MAPPING[source]} {mdata} = "
-                f"{tile_desc_name}->{tile_desc_func.replace('tile_', '')}();"
-            )
+        # both lo and hi are in metadata.
+        if len(interior) == 2:
+            combined = "int tile_interior[] = {"
+            combined += ','.join(
+                f'{interior[0]}.{char}(), {interior[1]}.{char}()'
+                for char in ['I', 'J', 'K']
+            ) + "}"
+            self.connectors[self.TILE_DATA].append(combined)
 
-        if TILE_LO_ARGUMENT in interior and TILE_HI_ARGUMENT in interior:
-            ...
-
-        # generate acquire_scratch connector.
+        # generate acquire_scratch connector and update other connectors.
+        # todo: a small optimization would be to check if the same lbound
+        #       is used in other arrays and to only create 1 bound array.
         self.connectors["acquire_scratch"] = []
         class_name = self._tf_spec.data_item_class_name
         for scratch in self._tf_spec.scratch_arguments:
             spec = self._tf_spec.argument_specification(scratch)
-            lbound = ...
+            lbound = parse_lbound_f(spec["lbound"])
             dtype = spec["type"]
             dtype = dtype.capitalize() if dtype == "real" else dtype
             dtype = f"milhoja::{dtype}"
 
             self.connectors["acquire_scratch"].append(
                 f"{dtype}* {scratch} = static_cast<{dtype}*>("
-                f"{class_name}::{scratch}"
+                f"{class_name}::{scratch}) + {class_name}::{scratch.upper()}"
+                f"_SIZE_ * {THREAD_INDEX_VAR_NAME}"
             )
+            lb_name = f'lb_{scratch}'
+            self.connectors[self.TILE_DATA].append(
+                f'int {lb_name}[] = {{'
+                f"{','.join(lbound)}"
+                '}'
+            )
+            self.connectors[self.REAL_ARGS].extend([
+                f'static_cast<void*>({lb_name})',
+                f'static_cast<void*>({scratch})'
+            ])
+            self.connectors[self.C2F_ARG_LIST].extend([
+                f'const void* {lb_name}',
+                f'const void* {scratch}'
+            ])
 
         # generate helper template
         with open(helper_template, 'w') as helper:
-            ...
+            for section, code in self.connectors.items():
+                helper.write(f"/* _connector:{section} */\n")
+                helper.writelines([line + ";\n" for line in code])
+                helper.write("\n")
 
         return helper_template
 
