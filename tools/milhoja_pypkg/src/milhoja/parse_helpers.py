@@ -2,7 +2,7 @@ import re
 
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
 )
 
 
@@ -180,18 +180,18 @@ def parse_lbound_f(lbound: str) -> list:
                     keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
                 )
 
-    iteratbles = [match.split(',') for match in matches]
+    iterables = [match.split(',') for match in matches]
     # todo:: check if all lists are the same length.
-    if not iteratbles:
+    if not iterables:
         raise RuntimeError(f"Nothing in lbound {lbound}.")
 
-    size = len(iteratbles[0])
-    if not all([len(item) == size for item in iteratbles]):
+    size = len(iterables[0])
+    if not all([len(item) == size for item in iterables]):
         raise RuntimeError(f"Different lbound part sizes. {lbound}")
 
     # combine all lbound parts into 1.
     combined_bound = []
-    for idx, values in enumerate(list(zip(*iteratbles))):
+    for idx, values in enumerate(list(zip(*iterables))):
         combined_bound.append(values[0])
         if symbols:
             for i in range(1, len(values)):
