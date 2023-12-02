@@ -141,7 +141,8 @@ class TemplateUtility():
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
-            if var_data["extents"]:
+            # TODO: Wesley to review this and likely to update code!
+            if var_data["extents"] and (var_data["extents"] != "()"):
                 size_equation = \
                     f'{size_equation} * {" * ".join(var_data["extents"])}'
                 raise NotImplementedError(

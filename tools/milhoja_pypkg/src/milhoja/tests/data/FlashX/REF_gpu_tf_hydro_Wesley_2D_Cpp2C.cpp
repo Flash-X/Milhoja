@@ -5,7 +5,7 @@
 #include <Milhoja_real.h>
 #include <Milhoja_interface_error_codes.h>
 
-#include "DataPacket_gpu_tf_hydro_f_2D.h"
+#include "DataPacket_gpu_tf_hydro.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"
@@ -34,7 +34,7 @@ extern "C" {
     );
 
     int instantiate_gpu_tf_hydro_packet_c (
-        real external_hydro_op1_dt,void** packet
+    real external_hydro_op1_dt,void** packet
     
     ) {
         if ( packet == nullptr) {

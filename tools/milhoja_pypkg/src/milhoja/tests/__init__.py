@@ -10,6 +10,8 @@ from .generate_grid_tf_specs import generate_grid_tf_specs
 from .generate_runtime_cpu_tf_specs import generate_runtime_cpu_tf_specs
 from .generate_sedov_cpu_tf_specs import generate_sedov_cpu_tf_specs
 from .generate_sedov_gpu_tf_specs import generate_sedov_gpu_tf_specs
+from .generate_flashx_cpu_tf_specs import generate_flashx_cpu_tf_specs
+from .generate_flashx_gpu_tf_specs import generate_flashx_gpu_tf_specs
 from .generate_code import generate_code
 
 # ----- Python unittest-based test framework

@@ -64,7 +64,7 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
             tf_spec = json.load(fptr)
         call_graph = tf_spec["task_function"]["subroutine_call_graph"]
 
-        group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
+        group_json = self.__dst.joinpath("Hydro_op1_3D.json")
         self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
             "gpu_tf_hydro", call_graph, [group_json], GRID_JSON, logger
         )

@@ -1,4 +1,4 @@
-#include "DataPacket_gpu_tf_hydro_f_2D.h"
+#include "DataPacket_gpu_tf_hydro.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
@@ -22,20 +22,24 @@ real external_hydro_op1_dt
 )
     :
     milhoja::DataPacket{},
-_external_hydro_op1_dt_h{external_hydro_op1_dt},
-_external_hydro_op1_dt_d{nullptr},
 _nTiles_h{0},
 _nTiles_d{nullptr},
+_external_hydro_op1_dt_h{external_hydro_op1_dt},
+_external_hydro_op1_dt_d{nullptr},
 _tile_deltas_d{nullptr},
-_tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
-_tile_lbound_d{nullptr},
+_tile_lo_d{nullptr},
 _CC_1_d{nullptr},
 _CC_1_p{nullptr},
 _scratch_hydro_op1_auxC_d{nullptr},
 _scratch_hydro_op1_flX_d{nullptr},
 _scratch_hydro_op1_flY_d{nullptr},
-_scratch_hydro_op1_flZ_d{nullptr}
+_scratch_hydro_op1_flZ_d{nullptr},
+_f4_CC_1_d{nullptr},
+_f4_scratch_hydro_op1_auxC_d{nullptr},
+_f4_scratch_hydro_op1_flX_d{nullptr},
+_f4_scratch_hydro_op1_flY_d{nullptr},
+_f4_scratch_hydro_op1_flZ_d{nullptr}
 
     {
 }
@@ -53,21 +57,20 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] No tiles added.");
 
     // note: cannot set ntiles in the constructor because tiles_ is not filled yet.
-    // Check for overflow first to avoid UB
-    // TODO: Should casting be checked here or in base class?
-    if (tiles_.size() > INT_MAX)
-    	throw std::overflow_error("[DataPacket_gpu_tf_hydro pack] nTiles was too large for int.");
-    _nTiles_h = static_cast<int>(tiles_.size());
+    _nTiles_h = tiles_.size();
 
     constexpr std::size_t SIZE_CONSTRUCTOR = pad(
-    SIZE_EXTERNAL_HYDRO_OP1_DT + SIZE_NTILES
+    SIZE_NTILES
+     + SIZE_EXTERNAL_HYDRO_OP1_DT
     
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_LBOUND
+    (5 * SIZE_FARRAY4D) + SIZE_TILE_DELTAS
+     + SIZE_TILE_HI
+     + SIZE_TILE_LO
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -95,7 +98,10 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
-    SIZE_SCRATCH_HYDRO_OP1_AUXC + SIZE_SCRATCH_HYDRO_OP1_FLX + SIZE_SCRATCH_HYDRO_OP1_FLY + SIZE_SCRATCH_HYDRO_OP1_FLZ
+    SIZE_SCRATCH_HYDRO_OP1_AUXC
+     + SIZE_SCRATCH_HYDRO_OP1_FLX
+     + SIZE_SCRATCH_HYDRO_OP1_FLY
+     + SIZE_SCRATCH_HYDRO_OP1_FLZ
     
     ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)
@@ -128,38 +134,58 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     char* ptr_p = copyInStart_p_;
     ptr_d = copyInStart_d_;
 
+    std::size_t* _nTiles_p = static_cast<std::size_t*>( static_cast<void*>(ptr_p) );
+    _nTiles_d = static_cast<std::size_t*>( static_cast<void*>(ptr_d) );
+    ptr_p+=SIZE_NTILES;
+    ptr_d+=SIZE_NTILES;
+    
     real* _external_hydro_op1_dt_p = static_cast<real*>( static_cast<void*>(ptr_p) );
     _external_hydro_op1_dt_d = static_cast<real*>( static_cast<void*>(ptr_d) );
     ptr_p+=SIZE_EXTERNAL_HYDRO_OP1_DT;
     ptr_d+=SIZE_EXTERNAL_HYDRO_OP1_DT;
     
-    int* _nTiles_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _nTiles_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=SIZE_NTILES;
-    ptr_d+=SIZE_NTILES;
-    
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
-    real* _tile_deltas_p = static_cast<real*>( static_cast<void*>(ptr_p) );
-    _tile_deltas_d = static_cast<real*>( static_cast<void*>(ptr_d) );
+    RealVect* _tile_deltas_p = static_cast<RealVect*>( static_cast<void*>(ptr_p) );
+    _tile_deltas_d = static_cast<RealVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_DELTAS;
     ptr_d+=_nTiles_h * SIZE_TILE_DELTAS;
     
-    int* _tile_lo_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _tile_lo_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=_nTiles_h * SIZE_TILE_LO;
-    ptr_d+=_nTiles_h * SIZE_TILE_LO;
-    
-    int* _tile_hi_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _tile_hi_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    IntVect* _tile_hi_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+    _tile_hi_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
     
-    int* _tile_lbound_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _tile_lbound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=_nTiles_h * SIZE_TILE_LBOUND;
-    ptr_d+=_nTiles_h * SIZE_TILE_LBOUND;
+    IntVect* _tile_lo_p = static_cast<IntVect*>( static_cast<void*>(ptr_p) );
+    _tile_lo_d = static_cast<IntVect*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_TILE_LO;
+    ptr_d+=_nTiles_h * SIZE_TILE_LO;
+    
+    FArray4D* _f4_CC_1_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    _f4_CC_1_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
+    
+    FArray4D* _f4_scratch_hydro_op1_auxC_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    _f4_scratch_hydro_op1_auxC_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
+    
+    FArray4D* _f4_scratch_hydro_op1_flX_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    _f4_scratch_hydro_op1_flX_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
+    
+    FArray4D* _f4_scratch_hydro_op1_flY_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    _f4_scratch_hydro_op1_flY_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
+    
+    FArray4D* _f4_scratch_hydro_op1_flZ_p = static_cast<FArray4D*>( static_cast<void*>( ptr_p ) );
+    _f4_scratch_hydro_op1_flZ_d = static_cast<FArray4D*>( static_cast<void*>( ptr_d ) );
+    ptr_p += _nTiles_h * SIZE_FARRAY4D;
+    ptr_d += _nTiles_h * SIZE_FARRAY4D;
     
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -179,39 +205,51 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     char* copyOutStart_d_ = copyInOutStart_d_ + SIZE_TILEINOUT;
     
     //memcopy phase
-    std::memcpy(_external_hydro_op1_dt_p, static_cast<void*>(&_external_hydro_op1_dt_h), SIZE_EXTERNAL_HYDRO_OP1_DT);
     std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
+    std::memcpy(_external_hydro_op1_dt_p, static_cast<void*>(&_external_hydro_op1_dt_h), SIZE_EXTERNAL_HYDRO_OP1_DT);
     
     char* char_ptr;
     for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();
         if (tileDesc_h == nullptr) throw std::runtime_error("[DataPacket_gpu_tf_hydro pack] Bad tiledesc.");
         const auto deltas = tileDesc_h->deltas();
-        const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto loGC = tileDesc_h->loGC();
+        const auto lo = tileDesc_h->lo();
         
-        real _tile_deltas_h[MILHOJA_MDIM] = { deltas.I(), deltas.J(), deltas.K() };
-        char_ptr = static_cast<char*>(static_cast<void*>(_tile_deltas_p)) + n * SIZE_TILE_DELTAS;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_deltas_h), SIZE_TILE_DELTAS);
+        char_ptr = static_cast<char*>( static_cast<void*>( _tile_deltas_p ) ) + n * SIZE_TILE_DELTAS;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&deltas), SIZE_TILE_DELTAS);
         
-        int _tile_lo_h[MILHOJA_MDIM] = { lo.I()+1, lo.J()+1, lo.K()+1 };
-        char_ptr = static_cast<char*>(static_cast<void*>(_tile_lo_p)) + n * SIZE_TILE_LO;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lo_h), SIZE_TILE_LO);
+        char_ptr = static_cast<char*>( static_cast<void*>( _tile_hi_p ) ) + n * SIZE_TILE_HI;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&hi), SIZE_TILE_HI);
         
-        int _tile_hi_h[MILHOJA_MDIM] = { hi.I()+1, hi.J()+1, hi.K()+1 };
-        char_ptr = static_cast<char*>(static_cast<void*>(_tile_hi_p)) + n * SIZE_TILE_HI;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_hi_h), SIZE_TILE_HI);
+        char_ptr = static_cast<char*>( static_cast<void*>( _tile_lo_p ) ) + n * SIZE_TILE_LO;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<const void*>(&lo), SIZE_TILE_LO);
         
-        int _tile_lbound_h[MILHOJA_MDIM] = { loGC.I()+1, loGC.J()+1, loGC.K()+1 };
-        char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
         
+        FArray4D CC_1_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_CC_1_d) ) + n * SIZE_CC_1)), tileDesc_h->loGC(), tileDesc_h->hiGC(), 8 + 1 - 0};
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_CC_1_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&CC_1_device), SIZE_FARRAY4D);
+        
+        FArray4D scratch_hydro_op1_auxC_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_scratch_hydro_op1_auxC_d) ) + n * SIZE_SCRATCH_HYDRO_OP1_AUXC)), (lo)-IntVect{LIST_NDIM(1,1,1)}, ((lo)-IntVect{LIST_NDIM(1,1,1)}) +( IntVect{ LIST_NDIM(18,18,18) } ), 1};
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_scratch_hydro_op1_auxC_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&scratch_hydro_op1_auxC_device), SIZE_FARRAY4D);
+        
+        FArray4D scratch_hydro_op1_flX_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_scratch_hydro_op1_flX_d) ) + n * SIZE_SCRATCH_HYDRO_OP1_FLX)), (lo), ((lo)) +( IntVect{ LIST_NDIM(17,16,16) } ), 5};
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_scratch_hydro_op1_flX_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&scratch_hydro_op1_flX_device), SIZE_FARRAY4D);
+        
+        FArray4D scratch_hydro_op1_flY_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_scratch_hydro_op1_flY_d) ) + n * SIZE_SCRATCH_HYDRO_OP1_FLY)), (lo), ((lo)) +( IntVect{ LIST_NDIM(16,17,16) } ), 5};
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_scratch_hydro_op1_flY_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&scratch_hydro_op1_flY_device), SIZE_FARRAY4D);
+        
+        FArray4D scratch_hydro_op1_flZ_device{ static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>(_scratch_hydro_op1_flZ_d) ) + n * SIZE_SCRATCH_HYDRO_OP1_FLZ)), (lo), ((lo)) +( IntVect{ LIST_NDIM(16,16,17) } ), 5};
+        char_ptr = static_cast<char*>( static_cast<void*>(_f4_scratch_hydro_op1_flZ_p) ) + n * SIZE_FARRAY4D;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(&scratch_hydro_op1_flZ_device), SIZE_FARRAY4D);
         
         
         real* CC_1_d = tileDesc_h->dataPtr();
-        constexpr std::size_t offset_CC_1 = (8 + 2 * 1 * MILHOJA_K1D) * (8 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
-        constexpr std::size_t nBytes_CC_1 = (8 + 2 * 1 * MILHOJA_K1D) * (8 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 8 - 0 + 1 ) * sizeof(real);
+        constexpr std::size_t offset_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
+        constexpr std::size_t nBytes_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * ( 8 - 0 + 1 ) * sizeof(real);
         char_ptr = static_cast<char*>( static_cast<void*>(_CC_1_p) ) + n * SIZE_CC_1;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(CC_1_d + offset_CC_1), nBytes_CC_1);
         
@@ -238,10 +276,10 @@ void DataPacket_gpu_tf_hydro::unpack(void) {
         
         real* CC_1_data_p = static_cast<real*>( static_cast<void*>( static_cast<char*>( static_cast<void*>( _CC_1_p ) ) + n * SIZE_CC_1 ) );
         
-        constexpr std::size_t offset_CC_1 = (8 + 2 * 1 * MILHOJA_K1D) * (8 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
+        constexpr std::size_t offset_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);
         real*        start_h_CC_1 = CC_1_data_h + offset_CC_1;
         const real*  start_p_CC_1 = CC_1_data_p + offset_CC_1;
-        constexpr std::size_t nBytes_CC_1 = (8 + 2 * 1 * MILHOJA_K1D) * (8 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * ( 7 - 0 + 1 ) * sizeof(real);
+        constexpr std::size_t nBytes_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * ( 7 - 0 + 1 ) * sizeof(real);
         std::memcpy(static_cast<void*>(start_h_CC_1), static_cast<const void*>(start_p_CC_1), nBytes_CC_1);
         
         

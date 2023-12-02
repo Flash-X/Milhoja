@@ -6,14 +6,14 @@ from milhoja import (
 )
 
 
-def generate_sedov_gpu_tf_specs(dimension, block_size,
-                                group_spec_path, destination, overwrite,
-                                logger):
+def generate_flashx_cpu_tf_specs(dimension, block_size,
+                                 group_spec_path, destination, overwrite,
+                                 logger):
     """
     Use the partial subroutine group specifications located in the given path
     to fill in problem-specific subroutine group specifications and construct
     the full specification JSON file for each task function needed to solve the
-    given Sedov test problem.
+    given Flash-X/Sedov test problem using the CPU only.
 
     :param dimension: Dimension of problem's domain
     :param block_size: (nxb, nyb, nzb) where n[xyz]b is N cells in each block
@@ -28,27 +28,27 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     # ----- HARDCODED
     if dimension == 1:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_block_cpu",
+            "Hydro_computeFluxesHll_X_block_cpu",
+            "Hydro_updateSolutionHll_block_cpu",
+            "Eos_wrapped"
         ]
     elif dimension == 2:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::computeFluxesHll_Y_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_block_cpu",
+            "Hydro_computeFluxesHll_X_block_cpu",
+            "Hydro_computeFluxesHll_Y_block_cpu",
+            "Hydro_updateSolutionHll_block_cpu",
+            "Eos_wrapped"
         ]
     elif dimension == 3:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::computeFluxesHll_Y_oacc_summit",
-            "hy::computeFluxesHll_Z_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_block_cpu",
+            "Hydro_computeFluxesHll_X_block_cpu",
+            "Hydro_computeFluxesHll_Y_block_cpu",
+            "Hydro_computeFluxesHll_Z_block_cpu",
+            "Hydro_updateSolutionHll_block_cpu",
+            "Eos_wrapped"
         ]
     else:
         raise ValueError("Invalid dimension")
@@ -63,18 +63,18 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":       "C++",
-            "processor":      "GPU",
-            "cpp_header":     "gpu_tf_hydro.h",
-            "cpp_source":     "gpu_tf_hydro.cpp",
-            "c2f_source":     "",
-            "fortran_source": ""
+            "language":       "Fortran",
+            "processor":      "CPU",
+            "cpp_header":     "cpu_tf_hydro_Cpp2C.h",
+            "cpp_source":     "cpu_tf_hydro_Cpp2C.cxx",
+            "c2f_source":     "cpu_tf_hydro_C2F.F90",
+            "fortran_source": "cpu_tf_hydro_mod.F90"
         },
         "data_item": {
-            "type":           "DataPacket",
-            "byte_alignment": 16,
-            "header":         "DataPacket_gpu_tf_hydro.h",
-            "source":         "DataPacket_gpu_tf_hydro.cpp"
+            "type":           "TileWrapper",
+            "byte_alignment": -1,
+            "header":         "Tile_cpu_tf_hydro.h",
+            "source":         "Tile_cpu_tf_hydro.cxx"
         }
     }
 
@@ -116,8 +116,8 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     # Dump final operation specification
     #
-    # This is not for this function to do its job.  However, it is a
-    # necessary side effect for TestTaskFunctionAssembler
+    # This is not for this function to do its job.  However, it is a necessary
+    # side effect for TestTaskFunctionAssembler
     filename = f"Hydro_op1_{dimension}D.json"
     group_json = destination.joinpath(filename)
     if (not overwrite) and group_json.exists():
@@ -129,7 +129,7 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     group_spec = SubroutineGroup(group_spec, logger)
 
     # ----- DUMP PARTIAL TF SPECIFICATION
-    filename = f"gpu_tf_hydro_partial_{dimension}D.json"
+    filename = f"cpu_tf_hydro_partial_{dimension}D.json"
     partial_tf_spec_json = destination.joinpath(filename)
     if (not overwrite) and partial_tf_spec_json.exists():
         msg = f"{partial_tf_spec_json} already exists"
@@ -139,9 +139,9 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
                   ensure_ascii=True, allow_nan=False, indent=True)
 
     # ----- GENERATE TASK FUNCTION SPECIFICATION JSON
-    full_tf_spec = destination.joinpath(f"gpu_tf_hydro_{dimension}D.json")
+    full_tf_spec = destination.joinpath(f"cpu_tf_hydro_{dimension}D.json")
     assembler = TaskFunctionAssembler(
-                    "gpu_tf_hydro", TF_CALL_GRAPH,
+                    "cpu_tf_hydro", TF_CALL_GRAPH,
                     [group_spec], GRID_SPEC, logger
                 )
     assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)

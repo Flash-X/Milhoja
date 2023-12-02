@@ -15,12 +15,6 @@ def main():
     # Location of Milhoja-JSON files
     CG_PATH = CLONE_PATH.joinpath("test", "Sedov", "code_generation")
 
-    # Milhoja-JSON specifications of all task functions in test
-    TF_PARTIAL_NAMES_ALL = ["cpu_tf_ic_{}D.json",
-                            "cpu_tf_hydro_{}D.json",
-                            "gpu_tf_hydro_{}D.json",
-                            "cpu_tf_IQ_{}D.json"]
-
     # Exit codes so that this can be used in CI build server
     FAILURE = 1
     SUCCESS = 0
@@ -87,16 +81,20 @@ def main():
         exit(FAILURE)
 
     try:
-        # ----- LOAD ALL TASK FUNCTIONS SPECIFICATIONS
-        tf_specs_all = []
-        for tf_name in tf_names_all:
-            filename = CG_PATH.joinpath(tf_name)
-            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
-            tf_specs_all.append(tf_spec)
+        tf_spec_jsons = milhoja.tests.generate_sedov_cpu_tf_specs(
+                            dimension, [nxb, nyb, nzb],
+                            CG_PATH, destination,
+                            overwrite, logger
+                        )
+        tf_spec_jsons += milhoja.tests.generate_sedov_gpu_tf_specs(
+                             dimension, [nxb, nyb, nzb],
+                             CG_PATH, destination,
+                             overwrite, logger
+                         )
 
         # ----- NOW IS GOOD FOR GENERATING CODE
         milhoja.tests.generate_code(
-            tf_specs_all, destination, overwrite,
+            tf_specs_jsons, destination, overwrite,
             library_path, INDENT, makefile,
             logger
         )

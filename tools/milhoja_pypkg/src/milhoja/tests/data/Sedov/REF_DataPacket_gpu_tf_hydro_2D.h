@@ -15,7 +15,7 @@ class DataPacket_gpu_tf_hydro : public milhoja::DataPacket {
 public:
     // constructor
     DataPacket_gpu_tf_hydro(
-    real dt
+    real external_hydro_op1_dt
     
     );
     // destructor
@@ -40,22 +40,22 @@ public:
     // Since both files are auto-generated and not maintained by humans, this is fine.
     std::size_t _nTiles_h;
     std::size_t* _nTiles_d;
-    real _dt_h;
-    real* _dt_d;
+    real _external_hydro_op1_dt_h;
+    real* _external_hydro_op1_dt_d;
     RealVect* _tile_deltas_d;
-    IntVect* _tile_lo_d;
     IntVect* _tile_hi_d;
-    real* _U_d;
-    real* _U_p;
-    real* _hydro_op1_auxc_d;
-    real* _hydro_op1_flX_d;
-    real* _hydro_op1_flY_d;
-    real* _hydro_op1_flZ_d;
-    FArray4D* _f4_U_d;
-    FArray4D* _f4_hydro_op1_auxc_d;
-    FArray4D* _f4_hydro_op1_flX_d;
-    FArray4D* _f4_hydro_op1_flY_d;
-    FArray4D* _f4_hydro_op1_flZ_d;
+    IntVect* _tile_lo_d;
+    real* _CC_1_d;
+    real* _CC_1_p;
+    real* _scratch_hydro_op1_auxC_d;
+    real* _scratch_hydro_op1_flX_d;
+    real* _scratch_hydro_op1_flY_d;
+    real* _scratch_hydro_op1_flZ_d;
+    FArray4D* _f4_CC_1_d;
+    FArray4D* _f4_scratch_hydro_op1_auxC_d;
+    FArray4D* _f4_scratch_hydro_op1_flX_d;
+    FArray4D* _f4_scratch_hydro_op1_flY_d;
+    FArray4D* _f4_scratch_hydro_op1_flZ_d;
     
 private:
     static constexpr std::size_t ALIGN_SIZE=16;
@@ -67,16 +67,16 @@ private:
     // generation & source code for the stream functions.
 
     static constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
-    static constexpr std::size_t SIZE_DT = sizeof(real);
+    static constexpr std::size_t SIZE_EXTERNAL_HYDRO_OP1_DT = sizeof(real);
     static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);
     static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
-    static constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
     static constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
-    static constexpr std::size_t SIZE_U = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (8 + 1 - 0) * sizeof(real);
-    static constexpr std::size_t SIZE_HYDRO_OP1_AUXC = (18) * (18) * (18) * (1) * sizeof(real);
-    static constexpr std::size_t SIZE_HYDRO_OP1_FLX = (17) * (16) * (16) * (5) * sizeof(real);
-    static constexpr std::size_t SIZE_HYDRO_OP1_FLY = (16) * (17) * (16) * (5) * sizeof(real);
-    static constexpr std::size_t SIZE_HYDRO_OP1_FLZ = (1) * (1) * (1) * (1) * sizeof(real);
+    static constexpr std::size_t SIZE_TILE_LO = sizeof(IntVect);
+    static constexpr std::size_t SIZE_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (1 + 2 * 1 * MILHOJA_K3D) * (8 + 1 - 0) * sizeof(real);
+    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_AUXC = (18) * (18) * (1) * (1) * sizeof(real);
+    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLX = (17) * (16) * (1) * (5) * sizeof(real);
+    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLY = (16) * (17) * (1) * (5) * sizeof(real);
+    static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLZ = (1) * (1) * (1) * (1) * sizeof(real);
     
 };
 

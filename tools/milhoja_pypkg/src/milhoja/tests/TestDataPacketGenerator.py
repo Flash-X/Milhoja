@@ -17,8 +17,10 @@ from milhoja.FortranTemplateUtility import FortranTemplateUtility
 from milhoja.TemplateUtility import TemplateUtility
 
 _FILE_PATH = Path(__file__).resolve().parent
-# temporary
 _DATA_PATH = _FILE_PATH.joinpath("data")
+_SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
+_RUNTIME_PATH = _DATA_PATH.joinpath("runtime")
+_FLASHX_PATH = _DATA_PATH.joinpath("FlashX")
 
 
 class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
@@ -66,10 +68,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     def setUp(self):
         self._runtime = [
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "runtime",
-                    "gpu_tf_dens.json"
-                ),
+                self.JSON: _RUNTIME_PATH.joinpath("gpu_tf_dens.json"),
                 self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
@@ -77,30 +76,21 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.SIZES: self.SUMMIT_SIZES_2D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "runtime",
-                    "gpu_tf_ener.json"
-                ),
+                self.JSON: _RUNTIME_PATH.joinpath("gpu_tf_ener.json"),
                 self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_2D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "runtime",
-                    "gpu_tf_fused_actions.json"
-                ),
+                self.JSON: _RUNTIME_PATH.joinpath("gpu_tf_fused_actions.json"),
                 self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_2D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "runtime",
-                    "gpu_tf_fused_kernels.json"
-                ),
+                self.JSON: _RUNTIME_PATH.joinpath("gpu_tf_fused_kernels.json"),
                 self.FOLDER: "runtime",
                 self.HDD: False,
                 self.SDD: False,
@@ -110,31 +100,36 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
         self._sedov = [
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_2D.json"
-                ),
+                self.JSON: _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_2D.json"),
                 self.FOLDER: "Sedov",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_2D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_2DF.json"
-                ),
+                self.JSON: _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_3D.json"),
                 self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_3D
+            }
+        ]
+
+        self._flashx = [
+            {
+                self.JSON: _FLASHX_PATH.joinpath(
+                    "REF_gpu_tf_hydro_Wesley_2D.json"
+                ),
+                self.FOLDER: "FlashX",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_2D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_3DF.json"
+                self.JSON: _FLASHX_PATH.joinpath(
+                    "REF_gpu_tf_hydro_Wesley_3D.json"
                 ),
-                self.FOLDER: "Sedov",
+                self.FOLDER: "FlashX",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_3D
@@ -171,7 +166,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         # Runs through all tests in test_set.
         # This function generates all necessary files for a complete
         # data packet and compares them with existing reference benchmarks.
-        for test_set in [self._runtime, self._sedov]:
+        for test_set in [self._runtime, self._sedov, self._flashx]:
             for test in test_set:
                 json_path = test[self.JSON]
                 sizes = test[self.SIZES]
@@ -231,10 +226,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     destination,
                     generator.source_filename
                 )
+                correct_name_cpp = json_path.stem.replace("REF_", "")
                 correct_name_cpp = Path(
                     _DATA_PATH,
                     test[self.FOLDER],
-                    "REF_" + os.path.basename(generator.source_filename)
+                    "REF_DataPacket_" + str(correct_name_cpp) + ".cpp"
                 )
 
                 # check c++ source code
@@ -247,10 +243,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     destination,
                     generator.header_filename
                 )
+                correct_name_h = json_path.stem.replace("REF_", "")
                 correct_name_h = Path(
                     _DATA_PATH,
                     test[self.FOLDER],
-                    "REF_" + os.path.basename(generator.header_filename)
+                    "REF_DataPacket_" + str(correct_name_h) + ".h"
                 )
 
                 # check c++ headers
@@ -273,10 +270,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         destination,
                         generator.cpp2c_file_name
                     )
+                    correct_cpp2c = json_path.stem.replace("REF_", "")
                     correct_cpp2c = Path(
                         _DATA_PATH,
                         test[self.FOLDER],
-                        "REF_" + os.path.basename(generator.cpp2c_file_name)
+                        "REF_" + str(correct_cpp2c) + "_Cpp2C.cpp"
                     )
                     with open(generated_cpp2c, 'r') as generated:
                         with open(correct_cpp2c, 'r') as correct:
@@ -286,10 +284,11 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         destination,
                         generator.c2f_file_name
                     )
+                    correct_c2f = json_path.stem.replace("REF_", "")
                     correct_c2f = Path(
                         _DATA_PATH,
                         test[self.FOLDER],
-                        "REF_" + os.path.basename(generator.c2f_file_name)
+                        "REF_" + str(correct_c2f) + "_C2F.F90"
                     )
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:

@@ -22,7 +22,8 @@ from milhoja.tests import (
     NOT_STR_LIST, NOT_LIST_LIST, NOT_BOOL_LIST, NOT_CLASS_LIST,
     generate_runtime_cpu_tf_specs,
     generate_sedov_cpu_tf_specs,
-    generate_sedov_gpu_tf_specs
+    generate_sedov_gpu_tf_specs,
+    generate_flashx_gpu_tf_specs
 )
 
 
@@ -30,6 +31,7 @@ _FILE_PATH = Path(__file__).resolve().parent
 _DATA_PATH = _FILE_PATH.joinpath("data")
 _SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
 _RUNTIME_PATH = _DATA_PATH.joinpath("runtime")
+_FLASHX_PATH = _DATA_PATH.joinpath("FlashX")
 
 
 class TestTaskFunctionAssembler(unittest.TestCase):
@@ -59,9 +61,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             self.__GRID_SPEC["nyb"],
             self.__GRID_SPEC["nzb"]
         ]
-        filename = generate_sedov_gpu_tf_specs(
+        filename = generate_flashx_gpu_tf_specs(
                      self.__GRID_SPEC["dimension"], block_size,
-                     _SEDOV_PATH, self.__dst, False, self.__logger
+                     _FLASHX_PATH, self.__dst, False, self.__logger
                    )
         self.assertEqual(gpu_spec_fname, filename)
         self.assertTrue(gpu_spec_fname.is_file())
@@ -70,7 +72,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             tf_spec = json.load(fptr)
         self.__call_graph = tf_spec["task_function"]["subroutine_call_graph"]
 
-        self.__group_json = self.__dst.joinpath("Hydro_op1_Fortran_3D.json")
+        self.__group_json = self.__dst.joinpath("Hydro_op1_3D.json")
         self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
             "gpu_tf_hydro", self.__call_graph,
             [self.__group_json], self.__GRID_JSON,
@@ -408,7 +410,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             self.assertEqual(tf_spec_fname, filename)
             self.assertTrue(tf_spec_fname.is_file())
 
-            filename = f"REF_gpu_tf_hydro_FlashX_{dimension}D.json"
+            filename = f"REF_gpu_tf_hydro_{dimension}D.json"
             with open(_SEDOV_PATH.joinpath(filename), "r") as fptr:
                 expected = json.load(fptr)
             with open(tf_spec_fname, "r") as fptr:
@@ -421,6 +423,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             self.assertEqual(expected[key], result[key])
 
             groups_all = ["grid", "task_function", "data_item", "subroutines"]
+
+            self.maxDiff = None
 
             self.assertEqual(len(expected), len(result))
             for group in groups_all:

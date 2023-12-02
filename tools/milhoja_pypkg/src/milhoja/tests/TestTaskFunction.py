@@ -12,6 +12,7 @@ _FILE_PATH = Path(__file__).resolve().parent
 _DATA_PATH = _FILE_PATH.joinpath("data")
 _RUNTIME_PATH = _DATA_PATH.joinpath("runtime")
 _SEDOV_PATH = _DATA_PATH.joinpath("Sedov")
+_FLASHX_PATH = _DATA_PATH.joinpath("FlashX")
 
 
 class TestTaskFunction(unittest.TestCase):
@@ -43,7 +44,7 @@ class TestTaskFunction(unittest.TestCase):
         self.__sedov_IQ = milhoja.TaskFunction.from_milhoja_json(fname)
 
         # ----- SEDOV/3D/GPU/Flash-X TEST
-        fname = _SEDOV_PATH.joinpath("REF_gpu_tf_hydro_FlashX_3D.json")
+        fname = _FLASHX_PATH.joinpath("REF_gpu_tf_hydro_3D.json")
         self.__sedov_hy_F_gpu = milhoja.TaskFunction.from_milhoja_json(fname)
 
     def testOutputFilenames(self):
@@ -52,12 +53,12 @@ class TestTaskFunction(unittest.TestCase):
         result = results_all[milhoja.TaskFunction.DATA_ITEM_KEY]
         self.assertEqual(2, len(result))
         self.assertEqual("DataPacket_gpu_tf_hydro.h", result["header"])
-        self.assertEqual("DataPacket_gpu_tf_hydro.cpp", result["source"])
+        self.assertEqual("DataPacket_gpu_tf_hydro.cxx", result["source"])
 
         result = results_all[milhoja.TaskFunction.CPP_TF_KEY]
         self.assertEqual(2, len(result))
         self.assertEqual("gpu_tf_hydro_Cpp2C.h", result["header"])
-        self.assertEqual("gpu_tf_hydro_Cpp2C.cpp", result["source"])
+        self.assertEqual("gpu_tf_hydro_Cpp2C.cxx", result["source"])
 
         result = results_all[milhoja.TaskFunction.C2F_KEY]
         self.assertEqual(1, len(result))

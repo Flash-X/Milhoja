@@ -306,7 +306,9 @@ class TaskFunctionAssembler(object):
                 for each in self.__group_specs:
                     if subroutine in each:
                         group = each
-                assert group is not None
+                if group is None:
+                    msg = f"{subroutine} not in any group specification"
+                    raise ValueError(msg)
                 yield subroutine, group
 
     @property

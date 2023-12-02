@@ -1,10 +1,10 @@
 {
     "format": ["Milhoja-JSON", "1.0.0"],
     "grid": {
-        "dimension":    2,
+        "dimension":    3,
         "nxb":         16,
         "nyb":         16,
-        "nzb":          1,
+        "nzb":         16,
         "nguardcells":  1
     },
     "task_function": {
@@ -12,7 +12,7 @@
         "language": "Fortran", 
         "processor": "GPU",
         "cpp_header": "gpu_tf_hydro_Cpp2C.h",
-        "cpp_source": "gpu_tf_hydro_Cpp2C.cpp",
+        "cpp_source": "gpu_tf_hydro_Cpp2C.cxx",
         "c2f_source": "gpu_tf_hydro_C2F.F90",
         "fortran_source": "gpu_tf_hydro_mod.F90",
         "variable_index_base": 1,
@@ -43,20 +43,20 @@
                                "variables_out":   [1, 8]},
             "scratch_hydro_op1_auxC": {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(18, 18, 1)",
-                               "lbound":           "(tile_lo) - (1, 1, 0)"},
+                               "extents":          "(18, 18, 18)",
+                               "lbound":           "(tile_lo) - (1, 1, 1)"},
             "scratch_hydro_op1_flX":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(17, 16, 1, 5)",
+                               "extents":          "(17, 16, 16, 5)",
                                "lbound":           "(tile_lo, 1)"},
             "scratch_hydro_op1_flY":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(16, 17, 1, 5)",
+                               "extents":          "(16, 17, 16, 5)",
                                "lbound":           "(tile_lo, 1)"},
             "scratch_hydro_op1_flZ":  {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(1, 1, 1, 1)",
-                               "lbound":           "(1, 1, 1, 1)"},
+                               "extents":          "(16, 16, 17, 5)",
+                               "lbound":           "(tile_lo, 1)"},
             "lbdd_CC_1":                   {"source": "lbound",
                                             "array":  "CC_1"},
             "lbdd_scratch_hydro_op1_auxC": {"source": "lbound",
@@ -82,7 +82,7 @@
         "type": "DataPacket",
         "byte_alignment": 16,
         "header": "DataPacket_gpu_tf_hydro.h",
-        "source": "DataPacket_gpu_tf_hydro.cpp"
+        "source": "DataPacket_gpu_tf_hydro.cxx"
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_gpu_oacc": {

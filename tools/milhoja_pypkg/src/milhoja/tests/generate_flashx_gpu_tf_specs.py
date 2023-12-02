@@ -6,14 +6,14 @@ from milhoja import (
 )
 
 
-def generate_sedov_gpu_tf_specs(dimension, block_size,
-                                group_spec_path, destination, overwrite,
-                                logger):
+def generate_flashx_gpu_tf_specs(dimension, block_size,
+                                 group_spec_path, destination, overwrite,
+                                 logger):
     """
     Use the partial subroutine group specifications located in the given path
     to fill in problem-specific subroutine group specifications and construct
     the full specification JSON file for each task function needed to solve the
-    given Sedov test problem.
+    given Flash-X/Sedov test problem using the GPU only.
 
     :param dimension: Dimension of problem's domain
     :param block_size: (nxb, nyb, nzb) where n[xyz]b is N cells in each block
@@ -28,27 +28,26 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
     # ----- HARDCODED
     if dimension == 1:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_gpu_oacc",
+            "Hydro_computeFluxesHll_X_gpu_oacc",
+            "Hydro_updateSolutionHll_gpu_oacc"
         ]
     elif dimension == 2:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::computeFluxesHll_Y_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_gpu_oacc",
+            "Hydro_computeFluxesHll_X_gpu_oacc",
+            "Hydro_computeFluxesHll_Y_gpu_oacc",
+            "Hydro_updateSolutionHll_gpu_oacc"
         ]
     elif dimension == 3:
         TF_CALL_GRAPH = [
-            "hy::computeSoundSpeedHll_oacc_summit",
-            "hy::computeFluxesHll_X_oacc_summit",
-            "hy::computeFluxesHll_Y_oacc_summit",
-            "hy::computeFluxesHll_Z_oacc_summit",
-            "hy::updateSolutionHll_oacc_summit",
-            "Eos::idealGammaDensIe_oacc_summit"
+            "Hydro_computeSoundSpeedHll_gpu_oacc",
+            [
+                "Hydro_computeFluxesHll_X_gpu_oacc",
+                "Hydro_computeFluxesHll_Y_gpu_oacc",
+                "Hydro_computeFluxesHll_Z_gpu_oacc"
+            ],
+            "Hydro_updateSolutionHll_gpu_oacc",
         ]
     else:
         raise ValueError("Invalid dimension")
@@ -63,18 +62,18 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":       "C++",
+            "language":       "Fortran",
             "processor":      "GPU",
-            "cpp_header":     "gpu_tf_hydro.h",
-            "cpp_source":     "gpu_tf_hydro.cpp",
-            "c2f_source":     "",
-            "fortran_source": ""
+            "cpp_header":     "gpu_tf_hydro_Cpp2C.h",
+            "cpp_source":     "gpu_tf_hydro_Cpp2C.cxx",
+            "c2f_source":     "gpu_tf_hydro_C2F.F90",
+            "fortran_source": "gpu_tf_hydro_mod.F90"
         },
         "data_item": {
             "type":           "DataPacket",
             "byte_alignment": 16,
             "header":         "DataPacket_gpu_tf_hydro.h",
-            "source":         "DataPacket_gpu_tf_hydro.cpp"
+            "source":         "DataPacket_gpu_tf_hydro.cxx"
         }
     }
 
@@ -116,8 +115,8 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     # Dump final operation specification
     #
-    # This is not for this function to do its job.  However, it is a
-    # necessary side effect for TestTaskFunctionAssembler
+    # This is not for this function to do its job.  However, it is a necessary
+    # side effect for TestTaskFunctionAssembler
     filename = f"Hydro_op1_{dimension}D.json"
     group_json = destination.joinpath(filename)
     if (not overwrite) and group_json.exists():
