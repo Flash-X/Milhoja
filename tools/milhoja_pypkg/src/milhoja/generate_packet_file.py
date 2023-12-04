@@ -5,6 +5,7 @@ from pathlib import Path
 from . import LogicError, AbcLogger
 from cgkit.ctree import srctree
 from cgkit.ctree.srctree import SourceTree
+from . import LOG_LEVEL_BASIC
 
 DEFAULT_SOURCE_TREE_OPTS = {
     'codePath': Path.cwd(),
