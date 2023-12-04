@@ -6,6 +6,7 @@ from . import LogicError
 from . import AbcLogger
 from cgkit.ctree import srctree
 from cgkit.ctree.srctree import SourceTree
+from . import LOG_LEVEL_BASIC
 
 
 def generate_packet_file(
@@ -31,12 +32,12 @@ def generate_packet_file(
     # support files that use the .cxx suffix. So we need to convert the 
     # file extension to .cpp, generate it, and then rename the file to its
     # appropriate name.
-    filename, ext = os.path.splitext(output)
-    temp_path = Path(filename)
-    if ext != ".cpp":
-        temp_path = temp_path.joinpath(".cpp")
-    else:
-        temp_path = None
+    # filename, ext = os.path.splitext(output)
+    # temp_path = Path(filename)
+    # if ext != ".cpp":
+    #     temp_path = temp_path.joinpath(".cpp")
+    # else:
+    #     temp_path = None
 
     def construct_source_tree(stree: SourceTree, templates: list):
         assert len(templates) > 0

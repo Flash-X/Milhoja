@@ -36,8 +36,8 @@ extern "C" {
         const int threadIndex,
         milhoja::DataItem* dataItem
     ) {
-        _param:data_item_class*  wrapper = dynamic_cast<_param:data_item_class*>(dataItem);
-        milhoja::Tile*      tileDesc = wrapper->tile_.get();
+        _param:data_item_class* wrapper = dynamic_cast<_param:data_item_class*>(dataItem);
+        milhoja::Tile* tileDesc = wrapper->tile_.get();
 
         // tile_data includes any tile_metadata, tile_in / in_out / out
         /* _link:tile_data */
@@ -50,6 +50,6 @@ extern "C" {
 
         _param:c2f_function_name(
             /* _link:real_args */
-        ));
+        );
     }
 }
