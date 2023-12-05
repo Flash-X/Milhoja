@@ -11,7 +11,8 @@ from . import (
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 
@@ -112,6 +113,14 @@ class TaskFunction(object):
         if processor.lower() == "cpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
+        elif processor.lower() == "cpu" and language.lower() == "fortran":
+            assert c2f_src != ""
+            assert fortran_tf_src != ""
+
+            filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {
+                "source": fortran_tf_src
+            }
         elif processor.lower() == "gpu" and language.lower() == "fortran":
             assert c2f_src != ""
             assert fortran_tf_src != ""
@@ -404,6 +413,30 @@ class TaskFunction(object):
                 yield [node]
             else:
                 yield node
+
+    @property
+    def use_combined_array_bounds(self) -> list:
+        """
+        :return: A list containing whether or not a subroutine in the call
+                 graph uses a tile_interior or tile_arrayBounds argument.
+                 If one of these is true, the generators should use a
+                 tile_interior array in place of tile_lo and tile_hi, and a
+                 tile_arrayBounds array in place of tile_lbound and
+                 tile_ubound.
+        """
+        consolidate_bounds = [False, False]
+        for node in self.internal_subroutine_graph:
+            for routine in node:
+                if all([item for item in consolidate_bounds]):
+                    return consolidate_bounds
+                args = self.subroutine_actual_arguments(routine)
+                consolidate_bounds[0] = \
+                    consolidate_bounds[0] or TILE_INTERIOR_ARGUMENT in args
+                consolidate_bounds[1] = \
+                    consolidate_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
+
+        return consolidate_bounds
+
 
     def subroutine_interface_file(self, subroutine):
         """

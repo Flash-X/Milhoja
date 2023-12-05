@@ -18,7 +18,8 @@ from . import (
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
     F_HOST_EQUIVALENT,
-    THREAD_INDEX_VAR_NAME
+    THREAD_INDEX_VAR_NAME,
+    GRID_DATA_ARGUMENT
 )
 
 
@@ -123,77 +124,104 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             self.connectors[self.REAL_ARGS].append(f"wrapper->{ext}")
 
         # generate tile_data connector.
-        tile_desc_name = "tileDesc"
-        metadata = sorted(self._tf_spec.tile_metadata_arguments)
-        metadata_source_mapping = {}
-        interior = [None, None]
-
         self.connectors[self.TILE_DATA] = []
+        self.connectors[self.CONSOLIDATE_TILE_DATA] = []
+        combine_arrays = self._tf_spec.use_combined_array_bounds
+
         tile_metadata = deepcopy(self._tf_spec.tile_metadata_arguments)
-        for mdata in tile_metadata:
+        tile_mdata_args = []
+        for var_list in tile_metadata.values():
+            tile_mdata_args.extend(var_list)
+        print(tile_mdata_args)
+        created_bounds = [False, False]
+        common_mdata = set()
+        tile_desc_name = "tileDesc"
+        # todo:: does not account for other tile metadata.
+        for mdata in tile_mdata_args:
             arg_spec = self._tf_spec.argument_specification(mdata)
             source = arg_spec["source"]
-            tile_desc_func = source
+            associated_var = arg_spec.get("array", None)
 
-            # todo:: temporary
-            if source == TILE_LBOUND_ARGUMENT:
-                tile_desc_func = "tile_loGC"
-            elif source == TILE_UBOUND_ARGUMENT:
-                tile_desc_func = "tile_hiGC"
+            # if this is an lbound for a different array
+            if associated_var:
+                var_spec = self._tf_spec.argument_specification(associated_var)
+                # # we need to add loGC or hiGC to the list of tile data
+                # set the size of array lbound based on source.
+                # todo:: use starting index value
+                if var_spec["source"] == GRID_DATA_ARGUMENT:
+                    if "tile_lbound" not in common_mdata:
+                        self.connectors[self.TILE_DATA].append(
+                            f"const milhoja::IntVect tile_lbound = "
+                            f"{tile_desc_name}->loGC()"
+                        )
+                    lb = parse_lbound_f("(tile_lbound, 1)")
+                else:
+                    lb = parse_lbound_f(var_spec["lbound"])
+                self.connectors[self.CONSOLIDATE_TILE_DATA].append(
+                    f"int {mdata}[] = {{{','.join(lb)}}}"
+                )
+                self.connectors[self.C2F_ARG_LIST].append(f"const void* {mdata}")
+                self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({mdata})")
 
-            self.connectors[self.TILE_DATA].append(
-                f"const milhoja::{SOURCE_DATATYPE_MAPPING[source]} {mdata} = "
-                f"{tile_desc_name}->{tile_desc_func.replace('tile_', '')}()"
-            )
-
-            # determines if we need to make a tile interior argument
-            # todo: Not sure what happens if lo or hi appears twice.
-            #       TaskFunction handles this beforehand?
-            if source == TILE_LO_ARGUMENT:
-                interior[0] = mdata
-            elif source == TILE_HI_ARGUMENT:
-                interior[1] = mdata
+            # otherwise it's a normal tile metadata
             else:
-                self.connectors[self.C2F_ARG_LIST].append(f"const void* {source}_array")
-                self.connectors[self.REAL_ARGS].append(
-                    f"static_cast<void*>({source}_array)"
+                common_mdata.add(source)
+                if source == TILE_LBOUND_ARGUMENT:
+                    source = "tile_loGC"
+                elif source == TILE_LBOUND_ARGUMENT:
+                    source = "tile_hiGC"
+
+                tile_desc_func = source.replace("tile_", '')
+                self.connectors[self.TILE_DATA].append(
+                    f"const milhoja::{SOURCE_DATATYPE_MAPPING[source]} {mdata} = "
+                    f"{tile_desc_name}->{tile_desc_func}()"
                 )
 
-                dtype = SOURCE_DATATYPE_MAPPING[source]
-                if dtype in F_HOST_EQUIVALENT:
-                    raw = F_HOST_EQUIVALENT[dtype]
-                    if raw == "real":
-                        raw = "milhoja::Real"
-                    self.connectors[self.TILE_DATA].append(
-                        f"{raw} {source}_array[] = {{{mdata}.I(),{mdata}.J()," 
-                        f"{mdata}.K()}}"
+                # # we combine tile_lo and tile_hi.
+                if combine_arrays[0] and \
+                (source == TILE_LO_ARGUMENT or source == TILE_HI_ARGUMENT):
+                    if not created_bounds[0]:
+                        name = "tile_interior"
+                        self.connectors[self.C2F_ARG_LIST].append(f"const void* {name}")
+                        self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({name})")
+                        combined = f"int {name}[] = {{"
+                        combined += ','.join(
+                            f'tile_lo.{char}(),tile_hi.{char}()'
+                            for char in ['I', 'J', 'K']
+                        ) + "}"
+                        self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
+                        created_bounds[0] = True
+                elif combine_arrays[1] and \
+                source == TILE_LBOUND_ARGUMENT or source == TILE_UBOUND_ARGUMENT:
+                    if not created_bounds[1]:
+                        name = "tile_arrayBounds"
+                        self.connectors[self.C2F_ARG_LIST].append(f"const void* {name}")
+                        self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({name})")
+                        combined = f"int {name}[] = {{"
+                        combined += ','.join(
+                            f'tile_lbound.{char}(),tile_ubound.{char}()'
+                            for char in ['I', 'J', 'K']
+                        ) + "}"
+                        self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
+                        created_bounds[1] = True
+                else:
+                    # determines if we need to make a tile interior argument
+                    # todo: Not sure what happens if lo or hi appears twice.
+                    #       TaskFunction handles this beforehand?
+                    self.connectors[self.C2F_ARG_LIST].append(f"const void* {source}_array")
+                    self.connectors[self.REAL_ARGS].append(
+                        f"static_cast<void*>({source}_array)"
                     )
 
-        # both lo and hi are in metadata.
-        if None not in interior:
-            name = "tile_interior"
-            combined = f"int {name}[] = {{"
-            combined += ','.join(
-                f'{interior[0]}.{char}(), {interior[1]}.{char}()'
-                for char in ['I', 'J', 'K']
-            ) + "}"
-            self.connectors[self.TILE_DATA].append(combined)
-            self.connectors[self.C2F_ARG_LIST].append(f"const void* {name}")
-            self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({name})")
-        else:
-            for item in interior:
-                if item:
-                    spec = self._tf_spec.argument_specification(item)
-                    dtype = SOURCE_DATATYPE_MAPPING[spec["source"]]
-                    raw = F_HOST_EQUIVALENT[dtype]
-                    if raw == "real":
+                    dtype = SOURCE_DATATYPE_MAPPING[source]
+                    if dtype in F_HOST_EQUIVALENT:
+                        raw = F_HOST_EQUIVALENT[dtype]
+                        if raw == "real":
                             raw = "milhoja::Real"
-                    self.connectors[self.TILE_DATA].append(
-                        f"{raw} {item}_array[] = "
-                        f"{{{item}.I(),{item}.J(),{item}.K()}}"
-                    )
-                    self.connectors[self.C2F_ARG_LIST].append(f"const void* {item}")
-                    self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({item})")
+                        self.connectors[self.CONSOLIDATE_TILE_DATA].append(
+                            f"{raw} {source}_array[] = {{{mdata}.I(),{mdata}.J()," 
+                            f"{mdata}.K()}}"
+                        )
 
         tile_data_args = sorted([
             *self._tf_spec.tile_in_arguments,
@@ -207,16 +235,10 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             dtype = "milhoja::Real"
             grid_axis = spec["structure_index"][0]
             func = GRID_DATA_FUNC_MAPPING[grid_axis].format("tileDesc")
-            lb = parse_lbound_f("(tile_lbound, 1)")
-            lb = ','.join(lb)
-            lb = lb.replace("tile_lbound", f"{tile_desc_name}->loGC()")
 
-            if lb not in common_lbounds:
-                common_lbounds[lb] = "lb_" + var
-
-            self.connectors[self.TILE_DATA].extend([
-                f"const milhoja::IntVect tile_lbound = {tile_desc_name}->loGC()"
-            ])
+            # self.connectors[self.TILE_DATA].extend([
+            #     f"const milhoja::IntVect tile_lbound = {tile_desc_name}->loGC()"
+            # ])
             self.connectors[self.C2F_ARG_LIST].append(f"const void* {var}")
             self.connectors[self.TILE_DATA].append(f"{dtype}* {var} = {func}")
             self.connectors[self.REAL_ARGS].append(f"static_cast<void*>({var})")
@@ -229,10 +251,10 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
         scratch_args = sorted(self._tf_spec.scratch_arguments)
         for scratch in scratch_args:
             spec = self._tf_spec.argument_specification(scratch)
-            lbound = parse_lbound_f(spec["lbound"])
+            # lbound = parse_lbound_f(spec["lbound"])
             dtype = spec["type"]
             dtype = dtype.capitalize() if dtype == "real" else dtype
-            dtype = f"milhoja::{dtype}"
+            dtype = f"{dtype}"
 
             self.connectors["acquire_scratch"].append(
                 f"{dtype}* {scratch} = static_cast<{dtype}*>("
@@ -240,21 +262,21 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
                 f"_SIZE_ * {THREAD_INDEX_VAR_NAME}"
             )
 
-            lb = ','.join(lbound)
-            if lb not in common_lbounds:
-                common_lbounds[lb] = "lb_" + scratch
+            # lb = ','.join(lbound)
+            # if lb not in common_lbounds:
+            #     common_lbounds[lb] = "lb_" + scratch
 
             self.connectors[self.REAL_ARGS].append(
                 f'static_cast<void*>({scratch})'
             )
             self.connectors[self.C2F_ARG_LIST].append(f'const void* {scratch}')
 
-        for bound,name in common_lbounds.items():
-            self.connectors[self.TILE_DATA].append(f"int {name}[] = {{{bound}}}")
-            self.connectors[self.C2F_ARG_LIST].append(f"const void* {name}")
-            self.connectors[self.REAL_ARGS].append(
-                f"static_cast<void*>({name})"
-            )
+        # for bound,name in common_lbounds.items():
+        #     self.connectors[self.TILE_DATA].append(f"int {name}[] = {{{bound}}}")
+        #     self.connectors[self.C2F_ARG_LIST].append(f"const void* {name}")
+        #     self.connectors[self.REAL_ARGS].append(
+        #         f"static_cast<void*>({name})"
+        #     )
 
         # generate helper template
         with open(helper_template, 'w') as helper:
