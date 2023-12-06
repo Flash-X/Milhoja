@@ -1,5 +1,5 @@
 """
-Unit test of TaskFunctionGeneratorCpp2C_cpu_f class.
+Unit test of TaskFunctionGeneratorCpp2C_cpu_F class.
 """
 
 from pathlib import Path
@@ -16,7 +16,7 @@ def _create_generator(json_filename):
     logger = milhoja.BasicLogger(milhoja.LOG_LEVEL_NONE)
     tf_spec = milhoja.TaskFunction.from_milhoja_json(json_filename)
 
-    return milhoja.TaskFunctionCpp2CGenerator_cpu_f(tf_spec, INDENT, logger)
+    return milhoja.TaskFunctionCpp2CGenerator_cpu_F(tf_spec, INDENT, logger)
 
 
 class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
@@ -32,7 +32,7 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
         hydro_3D = {"json": path.joinpath("cpu_tf_hydro_3D_f.json"),
                     "header": None,
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_cpu_tf_hydro_3D.F90"),
+                    "source": path.joinpath("REF_cpu_tf_hydro_Cpp2C.cxx"),
                     "source_dim_dependent": False}
 
         self.run_tests([hydro_3D], [3], _create_generator)
