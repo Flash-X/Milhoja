@@ -23,7 +23,7 @@ from . import (
 )
 
 
-class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
+class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
     """
     Generates the Cpp2C layer for a TaskFunction using a CPU data item
     with a fortran based task function.
@@ -121,7 +121,7 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
             if dtype == "real":
                 dtype = "milhoja::Real"
             self.connectors[self.C2F_ARG_LIST].append(f"const {dtype} {ext}")
-            self.connectors[self.REAL_ARGS].append(f"wrapper->{ext}")
+            self.connectors[self.REAL_ARGS].append(f"wrapper->{ext}_")
 
         # generate tile_data connector.
         self.connectors[self.TILE_DATA] = []
@@ -132,7 +132,7 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
         tile_mdata_args = []
         for var_list in tile_metadata.values():
             tile_mdata_args.extend(var_list)
-        print(tile_mdata_args)
+
         created_bounds = [False, False]
         common_mdata = set()
         tile_desc_name = "tileDesc"
@@ -258,7 +258,7 @@ class TaskFunctionCpp2CGenerator_cpu_f(AbcCodeGenerator):
 
             self.connectors["acquire_scratch"].append(
                 f"{dtype}* {scratch} = static_cast<{dtype}*>("
-                f"{class_name}::{scratch}) + {class_name}::{scratch.upper()}"
+                f"{class_name}::{scratch.lower()}_) + {class_name}::{scratch.upper()}"
                 f"_SIZE_ * {THREAD_INDEX_VAR_NAME}"
             )
 
