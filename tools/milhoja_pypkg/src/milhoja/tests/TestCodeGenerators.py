@@ -90,6 +90,8 @@ class TestCodeGenerators(unittest.TestCase):
                 generator.generate_source_code(dst, True)
                 self.assertTrue(source_filename.is_file())
 
+                print(ref_src_fname)
+                print(source_filename)
                 ref = self.__load_code(ref_src_fname)
                 generated = self.__load_code(source_filename)
 
