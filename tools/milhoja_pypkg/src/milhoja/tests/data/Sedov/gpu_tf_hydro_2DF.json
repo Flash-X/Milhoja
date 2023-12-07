@@ -67,7 +67,7 @@
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_gpu_oacc": {
-            "interface_file": "Hydro.h",
+            "interface_file": "dr_cg_hydroAdvance_mod.F90",
             "argument_list": ["lo", "hi", "U", "auxC"],
             "argument_mapping": {
                 "lo":     "tile_lo",
@@ -77,7 +77,7 @@
             }
         },
         "Hydro_computeFluxesHll_X_gpu_oacc": {
-            "interface_file": "Hydro.h",
+            "interface_file": "dr_cg_hydroAdvance_mod.F90",
             "argument_list": ["dt", "lo", "hi", "deltas", "U", "auxC", "flX"],
             "argument_mapping": {
                 "dt":     "external_hydro_op1_dt",
@@ -90,7 +90,7 @@
             }
         },
         "Hydro_computeFluxesHll_Y_gpu_oacc": {
-            "interface_file": "Hydro.h",
+            "interface_file": "dr_cg_hydroAdvance_mod.F90",
             "argument_list": ["dt", "lo", "hi", "deltas", "U", "auxC", "flY"],
             "argument_mapping": {
                 "dt":     "external_hydro_op1_dt",
@@ -103,7 +103,7 @@
             }
         },
         "Hydro_updateSolutionHll_gpu_oacc": {
-            "interface_file": "Hydro.h",
+            "interface_file": "dr_cg_hydroAdvance_mod.F90",
             "argument_list": ["lo", "hi", "flX", "flY", "flZ", "U"],
             "argument_mapping": {
                 "lo":     "tile_lo",

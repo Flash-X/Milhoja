@@ -24,7 +24,7 @@ from .constants import (
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT, TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT, TILE_ARGUMENTS_ALL, THREAD_INDEX_ARGUMENT,
     THREAD_INDEX_VAR_NAME, TASK_FUNCTION_FORMATS, GRID_DATA_FUNC_MAPPING,
-    SOURCE_DATATYPE_MAPPING, F_HOST_EQUIVALENT
+    SOURCE_DATATYPE_MAPPING, F_HOST_EQUIVALENT, C2F_TYPE_MAPPING
 )
 
 # Custom exceptions
@@ -40,6 +40,7 @@ from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 from .DataPacketGenerator import DataPacketGenerator
 from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .TaskFunctionCpp2CGenerator_cpu_F import TaskFunctionCpp2CGenerator_cpu_F
+from .TaskFunctionC2FGenerator_cpu_F import TaskFunctionC2FGenerator_cpu_F
 
 # Functions that use classes
 from .generate_data_item import generate_data_item

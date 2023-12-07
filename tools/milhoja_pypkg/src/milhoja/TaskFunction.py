@@ -205,6 +205,18 @@ class TaskFunction(object):
             raise LogicError("No extra streams needed")
 
         return f"release_{self.name}_extra_queue_C"
+    
+    @property
+    def cpp2c_layer_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Cpp2C layer for non-fortran TF.")
+        return f"{self.name}_Cpp2C"
+    
+    @property
+    def c2f_layer_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No C2F layer for non-fortran TF.")
+        return f"{self.name}_C2F"
 
     @property
     def fortran_module_name(self):
@@ -424,18 +436,18 @@ class TaskFunction(object):
                  tile_arrayBounds array in place of tile_lbound and
                  tile_ubound.
         """
-        consolidate_bounds = [False, False]
+        combine_bounds = [False, False]
         for node in self.internal_subroutine_graph:
             for routine in node:
-                if all([item for item in consolidate_bounds]):
-                    return consolidate_bounds
+                if all([item for item in combine_bounds]):
+                    return combine_bounds
                 args = self.subroutine_actual_arguments(routine)
-                consolidate_bounds[0] = \
-                    consolidate_bounds[0] or TILE_INTERIOR_ARGUMENT in args
-                consolidate_bounds[1] = \
-                    consolidate_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
+                combine_bounds[0] = \
+                    combine_bounds[0] or TILE_INTERIOR_ARGUMENT in args
+                combine_bounds[1] = \
+                    combine_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
 
-        return consolidate_bounds
+        return combine_bounds
 
 
     def subroutine_interface_file(self, subroutine):

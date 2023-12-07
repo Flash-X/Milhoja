@@ -83,6 +83,15 @@ F_HOST_EQUIVALENT = {
     'IntVect': 'int'
 }
 
+# todo::
+#   * support more data types?
+C2F_TYPE_MAPPING = {
+    "int": "integer",
+    "real": "real",
+    "milhoja::Real": "real",
+    "bool": "logical"
+}
+
 # The mapping for the grid data structure index to the 
 # appropriate tile descriptor function. The strings have
 # format placeholders so the calling code can use whatever
