@@ -35,7 +35,6 @@
             "tile_deltas":                 {"source":           "tile_deltas"},
             "tile_lo":                     {"source":           "tile_lo"},
             "tile_hi":                     {"source":           "tile_hi"},
-            "tile_interior":               {"source":           "tile_interior"},
             "lbdd_CC_1":                   {"source":           "tile_lbound", 
                                             "array":            "CC_1"},
             "CC_1":                        {"source":           "grid_data",
