@@ -7,7 +7,8 @@ from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    # SOURCE_DATATYPE_MAPPING
 )
 
 

@@ -89,9 +89,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
 
         if self._tf_spec.language.lower() == "c++":
-            self.template_utility = CppTemplateUtility
+            self.template_utility = CppTemplateUtility(tf_spec)
         elif self._tf_spec.language.lower() == "fortran":
-            self.template_utility = FortranTemplateUtility
+            self.template_utility = FortranTemplateUtility(tf_spec)
         else:
             self.log_and_abort(
                 "No template utility for specifed language",
@@ -485,13 +485,18 @@ class DataPacketGenerator(AbcCodeGenerator):
             raise RuntimeError("Language is not supported.")
 
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
-        for key in args:
-            args[key] = self._tf_spec.argument_specification(key)
-            args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
+        mdata_names = []
+        for names in args.values():
+            mdata_names.extend(names)
+        mdata = {}
+        for key in mdata_names:
+            spec = self._tf_spec.argument_specification(key)
+            mdata[key] = spec
+            mdata[key]['type'] = self.SOURCE_DATATYPE[mdata[key]["source"]]
             if lang == "fortran":
-                args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
+                mdata[key]['type'] = self.FORTRAN_EQUIVALENT[mdata[key]['type']]
 
-        return self._sort_dict(args.items(), sort_func, True)
+        return self._sort_dict(mdata.items(), sort_func, True)
 
     def __adjust_tile_data(self, args: dict) -> dict:
         """
@@ -601,8 +606,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
             arg_dictionary[arg]['extents'] = \
                 parse_extents(arg_dictionary[arg]['extents'])
-            arg_dictionary[arg]['lbound'] = \
-                parse_lbound(arg_dictionary[arg]['lbound'])
+            arg_dictionary[arg]['lbound'] = arg_dictionary[arg]['lbound']
         return self._sort_dict(
             arg_dictionary.items(),
             lambda x: (self._sizes.get(x[1]["type"], 0), x[0]),

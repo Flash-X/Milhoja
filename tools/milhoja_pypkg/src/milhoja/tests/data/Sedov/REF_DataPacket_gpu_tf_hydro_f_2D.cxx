@@ -189,7 +189,7 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         const auto deltas = tileDesc_h->deltas();
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
-        const auto loGC = tileDesc_h->loGC();
+        const auto lbound = tileDesc_h->loGC();
         
         real _tile_deltas_h[MILHOJA_MDIM] = { deltas.I(), deltas.J(), deltas.K() };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_deltas_p)) + n * SIZE_TILE_DELTAS;
@@ -203,7 +203,7 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_hi_p)) + n * SIZE_TILE_HI;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_hi_h), SIZE_TILE_HI);
         
-        int _tile_lbound_h[MILHOJA_MDIM] = { loGC.I()+1, loGC.J()+1, loGC.K()+1 };
+        int _tile_lbound_h[MILHOJA_MDIM] = { lbound.I()+1, lbound.J()+1, lbound.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
         

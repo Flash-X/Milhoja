@@ -1,4 +1,4 @@
-#include "DataPacket_gpu_tf_hydro_f.h"
+#include "DataPacket_gpu_tf_hydro_f_lb.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
@@ -30,6 +30,9 @@ _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
 _tile_lbound_d{nullptr},
+_lbdd_CC_1_d{nullptr},
+_lbdd_scratch_hydro_op1_auxC_d{nullptr},
+_tile_ubound_d{nullptr},
 _CC_1_d{nullptr},
 _CC_1_p{nullptr},
 _scratch_hydro_op1_auxC_d{nullptr},
@@ -103,7 +106,7 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_LBOUND
+    SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_LBOUND + SIZE_LBDD_CC_1 + SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC + SIZE_TILE_UBOUND
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -191,12 +194,27 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     _tile_hi_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
-    
+
     int* _tile_lbound_p = static_cast<int*>( static_cast<void*>(ptr_p) );
     _tile_lbound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LBOUND;
     ptr_d+=_nTiles_h * SIZE_TILE_LBOUND;
     
+    int* _lbdd_CC_1_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _lbdd_CC_1_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_LBDD_CC_1;
+    ptr_d+=_nTiles_h * SIZE_LBDD_CC_1;
+
+    int* _lbdd_scratch_hydro_op1_auxC_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _lbdd_scratch_hydro_op1_auxC_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
+    ptr_d+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
+
+    int* _tile_ubound_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _tile_ubound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_TILE_UBOUND;
+    ptr_d+=_nTiles_h * SIZE_TILE_UBOUND;
+
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -226,6 +244,7 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         const auto lo = tileDesc_h->lo();
         const auto hi = tileDesc_h->hi();
         const auto lbound = tileDesc_h->loGC();
+        const auto ubound = tileDesc_h->hiGC();
         
         real _tile_deltas_h[MILHOJA_MDIM] = { deltas.I(), deltas.J(), deltas.K() };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_deltas_p)) + n * SIZE_TILE_DELTAS;
@@ -238,12 +257,24 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         int _tile_hi_h[MILHOJA_MDIM] = { hi.I()+1, hi.J()+1, hi.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_hi_p)) + n * SIZE_TILE_HI;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_hi_h), SIZE_TILE_HI);
-        
+
         int _tile_lbound_h[MILHOJA_MDIM] = { lbound.I()+1, lbound.J()+1, lbound.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
+
+        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(lbound.J()) + 1,(lbound.K()) + 1,1};
+        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_CC_1_p)) + n * SIZE_LBDD_CC_1;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_CC_1_h), SIZE_LBDD_CC_1);
         
+        int _lbdd_scratch_hydro_op1_auxC_h[3] = {(lo.I()-1) + 1,(lo.J()- 1) + 1,(lo.K()- 1) + 1};
+        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_p)) + n * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_h), SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC);
         
+        int _tile_ubound_h[MILHOJA_MDIM] = { ubound.I()+1, ubound.J()+1, ubound.K()+1 };
+        char_ptr = static_cast<char*>(static_cast<void*>(_tile_ubound_p)) + n * SIZE_TILE_UBOUND;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_ubound_h), SIZE_TILE_UBOUND);
+        
+
         
         real* CC_1_d = tileDesc_h->dataPtr();
         constexpr std::size_t offset_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * static_cast<std::size_t>(0);

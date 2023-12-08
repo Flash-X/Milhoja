@@ -2,7 +2,7 @@ import re
 
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
 )
 
 
@@ -140,6 +140,67 @@ def parse_lbound(lbound: str) -> list:
                     results[1] = results[1] + stitch + item[1]
     results = [item for item in results if item]
     return results
+
+# todo:: 
+#   * We have to force the calling code to replace any variables
+#     that are used in the lbound with their source name, and then replace
+#     the source names with the original variable name when the list is
+#     returned.
+#   * This parser does not handle scalar addition/mult/sub/div with metadata.
+#     and does not yet throw an error when encountering it.
+def parse_lbound_f(lbound: str) -> list:
+    keywords = {
+        TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+        TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
+    }
+
+    # just use python to throw out all numeric values because I'm bad at
+    # regular expressions.
+    words = re.findall(r'\b(?:[\w]+)\b', lbound)
+    words = [word for word in words if not word.isnumeric()]
+    for word in words:
+        if word not in keywords:
+            raise NotImplementedError(
+                f"{lbound} contained word not in {keywords}"
+            )
+
+    # find everything between a single set of parens to find math symbols.
+    regexr = r'\(([^\)]+)\)'
+    matches = re.findall(regexr, lbound)
+    math_sym_string = lbound
+    for match in matches:
+        math_sym_string.replace(match, "")
+    symbols = re.findall(r'[\+\-\/\*]', math_sym_string)
+
+    # Replace each potential bound keyword inside of the string with its parts
+    for idx,match in enumerate(matches):
+        for keyword in keywords:
+            if keyword in match:
+                matches[idx] = match.replace(
+                    keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
+                )
+
+    iterables = [match.split(',') for match in matches]
+    # todo:: check if all lists are the same length.
+    if not iterables:
+        raise RuntimeError(f"Nothing in lbound {lbound}.")
+
+    size = len(iterables[0])
+    if not all([len(item) == size for item in iterables]):
+        raise RuntimeError(f"Different lbound part sizes. {lbound}")
+
+    # combine all lbound parts into 1.
+    combined_bound = []
+    for idx, values in enumerate(list(zip(*iterables))):
+        combined_bound.append(values[0])
+        if symbols:
+            for i in range(1, len(values)):
+                symbol = symbols[i-1]
+                combined_bound[idx] += f'{symbol}{values[i]}'
+
+    # remove whitespace
+    combined_bound = [item.strip() for item in combined_bound]
+    return combined_bound
 
 
 def parse_extents(extents: str) -> list:

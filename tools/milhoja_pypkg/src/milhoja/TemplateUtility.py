@@ -14,6 +14,7 @@ from abc import abstractmethod
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
+from .TaskFunction import TaskFunction
 
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
@@ -73,6 +74,37 @@ class TemplateUtility():
 
     # C++ Index space is always 0.
     DEFAULT_INDEX_SPACE = 0
+
+    def __init__(self, tf_spec: TaskFunction):
+        """
+        Initializer for the base template utility class.
+        TemplateUtility needs a copy of tf_spec in order to handle lbounds
+        for any array.
+        """
+        self.tf_spec = tf_spec
+
+    # # todo:: This method can be combined with get_array_size.
+    # @staticmethod
+    # def get_initial_index(vars_in: list, vars_out: list) -> int:
+    #     """
+    #     Returns the initial index based on a given variable masking.
+    #     :param list vars_in: The variable masking for copying into the packet.
+    #     :param list vars_out: The variable masking for copying out.
+    #     :return: The size of the array given the variable masking.
+    #     :rtype: int
+    #     """
+    #     starting = maxsize
+    #     if not vars_in and not vars_out:
+    #         raise TypeError("No variable masking for array in tf_spec.")
+
+    #     starting_in = None
+    #     if vars_in:
+    #         starting_in = min(vars_in)
+    #         starting = starting_in
+
+    #     starting_
+    #     if vars_out:
+    #         ...
 
     @staticmethod
     def get_array_size(vars_in: list, vars_out: list) -> int:

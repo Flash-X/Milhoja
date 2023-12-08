@@ -61,6 +61,13 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
+GRID_DATA_LBOUNDS = {
+    "CENTER": "",
+    "FLUXX": "",
+    "FLUXY": "",
+    "FLUXZ": ""
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed
