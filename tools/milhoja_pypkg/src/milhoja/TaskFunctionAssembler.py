@@ -12,9 +12,7 @@ from .constants import (
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
     LBOUND_ARGUMENT,
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
     TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT,
@@ -487,27 +485,6 @@ class TaskFunctionAssembler(object):
                         tf_dummy_spec[tf_dummy]["hi"] = TILE_UBOUND_ARGUMENT
 
                 dummy_to_actuals[tf_dummy].append(arg_index)
-
-        # The Tile interface does not supply interior limits.  Rather, it
-        # supplies lo/hi and code generators must compose interior actual
-        # arguments from these.
-        #
-        # We leave the dummy-to-actuals mapping untouched so that code
-        # generators know what the correct source is.
-        if TILE_INTERIOR_ARGUMENT in tf_dummy_spec:
-            for arg_type in [TILE_LO_ARGUMENT, TILE_HI_ARGUMENT]:
-                if arg_type not in tf_dummy_spec:
-                    tf_dummy_spec[arg_type] = {"source": arg_type}
-                    raise NotImplementedError("No test case yet")
-            del tf_dummy_spec[TILE_INTERIOR_ARGUMENT]
-
-        # Similar for array bounds limits.
-        if TILE_ARRAY_BOUNDS_ARGUMENT in tf_dummy_spec:
-            for arg_type in [TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT]:
-                if arg_type not in tf_dummy_spec:
-                    tf_dummy_spec[arg_type] = {"source": arg_type}
-                    raise NotImplementedError("No test case yet")
-            del tf_dummy_spec[TILE_ARRAY_BOUNDS_ARGUMENT]
 
         return tf_dummy_spec, dummy_to_actuals
 

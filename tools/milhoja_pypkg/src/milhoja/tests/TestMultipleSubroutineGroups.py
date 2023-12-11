@@ -147,19 +147,11 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         # confirms correctness?
         result = self.__tf_spec.tile_metadata_arguments
         # tile_interior/_arrayBounds not included in TF arg list
-        self.assertEqual(10, len(result))
+        self.assertEqual(12, len(result))
 
         # ----- INCLUDED ONLY FROM FUNCTIONA
-        # Interior limits in argument list to fcnA only, but should not make it
-        # into TF argument list.  Rather the individual lo/hi should.
-        self.assertTrue(TILE_INTERIOR_ARGUMENT in self.__fcnA)
-        self.assertTrue(TILE_INTERIOR_ARGUMENT not in self.__fcnC)
-        self.assertTrue(TILE_INTERIOR_ARGUMENT not in result)
-        self.assertTrue(TILE_LO_ARGUMENT in result)
-        self.assertTrue(TILE_HI_ARGUMENT in result)
-
         singletonsA = {TILE_GRID_INDEX_ARGUMENT,
-                       TILE_LO_ARGUMENT}
+                       TILE_LO_ARGUMENT, TILE_INTERIOR_ARGUMENT}
         for key in singletonsA:
             self.assertTrue(key in result)
             # TF dummy variable name same as argument source
@@ -176,17 +168,8 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
             self.assertEqual(dummy, self.__fcnA[actual])
 
         # ----- INCLUDED ONLY FROM FUNCTIONC
-        # Array bounds limits in argument list to fcnC only, but should not
-        # make it into TF argument list.  Rather the individual lbound/ubound
-        # should.
-        self.assertTrue(TILE_ARRAY_BOUNDS_ARGUMENT not in self.__fcnA)
-        self.assertTrue(TILE_ARRAY_BOUNDS_ARGUMENT in self.__fcnC)
-        self.assertTrue(TILE_ARRAY_BOUNDS_ARGUMENT not in result)
-        self.assertTrue(TILE_LBOUND_ARGUMENT in result)
-        self.assertTrue(TILE_UBOUND_ARGUMENT in result)
-
         singletonsC = {TILE_LEVEL_ARGUMENT,
-                       TILE_LBOUND_ARGUMENT}
+                       TILE_LBOUND_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
         for key in singletonsC:
             self.assertTrue(key in result)
             # TF dummy variable name same as argument source
@@ -348,8 +331,6 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
         all_in_test = singletonsA.union(singletonsC)
         all_in_test = all_in_test.union(singletonsBoth)
         all_in_test = all_in_test.union(others)
-        all_in_test = all_in_test.union(set([TILE_INTERIOR_ARGUMENT]))
-        all_in_test = all_in_test.union(set([TILE_ARRAY_BOUNDS_ARGUMENT]))
         self.assertTrue(all_in_test == TILE_ARGUMENTS_ALL)
 
     def testGridDataArguments(self):
