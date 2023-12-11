@@ -12,8 +12,10 @@ from . import (
     SCRATCH_ARGUMENT,
     TILE_LO_ARGUMENT,
     TILE_HI_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT,
     TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT
+    TILE_UBOUND_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 
@@ -100,16 +102,25 @@ class FortranTemplateUtility(TemplateUtility):
         connectors[self._T_DESCRIPTOR] = []
         one_time_mdata = OrderedDict()
         bounds_data = {
-            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-            TILE_UBOUND_ARGUMENT
+            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+            TILE_ARRAY_BOUNDS_ARGUMENT
         }
 
         for item, data in tilemetadata.items():
             source = data['source']
-            source = source.replace('tile_', '')
+            short_source = source.replace('tile_', '')
             assoc_array = data.get("array", None)
             item_type = data['type']
-            size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
+
+            bound_size_modifier = ""
+            if source == TILE_INTERIOR_ARGUMENT or \
+            source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                bound_size_modifier = "2 * "
+
+            size_eq = \
+                f"{bound_size_modifier}MILHOJA_MDIM * sizeof({item_type})"
+
             lbound = []
 
             # then it's an lbound array, which means int type and the size of
@@ -160,13 +171,30 @@ class FortranTemplateUtility(TemplateUtility):
                 # indices are 1 based, so bound arrays need to adjust
                 # ..todo::
                 #       * This is not sufficient for lbound
-                fix_index = '+1' if data["source"] in bounds_data else ''
+                fix_index = '+1' if source in bounds_data else ''
                 info.dtype = self.FARRAY_MAPPING.get(info.dtype, info.dtype)
                 info.dtype = self.F_HOST_EQUIVALENT[info.dtype]
-                one_time_mdata[item] = data
-                construct_host = "[MILHOJA_MDIM] = { " \
-                    f"{source}.I(){fix_index}, {source}.J(){fix_index}, " + \
-                    f"{source}.K(){fix_index} }}"
+
+                # need to check for tile_interior and tile_arrayBounds args
+                # can't assume that lo and hi already exist + each var does
+                # not have knowledge of the other
+                print(source)
+                if source == TILE_INTERIOR_ARGUMENT:
+                    construct_host = "[MILHOJA_MDIM * 2] = {" \
+                        "tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, " \
+                        "tileDesc_h->lo().J()+1,tileDesc_h->hi().J()+1, " \
+                        "tileDesc_h->lo().K()+1,tileDesc_h->hi().K()+1 }"
+                elif source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                    construct_host = "[MILHOJA_MDIM * 2] = {" \
+                        "tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, "\
+                        "tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, "\
+                        "tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 }"
+                else:
+                    one_time_mdata[item] = data
+                    construct_host = "[MILHOJA_MDIM] = { " \
+                        f"{short_source}.I(){fix_index}, " \
+                        f"{short_source}.J(){fix_index}, " \
+                        f"{short_source}.K(){fix_index} }}"
             else:
                 info.dtype = self.F_HOST_EQUIVALENT[info.dtype]
                 # intvect i,j,k start at 0 so we need to add 1 to the
@@ -183,7 +211,6 @@ class FortranTemplateUtility(TemplateUtility):
                 connectors, construct_host, "", info
             )
 
-        print(one_time_mdata)
         for item,data in one_time_mdata.items():
             name = item.replace("tile_", "")
             src = data["source"]

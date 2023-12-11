@@ -29,10 +29,12 @@ _nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
+_tile_interior_d{nullptr},
 _tile_lbound_d{nullptr},
 _lbdd_CC_1_d{nullptr},
 _lbdd_scratch_hydro_op1_auxC_d{nullptr},
 _tile_ubound_d{nullptr},
+_tile_arrayBounds_d{nullptr},
 _CC_1_d{nullptr},
 _CC_1_p{nullptr},
 _scratch_hydro_op1_auxC_d{nullptr},
@@ -106,7 +108,15 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_LBOUND + SIZE_LBDD_CC_1 + SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC + SIZE_TILE_UBOUND
+    SIZE_TILE_DELTAS
+    + SIZE_TILE_LO
+    + SIZE_TILE_HI
+    + SIZE_TILE_INTERIOR
+    + SIZE_TILE_LBOUND
+    + SIZE_LBDD_CC_1
+    + SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC
+    + SIZE_TILE_UBOUND
+    + SIZE_TILE_ARRAYBOUNDS
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -195,6 +205,11 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     ptr_p+=_nTiles_h * SIZE_TILE_HI;
     ptr_d+=_nTiles_h * SIZE_TILE_HI;
 
+    int* _tile_interior_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _tile_interior_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_TILE_INTERIOR;
+    ptr_d+=_nTiles_h * SIZE_TILE_INTERIOR;
+
     int* _tile_lbound_p = static_cast<int*>( static_cast<void*>(ptr_p) );
     _tile_lbound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LBOUND;
@@ -214,6 +229,11 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     _tile_ubound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_UBOUND;
     ptr_d+=_nTiles_h * SIZE_TILE_UBOUND;
+
+    int* _tile_arrayBounds_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _tile_arrayBounds_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_TILE_ARRAYBOUNDS;
+    ptr_d+=_nTiles_h * SIZE_TILE_ARRAYBOUNDS;
 
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -258,6 +278,10 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_hi_p)) + n * SIZE_TILE_HI;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_hi_h), SIZE_TILE_HI);
 
+        int _tile_interior_h[MILHOJA_MDIM * 2] = {tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, tileDesc_h->lo().J()+1,tileDesc_h->hi().J()+1, tileDesc_h->lo().K()+1,tileDesc_h->hi().K()+1 };
+        char_ptr = static_cast<char*>(static_cast<void*>(_tile_interior_p)) + n * SIZE_TILE_INTERIOR;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_interior_h), SIZE_TILE_INTERIOR);
+
         int _tile_lbound_h[MILHOJA_MDIM] = { lbound.I()+1, lbound.J()+1, lbound.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
@@ -273,6 +297,10 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         int _tile_ubound_h[MILHOJA_MDIM] = { ubound.I()+1, ubound.J()+1, ubound.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_ubound_p)) + n * SIZE_TILE_UBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_ubound_h), SIZE_TILE_UBOUND);
+
+        int _tile_arrayBounds_h[MILHOJA_MDIM * 2] = {tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 };
+        char_ptr = static_cast<char*>(static_cast<void*>(_tile_arrayBounds_p)) + n * SIZE_TILE_ARRAYBOUNDS;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_arrayBounds_h), SIZE_TILE_ARRAYBOUNDS);
         
 
         
