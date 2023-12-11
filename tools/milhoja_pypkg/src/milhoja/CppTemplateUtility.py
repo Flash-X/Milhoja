@@ -3,6 +3,10 @@ from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
 from .TaskFunction import TaskFunction
 from .parse_helpers import parse_lbound
+from . import (
+    TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT
+)
 
 
 class CppTemplateUtility(TemplateUtility):
@@ -71,6 +75,10 @@ class CppTemplateUtility(TemplateUtility):
 
         for item, data in tilemetadata.items():
             source = data['source']
+            if source == TILE_INTERIOR_ARGUMENT or \
+            source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                raise NotImplementedError("Interior not implemented for C++")
+
             assoc_array = data.get("array", None)
             if assoc_array:
                 raise NotImplementedError("Lbound not implemented for C++.")

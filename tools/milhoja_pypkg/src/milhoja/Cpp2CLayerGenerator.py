@@ -1,5 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
+from copy import deepcopy
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
@@ -8,10 +9,22 @@ from milhoja import LOG_LEVEL_MAX
 from milhoja import THREAD_INDEX_VAR_NAME
 from milhoja import TaskFunction
 from .LogicError import LogicError
+from . import (
+    EXTERNAL_ARGUMENT,
+    TILE_LO_ARGUMENT,
+    TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT
+)
 
 _ARG_LIST_KEY = "c2f_argument_list"
-_INST_ARGS_KEY = "instance_args"
+_INSTANCE_ARGS = "instance_args"
 _HOST_MEMBERS_KEY = "get_host_members"
+_CONSTRUCT_ARGS = "host_members"
+_DEVICE_MEMBERS = "get_device_members"
+_C2F_ARGS = "c2f_arguments"
 
 
 class Cpp2CLayerGenerator(AbcCodeGenerator):
@@ -22,7 +35,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
     def __init__(
         self,
-        tf_spec,
+        tf_spec: TaskFunction,
         outer,
         helper,
         indent,
@@ -130,7 +143,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         # need to insert nTiles host manually
         self._connectors[_HOST_MEMBERS_KEY] = [
             'const int queue1_h = packet_h->asynchronousQueue();\n',
-            f'const {nTiles_type} _nTiles_h = packet_h->_nTiles_h;\n'
+            'const int _nTiles_h = packet_h->_nTiles_h;\n'
         ]
         # insert the number of extra streams as a connector
         n_ex_streams = self._n_extra_streams
@@ -178,55 +191,134 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 )
 
         # generate DataPacketMemberVars instance for each item in TFAL.
-        dummy_args = ["nTiles"] + self._tf_spec.dummy_arguments
-        dpinfo_order = ([
-            DataPacketMemberVars(item, '', '', False)
-            for item in dummy_args
-        ])
-        # insert connectors into dictionary
-        self._insert_connector_arguments(dpinfo_order)
-        # instance args only found in general section
-        self._connectors[_INST_ARGS_KEY] = [
-            (key, f'{data["type"]}')
-            for key, data in self._externals.items() if key != "nTiles"
-        ] + [('packet', 'void**')]
+        dummy_args = deepcopy(self._tf_spec.dummy_arguments)
+        adjusted_args = deepcopy(self._tf_spec.dummy_arguments)
+
+        adjusted_args = ["nTiles"] + adjusted_args
 
         # insert all connectors into helper template file
         with open(self._helper_template, 'w') as helper:
-            helper.writelines(
-                ['/* _connector:get_host_members */\n'] +
-                self._connectors[_HOST_MEMBERS_KEY]
-            )
+            spec_func = self._tf_spec.argument_specification
+            n_ex_streams = self._n_extra_streams
+            # write c2f dummy arg list:
             helper.writelines(
                 ['\n/* _connector:c2f_argument_list */\n'] +
-                [',\n'.join([f"{item[1]} {item[0]}"
-                             for item in self._connectors[_ARG_LIST_KEY]])] +
+                ['void* packet_h,\n'] +
+                ['const int queue1_h,\n'] +
+                [f'const int queue{i}_h,\n' for i in range(2, n_ex_streams+2)] +
+                ['const int _nTiles_h,\n'] +
+                [f',\n'.join(f'const void* _{item}_d' for item in adjusted_args)] +
+                ['\n']
+            )
 
-                ['\n\n/* _connector:c2f_arguments */\n'] +
-                [',\n'.join([f"{item[0]}"
-                             for item in self._connectors[_ARG_LIST_KEY]])] +
-
-                ['\n\n/* _connector:get_device_members */\n'] +
+            helper.writelines(
+                ['/* _connector:get_host_members */\n'] +
                 [
-                    ''.join([
-                        f'void* {item.device} = static_cast<void*>( '
-                        f'packet_h->{item.device} );\n'
-                        for item in dpinfo_order
-                    ])
-                ] +
-
-                ['\n/* _connector:instance_args */\n'] +
-                [','.join([f'{item[1]} {item[0]}'
-                           for item in self._connectors[_INST_ARGS_KEY]])] +
-
-                ['\n\n/* _connector:host_members */\n'] +
+                    'const int queue1_h = packet_h->asynchronousQueue();\n',
+                    'const int _nTiles_h = packet_h->_nTiles_h;\n'
+                ] + 
                 [
-                    ','.join([
-                        item for item in self._externals.keys()
-                        if item != 'nTiles'
-                    ])
+                    f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
+                    f'if (queue{i}_h < 0)\n'
+                    f'\tthrow std::overflow_error("[{self._tf_spec.name}_cpp2c] '
+                    'Potential overflow error when accessing async queue id.");\n'
+                    for i in range(2, n_ex_streams+2)
                 ]
             )
+
+            self._connectors[_INSTANCE_ARGS] = []
+            self._connectors[_CONSTRUCT_ARGS] = []
+            self._connectors[_DEVICE_MEMBERS] = []
+            self._connectors[_C2F_ARGS] = []
+
+            self._connectors[_C2F_ARGS].extend(
+                ['packet_h', 'queue1_h'] +
+                [f'queue{i}_h' for i in range(2, n_ex_streams+2)] +
+                ['_nTiles_h']
+            )
+
+            for var in adjusted_args:
+                spec = spec_func(var) if var != "nTiles" else None
+                # We just need the naming scheme.
+                var_info = DataPacketMemberVars(var, "", "", False)
+                self._connectors[_DEVICE_MEMBERS].append(
+                    f"void* {var_info.device} = static_cast<void*>"
+                    f"( packet_h->{var_info.device} )"
+                )
+
+                self._connectors[_C2F_ARGS].append(var_info.device)
+
+                if spec:
+                    if spec["source"] == EXTERNAL_ARGUMENT:
+                        self._connectors[_CONSTRUCT_ARGS].append(
+                            f"{var}"
+                        )
+                        self._connectors[_INSTANCE_ARGS].append(
+                            f"{spec['type']} {var}"
+                        )
+
+            self._connectors[_INSTANCE_ARGS].append("void** packet")
+
+            # insert instantiation function arguments.
+            helper.write(f'/* _connector:{_INSTANCE_ARGS} */\n')
+            helper.write(',\n'.join(self._connectors[_INSTANCE_ARGS]) + '\n')
+
+            # insert constructor arguments
+            helper.write(f'/* _connector:{_CONSTRUCT_ARGS} */\n')
+            helper.write(f',\n'.join(self._connectors[_CONSTRUCT_ARGS]) + '\n')
+
+            # write code to get device members
+            helper.write(f'/* _connector:{_DEVICE_MEMBERS} */\n')
+            helper.write(';\n'.join(self._connectors[_DEVICE_MEMBERS]) + ';\n')
+
+            helper.write(f'/* _connector:{_C2F_ARGS} */\n')
+            helper.write(',\n'.join(self._connectors[_C2F_ARGS]) + '\n')
+
+            # helper.write('/* _link:instance_args */\n')
+            # externals = 
+            # for external in adjusted_args
+            # helper.writelines(
+            #     [
+            #         f',\n'.join(f'const void* {item}')
+            #         for item in adjusted_args
+            #         if spec_func(item)["source"] == EXTERNAL_ARGUMENT
+            #     ]
+            # )
+
+            # helper.writelines(
+            #     ['/* _connector:get_host_members */\n'] +
+            #     self._connectors[_HOST_MEMBERS_KEY]
+            # )
+            # helper.writelines(
+            #     ['\n/* _connector:c2f_argument_list */\n'] +
+            #     [',\n'.join([f"{item[1]} {item[0]}"
+            #                  for item in self._connectors[_ARG_LIST_KEY]])] +
+
+            #     ['\n\n/* _connector:c2f_arguments */\n'] +
+            #     [',\n'.join([f"{item[0]}"
+            #                  for item in self._connectors[_ARG_LIST_KEY]])] +
+
+            #     ['\n\n/* _connector:get_device_members */\n'] +
+            #     [
+            #         ''.join([
+            #             f'void* {item.device} = static_cast<void*>( '
+            #             f'packet_h->{item.device} );\n'
+            #             for item in dpinfo_order
+            #         ])
+            #     ] +
+
+            #     ['\n/* _connector:instance_args */\n'] +
+            #     [','.join([f'{item[1]} {item[0]}'
+            #                for item in self._connectors[_INST_ARGS_KEY]])] +
+
+            #     ['\n\n/* _connector:host_members */\n'] +
+            #     [
+            #         ','.join([
+            #             item for item in self._externals.keys()
+            #             if item != 'nTiles'
+            #         ])
+            #     ]
+            # )
 
     def warn(self, msg):
         self._warn(msg)

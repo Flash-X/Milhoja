@@ -29,7 +29,7 @@ extern "C" {
     const void* _tile_interior_d,
     const void* _tile_lbound_d,
     const void* _tile_ubound_d,
-    const void* _tile_arrayBound,
+    const void* _tile_arrayBounds_d,
     const void* _lbdd_CC_1_d,
     const void* _CC_1_d,
     const void* _lbdd_scratch_hydro_op1_auxC_d,
