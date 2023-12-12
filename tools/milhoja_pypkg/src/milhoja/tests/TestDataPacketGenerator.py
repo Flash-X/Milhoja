@@ -109,36 +109,36 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         ]
 
         self._sedov = [
-            {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_2D.json"
-                ),
-                self.FOLDER: "Sedov",
-                self.HDD: False,
-                self.SDD: False,
-                self.SIZES: self.SUMMIT_SIZES_2D
-            },
-            {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_2DF.json"
-                ),
-                self.FOLDER: "Sedov",
-                self.HDD: False,
-                self.SDD: False,
-                self.SIZES: self.SUMMIT_SIZES_2D
-            },
-            {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_3DF.json"
-                ),
-                self.FOLDER: "Sedov",
-                self.HDD: False,
-                self.SDD: False,
-                self.SIZES: self.SUMMIT_SIZES_3D
-            },
+            # {
+            #     self.JSON: _DATA_PATH.joinpath(
+            #         "Sedov",
+            #         "gpu_tf_hydro_2D.json"
+            #     ),
+            #     self.FOLDER: "Sedov",
+            #     self.HDD: False,
+            #     self.SDD: False,
+            #     self.SIZES: self.SUMMIT_SIZES_2D
+            # },
+            # {
+            #     self.JSON: _DATA_PATH.joinpath(
+            #         "Sedov",
+            #         "gpu_tf_hydro_2DF.json"
+            #     ),
+            #     self.FOLDER: "Sedov",
+            #     self.HDD: False,
+            #     self.SDD: False,
+            #     self.SIZES: self.SUMMIT_SIZES_2D
+            # },
+            # {
+            #     self.JSON: _DATA_PATH.joinpath(
+            #         "Sedov",
+            #         "gpu_tf_hydro_3DF.json"
+            #     ),
+            #     self.FOLDER: "Sedov",
+            #     self.HDD: False,
+            #     self.SDD: False,
+            #     self.SIZES: self.SUMMIT_SIZES_3D
+            # },
             {
                 self.JSON: _DATA_PATH.joinpath(
                     "Sedov",

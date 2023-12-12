@@ -162,7 +162,8 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             use_shape = f", shape=[{','.join(extents)}]"
 
         info = C2FInfo(
-            name=arg, ctype='type(C_PTR)', ftype=self.TYPE_MAPPING[dtype],
+            name=f'{arg}_d', ctype='type(C_PTR)',
+            ftype=self.TYPE_MAPPING[dtype] + ", pointer",
             shape=extents,
             conversion_eq='CALL C_F_POINTER({0}, {1}{2})'
         )
@@ -174,22 +175,67 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         return info
 
     def _get_metadata_info(self, arg, spec):
-        ...
+        assoc_array = spec.get('array', None)
+        dtype = self.TYPE_MAPPING.get(spec['type'], spec['type'])
+        shape = []
+        info = C2FInfo(
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            shape=shape,
+            conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
+        )
+
+        if assoc_array:
+            array_spec = self._tf_spec.argument_specification(assoc_array)
+            # add 1 for var masking
+            grid_adjust = 1 if array_spec['source'] == GRID_DATA_ARGUMENT \
+                else 0
+            shape = [str(len(array_spec['extents']) + grid_adjust)] + \
+                ['F_nTiles_h']
+            info.shape = shape
+            info.ftype = 'integer, pointer'
+            info.conversion_eq = info.conversion_eq.format(
+                info.cname, info.fname, ','.join(info.shape)
+            )
+
+        else:
+            if arg == TILE_INTERIOR_ARGUMENT or \
+            arg == TILE_ARRAY_BOUNDS_ARGUMENT:
+                info.shape=['2', 'MILHOJA_MDIM', 'F_nTiles_h']
+            else:
+                info.shape=['MILHOJA_MDIM', 'F_nTiles_h']
+            info.conversion_eq = info.conversion_eq.format(
+                info.cname, info.fname, ', '.join(info.shape)
+            )
+        return info
 
     def _get_grid_info(self, arg, spec):
-        ...
+        dtype = spec['type']
+        dtype = self.TYPE_MAPPING.get(dtype, dtype)
+        largest = TemplateUtility.get_array_size(
+            spec.get('variables_in', None),
+            spec.get('variables_out', None)
+        )
+        info = C2FInfo(
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            shape=spec['extents'] + [str(largest+1), 'F_nTiles_h'],
+            conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
+        )
+        info.conversion_eq = info.conversion_eq.format(
+            info.cname, info.fname, ', '.join(info.shape)
+        )
+        return info
 
     def _get_scratch_info(self, arg, spec):
         dtype = spec['type']
         dtype = self.TYPE_MAPPING.get(dtype, dtype)
         info = C2FInfo(
-            name=arg, ctype="type(C_PTR)", ftype=dtype,
-            shape=parse_extents(spec['extents']),
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            shape=spec['extents'] + ["F_nTiles_h"],
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
         info.conversion_eq = info.conversion_eq.format(
             info.cname, info.fname,
-            ','.join(info.shape + ["F_nTiles_h"])
+            ', '.join(info.shape)
         )
         return info
 
@@ -233,35 +279,40 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             nTiles.conversion_eq = nTiles.conversion_eq.format(
                 nTiles.fname, nTiles.cname
             )
+            device_nTiles = C2FInfo(
+                name='nTiles_d', ctype='type(C_PTR)', ftype='integer, pointer',
+                shape=[], conversion_eq="CALL C_F_POINTER({0}, {1})"
+            )
+            device_nTiles.conversion_eq = device_nTiles.conversion_eq.format(
+                device_nTiles.cname, device_nTiles.fname
+            )
 
             c2f_arg_info.append(packet)
             real_args.append(packet)
             c2f_arg_info.extend(queue_info)
             real_args.extend(queue_info)
             c2f_arg_info.append(nTiles)
+            c2f_arg_info.append(device_nTiles)
+            real_args.append(device_nTiles)
 
             # move through every arg in the argument list.
-            for variable in ['nTiles'] + self._tf_spec.dummy_arguments:
-                try:
-                    spec = self._tf_spec.argument_specification(variable)
-                    source = spec["source"]
-                    info = None
+            for variable in self._tf_spec.dummy_arguments:
+                spec = self._tf_spec.argument_specification(variable)
+                source = spec["source"]
+                info = None
 
-                    if source == EXTERNAL_ARGUMENT:
-                        info = self._get_external_info(variable, spec)
-                    elif source in TILE_ARGUMENTS_ALL:
-                        info = self._get_metadata_info(variable, spec)
-                    elif source == GRID_DATA_ARGUMENT:
-                        ...
-                    elif source == SCRATCH_ARGUMENT:
-                        info = self._get_scratch_info(variable, spec)
+                if source == EXTERNAL_ARGUMENT:
+                    info = self._get_external_info(variable, spec)
+                elif source in TILE_ARGUMENTS_ALL:
+                    info = self._get_metadata_info(variable, spec)
+                elif source == GRID_DATA_ARGUMENT:
+                    info = self._get_grid_info(variable, spec)
+                elif source == SCRATCH_ARGUMENT:
+                    info = self._get_scratch_info(variable, spec)
 
-                    if info:
-                        c2f_arg_info.append(info)
-                        real_args.append(info)
-
-                except: # nTiles or missing
-                    print(variable + " = bad")
+                if info:
+                    c2f_arg_info.append(info)
+                    real_args.append(info)
 
             # # WRITE BOILERPLATE
             fp.writelines([
@@ -316,132 +367,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             fp.write(f'{self.INDENT}CALL {self._tf_spec.name}_Fortran ( &\n')
             fp.write(
                 (self.INDENT * 2) + 
-                f', &\n{self.INDENT * 2}'.join([info.fname if info.fname else info.cname for info in real_args ]) +
+                f', &\n{self.INDENT * 2}'.join([info.fname if info.ftype != '' else info.cname for info in real_args ]) +
                 f' &\n{self.INDENT})'
             )
-
-
-            # # get argument order and insert nTiles
-            # arg_order = ["nTiles"] + self._tf_spec.dummy_arguments
-            # # ..todo:: this should probably be renamed to device pointers
-            # gpu_pointers = {
-            #     'nTiles': C2FInfo('integer', 'type(C_PTR)', '', [])
-            # }
-
-            # # Load all items from general.
-            # for key, data in self._externals.items():
-            #     ftype = data_mapping[data["type"].lower()]
-            #     gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
-
-            # # load all items from tile_metadata.
-            # for key, data in self._tile_metadata.items():
-            #     ftype = FortranTemplateUtility \
-            #         .F_HOST_EQUIVALENT[
-            #             TemplateUtility.SOURCE_DATATYPE[data["source"]]
-            #         ].lower()
-            #     ftype = data_mapping[ftype]
-            #     gpu_pointers[key] = C2FInfo(
-            #         ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h']
-            #     )
-
-            # # need to create an extents set to set the sizes for the
-            # # fortran arrays.
-            # extents_set = {
-            #     'nTiles': C2FInfo('integer', 'integer(MILHOJA_INT)', '', [])
-            # }
-            # # load all items from array sections, except scratch.
-            # for section in [self._tile_in, self._tile_in_out, self._tile_out]:
-            #     for item, data in section.items():
-            #         ftype = data["type"].lower()
-            #         ftype = data_mapping[ftype]
-            #         shape = ['F_nTiles_h']
-            #         var_in = data.get("variables_in", None)
-            #         var_out = data.get("variables_out", None)
-
-            #         # TODO: Fortran index space?1
-            #         array_size = TemplateUtility.get_array_size(
-            #             var_in, var_out
-            #         )
-            #         index_space = TemplateUtility.DEFAULT_INDEX_SPACE
-
-            #         shape.insert(
-            #             0, f'{str(array_size)} + 1 - {str(index_space)}'
-            #         )
-
-            #         gpu_pointers[item] = C2FInfo(
-            #             ftype, 'type(C_PTR)', '', data["extents"] + shape
-            #         )
-
-            # # finally load scratch data
-            # for item, data in self._scratch.items():
-            #     ftype = data['type'].lower()
-            #     if ftype.endswith('int'):
-            #         ftype = 'integer'
-            #         self.log_and_abort(
-            #             "No test cases for integer in scratch variables.",
-            #             NotImplementedError()
-            #         )
-            #     gpu_pointers[item] = C2FInfo(
-            #         ftype, 'type(C_PTR)', '',
-            #         data["extents"] + ['F_nTiles_h']
-            #     )
-
-            # host_pointers.update(extents_set)
-            
-
-            # # write c pointer & host fortran declarations
-            # fp.writelines([
-            #     f'{self.INDENT}{data.ctype}, intent(IN), value :: C_{item}_h\n'
-            #     for item, data in host_pointers.items() if data.ctype] +
-            #     ['\n']
-            # )
-            # fp.writelines([
-            #     f'{self.INDENT}{data.ctype}, intent(IN), value :: C_{item}_d\n'
-            #     for item, data in gpu_pointers.items() if data.ctype] +
-            #     ['\n']
-            # )
-            # fp.writelines([
-            #     (
-            #         f'{self.INDENT}{data.ftype}'
-            #         f'{"" if not data.kind else f"(kind={ data.kind })"}'
-            #         f':: F_{item}_h\n'
-            #     )
-            #     for item, data in host_pointers.items() if data.ftype] +
-            #     ['\n']
-            # )
-
-            # # write Fortran pointer declarations
-            # fp.writelines([
-            #     f"""{self.INDENT}{data.ftype}, pointer :: F_{item}_d{''
-            #         if not data.shape else '(' + ','.join(
-            #             ':' for _ in range(0, len(data.shape))
-            #         ) + ')'}\n"""
-            #     for item, data in gpu_pointers.items()] +
-            #     ['\n']
-            # )
-
-            # fp.writelines([
-            #     (
-            #         f"{self.INDENT}F_{item}_h = INT(C_{item}_h"
-            #         f"{f', kind={data.kind}' if data.kind else ''})\n"
-            #     )
-            #     for item, data in host_pointers.items() if data.ftype] +
-            #     ['\n']
-            # )
-
-            # # remove all items in extents set so they don't get
-            # # passed to the task function
-            # for item in extents_set:
-            #     host_pointers.pop(item)
-
-            # c2f_pointers = [
-            #     f"""{self.INDENT}CALL C_F_POINTER(C_{item}_d, F_{item}_d{
-            #         f', shape=[{", ".join(ext for ext in data.shape)}]'
-            #         if data.shape else ''
-            #     })\n"""
-            #     for item, data in gpu_pointers.items() if data.ftype
-            # ]
-            # fp.writelines(c2f_pointers + ['\n'])
 
             fp.write(f'\nend subroutine {self._tf_spec.name}_C2F')
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
