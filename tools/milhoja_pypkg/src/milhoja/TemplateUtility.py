@@ -87,27 +87,38 @@ class TemplateUtility():
         self.tf_spec = tf_spec
 
     # # todo:: This method can be combined with get_array_size.
-    # @staticmethod
-    # def get_initial_index(vars_in: list, vars_out: list) -> int:
-    #     """
-    #     Returns the initial index based on a given variable masking.
-    #     :param list vars_in: The variable masking for copying into the packet.
-    #     :param list vars_out: The variable masking for copying out.
-    #     :return: The size of the array given the variable masking.
-    #     :rtype: int
-    #     """
-    #     starting = maxsize
-    #     if not vars_in and not vars_out:
-    #         raise TypeError("No variable masking for array in tf_spec.")
+    @staticmethod
+    def get_initial_index(vars_in: list, vars_out: list) -> int:
+        """
+        Returns the initial index based on a given variable masking.
+        :param list vars_in: The variable masking for copying into the packet.
+        :param list vars_out: The variable masking for copying out.
+        :return: The size of the array given the variable masking.
+        :rtype: int
+        """
+        starting = maxsize
+        if not vars_in and not vars_out:
+            raise TypeError("No variable masking for array in tf_spec.")
 
-    #     starting_in = None
-    #     if vars_in:
-    #         starting_in = min(vars_in)
-    #         starting = starting_in
+        starting_in = None
+        if vars_in:
+            starting_in = min(vars_in)
+            starting = starting_in
 
-    #     starting_
-    #     if vars_out:
-    #         ...
+        starting_out = None
+        if vars_out:
+            starting_out = min(vars_out)
+            starting = starting_out
+
+        if starting_in and starting_out:
+            assert starting_in
+            assert starting_out
+            starting = min(starting_in, starting_out)
+
+        if starting == maxsize:
+            raise LogicError("Starting value for array is too large.")
+
+        return starting
 
     @staticmethod
     def get_array_size(vars_in: list, vars_out: list) -> int:
@@ -176,7 +187,7 @@ class TemplateUtility():
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
-            if var_data["extents"]:
+            if var_data["extents"] and var_data["extents"] != "()":
                 size_equation = \
                     f'{size_equation} * {" * ".join(var_data["extents"])}'
                 raise NotImplementedError(

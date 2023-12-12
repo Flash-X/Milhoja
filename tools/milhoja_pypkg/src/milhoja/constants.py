@@ -62,10 +62,10 @@ TILE_ARGUMENTS_ALL = {
 }
 
 GRID_DATA_LBOUNDS = {
-    "CENTER": "",
-    "FLUXX": "",
-    "FLUXY": "",
-    "FLUXZ": ""
+    "CENTER": "(tile_lbound, {0})", # where 0 is the number of unks
+    "FLUXX": "(tile_lo, 1)", # number of fluxes starts at 1
+    "FLUXY": "(tile_lo, 1)",
+    "FLUXZ": "(tile_lo, 1)"
 }
 
 # Task functions can include subroutines that take as an actual argument

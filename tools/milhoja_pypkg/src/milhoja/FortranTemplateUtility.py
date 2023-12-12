@@ -15,7 +15,8 @@ from . import (
     TILE_INTERIOR_ARGUMENT,
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT
+    TILE_ARRAY_BOUNDS_ARGUMENT,
+    GRID_DATA_LBOUNDS
 )
 
 
@@ -134,7 +135,17 @@ class FortranTemplateUtility(TemplateUtility):
                         "Lbound for external arrays not implemented."
                     )
                 elif source == GRID_DATA_ARGUMENT:
-                    lbound = "(tile_lbound, 1)"
+                    struct = array_spec["structure_index"][0]
+                    lbound = None
+                    if struct.lower() == "center":
+                        # get starting array value
+                        vars_in = array_spec.get('variables_in', None)
+                        vars_out = array_spec.get('variables_out', None)
+                        init = self.get_initial_index(vars_in, vars_out)
+                        lbound = \
+                            GRID_DATA_LBOUNDS[struct.upper()].format(init + 1)
+                    else:
+                        lbound = GRID_DATA_LBOUNDS[struct.upper()]
                     lbound = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
                     one_time_mdata[TILE_LBOUND_ARGUMENT] = \

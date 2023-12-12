@@ -11,8 +11,12 @@ C_nTiles_h, &
 C_nTiles_d, &
 C_external_hydro_op1_dt_d, &
 C_tile_deltas_d, &
-C_tile_interior, &
-C_tile_arrayBound, &
+C_tile_lo_d, &
+C_tile_hi_d, &
+C_tile_interior_d, &
+C_tile_lbound_d, &
+C_tile_ubound_d, &
+C_tile_arrayBounds_d, &
 C_lbdd_CC_1_d, &
 C_CC_1_d, &
 C_lbdd_scratch_hydro_op1_auxC_d, &
@@ -35,8 +39,12 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     type(C_PTR), intent(IN), value :: C_nTiles_d
     type(C_PTR), intent(IN), value :: C_external_hydro_op1_dt_d
     type(C_PTR), intent(IN), value :: C_tile_deltas_d
-    type(C_PTR), intent(IN), value :: C_tile_interior
-    type(C_PTR), intent(IN), value :: C_tile_arrayBound
+    type(C_PTR), intent(IN), value :: C_tile_lo_d
+    type(C_PTR), intent(IN), value :: C_tile_hi_d
+    type(C_PTR), intent(IN), value :: C_tile_interior_d
+    type(C_PTR), intent(IN), value :: C_tile_lbound_d
+    type(C_PTR), intent(IN), value :: C_tile_ubound_d
+    type(C_PTR), intent(IN), value :: C_tile_arrayBounds_d
     type(C_PTR), intent(IN), value :: C_lbdd_CC_1_d
     type(C_PTR), intent(IN), value :: C_CC_1_d
     type(C_PTR), intent(IN), value :: C_lbdd_scratch_hydro_op1_auxC_d
@@ -53,8 +61,12 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     integer, pointer :: F_nTiles_d
     real, pointer :: F_external_hydro_op1_dt_d
     real, pointer :: F_tile_deltas_d(:,:)
-    integer, pointer :: F_tile_interior(:,:,:)
-    integer, pointer :: F_tile_arrayBound(:,:,:)
+    integer, pointer :: F_tile_lbound_d(:,:)
+    integer, pointer :: F_tile_ubound_d(:,:)
+    integer, pointer :: F_tile_interior_d(:,:,:)
+    integer, pointer :: F_tile_lbound_d(:,:)
+    integer, pointer :: F_tile_ubound_d(:,:)
+    integer, pointer :: F_tile_arrayBounds_d(:,:,:)
     real, pointer :: F_lbdd_CC_1_d(:,:)
     real, pointer :: F_CC_1_d(:,:,:,:,:)
     real, pointer :: F_lbdd_scratch_hydro_op1_auxC_d(:,:)
@@ -71,8 +83,12 @@ C_scratch_hydro_op1_flZ_d) bind(c)
     CALL C_F_POINTER(C_nTiles_d, F_nTiles_d)
     CALL C_F_POINTER(C_external_hydro_op1_dt_d, F_external_hydro_op1_dt_d)
     CALL C_F_POINTER(C_tile_deltas_d, F_tile_deltas_d, shape=[MILHOJA_MDIM, F_nTiles_h])
-    CALL C_F_POINTER(C_tile_interior, F_tile_interior, shape=[2, MILHOJA_MDIM, F_nTiles_h])
-    CALL C_F_POINTER(C_tile_arrayBound, F_tile_arrayBound, shape=[2, MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_lo_d, F_tile_lo_d, shape=[MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_hi_d, F_tile_hi_d, shape=[MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_interior_d, F_tile_interior_d, shape=[2, MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_lbound_d, F_tile_lbound_d, shape=[MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_ubound_d, F_tile_ubound_d, shape=[MILHOJA_MDIM, F_nTiles_h])
+    CALL C_F_POINTER(C_tile_arrayBounds_d, F_tile_arrayBounds_d, shape=[2, MILHOJA_MDIM, F_nTiles_h])
     CALL C_F_POINTER(C_lbdd_CC_1_d, F_lbdd_CC_1_d, shape=[MILHOJA_MDIM, F_nTiles_h])
     CALL C_F_POINTER(C_CC_1_d, F_CC_1_d, shape=[16 + 2 * 1 * MILHOJA_K1D, 16 + 2 * 1 * MILHOJA_K2D, 16 + 2 * 1 * MILHOJA_K3D, 8 + 1 - 0, F_nTiles_h])
     CALL C_F_POINTER(C_lbdd_scratch_hydro_op1_auxC_d, F_lbdd_scratch_hydro_op1_auxC_d, shape=[MILHOJA_MDIM, F_nTiles_h])
@@ -88,8 +104,12 @@ C_scratch_hydro_op1_flZ_d) bind(c)
         F_nTiles_d, &
         F_external_hydro_op1_dt_d, &
         F_tile_deltas_d, &
-        F_tile_interior, &
-        F_tile_arrayBound, &
+        F_tile_lo_d, &
+        F_tile_hi_d, &
+        F_tile_interior_d, &
+        F_tile_lbound_d, &
+        F_tile_ubound_d, &
+        F_tile_arrayBounds_d, &
         F_lbdd_CC_1_d, &
         F_CC_1_d, &
         F_lbdd_scratch_hydro_op1_auxC_d, &

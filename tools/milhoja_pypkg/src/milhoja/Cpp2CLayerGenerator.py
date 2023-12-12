@@ -125,45 +125,6 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 '/* _link:cpp2c */'
             ])
 
-    def _insert_connector_arguments(self, dpinfo_order: list):
-        """
-        Inserts various connector arguments into the connectors dictionary.
-
-        :param dict data: The dictionary containing the data packet JSON data.
-        :param dict connectors: The connectors dictionary to write to
-                                containing all cgkit connectors.
-        :param list dpinfo_order: A list of DataPacketMemberVars objects that
-                                  use all of the items in the
-                                  task_function_argument_list.
-        """
-        nTiles_type = self._externals["nTiles"]["type"]
-
-        # initialize the boilerplate values for host members.
-        # one queue always exists in the data packet
-        # need to insert nTiles host manually
-        self._connectors[_HOST_MEMBERS_KEY] = [
-            'const int queue1_h = packet_h->asynchronousQueue();\n',
-            'const int _nTiles_h = packet_h->_nTiles_h;\n'
-        ]
-        # insert the number of extra streams as a connector
-        n_ex_streams = self._n_extra_streams
-        self._connectors[_HOST_MEMBERS_KEY].extend([
-            f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
-            f'if (queue{i}_h < 0)\n'
-            f'\tthrow std::overflow_error("[{self._tf_spec.name}_cpp2c] '
-            'Potential overflow error when accessing async queue id.");\n'
-            for i in range(2, n_ex_streams+2)
-        ])
-
-        # extend the argument list connector using dpinfo_order
-        self._connectors[_ARG_LIST_KEY].extend(
-            [('packet_h', 'void*')] +
-            [('queue1_h', 'const int')] +
-            [(f'queue{i}_h', 'const int') for i in range(2, n_ex_streams+2)] +
-            [('_nTiles_h', f'const {nTiles_type}')] +
-            [(item.device, 'const void*') for item in dpinfo_order]
-        )
-
     def _generate_cpp2c_helper(self, helper, overwrite):
         """
         Generates the helper template for the cpp2c layer.
@@ -191,9 +152,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 )
 
         # generate DataPacketMemberVars instance for each item in TFAL.
-        dummy_args = deepcopy(self._tf_spec.dummy_arguments)
         adjusted_args = deepcopy(self._tf_spec.dummy_arguments)
-
         adjusted_args = ["nTiles"] + adjusted_args
 
         # insert all connectors into helper template file
@@ -273,52 +232,6 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
             helper.write(f'/* _connector:{_C2F_ARGS} */\n')
             helper.write(',\n'.join(self._connectors[_C2F_ARGS]) + '\n')
-
-            # helper.write('/* _link:instance_args */\n')
-            # externals = 
-            # for external in adjusted_args
-            # helper.writelines(
-            #     [
-            #         f',\n'.join(f'const void* {item}')
-            #         for item in adjusted_args
-            #         if spec_func(item)["source"] == EXTERNAL_ARGUMENT
-            #     ]
-            # )
-
-            # helper.writelines(
-            #     ['/* _connector:get_host_members */\n'] +
-            #     self._connectors[_HOST_MEMBERS_KEY]
-            # )
-            # helper.writelines(
-            #     ['\n/* _connector:c2f_argument_list */\n'] +
-            #     [',\n'.join([f"{item[1]} {item[0]}"
-            #                  for item in self._connectors[_ARG_LIST_KEY]])] +
-
-            #     ['\n\n/* _connector:c2f_arguments */\n'] +
-            #     [',\n'.join([f"{item[0]}"
-            #                  for item in self._connectors[_ARG_LIST_KEY]])] +
-
-            #     ['\n\n/* _connector:get_device_members */\n'] +
-            #     [
-            #         ''.join([
-            #             f'void* {item.device} = static_cast<void*>( '
-            #             f'packet_h->{item.device} );\n'
-            #             for item in dpinfo_order
-            #         ])
-            #     ] +
-
-            #     ['\n/* _connector:instance_args */\n'] +
-            #     [','.join([f'{item[1]} {item[0]}'
-            #                for item in self._connectors[_INST_ARGS_KEY]])] +
-
-            #     ['\n\n/* _connector:host_members */\n'] +
-            #     [
-            #         ','.join([
-            #             item for item in self._externals.keys()
-            #             if item != 'nTiles'
-            #         ])
-            #     ]
-            # )
 
     def warn(self, msg):
         self._warn(msg)
