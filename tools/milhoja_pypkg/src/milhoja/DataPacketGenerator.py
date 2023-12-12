@@ -440,7 +440,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 'source': INTERNAL_ARGUMENT,
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
-                'extents': []
+                'extents': "()"
             }
         }
 
