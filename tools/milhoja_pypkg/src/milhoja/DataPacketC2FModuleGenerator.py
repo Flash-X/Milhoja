@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from . import AbcCodeGenerator
-from . import LOG_LEVEL_BASIC_DEBUG
 from . import INTERNAL_ARGUMENT
 from . import TaskFunction
 from . import LogicError
@@ -48,7 +47,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
         mod_path = destination_path.joinpath(self.source_filename).resolve()
         if mod_path.is_file():
-            self._log(f"{mod_path} already exists.", LOG_LEVEL_BASIC_DEBUG)
+            self._warn(f"{mod_path} already exists.")
             if not overwrite:
                 raise FileExistsError("Overwrite is set to False.")
 

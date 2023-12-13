@@ -325,7 +325,11 @@ class DataPacketGenerator(AbcCodeGenerator):
             c2f_layer.generate_source_code(destination, overwrite)
 
             dp_module = DataPacketC2FModuleGenerator(
-                self._tf_spec, 4, self._logger, self.external_args
+                self._tf_spec, self._indent, self._logger, self.external_args
+            )
+            self._log(
+                f"Generating mod file at {str(source)}",
+                LOG_LEVEL_BASIC
             )
             dp_module.generate_source_code(destination, overwrite)
 

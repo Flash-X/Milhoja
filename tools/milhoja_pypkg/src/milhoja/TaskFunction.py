@@ -249,7 +249,6 @@ class TaskFunction(object):
                 (spec["type"].lower() == "real") and
                 (self.processor.lower() == "cpu")):
             spec["type"] = "milhoja::Real"
-        # elif (())
 
         return spec
 

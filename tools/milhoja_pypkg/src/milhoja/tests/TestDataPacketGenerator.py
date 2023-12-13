@@ -313,7 +313,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         test[self.FOLDER],
                         "REF_" + os.path.basename(generator.module_file_name)
                     )
-                    # todo:: test module file
                     with open(generated_dp_mod, 'r') as generated:
                         with open(correct_dp_mod, 'r') as correct:
                             self.check_generated_files(generated, correct)
@@ -471,12 +470,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 msg="File was overwritten!"
             ):
                 mod_generator.generate_source_code(destination, False)
-
-            try:
-                for file in Path(destination).glob("*_C2F_mod.F90"):
-                    os.remove(file)
-            except FileNotFoundError:
-                print("Could not find files. Continue.")
+            os.remove(Path(destination, mod_generator.source_filename))
 
     def testC2fGenerator(self):
         for test in self._sedov:
