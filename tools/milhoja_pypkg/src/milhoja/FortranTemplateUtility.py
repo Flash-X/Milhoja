@@ -1,5 +1,6 @@
 import re
 
+from copy import deepcopy
 from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
@@ -127,7 +128,9 @@ class FortranTemplateUtility(TemplateUtility):
             # the array is the # of dimensions of the associated array.
             if assoc_array:
                 item_type = "int"
-                array_spec = self.tf_spec.argument_specification(assoc_array)
+                array_spec = deepcopy(
+                    self.tf_spec.argument_specification(assoc_array)
+                )
                 source = array_spec["source"]
                 if source == EXTERNAL_ARGUMENT:
                     raise NotImplementedError(

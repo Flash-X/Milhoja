@@ -4,14 +4,13 @@ from pathlib import Path
 
 from . import MILHOJA_JSON_FORMAT
 from . import CURRENT_MILHOJA_JSON_VERSION
-from . import LogicError
 from . import (
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
+    LogicError, EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
 )
 
 
@@ -121,13 +120,16 @@ class TaskFunction(object):
                 "source": fortran_tf_src
             }
         elif processor.lower() == "gpu" and language.lower() == "fortran":
+            data_item_mod = self.__data_spec["module"].strip()
             assert c2f_src != ""
             assert fortran_tf_src != ""
+            assert data_item_mod != ""
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {
                 "source": fortran_tf_src
             }
+            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
         elif processor.lower() == "gpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
@@ -183,7 +185,7 @@ class TaskFunction(object):
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Data item is not a data packet")
 
-        return f"instantiate_{self.name}_packet_C"
+        return f"instantiate_{self.name}_packet_c"
 
     @property
     def delete_packet_C_function(self):
@@ -192,7 +194,7 @@ class TaskFunction(object):
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Data item is not a data packet")
 
-        return f"delete_{self.name}_packet_C"
+        return f"delete_{self.name}_packet_c"
 
     @property
     def release_stream_C_function(self):
@@ -200,10 +202,8 @@ class TaskFunction(object):
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
-        elif self.n_streams <= 1:
-            raise LogicError("No extra streams needed")
 
-        return f"release_{self.name}_extra_queue_C"
+        return f"release_{self.name}_extra_queue_c"
 
     @property
     def cpp2c_layer_name(self):
@@ -252,6 +252,15 @@ class TaskFunction(object):
             raise LogicError("No Fortran arguments for non-Fortran TF")
         return (self.fortran_host_dummy_arguments +
                 self.fortran_device_dummy_arguments)
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
 
     @property
     def grid_dimension(self):

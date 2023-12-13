@@ -137,7 +137,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             nguard = self._tf_spec.n_guardcells
             extents = deepcopy(GRID_DATA_EXTENTS[struct_index[0]])
 
-            for idx,ext in enumerate(block_extents):
+            for idx, ext in enumerate(block_extents):
                 extents[idx] = extents[idx].format(ext, nguard)
 
             return extents
@@ -145,7 +145,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             return parse_extents(spec['extents'])
 
         return []
-
 
     def generate_source_code(self, destination, overwrite):
         """
