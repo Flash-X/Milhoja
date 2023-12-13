@@ -12,6 +12,7 @@ from .parse_helpers import parse_lbound
 from .generate_packet_file import generate_packet_file
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
+from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
@@ -323,6 +324,15 @@ class DataPacketGenerator(AbcCodeGenerator):
             # to call generate_packet_file
             c2f_layer.generate_source_code(destination, overwrite)
 
+            dp_module = DataPacketC2FModuleGenerator(
+                self._tf_spec, self._indent, self._logger, self.external_args
+            )
+            self._log(
+                f"Generating mod file at {str(source)}",
+                LOG_LEVEL_BASIC
+            )
+            dp_module.generate_source_code(destination, overwrite)
+
     @property
     def language(self):
         return self._tf_spec.language.lower()
@@ -411,6 +421,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         return self._tf_spec.output_filenames[
             TaskFunction.C2F_KEY
         ]["source"]
+
+    @property
+    def module_file_name(self) -> str:
+        return self._tf_spec.output_filenames[
+            TaskFunction.DATA_ITEM_KEY
+        ]["module"]
 
     @property
     def n_extra_streams(self) -> int:
