@@ -442,6 +442,10 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             tf_spec = TaskFunction.from_milhoja_json(json_path)
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
+
+            # todo::
+            #   * Need a smaller sample reference file for checking
+            #     all types of arguments (bool, int, real, arrays)
             sample_externals = {
                 "dt": {
                     "source": "external",
