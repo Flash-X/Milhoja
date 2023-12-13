@@ -53,14 +53,10 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
                 raise FileExistsError("Overwrite is set to False.")
 
         with open(mod_path, 'w') as module:
-            dataitem_name = self._tf_spec.data_item_class_name
-            module_name = f"{dataitem_name}_c2f_mod"
-            tf_name = self._tf_spec.name
-
-            # todo:: get these from tf_spec.
-            instance = f"instantiate_{tf_name}_packet_c"
-            delete = f"delete_{tf_name}_packet_c"
-            release = f"release_{tf_name}_extra_queue_c"
+            module_name = self._tf_spec.data_item_module_name
+            instance = self._tf_spec.instantiate_packet_C_function
+            delete = self._tf_spec.delete_packet_C_function
+            release = self._tf_spec.release_stream_C_function
 
             # declare interface functions for time advance unit
             module.write(f"module {module_name}\n")

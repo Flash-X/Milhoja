@@ -10,7 +10,8 @@ from . import (
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
+    LogicError
 )
 
 
@@ -165,6 +166,49 @@ class TaskFunction(object):
         raise NotImplementedError(
             f"{self.data_item} does not use byte_alignment."
         )
+
+    @property
+    def instantiate_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"instantiate_{self.name}_packet_c"
+
+    @property
+    def delete_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
+
+    @property
+    def release_stream_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Streams used with DataPacket only")
+        # todo::
+        #   * The release extra streams function always gets created
+        #     even if no extra streams are used. The function source code
+        #     is adjusted to raise an error if it is called, but it is
+        #     generated regardless. A small optimization would be to not
+        #     have this function be generated if it's not necessary.
+        # elif self.n_streams <= 1:
+        #     raise LogicError("No extra streams needed")
+
+        return f"release_{self.name}_extra_queue_c"
 
     @property
     def grid_dimension(self):
