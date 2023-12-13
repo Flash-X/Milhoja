@@ -15,6 +15,7 @@ from milhoja.Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from milhoja.C2FortranLayerGenerator import C2FortranLayerGenerator
 from milhoja.FortranTemplateUtility import FortranTemplateUtility
 from milhoja.TemplateUtility import TemplateUtility
+from milhoja.DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 
 _FILE_PATH = Path(__file__).resolve().parent
 # temporary
@@ -432,6 +433,47 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             # cleanup
             try:
                 for file in Path(destination).glob("cg-tpl.*.cpp"):
+                    os.remove(file)
+            except FileNotFoundError:
+                print("Could not find files. Continue.")
+
+    def testModGeneration(self):
+        for test in self._sedov:
+            json_path = test[self.JSON]
+            tf_spec = TaskFunction.from_milhoja_json(json_path)
+            logger = BasicLogger(LOG_LEVEL_NONE)
+            destination = Path.cwd()
+            sample_externals = {
+                "dt": {
+                    "source": "external",
+                    "type": "real"
+                }
+            }
+
+            if tf_spec.language.lower() == "c++":
+                with self.assertRaises(LogicError, msg="Wrong language"):
+                    mod_generator = DataPacketC2FModuleGenerator(
+                        tf_spec, 4, logger, sample_externals
+                    )
+                continue
+
+            mod_generator = DataPacketC2FModuleGenerator(
+                tf_spec, 4, logger, sample_externals
+            )
+
+            with self.assertRaises(LogicError, msg="Header gen should fail."):
+                mod_generator.generate_header_code(destination, True)
+
+            mod_generator.generate_source_code(destination, True)
+
+            with self.assertRaises(
+                FileExistsError,
+                msg="File was overwritten!"
+            ):
+                mod_generator.generate_source_code(destination, False)
+
+            try:
+                for file in Path(destination).glob("*_C2F_mod.F90"):
                     os.remove(file)
             except FileNotFoundError:
                 print("Could not find files. Continue.")

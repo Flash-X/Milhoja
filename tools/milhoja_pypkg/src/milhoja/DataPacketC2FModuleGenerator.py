@@ -4,6 +4,7 @@ from . import AbcCodeGenerator
 from . import LOG_LEVEL_BASIC_DEBUG
 from . import INTERNAL_ARGUMENT
 from . import TaskFunction
+from . import LogicError
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
@@ -14,36 +15,42 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
         "bool": "logical"
     }
 
+    # since this is specifically for the data packet generator it
+    # should be fine to pull specifically from the data packet
+    # external arguments. The Cpp2C and C2F layers ultimately should not
+    # do that, however, since they're more task function related.
     def __init__(self, tf_spec, indent, logger, external_args):
+        if tf_spec.language.lower() == "c++":
+            raise LogicError("No mod file for C++.")
+
         file_name = tf_spec.output_filenames[
             TaskFunction.DATA_ITEM_KEY
         ]["module"]
         super().__init__(
-            # todo:: use name from tf_spec
             tf_spec, "", file_name,
-            indent, "Milhoja C2F Module",
+            indent, "Milhoja DataPacket C2F Module",
             logger
         )
         self.INDENT = " " * indent
         self._externals = external_args
 
     def generate_header_code(self, destination, overwrite):
-        raise NotImplementedError(
+        raise LogicError(
             "generate_header_code not implemented for module generator."
         )
 
     def generate_source_code(self, destination, overwrite):
-
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"{destination_path} does not exist."
             )
+
         mod_path = destination_path.joinpath(self.source_filename).resolve()
         if mod_path.is_file():
             self._log(f"{mod_path} already exists.", LOG_LEVEL_BASIC_DEBUG)
-            if overwrite:
-                self._error("Overwrite is set to false.")
+            if not overwrite:
+                raise FileExistsError("Overwrite is set to False.")
 
         with open(mod_path, 'w') as module:
             dataitem_name = self._tf_spec.data_item_class_name
