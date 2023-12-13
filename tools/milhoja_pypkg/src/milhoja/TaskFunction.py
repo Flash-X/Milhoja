@@ -5,8 +5,9 @@ from pathlib import Path
 from .constants import (
     MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
     EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
-    TILE_ARGUMENTS_ALL
+    TILE_ARGUMENTS_ALL,
 )
+from .LogicError import LogicError
 
 
 class TaskFunction(object):
@@ -109,11 +110,14 @@ class TaskFunction(object):
             assert c2f_src == ""
             assert fortran_tf_src == ""
         elif processor.lower() == "gpu" and language.lower() == "fortran":
+            data_item_mod = self.__data_spec["module"].strip()
             assert c2f_src != ""
             assert fortran_tf_src != ""
+            assert data_item_mod != ""
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
+            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
         elif processor.lower() == "gpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
@@ -157,6 +161,49 @@ class TaskFunction(object):
         raise NotImplementedError(
             f"{self.data_item} does not use byte_alignment."
         )
+
+    @property
+    def instantiate_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"instantiate_{self.name}_packet_c"
+
+    @property
+    def delete_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
+
+    @property
+    def release_stream_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Streams used with DataPacket only")
+        # todo::
+        #   * The release extra streams function always gets created
+        #     even if no extra streams are used. The function source code
+        #     is adjusted to raise an error if it is called, but it is
+        #     generated regardless. A small optimization would be to not
+        #     have this function be generated if it's not necessary.
+        # elif self.n_streams <= 1:
+        #     raise LogicError("No extra streams needed")
+
+        return f"release_{self.name}_extra_queue_c"
 
     @property
     def grid_dimension(self):
