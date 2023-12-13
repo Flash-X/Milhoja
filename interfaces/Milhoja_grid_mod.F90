@@ -187,8 +187,16 @@ module milhoja_grid_mod
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
             integer(MILHOJA_INT), intent(OUT) :: C_nxb
+#if MILHOJA_NDIM == 1
+            integer(MILHOJA_INT), intent(IN)  :: C_nyb
+#else
             integer(MILHOJA_INT), intent(OUT) :: C_nyb
+#endif
+#if MILHOJA_NDIM <= 2
+            integer(MILHOJA_INT), intent(IN)  :: C_nzb
+#else
             integer(MILHOJA_INT), intent(OUT) :: C_nzb
+#endif
             integer(MILHOJA_INT)              :: C_ierr
         end function milhoja_grid_block_size_C
 
@@ -200,8 +208,16 @@ module milhoja_grid_mod
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
             integer(MILHOJA_INT), intent(OUT) :: C_nBlocksX
+#if MILHOJA_NDIM == 1
+            integer(MILHOJA_INT), intent(IN)  :: C_nBlocksY
+#else
             integer(MILHOJA_INT), intent(OUT) :: C_nBlocksY
+#endif
+#if MILHOJA_NDIM <= 2
+            integer(MILHOJA_INT), intent(IN)  :: C_nBlocksZ
+#else
             integer(MILHOJA_INT), intent(OUT) :: C_nBlocksZ
+#endif
             integer(MILHOJA_INT)              :: C_ierr
         end function milhoja_grid_domain_decomposition_C
 
@@ -546,7 +562,7 @@ contains
     !! cells along each edge.
     !!
     !! NOTE: This routine does not presume to know what values to set for
-    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! cell counts above MILHOJA_NDIM.  Therefore, calling code is responsible
     !! for setting or ignoring such data.  This routine will not alter or
     !! overwrite such variables.
     !!
@@ -556,8 +572,16 @@ contains
     !! @param ierr  The milhoja error code
     subroutine milhoja_grid_getBlockSize(nxb, nyb, nzb, ierr)
         integer(MILHOJA_INT), intent(OUT) :: nxb
+#if MILHOJA_NDIM == 1
+        integer(MILHOJA_INT), intent(IN)  :: nyb
+#else
         integer(MILHOJA_INT), intent(OUT) :: nyb
+#endif
+#if MILHOJA_NDIM <= 2
+        integer(MILHOJA_INT), intent(IN)  :: nzb
+#else
         integer(MILHOJA_INT), intent(OUT) :: nzb
+#endif
         integer(MILHOJA_INT), intent(OUT) :: ierr
 
         ierr = milhoja_grid_block_size_C(nxb, nyb, nzb)
@@ -566,7 +590,7 @@ contains
     !> Obtain the domain decomposition of the coarsest level.
     !!
     !! NOTE: This routine does not presume to know what values to set for
-    !! resolution values above MILHOJA_NDIM.  Therefore, calling code is responsible
+    !! block counts above MILHOJA_NDIM.  Therefore, calling code is responsible
     !! for setting or ignoring such data.  This routine will not alter or
     !! overwrite such variables.
     !!
@@ -579,8 +603,16 @@ contains
                                                    nBlocksZ, &
                                                    ierr)
         integer(MILHOJA_INT), intent(OUT) :: nBlocksX
+#if MILHOJA_NDIM == 1
+        integer(MILHOJA_INT), intent(IN)  :: nBlocksY
+#else
         integer(MILHOJA_INT), intent(OUT) :: nBlocksY
+#endif
+#if MILHOJA_NDIM <= 2
+        integer(MILHOJA_INT), intent(IN)  :: nBlocksZ
+#else
         integer(MILHOJA_INT), intent(OUT) :: nBlocksZ
+#endif
         integer(MILHOJA_INT), intent(OUT) :: ierr
 
         ierr = milhoja_grid_domain_decomposition_C(nBlocksX, &
