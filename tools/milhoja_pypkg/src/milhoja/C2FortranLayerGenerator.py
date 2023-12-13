@@ -1,5 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
+from copy import deepcopy
 
 from .parse_helpers import parse_extents
 from .TemplateUtility import TemplateUtility
@@ -9,10 +10,9 @@ from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT,
-    TILE_ARGUMENTS_ALL
+    EXTERNAL_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL,
+    GRID_DATA_EXTENTS
 )
 
 
@@ -79,13 +79,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         tf_spec,
         indent,
         logger,
-        n_ex_streams,
-        externals,
-        tile_metadata,
-        tile_in,
-        tile_in_out,
-        tile_out,
-        tile_scratch
+        n_ex_streams
     ):
         """
         Constructor. The data packet generator automatically passes in the
@@ -103,12 +97,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param tile_scratch: All tile_scratch args.
         """
         self._n_extra_streams = n_ex_streams
-        self._externals = externals
-        self._tile_metadata = tile_metadata
-        self._tile_in = tile_in
-        self._tile_in_out = tile_in_out
-        self._tile_out = tile_out
-        self._scratch = tile_scratch
 
         # pass in an empty file for the header name since there is no header.
         super().__init__(
@@ -130,6 +118,34 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             "No header file for C to Fortran layer. Please contact your state"
             " provided Wesley to solve this issue."
         )
+
+    # Note: bad source is caught by the task function so we don't need to
+    #       check that.
+    def __get_array_extents(self, spec) -> list:
+        src = spec["source"]
+
+        if src == EXTERNAL_ARGUMENT:
+            raise NotImplementedError("Extents with externals has no tests.")
+
+        if src in TILE_ARGUMENTS_ALL:
+            raise LogicError("Tile metadata does not have array extents.")
+
+        # todo: Consider moving this into parse helpers function.
+        if src == GRID_DATA_ARGUMENT:
+            struct_index = spec["structure_index"]
+            block_extents = self._tf_spec.block_interior_shape
+            nguard = self._tf_spec.n_guardcells
+            extents = deepcopy(GRID_DATA_EXTENTS[struct_index[0]])
+
+            for idx,ext in enumerate(block_extents):
+                extents[idx] = extents[idx].format(ext, nguard)
+
+            return extents
+        elif src == SCRATCH_ARGUMENT:
+            return parse_extents(spec['extents'])
+
+        return []
+
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -154,7 +170,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         self._generate_advance_c2f(c2f_path)
 
     def _get_external_info(self, arg, spec) -> C2FInfo:
-        dtype=spec['type']
+        dtype = spec['type']
         extents = parse_extents(spec['extents'])
         use_shape = ""
         if extents:
@@ -176,7 +192,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
     def _get_metadata_info(self, arg, spec):
         assoc_array = spec.get('array', None)
-        dtype = self.TYPE_MAPPING.get(spec['type'], spec['type'])
+        dtype = TemplateUtility.SOURCE_DATATYPE[spec["source"]]
+        dtype = FortranTemplateUtility.F_HOST_EQUIVALENT[dtype]
+        dtype = self.TYPE_MAPPING.get(dtype, dtype)
         shape = []
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
@@ -189,7 +207,8 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             # add 1 for var masking
             grid_adjust = 1 if array_spec['source'] == GRID_DATA_ARGUMENT \
                 else 0
-            shape = [str(len(array_spec['extents']) + grid_adjust)] + \
+            extents = self.__get_array_extents(array_spec)
+            shape = [str(len(extents) + grid_adjust)] + \
                 ['F_nTiles_h']
             info.shape = shape
             info.ftype = 'integer, pointer'
@@ -198,26 +217,29 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             )
 
         else:
-            if arg == TILE_INTERIOR_ARGUMENT or \
-            arg == TILE_ARRAY_BOUNDS_ARGUMENT:
-                info.shape=['2', 'MILHOJA_MDIM', 'F_nTiles_h']
+            interior = TILE_INTERIOR_ARGUMENT
+            arrayBound = TILE_ARRAY_BOUNDS_ARGUMENT
+            if arg == interior or arg == arrayBound:
+                info.shape = ['2', 'MILHOJA_MDIM', 'F_nTiles_h']
             else:
-                info.shape=['MILHOJA_MDIM', 'F_nTiles_h']
+                info.shape = ['MILHOJA_MDIM', 'F_nTiles_h']
             info.conversion_eq = info.conversion_eq.format(
                 info.cname, info.fname, ', '.join(info.shape)
             )
         return info
 
     def _get_grid_info(self, arg, spec):
-        dtype = spec['type']
-        dtype = self.TYPE_MAPPING.get(dtype, dtype)
+        # grid data types are always real for now.
+        dtype = "real"
+        extents = self.__get_array_extents(spec)
+
         largest = TemplateUtility.get_array_size(
             spec.get('variables_in', None),
             spec.get('variables_out', None)
         )
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
-            shape=spec['extents'] + [str(largest+1), 'F_nTiles_h'],
+            shape=extents + [str(largest), 'F_nTiles_h'],
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
         info.conversion_eq = info.conversion_eq.format(
@@ -228,9 +250,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
     def _get_scratch_info(self, arg, spec):
         dtype = spec['type']
         dtype = self.TYPE_MAPPING.get(dtype, dtype)
+        extents = self.__get_array_extents(spec)
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
-            shape=spec['extents'] + ["F_nTiles_h"],
+            shape=extents + ["F_nTiles_h"],
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
         info.conversion_eq = info.conversion_eq.format(
@@ -250,9 +273,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         self._log("Generating c2f layer at {str(file)}", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
-
             c2f_arg_info = []
-            func_dummy_args = []
             real_args = []
 
             packet = C2FInfo(
@@ -339,14 +360,15 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
-                f'{self.INDENT}use {fortran_mod}, ONLY : ' \
+                f'{self.INDENT}use {fortran_mod}, ONLY : '
                 f'{self._tf_spec.name}_Fortran\n',
                 f'{self.INDENT}implicit none\n\n'
             ])
 
             # write c declarations
             fp.writelines([
-                f'{self.INDENT}{info.ctype}, intent(IN), value :: {info.cname}\n'
+                f'{self.INDENT}{info.ctype}, '
+                f'intent(IN), value :: {info.cname}\n'
                 for info in c2f_arg_info
             ])
             fp.write('\n')
@@ -366,8 +388,11 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             fp.write(f'{self.INDENT}CALL {self._tf_spec.name}_Fortran ( &\n')
             fp.write(
-                (self.INDENT * 2) + 
-                f', &\n{self.INDENT * 2}'.join([info.fname if info.ftype != '' else info.cname for info in real_args ]) +
+                (self.INDENT * 2) +
+                f', &\n{self.INDENT * 2}'.join([
+                    info.fname if info.ftype != ''
+                    else info.cname for info in real_args
+                ]) +
                 f' &\n{self.INDENT})'
             )
 

@@ -65,80 +65,80 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def setUp(self):
         self._runtime = [
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "runtime",
-            #         "gpu_tf_dens.json"
-            #     ),
-            #     self.FOLDER: "runtime",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     # temp use summit sizes
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # },
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "runtime",
-            #         "gpu_tf_ener.json"
-            #     ),
-            #     self.FOLDER: "runtime",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # },
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "runtime",
-            #         "gpu_tf_fused_actions.json"
-            #     ),
-            #     self.FOLDER: "runtime",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # },
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "runtime",
-            #         "gpu_tf_fused_kernels.json"
-            #     ),
-            #     self.FOLDER: "runtime",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # }
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "runtime",
+                    "gpu_tf_dens.json"
+                ),
+                self.FOLDER: "runtime",
+                self.HDD: False,
+                self.SDD: False,
+                # temp use summit sizes
+                self.SIZES: self.SUMMIT_SIZES_2D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "runtime",
+                    "gpu_tf_ener.json"
+                ),
+                self.FOLDER: "runtime",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_2D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "runtime",
+                    "gpu_tf_fused_actions.json"
+                ),
+                self.FOLDER: "runtime",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_2D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "runtime",
+                    "gpu_tf_fused_kernels.json"
+                ),
+                self.FOLDER: "runtime",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_2D
+            }
         ]
 
         self._sedov = [
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "Sedov",
-            #         "gpu_tf_hydro_2D.json"
-            #     ),
-            #     self.FOLDER: "Sedov",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # },
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "Sedov",
-            #         "gpu_tf_hydro_2DF.json"
-            #     ),
-            #     self.FOLDER: "Sedov",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_2D
-            # },
-            # {
-            #     self.JSON: _DATA_PATH.joinpath(
-            #         "Sedov",
-            #         "gpu_tf_hydro_3DF.json"
-            #     ),
-            #     self.FOLDER: "Sedov",
-            #     self.HDD: False,
-            #     self.SDD: False,
-            #     self.SIZES: self.SUMMIT_SIZES_3D
-            # },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "Sedov",
+                    "gpu_tf_hydro_2D.json"
+                ),
+                self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_2D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "Sedov",
+                    "gpu_tf_hydro_2DF.json"
+                ),
+                self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_2D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "Sedov",
+                    "gpu_tf_hydro_3DF.json"
+                ),
+                self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_3D
+            },
             {
                 self.JSON: _DATA_PATH.joinpath(
                     "Sedov",
@@ -321,10 +321,16 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def testTemplateUtility(self):
         """
-        Function for testing the template utility classes.
+        Function for testing the template utility classes. Primarily tests
+        that the correct errors are raised given certain conditions. The
+        output is checked by the data packet generation tests.
         """
         connectors = {}
         size_connectors = {}
+
+        # load sample json to pass to constructor.
+        tf_spec = TaskFunction.from_milhoja_json(self._runtime[0][self.JSON])
+        util = FortranTemplateUtility(tf_spec)
 
         # give a sample external variable set.
         mock_external = OrderedDict({
@@ -350,28 +356,28 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 "variables_in": [1, 5]
             }
         })
-        # with self.assertRaises(
-        #     NotImplementedError,
-        #     msg="No test case for fortran tile_in."
-        # ):
-        #     FortranTemplateUtility.iterate_tile_in(
-        #         connectors, size_connectors, mock_tile_in
-        #     )
+        with self.assertRaises(
+            NotImplementedError,
+            msg="No test case for fortran tile_in."
+        ):
+            util.iterate_tile_in(
+                connectors, size_connectors, mock_tile_in
+            )
 
-        # mock_tile_out = OrderedDict({
-        #     "test2": {
-        #         "source": "tile_out",
-        #         "extents": ['16', '15', '14', '1'],
-        #         "variables_out": [1, 5]
-        #     }
-        # })
-        # with self.assertRaises(
-        #     NotImplementedError,
-        #     msg="No test cases for fortran tile_out."
-        # ):
-        #     FortranTemplateUtility.iterate_tile_out(
-        #         connectors, size_connectors, mock_tile_out
-        #     )
+        mock_tile_out = OrderedDict({
+            "test2": {
+                "source": "tile_out",
+                "extents": ['16', '15', '14', '1'],
+                "variables_out": [1, 5]
+            }
+        })
+        with self.assertRaises(
+            NotImplementedError,
+            msg="No test cases for fortran tile_out."
+        ):
+            util.iterate_tile_out(
+                connectors, size_connectors, mock_tile_out
+            )
 
     def testCpp2CGenerator(self):
         for test in self._sedov:
@@ -399,7 +405,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             cpp2c = Cpp2CLayerGenerator(
                 tf_spec, outer, helper,
                 4, LOG_LEVEL_NONE, datapacket_generator.n_extra_streams,
-                datapacket_generator.external_args
             )
 
             with self.assertRaises(
@@ -425,65 +430,45 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     def testC2fGenerator(self):
         for test in self._sedov:
             json_path = test[self.JSON]
-            # sizes = test[self.SIZES]
-            # self.assertTrue(isinstance(sizes, dict))
-            # tf_spec = TaskFunction.from_milhoja_json(json_path)
+            sizes = test[self.SIZES]
+            self.assertTrue(isinstance(sizes, dict))
+            tf_spec = TaskFunction.from_milhoja_json(json_path)
 
-            # # only testing fortran TFs.
-            # if tf_spec.language.lower() == "c++":
-            #     continue
+            # only testing fortran TFs.
+            if tf_spec.language.lower() == "c++":
+                continue
 
-            # # use default logging value for now
-            # logger = BasicLogger(LOG_LEVEL_NONE)
-            # destination = Path.cwd()
+            # use default logging value for now
+            logger = BasicLogger(LOG_LEVEL_NONE)
+            destination = Path.cwd()
 
-            # datapacket_generator = DataPacketGenerator(
-            #     tf_spec, 4, logger, sizes
-            # )
+            datapacket_generator = DataPacketGenerator(
+                tf_spec, 4, logger, sizes
+            )
 
-            # int_scratch = {
-            #     "auxC": {
-            #         "source": "scratch",
-            #         "type": "int",
-            #         "extents": ['1', '1', '1'],
-            #         "lbound": ["(tile_lo)"]
-            #     }
-            # }
+            c2f = C2FortranLayerGenerator(
+                tf_spec, 4, logger, datapacket_generator.n_extra_streams
+            )
 
-            # c2f = C2FortranLayerGenerator(
-            #     tf_spec, 4, logger,
-            #     datapacket_generator.n_extra_streams,
-            #     datapacket_generator.external_args,
-            #     datapacket_generator.tile_metadata_args,
-            #     datapacket_generator.tile_in_args,
-            #     datapacket_generator.tile_in_out_args,
-            #     datapacket_generator.tile_out_args,
-            #     int_scratch
-            # )
+            with self.assertRaises(
+                LogicError,
+                msg="C2F generate_header was not called?"
+            ):
+                c2f.generate_header_code(destination, overwrite=True)
 
-            # with self.assertRaises(
-            #     LogicError,
-            #     msg="C2F generate_header was not called?"
-            # ):
-            #     c2f.generate_header_code(destination, overwrite=True)
+            c2f.generate_source_code(destination, overwrite=True)
 
-            # with self.assertRaises(
-            #     NotImplementedError,
-            #     msg="Int scratch did not raise error."
-            # ):
-            #     c2f.generate_source_code(destination, overwrite=True)
+            with self.assertRaises(
+                FileExistsError,
+                msg="C2F file was overwritten!"
+            ):
+                c2f.generate_source_code(destination, overwrite=False)
 
-            # with self.assertRaises(
-            #     FileExistsError,
-            #     msg="C2F file was overwritten!"
-            # ):
-            #     c2f.generate_source_code(destination, overwrite=False)
-
-            # try:
-            #     for file in Path(destination).glob("*.F90"):
-            #         os.remove(file)
-            # except FileNotFoundError:
-            #     print("Could not find files. Continue.")
+            try:
+                for file in Path(destination).glob("*.F90"):
+                    os.remove(file)
+            except FileNotFoundError:
+                print("Could not find files. Continue.")
 
     def testGetArraySizes(self):
         # test none on both

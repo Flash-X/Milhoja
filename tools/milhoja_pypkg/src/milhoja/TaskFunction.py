@@ -11,8 +11,7 @@ from . import (
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
 )
 
 
@@ -205,13 +204,13 @@ class TaskFunction(object):
             raise LogicError("No extra streams needed")
 
         return f"release_{self.name}_extra_queue_C"
-    
+
     @property
     def cpp2c_layer_name(self):
         if self.language.lower() != "fortran":
             raise LogicError("No Cpp2C layer for non-fortran TF.")
         return f"{self.name}_Cpp2C"
-    
+
     @property
     def c2f_layer_name(self):
         if self.language.lower() != "fortran":
@@ -317,7 +316,7 @@ class TaskFunction(object):
             TILE_GRID_INDEX_ARGUMENT,
             TILE_LEVEL_ARGUMENT,
             TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
-            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, 
+            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
             TILE_ARRAY_BOUNDS_ARGUMENT, TILE_DELTAS_ARGUMENT,
             TILE_COORDINATES_ARGUMENT,
             TILE_FACE_AREAS_ARGUMENT,
@@ -448,7 +447,6 @@ class TaskFunction(object):
                     combine_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
 
         return combine_bounds
-
 
     def subroutine_interface_file(self, subroutine):
         """

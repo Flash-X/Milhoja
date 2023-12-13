@@ -10,18 +10,10 @@ from milhoja import THREAD_INDEX_VAR_NAME
 from milhoja import TaskFunction
 from .LogicError import LogicError
 from . import (
-    EXTERNAL_ARGUMENT,
-    TILE_LO_ARGUMENT,
-    TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT
+    EXTERNAL_ARGUMENT
 )
 
-_ARG_LIST_KEY = "c2f_argument_list"
 _INSTANCE_ARGS = "instance_args"
-_HOST_MEMBERS_KEY = "get_host_members"
 _CONSTRUCT_ARGS = "host_members"
 _DEVICE_MEMBERS = "get_device_members"
 _C2F_ARGS = "c2f_arguments"
@@ -40,15 +32,13 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         helper,
         indent,
         log_level,
-        n_extra_streams,
-        external_args
+        n_extra_streams
     ):
         self._outer_template = outer
         self._helper_template = helper
         self.__TOOL_NAME = "Milhoja Cpp2C"
         self._n_extra_streams = n_extra_streams
         self._connectors = defaultdict(list)
-        self._externals = external_args
 
         logger = BasicLogger(log_level)
         super().__init__(
@@ -164,9 +154,14 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 ['\n/* _connector:c2f_argument_list */\n'] +
                 ['void* packet_h,\n'] +
                 ['const int queue1_h,\n'] +
-                [f'const int queue{i}_h,\n' for i in range(2, n_ex_streams+2)] +
+                [
+                    f'const int queue{i}_h,\n'
+                    for i in range(2, n_ex_streams+2)
+                ] +
                 ['const int _nTiles_h,\n'] +
-                [f',\n'.join(f'const void* _{item}_d' for item in adjusted_args)] +
+                [',\n'.join(
+                    f'const void* _{item}_d' for item in adjusted_args
+                )] +
                 ['\n']
             )
 
@@ -175,12 +170,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 [
                     'const int queue1_h = packet_h->asynchronousQueue();\n',
                     'const int _nTiles_h = packet_h->_nTiles_h;\n'
-                ] + 
+                ] +
                 [
-                    f'const int queue{i}_h = packet_h->extraAsynchronousQueue({i});\n'
+                    f'const int queue{i}_h = '
+                    f'packet_h->extraAsynchronousQueue({i});\n'
                     f'if (queue{i}_h < 0)\n'
-                    f'\tthrow std::overflow_error("[{self._tf_spec.name}_cpp2c] '
-                    'Potential overflow error when accessing async queue id.");\n'
+                    f'\tthrow std::overflow_error('
+                    f'"[{self._tf_spec.name}_cpp2c] '
+                    'Potential overflow error when '
+                    'accessing async queue id.");\n'
                     for i in range(2, n_ex_streams+2)
                 ]
             )
@@ -224,11 +222,13 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
 
             # insert constructor arguments
             helper.write(f'/* _connector:{_CONSTRUCT_ARGS} */\n')
-            helper.write(f',\n'.join(self._connectors[_CONSTRUCT_ARGS]) + '\n')
+            helper.write(',\n'.join(self._connectors[_CONSTRUCT_ARGS]) + '\n')
 
             # write code to get device members
             helper.write(f'/* _connector:{_DEVICE_MEMBERS} */\n')
-            helper.write(';\n'.join(self._connectors[_DEVICE_MEMBERS]) + ';\n')
+            helper.write(
+                ';\n'.join(self._connectors[_DEVICE_MEMBERS]) + ';\n'
+            )
 
             helper.write(f'/* _connector:{_C2F_ARGS} */\n')
             helper.write(',\n'.join(self._connectors[_C2F_ARGS]) + '\n')

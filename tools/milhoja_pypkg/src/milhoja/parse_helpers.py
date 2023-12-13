@@ -1,8 +1,9 @@
 import re
 
 from . import (
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
+    TILE_ARGUMENTS_ALL, LogicError
 )
 
 
@@ -141,7 +142,8 @@ def parse_lbound(lbound: str) -> list:
     results = [item for item in results if item]
     return results
 
-# todo:: 
+
+# todo::
 #   * We have to force the calling code to replace any variables
 #     that are used in the lbound with their source name, and then replace
 #     the source names with the original variable name when the list is
@@ -173,7 +175,7 @@ def parse_lbound_f(lbound: str) -> list:
     symbols = re.findall(r'[\+\-\/\*]', math_sym_string)
 
     # Replace each potential bound keyword inside of the string with its parts
-    for idx,match in enumerate(matches):
+    for idx, match in enumerate(matches):
         for keyword in keywords:
             if keyword in match:
                 matches[idx] = match.replace(
@@ -203,13 +205,24 @@ def parse_lbound_f(lbound: str) -> list:
     return combined_bound
 
 
-def parse_extents(extents: str) -> list:
+# todo::
+#   * allow grid source data to be parsed.
+def parse_extents(extents: str, src=None) -> list:
     """
     Parses an extents string.
 
     This assumes extents strings are of the format (x, y, z, ...).
     A list of integers separated by commas and surrounded by parenthesis.
+
+    :param str extents: The extents string to parse.
+    :param str src: The optional source argument. If a grid source is given,
+                    the function assumes extents to be a specific format.
     """
+    if src:
+        raise NotImplementedError("Source specific extents not implemented.")
+
+    # default for parsing extents. Extents is assume to be a string
+    # containing a list of integers surrounded by parentheses.
     if extents.count('(') != 1 or extents.count(')') != 1:
         raise IncorrectFormatException(
             f"Incorrect parenthesis placement for {extents}"

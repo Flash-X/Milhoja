@@ -4,7 +4,6 @@ from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
-from .TaskFunction import TaskFunction
 from .parse_helpers import parse_lbound_f
 from . import (
     EXTERNAL_ARGUMENT,
@@ -114,9 +113,9 @@ class FortranTemplateUtility(TemplateUtility):
             assoc_array = data.get("array", None)
             item_type = data['type']
 
+            interior = TILE_INTERIOR_ARGUMENT
             bound_size_modifier = ""
-            if source == TILE_INTERIOR_ARGUMENT or \
-            source == TILE_ARRAY_BOUNDS_ARGUMENT:
+            if source == interior or source == TILE_ARRAY_BOUNDS_ARGUMENT:
                 bound_size_modifier = "2 * "
 
             size_eq = \
@@ -143,7 +142,7 @@ class FortranTemplateUtility(TemplateUtility):
                         vars_out = array_spec.get('variables_out', None)
                         init = self.get_initial_index(vars_in, vars_out)
                         lbound = \
-                            GRID_DATA_LBOUNDS[struct.upper()].format(init + 1)
+                            GRID_DATA_LBOUNDS[struct.upper()].format(init)
                     else:
                         lbound = GRID_DATA_LBOUNDS[struct.upper()]
                     lbound = parse_lbound_f(lbound)
@@ -189,7 +188,6 @@ class FortranTemplateUtility(TemplateUtility):
                 # need to check for tile_interior and tile_arrayBounds args
                 # can't assume that lo and hi already exist + each var does
                 # not have knowledge of the other
-                print(source)
                 if source == TILE_INTERIOR_ARGUMENT:
                     construct_host = "[MILHOJA_MDIM * 2] = {" \
                         "tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, " \
@@ -211,7 +209,7 @@ class FortranTemplateUtility(TemplateUtility):
                 # intvect i,j,k start at 0 so we need to add 1 to the
                 # index. However, anything that's just integers needs to be
                 # untouched.
-                for idx,value in enumerate(lbound):
+                for idx, value in enumerate(lbound):
                     found = re.search('[a-zA-z]', value)
                     if found:
                         lbound[idx] = f"({value}) + 1"
@@ -222,7 +220,7 @@ class FortranTemplateUtility(TemplateUtility):
                 connectors, construct_host, "", info
             )
 
-        for item,data in one_time_mdata.items():
+        for item, data in one_time_mdata.items():
             name = item.replace("tile_", "")
             src = data["source"]
             if src == TILE_LBOUND_ARGUMENT:
