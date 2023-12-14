@@ -293,13 +293,19 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
 
             self._log(
-                f"Generating cpp2c helper at {str(helper_cpp2c)} and "
-                f"cpp2c outer at {str(outer_cpp2c)}",
+                f"Generating Cpp2C helper at {str(helper_cpp2c)} and "
+                f"Cpp2C outer at {str(outer_cpp2c)}",
                 LOG_LEVEL_BASIC
             )
             cpp2c_layer.generate_source_code(destination, overwrite)
+            cpp2c_destination = Path(destination, self.cpp2c_file_name)
+            self._log(
+                f"Generating Cpp2C Layer at {cpp2c_destination} using "
+                f"{str(helper_cpp2c)} and {str(outer_cpp2c)}",
+                LOG_LEVEL_BASIC
+            )
             generate_packet_file(
-                Path(destination, self.cpp2c_file_name),
+                cpp2c_destination,
                 self.__DEFAULT_SOURCE_TREE_OPTS,
                 # dev note: ORDER MATTERS HERE!
                 # If helpers is put before the base

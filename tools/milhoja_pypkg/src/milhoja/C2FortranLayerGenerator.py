@@ -83,7 +83,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
-            indent, "Milhoja C2F",
+            indent, "Milhoja C2F Generator",
             logger
         )
 
@@ -119,7 +119,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                     f"Overwrite is {overwrite}",
                     FileExistsError()
                 )
-
         self._generate_advance_c2f(c2f_path)
 
     def _generate_advance_c2f(self, file):
@@ -130,7 +129,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
-        self._log(f"Generating c2f layer at {str(file)}", LOG_LEVEL_BASIC)
+        self._log(f"Generating C2F layer at {str(file)}", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
             data_mapping = {
