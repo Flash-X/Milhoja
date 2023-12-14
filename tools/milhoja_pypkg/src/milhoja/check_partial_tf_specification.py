@@ -61,7 +61,7 @@ def check_partial_tf_specification(spec):
 
     # ----- DATA ITEM
     data_item = spec["data_item"]
-    expected = {"type", "byte_alignment", "header", "source"}
+    expected = {"type", "byte_alignment", "header", "source", "module"}
     actual = set(data_item)
     if actual != expected:
         msg = f"Invalid data item specification keys ({actual})"
@@ -82,7 +82,7 @@ def check_partial_tf_specification(spec):
         elif byte_align <= 0:
             raise ValueError(f"Non-positive byte alignment ({byte_align})")
 
-    for each in ["header", "source"]:
+    for each in ["header", "source", "module"]:
         fname = data_item[each]
         if not isinstance(fname, str):
             raise TypeError(f"Data item {each} not string ({fname})")
