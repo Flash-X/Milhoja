@@ -48,7 +48,8 @@ def generate_grid_tf_specs(dimension, block_size,
             "type":           "TileWrapper",
             "byte_alignment": -1,
             "header":         "Tile_cpu_tf_ic.h",
-            "source":         "Tile_cpu_tf_ic.cpp"
+            "source":         "Tile_cpu_tf_ic.cpp",
+            "module":         ""
         }
     }
 

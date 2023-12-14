@@ -73,7 +73,8 @@ def generate_flashx_gpu_tf_specs(dimension, block_size,
             "type":           "DataPacket",
             "byte_alignment": 16,
             "header":         "DataPacket_gpu_tf_hydro.h",
-            "source":         "DataPacket_gpu_tf_hydro.cxx"
+            "source":         "DataPacket_gpu_tf_hydro.cxx",
+            "module":         "DataPacket_gpu_tf_hydro_c2f_mod.F90"
         }
     }
 

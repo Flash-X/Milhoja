@@ -153,7 +153,7 @@ class TaskFunctionAssembler(object):
         # We don't presently handle different index bases
         index_base = self.__group_specs[0].variable_index_base
         for spec in self.__group_specs[1:]:
-            if group.variable_index_base != index_base:
+            if spec.variable_index_base != index_base:
                 msg = "All subroutine groups must use same variable index base"
                 raise NotImplementedError(msg)
 

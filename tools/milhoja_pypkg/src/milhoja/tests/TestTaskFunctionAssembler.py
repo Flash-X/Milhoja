@@ -462,7 +462,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 "type":           "TileWrapper",
                 "byte_alignment": -1,
                 "header":         "Tile_cpu_tf_test.h",
-                "source":         "Tile_cpu_tf_test.cxx"
+                "source":         "Tile_cpu_tf_test.cxx",
+                "module":         ""
             }
         }
         self.assertFalse(TF_PARTIAL_JSON.exists())
@@ -507,7 +508,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 "type":           "TileWrapper",
                 "byte_alignment": -1,
                 "header":         "Tile_cpu_tf_test.h",
-                "source":         "Tile_cpu_tf_test.cxx"
+                "source":         "Tile_cpu_tf_test.cxx",
+                "module":         ""
             }
         }
         self.assertFalse(TF_PARTIAL_JSON.exists())

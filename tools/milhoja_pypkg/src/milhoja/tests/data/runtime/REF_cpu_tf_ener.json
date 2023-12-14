@@ -42,7 +42,8 @@
         "type": "TileWrapper",
         "byte_alignment": -1,
         "header": "Tile_cpu_tf_ener.h",
-        "source": "Tile_cpu_tf_ener.cpp"
+        "source": "Tile_cpu_tf_ener.cpp",
+        "module": ""
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianEnergy": {

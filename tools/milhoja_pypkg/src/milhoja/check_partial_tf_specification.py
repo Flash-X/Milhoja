@@ -82,9 +82,13 @@ def check_partial_tf_specification(spec):
         elif byte_align <= 0:
             raise ValueError(f"Non-positive byte alignment ({byte_align})")
 
-    for each in ["header", "source", "module"]:
+    for each in ["header", "source"]:
         fname = data_item[each]
         if not isinstance(fname, str):
             raise TypeError(f"Data item {each} not string ({fname})")
         elif fname == "":
             raise ValueError(f"Empty data item {each} filename")
+
+    fname = data_item["module"]
+    if not isinstance(fname, str):
+        raise TypeError(f"Data item module {each} not string ({fname})")

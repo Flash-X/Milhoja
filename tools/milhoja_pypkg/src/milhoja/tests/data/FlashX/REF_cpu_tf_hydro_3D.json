@@ -84,7 +84,8 @@
         "type":           "TileWrapper",
         "byte_alignment": -1,
         "header":         "Tile_cpu_tf_hydro.h",
-        "source":         "Tile_cpu_tf_hydro.cxx"
+        "source":         "Tile_cpu_tf_hydro.cxx",
+        "module":         ""
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_block_cpu": {

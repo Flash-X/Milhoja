@@ -51,9 +51,11 @@ class TestTaskFunction(unittest.TestCase):
         results_all = self.__sedov_hy_F_gpu.output_filenames
 
         result = results_all[milhoja.TaskFunction.DATA_ITEM_KEY]
-        self.assertEqual(2, len(result))
+        self.assertEqual(3, len(result))
         self.assertEqual("DataPacket_gpu_tf_hydro.h", result["header"])
         self.assertEqual("DataPacket_gpu_tf_hydro.cxx", result["source"])
+        self.assertEqual("DataPacket_gpu_tf_hydro_c2f_mod.F90",
+                         result["module"])
 
         result = results_all[milhoja.TaskFunction.CPP_TF_KEY]
         self.assertEqual(2, len(result))

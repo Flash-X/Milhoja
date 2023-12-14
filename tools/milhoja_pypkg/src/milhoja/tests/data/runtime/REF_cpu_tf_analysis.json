@@ -48,7 +48,8 @@
         "type": "TileWrapper",
         "byte_alignment": -1,
         "header": "Tile_cpu_tf_analysis.h",
-        "source": "Tile_cpu_tf_analysis.cpp"
+        "source": "Tile_cpu_tf_analysis.cpp",
+        "module": ""
     },
     "subroutines": {
         "Analysis::computeErrors": {

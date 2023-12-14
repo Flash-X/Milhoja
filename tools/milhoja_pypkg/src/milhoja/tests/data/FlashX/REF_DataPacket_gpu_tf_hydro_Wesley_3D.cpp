@@ -1,4 +1,4 @@
-#include "DataPacket_gpu_tf_hydro_f.h"
+#include "DataPacket_gpu_tf_hydro.h"
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
@@ -96,14 +96,18 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     _nTiles_h = static_cast<int>(tiles_.size());
 
     constexpr std::size_t SIZE_CONSTRUCTOR = pad(
-    SIZE_EXTERNAL_HYDRO_OP1_DT + SIZE_NTILES
+    SIZE_EXTERNAL_HYDRO_OP1_DT
+     + SIZE_NTILES
     
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_CONSTRUCTOR padding failure");
 
     std::size_t SIZE_TILEMETADATA = pad( _nTiles_h * (
-    SIZE_TILE_DELTAS + SIZE_TILE_LO + SIZE_TILE_HI + SIZE_TILE_LBOUND
+    SIZE_TILE_DELTAS
+     + SIZE_TILE_LO
+     + SIZE_TILE_HI
+     + SIZE_TILE_LBOUND
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -131,7 +135,10 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         throw std::logic_error("[DataPacket_gpu_tf_hydro pack] SIZE_TILEOUT padding failure");
 
     std::size_t SIZE_TILESCRATCH = pad( _nTiles_h * (
-    SIZE_SCRATCH_HYDRO_OP1_AUXC + SIZE_SCRATCH_HYDRO_OP1_FLX + SIZE_SCRATCH_HYDRO_OP1_FLY + SIZE_SCRATCH_HYDRO_OP1_FLZ
+    SIZE_SCRATCH_HYDRO_OP1_AUXC
+     + SIZE_SCRATCH_HYDRO_OP1_FLX
+     + SIZE_SCRATCH_HYDRO_OP1_FLY
+     + SIZE_SCRATCH_HYDRO_OP1_FLZ
     
     ));
     if (SIZE_TILESCRATCH % ALIGN_SIZE != 0)

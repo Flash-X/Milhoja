@@ -302,15 +302,15 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                             self.check_generated_files(generated, correct)
 
                     # check module file
-                    generated_dp_mod = generator.module_file_name
                     generated_dp_mod = Path(
                         destination,
-                        generated_dp_mod
+                        generator.module_file_name
                     )
+                    correct_dp_mod = json_path.stem.replace("REF_", "")
                     correct_dp_mod = Path(
                         _DATA_PATH,
                         test[self.FOLDER],
-                        "REF_" + os.path.basename(generator.module_file_name)
+                        "REF_DataPacket_" + str(correct_dp_mod) + "_c2f_mod.F90"
                     )
                     with open(generated_dp_mod, 'r') as generated:
                         with open(correct_dp_mod, 'r') as correct:

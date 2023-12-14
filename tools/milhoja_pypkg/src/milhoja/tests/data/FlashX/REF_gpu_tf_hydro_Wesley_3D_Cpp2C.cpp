@@ -5,7 +5,7 @@
 #include <Milhoja_real.h>
 #include <Milhoja_interface_error_codes.h>
 
-#include "DataPacket_gpu_tf_hydro_f.h"
+#include "DataPacket_gpu_tf_hydro.h"
 
 #ifndef MILHOJA_OPENACC_OFFLOADING
 #error "This file should only be compiled if using OpenACC offloading"

@@ -38,7 +38,8 @@
         "type": "TileWrapper",
         "byte_alignment": -1,
         "header": "Tile_cpu_tf_IQ.h",
-        "source": "Tile_cpu_tf_IQ.cpp"
+        "source": "Tile_cpu_tf_IQ.cpp",
+        "module": ""
     },
     "subroutines": {
         "Io::instance().computeIntegralQuantitiesByBlock": {

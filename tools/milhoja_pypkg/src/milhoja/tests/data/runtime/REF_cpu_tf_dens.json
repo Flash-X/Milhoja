@@ -42,7 +42,8 @@
         "type": "TileWrapper",
         "byte_alignment": -1,
         "header": "Tile_cpu_tf_dens.h",
-        "source": "Tile_cpu_tf_dens.cpp"
+        "source": "Tile_cpu_tf_dens.cpp",
+        "module": ""
     },
     "subroutines": {
         "StaticPhysicsRoutines::computeLaplacianDensity": {

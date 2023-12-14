@@ -83,7 +83,8 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
                 "type":           "DataPacket",
                 "byte_alignment": 16,
                 "header":         "DataPacket_cpu_tf_test.h",
-                "source":         "DataPacket_cpu_tf_test.cxx"
+                "source":         "DataPacket_cpu_tf_test.cxx",
+                "module":         ""
             }
         }
         self.assertFalse(TF_PARTIAL_JSON.exists())
@@ -145,7 +146,7 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
         FILENAME = self.__dst.joinpath("cpu_tf_test.json")
         TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
 
-        expected = {"type", "byte_alignment", "header", "source"}
+        expected = {"type", "byte_alignment", "header", "source", "module"}
         for each in expected:
             bad = copy.deepcopy(self.__partial)
             del bad["data_item"][each]
@@ -156,7 +157,7 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         bad = copy.deepcopy(self.__partial)
         bad["data_item"]["fail"] = {}
-        self.assertEqual(5, len(bad["data_item"]))
+        self.assertEqual(6, len(bad["data_item"]))
         with open(TF_PARTIAL_JSON, "w") as fptr:
             json.dump(bad, fptr)
         with self.assertRaises(ValueError):
@@ -334,3 +335,14 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
                 json.dump(bad_spec, fptr)
             with self.assertRaises(ValueError):
                 self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+
+        for bad in NOT_STR_LIST:
+            if not isinstance(bad, set):
+                bad_spec = copy.deepcopy(self.__partial)
+                bad_spec["data_item"]["module"] = bad
+                with open(TF_PARTIAL_JSON, "w") as fptr:
+                    json.dump(bad_spec, fptr)
+                with self.assertRaises(TypeError):
+                    self.__Sedov.to_milhoja_json(
+                        FILENAME, TF_PARTIAL_JSON, False
+                    )

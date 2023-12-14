@@ -60,7 +60,8 @@ def generate_sedov_cpu_tf_specs(dimension, block_size,
         },
         "data_item": {
             "type":           "TileWrapper",
-            "byte_alignment": -1
+            "byte_alignment": -1,
+            "module":         ""
         }
     }
 

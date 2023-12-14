@@ -75,7 +75,8 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
                 "type": "TileWrapper",
                 "byte_alignment": -1,
                 "header": "Tile_cpu_tf_combined.h",
-                "source": "Tile_cpu_tf_combined.cpp"
+                "source": "Tile_cpu_tf_combined.cpp",
+                "module": ""
             }
         }
         TF_PARTIAL_SPEC_FILENAME = \

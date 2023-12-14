@@ -52,7 +52,8 @@
         "type": "TileWrapper",
         "byte_alignment": -1,
         "header": "Tile_cpu_tf_hydro.h",
-        "source": "Tile_cpu_tf_hydro.cpp"
+        "source": "Tile_cpu_tf_hydro.cpp",
+        "module": ""
     },
     "subroutines": {
         "hy::computeFluxesHll": {
