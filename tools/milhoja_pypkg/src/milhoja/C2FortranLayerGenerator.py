@@ -119,6 +119,28 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             " provided Wesley to solve this issue."
         )
 
+    def generate_source_code(self, destination, overwrite):
+        """
+        Wrapper for _generate_advance_c2f. Checks if the destination exists
+        and the overwrite flag.
+        """
+        destination_path = Path(destination).resolve()
+        if not destination_path.is_dir():
+            raise RuntimeError(
+                f"{destination_path} does not exist."
+            )
+        c2f_path = destination_path.joinpath(self.c2f_file).resolve()
+
+        if c2f_path.is_file():
+            self._warn(f"{c2f_path} already exists.")
+            if not overwrite:
+                self.log_and_abort(
+                    f"Overwrite is {overwrite}",
+                    FileExistsError()
+                )
+
+        self._generate_advance_c2f(c2f_path)
+
     # Note: bad source is caught by the task function so we don't need to
     #       check that.
     def __get_array_extents(self, spec) -> list:
@@ -145,28 +167,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             return parse_extents(spec['extents'])
 
         return []
-
-    def generate_source_code(self, destination, overwrite):
-        """
-        Wrapper for _generate_advance_c2f. Checks if the destination exists
-        and the overwrite flag.
-        """
-        destination_path = Path(destination).resolve()
-        if not destination_path.is_dir():
-            raise RuntimeError(
-                f"{destination_path} does not exist."
-            )
-        c2f_path = destination_path.joinpath(self.c2f_file).resolve()
-
-        if c2f_path.is_file():
-            self._warn(f"{c2f_path} already exists.")
-            if not overwrite:
-                self.log_and_abort(
-                    f"Overwrite is {overwrite}",
-                    FileExistsError()
-                )
-
-        self._generate_advance_c2f(c2f_path)
 
     def _get_external_info(self, arg, spec) -> C2FInfo:
         dtype = spec['type']
@@ -269,7 +269,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param dict data: The json file used to generate the data
                           packet associated with this file.
         """
-        self._log("Generating c2f layer at {str(file)}", LOG_LEVEL_BASIC)
+        self._log(f"Generating c2f layer at {str(file)}", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
             # should size_t be translated if using fortran?
             c2f_arg_info = []
@@ -300,8 +300,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 nTiles.fname, nTiles.cname
             )
             device_nTiles = C2FInfo(
-                name='nTiles_d', ctype='type(C_PTR)', ftype='integer, pointer',
-                shape=[], conversion_eq="CALL C_F_POINTER({0}, {1})"
+                name='nTiles_d', ctype='type(C_PTR)',
+                ftype='integer, pointer', shape=[],
+                conversion_eq="CALL C_F_POINTER({0}, {1})"
             )
             device_nTiles.conversion_eq = device_nTiles.conversion_eq.format(
                 device_nTiles.cname, device_nTiles.fname
