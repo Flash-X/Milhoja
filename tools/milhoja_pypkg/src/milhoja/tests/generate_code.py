@@ -45,13 +45,13 @@ def generate_code(
 
     logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
     for tf_spec_json in tf_spec_jsons_all:
+        tf_spec = TaskFunction.from_milhoja_json(tf_spec_json)
         logger.log(
-            LOG_TAG, f"Generating code for task function {tf_spec_json.name}",
+            LOG_TAG, f"Generating code for task function {tf_spec.name}",
             LOG_LEVEL_BASIC
         )
         logger.log(LOG_TAG, "-" * 80, LOG_LEVEL_BASIC)
 
-        tf_spec = TaskFunction.from_milhoja_json(tf_spec_json)
         generate_data_item(
             tf_spec, destination, overwrite, library_path, indent, logger
         )
