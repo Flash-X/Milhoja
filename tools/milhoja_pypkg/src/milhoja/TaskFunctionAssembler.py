@@ -33,6 +33,7 @@ class TaskFunctionAssembler(object):
 
     .. todo::
         * This should be a read-only class
+        * Need lbound_arguments() in interface?
         * We presently insist that all subroutine groups use the same variable
           index base.  Reasonable?
         * internal_call_graph is used here and in TaskFunction.  It should
@@ -64,9 +65,8 @@ class TaskFunctionAssembler(object):
         :param group_jsons_all: Filenames with paths of all Milhoja-JSON
             format subroutine group specification files that together contain
             the specifications for the subroutines in the internal call graph
-        :param grid_json: Filename with path of Milhoja-JSON format grid
-            specification file
-        :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
+        :param grid_json: Filename with path of grid specification file
+        :param logger: Derived from :py:class:`milhoja.AbcLogger`
         """
         # ----- ERROR CHECK ARGUMENTS
         # name and internal_call_graph checked by constructor
@@ -92,8 +92,6 @@ class TaskFunctionAssembler(object):
             group_spec = SubroutineGroup.from_milhoja_json(group_json, logger)
             group_specs_all.append(group_spec)
 
-        # This is simple enough that I am not going to put a format/version on
-        # it for now.
         with open(grid_json, "r") as fptr:
             grid_spec = json.load(fptr)
 
@@ -116,7 +114,7 @@ class TaskFunctionAssembler(object):
         :param grid_spec:  Milhoja-internal grid specification ``dict``.  This
             is stored immediately as a copy so that calling code can continue
             using the actual argument passed in as needed.
-        :param logger: Logger derived from :py:class:`milhoja.AbcLogger`
+        :param logger: Derived from :py:class:`milhoja.AbcLogger`
         """
         super().__init__()
 
@@ -135,7 +133,7 @@ class TaskFunctionAssembler(object):
         msg = "Building assembler for task function {}"
         self.__log_debug(msg.format(self.__tf_name))
 
-        self.__call_graph = internal_call_graph
+        self.__call_graph = copy.deepcopy(internal_call_graph)
 
         if not isinstance(group_specs_all, list):
             raise TypeError("group_specs_all not list")
@@ -245,7 +243,7 @@ class TaskFunctionAssembler(object):
         # and all versions of python.
         #
         # We want the actual arguments to all lbound subroutine arguments to be
-        # the lbound information from TF lbound arguments.  Therefore, we need
+        # the lbound information from TF array arguments.  Therefore, we need
         # to determine the full set of TF array dummy arguments before working
         # with the lbounds.
         for arg_specs, arg_mappings in [
@@ -286,7 +284,7 @@ class TaskFunctionAssembler(object):
     @property
     def __internal_subroutines(self):
         """
-        :return: Generator for iterating in arbitrary order over the
+        :return: Generator for iterating in correct order over the
             subroutines included in the internal subroutine graph.  At each
             iteration, calling code is given (subroutine, group) where
 
@@ -304,6 +302,7 @@ class TaskFunctionAssembler(object):
                 for each in self.__group_specs:
                     if subroutine in each:
                         group = each
+                        break
                 if group is None:
                     msg = f"{subroutine} not in any group specification"
                     raise ValueError(msg)
@@ -312,14 +311,14 @@ class TaskFunctionAssembler(object):
     @property
     def __internal_arguments(self):
         """
-        :return: Generator for iterating in arbitrary order over all
+        :return: Generator for iterating in correct order over all
             arguments across all subroutines included in the internal
             subroutine graph.  At each iteration, calling code is given
             (arg_spec, arg_index, group) where
 
             * **arg_spec :** Specification of current argument.  Calling code
               can alter returned spec without altering original spec.
-            * **arg_index :** Unique index of current arugment for immediate
+            * **arg_index :** Unique index of current argument for immediate
               inclusion in a ``dummy_to_actuals`` map.  The index is the
               subroutine name and argument name.
             * **group :** :py:class:`SubroutineGroup` object that contains the
@@ -361,10 +360,10 @@ class TaskFunctionAssembler(object):
 
     def __get_milhoja_thread_index(self):
         """
-        Runs through the each subroutine in the internal call graph to
-        determine if any of the internal subroutines require the unique index
-        of the Milhoja thread calling the TF as an actual argument.  If so,
-        determines onto which actual arguments it should be mapped.
+        Runs through each subroutine in the internal call graph to determine if
+        any of the internal subroutines require the unique index of the Milhoja
+        thread calling the TF as an actual argument.  If so, determines onto
+        which actual arguments it should be mapped.
 
         :return: Dummy to actual arguments mapping
         """
@@ -698,7 +697,7 @@ class TaskFunctionAssembler(object):
         subroutine lbound arguments to be the lbound information of TF array
         arguments.
 
-        Runs through the each subroutine in the internal call graph, determines
+        Runs through each subroutine in the internal call graph, determines
         the minimum set of lbound arguments that need to be included in the
         task function dummy arguments, assembles the specifications for these
         dummies, and determines how to map each task function dummy argument
@@ -707,7 +706,6 @@ class TaskFunctionAssembler(object):
         Note that lbound dummy variables are named::
 
                              lbdd_<TF dummy array name>
-
 
         Since the names of all possible TF dummy array arguments should already
         be unique (including external and scratch arrays), no further
@@ -895,5 +893,5 @@ class TaskFunctionAssembler(object):
 
         with open(filename, "w") as fptr:
             json.dump(
-                spec, fptr, ensure_ascii=True, allow_nan=False, indent="\t"
+                spec, fptr, ensure_ascii=True, allow_nan=False, indent=True
             )
