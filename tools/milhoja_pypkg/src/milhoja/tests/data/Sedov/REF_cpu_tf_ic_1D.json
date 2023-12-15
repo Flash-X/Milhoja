@@ -86,11 +86,11 @@
             "interface_file": "Eos.h",
             "argument_list": ["lo",
                               "hi",
-                              "solnData"],
+                              "U"],
             "argument_mapping": {
                 "lo":        "tile_lbound",
                 "hi":        "tile_ubound",
-                "solnData":  "CC_1"
+                "U":         "CC_1"
             }
         }
     }

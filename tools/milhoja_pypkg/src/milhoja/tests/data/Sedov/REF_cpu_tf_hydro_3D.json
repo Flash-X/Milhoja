@@ -108,11 +108,11 @@
             "interface_file": "Eos.h",
             "argument_list": ["lo",
                               "hi",
-                              "solnData"],
+                              "U"],
             "argument_mapping": {
                 "lo":        "tile_lo",
                 "hi":        "tile_hi",
-                "solnData":  "CC_1"
+                "U":         "CC_1"
             }
         }
     }

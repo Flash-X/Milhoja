@@ -68,14 +68,14 @@
     },
     "Eos::idealGammaDensIe": {
         "interface_file": "Eos.h",
-        "argument_list": ["lo", "hi", "solnData"],
+        "argument_list": ["lo", "hi", "U"],
         "argument_specifications": {
-            "lo":          {"source":           "tile_lo"},
-            "hi":          {"source":           "tile_hi"},
-            "solnData":    {"source":           "grid_data",
-                            "structure_index":  ["CENTER", 1],
-                            "R":                [1, 8],
-                            "W":                [5, 7]}
+            "lo":   {"source":           "tile_lo"},
+            "hi":   {"source":           "tile_hi"},
+            "U":    {"source":           "grid_data",
+                     "structure_index":  ["CENTER", 1],
+                     "R":                [1, 8],
+                     "W":                [5, 7]}
         }
     },
     "hy::computeSoundSpeedHll_oacc_summit": {
@@ -165,14 +165,14 @@
     },
     "Eos::idealGammaDensIe_oacc_summit": {
         "interface_file": "Eos.h",
-        "argument_list": ["lo", "hi", "solnData"],
+        "argument_list": ["lo", "hi", "U"],
         "argument_specifications": {
-            "lo":       {"source":           "tile_lo"},
-            "hi":       {"source":           "tile_hi"},
-            "solnData": {"source":           "grid_data",
-                         "structure_index":  ["CENTER", 1],
-                         "R":                [1, 8],
-                         "W":                [5, 7]}
+            "lo":    {"source":           "tile_lo"},
+            "hi":    {"source":           "tile_hi"},
+            "U":     {"source":           "grid_data",
+                      "structure_index":  ["CENTER", 1],
+                      "R":                [1, 8],
+                      "W":                [5, 7]}
         }
     }
 }

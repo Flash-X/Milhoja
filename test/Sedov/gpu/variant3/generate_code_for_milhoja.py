@@ -73,8 +73,6 @@ def main():
     overwrite = args.overwrite
     logger = milhoja.BasicLogger(args.verbose)
 
-    tf_names_all = [each.format(dimension) for each in TF_PARTIAL_NAMES_ALL]
-
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
     def log_and_abort(error_msg):
         logger.error(LOG_TAG, error_msg)
@@ -94,7 +92,7 @@ def main():
 
         # ----- NOW IS GOOD FOR GENERATING CODE
         milhoja.tests.generate_code(
-            tf_specs_jsons, destination, overwrite,
+            tf_spec_jsons, destination, overwrite,
             library_path, INDENT, makefile,
             logger
         )
