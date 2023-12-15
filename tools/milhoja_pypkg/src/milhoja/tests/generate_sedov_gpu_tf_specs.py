@@ -147,4 +147,4 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
                 )
     assembler.to_milhoja_json(full_tf_spec, partial_tf_spec_json, overwrite)
 
-    return full_tf_spec
+    return [full_tf_spec]
