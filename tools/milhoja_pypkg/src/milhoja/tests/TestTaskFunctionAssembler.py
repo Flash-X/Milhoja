@@ -159,6 +159,21 @@ class TestTaskFunctionAssembler(unittest.TestCase):
             self.__logger
         )
 
+        for bad in NOT_STR_LIST:
+            with self.assertRaises(TypeError):
+                TaskFunctionAssembler(
+                    bad, self.__call_graph,
+                    [group], self.__GRID_SPEC,
+                    self.__logger
+                )
+
+        with self.assertRaises(ValueError):
+            TaskFunctionAssembler(
+                "", self.__call_graph,
+                [group], self.__GRID_SPEC,
+                self.__logger
+            )
+
         for bad in NOT_LIST_LIST:
             with self.assertRaises(TypeError):
                 TaskFunctionAssembler(

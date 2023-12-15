@@ -104,6 +104,9 @@ class TaskFunctionAssembler(object):
         It is intended that users instantiate assemblers using the from_*
         classmethods.
 
+        .. todo::
+            * Error check internal_call_graph
+
         :param name: Name of the task function
         :param internal_call_graph: WRITE THIS
         :param group_specs_all:  Set of ``SubroutineGroup`` objects that

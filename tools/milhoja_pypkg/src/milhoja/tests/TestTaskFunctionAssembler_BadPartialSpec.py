@@ -66,7 +66,7 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         group_json = self.__dst.joinpath("Hydro_op1_3D.json")
         self.__Sedov = TaskFunctionAssembler.from_milhoja_json(
-            "gpu_tf_hydro", call_graph, [group_json], GRID_JSON, logger
+            "cpu_tf_hydro", call_graph, [group_json], GRID_JSON, logger
         )
 
         TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
@@ -295,8 +295,8 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         # Can't write sets to JSON
         for bad in NOT_INT_LIST:
-            bad_spec = copy.deepcopy(self.__partial)
             if not isinstance(bad, set):
+                bad_spec = copy.deepcopy(self.__partial)
                 bad_spec["data_item"]["byte_alignment"] = bad
                 with open(TF_PARTIAL_JSON, "w") as fptr:
                     json.dump(bad_spec, fptr)
