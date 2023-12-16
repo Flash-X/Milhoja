@@ -84,11 +84,12 @@ def main():
                             CG_PATH, destination,
                             overwrite, logger
                         )
-        tf_spec_jsons += milhoja.tests.generate_sedov_gpu_tf_specs(
-                             dimension, [nxb, nyb, nzb],
-                             CG_PATH, destination,
-                             overwrite, logger
-                         )
+        tf_spec_jsons.append(milhoja.tests.generate_sedov_gpu_tf_specs(
+                                 dimension, [nxb, nyb, nzb],
+                                 CG_PATH, destination,
+                                 overwrite, logger
+                             )
+                            )
 
         # ----- NOW IS GOOD FOR GENERATING CODE
         milhoja.tests.generate_code(
