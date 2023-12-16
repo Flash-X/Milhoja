@@ -33,6 +33,13 @@ void  sim::setInitialConditions(const milhoja::IntVect& lo,
                                 const milhoja::FArray1D& zCoords,
                                 const milhoja::RealVect& deltas,
                                 milhoja::FArray4D& solnData) {
+    //$milhoja  "solnData": {
+    //$milhoja&     "W": [DENS_VAR, PRES_VAR,
+    //$milhoja&           VELX_VAR, VELY_VAR, VELZ_VAR,
+    //$milhoja&           ENER_VAR, EINT_VAR, TEMP_VAR,
+    //$milhoja&           GAME_VAR, GAMC_VAR]
+    //$milhoja& }
+
     using namespace milhoja;
 
     constexpr Real             PI           = 3.1415926535897932384_wp;
