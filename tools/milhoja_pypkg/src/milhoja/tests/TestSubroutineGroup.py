@@ -71,6 +71,14 @@ class TestSubroutineGroup(unittest.TestCase):
             SubroutineGroup.from_milhoja_json(dst, self.__logger)
 
         bad_spec = copy.deepcopy(self.__good)
+        bad_spec["frmat"] = bad_spec["format"]
+        del bad_spec["format"]
+        with open(TMP_FNAME, "w") as fptr:
+            json.dump(bad_spec, fptr)
+        with self.assertRaises(ValueError):
+            SubroutineGroup.from_milhoja_json(TMP_FNAME, self.__logger)
+
+        bad_spec = copy.deepcopy(self.__good)
         bad_spec["format"][0] = "!Not a Format!"
         with open(TMP_FNAME, "w") as fptr:
             json.dump(bad_spec, fptr)

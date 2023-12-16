@@ -55,6 +55,8 @@ class SubroutineGroup(object):
             group_spec = json.load(fptr)
 
         # ----- CONVERT TO INTERNAL MILHOJA REPRESENTATION
+        if "format" not in group_spec:
+            raise ValueError("format information not provided")
         format_name, version = group_spec["format"]
 
         # Only one Milhoja-JSON format presently
