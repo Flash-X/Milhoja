@@ -61,6 +61,36 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
+GRID_DATA_EXTENTS = {
+    "CENTER": [
+        '{0} + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXX": [
+        '({0} + 1) + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXY": [
+        '({0} + 2 * {1} * MILHOJA_K1D',
+        '({0} + 1) + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXZ": [
+        '{0} + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '({0} + 1) + 2 * {1} * MILHOJA_K3D'
+    ]
+}
+
+GRID_DATA_LBOUNDS = {
+    "CENTER": "(tile_lbound, {0})",  # where 0 is the number of unks
+    "FLUXX": "(tile_lo, 1)",  # number of fluxes starts at 1
+    "FLUXY": "(tile_lo, 1)",
+    "FLUXZ": "(tile_lo, 1)"
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed

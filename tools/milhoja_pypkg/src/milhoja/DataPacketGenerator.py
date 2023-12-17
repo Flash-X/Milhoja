@@ -8,7 +8,6 @@ from collections import OrderedDict
 from pathlib import Path
 
 from .parse_helpers import parse_extents
-from .parse_helpers import parse_lbound
 from .generate_packet_file import generate_packet_file
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
@@ -22,7 +21,7 @@ from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    LOG_LEVEL_MAX, INTERNAL_ARGUMENT
+    LOG_LEVEL_MAX, INTERNAL_ARGUMENT, GRID_DATA_EXTENTS
 )
 
 
@@ -39,7 +38,8 @@ class DataPacketGenerator(AbcCodeGenerator):
     FORTRAN_EQUIVALENT = {
         "IntVect": "int",
         "RealVect": "real",
-        "bool": "logical"
+        "bool": "logical",
+        "real": "real"
     }
 
     SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
@@ -90,9 +90,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
 
         if self._tf_spec.language.lower() == "c++":
-            self.template_utility = CppTemplateUtility
+            self.template_utility = CppTemplateUtility(tf_spec)
         elif self._tf_spec.language.lower() == "fortran":
-            self.template_utility = FortranTemplateUtility
+            self.template_utility = FortranTemplateUtility(tf_spec)
         else:
             self.log_and_abort(
                 "No template utility for specifed language",
@@ -289,7 +289,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 self._tf_spec, outer_cpp2c,
                 helper_cpp2c, self._indent,
                 self._logger.level,
-                self.n_extra_streams, self.external_args
+                self.n_extra_streams
             )
 
             self._log(
@@ -322,10 +322,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             # generate fortran to c layer if necessary
             c2f_layer = C2FortranLayerGenerator(
                 self._tf_spec, self._indent,
-                self._logger, self.n_extra_streams,
-                self.external_args, self.tile_metadata_args,
-                self.tile_in_args, self.tile_in_out_args,
-                self.tile_out_args, self.scratch_args
+                self._logger, self.n_extra_streams
             )
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
@@ -469,7 +466,9 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         # insert arguments into separate dict for use later
         for item in args:
-            external[item] = self._tf_spec.argument_specification(item)
+            external[item] = deepcopy(
+                self._tf_spec.argument_specification(item)
+            )
 
         return self._sort_dict(
             external.items(),
@@ -508,13 +507,18 @@ class DataPacketGenerator(AbcCodeGenerator):
             raise RuntimeError("Language is not supported.")
 
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
-        for key in args:
-            args[key] = self._tf_spec.argument_specification(key)
-            args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
+        mdata_names = []
+        for names in args.values():
+            mdata_names.extend(names)
+        mdata = {}
+        for key in mdata_names:
+            spec = deepcopy(self._tf_spec.argument_specification(key))
+            mdata[key] = spec
+            mdata[key]['type'] = self.SOURCE_DATATYPE[mdata[key]["source"]]
             if lang == "fortran":
-                args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
+                mdata[key]['type'] = self.FORTRAN_EQUIVALENT[mdata[key]['type']]
 
-        return self._sort_dict(args.items(), sort_func, True)
+        return self._sort_dict(mdata.items(), sort_func, True)
 
     def __adjust_tile_data(self, args: dict) -> dict:
         """
@@ -527,16 +531,19 @@ class DataPacketGenerator(AbcCodeGenerator):
         block_extents = self.block_extents
         nguard = self.n_guardcells
         for arg in args:
-            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            arg_dictionary[arg] = deepcopy(
+                self._tf_spec.argument_specification(arg)
+            )
             struct_index = arg_dictionary[arg]['structure_index']
-            x = '({0}) + 1' if struct_index[0].lower() == 'fluxx' else '{0}'
-            y = '({0}) + 1' if struct_index[0].lower() == 'fluxy' else '{0}'
-            z = '({0}) + 1' if struct_index[0].lower() == 'fluxz' else '{0}'
-            arg_dictionary[arg]['extents'] = [
-                x.format(f'{block_extents[0]} + 2 * {nguard} * MILHOJA_K1D'),
-                y.format(f'{block_extents[1]} + 2 * {nguard} * MILHOJA_K2D'),
-                z.format(f'{block_extents[2]} + 2 * {nguard} * MILHOJA_K3D')
-            ]
+
+            # NOTE:
+            #   We need to deep copy this otherwise we accidentally overwrite
+            #   the strings in the dictionary... That was a fun debugging
+            #   experience...
+            extents = deepcopy(GRID_DATA_EXTENTS[struct_index[0].upper()])
+            for idx, size in enumerate(block_extents):
+                extents[idx] = extents[idx].format(size, nguard)
+            arg_dictionary[arg]['extents'] = extents
 
             # adjust masking.
             # ..todo::
@@ -621,11 +628,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = deepcopy(self._tf_spec.scratch_arguments)
         arg_dictionary = OrderedDict()
         for arg in args:
-            arg_dictionary[arg] = self._tf_spec.argument_specification(arg)
+            arg_dictionary[arg] = deepcopy(
+                self._tf_spec.argument_specification(arg)
+            )
             arg_dictionary[arg]['extents'] = \
                 parse_extents(arg_dictionary[arg]['extents'])
-            arg_dictionary[arg]['lbound'] = \
-                parse_lbound(arg_dictionary[arg]['lbound'])
+            arg_dictionary[arg]['lbound'] = arg_dictionary[arg]['lbound']
         return self._sort_dict(
             arg_dictionary.items(),
             lambda x: (self._sizes.get(x[1]["type"], 0), x[0]),

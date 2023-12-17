@@ -1,6 +1,11 @@
 from collections import OrderedDict
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
+from .parse_helpers import parse_lbound
+from . import (
+    TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT
+)
 
 
 class CppTemplateUtility(TemplateUtility):
@@ -9,9 +14,11 @@ class CppTemplateUtility(TemplateUtility):
     for use with a C++ task function.
     """
 
-    @classmethod
+    def __init__(self, tf_spec):
+        super().__init__(tf_spec)
+
     def iterate_externals(
-        cls, connectors: dict, size_connectors: dict, externals: OrderedDict
+        self, connectors: dict, size_connectors: dict, externals: OrderedDict
     ):
         """
         Iterates the external variables section
@@ -26,18 +33,19 @@ class CppTemplateUtility(TemplateUtility):
                                         the externals section in the TF JSON
         :rtype: None
         """
-        cls.section_creation(cls._EXT, externals, connectors, size_connectors)
-        connectors[cls._HOST_MEMBERS] = []
+        self.section_creation(self._EXT, externals, connectors, size_connectors)
+        connectors[self._HOST_MEMBERS] = []
         # we need to set nTiles value here as a link, _param does not work as
         # expected.
 
         nTiles_value = '_nTiles_h = tiles_.size();'
-        connectors[cls._NTILES_VALUE] = [nTiles_value]
-        cls._common_iterate_externals(connectors, externals)
+        connectors[self._NTILES_VALUE] = [nTiles_value]
+        self._common_iterate_externals(connectors, externals)
 
-    @classmethod
+    # todo::
+    #   * implement lbound for C++ packet.
     def iterate_tilemetadata(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tilemetadata: OrderedDict,
@@ -55,17 +63,24 @@ class CppTemplateUtility(TemplateUtility):
                                tile_in_out, tile_out, and tile_scratch.
         """
 
-        cls.section_creation(
-            cls._T_MDATA, tilemetadata, connectors, size_connectors
+        self.section_creation(
+            self._T_MDATA, tilemetadata, connectors, size_connectors
         )
-        connectors[cls._T_DESCRIPTOR] = []
-        connectors[cls._SIZE_DET].append(
+        connectors[self._T_DESCRIPTOR] = []
+        connectors[self._SIZE_DET].append(
             "static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);\n"
         )
-        cls.insert_farray_size(size_connectors, num_arrays)
+        self.insert_farray_size(size_connectors, num_arrays)
 
         for item, data in tilemetadata.items():
             source = data['source']
+            interior = TILE_INTERIOR_ARGUMENT
+            if source == interior or source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                raise NotImplementedError("Interior not implemented for C++")
+
+            assoc_array = data.get("array", None)
+            if assoc_array:
+                raise NotImplementedError("Lbound not implemented for C++.")
 
             # ..todo:: Temporary fix for generating flash-x packet
             if source == "tile_lbound":
@@ -81,29 +96,28 @@ class CppTemplateUtility(TemplateUtility):
             )
 
             # extend each connector
-            connectors[cls._PUB_MEMBERS].extend(
+            connectors[self._PUB_MEMBERS].extend(
                 [f'{item_type}* {info.device};\n']
             )
-            connectors[cls._SET_MEMBERS].extend(
+            connectors[self._SET_MEMBERS].extend(
                 [f'{info.device}{{nullptr}}']
             )
-            connectors[cls._SIZE_DET].append(
+            connectors[self._SIZE_DET].append(
                 f'static constexpr std::size_t {info.size} = {size_eq};\n'
             )
-            cls.set_pointer_determination(connectors, cls._T_MDATA, info)
+            self.set_pointer_determination(connectors, self._T_MDATA, info)
 
-            connectors[cls._T_DESCRIPTOR].append(
+            connectors[self._T_DESCRIPTOR].append(
                 f'const auto {source} = tileDesc_h->{source}();\n'
             )
 
             # TODO: This might not work completely when needing an unsigned
             #       int as a variable type. Try generating spark packets to
             #       resolve this.
-            cls.tile_metadata_memcpy(connectors, info, source)
+            self.tile_metadata_memcpy(connectors, info, source)
 
-    @classmethod
     def iterate_tile_in(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tilein: OrderedDict,
@@ -117,7 +131,7 @@ class CppTemplateUtility(TemplateUtility):
         :param OrderedDict tilein: The dict containing the information in the
                                    tile_in section.
         """
-        cls.section_creation(cls._T_IN, tilein, connectors, size_connectors)
+        self.section_creation(self._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
             # gather all information from tile_in section.
             extents = data['extents']
@@ -125,8 +139,8 @@ class CppTemplateUtility(TemplateUtility):
 
             # for now just assume that all index spaces are 1 based
             # since all arrays in the packet are 1 based.
-            index_offset = cls.DEFAULT_INDEX_SPACE
-            array_size = cls.get_array_size(mask_in, [])
+            index_offset = self.DEFAULT_INDEX_SPACE
+            array_size = self.get_array_size(mask_in, [])
 
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in extents)
@@ -137,18 +151,17 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_data(
-                data, connectors, info, extents, mask_in, None, cls._T_IN
+            self._common_iterate_tile_data(
+                data, connectors, info, extents, mask_in, None, self._T_IN
             )
 
-            cls.insert_farray_memcpy(
+            self.insert_farray_memcpy(
                 connectors, info.ITEM, 'tileDesc_h->loGC()',
                 'tileDesc_h->hiGC()', unks, info.dtype
             )
 
-    @classmethod
     def iterate_tile_in_out(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tileinout: OrderedDict
@@ -164,20 +177,20 @@ class CppTemplateUtility(TemplateUtility):
                                       tile-in-out section of the datapacket
                                       json.
         """
-        cls.section_creation(
-            cls._T_IN_OUT, tileinout, connectors, size_connectors
+        self.section_creation(
+            self._T_IN_OUT, tileinout, connectors, size_connectors
         )
-        connectors[f'memcpy_{cls._T_IN_OUT}'] = []
-        connectors[f'unpack_{cls._T_IN_OUT}'] = []
+        connectors[f'memcpy_{self._T_IN_OUT}'] = []
+        connectors[f'unpack_{self._T_IN_OUT}'] = []
         # unpack all items in tile_in_out
         for item, data in tileinout.items():
             in_mask = data['variables_in']
             out_mask = data['variables_out']
-            array_size = cls.get_array_size(in_mask, out_mask)
-            index_space = cls.DEFAULT_INDEX_SPACE
+            array_size = self.get_array_size(in_mask, out_mask)
+            index_space = self.DEFAULT_INDEX_SPACE
 
             dtype = data['type']
-            extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
+            extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             unks = f'{array_size} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
@@ -185,20 +198,19 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_data(
+            self._common_iterate_tile_data(
                 data, connectors, info, extents,
-                in_mask, out_mask, cls._T_IN_OUT
+                in_mask, out_mask, self._T_IN_OUT
             )
 
-            cls.insert_farray_memcpy(
+            self.insert_farray_memcpy(
                 connectors, item,
                 "tileDesc_h->loGC()", "tileDesc_h->hiGC()",
                 unks, info.dtype
             )
 
-    @classmethod
     def iterate_tile_out(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tileout: OrderedDict
@@ -217,16 +229,16 @@ class CppTemplateUtility(TemplateUtility):
         :param OrderedDict tileout: The dict containing information from the
                                     tile-out section of the data packet JSON.
         """
-        cls.section_creation(cls._T_OUT, tileout, connectors, size_connectors)
-        connectors[f'unpack_{cls._T_OUT}'] = []
+        self.section_creation(self._T_OUT, tileout, connectors, size_connectors)
+        connectors[f'unpack_{self._T_OUT}'] = []
         for item, data in tileout.items():
             # ge tile_out information
             out_mask = data['variables_out']
-            array_size = cls.get_array_size([], out_mask)
-            index_space = cls.DEFAULT_INDEX_SPACE
+            array_size = self.get_array_size([], out_mask)
+            index_space = self.DEFAULT_INDEX_SPACE
             unks = f"{str(array_size)} + 1 - {str(index_space)}"
 
-            extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
+            extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             dtype = data['type']
             info = DataPacketMemberVars(
                 item=item,
@@ -235,11 +247,11 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_data(
-                data, connectors, info, extents, None, out_mask, cls._T_OUT
+            self._common_iterate_tile_data(
+                data, connectors, info, extents, None, out_mask, self._T_OUT
             )
 
-            cls.insert_farray_memcpy(
+            self.insert_farray_memcpy(
                 connectors,
                 item,
                 'tileDesc_h->loGC()',
@@ -248,9 +260,8 @@ class CppTemplateUtility(TemplateUtility):
                 info.dtype
             )
 
-    @classmethod
     def iterate_tile_scratch(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tilescratch: OrderedDict,
@@ -266,12 +277,12 @@ class CppTemplateUtility(TemplateUtility):
                                          the tilescratch section of the JSON.
         :param str language: The language to use when generating the packet.
         """
-        cls.section_creation(
-            cls._T_SCRATCH, tilescratch, connectors, size_connectors
+        self.section_creation(
+            self._T_SCRATCH, tilescratch, connectors, size_connectors
         )
         for item, data in tilescratch.items():
-            lbound = data[cls._LBOUND]
-            exts = data[cls._EXTENTS]
+            lbound = parse_lbound(data[self._LBOUND])
+            exts = data[self._EXTENTS]
             dtype = data["type"]
             # need to fill farrays with default args
             extents4d = ["1"] * 4
@@ -285,7 +296,7 @@ class CppTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_scratch(
+            self._common_iterate_tile_scratch(
                 connectors, info
             )
             # we don't insert into memcpy or unpack because the scratch is
@@ -307,22 +318,20 @@ class CppTemplateUtility(TemplateUtility):
             hi = f'({lo}) +' \
                 f'( IntVect{{ LIST_NDIM({",".join(extents4d[:-1])}) }} )'
             unks = extents4d[-1]
-            cls.insert_farray_memcpy(
+            self.insert_farray_memcpy(
                 connectors, item, lo, hi, str(unks), info.dtype
             )
 
-    @classmethod
-    def insert_farray_size(cls, connectors, num_arrays):
+    def insert_farray_size(self, connectors, num_arrays):
         """Inserts the total size needed to store all farray pointers."""
-        line = connectors[f'size_{cls._T_MDATA}']
+        line = connectors[f'size_{self._T_MDATA}']
         insert_index = line.find('(')
-        connectors[f'size_{cls._T_MDATA}'] = \
+        connectors[f'size_{self._T_MDATA}'] = \
             f'{line[:insert_index + 1]}({num_arrays} * SIZE_FARRAY4D) + ' \
             f'{line[insert_index + 1:]}'
 
-    @classmethod
     def insert_farray_memcpy(
-        cls, connectors, item: str, lo: str,
+        self, connectors, item: str, lo: str,
         hi: str, unks: str, data_type: str
     ):
         """
@@ -339,7 +348,7 @@ class CppTemplateUtility(TemplateUtility):
         # create metadata pointers for the f4array classes.
         # ..todo::
         #      * insert 4D/3D/2D/1D arrays as necessary.
-        connectors[f'pointers_{cls._T_MDATA}'].append(
+        connectors[f'pointers_{self._T_MDATA}'].append(
             f'FArray4D* _f4_{item}_p = static_cast<FArray4D*>( '
             'static_cast<void*>( ptr_p ) );\n'
             f'_f4_{item}_d = static_cast<FArray4D*>( '
@@ -349,7 +358,7 @@ class CppTemplateUtility(TemplateUtility):
         )
         # Does not matter what memcpy section we insert into,
         # so we default to T_IN.
-        connectors[f'memcpy_{cls._T_IN}'].extend([
+        connectors[f'memcpy_{self._T_IN}'].extend([
             f'FArray4D {item}_device{{ static_cast<{data_type}*>( '
             'static_cast<void*>( static_cast<char*>( '
             f'static_cast<void*>(_{item}_d) ) '
@@ -360,9 +369,8 @@ class CppTemplateUtility(TemplateUtility):
             f'static_cast<void*>(&{item}_device), SIZE_FARRAY4D);\n\n'
         ])
 
-    @classmethod
     # can probably shrink this function and insert it into each data section.
-    def insert_farray_information(cls, connectors, tile_data: list):
+    def insert_farray_information(self, connectors, tile_data: list):
         """
         Inserts farray items into the data packet.
 
@@ -375,16 +383,15 @@ class CppTemplateUtility(TemplateUtility):
         # we need to make an farray object for every possible data array
         farrays = {item: sect[item] for sect in tile_data for item in sect}
         # TODO: Use DataPacketMemberVars class for this.
-        connectors[cls._PUB_MEMBERS].extend(
+        connectors[self._PUB_MEMBERS].extend(
             [f'FArray4D* _f4_{item}_d;\n' for item in farrays]
         )
-        connectors[cls._SET_MEMBERS].extend(
+        connectors[self._SET_MEMBERS].extend(
             [f'_f4_{item}_d{{nullptr}}' for item in farrays]
         )
 
-    @classmethod
     def tile_metadata_memcpy(
-        cls,
+        self,
         connectors,
         info: DataPacketMemberVars,
         alt_name: str
@@ -400,7 +407,7 @@ class CppTemplateUtility(TemplateUtility):
         # Inserts the memcpy portion for tile metadata.
         # Various arguments are unused to share a function call with another
         # func.
-        connectors[f'memcpy_{cls._T_MDATA}'].extend([
+        connectors[f'memcpy_{self._T_MDATA}'].extend([
             f"""char_ptr = static_cast<char*>( static_cast<void*>( """
             f"""{info.pinned} ) ) + n * {info.size};\n""",
             f"""std::memcpy(static_cast<void*>(char_ptr), """

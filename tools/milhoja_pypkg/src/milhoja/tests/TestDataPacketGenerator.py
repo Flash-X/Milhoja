@@ -134,6 +134,16 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_3D
+            },
+            {
+                self.JSON: _DATA_PATH.joinpath(
+                    "Sedov",
+                    "gpu_tf_hydro_3DF_lb.json"
+                ),
+                self.FOLDER: "Sedov",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_3D
             }
         ]
 
@@ -334,10 +344,16 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def testTemplateUtility(self):
         """
-        Function for testing the template utility classes.
+        Function for testing the template utility classes. Primarily tests
+        that the correct errors are raised given certain conditions. The
+        output is checked by the data packet generation tests.
         """
         connectors = {}
         size_connectors = {}
+
+        # load sample json to pass to constructor.
+        tf_spec = TaskFunction.from_milhoja_json(self._runtime[0][self.JSON])
+        util = FortranTemplateUtility(tf_spec)
 
         # give a sample external variable set.
         mock_external = OrderedDict({
@@ -367,7 +383,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             NotImplementedError,
             msg="No test case for fortran tile_in."
         ):
-            FortranTemplateUtility.iterate_tile_in(
+            util.iterate_tile_in(
                 connectors, size_connectors, mock_tile_in
             )
 
@@ -382,7 +398,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             NotImplementedError,
             msg="No test cases for fortran tile_out."
         ):
-            FortranTemplateUtility.iterate_tile_out(
+            util.iterate_tile_out(
                 connectors, size_connectors, mock_tile_out
             )
 
@@ -412,7 +428,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             cpp2c = Cpp2CLayerGenerator(
                 tf_spec, outer, helper,
                 4, LOG_LEVEL_NONE, datapacket_generator.n_extra_streams,
-                datapacket_generator.external_args
             )
 
             with self.assertRaises(
@@ -494,24 +509,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 tf_spec, 4, logger, sizes
             )
 
-            int_scratch = {
-                "auxC": {
-                    "source": "scratch",
-                    "type": "int",
-                    "extents": ['1', '1', '1'],
-                    "lbound": ["(tile_lo)"]
-                }
-            }
-
             c2f = C2FortranLayerGenerator(
-                tf_spec, 4, logger,
-                datapacket_generator.n_extra_streams,
-                datapacket_generator.external_args,
-                datapacket_generator.tile_metadata_args,
-                datapacket_generator.tile_in_args,
-                datapacket_generator.tile_in_out_args,
-                datapacket_generator.tile_out_args,
-                int_scratch
+                tf_spec, 4, logger, datapacket_generator.n_extra_streams
             )
 
             with self.assertRaises(
@@ -520,11 +519,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             ):
                 c2f.generate_header_code(destination, overwrite=True)
 
-            with self.assertRaises(
-                NotImplementedError,
-                msg="Int scratch did not raise error."
-            ):
-                c2f.generate_source_code(destination, overwrite=True)
+            c2f.generate_source_code(destination, overwrite=True)
 
             with self.assertRaises(
                 FileExistsError,
@@ -537,38 +532,3 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     os.remove(file)
             except FileNotFoundError:
                 print("Could not find files. Continue.")
-
-    def testGetArraySizes(self):
-        # test none on both
-        mask_in = None
-        mask_out = None
-        with self.assertRaises(TypeError):
-            TemplateUtility.get_array_size([], [])
-
-        mask_in = [1, 2]
-        mask_out = [1, 2]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 2)
-
-        mask_in = [2, 8]
-        mask_out = [2, 2]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 8)
-
-        with self.assertRaises(
-            NotImplementedError,
-            msg="No test cases for out size > in size, but no error thrown."
-        ):
-            mask_in = [1, 2]
-            mask_out = [1, 6]
-            TemplateUtility.get_array_size(mask_in, mask_out)
-
-        mask_in = [1, 10]
-        mask_out = []
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 10)
-
-        mask_in = []
-        mask_out = [1, 10]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 10)

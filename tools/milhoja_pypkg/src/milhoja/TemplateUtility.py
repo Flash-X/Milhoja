@@ -14,13 +14,15 @@ from abc import abstractmethod
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
+from .TaskFunction import TaskFunction
 
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
     TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 
@@ -60,8 +62,10 @@ class TemplateUtility():
     SOURCE_DATATYPE = {
         TILE_LO_ARGUMENT: "IntVect",
         TILE_HI_ARGUMENT: "IntVect",
+        TILE_INTERIOR_ARGUMENT: "IntVect",
         TILE_LBOUND_ARGUMENT: "IntVect",
         TILE_UBOUND_ARGUMENT: "IntVect",
+        TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
         TILE_DELTAS_ARGUMENT: "RealVect",
         TILE_LEVEL_ARGUMENT: "unsigned int",
         GRID_DATA_ARGUMENT: "real",
@@ -73,6 +77,48 @@ class TemplateUtility():
 
     # C++ Index space is always 0.
     DEFAULT_INDEX_SPACE = 0
+
+    def __init__(self, tf_spec: TaskFunction):
+        """
+        Initializer for the base template utility class.
+        TemplateUtility needs a copy of tf_spec in order to handle lbounds
+        for any array.
+        """
+        self.tf_spec = tf_spec
+
+    # # todo:: This method can be combined with get_array_size.
+    @staticmethod
+    def get_initial_index(vars_in: list, vars_out: list) -> int:
+        """
+        Returns the initial index based on a given variable masking.
+        :param list vars_in: The variable masking for copying into the packet.
+        :param list vars_out: The variable masking for copying out.
+        :return: The size of the array given the variable masking.
+        :rtype: int
+        """
+        starting = maxsize
+        if not vars_in and not vars_out:
+            raise TypeError("No variable masking for array in tf_spec.")
+
+        starting_in = None
+        if vars_in:
+            starting_in = min(vars_in)
+            starting = starting_in
+
+        starting_out = None
+        if vars_out:
+            starting_out = min(vars_out)
+            starting = starting_out
+
+        if starting_in and starting_out:
+            assert starting_in
+            assert starting_out
+            starting = min(starting_in, starting_out)
+
+        if starting == maxsize:
+            raise LogicError("Starting value for array is too large.")
+
+        return starting
 
     @staticmethod
     def get_array_size(vars_in: list, vars_out: list) -> int:
@@ -141,12 +187,12 @@ class TemplateUtility():
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
-            if var_data["extents"] != "()":
+            if var_data["extents"] and var_data["extents"] != "()":
                 size_equation = \
                     f'{size_equation} * {" * ".join(var_data["extents"])}'
-                raise NotImplementedError(
-                    "No test cases for external var with extents."
-                )
+                # raise NotImplementedError(
+                #     "No test cases for external var with extents."
+                # )
             info = DataPacketMemberVars(
                 item=key, dtype=var_data["type"],
                 size_eq=size_equation, per_tile=False
