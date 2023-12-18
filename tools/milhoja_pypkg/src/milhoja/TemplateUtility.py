@@ -184,17 +184,28 @@ class TemplateUtility():
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.
         """
+
+        DTYPE_MAPPING = {
+            "real": "real",
+            "integer": "int",
+            "logical": "bool",
+            "int": "int"
+        }
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
-            size_equation = f'sizeof({var_data["type"]})'
+            dtype = DTYPE_MAPPING[var_data["type"]]
+            size_equation = f'sizeof({dtype})'
             if var_data["extents"] and var_data["extents"] != "()":
+                if not isinstance(var_data["extents"], list):
+                    raise LogicError("var_data['extents'] is not a list (hint: forgot parse_extents?)")
+                extents = ' * '.join(f'({val})' for val in var_data["extents"])
                 size_equation = \
-                    f'{size_equation} * {" * ".join(var_data["extents"])}'
+                    f'{extents} * {size_equation}'
                 # raise NotImplementedError(
                 #     "No test cases for external var with extents."
                 # )
             info = DataPacketMemberVars(
-                item=key, dtype=var_data["type"],
+                item=key, dtype=dtype,
                 size_eq=size_equation, per_tile=False
             )
 

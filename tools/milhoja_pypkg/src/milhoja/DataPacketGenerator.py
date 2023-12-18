@@ -469,6 +469,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             external[item] = deepcopy(
                 self._tf_spec.argument_specification(item)
             )
+            external[item]['extents'] = \
+                parse_extents(external[item]['extents'])
 
         return self._sort_dict(
             external.items(),

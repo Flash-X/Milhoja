@@ -1,0 +1,69 @@
+# Define the following paths:
+#  - BASEDIR: Path to the repository root directory
+#  - AMREXDIR: Path to the appropriate AMReX build directory
+#              (can use the variable NDIM from Makefile.setup)
+#  - GTESTDIR: Path to the Googletest build directory
+#  - CUDADIR: Path to Cuda installation
+BASEDIR      = /opt/software/src/OrchestrationRuntime
+AMREXDIR     = $(FLASHX_AMREX$(NDIM)D_DIR)
+GTESTDIR     = $(FLASHX_GTEST_DIR)
+JSONDIR      = /opt/software/src/json/include
+CUDADIR      = $(CUDA_ROOT)/12.0
+
+# Define the following compiler-related flags
+#  - CXXCOMPNAME: Name of C++ compiler {gnu, pgi, xl, clang}
+#  - CXXCOMP: The desired C++ compiler command or path
+#  - CXXFLAGS_PROD, CXXFLAGS_DEBUG: The set of compiler flags. The debug option
+#        will be chosen if --debug (or -d) is included in the setup command,
+#        otherwise the production flags will be used.
+#  - CUCOMP, CUFLAGS_PROD
+CXXCOMPNAME  = nvhpc
+CXXCOMP      = mpicxx
+CUCOMP       = nvcc
+
+OACC_FLAGS    = -acc=gpu -gpu=cc86,cuda12.0,ptxinfo -Minfo=accel
+
+CXXFLAGS_PROD    = -O3 -m64 -I$(CUDADIR)/include $(OACC_FLAGS)
+CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG -m64 -I$(CUDADIR)/include $(OACC_FLAGS)
+
+CUFLAGS_PROD = -ccbin=nvc++ -O3 -m64 -gencode arch=compute_86,code=sm_86
+
+F90COMP        = mpif90
+F90FLAGS_PROD  = \
+	-O3 -Mpreprocess -traceback \
+	-i4 -r8
+F90FLAGS_DEBUG = \
+	-g -O0 -Mpreprocess -traceback \
+	-i4 -r8 -Mbounds -Werror -Mchkptr
+
+LDFLAGS_STD = -lpthread -lstdc++ -lcudart -L$(CUDADIR)/lib64 $(OACC_FLAGS)
+
+# Define the following backend-related flags:
+#  - CXXFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
+#  - CUFLAGS_AMREX: Flags for AMReX backend (e.g. include dir)
+#  - CXXFLAGS_GTEST: Flags for Googletest (e.g. include dir)
+#  - LIB_AMREX: Linker flags for AMReX
+#  - LIB_GTEST: Linker flags for Googletest
+CXXFLAGS_AMREX   = -I$(AMREXDIR)/include -DNDEBUG
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
+CUFLAGS_AMREX    = -I$(AMREXDIR)/include -DNDEBUG
+CUFLAGS_GTEST    = -I$(GTESTDIR)/include
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib -pgf90libs
+LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib -rpath=$(GTESTDIR)/lib
+
+# Define the follwing paths for generating code coverage reports.
+#  - LCOV: path or command for the coverage tool (lcov)
+#  - GENHTML: path or command for generating html reports (genhtml).
+#  - CXXFLAGS_COV
+#  - LDFLAGS_COV
+#LCOV = lcov
+#GENHTML = genhtml
+
+CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
+LDFLAGS_COV  = --coverage
+
+# Define flags for OpenMP
+AMREXDIR_OMP  = 
+OMP_FLAGS     = 
+CU_OMP_FLAGS  = 
+

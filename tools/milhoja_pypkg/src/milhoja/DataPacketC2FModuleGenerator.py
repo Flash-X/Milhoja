@@ -82,7 +82,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
                     f"intent(IN), value :: {name}"
                 )
 
-            args = f' &\n{self.INDENT * 3}'.join(arg_list)
+            args = f', &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_packet &\n"
