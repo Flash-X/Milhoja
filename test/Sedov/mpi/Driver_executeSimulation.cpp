@@ -7,6 +7,7 @@
 #include <Milhoja_real.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Logger.h>
+#include <Milhoja_test.h>
 
 #include "Sedov.h"
 #include "RuntimeParameters.h"
@@ -64,9 +65,9 @@ void    Driver::executeSimulation(void) {
     //----- MIMIC Driver_evolveFlash
     // Create scratch buffers.
     // They will be reindexed as needed, but size needs to be correct.
-    int    NXB{RPs.getInt("Grid", "NXB")};
-    int    NYB{RPs.getInt("Grid", "NYB")};
-    int    NZB{RPs.getInt("Grid", "NZB")};
+    int    NXB{MILHOJA_TEST_NXB};
+    int    NYB{MILHOJA_TEST_NYB};
+    int    NZB{MILHOJA_TEST_NZB};
     milhoja::FArray3D   auxC = milhoja::FArray3D::buildScratchArray(
                             milhoja::IntVect{LIST_NDIM(1  -MILHOJA_K1D, 1  -MILHOJA_K2D, 1  -MILHOJA_K3D)},
                             milhoja::IntVect{LIST_NDIM(NXB+MILHOJA_K1D, NYB+MILHOJA_K2D, NZB+MILHOJA_K3D)});

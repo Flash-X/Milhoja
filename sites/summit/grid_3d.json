@@ -9,10 +9,7 @@
         "finestRefinementLevel":          3,
         "nBlocksX":                       4,
         "nBlocksY":                       4,
-        "nBlocksZ":                       4,
-        "NXB":                            8,
-        "NYB":                            8,
-        "NZB":                            8
+        "nBlocksZ":                       4
     }
 }
 

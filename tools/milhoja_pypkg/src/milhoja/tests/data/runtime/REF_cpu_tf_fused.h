@@ -4,7 +4,7 @@
 #include <Milhoja_DataItem.h>
 
 namespace cpu_tf_fused {
-    void  taskFunction(const int threadId,
+    void  taskFunction(const int threadIndex,
                        milhoja::DataItem* dataItem);
 };
 

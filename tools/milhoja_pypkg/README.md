@@ -109,10 +109,10 @@ The following commands can be run from the directory that contains this file.
   * This is likely only useful for developers working on a local clone
   * Run several checks on the code to report possible issues
   * No files are altered automatically by this task
-* `tox -r -e format`
-  * __IMPORTANT__: This task will potentially alter files without warnings or prompts.
-  * This is likely only useful for developers working on a local clone
-  * Apply `black` to all files in the package for cleaning/standardization
+* ``tox -r -e html``
+  * Generate and render the package's documentation locally in HTML
+* ``tox -r -e pdf``
+  * Generate and render the package's documentation locally as a PDF file
 
 Additionally, you can run any combination of the above such as `tox -r -e report,coverage`.
 
