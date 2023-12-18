@@ -16,7 +16,7 @@ from . import (
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT,
-    GRID_DATA_LBOUNDS
+    GRID_DATA_LBOUND
 )
 
 
@@ -137,21 +137,16 @@ class FortranTemplateUtility(TemplateUtility):
                         "Lbound for external arrays not implemented."
                     )
                 elif source == GRID_DATA_ARGUMENT:
-                    struct = array_spec["structure_index"][0]
                     lbound = None
-                    if struct.lower() == "center":
-                        # get starting array value
-                        vars_in = array_spec.get('variables_in', None)
-                        vars_out = array_spec.get('variables_out', None)
-                        init = self.get_initial_index(vars_in, vars_out)
-                        lbound = \
-                            GRID_DATA_LBOUNDS[struct.upper()].format(init)
-                    else:
-                        lbound = GRID_DATA_LBOUNDS[struct.upper()]
+                    # get starting array value
+                    vars_in = array_spec.get('variables_in', None)
+                    vars_out = array_spec.get('variables_out', None)
+                    init = self.get_initial_index(vars_in, vars_out)
+                    lbound = GRID_DATA_LBOUND.format(init)
                     lbound = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
-                    one_time_mdata[TILE_LBOUND_ARGUMENT] = \
-                        {"source": "tile_lbound", "type": "IntVect"}
+                    one_time_mdata[TILE_LO_ARGUMENT] = \
+                        {"source": "tile_lo", "type": "IntVect"}
                 # todo::
                 #   * this assumes that any mdata in lbound already exists...
                 elif source == SCRATCH_ARGUMENT:
