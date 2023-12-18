@@ -136,11 +136,10 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.SIZES: self.SUMMIT_SIZES_3D
             },
             {
-                self.JSON: _DATA_PATH.joinpath(
-                    "Sedov",
-                    "gpu_tf_hydro_3DF_lb.json"
+                self.JSON: _FLASHX_PATH.joinpath(
+                    "REF_gpu_tf_hydro_3DF_lb.json"
                 ),
-                self.FOLDER: "Sedov",
+                self.FOLDER: "FlashX",
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_3D
