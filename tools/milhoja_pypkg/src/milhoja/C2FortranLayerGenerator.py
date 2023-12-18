@@ -9,10 +9,9 @@ from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    EXTERNAL_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL,
-    GRID_DATA_EXTENTS
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT,
+    SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL, GRID_DATA_EXTENTS
 )
 
 
@@ -29,23 +28,13 @@ class C2FInfo:
     conversion_eq: str
 
     @property
-    def shape_str(self):
-        if not self.shape:
-            return ""
-        return '(' + ','.join(self.shape) + ')'
-
-    @property
-    def dummy_shp(self):
-        if not self.shape:
-            return ""
-        return '(' + ','.join([':'] * len(self.shape)) + ')'
-
-    @property
     def cname(self):
+        """Name of the dummy variable."""
         return f"C_{self.name}"
 
     @property
     def fname(self):
+        """Name of the fortran variable."""
         return f"F_{self.name}"
 
 
@@ -82,19 +71,12 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         n_ex_streams
     ):
         """
-        Constructor. The data packet generator automatically passes in the
-        data it uses to construct the data packet classes.
+        Initializer
 
         :param tf_spec: The task function specification
         :param int indent: The indent size
         :param logger: The logger to be used with the class
         :param n_ex_streams: The number of extra streams
-        :param externals: All external vars
-        :param tile_metadata: All tile_metadata vars
-        :param tile_in: All tile_in vars
-        :param tile_in_out: All tile_in_out vars
-        :param tile_out: All tile_out vars
-        :param tile_scratch: All tile_scratch args.
         """
         self._n_extra_streams = n_ex_streams
 
@@ -110,14 +92,12 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
     @property
     def c2f_file(self) -> str:
+        """Returns the name of the source c2f file."""
         return super().source_filename
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for generating header code for c2f layer."""
-        raise LogicError(
-            "No header file for C to Fortran layer. Please contact your state"
-            " provided Wesley to solve this issue."
-        )
+        raise LogicError("No header file for C to Fortran layer.")
 
     def generate_source_code(self, destination, overwrite):
         """
@@ -143,6 +123,14 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
     # Note: bad source is caught by the task function so we don't need to
     #       check that.
     def __get_array_extents(self, spec) -> list:
+        """
+        Get the extents of an array given *spec* information. Raises specific
+        errors depending on the source inside the array spec.
+
+        :param spec: The argument spec of a given array.
+        :rtype: list
+        :return: The extents of the given arg spec as a list.
+        """
         src = spec["source"]
 
         if src == EXTERNAL_ARGUMENT:
@@ -165,12 +153,21 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         elif src == SCRATCH_ARGUMENT:
             return parse_extents(spec['extents'])
 
-        return []
+        # we should never get here!
+        # This might be a source allowed by the TF but is not supported.
+        raise LogicError(f"Source {src} is not supported.")
 
     def _get_external_info(self, arg, spec) -> C2FInfo:
+        """
+        Convert external variable information into C2FInfo data.
+
+        :param arg: The name of the variable.
+        :param spec: The variable spec.
+        """
         dtype = spec['type']
         extents = parse_extents(spec['extents'])
         use_shape = ""
+
         if extents:
             extents = extents + ['nTiles']
             use_shape = f", shape=[{','.join(extents)}]"
@@ -189,6 +186,12 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         return info
 
     def _get_metadata_info(self, arg, spec):
+        """
+        Convert tile metadata information to C2FInfo class using arg specs.
+
+        :param arg: The name of the variable
+        :param spec: The arg spec of the variable
+        """
         assoc_array = spec.get('array', None)
         dtype = TemplateUtility.SOURCE_DATATYPE[spec["source"]]
         dtype = FortranTemplateUtility.F_HOST_EQUIVALENT[dtype]
@@ -227,7 +230,13 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         return info
 
     def _get_grid_info(self, arg, spec):
-        # grid data types are always real for now.
+        """
+        Convert grid data information in C2FInfo class.
+
+        :param arg: The name of the variable
+        :param spec: The arg specification of the variable
+        """
+        # grid dtype is always real.
         dtype = "real"
         extents = self.__get_array_extents(spec)
 
@@ -246,6 +255,12 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         return info
 
     def _get_scratch_info(self, arg, spec):
+        """
+        Convert scratch variable information into a C2FInfo class.
+
+        :param arg: The variable name
+        :param spec: The argument specification for the variable.
+        """
         dtype = spec['type']
         dtype = self.TYPE_MAPPING.get(dtype, dtype)
         extents = self.__get_array_extents(spec)

@@ -2,7 +2,7 @@ import milhoja.tests
 from milhoja.TemplateUtility import TemplateUtility
 
 
-class TestParseHelpers(milhoja.tests.TestCodeGenerators):
+class TestTemplateUtility(milhoja.tests.TestCodeGenerators):
     """
     Unit test for utility functions in TemplateUtility class.
     """
