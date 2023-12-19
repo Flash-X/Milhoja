@@ -6,20 +6,30 @@ from . import AbcLogger
 from cgkit.ctree import srctree
 from cgkit.ctree.srctree import SourceTree
 
+DEFAULT_SOURCE_TREE_OPTS = {
+    'codePath': Path.cwd(),
+    'indentSpace': ' '*4,
+    'verbose': False,
+    'verbosePre': '/* ',
+    'verbosePost': ' */',
+}
+
 
 def generate_packet_file(
     output: Path,
-    sourcetree_opts: dict,
     linked_templates: list,
     overwrite: bool,
-    logger: AbcLogger
+    logger: AbcLogger,
+    sourcetree_opts=DEFAULT_SOURCE_TREE_OPTS,
 ):
     """
     Generates a data packet file for creating the entire packet.
 
     :param str output: The output name for the file.
     :param dict sourcetree_opts: The dictionary containing the
-                                sourcetree parameters.
+                                sourcetree parameters. Default is provided
+                                but code generators can pass their own opts
+                                in.
     :param list linked_templates: All templates to be linked.
                                 The first in the list is
                                 the initial template.

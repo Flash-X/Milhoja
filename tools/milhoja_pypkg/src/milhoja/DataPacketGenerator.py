@@ -1,4 +1,3 @@
-import pathlib
 import functools
 
 from pkg_resources import resource_filename
@@ -43,14 +42,6 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
     F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
-
-    __DEFAULT_SOURCE_TREE_OPTS = {
-        'codePath': pathlib.Path.cwd(),
-        'indentSpace': ' '*4,
-        'verbose': False,
-        'verbosePre': '/* ',
-        'verbosePost': ' */',
-    }
 
     def __init__(
         self,
@@ -237,7 +228,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._log(f"Generating header at {str(header)}", LOG_LEVEL_BASIC)
         generate_packet_file(
             header,
-            self.__DEFAULT_SOURCE_TREE_OPTS,
             [
                 self._outer_template,
                 self.header_template_path,  # static path to pkg resource.
@@ -263,7 +253,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._log(f"Generating source at {str(source)}", LOG_LEVEL_BASIC)
         generate_packet_file(
             source,
-            self.__DEFAULT_SOURCE_TREE_OPTS,
             [
                 self._outer_template,
                 self.source_template_path,  # static path to pkg resource.
@@ -274,38 +263,27 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
         if self._tf_spec.language.lower() == "fortran":
-            # generate cpp2c layer if necessary
-            #   -> Cpp task function generator?
-            outer_cpp2c = self.cpp2c_outer_template_name
-            helper_cpp2c = self.cpp2c_helper_template_name
-            data_item_c2f = destination_path.joinpath(self.module_file_name)
-
-            cpp2c_layer = Cpp2CLayerGenerator(
-                self._tf_spec, outer_cpp2c,
-                helper_cpp2c, self._indent,
-                self._logger.level,
-                self.n_extra_streams
+            # dirty hack for fixing the test suite. In reality, this code
+            # should be moved outside of the data packet generator and into
+            # the task function generator.
+            self.cpp2c_layer = Cpp2CLayerGenerator(
+                self._tf_spec, self._indent,
+                self._logger
             )
-
-            cpp2c_layer.generate_source_code(destination, overwrite)
+            self.cpp2c_layer.generate_source_code(destination, overwrite)
 
             # generate fortran to c layer if necessary
-            c2f_layer = C2FortranLayerGenerator(
-                self._tf_spec, self._indent,
-                self._logger, self.n_extra_streams
+            self.c2f_layer = C2FortranLayerGenerator(
+                self._tf_spec, self._indent, self._logger
             )
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
-            c2f_layer.generate_source_code(destination, overwrite)
+            self.c2f_layer.generate_source_code(destination, overwrite)
 
-            dp_module = DataPacketC2FModuleGenerator(
+            self.dp_module = DataPacketC2FModuleGenerator(
                 self._tf_spec, self._indent, self._logger, self.external_args
             )
-            self._log(
-                f"Generating mod file at {str(data_item_c2f)}",
-                LOG_LEVEL_BASIC
-            )
-            dp_module.generate_source_code(destination, overwrite)
+            self.dp_module.generate_source_code(destination, overwrite)
 
     @property
     def language(self):
@@ -352,34 +330,6 @@ class DataPacketGenerator(AbcCodeGenerator):
     @property
     def source_file_name(self) -> str:
         return super().source_filename
-
-    @property
-    def cpp2c_outer_template_name(self) -> str:
-        """
-        Outer template for the cpp2c layer
-        These are generated so we use the destination location.
-        """
-        return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
-
-    @property
-    def cpp2c_helper_template_name(self) -> str:
-        """
-        Helper template path for the cpp2c layer
-        These are generated so we use the destination location.
-        """
-        return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
-
-    @property
-    def c2f_file_name(self) -> str:
-        return self._tf_spec.output_filenames[
-            TaskFunction.C2F_KEY
-        ]["source"]
-
-    @property
-    def module_file_name(self) -> str:
-        return self._tf_spec.output_filenames[
-            TaskFunction.DATA_ITEM_KEY
-        ]["module"]
 
     @property
     def n_extra_streams(self) -> int:

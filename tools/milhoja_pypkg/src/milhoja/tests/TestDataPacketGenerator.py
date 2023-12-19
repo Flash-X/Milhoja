@@ -149,7 +149,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
     def tearDown(self):
         pass
 
-    def check_generated_files(self, generated, correct):
+    def check_generated_files(self, json, generated, correct):
         """
         Checks the generated file by comparing it to correct
         with no whitespace.
@@ -164,11 +164,13 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
             self.assertTrue(
                 len(generated_string) == len(correct_string),
+                f"JSON: {json}, \n"
                 f"Generated length: {len(generated_string)}, "
                 f"correct length: {len(correct_string)}"
             )
             self.assertTrue(
                 generated_string == correct_string,
+                f"JSON: {json}, \n"
                 f"Comparison between {generated.name}"
                 f"and {correct.name} returned false."
             )
@@ -250,7 +252,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 with open(generated_name_cpp, 'r') as generated_cpp:
                     with open(correct_name_cpp, 'r') as correct:
                         # Test generated files.
-                        self.check_generated_files(generated_cpp, correct)
+                        self.check_generated_files(
+                            json_path, generated_cpp, correct
+                        )
 
                 generated_name_h = Path(
                     destination,
@@ -266,7 +270,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # check c++ headers
                 with open(generated_name_h, 'r') as generated_h:
                     with open(correct_name_h, 'r') as correct:
-                        self.check_generated_files(generated_h, correct)
+                        self.check_generated_files(
+                            json_path, generated_h, correct
+                        )
 
                 # ..todo::
                 #   * Generator should generate TaskFunction
@@ -283,7 +289,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     # check cpp2c layer.
                     generated_cpp2c = Path(
                         destination,
-                        generator.cpp2c_file_name
+                        generator.cpp2c_layer.source_filename
                     )
                     correct_cpp2c = json_path.stem.replace("REF_", "")
                     correct_cpp2c = Path(
@@ -293,12 +299,14 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     )
                     with open(generated_cpp2c, 'r') as generated:
                         with open(correct_cpp2c, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                     # check c2f layer.
                     generated_c2f = Path(
                         destination,
-                        generator.c2f_file_name
+                        generator.c2f_layer.source_filename
                     )
                     correct_c2f = json_path.stem.replace("REF_", "")
                     correct_c2f = Path(
@@ -308,22 +316,27 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     )
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                     # check module file
                     generated_dp_mod = Path(
                         destination,
-                        generator.module_file_name
+                        generator.dp_module.source_filename
                     )
                     correct_dp_mod = json_path.stem.replace("REF_", "")
                     correct_dp_mod = Path(
                         _DATA_PATH,
                         test[self.FOLDER],
-                        "REF_DataPacket_" + str(correct_dp_mod) + "_c2f_mod.F90"
+                        "REF_DataPacket_" + str(correct_dp_mod) +
+                        "_c2f_mod.F90"
                     )
                     with open(generated_dp_mod, 'r') as generated:
                         with open(correct_dp_mod, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                 # clean up generated files if test passes.
                 try:
@@ -416,18 +429,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             # use default logging value for now
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
-
-            datapacket_generator = DataPacketGenerator(
-                tf_spec, 4, logger, sizes
-            )
-
-            outer = datapacket_generator.cpp2c_outer_template_name
-            helper = datapacket_generator.cpp2c_helper_template_name
-
-            cpp2c = Cpp2CLayerGenerator(
-                tf_spec, outer, helper,
-                4, LOG_LEVEL_NONE, datapacket_generator.n_extra_streams,
-            )
+            cpp2c = Cpp2CLayerGenerator(tf_spec, 4, logger)
 
             with self.assertRaises(
                 LogicError,
@@ -504,12 +506,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
 
-            datapacket_generator = DataPacketGenerator(
-                tf_spec, 4, logger, sizes
-            )
-
             c2f = C2FortranLayerGenerator(
-                tf_spec, 4, logger, datapacket_generator.n_extra_streams
+                tf_spec, 4, logger
             )
 
             with self.assertRaises(

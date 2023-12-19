@@ -4,6 +4,7 @@ from . import AbcCodeGenerator
 from . import INTERNAL_ARGUMENT
 from . import TaskFunction
 from . import LogicError
+from . import LOG_LEVEL_BASIC
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
@@ -50,6 +51,10 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             self._warn(f"{mod_path} already exists.")
             if not overwrite:
                 raise FileExistsError("Overwrite is set to False.")
+
+        self._log(
+            f"Generating mod file at {str(mod_path)}", LOG_LEVEL_BASIC
+        )
 
         with open(mod_path, 'w') as module:
             module_name = self._tf_spec.data_item_module_name

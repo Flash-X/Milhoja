@@ -74,8 +74,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         self,
         tf_spec,
         indent,
-        logger,
-        n_ex_streams
+        logger
     ):
         """
         Initializer
@@ -85,22 +84,16 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param logger: The logger to be used with the class
         :param n_ex_streams: The number of extra streams
         """
-        self._n_extra_streams = n_ex_streams
+        self._n_extra_streams = tf_spec.n_streams - 1
 
         # pass in an empty file for the header name since there is no header.
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
-            indent, "Milhoja C2F Generator",
-            logger
+            indent, "Milhoja C2F Generator", logger
         )
 
         self.INDENT = " " * indent
-
-    @property
-    def c2f_file(self) -> str:
-        """Returns the name of the source c2f file."""
-        return super().source_filename
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for generating header code for c2f layer."""
@@ -116,7 +109,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             raise RuntimeError(
                 f"{destination_path} does not exist."
             )
-        c2f_path = destination_path.joinpath(self.c2f_file).resolve()
+        c2f_path = destination_path.joinpath(self.source_filename).resolve()
 
         if c2f_path.is_file():
             self._warn(f"{c2f_path} already exists.")

@@ -286,7 +286,7 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
 
-        int _lbdd_CC_1_h[4] = {(lo.I()) + 1,(lo.J()) + 1,(lo.K()) + 1,1};
+        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(lbound.J()) + 1,(lbound.K()) + 1,1};
         char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_CC_1_p)) + n * SIZE_LBDD_CC_1;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_CC_1_h), SIZE_LBDD_CC_1);
         

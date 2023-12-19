@@ -5,7 +5,6 @@ from pkg_resources import resource_filename
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
-from .BasicLogger import BasicLogger
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .generate_packet_file import generate_packet_file
@@ -28,35 +27,26 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
     def __init__(
         self,
         tf_spec: TaskFunction,
-        outer,
-        helper,
         indent,
-        log_level,
-        n_extra_streams
+        logger
     ):
-        self._outer_template = outer
-        self._helper_template = helper
         self.__TOOL_NAME = "Milhoja Cpp2C"
-        self._n_extra_streams = n_extra_streams
-        self._connectors = defaultdict(list)
-
-        logger = BasicLogger(log_level)
+        source_name = \
+            tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         super().__init__(
-            tf_spec, outer,
-            helper, indent,
+            tf_spec, "", source_name, indent,
             self.__TOOL_NAME, logger
         )
+
+        self._outer_template = self.cpp2c_outer_template_name
+        self._helper_template = self.cpp2c_helper_template_name
+        self._connectors = defaultdict(list)
         self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
-        if n_extra_streams > 0:
+        self._n_extra_streams = self._tf_spec.n_streams - 1
+        if self._n_extra_streams > 0:
             self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
 
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
-
-    @property
-    def cpp2c_file_name(self) -> str:
-        return self._tf_spec.output_filenames[
-            TaskFunction.CPP_TF_KEY
-        ]["source"]
 
     @property
     def cpp2c_streams_template_name(self) -> Path:
@@ -73,6 +63,22 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         )
         return Path(template_path).resolve()
 
+    @property
+    def cpp2c_outer_template_name(self) -> str:
+        """
+        Outer template for the cpp2c layer
+        These are generated so we use the destination location.
+        """
+        return f"cg-tpl.outer_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
+
+    @property
+    def cpp2c_helper_template_name(self) -> str:
+        """
+        Helper template path for the cpp2c layer
+        These are generated so we use the destination location.
+        """
+        return f"cg-tpl.helper_{self._tf_spec.data_item_class_name}_cpp2c.cpp"
+
     def generate_header_code(self, destination, overwrite):
         """No implementation for cpp2c header."""
         raise LogicError("No header file for C++ to C layer.")
@@ -86,6 +92,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         """
         outer = destination.joinpath(Path(self._outer_template))
         helper = destination.joinpath(Path(self._helper_template))
+        cpp2c_destination = destination.joinpath(Path(self.source_filename))
 
         self._log(f"Generating outer file {outer}", LOG_LEVEL_BASIC)
         self._generate_cpp2c_outer(outer, overwrite)
@@ -96,19 +103,16 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             LOG_LEVEL_BASIC
         )
         generate_packet_file(
-                cpp2c_destination,
-                self.__DEFAULT_SOURCE_TREE_OPTS,
-                # dev note: ORDER MATTERS HERE!
-                # If helpers is put before the base
-                # template it will throw an error
-                [
-                    outer_cpp2c,
-                    self.cpp2c_template_path,
-                    helper_cpp2c,
-                    self.cpp2c_streams_template_name
-                ],
-                overwrite, self._logger
-            )
+            cpp2c_destination,
+            # dev note: ORDER MATTERS HERE!
+            # If helpers is put before the base
+            # template it will throw an error
+            [
+                outer, self.cpp2c_template_path,
+                helper, self.cpp2c_streams_template_name
+            ],
+            overwrite, self._logger
+        )
 
     def _generate_cpp2c_outer(self, outer, overwrite):
         """
