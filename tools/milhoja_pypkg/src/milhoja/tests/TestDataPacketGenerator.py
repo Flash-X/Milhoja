@@ -508,12 +508,12 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             if tf_spec.language.lower() == "c++":
                 with self.assertRaises(LogicError, msg="Wrong language"):
                     mod_generator = DataPacketC2FModuleGenerator(
-                        tf_spec, 4, logger, sample_externals
+                        tf_spec, 4, logger
                     )
                 continue
 
             mod_generator = DataPacketC2FModuleGenerator(
-                tf_spec, 4, logger, sample_externals
+                tf_spec, 4, logger
             )
 
             with self.assertRaises(LogicError, msg="Header gen should fail."):
