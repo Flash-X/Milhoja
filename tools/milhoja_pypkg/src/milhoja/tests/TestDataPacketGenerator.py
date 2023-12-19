@@ -489,21 +489,17 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testModGeneration(self):
+        """
+        Tests the module file generation for data packets.
+
+        todo::
+            * Write dummy task functions to test argument ordering.
+        """
         for test in self._sedov:
             json_path = test[self.JSON]
             tf_spec = TaskFunction.from_milhoja_json(json_path)
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
-
-            # todo::
-            #   * Need a smaller sample reference file for checking
-            #     all types of arguments (bool, int, real, arrays)
-            sample_externals = {
-                "dt": {
-                    "source": "external",
-                    "type": "real"
-                }
-            }
 
             if tf_spec.language.lower() == "c++":
                 with self.assertRaises(LogicError, msg="Wrong language"):
