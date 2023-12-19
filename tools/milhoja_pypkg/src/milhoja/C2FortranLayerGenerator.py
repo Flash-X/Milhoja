@@ -28,6 +28,13 @@ class C2FInfo:
     conversion_eq: str
 
     @property
+    def dummy_shp(self):
+        """Returns the dummy argument's shape string."""
+        if not self.shape:
+            return ""
+        return '(' + ','.join([':'] * len(self.shape)) + ')'
+
+    @property
     def cname(self):
         """Name of the dummy variable."""
         return f"C_{self.name}"

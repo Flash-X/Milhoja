@@ -84,7 +84,7 @@ GRID_DATA_EXTENTS = {
     ]
 }
 
-GRID_DATA_LBOUND = "(tile_lo, {0})"
+GRID_DATA_LBOUND = "(tile_lbound, {0})"
 # GRID_DATA_LBOUNDS = {
 #     "CENTER": "(tile_lo, {0})",  # where 0 is the number of unks
 #     "FLUXX": "(tile_lo, {0})",  # number of fluxes starts at 1

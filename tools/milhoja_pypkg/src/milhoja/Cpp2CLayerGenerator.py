@@ -1,16 +1,16 @@
 from collections import defaultdict
 from pathlib import Path
 from copy import deepcopy
+from pkg_resources import resource_filename
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
 from .BasicLogger import BasicLogger
-from milhoja import LOG_LEVEL_MAX
-from milhoja import THREAD_INDEX_VAR_NAME
-from milhoja import TaskFunction
+from .TaskFunction import TaskFunction
 from .LogicError import LogicError
+from .generate_packet_file import generate_packet_file
 from . import (
-    EXTERNAL_ARGUMENT
+    EXTERNAL_ARGUMENT, LOG_LEVEL_MAX, THREAD_INDEX_VAR_NAME, LOG_LEVEL_BASIC
 )
 
 _INSTANCE_ARGS = "instance_args"
@@ -46,7 +46,32 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             helper, indent,
             self.__TOOL_NAME, logger
         )
+        self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
+        if n_extra_streams > 0:
+            self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
+
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
+
+    @property
+    def cpp2c_file_name(self) -> str:
+        return self._tf_spec.output_filenames[
+            TaskFunction.CPP_TF_KEY
+        ]["source"]
+
+    @property
+    def cpp2c_streams_template_name(self) -> Path:
+        """Extra streams template for the cpp2c layer"""
+        template_path = resource_filename(
+            __package__, f'templates/{self._cpp2c_extra_streams_tpl}'
+        )
+        return Path(template_path).resolve()
+
+    @property
+    def cpp2c_template_path(self) -> Path:
+        template_path = resource_filename(
+            __package__, 'templates/cg-tpl.cpp2c.cpp'
+        )
+        return Path(template_path).resolve()
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for cpp2c header."""
@@ -62,8 +87,28 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         outer = destination.joinpath(Path(self._outer_template))
         helper = destination.joinpath(Path(self._helper_template))
 
+        self._log(f"Generating outer file {outer}", LOG_LEVEL_BASIC)
         self._generate_cpp2c_outer(outer, overwrite)
+        self._log(f"Generating helper file {helper}", LOG_LEVEL_BASIC)
         self._generate_cpp2c_helper(helper, overwrite)
+        self._log(
+            f"Generating Cpp2C Layer at {cpp2c_destination} using",
+            LOG_LEVEL_BASIC
+        )
+        generate_packet_file(
+                cpp2c_destination,
+                self.__DEFAULT_SOURCE_TREE_OPTS,
+                # dev note: ORDER MATTERS HERE!
+                # If helpers is put before the base
+                # template it will throw an error
+                [
+                    outer_cpp2c,
+                    self.cpp2c_template_path,
+                    helper_cpp2c,
+                    self.cpp2c_streams_template_name
+                ],
+                overwrite, self._logger
+            )
 
     def _generate_cpp2c_outer(self, outer, overwrite):
         """
