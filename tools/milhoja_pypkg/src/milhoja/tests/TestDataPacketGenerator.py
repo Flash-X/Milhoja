@@ -345,7 +345,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             "external_example": {
                 "source": "external",
                 "type": "int",
-                "extents": ['1', '5']
+                "extents": "(1,5)"
             }
         })
         with self.assertRaises(

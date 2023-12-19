@@ -16,7 +16,6 @@ from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
 
 from . import (
-    EXTERNAL_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
