@@ -16,7 +16,7 @@ from . import (
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT,
-    GRID_DATA_LBOUND
+    GRID_DATA_LBOUNDS
 )
 
 
@@ -138,11 +138,12 @@ class FortranTemplateUtility(TemplateUtility):
                     )
                 elif source == GRID_DATA_ARGUMENT:
                     lbound = None
+                    struct = array_spec["structure_index"][0].upper()
                     # get starting array value
                     vars_in = array_spec.get('variables_in', None)
                     vars_out = array_spec.get('variables_out', None)
                     init = self.get_initial_index(vars_in, vars_out)
-                    lbound = GRID_DATA_LBOUND.format(init)
+                    lbound = GRID_DATA_LBOUNDS[struct].format(init)
                     lbound = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
                     one_time_mdata[TILE_LO_ARGUMENT] = \

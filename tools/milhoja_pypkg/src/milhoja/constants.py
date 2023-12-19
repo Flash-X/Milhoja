@@ -84,13 +84,12 @@ GRID_DATA_EXTENTS = {
     ]
 }
 
-GRID_DATA_LBOUND = "(tile_lbound, {0})"
-# GRID_DATA_LBOUNDS = {
-#     "CENTER": "(tile_lo, {0})",  # where 0 is the number of unks
-#     "FLUXX": "(tile_lo, {0})",  # number of fluxes starts at 1
-#     "FLUXY": "(tile_lo, {0})",
-#     "FLUXZ": "(tile_lo, {0})"
-# }
+GRID_DATA_LBOUNDS = {
+    "CENTER": "(tile_lbound, {0})",
+    "FLUXX": "(tile_lo, {0})",
+    "FLUXY": "(tile_lo, {0})",
+    "FLUXZ": "(tile_lo, {0})"
+}
 
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
