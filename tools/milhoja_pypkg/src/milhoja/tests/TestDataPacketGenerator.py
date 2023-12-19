@@ -3,6 +3,7 @@ import milhoja.tests
 
 from pathlib import Path
 from collections import OrderedDict
+from collections import defaultdict
 
 from milhoja import (
     LOG_LEVEL_NONE,
@@ -352,7 +353,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             msg="External with extents was used without error."
         ):
             TemplateUtility._common_iterate_externals(
-                connectors, mock_external
+                connectors, mock_external, ["external_example"]
             )
 
         # sample tile_in variable set.
@@ -385,6 +386,58 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             FortranTemplateUtility.iterate_tile_out(
                 connectors, size_connectors, mock_tile_out
             )
+
+        # test proper ordering
+        mock_externals = OrderedDict({
+            "dt": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "spark_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            },
+            "spark_coef2": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "another_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            }
+        })
+
+        connectors = defaultdict(list)
+        TemplateUtility._common_iterate_externals(
+            connectors, mock_externals,
+            ["dt", "another_coef", "spark_coef2", "spark_coef"]
+        )
+
+        assert TemplateUtility._CON_ARGS in connectors
+        assert TemplateUtility._HOST_MEMBERS in connectors
+        constructor_args = [
+            'real dt',
+            'int another_coef',
+            'real spark_coef2',
+            'int spark_coef'
+        ]
+        host_args = [
+            "_dt_h",
+            "_another_coef_h",
+            "_spark_coef2_h",
+            "_spark_coef_h"
+        ]
+
+        self.assertEqual(
+            connectors[TemplateUtility._CON_ARGS], constructor_args
+        )
+        self.assertEqual(
+            connectors[TemplateUtility._HOST_MEMBERS], host_args
+        )
 
     def testCpp2CGenerator(self):
         for test in self._sedov:

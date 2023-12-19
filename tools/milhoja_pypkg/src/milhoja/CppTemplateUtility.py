@@ -11,7 +11,8 @@ class CppTemplateUtility(TemplateUtility):
 
     @classmethod
     def iterate_externals(
-        cls, connectors: dict, size_connectors: dict, externals: OrderedDict
+        cls, connectors: dict, size_connectors: dict, externals: OrderedDict,
+        dummy_arg_order: list
     ):
         """
         Iterates the external variables section
@@ -33,7 +34,7 @@ class CppTemplateUtility(TemplateUtility):
 
         nTiles_value = '_nTiles_h = tiles_.size();'
         connectors[cls._NTILES_VALUE] = [nTiles_value]
-        cls._common_iterate_externals(connectors, externals)
+        cls._common_iterate_externals(connectors, externals, dummy_arg_order)
 
     @classmethod
     def iterate_tilemetadata(

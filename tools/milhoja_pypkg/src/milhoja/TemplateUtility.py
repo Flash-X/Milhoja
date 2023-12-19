@@ -16,6 +16,7 @@ from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
 
 from . import (
+    EXTERNAL_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
@@ -123,13 +124,14 @@ class TemplateUtility():
         cls,
         connectors: dict,
         size_connectors: dict,
-        externals: OrderedDict
+        externals: OrderedDict,
+        dummy_arg_list: list
     ):
         ...
 
     @classmethod
     def _common_iterate_externals(
-        cls, connectors: dict, externals: OrderedDict
+        cls, connectors: dict, externals: OrderedDict, dummy_arg_list: list
     ):
         """
         Common code in both utility classes for iterating external vars.
@@ -138,6 +140,7 @@ class TemplateUtility():
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.
         """
+        info_list = {}
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
@@ -151,12 +154,8 @@ class TemplateUtility():
                 item=key, dtype=var_data["type"],
                 size_eq=size_equation, per_tile=False
             )
+            info_list[key] = info
 
-            # nTiles is a special case here. nTiles should not be included
-            # in the constructor, and it has its own host variable generation.
-            if key != 'nTiles':
-                connectors[cls._CON_ARGS].append(f'{info.dtype} {key}')
-                connectors[cls._HOST_MEMBERS].append(info.host)
             # add the necessary connectors for the constructor section.
             connectors[cls._PUB_MEMBERS].extend([
                 f'{info.dtype} {info.host};\n',
@@ -184,6 +183,16 @@ class TemplateUtility():
                 f'std::memcpy({info.pinned}, static_cast<void*>(&'
                 f'{info.host}), {info.size});\n'
             )
+
+        # sort host members and constructor args based on the task function
+        # ordering.
+        external_arg_list = [
+            item for item in dummy_arg_list if item in externals
+        ]
+        for item in external_arg_list:
+            info = info_list[item]
+            connectors[cls._CON_ARGS].append(f'{info.dtype} {item}')
+            connectors[cls._HOST_MEMBERS].append(info.host)
 
     @classmethod
     @abstractmethod

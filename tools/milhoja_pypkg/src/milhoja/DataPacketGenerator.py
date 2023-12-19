@@ -158,7 +158,8 @@ class DataPacketGenerator(AbcCodeGenerator):
             scratch = self.scratch_args
 
             self.template_utility.iterate_externals(
-                self._connectors, self._size_connectors, external
+                self._connectors, self._size_connectors, external,
+                self._tf_spec.dummy_arguments
             )
 
             # # SETUP FOR TILE_METADATA
