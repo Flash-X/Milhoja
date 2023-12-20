@@ -61,7 +61,9 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
-FORTRAN_TYPE_MAPPING = {
+# This never gets used but is the first step to having this mapping be
+# a global constant so I'll leave it as is.
+C2F_TYPE_MAPPING = {
     "bool": "logical",
     "int": "integer",
     "real": "real"
