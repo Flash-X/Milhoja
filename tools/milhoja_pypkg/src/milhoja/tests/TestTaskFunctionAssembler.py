@@ -387,7 +387,7 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 self.assertEqual(len(reference), len(result))
                 for group in groups_all:
                     # print(group)
-                    # print(expected[group])
+                    # print(reference[group])
                     # print(result[group])
                     self.assertTrue(group in reference)
                     self.assertTrue(group in result)
@@ -466,12 +466,13 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         tf_partial_spec = {
             "task_function": {
-                "language":       "Fortran",
-                "processor":      "CPU",
-                "cpp_header":     "cpu_tf_test_Cpp2C.h",
-                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
-                "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "language":               "Fortran",
+                "processor":              "CPU",
+                "computation_offloading": "",
+                "cpp_header":             "cpu_tf_test_Cpp2C.h",
+                "cpp_source":             "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":             "cpu_tf_test_C2F.F90",
+                "fortran_source":         "cpu_tf_test_mod.F90"
             },
             "data_item": {
                 "type":           "TileWrapper",
@@ -512,12 +513,13 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         tf_partial_spec = {
             "task_function": {
-                "language":       "Fortran",
-                "processor":      "CPU",
-                "cpp_header":     "cpu_tf_test_Cpp2C.h",
-                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
-                "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "language":               "Fortran",
+                "processor":              "CPU",
+                "computation_offloading": "",
+                "cpp_header":             "cpu_tf_test_Cpp2C.h",
+                "cpp_source":             "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":             "cpu_tf_test_C2F.F90",
+                "fortran_source":         "cpu_tf_test_mod.F90"
             },
             "data_item": {
                 "type":           "TileWrapper",

@@ -62,12 +62,13 @@ def generate_flashx_gpu_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":       "Fortran",
-            "processor":      "GPU",
-            "cpp_header":     "gpu_tf_hydro_Cpp2C.h",
-            "cpp_source":     "gpu_tf_hydro_Cpp2C.cxx",
-            "c2f_source":     "gpu_tf_hydro_C2F.F90",
-            "fortran_source": "gpu_tf_hydro_mod.F90"
+            "language":               "Fortran",
+            "processor":              "GPU",
+            "computation_offloading": "OpenACC",
+            "cpp_header":             "gpu_tf_hydro_Cpp2C.h",
+            "cpp_source":             "gpu_tf_hydro_Cpp2C.cxx",
+            "c2f_source":             "gpu_tf_hydro_C2F.F90",
+            "fortran_source":         "gpu_tf_hydro_mod.F90"
         },
         "data_item": {
             "type":           "DataPacket",

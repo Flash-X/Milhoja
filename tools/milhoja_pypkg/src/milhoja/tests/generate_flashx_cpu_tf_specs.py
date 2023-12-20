@@ -63,12 +63,13 @@ def generate_flashx_cpu_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":       "Fortran",
-            "processor":      "CPU",
-            "cpp_header":     "cpu_tf_hydro_Cpp2C.h",
-            "cpp_source":     "cpu_tf_hydro_Cpp2C.cxx",
-            "c2f_source":     "cpu_tf_hydro_C2F.F90",
-            "fortran_source": "cpu_tf_hydro_mod.F90"
+            "language":               "Fortran",
+            "processor":              "CPU",
+            "computation_offloading": "",
+            "cpp_header":             "cpu_tf_hydro_Cpp2C.h",
+            "cpp_source":             "cpu_tf_hydro_Cpp2C.cxx",
+            "c2f_source":             "cpu_tf_hydro_C2F.F90",
+            "fortran_source":         "cpu_tf_hydro_mod.F90"
         },
         "data_item": {
             "type":           "TileWrapper",
