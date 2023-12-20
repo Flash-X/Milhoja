@@ -2,12 +2,12 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from .TemplateUtility import TemplateUtility
-from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, VECTOR_ARRAY_EQUIVALENT,
+    SOURCE_DATATYPES
 )
 
 
@@ -174,10 +174,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             # load all items from tile_metadata.
             for key, data in self._tile_metadata.items():
-                ftype = FortranTemplateUtility \
-                    .F_HOST_EQUIVALENT[
-                        TemplateUtility.SOURCE_DATATYPE[data["source"]]
-                    ].lower()
+                ftype = VECTOR_ARRAY_EQUIVALENT[
+                    SOURCE_DATATYPES[data["source"]]
+                ].lower()
                 ftype = data_mapping[ftype]
                 gpu_pointers[key] = C2FInfo(
                     ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h']

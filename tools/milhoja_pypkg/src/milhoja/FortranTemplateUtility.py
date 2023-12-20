@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
+from . import VECTOR_ARRAY_EQUIVALENT
 
 
 class FortranTemplateUtility(TemplateUtility):
@@ -10,16 +11,6 @@ class FortranTemplateUtility(TemplateUtility):
     Contains utility functions for generating data packets with fortran
     based task functions.
     """
-
-    FARRAY_MAPPING = {
-        "int": "IntVect",
-        "real": "RealVect"
-    }
-
-    F_HOST_EQUIVALENT = {
-        'RealVect': 'real',
-        'IntVect': 'int'
-    }
 
     @classmethod
     def iterate_externals(
@@ -92,7 +83,6 @@ class FortranTemplateUtility(TemplateUtility):
             elif source == 'tile_ubound':
                 source = 'tile_hiGC'
             source = source.replace('tile_', '')
-
             item_type = data['type']
             size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
             info = DataPacketMemberVars(
@@ -111,7 +101,7 @@ class FortranTemplateUtility(TemplateUtility):
             # data type depends on the language. If there exists a mapping
             # for a fortran data type for the given item_type,
             # use that instead.
-            info.dtype = cls.FARRAY_MAPPING.get(item_type, item_type)
+            info.dtype = VECTOR_ARRAY_EQUIVALENT.get(item_type, item_type)
             connectors[cls._T_DESCRIPTOR].append(
                 f'const auto {source} = tileDesc_h->{source}();\n'
             )
@@ -124,8 +114,7 @@ class FortranTemplateUtility(TemplateUtility):
             # indices are 1 based, so bound arrays need to adjust
             # ..todo::
             #       * This is not sufficient for lbound
-            fix_index = '+1' if info.dtype == str('IntVect') else ''
-            info.dtype = cls.F_HOST_EQUIVALENT[info.dtype]
+            fix_index = '+1' if info.dtype == "int" else ''
             construct_host = "[MILHOJA_MDIM] = { " \
                 f"{source}.I(){fix_index}, {source}.J(){fix_index}, " + \
                 f"{source}.K(){fix_index} }}"

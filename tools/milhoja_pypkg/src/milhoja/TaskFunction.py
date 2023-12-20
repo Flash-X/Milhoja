@@ -249,11 +249,6 @@ class TaskFunction(object):
             if pcsr == "cpu":
                 if spec["type"].lower() == "real":
                     spec["type"] = "milhoja::Real"
-            elif pcsr == "gpu":
-                if spec["type"].lower() == "integer":
-                    spec["type"] = "int"
-                if spec["type"].lower() == "logical":
-                    spec["type"] = "bool"
 
         return spec
 

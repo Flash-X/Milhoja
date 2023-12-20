@@ -13,7 +13,6 @@ from .generate_packet_file import generate_packet_file
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
 from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
-from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
@@ -21,8 +20,8 @@ from .TaskFunction import TaskFunction
 from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from . import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
-    LOG_LEVEL_MAX, INTERNAL_ARGUMENT
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, LOG_LEVEL_MAX, INTERNAL_ARGUMENT,
+    VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES
 )
 
 
@@ -36,16 +35,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         * check if lru_caching is necessary on properties that
           are not tile_scratch.
     """
-    # This is specifically in reference to tile_metadata specific types like
-    # IntVect and RealVect, where the arrays need to be converted to an
-    # array of a primitive that can be used in fortran.
-    FORTRAN_EQUIVALENT = {
-        "IntVect": "int",
-        "RealVect": "real"
-    }
-
-    SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
-    F_HOST_EQUIVALENT = FortranTemplateUtility.F_HOST_EQUIVALENT
 
     __DEFAULT_SOURCE_TREE_OPTS = {
         'codePath': pathlib.Path.cwd(),
@@ -492,13 +481,13 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         def cpp_sort(kv_pair):
             return self._sizes.get(
-                self.SOURCE_DATATYPE[kv_pair[1]['source']], 0
+                SOURCE_DATATYPES[kv_pair[1]['source']], 0
             )
 
         def fortran_sort(x):
             return self._sizes.get(
-                self.F_HOST_EQUIVALENT[
-                    self.SOURCE_DATATYPE[x[1]['source']]
+                VECTOR_ARRAY_EQUIVALENT[
+                    SOURCE_DATATYPES[x[1]['source']]
                 ],
                 0
             )
@@ -513,9 +502,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
             args[key] = self._tf_spec.argument_specification(key)
-            args[key]['type'] = self.SOURCE_DATATYPE[args[key]["source"]]
+            args[key]['type'] = SOURCE_DATATYPES[args[key]["source"]]
             if lang == "fortran":
-                args[key]['type'] = self.FORTRAN_EQUIVALENT[args[key]['type']]
+                args[key]['type'] = VECTOR_ARRAY_EQUIVALENT[args[key]['type']]
 
         return self._sort_dict(args.items(), sort_func, True)
 
@@ -552,7 +541,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 arg_dictionary[arg]['variables_out'] = [mask[0]-1, mask[1]-1]
 
             arg_dictionary[arg]['type'] = \
-                self.SOURCE_DATATYPE[arg_dictionary[arg]['source']]
+                SOURCE_DATATYPES[arg_dictionary[arg]['source']]
         return arg_dictionary
 
     @property
@@ -569,7 +558,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
             True
         )
 
@@ -587,7 +576,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
             True
         )
 
@@ -605,7 +594,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(self.SOURCE_DATATYPE[x[1]["source"]], 0),
+            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
             True
         )
 
