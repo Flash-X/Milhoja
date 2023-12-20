@@ -31,10 +31,10 @@ _tile_lo_d{nullptr},
 _tile_hi_d{nullptr},
 _tile_interior_d{nullptr},
 _tile_lbound_d{nullptr},
-_lbdd_CC_1_d{nullptr},
-_lbdd_scratch_hydro_op1_auxC_d{nullptr},
 _tile_ubound_d{nullptr},
 _tile_arrayBounds_d{nullptr},
+_lbdd_CC_1_d{nullptr},
+_lbdd_scratch_hydro_op1_auxC_d{nullptr},
 _CC_1_d{nullptr},
 _CC_1_p{nullptr},
 _scratch_hydro_op1_auxC_d{nullptr},
@@ -113,10 +113,10 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     + SIZE_TILE_HI
     + SIZE_TILE_INTERIOR
     + SIZE_TILE_LBOUND
-    + SIZE_LBDD_CC_1
-    + SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC
     + SIZE_TILE_UBOUND
     + SIZE_TILE_ARRAYBOUNDS
+    + SIZE_LBDD_CC_1
+    + SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC
     
     ));
     if (SIZE_TILEMETADATA % ALIGN_SIZE != 0)
@@ -214,16 +214,6 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     _tile_lbound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_LBOUND;
     ptr_d+=_nTiles_h * SIZE_TILE_LBOUND;
-    
-    int* _lbdd_CC_1_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _lbdd_CC_1_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=_nTiles_h * SIZE_LBDD_CC_1;
-    ptr_d+=_nTiles_h * SIZE_LBDD_CC_1;
-
-    int* _lbdd_scratch_hydro_op1_auxC_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _lbdd_scratch_hydro_op1_auxC_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
-    ptr_d+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
 
     int* _tile_ubound_p = static_cast<int*>( static_cast<void*>(ptr_p) );
     _tile_ubound_d = static_cast<int*>( static_cast<void*>(ptr_d) );
@@ -234,6 +224,16 @@ void DataPacket_gpu_tf_hydro::pack(void) {
     _tile_arrayBounds_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=_nTiles_h * SIZE_TILE_ARRAYBOUNDS;
     ptr_d+=_nTiles_h * SIZE_TILE_ARRAYBOUNDS;
+    
+    int* _lbdd_CC_1_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _lbdd_CC_1_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_LBDD_CC_1;
+    ptr_d+=_nTiles_h * SIZE_LBDD_CC_1;
+
+    int* _lbdd_scratch_hydro_op1_auxC_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _lbdd_scratch_hydro_op1_auxC_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
+    ptr_d+=_nTiles_h * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
 
     
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR + SIZE_TILEMETADATA;
@@ -286,14 +286,6 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_lbound_p)) + n * SIZE_TILE_LBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_lbound_h), SIZE_TILE_LBOUND);
 
-        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(lbound.J()) + 1,(lbound.K()) + 1,1};
-        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_CC_1_p)) + n * SIZE_LBDD_CC_1;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_CC_1_h), SIZE_LBDD_CC_1);
-        
-        int _lbdd_scratch_hydro_op1_auxC_h[3] = {(lo.I()-1) + 1,(lo.J()- 1) + 1,(lo.K()- 1) + 1};
-        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_p)) + n * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
-        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_h), SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC);
-        
         int _tile_ubound_h[MILHOJA_MDIM] = { ubound.I()+1, ubound.J()+1, ubound.K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_ubound_p)) + n * SIZE_TILE_UBOUND;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_ubound_h), SIZE_TILE_UBOUND);
@@ -301,6 +293,14 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         int _tile_arrayBounds_h[MILHOJA_MDIM * 2] = {tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 };
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_arrayBounds_p)) + n * SIZE_TILE_ARRAYBOUNDS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_arrayBounds_h), SIZE_TILE_ARRAYBOUNDS);
+
+        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(lbound.J()) + 1,(lbound.K()) + 1,1};
+        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_CC_1_p)) + n * SIZE_LBDD_CC_1;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_CC_1_h), SIZE_LBDD_CC_1);
+        
+        int _lbdd_scratch_hydro_op1_auxC_h[3] = {(lo.I()-1) + 1,(lo.J()- 1) + 1,(lo.K()- 1) + 1};
+        char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_p)) + n * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
+        std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_h), SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC);
         
 
         

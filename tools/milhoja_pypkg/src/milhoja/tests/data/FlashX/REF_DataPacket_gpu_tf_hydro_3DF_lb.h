@@ -50,10 +50,10 @@ public:
     int* _tile_hi_d;
     int* _tile_interior_d;
     int* _tile_lbound_d;
-    int* _lbdd_CC_1_d;
-    int* _lbdd_scratch_hydro_op1_auxC_d;
     int* _tile_ubound_d;
     int* _tile_arrayBounds_d;
+    int* _lbdd_CC_1_d;
+    int* _lbdd_scratch_hydro_op1_auxC_d;
     real* _CC_1_d;
     real* _CC_1_p;
     real* _scratch_hydro_op1_auxC_d;
@@ -80,10 +80,11 @@ private:
     static constexpr std::size_t SIZE_TILE_HI = MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_TILE_INTERIOR = 2 * MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_TILE_LBOUND = MILHOJA_MDIM * sizeof(int);
-    static constexpr std::size_t SIZE_LBDD_CC_1 = 4 * sizeof(int);
-    static constexpr std::size_t SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC = 3 * sizeof(int);
+
     static constexpr std::size_t SIZE_TILE_UBOUND = MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_TILE_ARRAYBOUNDS = 2 * MILHOJA_MDIM * sizeof(int);
+    static constexpr std::size_t SIZE_LBDD_CC_1 = 4 * sizeof(int);
+    static constexpr std::size_t SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC = 3 * sizeof(int);
     static constexpr std::size_t SIZE_CC_1 = (16 + 2 * 1 * MILHOJA_K1D) * (16 + 2 * 1 * MILHOJA_K2D) * (16 + 2 * 1 * MILHOJA_K3D) * (8 + 1 - 0) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_AUXC = (18) * (18) * (18) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLX = (19) * (18) * (18) * (5) * sizeof(real);

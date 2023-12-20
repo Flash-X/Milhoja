@@ -11,7 +11,8 @@ from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT,
     TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT,
-    SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL, GRID_DATA_EXTENTS
+    SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL, GRID_DATA_EXTENTS,
+    LBOUND_ARGUMENT
 )
 
 
@@ -192,7 +193,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param arg: The name of the variable
         :param spec: The arg spec of the variable
         """
-        assoc_array = spec.get('array', None)
         dtype = TemplateUtility.SOURCE_DATATYPE[spec["source"]]
         dtype = FortranTemplateUtility.F_HOST_EQUIVALENT[dtype]
         dtype = self.TYPE_MAPPING.get(dtype, dtype)
@@ -203,7 +203,8 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
 
-        if assoc_array:
+        if spec['source'] == LBOUND_ARGUMENT:
+            assoc_array = spec['array']
             array_spec = self._tf_spec.argument_specification(assoc_array)
             # add 1 for var masking
             grid_adjust = 1 if array_spec['source'] == GRID_DATA_ARGUMENT \
@@ -333,16 +334,18 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             # move through every arg in the argument list.
             for variable in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(variable)
-                source = spec["source"]
+                src = spec["source"]
                 info = None
 
-                if source == EXTERNAL_ARGUMENT:
+                if src == EXTERNAL_ARGUMENT:
                     info = self._get_external_info(variable, spec)
-                elif source in TILE_ARGUMENTS_ALL:
+                # lbound is considered tile_metadata for the data packet
+                # generator
+                elif src in TILE_ARGUMENTS_ALL or src == LBOUND_ARGUMENT:
                     info = self._get_metadata_info(variable, spec)
-                elif source == GRID_DATA_ARGUMENT:
+                elif src == GRID_DATA_ARGUMENT:
                     info = self._get_grid_info(variable, spec)
-                elif source == SCRATCH_ARGUMENT:
+                elif src == SCRATCH_ARGUMENT:
                     info = self._get_scratch_info(variable, spec)
 
                 if info:

@@ -381,21 +381,26 @@ class DataPacketGenerator(AbcCodeGenerator):
         """
         Gets all tile metadata arguments from the TaskFunction
         and formats it for easy use with this class.
+
+        Note: The data packet generator treats lbounds as tile metadata.
+        So, lbounds are concatenated at the end of all tile metadata
+        arguments. This probably won't cause issues in the foreseeable future,
+        but there may be a time where the lbounds need to be sorted with
+        the other metadata due to type sizes. For now, this stays as-is.
         """
         lang = self._tf_spec.language.lower()
         sort_func = None
 
         def cpp_sort(kv_pair):
-            return self._sizes.get(
-                self.SOURCE_DATATYPE[kv_pair[1]['source']], 0
+            return (
+                self._sizes.get(
+                    self.SOURCE_DATATYPE[kv_pair[1]['source']], 0)
             )
 
         def fortran_sort(x):
-            return self._sizes.get(
-                self.F_HOST_EQUIVALENT[
-                    self.SOURCE_DATATYPE[x[1]['source']]
-                ],
-                0
+            return (
+                self._sizes.get(self.F_HOST_EQUIVALENT[
+                    self.SOURCE_DATATYPE[x[1]['source']]], 0)
             )
 
         if lang == 'c++':
@@ -409,15 +414,35 @@ class DataPacketGenerator(AbcCodeGenerator):
         mdata_names = []
         for names in args.values():
             mdata_names.extend(names)
+
         mdata = {}
         for key in mdata_names:
             spec = deepcopy(self._tf_spec.argument_specification(key))
             mdata[key] = spec
             mdata[key]['type'] = self.SOURCE_DATATYPE[mdata[key]["source"]]
             if lang == "fortran":
-                mdata[key]['type'] = self.FORTRAN_EQUIVALENT[mdata[key]['type']]
+                mdata[key]['type'] = \
+                    self.FORTRAN_EQUIVALENT[mdata[key]['type']]
 
-        return self._sort_dict(mdata.items(), sort_func, True)
+        # append lbounds to tile metadata information.
+        lbound_names = sorted(deepcopy(self._tf_spec.lbound_arguments))
+        lbounds = OrderedDict()
+        for key in lbound_names:
+            spec = deepcopy(self._tf_spec.argument_specification(key))
+            lbounds[key] = spec
+            lbounds[key]['type'] = \
+                self.SOURCE_DATATYPE[lbounds[key]["source"]]
+            if lang == "fortran":
+                lbounds[key]['type'] = \
+                    self.FORTRAN_EQUIVALENT[lbounds[key]['type']]
+
+        # NOTE: Sorting the lbounds dictionary is pointless because they are
+        #       all sorted by type. And all lbound types are the same. It's
+        #       possible to improve the sort function by allowing for a
+        #       second key to sort by.
+        mdata = self._sort_dict(mdata.items(), sort_func, True)
+        mdata.update(lbounds)
+        return mdata
 
     def __adjust_tile_data(self, args: dict) -> dict:
         """
