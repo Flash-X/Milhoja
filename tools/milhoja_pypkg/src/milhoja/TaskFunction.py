@@ -249,8 +249,10 @@ class TaskFunction(object):
                 (self.processor.lower() == "cpu")):
             spec["type"] = "milhoja::Real"
 
-        if spec["source"].lower() in src_to_adjust and \
-        self.processor.lower() == "gpu":
+        # I don't like flake styling rules when it comes to if indentation
+        #  - Wesley
+        pcsr = self.processor.lower()
+        if spec["source"].lower() in src_to_adjust and pcsr == "gpu":
             if spec["type"].lower() == "integer":
                 spec["type"] = "int"
             if spec["type"].lower() == "logical":

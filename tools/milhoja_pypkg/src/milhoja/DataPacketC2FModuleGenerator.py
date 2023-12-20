@@ -4,7 +4,6 @@ from . import AbcCodeGenerator
 from . import EXTERNAL_ARGUMENT
 from . import TaskFunction
 from . import LogicError
-from . import FORTRAN_TYPE_MAPPING
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
