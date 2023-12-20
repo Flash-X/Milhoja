@@ -66,6 +66,7 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
             "task_function": {
                 "language": "C++",
                 "processor": "CPU",
+                "computation_offloading": "",
                 "cpp_header": "cpu_tf_combined.h",
                 "cpp_source": "cpu_tf_combined.cpp",
                 "c2f_source": "",

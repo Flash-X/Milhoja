@@ -90,8 +90,6 @@ class TestCodeGenerators(unittest.TestCase):
                 generator.generate_source_code(dst, True)
                 self.assertTrue(source_filename.is_file())
 
-                print(ref_src_fname)
-                print(source_filename)
                 ref = self.__load_code(ref_src_fname)
                 generated = self.__load_code(source_filename)
 
@@ -99,6 +97,5 @@ class TestCodeGenerators(unittest.TestCase):
                 for gen_line, ref_line in zip(generated, ref):
                     self.assertEqual(gen_line, ref_line)
 
-                # Clean-up
-                # os.remove(str(json_fname_XD))
+                # ----- CLEAN-UP YA LAZY SLOB!
                 os.remove(str(source_filename))

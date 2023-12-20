@@ -215,6 +215,30 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
 
+    def testComputationOffloading(self):
+        FILENAME = self.__dst.joinpath("cpu_tf_test.json")
+        TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
+
+        # Can't write sets to JSON
+        for bad in NOT_STR_LIST:
+            if not isinstance(bad, set):
+                bad_spec = copy.deepcopy(self.__partial)
+                bad_spec["task_function"]["computation_offloading"] = bad
+                with open(TF_PARTIAL_JSON, "w") as fptr:
+                    json.dump(bad_spec, fptr)
+                with self.assertRaises(TypeError):
+                    self.__Sedov.to_milhoja_json(
+                        FILENAME, TF_PARTIAL_JSON, False
+                    )
+
+        for bad in ["OpenMp", "OpenACC"]:
+            bad_spec = copy.deepcopy(self.__partial)
+            bad_spec["task_function"]["computation_offloading"] = bad
+            with open(TF_PARTIAL_JSON, "w") as fptr:
+                json.dump(bad_spec, fptr)
+            with self.assertRaises(ValueError):
+                self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+
     def testCppFilenames(self):
         FILENAME = self.__dst.joinpath("cpu_tf_test.json")
         TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
