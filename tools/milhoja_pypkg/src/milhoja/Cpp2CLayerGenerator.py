@@ -183,12 +183,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             DataPacketMemberVars(item, '', '', False)
             for item in dummy_args
         ])
+        externals = [
+            item for item in self._tf_spec.dummy_arguments
+            if item in self._externals
+        ]
         # insert connectors into dictionary
         self._insert_connector_arguments(dpinfo_order)
         # instance args only found in general section
         self._connectors[_INST_ARGS_KEY] = [
-            (key, f'{data["type"]}')
-            for key, data in self._externals.items() if key != "nTiles"
+            (key, f'{self._externals[key]["type"]}') for key in externals
         ] + [('packet', 'void**')]
 
         # insert all connectors into helper template file
@@ -222,8 +225,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 ['\n\n/* _connector:host_members */\n'] +
                 [
                     ','.join([
-                        item for item in self._externals.keys()
-                        if item != 'nTiles'
+                        item for item in externals
                     ])
                 ]
             )

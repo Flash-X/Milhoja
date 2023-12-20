@@ -32,11 +32,11 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             logger
         )
         self.INDENT = " " * indent
+        ext_arg = EXTERNAL_ARGUMENT
         self._externals = {
             item: tf_spec.argument_specification(item)
             for item in tf_spec.dummy_arguments
-            if tf_spec.argument_specification(item)["source"] == \
-                EXTERNAL_ARGUMENT
+            if tf_spec.argument_specification(item)["source"] == ext_arg
         }
 
     def generate_header_code(self, destination, overwrite):
@@ -79,7 +79,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             var_declarations = []
             for var, data in self._externals.items():
                 dtype = data["type"]
-                dtype = FORTRAN_TYPE_MAPPING[dtype]
+                # dtype = FORTRAN_TYPE_MAPPING[dtype]
                 name = f"C_{var}"
                 arg_list.append(name)
                 var_declarations.append(
@@ -87,7 +87,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
                     f"intent(IN), value :: {name}"
                 )
 
-            args = f' &\n{self.INDENT * 3}'.join(arg_list)
+            args = f', &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_packet &\n"

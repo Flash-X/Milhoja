@@ -38,8 +38,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     """
     FORTRAN_EQUIVALENT = {
         "IntVect": "int",
-        "RealVect": "real",
-        "bool": "logical"
+        "RealVect": "real"
     }
 
     SOURCE_DATATYPE = TemplateUtility.SOURCE_DATATYPE
