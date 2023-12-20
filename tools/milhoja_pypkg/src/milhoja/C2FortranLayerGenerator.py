@@ -7,7 +7,7 @@ from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, VECTOR_ARRAY_EQUIVALENT,
-    SOURCE_DATATYPES
+    SOURCE_DATATYPES, C2F_TYPE_MAPPING
 )
 
 
@@ -131,13 +131,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         """
         self._log(f"Generating C2F layer at {str(file)}", LOG_LEVEL_BASIC)
         with open(file, 'w') as fp:
-            # should size_t be translated if using fortran?
-            data_mapping = {
-                'int': 'integer',
-                'real': 'real',
-                'bool': 'logical'
-            }
-
             # # WRITE BOILERPLATE
             fp.writelines([
                 '#include "Milhoja.h"\n',
@@ -169,7 +162,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
             # Load all items from general.
             for key, data in self._externals.items():
-                ftype = data_mapping[data["type"].lower()]
+                dtype = data["type"].lower()
+                # assumme that if it's not in this mapping it's already
+                # a fortran type
+                ftype = C2F_TYPE_MAPPING.get(dtype, dtype)
                 gpu_pointers[key] = C2FInfo(ftype, 'type(C_PTR)', '', [])
 
             # load all items from tile_metadata.
@@ -177,7 +173,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 ftype = VECTOR_ARRAY_EQUIVALENT[
                     SOURCE_DATATYPES[data["source"]]
                 ].lower()
-                ftype = data_mapping[ftype]
+                ftype = C2F_TYPE_MAPPING.get(ftype, ftype)
                 gpu_pointers[key] = C2FInfo(
                     ftype, 'type(C_PTR)', '', ['MILHOJA_MDIM', 'F_nTiles_h']
                 )
@@ -191,7 +187,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             for section in [self._tile_in, self._tile_in_out, self._tile_out]:
                 for item, data in section.items():
                     ftype = data["type"].lower()
-                    ftype = data_mapping[ftype]
+                    ftype = C2F_TYPE_MAPPING.get(ftype, ftype)
                     shape = ['F_nTiles_h']
                     var_in = data.get("variables_in", None)
                     var_out = data.get("variables_out", None)

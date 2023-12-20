@@ -21,7 +21,7 @@ from .BasicLogger import BasicLogger
 from .LogicError import LogicError
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, LOG_LEVEL_MAX, INTERNAL_ARGUMENT,
-    VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES
+    VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES, F2C_TYPE_MAPPING
 )
 
 
@@ -462,6 +462,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         # insert arguments into separate dict for use later
         for item in args:
             external[item] = self._tf_spec.argument_specification(item)
+            dtype = external[item]["type"]
+            # Note: Since the data packet geberator needs its own internal
+            #       representations of each item in the packet,
+            #       I convert any potential fortran names into C++ names.
+            #       This is because the data packet generator is always
+            #       generating C++ code, so it makes sense to have the
+            #       internal representation use C++ type names, despite the
+            #       tf spec being language agnostic.
+            external[item]["type"] = F2C_TYPE_MAPPING.get(dtype, dtype)
 
         return self._sort_dict(
             external.items(),
@@ -499,6 +508,8 @@ class DataPacketGenerator(AbcCodeGenerator):
         else:
             raise RuntimeError("Language is not supported.")
 
+        # we don't need to check for types here because tile metadata
+        # has predetermined types based on milhoja classes.
         args = deepcopy(self._tf_spec.tile_metadata_arguments)
         for key in args:
             args[key] = self._tf_spec.argument_specification(key)
@@ -540,6 +551,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 mask = arg_dictionary[arg]['variables_out']
                 arg_dictionary[arg]['variables_out'] = [mask[0]-1, mask[1]-1]
 
+            # grid data has pre determined types as well.
             arg_dictionary[arg]['type'] = \
                 SOURCE_DATATYPES[arg_dictionary[arg]['source']]
         return arg_dictionary
@@ -618,6 +630,11 @@ class DataPacketGenerator(AbcCodeGenerator):
                 parse_extents(arg_dictionary[arg]['extents'])
             arg_dictionary[arg]['lbound'] = \
                 parse_lbound(arg_dictionary[arg]['lbound'])
+            # scratch does not have predetermined data types, so we need
+            # to always convert to c++ types here as well.
+            dtype = arg_dictionary[arg]['type']
+            arg_dictionary[arg]['type'] = \
+                F2C_TYPE_MAPPING.get(dtype, dtype)
         return self._sort_dict(
             arg_dictionary.items(),
             lambda x: (self._sizes.get(x[1]["type"], 0), x[0]),
