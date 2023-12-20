@@ -244,19 +244,16 @@ class TaskFunction(object):
         src_to_adjust = [
             EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
         ]
-        if ((spec["source"].lower() in src_to_adjust) and
-                (spec["type"].lower() == "real") and
-                (self.processor.lower() == "cpu")):
-            spec["type"] = "milhoja::Real"
-
-        # I don't like flake styling rules when it comes to if indentation
-        #  - Wesley
         pcsr = self.processor.lower()
-        if spec["source"].lower() in src_to_adjust and pcsr == "gpu":
-            if spec["type"].lower() == "integer":
-                spec["type"] = "int"
-            if spec["type"].lower() == "logical":
-                spec["type"] = "bool"
+        if spec["source"].lower() in src_to_adjust:
+            if pcsr == "cpu":
+                if spec["type"].lower() == "real":
+                    spec["type"] = "milhoja::Real"
+            elif pcsr == "gpu":
+                if spec["type"].lower() == "integer":
+                    spec["type"] = "int"
+                if spec["type"].lower() == "logical":
+                    spec["type"] = "bool"
 
         return spec
 
