@@ -249,6 +249,13 @@ class TaskFunction(object):
                 (self.processor.lower() == "cpu")):
             spec["type"] = "milhoja::Real"
 
+        if spec["source"].lower() in src_to_adjust and \
+        self.processor.lower() == "gpu":
+            if spec["type"].lower() == "integer":
+                spec["type"] = "int"
+            if spec["type"].lower() == "logical":
+                spec["type"] = "bool"
+
         return spec
 
     @property
