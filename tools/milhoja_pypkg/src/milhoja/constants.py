@@ -92,8 +92,8 @@ VECTOR_ARRAY_EQUIVALENT = {
 
 F2C_TYPE_MAPPING = {
     "logical": "bool",
-    "bool": "bool",
-    "real": "real"
+    "real": "real",
+    "integer": "int"
 }
 
 # This never gets used but is the first step to having this mapping be
