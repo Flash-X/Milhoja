@@ -15,25 +15,49 @@ __version__ = version("milhoja")
 
 # constants
 from .constants import (
-    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION, TASK_FUNCTION_FORMATS,
-    LOG_LEVEL_NONE, LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, LOG_LEVEL_MAX,
-    LOG_LEVELS, INTERNAL_ARGUMENT, EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
-    GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT, TILE_LEVEL_ARGUMENT,
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT, TILE_FACE_AREAS_ARGUMENT,
-    TILE_CELL_VOLUMES_ARGUMENT, TILE_ARGUMENTS_ALL, THREAD_INDEX_ARGUMENT,
-    THREAD_INDEX_VAR_NAME, TASK_FUNCTION_FORMATS, GRID_DATA_FUNC_MAPPING,
+    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
+    TASK_FUNCTION_FORMATS,
+    LOG_LEVEL_NONE, LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
+    LOG_LEVEL_MAX, LOG_LEVELS,
+    INTERNAL_ARGUMENT,
+    EXTERNAL_ARGUMENT,
+    SCRATCH_ARGUMENT,
+    GRID_DATA_ARGUMENT,
+    LBOUND_ARGUMENT,
+    TILE_GRID_INDEX_ARGUMENT,
+    TILE_LEVEL_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_DELTAS_ARGUMENT,
+    TILE_COORDINATES_ARGUMENT,
+    TILE_FACE_AREAS_ARGUMENT,
+    TILE_CELL_VOLUMES_ARGUMENT,
+    TILE_ARGUMENTS_ALL,
+    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME,
+    GRID_DATA_FUNC_MAPPING,
     SOURCE_DATATYPE_MAPPING, F_HOST_EQUIVALENT, C2F_TYPE_MAPPING
 )
 
 # Custom exceptions
 from .LogicError import LogicError
 
+# Functions used by classes
+from .check_grid_specification import check_grid_specification
+from .check_tile_specification import check_tile_specification
+from .check_external_specification import check_external_specification
+from .check_scratch_specification import check_scratch_specification
+from .check_grid_data_specification import check_grid_data_specification
+from .check_lbound_specification import check_lbound_specification
+from .check_thread_index_specification import check_thread_index_specification
+from .check_partial_tf_specification import check_partial_tf_specification
+
 # classes
 from .AbcLogger import AbcLogger
 from .BasicLogger import BasicLogger
+from .SubroutineGroup import SubroutineGroup
 from .TaskFunction import TaskFunction
+from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp

@@ -1,0 +1,144 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    3,
+        "nxb":         16,
+        "nyb":         16,
+        "nzb":         16,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "gpu_tf_hydro",
+        "language": "C++", 
+        "processor": "GPU",
+        "cpp_header": "gpu_tf_hydro.h",
+        "cpp_source": "gpu_tf_hydro.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "variable_index_base": 1,
+        "argument_list": ["external_hydro_op1_dt",
+                          "tile_deltas",
+                          "tile_hi",
+                          "tile_lo",
+                          "CC_1",
+                          "scratch_hydro_op1_auxC",
+                          "scratch_hydro_op1_flX",
+                          "scratch_hydro_op1_flY",
+                          "scratch_hydro_op1_flZ"],
+        "argument_specifications": {
+            "external_hydro_op1_dt":  {"source":           "external",
+                                       "type":             "real",
+                                       "extents":          "()"},
+            "tile_deltas":            {"source":           "tile_deltas"},
+            "tile_lo":                {"source":           "tile_lo"},
+            "tile_hi":                {"source":           "tile_hi"},
+            "CC_1":                   {"source":           "grid_data",
+                                       "structure_index": ["CENTER", 1],
+                                       "variables_in":    [1, 9],
+                                       "variables_out":   [1, 8]},
+            "scratch_hydro_op1_flX":  {"source":           "scratch",
+                                       "type":             "real",
+                                       "extents":          "(17, 16, 16, 5)",
+                                       "lbound":           "(tile_lo, 1)"},
+            "scratch_hydro_op1_flY":  {"source":           "scratch",
+                                       "type":             "real",
+                                       "extents":          "(16, 17, 16, 5)",
+                                       "lbound":           "(tile_lo, 1)"},
+            "scratch_hydro_op1_flZ":  {"source":           "scratch",
+                                       "type":             "real",
+                                       "extents":          "(16, 16, 17, 5)",
+                                       "lbound":           "(tile_lo, 1)"},
+            "scratch_hydro_op1_auxC": {"source":           "scratch",
+                                       "type":             "real",
+                                       "extents":          "(18, 18, 18)",
+                                       "lbound":           "(tile_lo) - (1, 1, 1)"}
+        },
+        "subroutine_call_graph": [
+            "hy::computeSoundSpeedHll_oacc_summit",
+            "hy::computeFluxesHll_X_oacc_summit",
+            "hy::computeFluxesHll_Y_oacc_summit",
+            "hy::computeFluxesHll_Z_oacc_summit",
+            "hy::updateSolutionHll_oacc_summit",
+            "Eos::idealGammaDensIe_oacc_summit"
+        ]
+    },
+    "data_item": {
+        "type": "DataPacket",
+        "byte_alignment": 16,
+        "header": "DataPacket_gpu_tf_hydro.h",
+        "source": "DataPacket_gpu_tf_hydro.cpp",
+        "module": ""
+    },
+    "subroutines": {
+        "hy::computeSoundSpeedHll_oacc_summit": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["lo", "hi", "U", "auxC"],
+            "argument_mapping": {
+                "lo":        "tile_lo",
+                "hi":        "tile_hi",
+                "U":         "CC_1",
+                "auxC":      "scratch_hydro_op1_auxC"
+            }
+        },
+        "hy::computeFluxesHll_X_oacc_summit": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["dt", "lo", "hi", "deltas", "U", "flX", "auxC"],
+            "argument_mapping": {
+                "dt":        "external_hydro_op1_dt",
+                "lo":        "tile_lo",
+                "hi":        "tile_hi",
+                "deltas":    "tile_deltas",
+                "U":         "CC_1",
+                "flX":       "scratch_hydro_op1_flX",
+                "auxC":      "scratch_hydro_op1_auxC"
+            }
+        },
+        "hy::computeFluxesHll_Y_oacc_summit": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["dt", "lo", "hi", "deltas", "U", "flY", "auxC"],
+            "argument_mapping": {
+                "dt":        "external_hydro_op1_dt",
+                "lo":        "tile_lo",
+                "hi":        "tile_hi",
+                "deltas":    "tile_deltas",
+                "U":         "CC_1",
+                "flY":       "scratch_hydro_op1_flY",
+                "auxC":      "scratch_hydro_op1_auxC"
+            }
+        },
+        "hy::computeFluxesHll_Z_oacc_summit": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["dt", "lo", "hi", "deltas", "U", "flZ", "auxC"],
+            "argument_mapping": {
+                "dt":        "external_hydro_op1_dt",
+                "lo":        "tile_lo",
+                "hi":        "tile_hi",
+                "deltas":    "tile_deltas",
+                "U":         "CC_1",
+                "flZ":       "scratch_hydro_op1_flZ",
+                "auxC":      "scratch_hydro_op1_auxC"
+            }
+        },
+        "hy::updateSolutionHll_oacc_summit": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["lo", "hi", "U", "flX", "flY", "flZ"],
+            "argument_mapping": {
+                "lo":   "tile_lo",
+                "hi":   "tile_hi",
+                "U":    "CC_1",
+                "flX":  "scratch_hydro_op1_flX",
+                "flY":  "scratch_hydro_op1_flY",
+                "flZ":  "scratch_hydro_op1_flZ"
+            }
+        },
+        "Eos::idealGammaDensIe_oacc_summit": {
+            "interface_file": "Eos.h",
+            "argument_list": ["lo", "hi", "U"],
+            "argument_mapping": {
+                "lo":          "tile_lo",
+                "hi":          "tile_hi",
+                "U":           "CC_1"
+            }
+        }
+    }
+}

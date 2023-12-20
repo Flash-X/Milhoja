@@ -2,18 +2,13 @@ import json
 
 from pathlib import Path
 
-from . import MILHOJA_JSON_FORMAT
-from . import CURRENT_MILHOJA_JSON_VERSION
-from . import LogicError
-from . import (
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
-    TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+from .constants import (
+    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_ARGUMENTS_ALL
 )
+from .LogicError import LogicError
 
 
 class TaskFunction(object):
@@ -60,7 +55,9 @@ class TaskFunction(object):
         called and all other member functions can assume correctness.
 
         .. todo::
-            * Perform full sanity check of specification
+            * Perform full error check of specification.  Try to use the
+              check_*_specification.py functions developed for
+              TaskFunctionAssembler as much as possible.
             * Should correction do automatic fixing of bad case when it does
               check so that all code generators can be written in
               case-sensitive way?
@@ -87,8 +84,8 @@ class TaskFunction(object):
     @property
     def output_filenames(self):
         """
-        :return: Dictionary of filenames where value is a dictionary
-        consisting of the key "source" and potentially "header".
+        :return: ``dict`` of filenames where value is a ``dict``
+            consisting of the key "source" and potentially "header"
         """
         cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
         cpp_tf_src = self.__tf_spec["cpp_source"].strip()
@@ -122,13 +119,14 @@ class TaskFunction(object):
                 "source": fortran_tf_src
             }
         elif processor.lower() == "gpu" and language.lower() == "fortran":
+            data_item_mod = self.__data_spec["module"].strip()
             assert c2f_src != ""
             assert fortran_tf_src != ""
+            assert data_item_mod != ""
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
-            filenames[TaskFunction.FORTRAN_TF_KEY] = {
-                "source": fortran_tf_src
-            }
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
+            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
         elif processor.lower() == "gpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
@@ -184,7 +182,7 @@ class TaskFunction(object):
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Data item is not a data packet")
 
-        return f"instantiate_{self.name}_packet_C"
+        return f"instantiate_{self.name}_packet_c"
 
     @property
     def delete_packet_C_function(self):
@@ -193,10 +191,26 @@ class TaskFunction(object):
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Data item is not a data packet")
 
-        return f"delete_{self.name}_packet_C"
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
 
     @property
     def release_stream_C_function(self):
+        """
+        .. todo::
+            * The release extra streams function always gets created
+              even if no extra streams are used. The function source code
+              is adjusted to raise an error if it is called, but it is
+              generated regardless. A small optimization would be to not
+              have this function be generated if it's not necessary.
+        """
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
@@ -204,7 +218,7 @@ class TaskFunction(object):
         elif self.n_streams <= 1:
             raise LogicError("No extra streams needed")
 
-        return f"release_{self.name}_extra_queue_C"
+        return f"release_{self.name}_extra_queue_c"
     
     @property
     def cpp2c_layer_name(self):
@@ -284,6 +298,10 @@ class TaskFunction(object):
             This should reinterpret variable types so that we return the
             correct type for the task function's processor and device.
         """
+        if argument not in self.__tf_spec["argument_specifications"]:
+            msg = "{} not an argument for task function {}"
+            raise ValueError(msg.format(argument, self.name))
+
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = [
@@ -313,22 +331,11 @@ class TaskFunction(object):
     def tile_metadata_arguments(self):
         """
         """
-        KEYS_ALL = [
-            TILE_GRID_INDEX_ARGUMENT,
-            TILE_LEVEL_ARGUMENT,
-            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-            TILE_DELTAS_ARGUMENT,
-            TILE_COORDINATES_ARGUMENT,
-            TILE_FACE_AREAS_ARGUMENT,
-            TILE_CELL_VOLUMES_ARGUMENT
-        ]
-
         metadata_all = {}
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             key = arg_spec["source"]
-            if key in KEYS_ALL:
+            if key in TILE_ARGUMENTS_ALL:
                 if key not in metadata_all:
                     metadata_all[key] = [arg]
                 else:
@@ -411,6 +418,20 @@ class TaskFunction(object):
                     data_all.add(arg)
 
         return data_all
+
+    @property
+    def lbound_arguments(self):
+        """
+        :return: Set of lower-bound dummy arguments
+        """
+        lbdd_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"] == LBOUND_ARGUMENT:
+                assert arg not in lbdd_all
+                lbdd_all.add(arg)
+
+        return lbdd_all
 
     @property
     def internal_subroutine_graph(self):

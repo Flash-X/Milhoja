@@ -9,6 +9,10 @@ void StaticPhysicsRoutines::computeLaplacianFusedKernels(const milhoja::IntVect&
                                                          milhoja::FArray4D& U,
                                                          milhoja::FArray4D& scratch,
                                                          const milhoja::RealVect& deltas) {
+    //$milhoja  "U": {
+    //$milhoja&     "RW": [DENS_VAR, ENER_VAR]
+    //$milhoja& }
+
     milhoja::Real   dx_sqr_inv = 1.0 / (deltas.I() * deltas.I());
     milhoja::Real   dy_sqr_inv = 1.0 / (deltas.J() * deltas.J());
 

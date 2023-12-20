@@ -12,6 +12,7 @@ from .parse_helpers import parse_lbound
 from .generate_packet_file import generate_packet_file
 from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
 from .C2FortranLayerGenerator import C2FortranLayerGenerator
+from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 from .TemplateUtility import TemplateUtility
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
@@ -280,6 +281,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             #   -> Cpp task function generator?
             outer_cpp2c = self.cpp2c_outer_template_name
             helper_cpp2c = self.cpp2c_helper_template_name
+            data_item_c2f = destination_path.joinpath(self.module_file_name)
 
             cpp2c_layer = Cpp2CLayerGenerator(
                 self._tf_spec, outer_cpp2c,
@@ -289,13 +291,19 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
 
             self._log(
-                f"Generating cpp2c helper at {str(helper_cpp2c)} and "
-                f"cpp2c outer at {str(outer_cpp2c)}",
+                f"Generating Cpp2C helper at {str(helper_cpp2c)} and "
+                f"Cpp2C outer at {str(outer_cpp2c)}",
                 LOG_LEVEL_BASIC
             )
             cpp2c_layer.generate_source_code(destination, overwrite)
+            cpp2c_destination = Path(destination, self.cpp2c_file_name)
+            self._log(
+                f"Generating Cpp2C Layer at {cpp2c_destination} using "
+                f"{str(helper_cpp2c)} and {str(outer_cpp2c)}",
+                LOG_LEVEL_BASIC
+            )
             generate_packet_file(
-                Path(destination, self.cpp2c_file_name),
+                cpp2c_destination,
                 self.__DEFAULT_SOURCE_TREE_OPTS,
                 # dev note: ORDER MATTERS HERE!
                 # If helpers is put before the base
@@ -320,6 +328,15 @@ class DataPacketGenerator(AbcCodeGenerator):
             # c2f layer does not use cgkit so no need
             # to call generate_packet_file
             c2f_layer.generate_source_code(destination, overwrite)
+
+            dp_module = DataPacketC2FModuleGenerator(
+                self._tf_spec, self._indent, self._logger, self.external_args
+            )
+            self._log(
+                f"Generating mod file at {str(data_item_c2f)}",
+                LOG_LEVEL_BASIC
+            )
+            dp_module.generate_source_code(destination, overwrite)
 
     @property
     def language(self):
@@ -411,6 +428,12 @@ class DataPacketGenerator(AbcCodeGenerator):
         ]["source"]
 
     @property
+    def module_file_name(self) -> str:
+        return self._tf_spec.output_filenames[
+            TaskFunction.DATA_ITEM_KEY
+        ]["module"]
+
+    @property
     def n_extra_streams(self) -> int:
         # for now data packet generator will return the number of
         # extra streams.
@@ -438,7 +461,7 @@ class DataPacketGenerator(AbcCodeGenerator):
                 'source': INTERNAL_ARGUMENT,
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
-                'extents': []
+                'extents': "()"
             }
         }
 

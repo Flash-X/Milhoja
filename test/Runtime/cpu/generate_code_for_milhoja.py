@@ -15,13 +15,6 @@ def main():
     # Location of Milhoja-JSON files
     CG_PATH = CLONE_PATH.joinpath("test", "Base", "code_generation")
 
-    # Milhoja-JSON specifications of all task functions in test
-    TF_NAMES_ALL = ["cpu_tf_ic.json",
-                    "cpu_tf_dens.json",
-                    "cpu_tf_ener.json",
-                    "cpu_tf_fused.json",
-                    "cpu_tf_analysis.json"]
-
     # Exit codes so that this can be used in CI build server
     FAILURE = 1
     SUCCESS = 0
@@ -81,6 +74,9 @@ def main():
     logger = milhoja.BasicLogger(args.verbose)
 
     assert dimension == 2
+    assert nxb == 8
+    assert nyb == 16
+    assert nzb == 1
 
     # ----- ABORT WITH MESSAGE & COMMUNICATE FAILURE
     def log_and_abort(error_msg):
@@ -88,18 +84,14 @@ def main():
         exit(FAILURE)
 
     try:
-        # ----- LOAD ALL TASK FUNCTIONS SPECIFICATIONS
-        tf_specs_all = []
-        for tf_name in TF_NAMES_ALL:
-            filename = CG_PATH.joinpath(tf_name)
-            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
-            tf_specs_all.append(tf_spec)
-
-        # ----- NOW IS GOOD FOR GENERATING CODE
+        tf_spec_jsons = milhoja.tests.generate_runtime_cpu_tf_specs(
+                            CG_PATH, destination,
+                            overwrite, logger
+                        )
         milhoja.tests.generate_code(
-            tf_specs_all, destination, overwrite,
-            library_path, INDENT, makefile,
-            logger
+                            tf_spec_jsons, destination, overwrite,
+                            library_path, INDENT, makefile,
+                            logger
         )
     except Exception as error:
         error_msg = str(error)

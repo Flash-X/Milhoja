@@ -9,10 +9,7 @@
         "finestRefinementLevel":           1,
         "nBlocksX":                      256,
         "nBlocksY":                      128,
-        "nBlocksZ":                        1,
-        "NXB":                             8,
-        "NYB":                            16,
-        "NZB":                             1
+        "nBlocksZ":                        1
     },
     "Runtime": {
         "nStreams":                       32,

@@ -3,6 +3,7 @@
 #include <Milhoja_GridConfiguration.h>
 #include <Milhoja_Grid.h>
 #include <Milhoja_Logger.h>
+#include <Milhoja_test.h>
 
 #include "Sedov.h"
 #include "RuntimeParameters.h"
@@ -34,9 +35,9 @@ int main(int argc, char* argv[]) {
             cfg.yMax                    = RPs.getReal("Grid", "yMax");
             cfg.zMin                    = RPs.getReal("Grid", "zMin");
             cfg.zMax                    = RPs.getReal("Grid", "zMax");
-            cfg.nxb                     = RPs.getUnsignedInt("Grid", "NXB");
-            cfg.nyb                     = RPs.getUnsignedInt("Grid", "NYB");
-            cfg.nzb                     = RPs.getUnsignedInt("Grid", "NZB");
+            cfg.nxb                     = MILHOJA_TEST_NXB;
+            cfg.nyb                     = MILHOJA_TEST_NYB;
+            cfg.nzb                     = MILHOJA_TEST_NZB;
             cfg.nCcVars                 = NUNKVAR;
             cfg.nFluxVars               = NFLUXES;
             cfg.loBCs[milhoja::Axis::I] = milhoja::BCs::Periodic;
