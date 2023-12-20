@@ -36,6 +36,9 @@ class DataPacketGenerator(AbcCodeGenerator):
         * check if lru_caching is necessary on properties that
           are not tile_scratch.
     """
+    # This is specifically in reference to tile_metadata specific types like
+    # IntVect and RealVect, where the arrays need to be converted to an
+    # array of a primitive that can be used in fortran.
     FORTRAN_EQUIVALENT = {
         "IntVect": "int",
         "RealVect": "real"
