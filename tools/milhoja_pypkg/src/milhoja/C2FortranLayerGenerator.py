@@ -4,15 +4,15 @@ from copy import deepcopy
 
 from .parse_helpers import parse_extents
 from .TemplateUtility import TemplateUtility
-from .FortranTemplateUtility import FortranTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
 from .constants import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT,
-    SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL, GRID_DATA_EXTENTS,
-    LBOUND_ARGUMENT
+    EXTERNAL_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL,
+    GRID_DATA_EXTENTS, LBOUND_ARGUMENT, LOG_LEVEL_BASIC,
+    LOG_LEVEL_BASIC_DEBUG, VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES,
+    C2F_TYPE_MAPPING
 )
 
 
@@ -65,11 +65,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             be separated out from the data packet generator class and moved
             over into generate_task_function.
     """
-    TYPE_MAPPING = {
-        'int': 'integer',
-        'real': 'real',
-        'bool': 'logical'
-    }
 
     def __init__(
         self,
@@ -83,7 +78,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param tf_spec: The task function specification
         :param int indent: The indent size
         :param logger: The logger to be used with the class
-        :param n_ex_streams: The number of extra streams
         """
         self._n_extra_streams = tf_spec.n_streams - 1
 
@@ -175,7 +169,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
 
         info = C2FInfo(
             name=f'{arg}_d', ctype='type(C_PTR)',
-            ftype=self.TYPE_MAPPING[dtype] + ", pointer",
+            ftype=C2F_TYPE_MAPPING.get(dtype, dtype) + ", pointer",
             shape=extents,
             conversion_eq='CALL C_F_POINTER({0}, {1}{2})'
         )
@@ -193,9 +187,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param arg: The name of the variable
         :param spec: The arg spec of the variable
         """
-        dtype = TemplateUtility.SOURCE_DATATYPE[spec["source"]]
-        dtype = FortranTemplateUtility.F_HOST_EQUIVALENT[dtype]
-        dtype = self.TYPE_MAPPING.get(dtype, dtype)
+        dtype = SOURCE_DATATYPES[spec["source"]]
+        dtype = VECTOR_ARRAY_EQUIVALENT[dtype]
+        dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
         shape = []
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
@@ -263,7 +257,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param spec: The argument specification for the variable.
         """
         dtype = spec['type']
-        dtype = self.TYPE_MAPPING.get(dtype, dtype)
+        dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
         extents = self.__get_array_extents(spec)
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",

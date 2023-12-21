@@ -4,19 +4,13 @@ from copy import deepcopy
 from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
-from .TemplateUtility import TemplateUtility
 from .parse_helpers import parse_lbound_f
+from .TemplateUtility import TemplateUtility
 from . import (
-    EXTERNAL_ARGUMENT,
-    GRID_DATA_ARGUMENT,
-    SCRATCH_ARGUMENT,
-    TILE_LO_ARGUMENT,
-    TILE_HI_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT,
-    TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT,
-    GRID_DATA_LBOUNDS
+    EXTERNAL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT, TILE_LBOUND_ARGUMENT, LBOUND_ARGUMENT,
+    GRID_DATA_LBOUNDS, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING
 )
 
 
@@ -27,23 +21,14 @@ class FortranTemplateUtility(TemplateUtility):
     based task functions.
     """
 
-    FARRAY_MAPPING = {
-        "int": "IntVect",
-        "real": "RealVect"
-    }
-
-    F_HOST_EQUIVALENT = {
-        'RealVect': 'real',
-        'IntVect': 'int'
-    }
-
     def __init__(self, tf_spec):
         super().__init__(tf_spec)
 
     def iterate_externals(
         self, connectors: dict,
         size_connectors: dict,
-        externals: OrderedDict
+        externals: OrderedDict,
+        dummy_arg_order: list
     ):
         """
         Iterates the external variables section
@@ -75,7 +60,7 @@ class FortranTemplateUtility(TemplateUtility):
                        '_nTiles_h = static_cast<' \
                        f'{externals["nTiles"]["type"]}>(tiles_.size());'
         connectors[self._NTILES_VALUE] = [nTiles_value]
-        self._common_iterate_externals(connectors, externals)
+        self._common_iterate_externals(connectors, externals, dummy_arg_order)
 
     def iterate_tilemetadata(
         self,
@@ -104,14 +89,19 @@ class FortranTemplateUtility(TemplateUtility):
         one_time_mdata = OrderedDict()
         bounds_data = {
             TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
-            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT,
             TILE_ARRAY_BOUNDS_ARGUMENT
         }
 
         for item, data in tilemetadata.items():
-            source = data['source']
+            pure_source = data['source']
+            source = pure_source
+            # # temporary fix for generating packet for flash-x sim
+            # if source == 'tile_lbound':
+            #     source = 'tile_loGC'
+            # elif source == 'tile_ubound':
+            #     source = 'tile_hiGC'
             short_source = source.replace('tile_', '')
-            assoc_array = data.get("array", None)
             item_type = data['type']
 
             interior = TILE_INTERIOR_ARGUMENT
@@ -126,7 +116,8 @@ class FortranTemplateUtility(TemplateUtility):
 
             # then it's an lbound array, which means int type and the size of
             # the array is the # of dimensions of the associated array.
-            if assoc_array:
+            if pure_source == LBOUND_ARGUMENT:
+                assoc_array = data["array"]
                 item_type = "int"
                 array_spec = deepcopy(
                     self.tf_spec.argument_specification(assoc_array)
@@ -172,17 +163,12 @@ class FortranTemplateUtility(TemplateUtility):
             # data type depends on the language. If there exists a mapping
             # for a fortran data type for the given item_type,
             # use that instead.
-            info.dtype = self.FARRAY_MAPPING.get(item_type, item_type)
+            info.dtype = F2C_TYPE_MAPPING.get(item_type, item_type)
 
             construct_host = ""
-            if not assoc_array:
-                #  THIS WILL CHANGE WITH LBOUND
-                # indices are 1 based, so bound arrays need to adjust
-                # ..todo::
-                #       * This is not sufficient for lbound
-                fix_index = '+1' if source in bounds_data else ''
-                info.dtype = self.FARRAY_MAPPING.get(info.dtype, info.dtype)
-                info.dtype = self.F_HOST_EQUIVALENT[info.dtype]
+            if pure_source != LBOUND_ARGUMENT:
+                fix_index = '+1' if pure_source in bounds_data else ''
+                info.dtype = F2C_TYPE_MAPPING.get(info.dtype, info.dtype)
 
                 # need to check for tile_interior and tile_arrayBounds args
                 # can't assume that lo and hi already exist + each var does
@@ -204,7 +190,7 @@ class FortranTemplateUtility(TemplateUtility):
                         f"{short_source}.J(){fix_index}, " \
                         f"{short_source}.K(){fix_index} }}"
             else:
-                info.dtype = self.F_HOST_EQUIVALENT[info.dtype]
+                # info.dtype = VECTOR_ARRAY_EQUIVALENT[info.dtype]
                 # intvect i,j,k start at 0 so we need to add 1 to the
                 # index. However, anything that's just integers needs to be
                 # untouched.

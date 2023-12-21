@@ -15,14 +15,7 @@ from abc import abstractmethod
 from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
 from .TaskFunction import TaskFunction
-
-from . import (
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_DELTAS_ARGUMENT,
-    GRID_DATA_ARGUMENT, LBOUND_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
-)
+from . import GRID_DATA_PTRS
 
 
 class TemplateUtility():
@@ -50,25 +43,7 @@ class TemplateUtility():
     _EXTRA_STREAMS_PACK = "n_extra_streams"
     _DESTRUCTOR = 'destructor'
     _STREAM_FUNCS_CXX = 'stream_functions_cxx'
-
-    _SOURCE_TILE_DATA_MAPPING = {
-        "CENTER": "tileDesc_h->dataPtr()",
-        "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
-        "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
-        "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
-    }
-
-    SOURCE_DATATYPE = {
-        TILE_LO_ARGUMENT: "IntVect",
-        TILE_HI_ARGUMENT: "IntVect",
-        TILE_INTERIOR_ARGUMENT: "IntVect",
-        TILE_LBOUND_ARGUMENT: "IntVect",
-        TILE_UBOUND_ARGUMENT: "IntVect",
-        TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
-        TILE_DELTAS_ARGUMENT: "RealVect",
-        GRID_DATA_ARGUMENT: "real",
-        LBOUND_ARGUMENT: "IntVect"
-    }
+    _TILE_DESC = "tileDesc_h"
 
     # C++ Index space is always 0.
     DEFAULT_INDEX_SPACE = 0
@@ -164,13 +139,14 @@ class TemplateUtility():
         cls,
         connectors: dict,
         size_connectors: dict,
-        externals: OrderedDict
+        externals: OrderedDict,
+        dummy_arg_list: list
     ):
         ...
 
     @classmethod
     def _common_iterate_externals(
-        cls, connectors: dict, externals: OrderedDict
+        cls, connectors: dict, externals: OrderedDict, dummy_arg_list: list
     ):
         """
         Common code in both utility classes for iterating external vars.
@@ -179,6 +155,7 @@ class TemplateUtility():
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.
         """
+        info_list = {}
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
@@ -192,12 +169,8 @@ class TemplateUtility():
                 item=key, dtype=var_data["type"],
                 size_eq=size_equation, per_tile=False
             )
+            info_list[key] = info
 
-            # nTiles is a special case here. nTiles should not be included
-            # in the constructor, and it has its own host variable generation.
-            if key != 'nTiles':
-                connectors[cls._CON_ARGS].append(f'{info.dtype} {key}')
-                connectors[cls._HOST_MEMBERS].append(info.host)
             # add the necessary connectors for the constructor section.
             connectors[cls._PUB_MEMBERS].extend([
                 f'{info.dtype} {info.host};\n',
@@ -225,6 +198,16 @@ class TemplateUtility():
                 f'std::memcpy({info.pinned}, static_cast<void*>(&'
                 f'{info.host}), {info.size});\n'
             )
+
+        # sort host members and constructor args based on the task function
+        # ordering.
+        external_arg_list = [
+            item for item in dummy_arg_list if item in externals
+        ]
+        for item in external_arg_list:
+            info = info_list[item]
+            connectors[cls._CON_ARGS].append(f'{info.dtype} {item}')
+            connectors[cls._HOST_MEMBERS].append(info.host)
 
     @classmethod
     @abstractmethod
@@ -543,7 +526,8 @@ class TemplateUtility():
         # Luckily we don't really need to use DataPacketMemberVars here
         # because the temporary device pointer is locally scoped.
 
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+        desc = cls._TILE_DESC
+        data_pointer_string = GRID_DATA_PTRS[source.upper()].format(desc)
 
         # TODO: Use grid data to get data pointer information.
         connectors[f'memcpy_{section}'].extend([
@@ -584,7 +568,9 @@ class TemplateUtility():
         """
         offset = f"{extents} * static_cast<std::size_t>({start});"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+
+        desc = cls._TILE_DESC
+        data_pointer_string = GRID_DATA_PTRS[source.upper()].format(desc)
 
         connectors[cls._IN_PTRS].append(
             f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'

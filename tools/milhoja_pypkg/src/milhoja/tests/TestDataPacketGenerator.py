@@ -3,6 +3,7 @@ import milhoja.tests
 
 from pathlib import Path
 from collections import OrderedDict
+from collections import defaultdict
 
 from milhoja import (
     LOG_LEVEL_NONE,
@@ -372,7 +373,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             "external_example": {
                 "source": "external",
                 "type": "int",
-                "extents": ['1', '5']
+                "extents": "(1,5)"
             }
         })
         with self.assertRaises(
@@ -380,7 +381,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             msg="External with extents was used without error."
         ):
             TemplateUtility._common_iterate_externals(
-                connectors, mock_external
+                connectors, mock_external, ["external_example"]
             )
 
         # sample tile_in variable set.
@@ -413,6 +414,58 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             util.iterate_tile_out(
                 connectors, size_connectors, mock_tile_out
             )
+
+        # test proper ordering
+        mock_externals = OrderedDict({
+            "dt": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "spark_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            },
+            "spark_coef2": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "another_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            }
+        })
+
+        connectors = defaultdict(list)
+        TemplateUtility._common_iterate_externals(
+            connectors, mock_externals,
+            ["dt", "another_coef", "spark_coef2", "spark_coef"]
+        )
+
+        assert TemplateUtility._CON_ARGS in connectors
+        assert TemplateUtility._HOST_MEMBERS in connectors
+        constructor_args = [
+            'real dt',
+            'int another_coef',
+            'real spark_coef2',
+            'int spark_coef'
+        ]
+        host_args = [
+            "_dt_h",
+            "_another_coef_h",
+            "_spark_coef2_h",
+            "_spark_coef_h"
+        ]
+
+        self.assertEqual(
+            connectors[TemplateUtility._CON_ARGS], constructor_args
+        )
+        self.assertEqual(
+            connectors[TemplateUtility._HOST_MEMBERS], host_args
+        )
 
     def testCpp2CGenerator(self):
         for test in self._sedov:
@@ -452,31 +505,27 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testModGeneration(self):
+        """
+        Tests the module file generation for data packets.
+
+        todo::
+            * Write dummy task functions to test argument ordering.
+        """
         for test in self._sedov:
             json_path = test[self.JSON]
             tf_spec = TaskFunction.from_milhoja_json(json_path)
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
 
-            # todo::
-            #   * Need a smaller sample reference file for checking
-            #     all types of arguments (bool, int, real, arrays)
-            sample_externals = {
-                "dt": {
-                    "source": "external",
-                    "type": "real"
-                }
-            }
-
             if tf_spec.language.lower() == "c++":
                 with self.assertRaises(LogicError, msg="Wrong language"):
                     mod_generator = DataPacketC2FModuleGenerator(
-                        tf_spec, 4, logger, sample_externals
+                        tf_spec, 4, logger
                     )
                 continue
 
             mod_generator = DataPacketC2FModuleGenerator(
-                tf_spec, 4, logger, sample_externals
+                tf_spec, 4, logger
             )
 
             with self.assertRaises(LogicError, msg="Header gen should fail."):

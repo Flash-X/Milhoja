@@ -91,6 +91,52 @@ GRID_DATA_LBOUNDS = {
     "FLUXZ": "(tile_lo, {0})"
 }
 
+# The type mapping for sources that have predetermined types.
+# External and scratch do not have predetermined types, so they do not
+# appear in here.
+SOURCE_DATATYPES = {
+    TILE_LO_ARGUMENT: "IntVect",
+    TILE_HI_ARGUMENT: "IntVect",
+    TILE_LBOUND_ARGUMENT: "IntVect",
+    TILE_UBOUND_ARGUMENT: "IntVect",
+    TILE_DELTAS_ARGUMENT: "RealVect",
+    TILE_INTERIOR_ARGUMENT: "IntVect",
+    TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
+    LBOUND_ARGUMENT: "IntVect",
+    TILE_LEVEL_ARGUMENT: "unsigned int",
+    GRID_DATA_ARGUMENT: "real"
+}
+
+# get string and call with format to insert the name of your tile descriptor
+GRID_DATA_PTRS = {
+    "CENTER": "{0}->dataPtr()",
+    "FLUXX": "&{0}->fluxData(milhoja::Axis::I)",
+    "FLUXY": "&{0}->fluxData(milhoja::Axis::J)",
+    "FLUXZ": "&{0}->fluxData(milhoja::Axis::K)"
+}
+
+# This is specifically in reference to tile_metadata specific types like
+# IntVect and RealVect, where the arrays need to be converted to an
+# array of a primitive that can be used in fortran.
+VECTOR_ARRAY_EQUIVALENT = {
+    "IntVect": "int",
+    "RealVect": "real"
+}
+
+F2C_TYPE_MAPPING = {
+    "logical": "bool",
+    "real": "real",
+    "integer": "int"
+}
+
+# This never gets used but is the first step to having this mapping be
+# a global constant so I'll leave it as is.
+C2F_TYPE_MAPPING = {
+    "bool": "logical",
+    "int": "integer",
+    "real": "real"
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed

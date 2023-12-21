@@ -298,10 +298,11 @@ class TaskFunction(object):
         src_to_adjust = [
             EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
         ]
-        if ((spec["source"].lower() in src_to_adjust) and
-                (spec["type"].lower() == "real") and
-                (self.processor.lower() == "cpu")):
-            spec["type"] = "milhoja::Real"
+        pcsr = self.processor.lower()
+        if spec["source"].lower() in src_to_adjust:
+            if pcsr == "cpu":
+                if spec["type"].lower() == "real":
+                    spec["type"] = "milhoja::Real"
 
         return spec
 

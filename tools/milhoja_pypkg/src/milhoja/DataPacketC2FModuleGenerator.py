@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from . import AbcCodeGenerator
-from . import INTERNAL_ARGUMENT
+from . import EXTERNAL_ARGUMENT
 from . import TaskFunction
 from . import LogicError
 from . import LOG_LEVEL_BASIC
@@ -9,6 +9,8 @@ from . import LOG_LEVEL_BASIC
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
+    # C2F Module generator uses its own specific type mapping for the
+    # fortran interface.
     _TYPE_MAPPING = {
         "real": "real(MILHOJA_REAL)",
         "int": "integer(MILHOJA_INT)",
@@ -19,7 +21,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
     # should be fine to pull specifically from the data packet
     # external arguments. The Cpp2C and C2F layers ultimately should not
     # do that, however, since they're more task function related.
-    def __init__(self, tf_spec, indent, logger, external_args):
+    def __init__(self, tf_spec, indent, logger):
         if tf_spec.language.lower() == "c++":
             raise LogicError("No mod file for C++.")
 
@@ -32,7 +34,12 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             logger
         )
         self.INDENT = " " * indent
-        self._externals = external_args
+        ext_arg = EXTERNAL_ARGUMENT
+        self._externals = {
+            item: tf_spec.argument_specification(item)
+            for item in tf_spec.dummy_arguments
+            if tf_spec.argument_specification(item)["source"] == ext_arg
+        }
 
     def generate_header_code(self, destination, overwrite):
         raise LogicError(
@@ -77,9 +84,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             arg_list = []
             var_declarations = []
             for var, data in self._externals.items():
-                if data["source"] == INTERNAL_ARGUMENT:
-                    continue
                 dtype = data["type"]
+                # dtype = FORTRAN_TYPE_MAPPING[dtype]
                 name = f"C_{var}"
                 arg_list.append(name)
                 var_declarations.append(

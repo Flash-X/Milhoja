@@ -18,7 +18,8 @@ class CppTemplateUtility(TemplateUtility):
         super().__init__(tf_spec)
 
     def iterate_externals(
-        self, connectors: dict, size_connectors: dict, externals: OrderedDict
+        self, connectors: dict, size_connectors: dict, externals: OrderedDict,
+        dummy_arg_order: list
     ):
         """
         Iterates the external variables section
@@ -40,7 +41,7 @@ class CppTemplateUtility(TemplateUtility):
 
         nTiles_value = '_nTiles_h = tiles_.size();'
         connectors[self._NTILES_VALUE] = [nTiles_value]
-        self._common_iterate_externals(connectors, externals)
+        self._common_iterate_externals(connectors, externals, dummy_arg_order)
 
     # todo::
     #   * implement lbound for C++ packet.
