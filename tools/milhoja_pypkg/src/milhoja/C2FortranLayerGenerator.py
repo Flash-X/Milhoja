@@ -66,12 +66,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             over into generate_task_function.
     """
 
-    def __init__(
-        self,
-        tf_spec,
-        indent,
-        logger
-    ):
+    def __init__(self, tf_spec, indent, logger):
         """
         Initializer
 
@@ -79,6 +74,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         :param int indent: The indent size
         :param logger: The logger to be used with the class
         """
+        # Uses number of *extra* streams, same as the DataPacketGenerator.
         self._n_extra_streams = tf_spec.n_streams - 1
 
         # pass in an empty file for the header name since there is no header.
@@ -98,6 +94,9 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         """
         Wrapper for _generate_advance_c2f. Checks if the destination exists
         and the overwrite flag.
+
+        :param destination: The destination for the c2f layer file.
+        :param overwrite: Flag for overwriting existing files.
         """
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():
@@ -106,12 +105,12 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             )
         c2f_path = destination_path.joinpath(self.source_filename).resolve()
 
+        # Todo: This should probably be a package-wide helper function.
         if c2f_path.is_file():
             self._warn(f"{c2f_path} already exists.")
             if not overwrite:
                 self.log_and_abort(
-                    f"Overwrite is {overwrite}",
-                    FileExistsError()
+                    f"Overwrite is {overwrite}", FileExistsError()
                 )
         self._generate_advance_c2f(c2f_path)
 
@@ -123,7 +122,6 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         errors depending on the source inside the array spec.
 
         :param spec: The argument spec of a given array.
-        :rtype: list
         :return: The extents of the given arg spec as a list.
         """
         src = spec["source"]
@@ -140,12 +138,11 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             block_extents = self._tf_spec.block_interior_shape
             nguard = self._tf_spec.n_guardcells
             extents = deepcopy(GRID_DATA_EXTENTS[struct_index[0]])
-
             for idx, ext in enumerate(block_extents):
                 extents[idx] = extents[idx].format(ext, nguard)
-
             return extents
-        elif src == SCRATCH_ARGUMENT:
+
+        if src == SCRATCH_ARGUMENT:
             return parse_extents(spec['extents'])
 
         # we should never get here!
@@ -341,6 +338,8 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                     info = self._get_grid_info(variable, spec)
                 elif src == SCRATCH_ARGUMENT:
                     info = self._get_scratch_info(variable, spec)
+                else:
+                    raise LogicError(f"Source {src} not supported.")
 
                 if info:
                     c2f_arg_info.append(info)
