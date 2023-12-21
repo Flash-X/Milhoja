@@ -46,6 +46,7 @@ class TemplateUtility():
     _TILE_DESC = "tileDesc_h"
 
     # C++ Index space is always 0.
+    # todo:: Should this be handled by the TF Spec?
     DEFAULT_INDEX_SPACE = 0
 
     def __init__(self, tf_spec: TaskFunction):
@@ -56,7 +57,6 @@ class TemplateUtility():
         """
         self.tf_spec = tf_spec
 
-    # # todo:: This method can be combined with get_array_size.
     @staticmethod
     def get_initial_index(vars_in: list, vars_out: list) -> int:
         """
@@ -136,10 +136,7 @@ class TemplateUtility():
     @classmethod
     @abstractmethod
     def iterate_externals(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        externals: OrderedDict,
+        cls, connectors: dict, size_connectors: dict, externals: OrderedDict,
         dummy_arg_list: list
     ):
         ...
@@ -154,6 +151,7 @@ class TemplateUtility():
         :param dict connectors: All cgkit connectors.
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.
+        :param list dummy_arg_list: The tf spec's argument list.
         """
         info_list = {}
         # MOVE THROUGH EVERY EXTERNAL ITEM
@@ -178,10 +176,8 @@ class TemplateUtility():
             ])
 
             set_host = f'{{{key}}}'
-            # NOTE: it doesn't matter what we set nTiles to here.
-            #       nTiles always gets set in pack, and we cannot set nTiles
-            #       in here using tiles_ because tiles_ has not been filled at
-            #       the time of this packet's construction.
+            # NOTE: nTiles must be set when pack is called because tiles_
+            #       has not been filled at time of packet construction.
             if key == "nTiles":
                 set_host = '{0}'
 
@@ -292,9 +288,7 @@ class TemplateUtility():
         ...
 
     @classmethod
-    def _common_iterate_tile_scratch(
-        cls, connectors, info
-    ):
+    def _common_iterate_tile_scratch(cls, connectors, info):
         """
         Common code pulled out of each template utility's iterate_scratch
         function.
@@ -336,15 +330,13 @@ class TemplateUtility():
         """
         size = '0'
         if section_dict:
-            size = '\n + '.join(f'SIZE_{item.upper()}' for item in section_dict)
+            size = \
+                '\n + '.join(f'SIZE_{item.upper()}' for item in section_dict)
         connectors[f'size_{name}'] = size
 
     @staticmethod
     def section_creation(
-        name: str,
-        section: OrderedDict,
-        connectors: dict,
-        size_connectors
+        name: str, section: OrderedDict, connectors: dict, size_connectors
     ):
         """
         Creates a section and sets the default value to an empty list.
@@ -364,9 +356,7 @@ class TemplateUtility():
 
     @staticmethod
     def set_pointer_determination(
-        connectors: dict,
-        section: str,
-        info: DataPacketMemberVars,
+        connectors: dict, section: str, info: DataPacketMemberVars,
         item_is_member_variable=False
     ):
         """
@@ -380,17 +370,21 @@ class TemplateUtility():
         :param DataPacketMemberVars info: Contains information for formatting
                                           the name to get variable names.
         :param bool item_is_member_variable: Flag if *item* pinned memory
-                                             pointer is a member variable
+                                             pointer is a member variable.
+                                             default = False.
         """
         dtype = info.dtype
+        dtype += "* "
+        if item_is_member_variable:
+            dtype = ""
         # If the item is a data packet member variable, we don't need
         # to specify a type name here.
         # Note that pointers to memory in the remote device are always
         # member variables, so it will never need a type name.
-        if item_is_member_variable:
-            dtype = ""
-        else:
-            dtype += "* "
+        # if item_is_member_variable:
+        #     dtype = ""
+        # else:
+        #     dtype += "* "
 
         # insert items into boiler plate for the pointer determination
         # phase for *section*.
@@ -498,13 +492,8 @@ class TemplateUtility():
 
     @classmethod
     def add_memcpy_connector(
-        cls,
-        connectors: dict,
-        section: str,
-        extents: str, item: str,
-        start: int, end: int,
-        size_item: str, raw_type: str,
-        source: str
+        cls, connectors: dict, section: str, extents: str, item: str,
+        start: int, end: int, size_item: str, raw_type: str, source: str
     ):
         """
         Adds a memcpy connector based on the information passed in.
@@ -517,6 +506,7 @@ class TemplateUtility():
         :param int end: The ending index of the array.
         :param str size_item: The string containing the size var for item.
         :param str raw_type: The data type of the item.
+        :param str source: The source type of the variable
         """
         offset = f"{extents} * static_cast<std::size_t>({start})"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type})'
@@ -543,15 +533,8 @@ class TemplateUtility():
 
     @classmethod
     def add_unpack_connector(
-        cls,
-        connectors: dict,
-        section: str,
-        extents,
-        start: int,
-        end: int,
-        raw_type: str,
-        out_ptr: str,
-        source: str
+        cls, connectors: dict, section: str, extents, start: int, end: int,
+        raw_type: str, out_ptr: str, source: str
     ):
         """
         Adds an unpack connector to the connectors dictionary
@@ -565,6 +548,7 @@ class TemplateUtility():
         :param str raw_type: The item's data type
         :param str in_ptr: The name of the in data pointer
         :param str out_ptr: The name of the out data pointer
+        :param str source: The source type of the variable
         """
         offset = f"{extents} * static_cast<std::size_t>({start});"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
@@ -642,7 +626,6 @@ class TemplateUtility():
         :param dict size_connectors: The dictionary of size
                                      connectors for use with CGKit.
         :param TextIO file: The file to write to.
-        :rtype: None
         """
         for key, item in size_connectors.items():
             file.write(f'/* _connector:{key} */\n{item}\n\n')

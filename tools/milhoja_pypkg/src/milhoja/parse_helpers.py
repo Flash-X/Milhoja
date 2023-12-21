@@ -161,8 +161,8 @@ def parse_lbound_f(lbound: str) -> list:
     Any available keyword to be used inside of an lbound string is considered
     to be a "size 3" insertion. Since mathematic expressions that use lbounds
     are required to have all lists be the same size, it is important to
-    understand how large the lbound string is. 
-    
+    understand how large the lbound string is.
+
     Examples of valid formats include:
         * (1, 2, -3, 4)
         * (tile_lo, 1)
@@ -176,7 +176,6 @@ def parse_lbound_f(lbound: str) -> list:
         * (2, (3-4-6), 2, (92))
         * (tile_lo, tile_lo) - (tile_lo)
         * (1, 2, 3) + (tile_lo, 2, 3, 4)
-        * 
 
     todo::
         * We have to force the calling code to replace any variables
