@@ -1,7 +1,6 @@
 from . import TaskFunctionGenerator_cpu_cpp
 from . import TaskFunctionGenerator_OpenACC_F
 
-
 def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     """
     .. todo::

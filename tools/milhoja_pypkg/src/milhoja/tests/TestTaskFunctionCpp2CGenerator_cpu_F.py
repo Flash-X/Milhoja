@@ -19,7 +19,7 @@ def _create_generator(json_filename):
     return milhoja.TaskFunctionCpp2CGenerator_cpu_F(tf_spec, INDENT, logger)
 
 
-class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
+class TestTaskFunctionC2FGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
     def testSedovGeneration(self):
         path = _TEST_PATH.joinpath("Sedov")
 
