@@ -7,7 +7,7 @@ from pathlib import Path
 import milhoja.tests
 
 _FILE_PATH = Path(__file__).resolve().parent
-_TEST_PATH = _FILE_PATH.joinpath("data")
+_FLASHX_PATH = _FILE_PATH.joinpath("data", "FlashX")
 
 
 def _create_generator(json_filename):
@@ -21,18 +21,16 @@ def _create_generator(json_filename):
 
 class TestTaskFunctionC2FGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
     def testSedovGeneration(self):
-        path = _TEST_PATH.joinpath("Sedov")
 
-        hydro_2D = {"json": path.joinpath("cpu_tf_hydro_2D_f.json"),
+        hydro_2D = {"json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D.json"),
                     "header": None,
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_cpu_tf_hydro_2D.F90"),
+                    "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D_C2F.F90"),
                     "source_dim_dependent": False}
-        # Only middle node has concurrent kernel launch
-        hydro_3D = {"json": path.joinpath("cpu_tf_hydro_3D_f.json"),
+        hydro_3D = {"json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D.json"),
                     "header": None,
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_cpu_tf_hydro_C2F.F90"),
+                    "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D_C2F.F90"),
                     "source_dim_dependent": False}
 
         self.run_tests([hydro_3D], [3], _create_generator)

@@ -74,7 +74,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_external_info(self, arg, arg_spec) -> ConversionData:
-        dtype = C2F_TYPE_MAPPING[arg_spec["type"]]
+        dtype = arg_spec["type"]
         shape = \
             parse_extents(arg_spec["extents"]) if arg_spec["extents"] else []
         return ConversionData(
@@ -142,9 +142,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
                 )
 
     def _get_grid_info(self, arg, arg_spec) -> ConversionData:
-        # HELL
         dtype = SOURCE_DATATYPE_MAPPING[arg_spec["source"]]
-        dtype = C2F_TYPE_MAPPING[dtype]
 
         mask_in = arg_spec.get("variables_in", [])
         mask_out = arg_spec.get("variables_out", [])
@@ -171,7 +169,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_scratch_info(self, arg, arg_spec) -> ConversionData:
-        dtype = C2F_TYPE_MAPPING[arg_spec["type"]]
+        dtype = arg_spec["type"]
         shape = parse_extents(arg_spec["extents"])
         return ConversionData(
             cname=f"C_{arg}",
