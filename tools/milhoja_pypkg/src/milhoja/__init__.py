@@ -62,7 +62,6 @@ from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 from .DataPacketGenerator import DataPacketGenerator
-from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .TaskFunctionCpp2CGenerator_cpu_F import TaskFunctionCpp2CGenerator_cpu_F
 from .TaskFunctionC2FGenerator_cpu_F import TaskFunctionC2FGenerator_cpu_F
 

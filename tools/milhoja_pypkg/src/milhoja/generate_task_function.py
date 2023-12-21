@@ -1,5 +1,4 @@
 from . import TaskFunctionGenerator_cpu_cpp
-from . import TaskFunctionGenerator_OpenACC_F
 
 
 def generate_task_function(tf_spec, destination, overwrite, indent, logger):
@@ -22,11 +21,6 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     elif (language.lower() in ["c++", "fortran"]) and \
             (data_item.lower() == "datapacket"):
         logger.warn("Milhoja TF", "No TF generation for use with DataPackets")
-    elif (language.lower() == "fortran") and (offloading.lower() == "openacc"):
-        generator = TaskFunctionGenerator_OpenACC_F(tf_spec, indent, logger)
-        generator.generate_source_code(destination, overwrite)
-
-        assert destination.joinpath(generator.source_filename).is_file()
     else:
         msg = f"Cannot generate task function code for {processor}/{language}"
         raise ValueError(msg)
