@@ -12,44 +12,37 @@ from . import (
     EXTERNAL_ARGUMENT, LOG_LEVEL_MAX, THREAD_INDEX_VAR_NAME, LOG_LEVEL_BASIC
 )
 
-_INSTANCE_ARGS = "instance_args"
-_CONSTRUCT_ARGS = "host_members"
-_DEVICE_MEMBERS = "get_device_members"
-_C2F_ARGS = "c2f_arguments"
-
 
 class Cpp2CLayerGenerator(AbcCodeGenerator):
     """
     C++ to C layer generator for Data Packets. Should only be used
     internally by the DataPacketGenerator.
     """
+    _INSTANCE_ARGS = "instance_args"
+    _CONSTRUCT_ARGS = "host_members"
+    _DEVICE_MEMBERS = "get_device_members"
+    _C2F_ARGS = "c2f_arguments"
 
-    def __init__(
-        self,
-        tf_spec: TaskFunction,
-        indent,
-        logger
-    ):
+    def __init__(self, tf_spec: TaskFunction, indent, logger):
         self.__TOOL_NAME = "Milhoja Cpp2C"
         source_name = \
             tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         super().__init__(
-            tf_spec, "", source_name, indent,
-            self.__TOOL_NAME, logger
+            tf_spec, "", source_name, indent, self.__TOOL_NAME, logger
         )
 
         self._outer_template = self.cpp2c_outer_template_name
         self._helper_template = self.cpp2c_helper_template_name
         self._connectors = defaultdict(list)
-        self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
         self._n_extra_streams = self._tf_spec.n_streams - 1
+        self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_no_extra_queue.cpp"
         if self._n_extra_streams > 0:
             self._cpp2c_extra_streams_tpl = "cg-tpl.cpp2c_extra_queue.cpp"
 
         self._log("Created Cpp2C layer generator", LOG_LEVEL_MAX)
 
     @property
-    def cpp2c_streams_template_name(self) -> Path:
+    def cpp2c_streams_template_path(self) -> Path:
         """Extra streams template for the cpp2c layer"""
         template_path = resource_filename(
             __package__, f'templates/{self._cpp2c_extra_streams_tpl}'
@@ -89,6 +82,10 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         Note the destination gets passed into the constructor as the
         full file path for the output files, so destination gets unused in
         both functions.
+
+        :param destination: The destination folder of the cpp2c layer.
+        :param overwrite: The flag for overwriting files used to build the
+                          cpp2c layer.
         """
         outer = destination.joinpath(Path(self._outer_template))
         helper = destination.joinpath(Path(self._helper_template))
@@ -104,12 +101,9 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         )
         generate_packet_file(
             cpp2c_destination,
-            # dev note: ORDER MATTERS HERE!
-            # If helpers is put before the base
-            # template it will throw an error
             [
                 outer, self.cpp2c_template_path,
-                helper, self.cpp2c_streams_template_name
+                helper, self.cpp2c_streams_template_path
             ],
             overwrite, self._logger
         )
@@ -124,8 +118,9 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
               sense to recreate the path instead of just passing it in at
               construction. The same could be argued for overwrite as well.
 
-        :param generator: The DataPacketGenerator object that contains
-                          the information to build the outer template.
+        :param outer: The path to the outer template.
+        :param overwrite: The flag to overwrite any previously generated files
+
         """
         if outer.is_file():
             self.warn(f"{str(outer)} already exists.")
@@ -199,45 +194,43 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
             spec_func = self._tf_spec.argument_specification
             n_ex_streams = self._n_extra_streams
             # write c2f dummy arg list:
-            helper.writelines(
-                ['\n/* _connector:c2f_argument_list */\n'] +
-                ['void* packet_h,\n'] +
-                ['const int queue1_h,\n'] +
-                [
-                    f'const int queue{i}_h,\n'
-                    for i in range(2, n_ex_streams+2)
-                ] +
-                ['const int _nTiles_h,\n'] +
-                [',\n'.join(
-                    f'const void* _{item}_d' for item in adjusted_args
-                )] +
-                ['\n']
-            )
+            helper.writelines([
+                '\n/* _connector:c2f_argument_list */\n',
+                'void* packet_h,\n',
+                'const int queue1_h,\n'
+            ])
+            helper.writelines([
+                f'const int queue{i}_h,\n'
+                for i in range(2, n_ex_streams+2)
+            ])
+            helper.write('const int _nTiles_h,\n')
+            helper.writelines([
+                ',\n'.join(f'const void* _{item}_d' for item in adjusted_args)
+            ])
+            helper.write('\n')
 
-            helper.writelines(
-                ['/* _connector:get_host_members */\n'] +
-                [
-                    'const int queue1_h = packet_h->asynchronousQueue();\n',
-                    'const int _nTiles_h = packet_h->_nTiles_h;\n'
-                ] +
-                [
-                    f'const int queue{i}_h = '
-                    f'packet_h->extraAsynchronousQueue({i});\n'
-                    f'if (queue{i}_h < 0)\n'
-                    f'\tthrow std::overflow_error('
-                    f'"[{self._tf_spec.name}_cpp2c] '
-                    'Potential overflow error when '
-                    'accessing async queue id.");\n'
-                    for i in range(2, n_ex_streams+2)
-                ]
-            )
+            helper.writelines([
+                '/* _connector:get_host_members */\n',
+                'const int queue1_h = packet_h->asynchronousQueue();\n',
+                'const int _nTiles_h = packet_h->_nTiles_h;\n'
+            ])
+            helper.writelines([
+                f'const int queue{i}_h = '
+                f'packet_h->extraAsynchronousQueue({i});\n'
+                f'if (queue{i}_h < 0)\n'
+                f'\tthrow std::overflow_error('
+                f'"[{self._tf_spec.name}_cpp2c] '
+                'Potential overflow error when '
+                'accessing async queue id.");\n'
+                for i in range(2, n_ex_streams+2)
+            ])
 
-            self._connectors[_INSTANCE_ARGS] = []
-            self._connectors[_CONSTRUCT_ARGS] = []
-            self._connectors[_DEVICE_MEMBERS] = []
-            self._connectors[_C2F_ARGS] = []
+            self._connectors[self._INSTANCE_ARGS] = []
+            self._connectors[self._CONSTRUCT_ARGS] = []
+            self._connectors[self._DEVICE_MEMBERS] = []
+            self._connectors[self._C2F_ARGS] = []
 
-            self._connectors[_C2F_ARGS].extend(
+            self._connectors[self._C2F_ARGS].extend(
                 ['packet_h', 'queue1_h'] +
                 [f'queue{i}_h' for i in range(2, n_ex_streams+2)] +
                 ['_nTiles_h']
@@ -247,40 +240,44 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 spec = spec_func(var) if var != "nTiles" else None
                 # We just need the naming scheme.
                 var_info = DataPacketMemberVars(var, "", "", False)
-                self._connectors[_DEVICE_MEMBERS].append(
+                self._connectors[self._DEVICE_MEMBERS].append(
                     f"void* {var_info.device} = static_cast<void*>"
                     f"( packet_h->{var_info.device} )"
                 )
 
-                self._connectors[_C2F_ARGS].append(var_info.device)
+                self._connectors[self._C2F_ARGS].append(var_info.device)
 
                 if spec:
                     if spec["source"] == EXTERNAL_ARGUMENT:
-                        self._connectors[_CONSTRUCT_ARGS].append(
+                        self._connectors[self._CONSTRUCT_ARGS].append(
                             f"{var}"
                         )
-                        self._connectors[_INSTANCE_ARGS].append(
+                        self._connectors[self._INSTANCE_ARGS].append(
                             f"{spec['type']} {var}"
                         )
 
-            self._connectors[_INSTANCE_ARGS].append("void** packet")
+            self._connectors[self._INSTANCE_ARGS].append("void** packet")
 
             # insert instantiation function arguments.
-            helper.write(f'/* _connector:{_INSTANCE_ARGS} */\n')
-            helper.write(',\n'.join(self._connectors[_INSTANCE_ARGS]) + '\n')
-
-            # insert constructor arguments
-            helper.write(f'/* _connector:{_CONSTRUCT_ARGS} */\n')
-            helper.write(',\n'.join(self._connectors[_CONSTRUCT_ARGS]) + '\n')
-
-            # write code to get device members
-            helper.write(f'/* _connector:{_DEVICE_MEMBERS} */\n')
+            helper.write(f'/* _connector:{self._INSTANCE_ARGS} */\n')
             helper.write(
-                ';\n'.join(self._connectors[_DEVICE_MEMBERS]) + ';\n'
+                ',\n'.join(self._connectors[self._INSTANCE_ARGS]) + '\n'
             )
 
-            helper.write(f'/* _connector:{_C2F_ARGS} */\n')
-            helper.write(',\n'.join(self._connectors[_C2F_ARGS]) + '\n')
+            # insert constructor arguments
+            helper.write(f'/* _connector:{self._CONSTRUCT_ARGS} */\n')
+            helper.write(
+                ',\n'.join(self._connectors[self._CONSTRUCT_ARGS]) + '\n'
+            )
+
+            # write code to get device members
+            helper.write(f'/* _connector:{self._DEVICE_MEMBERS} */\n')
+            helper.write(
+                ';\n'.join(self._connectors[self._DEVICE_MEMBERS]) + ';\n'
+            )
+
+            helper.write(f'/* _connector:{self._C2F_ARGS} */\n')
+            helper.write(',\n'.join(self._connectors[self._C2F_ARGS]) + '\n')
 
     def warn(self, msg):
         self._warn(msg)

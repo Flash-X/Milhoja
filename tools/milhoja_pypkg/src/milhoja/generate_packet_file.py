@@ -1,8 +1,7 @@
 import re
 
 from pathlib import Path
-from . import LogicError
-from . import AbcLogger
+from . import LogicError, AbcLogger
 from cgkit.ctree import srctree
 from cgkit.ctree.srctree import SourceTree
 
@@ -16,26 +15,27 @@ DEFAULT_SOURCE_TREE_OPTS = {
 
 
 def generate_packet_file(
-    output: Path,
-    linked_templates: list,
-    overwrite: bool,
-    logger: AbcLogger,
-    sourcetree_opts=DEFAULT_SOURCE_TREE_OPTS,
+    output: Path, linked_templates: list, overwrite: bool, logger: AbcLogger,
+    sourcetree_opts=DEFAULT_SOURCE_TREE_OPTS
 ):
     """
     Generates a data packet file for creating the entire packet.
 
     :param str output: The output name for the file.
-    :param dict sourcetree_opts: The dictionary containing the
-                                sourcetree parameters. Default is provided
-                                but code generators can pass their own opts
-                                in.
-    :param list linked_templates: All templates to be linked.
-                                The first in the list is
-                                the initial template.
+    :param list linked_templates: All templates to be linked. The first in the
+                                  list is the initial template. Keep in mind
+                                  that this means that order matters when
+                                  passing in templates to link!
+    :param bool overwrite: Whether or not to overwrite any existing files.
+    :param logger: The logger to use for output.
+    :param dict sourcetree_opts: The list of options used to generate files.
+                                 Default is set to DEFAULT_SOURCE_TREE_OPTS,
+                                 but it's possible for other code generators
+                                 to pass in their own options.
     """
     caller = "Milhoja generate_packet_file"
 
+    # local function for looping through and linking templates.
     def construct_source_tree(stree: SourceTree, templates: list):
         assert len(templates) > 0
         stree.initTree(templates[0])
@@ -65,5 +65,9 @@ def generate_packet_file(
             raise FileExistsError("File already exists.")
 
     with open(output, 'w') as new_file:
+        # remove anything between #if 0 directive to reduce file sizes.
+        # There may be extra garbage code inside of a file if links are shared
+        #  between templates.
         lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
+        # Write code to the destination
         new_file.write(lines)
