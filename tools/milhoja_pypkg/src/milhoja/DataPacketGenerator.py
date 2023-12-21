@@ -2,8 +2,7 @@ import functools
 
 from pkg_resources import resource_filename
 from copy import deepcopy
-from collections import defaultdict
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from pathlib import Path
 
 from .parse_helpers import parse_extents
@@ -36,37 +35,25 @@ class DataPacketGenerator(AbcCodeGenerator):
     """
 
     def __init__(
-        self,
-        tf_spec: TaskFunction,
-        indent: int,
-        logger: BasicLogger,
+        self, tf_spec: TaskFunction, indent: int, logger: BasicLogger,
         sizes: dict
     ):
         if not isinstance(tf_spec, TaskFunction):
-            raise TypeError(
-                "TF Specification was not derived from task function."
-            )
+            raise TypeError("TF Spec was not derived from task function.")
 
         self._TOOL_NAME = "Milhoja DataPacket"
         self._sizes = deepcopy(sizes)
         self._indent = indent
-
         self._size_connectors = defaultdict(str)
         self._connectors = defaultdict(list)
         self._params = defaultdict(str)
 
         outputs = tf_spec.output_filenames
-
         header = outputs[TaskFunction.DATA_ITEM_KEY]["header"]
         source = outputs[TaskFunction.DATA_ITEM_KEY]["source"]
 
         super().__init__(
-            tf_spec,
-            header,
-            source,
-            indent,
-            self._TOOL_NAME,
-            logger
+            tf_spec, header, source, indent, self._TOOL_NAME, logger
         )
 
         self._cpp2c_source = outputs[TaskFunction.CPP_TF_KEY]["source"]
@@ -77,8 +64,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             self.template_utility = FortranTemplateUtility(tf_spec)
         else:
             self.log_and_abort(
-                "No template utility for specifed language",
-                LogicError()
+                "No template utility for specifed language", LogicError()
             )
 
         self._outer_template = None
@@ -104,9 +90,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._params['header_name'] = super().header_filename
 
     def generate_templates(self, destination, overwrite):
-        """
-        Generates templates from creating the data packet source code.
-        """
+        """Generates templates from creating the data packet source code."""
         self._connectors[self.template_utility._CON_ARGS] = []
         self._connectors[self.template_utility._SET_MEMBERS] = []
         self._connectors[self.template_utility._SIZE_DET] = []
@@ -125,16 +109,16 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         msg = f"Generating helper template {helper_template}"
         self._log(msg, LOG_LEVEL_BASIC)
+        # get all data dicts
+        external = self.external_args
+        metadata = self.tile_metadata_args
+        tile_in = self.tile_in_args
+        tile_in_out = self.tile_in_out_args
+        tile_out = self.tile_out_args
+        scratch = self.scratch_args
+
         """Generates the helper template with the provided JSON data."""
         with open(helper_template, 'w') as template:
-            # # SETUP FOR CONSTRUCTOR
-            external = self.external_args
-            metadata = self.tile_metadata_args
-            tile_in = self.tile_in_args
-            tile_in_out = self.tile_in_out_args
-            tile_out = self.tile_out_args
-            scratch = self.scratch_args
-
             self.template_utility.iterate_externals(
                 self._connectors, self._size_connectors, external,
                 self._tf_spec.dummy_arguments
@@ -169,6 +153,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             self.template_utility.write_size_connectors(
                 self._size_connectors, template
             )
+
             self.template_utility.generate_extra_streams_information(
                 self._connectors, self.n_extra_streams
             )
@@ -177,6 +162,7 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         outer_template = \
             destination_path.joinpath(self.outer_template_name).resolve()
+
         if outer_template.is_file():
             self.warn(f"{str(outer_template)} already exists.")
             if not overwrite:
@@ -188,17 +174,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         msg = f"Generating outer template {outer_template}"
         self._log(msg, LOG_LEVEL_BASIC)
         with open(outer_template, 'w') as outer:
-            outer.writelines(
-                [
-                    '/* _connector:datapacket_outer */\n',
-                    '/* _link:datapacket */\n'
-                ] +
-                [
-                    '\n'.join(
-                        f'/* _param:{item} = {self._params[item]} */'
-                        for item in self._params
-                    )
-                ]
+            outer.writelines([
+                '/* _connector:datapacket_outer */\n',
+                '/* _link:datapacket */\n'
+            ])
+            outer.write(
+                '\n'.join(
+                    f'/* _param:{item} = {self._params[item]} */'
+                    for item in self._params
+                )
             )
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
         # save templates for later use.
@@ -207,13 +191,10 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     def generate_header_code(self, destination, overwrite):
         """
-        Generate C++ header
+        Generates C++ header. generate_templates must be called first.
         """
         if not self._outer_template or not self._helper_template:
-            raise RuntimeError(
-                "Templates have not been generated. Call generate_templates "
-                "first."
-            )
+            raise RuntimeError("Templates have not been generated.")
 
         destination_path = self.get_destination_path(destination)
         header = destination_path.joinpath(self.header_filename)
@@ -232,13 +213,10 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     def generate_source_code(self, destination, overwrite):
         """
-        Generate C++ source code.
+        Generate C++ source code. generate_templates must be called first.
         """
         if not self._outer_template or not self._helper_template:
-            raise RuntimeError(
-                "Templates have not been generated. Call generate_templates "
-                "first."
-            )
+            raise RuntimeError("Missing generated templates.")
 
         destination_path = self.get_destination_path(destination)
         source = destination_path.joinpath(self.source_filename).resolve()
@@ -260,8 +238,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             # should be moved outside of the data packet generator and into
             # the task function generator.
             self.cpp2c_layer = Cpp2CLayerGenerator(
-                self._tf_spec, self._indent,
-                self._logger
+                self._tf_spec, self._indent, self._logger
             )
             self.cpp2c_layer.generate_source_code(destination, overwrite)
 
@@ -317,17 +294,10 @@ class DataPacketGenerator(AbcCodeGenerator):
         return Path(template_path).resolve()
 
     @property
-    def header_file_name(self) -> str:
-        return super().header_filename
-
-    @property
-    def source_file_name(self) -> str:
-        return super().source_filename
-
-    @property
     def n_extra_streams(self) -> int:
-        # for now data packet generator will return the number of
-        # extra streams.
+        # data packet generator uses the number of *extra* streams for now.
+        # The cpp2c and c2f layer generators also use the number of extra
+        # streams.
         return self._tf_spec.n_streams-1
 
     @property
@@ -348,7 +318,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         args = deepcopy(self._tf_spec.external_arguments)
         external = {
             'nTiles': {
-                # placeholder source name
                 'source': INTERNAL_ARGUMENT,
                 'name': 'nTiles',
                 'type': 'int' if lang == "fortran" else 'std::size_t',
@@ -402,10 +371,7 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         def fortran_sort(x):
             return self._sizes.get(
-                VECTOR_ARRAY_EQUIVALENT[
-                    SOURCE_DATATYPES[x[1]['source']]
-                ],
-                0
+                VECTOR_ARRAY_EQUIVALENT[SOURCE_DATATYPES[x[1]['source']]], 0
             )
 
         if lang == 'c++':
@@ -547,9 +513,6 @@ class DataPacketGenerator(AbcCodeGenerator):
             True
         )
 
-    # ..todo::
-    #    * investigate why not using lru_cache here
-    #    * causes an error when the scratch dict is obtained more than once
     @property
     @functools.lru_cache
     def scratch_args(self) -> OrderedDict:
@@ -581,10 +544,12 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def block_extents(self):
+        """Gets tf spec block interior shape"""
         return self._tf_spec.block_interior_shape
 
     @property
     def n_guardcells(self):
+        """Get number of guard cells from tf spec"""
         return self._tf_spec.n_guardcells
 
     def _sort_dict(self, arguments, sort_key, reverse) -> OrderedDict:
@@ -593,11 +558,13 @@ class DataPacketGenerator(AbcCodeGenerator):
 
         :param dict section: The dictionary to sort.
         :param func sort_key: The function to sort with.
+        :param func reverse: Reverse the order of the sort.
         """
         dict_items = [(k, v) for k, v in arguments]
         return OrderedDict(sorted(dict_items, key=sort_key, reverse=reverse))
 
     def get_destination_path(self, destination: str) -> Path:
+        """Creates a new path using the passed in destination."""
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():
             raise RuntimeError(f"{destination_path} does not exist")
@@ -607,6 +574,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self._warn(msg)
 
     def log_and_abort(self, msg: str, e: BaseException):
-        # print message and exit
+        """Print a message and raise error e."""
         self._error(msg)
         raise e
