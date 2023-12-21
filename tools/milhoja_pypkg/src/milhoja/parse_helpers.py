@@ -7,16 +7,23 @@ from . import (
 
 
 class IncorrectFormatException(BaseException):
+    """Thrown when the format of lbound or extents is incorrect."""
     pass
 
 
 class NonIntegerException(BaseException):
+    """Thrown when an extents or lbound contains a float value."""
     pass
 
 
 def parse_lbound(lbound: str) -> list:
     """
     Parses an lbound string for use within the generator.
+
+    This function is deprecated and only exists for the C++ tests.
+    Once C++ code generation is updated to use parse_lbound_f, this function
+    will be removed.
+
     ..todo::
         * This lbound parser only allows simple lbounds.
           The current format does not allow nested arithmetic expressions
@@ -142,17 +149,27 @@ def parse_lbound(lbound: str) -> list:
     return results
 
 
-# todo::
-#   * We have to force the calling code to replace any variables
-#     that are used in the lbound with their source name, and then replace
-#     the source names with the original variable name when the list is
-#     returned.
-#   * This parser does not handle scalar addition/mult/sub/div with metadata.
-#     and does not yet throw an error when encountering it.
 def parse_lbound_f(lbound: str) -> list:
+    """
+    Parses a given lbound string and returns a list containing all parts of
+    the lbound for use in packing information.
+
+    Since the amount of formats is 
+
+    todo::
+        * We have to force the calling code to replace any variables
+          that are used in the lbound with their source name, and then replace
+          the source names with the original variable name when the list is
+          returned.
+        * This parser does not handle scalar addition/mult/sub/div with
+          metadata. and does not yet throw an error when encountering it.
+        * This parser does not support nested expressions due to the
+          limitations of regular expressions. A full lbound parser would use a
+          tokenizer to extract the full expression.
+    """
     keywords = {
-        TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-        TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
+        TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+        TILE_UBOUND_ARGUMENT
     }
 
     # just use python to throw out all numeric values because I'm bad at
@@ -174,6 +191,7 @@ def parse_lbound_f(lbound: str) -> list:
     symbols = re.findall(r'[\+\-\/\*]', math_sym_string)
 
     # Replace each potential bound keyword inside of the string with its parts
+    # This works because each bound keyword is guaranteed to be an IntVect.
     for idx, match in enumerate(matches):
         for keyword in keywords:
             if keyword in match:
@@ -182,15 +200,18 @@ def parse_lbound_f(lbound: str) -> list:
                 )
 
     iterables = [match.split(',') for match in matches]
-    # todo:: check if all lists are the same length.
     if not iterables:
         raise RuntimeError(f"Nothing in lbound {lbound}.")
 
+    # check if all lists inside the bounds equations are the same length.
+    # Don't attempt to stitch different length arrays together.
     size = len(iterables[0])
     if not all([len(item) == size for item in iterables]):
         raise RuntimeError(f"Different lbound part sizes. {lbound}")
 
     # combine all lbound parts into 1.
+    # list of mathematic expressions will always be 1 less than the number
+    # of operands
     combined_bound = []
     for idx, values in enumerate(list(zip(*iterables))):
         combined_bound.append(values[0])
@@ -204,14 +225,15 @@ def parse_lbound_f(lbound: str) -> list:
     return combined_bound
 
 
-# todo::
-#   * allow grid source data to be parsed.
 def parse_extents(extents: str, src=None) -> list:
     """
     Parses an extents string.
 
     This assumes extents strings are of the format (x, y, z, ...).
     A list of integers separated by commas and surrounded by parenthesis.
+
+    todo::
+        * Source specific parsing should exist.
 
     :param str extents: The extents string to parse.
     :param str src: The optional source argument. If a grid source is given,
@@ -227,7 +249,7 @@ def parse_extents(extents: str, src=None) -> list:
             f"Incorrect parenthesis placement for {extents}"
         )
 
-    if extents[0] != '(' or extents[-1] != ')':
+    if not extents.startswith('(') or not extents.endswith(')'):
         raise IncorrectFormatException(
             f"{extents} is not the correct format of (x, y, z, ...)"
         )
