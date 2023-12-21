@@ -2,10 +2,7 @@ from collections import OrderedDict
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
 from .parse_helpers import parse_lbound
-from . import (
-    TILE_INTERIOR_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT
-)
+from . import TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 
 
 class CppTemplateUtility(TemplateUtility):
@@ -22,8 +19,7 @@ class CppTemplateUtility(TemplateUtility):
         dummy_arg_order: list
     ):
         """
-        Iterates the external variables section
-        and adds the necessary connectors.
+        Iterates the external variables section and adds connectors.
 
         :param dict connectors: The dictionary containing all connectors for
                                 use with CGKit.
@@ -31,14 +27,13 @@ class CppTemplateUtility(TemplateUtility):
                                      connectors for determining the sizes of
                                      each item in the packet.
         :param OrderedDict externals: The dictionary containing the data for
-                                        the externals section in the TF JSON
-        :rtype: None
+                                      the externals section in the TF JSON
+        :param list dummy_arg_order: The argument list for the task function
         """
         self.section_creation(self._EXT, externals, connectors, size_connectors)
         connectors[self._HOST_MEMBERS] = []
         # we need to set nTiles value here as a link, _param does not work as
         # expected.
-
         nTiles_value = '_nTiles_h = tiles_.size();'
         connectors[self._NTILES_VALUE] = [nTiles_value]
         self._common_iterate_externals(connectors, externals, dummy_arg_order)
@@ -46,11 +41,8 @@ class CppTemplateUtility(TemplateUtility):
     # todo::
     #   * implement lbound for C++ packet.
     def iterate_tilemetadata(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tilemetadata: OrderedDict,
-        num_arrays: int
+        self, connectors: dict, size_connectors: dict,
+        tilemetadata: OrderedDict, num_arrays: int
     ):
         """
         Iterates the tilemetadata section of the JSON.
@@ -63,7 +55,6 @@ class CppTemplateUtility(TemplateUtility):
         :param int num_arrays: The number of arrays inside tile_in,
                                tile_in_out, tile_out, and tile_scratch.
         """
-
         self.section_creation(
             self._T_MDATA, tilemetadata, connectors, size_connectors
         )
@@ -118,10 +109,7 @@ class CppTemplateUtility(TemplateUtility):
             self.tile_metadata_memcpy(connectors, info, source)
 
     def iterate_tile_in(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tilein: OrderedDict,
+        self, connectors: dict, size_connectors: dict, tilein: OrderedDict
     ):
         """
         Iterates the tile in section of the JSON.
@@ -162,10 +150,7 @@ class CppTemplateUtility(TemplateUtility):
             )
 
     def iterate_tile_in_out(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tileinout: OrderedDict
+        self, connectors: dict, size_connectors: dict, tileinout: OrderedDict
     ):
         """
         Iterates the tileinout section of the JSON.
@@ -200,8 +185,8 @@ class CppTemplateUtility(TemplateUtility):
             )
 
             self._common_iterate_tile_data(
-                data, connectors, info, extents,
-                in_mask, out_mask, self._T_IN_OUT
+                data, connectors, info, extents, in_mask, out_mask,
+                self._T_IN_OUT
             )
 
             self.insert_farray_memcpy(
@@ -211,10 +196,7 @@ class CppTemplateUtility(TemplateUtility):
             )
 
     def iterate_tile_out(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tileout: OrderedDict
+        self, connectors: dict, size_connectors: dict, tileout: OrderedDict
     ):
         """
         Iterates the tileout section of the JSON.
@@ -230,10 +212,12 @@ class CppTemplateUtility(TemplateUtility):
         :param OrderedDict tileout: The dict containing information from the
                                     tile-out section of the data packet JSON.
         """
-        self.section_creation(self._T_OUT, tileout, connectors, size_connectors)
+        self.section_creation(
+            self._T_OUT, tileout, connectors, size_connectors
+        )
         connectors[f'unpack_{self._T_OUT}'] = []
         for item, data in tileout.items():
-            # ge tile_out information
+            # get tile_out information
             out_mask = data['variables_out']
             array_size = self.get_array_size([], out_mask)
             index_space = self.DEFAULT_INDEX_SPACE
@@ -253,18 +237,12 @@ class CppTemplateUtility(TemplateUtility):
             )
 
             self.insert_farray_memcpy(
-                connectors,
-                item,
-                'tileDesc_h->loGC()',
-                'tileDesc_h->hiGC()',
-                unks,
-                info.dtype
+                connectors, item, 'tileDesc_h->loGC()', 'tileDesc_h->hiGC()',
+                unks, info.dtype
             )
 
     def iterate_tile_scratch(
-        self,
-        connectors: dict,
-        size_connectors: dict,
+        self, connectors: dict, size_connectors: dict,
         tilescratch: OrderedDict,
     ):
         """
@@ -276,7 +254,6 @@ class CppTemplateUtility(TemplateUtility):
                                      for variable sizes.
         :param OrderedDict tilescratchs: The dict containing information from
                                          the tilescratch section of the JSON.
-        :param str language: The language to use when generating the packet.
         """
         self.section_creation(
             self._T_SCRATCH, tilescratch, connectors, size_connectors
@@ -332,8 +309,8 @@ class CppTemplateUtility(TemplateUtility):
             f'{line[insert_index + 1:]}'
 
     def insert_farray_memcpy(
-        self, connectors, item: str, lo: str,
-        hi: str, unks: str, data_type: str
+        self, connectors, item: str, lo: str, hi: str, unks: str,
+        data_type: str
     ):
         """
         Insers the farray memcpy and data pointer sections into the data
@@ -375,10 +352,9 @@ class CppTemplateUtility(TemplateUtility):
         """
         Inserts farray items into the data packet.
 
-        :param dict data: The dict containing information from the data
+        :param dict tile_data: The dict containing information from the data
                           packet JSON.
         :param dict connectors: The dict containing all cgkit connectors.
-        :param str section: The connectors section to extend.
         """
         # Get all items in each data array.
         # we need to make an farray object for every possible data array
@@ -392,10 +368,7 @@ class CppTemplateUtility(TemplateUtility):
         )
 
     def tile_metadata_memcpy(
-        self,
-        connectors,
-        info: DataPacketMemberVars,
-        alt_name: str
+        self, connectors, info: DataPacketMemberVars, alt_name: str
     ):
         """
         The cpp version for the metadata memcpy section.
