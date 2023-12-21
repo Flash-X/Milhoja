@@ -84,9 +84,12 @@ GRID_DATA_EXTENTS = {
     ]
 }
 
+# The lbounds for grid data are fairly consistent, so we can use this mapping
+# to insert lbounds for grid data variables inside of the tf spec that need
+# an lbound array.
 GRID_DATA_LBOUNDS = {
-    "CENTER": "(tile_lbound, {0})",
-    "FLUXX": "(tile_lo, {0})",
+    "CENTER": "(tile_lbound, {0})",  # CC data does use guard cells.
+    "FLUXX": "(tile_lo, {0})",  # assume that flux arrays use 0 guard cells.
     "FLUXY": "(tile_lo, {0})",
     "FLUXZ": "(tile_lo, {0})"
 }
@@ -94,6 +97,10 @@ GRID_DATA_LBOUNDS = {
 # The type mapping for sources that have predetermined types.
 # External and scratch do not have predetermined types, so they do not
 # appear in here.
+# todo::
+#   * There are few unsupported tile metadata types like cell volumes and
+#     face areas. Eventually these should be included in the source datatypes
+#     mapping.
 SOURCE_DATATYPES = {
     TILE_LO_ARGUMENT: "IntVect",
     TILE_HI_ARGUMENT: "IntVect",
@@ -123,14 +130,14 @@ VECTOR_ARRAY_EQUIVALENT = {
     "RealVect": "real"
 }
 
+# For converting Fortran types to C++/C types.
 F2C_TYPE_MAPPING = {
     "logical": "bool",
     "real": "real",
     "integer": "int"
 }
 
-# This never gets used but is the first step to having this mapping be
-# a global constant so I'll leave it as is.
+# For converting potential C++ types to Fortran types.
 C2F_TYPE_MAPPING = {
     "bool": "logical",
     "int": "integer",

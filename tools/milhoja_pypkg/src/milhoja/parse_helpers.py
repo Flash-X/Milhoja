@@ -154,7 +154,29 @@ def parse_lbound_f(lbound: str) -> list:
     Parses a given lbound string and returns a list containing all parts of
     the lbound for use in packing information.
 
-    Since the amount of formats is 
+    Formats for lbounds should be limited to a parenthesis enclosed string
+    with comma separation between elements. The lbound is allowed to contain
+    tile_lo, tile_hi, tile_lbound, and tile_ubound. Each lbound string is also
+    allowed to use non-nested mathematic expressions between parenthesis.
+    Any available keyword to be used inside of an lbound string is considered
+    to be a "size 3" insertion. Since mathematic expressions that use lbounds
+    are required to have all lists be the same size, it is important to
+    understand how large the lbound string is. 
+    
+    Examples of valid formats include:
+        * (1, 2, -3, 4)
+        * (tile_lo, 1)
+        * (1, tile_lbound),
+        * (tile_lo) - (1, 1, 1)
+        * (tile_lbound, 1) + (1, 3, 4, 5)
+        * (tile_lo, tile_lo) - (tile_lbound, tile_lbound)
+        * (1, 2, 3) + (4, 5, 6) - (2, 2, 2) * (1, 2, 3)
+
+    Examples of invalid lbound formats:
+        * (2, (3-4-6), 2, (92))
+        * (tile_lo, tile_lo) - (tile_lo)
+        * (1, 2, 3) + (tile_lo, 2, 3, 4)
+        * 
 
     todo::
         * We have to force the calling code to replace any variables
@@ -166,6 +188,7 @@ def parse_lbound_f(lbound: str) -> list:
         * This parser does not support nested expressions due to the
           limitations of regular expressions. A full lbound parser would use a
           tokenizer to extract the full expression.
+        * Write a clear set of rules in the docs of what a valid lbound is.
     """
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
