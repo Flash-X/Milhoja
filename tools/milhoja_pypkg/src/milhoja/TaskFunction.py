@@ -2,13 +2,12 @@ import json
 
 from pathlib import Path
 
+from .LogicError import LogicError
 from . import (
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
     CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL
 )
-from .LogicError import LogicError
 
 
 class TaskFunction(object):
@@ -23,6 +22,8 @@ class TaskFunction(object):
     @staticmethod
     def from_milhoja_json(filename):
         """
+        Loads a TaskFunction specification from a json using the milhoja
+        json format.
         """
         # ----- ERROR CHECK ARGUMENTS
         fname = Path(filename).resolve()
@@ -113,6 +114,9 @@ class TaskFunction(object):
         elif processor.lower() == "cpu" and language.lower() == "fortran":
             assert c2f_src != ""
             assert fortran_tf_src != ""
+
+            # todo::
+            #    * Any generated code for fortran should have a module file.
 
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {
