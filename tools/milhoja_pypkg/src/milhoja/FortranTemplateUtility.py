@@ -17,6 +17,7 @@ from . import (
 class FortranTemplateUtility(TemplateUtility):
     """
     Internal class for the data packet generator.
+
     Contains utility functions for generating data packets with fortran
     based task functions.
     """
@@ -25,9 +26,7 @@ class FortranTemplateUtility(TemplateUtility):
         super().__init__(tf_spec)
 
     def iterate_externals(
-        self, connectors: dict,
-        size_connectors: dict,
-        externals: OrderedDict,
+        self, connectors: dict, size_connectors: dict, externals: OrderedDict,
         dummy_arg_order: list
     ):
         """
@@ -49,7 +48,6 @@ class FortranTemplateUtility(TemplateUtility):
         connectors[self._HOST_MEMBERS] = []
         # we need to set nTiles value here as a link,
         # _param does not work as expected.
-
         nTiles_value = '// Check for overflow first to avoid UB\n' + \
                        '// TODO: Should casting be checked here ' \
                        'or in base class?\n' + \
@@ -63,11 +61,8 @@ class FortranTemplateUtility(TemplateUtility):
         self._common_iterate_externals(connectors, externals, dummy_arg_order)
 
     def iterate_tilemetadata(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tilemetadata: OrderedDict,
-        num_arrays: int
+        self, connectors: dict, size_connectors: dict,
+        tilemetadata: OrderedDict, num_arrays: int
     ):
         """
         Iterates the tilemetadata section of the JSON.
@@ -78,8 +73,7 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tilemetadata: The dict containing information from
                                          the tile-metadata section in the JSON
         :param str language: The language to use
-        :param int num_arrays: The number of arrays inside tile-in,
-                               tile-in-out, tile-out, and tile-scratch.
+        :param int num_arrays: Unused
         """
 
         self.section_creation(
@@ -96,16 +90,11 @@ class FortranTemplateUtility(TemplateUtility):
         for item, data in tilemetadata.items():
             pure_source = data['source']
             source = pure_source
-            # # temporary fix for generating packet for flash-x sim
-            # if source == 'tile_lbound':
-            #     source = 'tile_loGC'
-            # elif source == 'tile_ubound':
-            #     source = 'tile_hiGC'
             short_source = source.replace('tile_', '')
             item_type = data['type']
-
             interior = TILE_INTERIOR_ARGUMENT
             bound_size_modifier = ""
+
             if source == interior or source == TILE_ARRAY_BOUNDS_ARGUMENT:
                 bound_size_modifier = "2 * "
 
@@ -189,6 +178,8 @@ class FortranTemplateUtility(TemplateUtility):
                         f"{short_source}.I(){fix_index}, " \
                         f"{short_source}.J(){fix_index}, " \
                         f"{short_source}.K(){fix_index} }}"
+            # we can write very specific code if we know that the variable
+            # is an lbound argument.
             else:
                 # info.dtype = VECTOR_ARRAY_EQUIVALENT[info.dtype]
                 # intvect i,j,k start at 0 so we need to add 1 to the
@@ -201,13 +192,15 @@ class FortranTemplateUtility(TemplateUtility):
                 construct_host = f"[{len(lbound)}] = {{" +\
                     ','.join(lbound) + "}"
 
-            self.tile_metadata_memcpy(
-                connectors, construct_host, "", info
-            )
+            self.tile_metadata_memcpy(connectors, construct_host, "", info)
 
+        # for tile metadata that is needed by other metadata, but we only
+        # want to generate 1 variable for it.
         for item, data in one_time_mdata.items():
             name = item.replace("tile_", "")
             src = data["source"]
+            # milhoja uses loGC and hiGC for tile_arrayBounds arrays.
+            # so we need this temporary name adjustment.
             if src == TILE_LBOUND_ARGUMENT:
                 src = "tile_loGC"
             elif src == TILE_UBOUND_ARGUMENT:
@@ -218,8 +211,8 @@ class FortranTemplateUtility(TemplateUtility):
             )
 
     def tile_metadata_memcpy(
-        self, connectors: dict, construct: str,
-        use_ref: str, info: DataPacketMemberVars
+        self, connectors: dict, construct: str, use_ref: str,
+        info: DataPacketMemberVars
     ):
         """
         Adds the memcpy portion for the metadata section in a fortran packet.
@@ -241,13 +234,13 @@ class FortranTemplateUtility(TemplateUtility):
         ])
 
     def iterate_tile_in(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tilein: OrderedDict,
-    ) -> None:
+        self, connectors: dict, size_connectors: dict, tilein: OrderedDict
+    ):
         """
         Iterates the tile in section of the JSON.
+
+        todo::
+            * Write tests for tile_in data for fortran TFs.
 
         :param dict connectors: The dict containing all connectors
                                 for cgkit.
@@ -278,10 +271,7 @@ class FortranTemplateUtility(TemplateUtility):
             )
 
     def iterate_tile_in_out(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tileinout: OrderedDict
+        self, connectors: dict, size_connectors: dict, tileinout: OrderedDict
     ):
         """
         Iterates the tileinout section of the JSON.
@@ -332,6 +322,7 @@ class FortranTemplateUtility(TemplateUtility):
         ..todo::
             * Any pinned pointer that needs to be a datapacket member
               variable should be a private variable.
+            * Write tests for fortran tfs that use tile_out data.
 
         :param dict connectors: The dict containing all connectors for use
                                 with cgkit.
@@ -365,10 +356,8 @@ class FortranTemplateUtility(TemplateUtility):
             )
 
     def iterate_tile_scratch(
-        self,
-        connectors: dict,
-        size_connectors: dict,
-        tilescratch: OrderedDict,
+        self, connectors: dict, size_connectors: dict,
+        tilescratch: OrderedDict
     ):
         """
         Iterates the tilescratch section of the JSON.

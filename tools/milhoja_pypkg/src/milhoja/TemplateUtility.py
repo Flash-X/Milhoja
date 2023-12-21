@@ -148,6 +148,9 @@ class TemplateUtility():
         """
         Common code in both utility classes for iterating external vars.
 
+        todo::
+            * Use tf_spec.dummy_arguments directly instead of dummy_arg_list.
+
         :param dict connectors: All cgkit connectors.
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.

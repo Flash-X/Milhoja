@@ -382,11 +382,15 @@ class DataPacketGenerator(AbcCodeGenerator):
         Gets all tile metadata arguments from the TaskFunction
         and formats it for easy use with this class.
 
-        Note: The data packet generator treats lbounds as tile metadata.
-        So, lbounds are concatenated at the end of all tile metadata
-        arguments. This probably won't cause issues in the foreseeable future,
-        but there may be a time where the lbounds need to be sorted with
-        the other metadata due to type sizes. For now, this stays as-is.
+        Note that internally, lbound arguments are treated as tile metadata.
+        The two are combined in this function, with any non-lbound metadata
+        sorted and appearing before any lbound metadata. This likely won't
+        cause any issues in the near future, but we should consider fully
+        separating the lbound section so there are no problems with how the
+        data is inserted into the packet.
+
+        Since lbound arguments are all the same type (int / IntVect),
+        they are only sorted by name.
         """
         lang = self._tf_spec.language.lower()
         sort_func = None
