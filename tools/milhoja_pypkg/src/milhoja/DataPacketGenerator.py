@@ -30,8 +30,7 @@ class DataPacketGenerator(AbcCodeGenerator):
     packets instead of calling generate_packet.py.
 
     ..todo::
-        * check if lru_caching is necessary on properties that
-          are not tile_scratch.
+        * check if lru_caching is necessary
     """
 
     def __init__(
