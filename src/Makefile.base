@@ -20,6 +20,7 @@ SRCS_BASE       = \
     $(SRCDIR)/Milhoja_GridAmrex.cpp \
     $(SRCDIR)/Milhoja_Tile.cpp \
     $(SRCDIR)/Milhoja_TileAmrex.cpp \
+    $(SRCDIR)/Milhoja_TileFlashxr.cpp \
     $(SRCDIR)/Milhoja_TileWrapper.cpp \
     $(SRCDIR)/Milhoja_RuntimeElement.cpp \
     $(SRCDIR)/Milhoja_DataPacket.cpp \

@@ -84,9 +84,12 @@ else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
+CXXFLAGS += -DNO_NO_NO_FULL_MILHOJAGRID
+F90FLAGS += -DNO_NO_NO_FULL_MILHOJAGRID
+
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
-install:
+install: all
 	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/include
 	mkdir $(LIB_MILHOJA_PREFIX)/lib
@@ -95,6 +98,7 @@ install:
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
 	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include
 	cp $(SIZES_JSON) $(LIB_MILHOJA_PREFIX)/include
+	cp $(INTERFACEDIR)/*.finc $(LIB_MILHOJA_PREFIX)/include
 clean:
 	$(RM) $(BUILDDIR)/*.o
 	$(RM) $(BUILDDIR)/*.d
@@ -143,6 +147,8 @@ $(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)
 $(BUILDDIR)/Milhoja_tile_mod.o: $(INTERFACEDIR)/Milhoja_tile_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_tile_C_interface.o Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_runtime_mod.o: $(INTERFACEDIR)/Milhoja_runtime_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_runtime_C_interface.o Makefile
+	$(F90COMP) -c $(F90FLAGS) -o $@ $<
+$(BUILDDIR)/Milhoja_tileCInfo_mod.o: $(INTERFACEDIR)/Milhoja_tileCInfo_mod.F90 $(INTERFACEDIR)/Milhoja_tileCInfo.finc $(MILHOJA_H) Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS) Makefile
