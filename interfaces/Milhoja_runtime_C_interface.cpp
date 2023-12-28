@@ -186,6 +186,142 @@ extern "C" {
     }
 
     /**
+     * Instruct the runtime to set up the pipeline for the CPU-only thread team
+     * configuration.
+     *
+     * \param taskFunction   The computational work to apply identically to each
+     *                       block
+     * \param tileWrapper    C pointer to the prototype TileWrapper
+     * \param nThreads       The number of threads that the single thread team
+     *                       should activate.
+     *
+     * \return The milhoja error code
+     */
+    int   milhoja_runtime_setup_pipeline_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              void* tileWrapper,
+                                              const int nThreads) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+       unsigned int    nThreads_ui = static_cast<unsigned int>(nThreads);
+
+       milhoja::RuntimeAction     action;
+       action.name            = "Lazy Action Name";
+       action.nInitialThreads = nThreads_ui;
+       action.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       action.nTilesPerPacket = 0;
+       action.routine         = taskFunction;
+
+       milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
+       try {
+           milhoja::Runtime::instance().setupPipelineForCpuTasks("Lazy Bundle Name",
+                                                        action, *prototype);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Instruct the runtime to tear down the pipeline for the CPU-only thread team
+     * configuration.
+     *
+     * \param taskFunction   The computational work to apply identically to each
+     *                       block
+     * \param tileWrapper    C pointer to the prototype TileWrapper
+     * \param nThreads       The number of threads that the single thread team
+     *                       should activate.
+     *
+     * \return The milhoja error code
+     */
+    int   milhoja_runtime_teardown_pipeline_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              void* tileWrapper,
+                                              const int nThreads) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+       unsigned int    nThreads_ui = static_cast<unsigned int>(nThreads);
+
+       milhoja::RuntimeAction     action;
+       action.name            = "Lazy Action Name";
+       action.nInitialThreads = nThreads_ui;
+       action.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       action.nTilesPerPacket = 0;
+       action.routine         = taskFunction;
+
+       milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
+       try {
+           milhoja::Runtime::instance().teardownPipelineForCpuTasks("Lazy Bundle Name",
+                                                        action, *prototype);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+
+    /**
+     * Push one tile to the prepared pipeline so that the thread team will
+     * eventually execute the task.
+     *
+     * \param taskFunction   The computational work to apply identically to each
+     *                       block
+     * \param tileWrapper    C pointer to the prototype TileWrapper
+     * \param nThreads       The number of threads that the single thread team
+     *                       should activate.
+     * \param tileInfo       Tile information, carries identity and propertie of the
+     *                       tile and links to the actual raw Flash-X real data.
+     *
+     * \return The milhoja error code
+     */
+    int   milhoja_runtime_push_pipeline_cpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              void* tileWrapper,
+                                              const int nThreads,
+					      FlashxTileRaw* tileInfo) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+       unsigned int    nThreads_ui = static_cast<unsigned int>(nThreads);
+
+       milhoja::RuntimeAction     action;
+       action.name            = "Lazy Action Name";
+       action.nInitialThreads = nThreads_ui;
+       action.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       action.nTilesPerPacket = 0;
+       action.routine         = taskFunction;
+
+       milhoja::TileWrapper*   prototype = static_cast<milhoja::TileWrapper*>(tileWrapper);
+
+       try {
+           milhoja::Runtime::instance().pushTileToPipeline("Lazy Bundle Name",
+							   action, *prototype, tileInfo->sP, tileInfo->sI, tileInfo->sR);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+
+#ifdef RUNTIME_USES_TILEITER
+    /**
      * Instruct the runtime to use the CPU-only thread team configuration with
      * the given number of threads to apply the given task function to all
      * blocks.
@@ -232,6 +368,7 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+#endif
 
 #ifdef MILHOJA_GPUS_SUPPORTED
     /**

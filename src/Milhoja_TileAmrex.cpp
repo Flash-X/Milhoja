@@ -95,6 +95,15 @@ unsigned int    TileAmrex::nFluxVariables(void) const {
     return static_cast<unsigned int>(nFluxVars);
 }
 
+#ifndef FULL_MILHOJAGRID
+/**
+ * \brief Get deltas for appropriate level.
+ */
+RealVect TileAmrex::deltas(void) const {
+    return Grid::instance().getDeltas(level());
+}
+#endif
+
 /**
  * \brief Gets index of lo cell in the Tile
  *

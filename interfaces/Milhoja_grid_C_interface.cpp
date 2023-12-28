@@ -139,7 +139,9 @@ extern "C" {
                 cfg.loBCs[i] = static_cast<milhoja::BCs>(loBCs[i]);
                 cfg.hiBCs[i] = static_cast<milhoja::BCs>(hiBCs[i]);
             }
-            cfg.externalBcRoutine = externalBcRoutine;
+#ifdef FULL_MILHOJAGRID
+	    cfg.externalBcRoutine = externalBcRoutine;
+#endif
             cfg.nxb               = nxb_ui;
             cfg.nyb               = nyb_ui;
             cfg.nzb               = nzb_ui;
@@ -150,7 +152,9 @@ extern "C" {
             cfg.nBlocksY          = nBlocksY_ui;
             cfg.nBlocksZ          = nBlocksZ_ui;
             cfg.maxFinestLevel    = maxRefinementLevel_ui;
-            cfg.errorEstimation   = errorEst;
+#ifdef FULL_MILHOJAGRID
+	    cfg.errorEstimation   = errorEst;
+#endif
             cfg.ccInterpolator    = static_cast<milhoja::Interpolator>(ccInterpolator);
             cfg.mpiComm           = globalComm;
    
@@ -178,7 +182,9 @@ extern "C" {
      */
     int    milhoja_grid_finalize_c(void) {
         try {
+#ifdef FULL_MILHOJAGRID
             milhoja::Grid::instance().destroyDomain();
+#endif
             milhoja::Grid::instance().finalize();
             milhoja::Logger::instance().finalize();
         } catch (const std::exception& exc) {
@@ -192,6 +198,7 @@ extern "C" {
         return MILHOJA_SUCCESS;
     }
 
+#ifdef FULL_MILHOJAGRID
     /**
      * Obtain the coordinate system used to define the domain.
      *
@@ -694,7 +701,9 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
     }
+#endif
 
+#ifdef FULL_MILHOJAGRID
     /**
      * \todo Allow calling code to specify filename.  No need for step in that
      *       case.
@@ -743,5 +752,6 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
      }
+#endif
 }
 

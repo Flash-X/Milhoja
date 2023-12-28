@@ -14,6 +14,10 @@
 
 #include "Milhoja.h"
 #include "Milhoja_Grid.h"
+#ifndef RUNTIME_USES_TILEITER
+#include "Milhoja_FlashxrTileRaw.h"
+#include "Milhoja_TileFlashxr.h"
+#endif
 #include "Milhoja_RuntimeBackend.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_Logger.h"
@@ -133,6 +137,99 @@ Runtime::Runtime(void)
  *
  * \return 
  */
+#ifndef RUNTIME_USES_TILEITER
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+void Runtime::setupPipelineForCpuTasks(const std::string& actionName,
+                              const RuntimeAction& cpuAction,
+                              const TileWrapper& prototype) {
+    Logger::instance().log("[Runtime] Start setting up single CPU action");
+
+    if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::executeCpuTasks] "
+                               "Given CPU action should run on tiles, "
+                               "which is not in configuration");
+    } else if (cpuAction.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::executeCpuTasks] "
+                                    "CPU tiles/packet should be zero since it is tile-based");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[Runtime::executeCpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU action parallel pipeline
+    // 1) CPU action applied to blocks by CPU team
+    ThreadTeam*   cpuTeam = teams_[0];
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads = cpuAction.nInitialThreads + 1;
+    if (nTotalThreads > cpuTeam->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::executeCpuTasks] "
+                               "CPU team could receive too many thread "
+                               "activation calls from distributor");
+    }
+
+    //***** START EXECUTION CYCLE
+    cpuTeam->startCycle(cpuAction, "CPU_Block_Team");
+
+    Logger::instance().log("[Runtime] End setting up CPU action");
+}
+
+void Runtime::pushTileToPipeline(const std::string& actionName,
+				 const RuntimeAction& cpuAction,
+				 const TileWrapper& prototype,
+				 const FlashxrTileRawPtrs& tP,
+				 const FlashxTileRawInts& tI,
+				 const FlashxTileRawReals& tR
+				 ) {
+    Logger::instance().log("[Runtime] Push single tile task to single CPU pipeline");
+    ThreadTeam*   cpuTeam = teams_[0];
+    //***** ACTION PARALLEL DISTRIBUTOR
+    Grid&   grid = Grid::instance();
+
+    TileFlashxr currentTile{tP, tI, tR};
+    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{&currentTile} ) );
+
+    Logger::instance().log("[Runtime] Single tile task was pushed to CPU pipeline");
+}
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+void Runtime::teardownPipelineForCpuTasks(const std::string& actionName,
+                              const RuntimeAction& cpuAction,
+                              const TileWrapper& prototype) {
+    ThreadTeam*   cpuTeam = teams_[0];
+    cpuTeam->closeQueue(nullptr);
+
+    // host thread blocks until cycle ends, so activate another thread 
+    // in team first
+    cpuTeam->increaseThreadCount(1);
+    cpuTeam->wait();
+
+    // No need to break apart the thread team configuration
+
+    Logger::instance().log("[Runtime] End single CPU action");
+}
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// void Runtime::executeCpuTasks(const std::string& actionName,
+//                               const RuntimeAction& cpuAction,
+//                               const TileWrapper& prototype) {
+//     Logger::instance().log("[Runtime] Putting it all together...");
+//     setupPipelineForCpuTasks(actionName,
+//                               cpuAction,
+// 				prototype);
+//    runPipelineForCpuTasks(actionName,
+//                               cpuAction,
+// 				prototype);
+//     teardownPipelineForCpuTasks(actionName,
+//                               cpuAction,
+// 				prototype);
+// }
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#else
+  // Traditional: RUNTIME_USES_TILEITER is defined
 void Runtime::executeCpuTasks(const std::string& actionName,
                               const RuntimeAction& cpuAction,
                               const TileWrapper& prototype) {
@@ -169,11 +266,13 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     //***** ACTION PARALLEL DISTRIBUTOR
     Grid&   grid = Grid::instance();
+#ifdef RUNTIME_USES_TILEITER
     for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             cpuTeam->enqueue( prototype.clone( ti->buildCurrentTile() ) );
         }
     }
+#endif
     cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
@@ -185,7 +284,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     Logger::instance().log("[Runtime] End single CPU action");
 }
-
+#endif
 /**
  * 
  *

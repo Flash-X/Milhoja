@@ -27,6 +27,7 @@ Tile::~Tile(void) {
 }
 
 
+#ifdef FULL_MILHOJAGRID
 /**
  * \brief Get deltas for appropriate level.
  */
@@ -50,5 +51,6 @@ RealVect Tile::getCenterCoords(void) const {
     RealVect coords = x0 + dx*RealVect(loPt+hiPt)*0.5_wp;
     return coords;
 }
+#endif
 
 }

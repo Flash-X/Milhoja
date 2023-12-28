@@ -37,8 +37,11 @@ namespace milhoja {
   *
   * Grid derived class implemented with AMReX.
   */
-class GridAmrex : public Grid,
-                  private amrex::AmrCore {
+class GridAmrex : public Grid
+#ifdef FULL_MILHOJAGRID
+		, private amrex::AmrCore
+#endif
+{
 public:
     ~GridAmrex(void);
 
@@ -53,6 +56,7 @@ public:
     void  finalize(void) override;
 
     // Pure virtual function overrides.
+#ifdef FULL_MILHOJAGRID
     void         initDomain(INIT_BLOCK_NO_RUNTIME initBlock) override;
     void         initDomain(const RuntimeAction& cpuAction,
                             const TileWrapper* prototype) override;
@@ -109,6 +113,9 @@ public:
                                  const IntVect& lo,
                                  const IntVect& hi,
                                  Real* volPtr) const override;
+#else
+    CoordSys     getCoordinateSystem(void) const;
+#endif
 
 private:
     GridAmrex(void);
@@ -119,6 +126,7 @@ private:
     //!< Assume that guardcells are not used when computing fluxes.
     static constexpr   unsigned int NO_GC_FOR_FLUX = 0;
 
+#ifdef FULL_MILHOJAGRID
     void    fillPatch(amrex::MultiFab& mf, const int level);
 
     //----- AMRCORE OVERRIDES
@@ -142,6 +150,7 @@ private:
                   amrex::TagBoxArray& tags,
                   amrex::Real time,
                   int ngrow) override;
+#endif
 
     //----- STATIC STATE VARIABLES
     static bool    domainInitialized_;

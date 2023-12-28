@@ -47,6 +47,7 @@ void GridConfigurationAMReX::load(void) const {
     }
     ppGeo.addarr("is_periodic", isPeriodic);
 
+#ifdef FULL_MILHOJAGRID
     switch (coordSys) {
     case CoordSys::Cartesian:
         ppGeo.add("coord_sys", amrex::CoordSys::CoordType::cartesian);
@@ -60,6 +61,7 @@ void GridConfigurationAMReX::load(void) const {
     default:
         throw std::invalid_argument("[GridConfigurationAMReX::load] coordSys invalid");
     }
+#endif
     ppGeo.addarr("prob_lo", std::vector<Real>{LIST_NDIM(xMin,
                                                         yMin,
                                                         zMin)});
@@ -76,6 +78,7 @@ void GridConfigurationAMReX::load(void) const {
     int  nCellsY_i    = static_cast<int>(nyb * nBlocksY);
     int  nCellsZ_i    = static_cast<int>(nzb * nBlocksZ);
 
+#ifdef FULL_MILHOJAGRID
     amrex::ParmParse ppAmr("amr");
 
     ppAmr.add("v", 0); //verbosity
@@ -98,6 +101,7 @@ void GridConfigurationAMReX::load(void) const {
     ppAmr.add("n_proper",           1);
     ppAmr.add("n_error_buf",        0);
     ppAmr.addarr("ref_ratio",       std::vector<int>(lrefineMax_i, 2));
+#endif
 
     // DEV_GUIDE: Satisfy GridConfiguration requirements
     int     wasInitialized = 0;
@@ -109,7 +113,9 @@ void GridConfigurationAMReX::load(void) const {
     // It appears that AMReX must be initialized before the derived AmrCore
     // class is instantiated.  Therefore, we must perform the initialization of
     // AMReX here.
+#ifdef FULL_MILHOJAGRID
     amrex::Initialize(mpiComm);
+#endif
 
     loaded_ = true;
 

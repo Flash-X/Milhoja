@@ -16,7 +16,12 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_finalize
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_reset
+    public :: milhoja_runtime_setupPipelineForCpuTasks
+    public :: milhoja_runtime_pushTileToPipeline
+    public :: milhoja_runtime_teardownPipelineForCpuTasks
+#ifdef RUNTIME_USES_TILEITER
     public :: milhoja_runtime_executeTasks_Cpu
+#endif
 #ifdef MILHOJA_GPUS_SUPPORTED
     public :: milhoja_runtime_executeTasks_Gpu
 #endif
@@ -71,6 +76,7 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT) :: C_ierr
         end function milhoja_runtime_reset_c
 
+#ifdef RUNTIME_USES_TILEITER
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_cpu_c(C_taskFunction,            &
                                                      C_tileWrapperPrototype,    &
@@ -84,6 +90,53 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_cpu_c
+#endif
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_runtime_setup_pipeline_cpu_c(C_taskFunction,            &
+                                                     C_tileWrapperPrototype,    &
+                                                     C_nThreads) result(C_ierr) &
+                                                     bind(c)
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_setup_pipeline_cpu_c
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_runtime_teardown_pipeline_cpu_c(C_taskFunction,            &
+                                                     C_tileWrapperPrototype,    &
+                                                     C_nThreads) result(C_ierr) &
+                                                     bind(c)
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_teardown_pipeline_cpu_c
+
+        !> Fortran interface on routine in C interface of same name.
+        function milhoja_runtime_push_pipeline_cpu_c(C_taskFunction,            &
+                                                     C_tileWrapperPrototype,    &
+                                                     C_nThreads,                &
+                                                     tileCINfo)  result(C_ierr) &
+                                                     bind(c)
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+!!$            type(Milhoja_tileCInfo_t), intent(IN)   :: tileCInfo
+            type(C_PTR),          intent(IN), value :: tileCInfo
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_push_pipeline_cpu_c
 
 #ifdef MILHOJA_GPUS_SUPPORTED
         !> Fortran interface on routine in C interface of same name.
@@ -160,6 +213,92 @@ contains
         ierr = milhoja_runtime_reset_c()
     end subroutine milhoja_runtime_reset
 
+    !> Instruct the runtime to make the CPU-only thread team ready.
+    !!
+    !! @param taskFunction    The task function to execute
+    !! @param prototype_Cptr  WRITE THIS
+    !! @param nThreads        The number of threads to activate in team
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_runtime_setupPipelineForCpuTasks(taskFunction, &
+                                                prototype_Cptr, &
+                                                nThreads, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_FUNPTR, &
+                                  C_FUNLOC
+
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        type(C_PTR),                            intent(IN)  :: prototype_Cptr
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: taskFunction_Cptr
+
+        taskFunction_Cptr = C_FUNLOC(taskFunction)
+
+        ierr = milhoja_runtime_setup_pipeline_cpu_c(taskFunction_Cptr, &
+                                                   prototype_Cptr, &
+                                                   nThreads)
+    end subroutine milhoja_runtime_setupPipelineForCpuTasks
+
+    !> Instruct the runtime to tear down the CPU-only thread team pipeline.
+    !!
+    !! @param taskFunction    The task function to execute
+    !! @param prototype_Cptr  WRITE THIS
+    !! @param nThreads        The number of threads to activate in team
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_runtime_teardownPipelineForCpuTasks(taskFunction, &
+                                                prototype_Cptr, &
+                                                nThreads, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_FUNPTR, &
+                                  C_FUNLOC
+
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        type(C_PTR),                            intent(IN)  :: prototype_Cptr
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: taskFunction_Cptr
+
+        taskFunction_Cptr = C_FUNLOC(taskFunction)
+
+        ierr = milhoja_runtime_teardown_pipeline_cpu_c(taskFunction_Cptr, &
+                                                   prototype_Cptr, &
+                                                   nThreads)
+    end subroutine milhoja_runtime_teardownPipelineForCpuTasks
+
+    !> Push one tile to the prepared pipeline for task execution.
+    !!
+    !! @param taskFunction    The task function to execute
+    !! @param prototype_Cptr  WRITE THIS
+    !! @param nThreads        The number of threads to activate in team
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_runtime_pushTileToPipeline(taskFunction, &
+                                                prototype_Cptr, &
+                                                nThreads, tileCInfo_Cp, ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_FUNPTR, &
+                                  C_FUNLOC
+        use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
+
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        type(C_PTR),                            intent(IN)  :: prototype_Cptr
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+!!$        type(Milhoja_tileCInfo_t),              intent(IN)  :: tileCInfo
+        type(C_PTR),                            intent(IN)  :: tileCInfo_Cp
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: taskFunction_Cptr
+
+        taskFunction_Cptr = C_FUNLOC(taskFunction)
+
+        ierr = milhoja_runtime_push_pipeline_cpu_c(taskFunction_Cptr, &
+                                                   prototype_Cptr, &
+                                                   nThreads, &
+                                                   tileCInfo_Cp)
+    end subroutine milhoja_runtime_pushTileToPipeline
+
+#ifdef RUNTIME_USES_TILEITER
     !> Instruct the runtime to use the CPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
@@ -191,6 +330,7 @@ contains
                                                    prototype_Cptr, &
                                                    nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
+#endif
 
 #ifdef MILHOJA_GPUS_SUPPORTED
     !> Instruct the runtime to use the GPU-only thread team configuration with
