@@ -189,8 +189,7 @@ void Runtime::pushTileToPipeline(const std::string& actionName,
     //***** ACTION PARALLEL DISTRIBUTOR
     Grid&   grid = Grid::instance();
 
-    TileFlashxr currentTile{tP, tI, tR};
-    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{&currentTile} ) );
+    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
 
     Logger::instance().log("[Runtime] Single tile task was pushed to CPU pipeline");
 }

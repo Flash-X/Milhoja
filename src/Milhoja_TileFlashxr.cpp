@@ -86,9 +86,9 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
 {
     for (auto i=0; i<fluxBlkPtrs_.size(); ++i) {
         fluxBlkPtrs_[i] = (&tP.fluxxBlkPtr)[i];
-        if (!(fluxBlkPtrs_[i])) {
-            throw std::invalid_argument("[TileFlashxr::TileFlashxr] Null flux data pointer");
-        }
+        // if (!(fluxBlkPtrs_[i])) {
+        //     throw std::invalid_argument("[TileFlashxr::TileFlashxr] Null flux data pointer");
+        // }
     }
 
 #ifdef DEBUG_RUNTIME
