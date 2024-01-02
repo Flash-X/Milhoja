@@ -136,7 +136,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         # ..todo::
         #   * replace delete / release / instantiate function names with
         #     properties in TaskFunction class
-        with open(self._outer_template, 'w') as outer:
+        with open(outer, 'w') as outer:
             outer.writelines([
                 '/* _connector:cpp2c_outer */\n',
                 f'/* _param:class_name = '
@@ -190,7 +190,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
         adjusted_args = ["nTiles"] + adjusted_args
 
         # insert all connectors into helper template file
-        with open(self._helper_template, 'w') as helper:
+        with open(helper, 'w') as helper:
             spec_func = self._tf_spec.argument_specification
             n_ex_streams = self._n_extra_streams
             # write c2f dummy arg list:
