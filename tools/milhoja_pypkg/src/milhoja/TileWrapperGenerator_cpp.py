@@ -1,12 +1,13 @@
 from pathlib import Path
 
-from . import TaskFunction
-from . import AbcCodeGenerator
-from . import (
+from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT
 )
+from .TaskFunction import TaskFunction
+from .AbcLogger import AbcLogger
+from .AbcCodeGenerator import AbcCodeGenerator
 
 
 class TileWrapperGenerator_cpp(AbcCodeGenerator):
@@ -18,22 +19,19 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
     """
     __LOG_TAG = "Milhoja C++ Tile Wrapper"
 
-    def __init__(
-            self,
-            tf_spec,
-            indent,
-            logger
-            ):
+    def __init__(self, tf_spec, indent, logger):
         """
         Construct an object for use with the task function specified by the
         given specification object.
 
         :param tf_spec: Specification object derived from TaskFunction
         :param indent: Number of spaces in tab to be used in generated files
-        :param logger: Concrete logger derived from AbcLogger
+        :param logger: Logger derived from :py:class`milhoja.AbcLogger`
         """
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("Given tf_spec not derived from TaskFunction")
+        elif not isinstance(logger, AbcLogger):
+            raise TypeError("Invalid logger type")
 
         outputs = tf_spec.output_filenames
         header_filename = outputs[TaskFunction.DATA_ITEM_KEY]["header"]

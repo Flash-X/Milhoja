@@ -20,13 +20,13 @@ struct Tile_cpu_tf_fused : public milhoja::TileWrapper {
     static void acquireScratch(void);
     static void releaseScratch(void);
 
-    constexpr static std::size_t  BASE_OP1_SCRATCH_SIZE_ =
+    constexpr static std::size_t  SCRATCH_BASE_OP1_SCRATCH4D_SIZE_ =
                       8
                     * 16
                     * 1
                     * 2;
 
-    static void* base_op1_scratch_;
+    static void* scratch_base_op1_scratch4D_;
 };
 
 #endif

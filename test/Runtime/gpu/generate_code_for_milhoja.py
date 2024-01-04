@@ -93,15 +93,13 @@ def main():
 
     try:
         # ----- LOAD ALL TASK FUNCTIONS SPECIFICATIONS
-        tf_specs_all = []
+        tf_jsons_all = []
         for tf_name in TF_NAMES_ALL:
-            filename = CG_PATH.joinpath(tf_name)
-            tf_spec = milhoja.TaskFunction.from_milhoja_json(filename)
-            tf_specs_all.append(tf_spec)
+            tf_jsons_all.append(CG_PATH.joinpath(tf_name))
 
         # ----- NOW IS GOOD FOR GENERATING CODE
         milhoja.tests.generate_code(
-            tf_specs_all, destination, overwrite,
+            tf_jsons_all, destination, overwrite,
             library_path, INDENT, makefile,
             logger
         )

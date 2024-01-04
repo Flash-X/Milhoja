@@ -16,7 +16,7 @@
 
 #include "setInitialConditions.h"
 
-void  cpu_tf_ic::taskFunction(const int threadId,
+void  cpu_tf_ic::taskFunction(const int threadIndex,
                     milhoja::DataItem* dataItem) {
     Tile_cpu_tf_ic*  wrapper = dynamic_cast<Tile_cpu_tf_ic*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
@@ -24,13 +24,13 @@ void  cpu_tf_ic::taskFunction(const int threadId,
     const unsigned int   MH_INTERNAL_level = tileDesc->level();
     const milhoja::IntVect   tile_lbound = tileDesc->loGC();
     const milhoja::IntVect   tile_ubound = tileDesc->hiGC();
-    const milhoja::FArray1D  tile_xCenters =
+    const milhoja::FArray1D  tile_xCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::I,
             milhoja::Edge::Center,
             MH_INTERNAL_level,
             tile_lbound, tile_ubound);
-    const milhoja::FArray1D  tile_yCenters =
+    const milhoja::FArray1D  tile_yCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::J,
             milhoja::Edge::Center,
@@ -41,7 +41,7 @@ void  cpu_tf_ic::taskFunction(const int threadId,
     StaticPhysicsRoutines::setInitialConditions(
                     tile_lbound,
                     tile_ubound,
-                    tile_xCenters,
-                    tile_yCenters,
+                    tile_xCoords_center,
+                    tile_yCoords_center,
                     CC_1);
 }

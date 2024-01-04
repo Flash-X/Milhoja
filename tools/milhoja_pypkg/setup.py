@@ -28,8 +28,10 @@ test_requires = ["numpy"]
 install_requires = code_requires + test_requires
 
 package_data = {"milhoja": ["tests/data/*",
+                            "tests/data/fake/*",
                             "tests/data/runtime/*",
                             "tests/data/Sedov/*",
+                            "tests/data/FlashX/*",
                             "templates/*"]}
 
 project_urls = {

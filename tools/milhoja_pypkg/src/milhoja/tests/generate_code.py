@@ -1,12 +1,14 @@
 from pathlib import Path
 
-from milhoja import LOG_LEVEL_BASIC
-from milhoja import generate_data_item
-from milhoja import generate_task_function
+from milhoja import (
+    LOG_LEVEL_BASIC,
+    TaskFunction,
+    generate_data_item, generate_task_function
+)
 
 
 def generate_code(
-            tf_specs_all, destination, overwrite, library_path,
+            tf_spec_jsons_all, destination, overwrite, library_path,
             indent, makefile_filename,
             logger
         ):
@@ -14,8 +16,8 @@ def generate_code(
     Generate all code related to the given task functions and a Makefile that
     indicates which source files need building and where to look for headers.
 
-    :param tf_specs_all: List of TaskFunction objects for which code should be
-        generated
+    :param tf_spec_jsons_all: List of TaskFunction specification files that
+        should be used to generate code
     :param destination: Pre-existing folder to which all code should be written
     :param overwrite: Pre-existing header and source files in destination will
         be overwritten if True
@@ -42,12 +44,14 @@ def generate_code(
     files_to_compile = []
 
     logger.log(LOG_TAG, "", LOG_LEVEL_BASIC)
-    for tf_spec in tf_specs_all:
+    for tf_spec_json in tf_spec_jsons_all:
+        tf_spec = TaskFunction.from_milhoja_json(tf_spec_json)
         logger.log(
             LOG_TAG, f"Generating code for task function {tf_spec.name}",
             LOG_LEVEL_BASIC
         )
         logger.log(LOG_TAG, "-" * 80, LOG_LEVEL_BASIC)
+
         generate_data_item(
             tf_spec, destination, overwrite, library_path, indent, logger
         )

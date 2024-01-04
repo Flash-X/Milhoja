@@ -1,0 +1,27 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "name":                "analysis_op1",
+    "variable_index_base":              1,
+    "Analysis::computeErrors": {
+        "interface_file": "Analysis.h",
+        "argument_list": ["lo", "hi", "xCoords", "yCoords", "U", "idx"],
+        "argument_specifications": {
+            "lo":        {"source":           "tile_lo"},
+            "hi":        {"source":           "tile_hi"},
+            "xCoords":   {"source":           "tile_coordinates",
+                          "axis":             "I",
+                          "edge":             "center",
+                          "lo":               "tile_lo",
+                          "hi":               "tile_hi"},
+            "yCoords":   {"source":           "tile_coordinates",
+                          "axis":             "J",
+                          "edge":             "center",
+                          "lo":               "tile_lo",
+                          "hi":               "tile_hi"},
+            "U":         {"source":           "grid_data",
+                          "structure_index":  ["CENTER", 1],
+                          "R":                [1, 2]},
+            "idx":       {"source":           "tile_gridIndex"}
+        }
+    }
+}
