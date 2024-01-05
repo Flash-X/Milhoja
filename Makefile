@@ -84,8 +84,10 @@ else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
-CXXFLAGS += -DNO_NO_NO_FULL_MILHOJAGRID
-F90FLAGS += -DNO_NO_NO_FULL_MILHOJAGRID
+# The following may or may not work.
+# Uncommenting the following two lines is necessary for a traditional build:
+#CXXFLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
+#F90FLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
 
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
