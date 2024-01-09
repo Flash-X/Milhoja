@@ -21,9 +21,9 @@
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+//#ifdef MILHOJA_GPUS_SUPPORTED
 #include "Milhoja_MoverUnpacker.h"
-#endif
+//#endif
 
 namespace milhoja {
 
@@ -52,21 +52,27 @@ public:
 
 #ifndef RUNTIME_USES_TILEITER
     void setupPipelineForCpuTasks(const std::string& actionName,
-                         const RuntimeAction& cpuAction,
-                         const TileWrapper& prototype);
+                         const RuntimeAction& cpuAction);
     void pushTileToPipeline(const std::string& actionName,
-			    const RuntimeAction& cpuAction,
 			    const TileWrapper& prototype,
 			    const FlashxrTileRawPtrs& tP,
 			    const FlashxTileRawInts& tI,
 			    const FlashxTileRawReals& tR);
-    void teardownPipelineForCpuTasks(const std::string& actionName,
-                         const RuntimeAction& cpuAction,
-                        const TileWrapper& prototype);
+    void teardownPipelineForCpuTasks(const std::string& actionName);
 #endif
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction,
                          const TileWrapper& prototype);
+    void setupPipelineForGpuTasks(const std::string& bundleName,
+                         const unsigned int stagger_usec,
+                         const RuntimeAction& gpuAction,
+                         const DataPacket& packetPrototype);
+    void pushTileToGpuPipeline(const std::string& bundleName,
+                         const DataPacket& packetPrototype,
+			    const FlashxrTileRawPtrs& tP,
+			    const FlashxTileRawInts& tI,
+			    const FlashxTileRawReals& tR);
+    void teardownPipelineForGpuTasks(const std::string& bundleName);
 #ifdef MILHOJA_GPUS_SUPPORTED
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
@@ -137,11 +143,13 @@ private:
     static unsigned int    maxThreadsPerTeam_;
     static bool            initialized_;
     static bool            finalized_;
+    int                    nTilesPerPacket_;
+    std::shared_ptr<DataPacket> packet_gpu_;
 
     ThreadTeam**     teams_;
 
-#ifdef MILHOJA_GPUS_SUPPORTED
     MoverUnpacker    gpuToHost1_;
+#ifdef MILHOJA_GPUS_SUPPORTED
     MoverUnpacker    gpuToHost2_;
 #endif
 };

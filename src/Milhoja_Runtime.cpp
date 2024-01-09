@@ -13,8 +13,8 @@
 #endif
 
 #include "Milhoja.h"
-#include "Milhoja_Grid.h"
 #ifndef RUNTIME_USES_TILEITER
+#include "Milhoja_Grid.h"
 #include "Milhoja_FlashxrTileRaw.h"
 #include "Milhoja_TileFlashxr.h"
 #endif
@@ -86,6 +86,8 @@ void   Runtime::finalize(void) {
     delete [] teams_;
     teams_ = nullptr;
 
+    packet_gpu_.reset();
+
     milhoja::RuntimeBackend::instance().finalize();
 
     finalized_ = true;
@@ -115,7 +117,8 @@ Runtime& Runtime::instance(void) {
  * \return 
  */
 Runtime::Runtime(void)
-    : teams_{nullptr}
+    : teams_{nullptr},
+      packet_gpu_{}
 {
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {
@@ -141,19 +144,18 @@ Runtime::Runtime(void)
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void Runtime::setupPipelineForCpuTasks(const std::string& actionName,
-                              const RuntimeAction& cpuAction,
-                              const TileWrapper& prototype) {
+                              const RuntimeAction& cpuAction) {
     Logger::instance().log("[Runtime] Start setting up single CPU action");
 
     if (cpuAction.teamType != ThreadTeamDataType::BLOCK) {
-        throw std::logic_error("[Runtime::executeCpuTasks] "
+        throw std::logic_error("[Runtime:setupPipelineForCpuTasks] "
                                "Given CPU action should run on tiles, "
                                "which is not in configuration");
     } else if (cpuAction.nTilesPerPacket != 0) {
-        throw std::invalid_argument("[Runtime::executeCpuTasks] "
+        throw std::invalid_argument("[Runtime:setupPipelineForCpuTasks] "
                                     "CPU tiles/packet should be zero since it is tile-based");
     } else if (nTeams_ < 1) {
-        throw std::logic_error("[Runtime::executeCpuTasks] "
+        throw std::logic_error("[Runtime:setupPipelineForCpuTasks] "
                                "Need at least one ThreadTeam in runtime");
     }
 
@@ -166,7 +168,7 @@ void Runtime::setupPipelineForCpuTasks(const std::string& actionName,
     // once the distributor starts to wait
     unsigned int nTotalThreads = cpuAction.nInitialThreads + 1;
     if (nTotalThreads > cpuTeam->nMaximumThreads()) {
-        throw std::logic_error("[Runtime::executeCpuTasks] "
+        throw std::logic_error("[Runtime:setupPipelineForCpuTasks] "
                                "CPU team could receive too many thread "
                                "activation calls from distributor");
     }
@@ -178,7 +180,6 @@ void Runtime::setupPipelineForCpuTasks(const std::string& actionName,
 }
 
 void Runtime::pushTileToPipeline(const std::string& actionName,
-				 const RuntimeAction& cpuAction,
 				 const TileWrapper& prototype,
 				 const FlashxrTileRawPtrs& tP,
 				 const FlashxTileRawInts& tI,
@@ -189,14 +190,13 @@ void Runtime::pushTileToPipeline(const std::string& actionName,
     //***** ACTION PARALLEL DISTRIBUTOR
     Grid&   grid = Grid::instance();
 
-    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
+    //    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
+    cpuTeam->enqueue( prototype.clone( std::make_unique<TileFlashxr>(tP, tI, tR) ) );
 
     Logger::instance().log("[Runtime] Single tile task was pushed to CPU pipeline");
 }
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void Runtime::teardownPipelineForCpuTasks(const std::string& actionName,
-                              const RuntimeAction& cpuAction,
-                              const TileWrapper& prototype) {
+void Runtime::teardownPipelineForCpuTasks(const std::string& actionName) {
     ThreadTeam*   cpuTeam = teams_[0];
     cpuTeam->closeQueue(nullptr);
 
@@ -387,6 +387,132 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
     Logger::instance().log("[Runtime] End single GPU action");
 }
 #endif
+void Runtime::setupPipelineForGpuTasks(const std::string& bundleName,
+                              const unsigned int stagger_usec,
+                              const RuntimeAction& gpuAction,
+                              const DataPacket& packetPrototype) {
+
+    Logger::instance().log("[Runtime] Start setting up single GPU action");
+
+    if (gpuAction.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime:setupPipelineForGpuTasks] "
+                               "Given GPU action should run on "
+                               "data packets of blocks");
+    } else if (gpuAction.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime:setupPipelineForGpuTasks] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[Runtime:setupPipelineForGpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+    nTilesPerPacket_ = gpuAction.nTilesPerPacket;
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*       gpuTeam   = teams_[0];
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
+
+    //***** START EXECUTION CYCLE
+    gpuTeam->startCycle(gpuAction, "GPU_PacketOfBlocks_Team");
+    gpuToHost1_.startCycle();
+
+    {
+#ifdef USE_THREADED_DISTRIBUTOR
+        int         tIdx = omp_get_thread_num();
+        std::this_thread::sleep_for(std::chrono::microseconds(tIdx * stagger_usec));
+#endif
+
+        packet_gpu_ = packetPrototype.clone();
+    }
+
+    Logger::instance().log("[Runtime] End setting up single GPU action");
+}
+void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
+                              const DataPacket& packetPrototype,
+				 const FlashxrTileRawPtrs& tP,
+				 const FlashxTileRawInts& tI,
+				 const FlashxTileRawReals& tR) {
+
+    Logger::instance().log("[Runtime] Push single tile task to single GPU pipeline");
+
+    if (nTilesPerPacket_ <= 0) {
+        throw std::invalid_argument("[Runtime:pushTileToGpuPipeline] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[Runtime:pushTileToGpuPipeline] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*       gpuTeam   = teams_[0];
+
+    RuntimeBackend&               backend = RuntimeBackend::instance();
+    {
+      //            packet_gpu_->addTile( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} );
+      //            packet_gpu_->addTile( static_cast<std::shared_ptr<Tile> >(std::make_unique<TileFlashxr>(tP, tI, tR) ));
+            packet_gpu_->addTile( std::make_shared<TileFlashxr>(tP, tI, tR) );
+            if (packet_gpu_->nTiles() >= nTilesPerPacket_) {
+                packet_gpu_->pack();
+                backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
+
+                gpuTeam->enqueue( std::move(packet_gpu_) );
+
+                packet_gpu_ = packetPrototype.clone();
+            }
+    }
+
+    Logger::instance().log("[Runtime] Single tile task was pushed to GPU pipeline");
+}
+void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
+
+    Logger::instance().log("[Runtime] Tear Down single GPU action");
+
+    if (nTilesPerPacket_ <= 0) {
+        throw std::invalid_argument("[Runtime:teardownPipelineForGpuTasks] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 1) {
+        throw std::logic_error("[Runtime:teardownPipelineForGpuTasks] "
+                               "Need at least one ThreadTeam in runtime");
+    }
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // GPU action parallel pipeline
+    // 1) Asynchronous transfer of Packets of Blocks to GPU
+    // 2) GPU action applied to blocks in packet by GPU team
+    // 3) Mover/Unpacker transfers packet back to CPU and
+    //    copies results to Grid data structures
+    ThreadTeam*       gpuTeam   = teams_[0];
+
+    RuntimeBackend&               backend = RuntimeBackend::instance();
+    {
+
+        if (packet_gpu_->nTiles() > 0) {
+            packet_gpu_->pack();
+            backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
+            gpuTeam->enqueue( std::move(packet_gpu_) );
+        } else {
+            packet_gpu_.reset();
+        }
+    }
+    gpuTeam->closeQueue(nullptr);
+    gpuToHost1_.wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    gpuTeam->detachDataReceiver();
+
+    Logger::instance().log("[Runtime:teardownPipelineForGpuTasks] End single GPU action");
+}
+
+  //#endif
 
 /**
  * 

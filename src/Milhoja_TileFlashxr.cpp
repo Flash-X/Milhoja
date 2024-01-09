@@ -107,14 +107,14 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
  * Deletes/nullifies private members.
  */
 TileFlashxr::~TileFlashxr(void) {
-#ifdef DEBUG_RUNTIME
+  //#ifdef DEBUG_RUNTIME
     std::string msg =   "[TileFlashxr] Destroyed Tile (level="
                       + std::to_string(level_)
                       + " / grid ID=" + std::to_string(gridIdxOrBlkId_)
                       + " / tile ID=" + std::to_string(tileIdx_)
                       + ")";
     Logger::instance().log(msg);
-#endif
+    //#endif
 }
 
 unsigned int    TileFlashxr::nCcVariables(void) const {
