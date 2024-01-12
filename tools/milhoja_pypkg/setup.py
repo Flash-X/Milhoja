@@ -23,7 +23,7 @@ description = "Milhoja AMR-specific parallelization for heterogenous platforms"
 # Changes made to python_requires should be propagated to all tox.ini and all
 # CI build server config files.
 python_requires = ">=3.8"
-code_requires = ["Code-Generation-Toolkit"]
+code_requires = ["Code-Generation-Toolkit@git+https://github.com/johannrudi/cg-kit#2bc2e18"]
 test_requires = ["numpy"]
 install_requires = code_requires + test_requires
 
