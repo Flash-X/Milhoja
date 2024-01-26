@@ -465,6 +465,7 @@ extern "C" {
     }
 
 #ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_USES_TILEITER
     /**
      * Instruct the runtime to use the GPU-only thread team configuration with
      * the given number of threads to apply the given task function to all
@@ -533,5 +534,6 @@ extern "C" {
        return MILHOJA_SUCCESS;
     }
 #endif
+#endif   // #ifdef RUNTIME_USES_TILEITER
 }
 

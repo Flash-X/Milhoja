@@ -290,6 +290,7 @@ void Runtime::executeCpuTasks(const std::string& actionName,
  * \return 
  */
 #ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_USES_TILEITER
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const unsigned int nDistributorThreads,
                               const unsigned int stagger_usec,
@@ -386,7 +387,10 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End single GPU action");
 }
-#endif
+#endif  // #ifdef MILHOJA_GPUS_SUPPORTED
+#endif  // #ifdef RUNTIME_USES_TILEITER
+
+#ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::setupPipelineForGpuTasks(const std::string& bundleName,
                               const unsigned int stagger_usec,
                               const RuntimeAction& gpuAction,
@@ -514,11 +518,14 @@ void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 
   //#endif
 
+#endif   // #ifdef MILHOJA_GPUS_SUPPORTED
 /**
  * 
  *
  * \return 
  */
+
+#ifdef RUNTIME_USES_TILEITER
 #ifdef MILHOJA_GPUS_SUPPORTED
 void Runtime::executeGpuTasks_timed(const std::string& bundleName,
                                     const unsigned int nDistributorThreads,
@@ -1887,6 +1894,7 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
     Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
 }
 #endif
+#endif    // #ifdef RUNTIME_USES_TILEITER
 
 }
 

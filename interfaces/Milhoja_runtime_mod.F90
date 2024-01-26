@@ -177,6 +177,7 @@ module milhoja_runtime_mod
         end function milhoja_runtime_push_pipeline_gpu_c
 
 #ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_USES_TILEITER
         !> Fortran interface for the function in C interface of the same name.
         function milhoja_runtime_execute_tasks_gpu_c(C_taskFunction,        &
                                                      C_nDistributorThreads, &
@@ -194,6 +195,7 @@ module milhoja_runtime_mod
             type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_gpu_c
+#endif
 #endif
     end interface
 
@@ -406,6 +408,7 @@ contains
 #endif
 
 #ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_USES_TILEITER
     !> Instruct the runtime to use the GPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
@@ -448,6 +451,7 @@ contains
                                                    nTilesPerPacket, &
                                                    packetPrototype_Cptr)
     end subroutine milhoja_runtime_executeTasks_Gpu
+#endif
 #endif
 
 end module milhoja_runtime_mod
