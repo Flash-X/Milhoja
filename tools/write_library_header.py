@@ -13,7 +13,7 @@ from pathlib import Path
 #####----- VALID CONFIGURATION VALUES
 # All strings in lowercase so that arguments can be case insensitive
 _VALID_DIM     = [1, 2, 3]
-_VALID_GRID    = ['amrex']
+_VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
 _VALID_RUNTIME = ['none', 'cuda']
 _VALID_OFFLOAD = ['none', 'openacc']
