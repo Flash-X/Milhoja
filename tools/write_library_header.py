@@ -141,7 +141,9 @@ if __name__ == '__main__':
         exit(100)
 
     # Grid
-    if grid_backend.lower() == 'amrex':
+    if   grid_backend.lower() == 'none':
+        grid_backend_macro = 'MILHOJA_NO_GRID_BACKEND'
+    elif grid_backend.lower() == 'amrex':
         grid_backend_macro = 'MILHOJA_AMREX_GRID_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')

@@ -113,7 +113,7 @@ test:
 	./$(BINARYNAME)
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS_TEST) $(OBJS_GEN) $(MAKEFILES) $(LIB_MILHOJA)/lib/libmilhoja.a
+$(BINARYNAME): $(OBJS_TEST) $(OBJS_GEN) $(MAKEFILES) $(LIB_MILHOJA)/lib/lib$(LIBNAME).a
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif

@@ -19,11 +19,15 @@ BUILDDIR        := ./build
 INTERFACEDIR    := ./interfaces
 TOOLSDIR        := ./tools
 CONFIG_MAKEFILE := ./Makefile.configure
-TARGET          := $(BUILDDIR)/libmilhoja.a
+
+include $(CONFIG_MAKEFILE)
+
+LIBNAME ?= milhoja
+TARGET          := $(BUILDDIR)/lib$(LIBNAME).a
+
 MILHOJA_H       := $(BUILDDIR)/Milhoja.h
 SIZES_JSON      := $(BUILDDIR)/sizes.json
 
-include $(CONFIG_MAKEFILE)
 include $(SITE_MAKEFILE)
 
 MAKEFILES := ./Makefile $(CONFIG_MAKEFILE) $(SITE_MAKEFILE)
