@@ -10,7 +10,8 @@ export MILHOJA_TEST_REPO=/nfs/gce/projects/Milhoja/MilhojaTest
 test -f Makefile.configure   && rm -v  Makefile.configure
 test -d build/               && rm -rv build/
 test -d "${KW_INSTALL_DIR}"  && rm -rv "${KW_INSTALL_DIR}"
-./configure.py --makefile $PWD/sites/gce/Makefile.site.gnu_mpich --dim 2 --offload OpenACC --prefix ${KW_INSTALL_DIR} --debug
+./configure.py --makefile $PWD/sites/gce/Makefile.site.gnu_mpich --dim 2 --offload OpenACC --prefix ${KW_INSTALL_DIR} --debug \
+	       --support_exec --support_packets
 make clean
 export MILHOJA_TEST_CLONE=/nfs/gce/projects/Milhoja/MilhojaTest
 make -j12 all

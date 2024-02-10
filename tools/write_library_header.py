@@ -81,6 +81,9 @@ if __name__ == '__main__':
     parser.add_argument('--grid',    '-g',    type=str, default=_DEFAULT_GRID,    help=_GRID_HELP)
     parser.add_argument('--fps',     '-fp',   type=str, default=_DEFAULT_FPS,     help=_FPS_HELP)
     parser.add_argument('--offload', '-o',    type=str, default=_DEFAULT_OFFLOAD, help=_OFFLOAD_HELP)
+    parser.add_argument('--support_exec',     action="store_true", help="Request that the library support execute-style orchestration calls.")
+    parser.add_argument('--support_push',     action="store_true", help="Request that the library support push-style orchestration calls.")
+    parser.add_argument('--support_packets',  action="store_true", help="Request that the library support datapackets.")
 
     def print_and_exit(msg, error_code):
         print(file=sys.stderr)
@@ -118,6 +121,12 @@ if __name__ == '__main__':
         msg = f'Invalid computation offloading tool ({computation_offloading})'
         print_and_exit(msg, 6)
 
+    runtime_support_exec = args.support_exec
+    runtime_support_push = args.support_push
+    runtime_support_packets = args.support_packets
+    if not (runtime_support_exec or runtime_support_push):
+        print(f'{_ERROR}WARNING:{_NC} Support for neither execute-style not push-style orchestration calls was requested')
+
     #####----- GENERATE INTERMEDIATE DATA BASED ON ARGUMENTS
     # Dimension
     # Since the library doesn't do much computation, these are likely not
@@ -136,9 +145,19 @@ if __name__ == '__main__':
     elif runtime_backend.lower() == 'cuda':
         runtime_backend_macro = 'MILHOJA_CUDA_RUNTIME_BACKEND'
         gpu_support_included = True
+    elif runtime_backend.lower() == 'gengpu': # generic non-CUDA GPU
+        runtime_backend_macro = 'MILHOJA_GENGPU_RUNTIME_BACKEND'
+        gpu_support_included = True
+    elif runtime_backend.lower() == 'openmpi': # omp_ calls for mem calls / target coyping, can we do it?
+        runtime_backend_macro = 'MILHOJA_OPENMPI_RUNTIME_BACKEND'
+    elif runtime_backend.lower() == 'openacc': # oacc_ calls for mem alloc, device coyping, can we do it?
+        runtime_backend_macro = 'MILHOJA_OPENACC_RUNTIME_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - runtime_backend')
         exit(100)
+
+    if runtime_backend_macro != 'MILHOJA_NO_RUNTIME_BACKEND' and not runtime_support_packets:
+        print(f'{_ERROR}WARNING:{_NC} Support for datapackets should be requested')
 
     # Grid
     if   grid_backend.lower() == 'none':
@@ -148,6 +167,9 @@ if __name__ == '__main__':
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')
         exit(100)
+
+    if grid_backend_macro == 'MILHOJA_NO_GRID_BACKEND' and runtime_support_exec:
+        print(f'{_ERROR}WARNING:{_NC} Support for providing a Milhoja Grid implementation should be requested')
 
     # FPS
     if floating_point_system.lower() == 'double':
@@ -238,6 +260,13 @@ if __name__ == '__main__':
         fptr.write( '\n')
         if gpu_support_included:
             fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n')
+            fptr.write( '\n')
+        if args.support_exec:
+            fptr.write( '#define RUNTIME_SUPPORT_EXECUTE\n')
+        if args.support_push:
+            fptr.write( '#define RUNTIME_SUPPORT_PUSH\n')
+        if args.support_packets:
+            fptr.write( '#define RUNTIME_SUPPORT_DATAPACKETS\n')
             fptr.write( '\n')
         fptr.write( '#endif\n\n')
 
