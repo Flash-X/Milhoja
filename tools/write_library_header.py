@@ -199,6 +199,9 @@ if __name__ == '__main__':
     print(f'  Grid backend              {grid_backend}')
     print(f'  Runtime backend           {runtime_backend}')
     print(f'  Computation Offloading    {computation_offloading}')
+    print(f'  Push-style Orchestration  {runtime_support_push}')
+    print(f'  Execute-Orchestration     {runtime_support_exec}')
+    print(f'  Implement Datapackets     {runtime_support_packets}')
     print('-' * 80)
     print()
 

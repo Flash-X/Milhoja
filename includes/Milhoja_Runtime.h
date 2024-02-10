@@ -18,7 +18,7 @@
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
 #include "Milhoja_MoverUnpacker.h"
 #endif
 
@@ -50,12 +50,13 @@ public:
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction,
                          const TileWrapper& prototype);
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
                          const unsigned int stagger_usec,
                          const RuntimeAction& gpuAction,
                          const DataPacket& packetPrototype);
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
     void executeGpuTasks_timed(const std::string& actionName,
                                const unsigned int nDistributorThreads,
                                const unsigned int stagger_usec,
@@ -63,6 +64,8 @@ public:
                                const DataPacket& packetPrototype,
                                const unsigned int stepNumber,
                                const MPI_Comm comm);
+#  endif
+#  ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const TileWrapper& tilePrototype,
@@ -81,6 +84,7 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
+#    ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                        const unsigned int nDistributorThreads,
                                        const unsigned int stagger_usec,
@@ -91,6 +95,7 @@ public:
                                        const unsigned int nTilesPerCpuTurn,
                                        const unsigned int stepNumber,
                                        const MPI_Comm comm);
+#    endif
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,
@@ -111,6 +116,7 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype);
+#  endif
 #endif
 
 private:
@@ -120,10 +126,16 @@ private:
     static unsigned int    maxThreadsPerTeam_;
     static bool            initialized_;
     static bool            finalized_;
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_SUPPORT_PUSH
+    int                    nTilesPerPacket_;
+    std::shared_ptr<DataPacket> packet_gpu_;
+#  endif
+#endif
 
     ThreadTeam**     teams_;
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
     MoverUnpacker    gpuToHost1_;
     MoverUnpacker    gpuToHost2_;
 #endif
