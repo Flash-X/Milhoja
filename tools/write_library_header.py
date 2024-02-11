@@ -13,7 +13,7 @@ from pathlib import Path
 #####----- VALID CONFIGURATION VALUES
 # All strings in lowercase so that arguments can be case insensitive
 _VALID_DIM     = [1, 2, 3]
-_VALID_GRID    = ['amrex']
+_VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
 _VALID_RUNTIME = ['none', 'cuda']
 _VALID_OFFLOAD = ['none', 'openacc']
@@ -141,7 +141,9 @@ if __name__ == '__main__':
         exit(100)
 
     # Grid
-    if grid_backend.lower() == 'amrex':
+    if   grid_backend.lower() == 'none':
+        grid_backend_macro = 'MILHOJA_NO_GRID_BACKEND'
+    elif grid_backend.lower() == 'amrex':
         grid_backend_macro = 'MILHOJA_AMREX_GRID_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')
