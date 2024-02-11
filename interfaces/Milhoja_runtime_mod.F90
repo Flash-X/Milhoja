@@ -17,7 +17,7 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_reset
     public :: milhoja_runtime_executeTasks_Cpu
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
     public :: milhoja_runtime_executeTasks_Gpu
 #endif
 
@@ -85,7 +85,7 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_cpu_c
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_gpu_c(C_taskFunction,        &
                                                      C_nDistributorThreads, &
@@ -192,7 +192,7 @@ contains
                                                    nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
     !> Instruct the runtime to use the GPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.

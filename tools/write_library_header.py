@@ -199,6 +199,7 @@ if __name__ == '__main__':
     print(f'  Grid backend              {grid_backend}')
     print(f'  Runtime backend           {runtime_backend}')
     print(f'  Computation Offloading    {computation_offloading}')
+    print(f'  Real GPU support          {gpu_support_included}')
     print(f'  Push-style Orchestration  {runtime_support_push}')
     print(f'  Execute-Orchestration     {runtime_support_exec}')
     print(f'  Implement Datapackets     {runtime_support_packets}')
@@ -262,7 +263,7 @@ if __name__ == '__main__':
         fptr.write(f'#define {offload_macro}\n')
         fptr.write( '\n')
         if gpu_support_included:
-            fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n')
+            fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n') # Current library code does not use this one any more - KW
             fptr.write( '\n')
         if args.support_exec:
             fptr.write( '#define RUNTIME_SUPPORT_EXECUTE\n')
