@@ -121,7 +121,10 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
                                      --grid $(GRID_BACKEND) \
                                      --fps $(FLOATING_POINT_SYSTEM) \
                                      --offload $(COMPUTATION_OFFLOADING) \
-                                     $(MILHOJA_H)
+                                     $(MILHOJA_H) \
+                                     $(if $(SUPPORT_EXEC),--support_exec) \
+                                     $(if $(SUPPORT_PUSH),--support_push) \
+                                     $(if $(SUPPORT_PACKETS),--support_packets)
 
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed
@@ -148,7 +151,7 @@ $(BUILDDIR)/Milhoja_types_mod.o: $(INTERFACEDIR)/Milhoja_types_mod.F90 $(MILHOJA
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_errors_mod.o: $(INTERFACEDIR)/Milhoja_errors_mod.F90 $(INTERFACEDIR)/Milhoja_interface_error_codes.h $(BUILDDIR)/Milhoja_types_mod.o Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
-$(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(MILHOJA_H) Makefile
+$(BUILDDIR)/Milhoja_grid_mod.o: $(INTERFACEDIR)/Milhoja_grid_mod.F90 $(BUILDDIR)/Milhoja_runtime_mod.o $(BUILDDIR)/Milhoja_grid_C_interface.o $(MILHOJA_H) Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 $(BUILDDIR)/Milhoja_tile_mod.o: $(INTERFACEDIR)/Milhoja_tile_mod.F90 $(BUILDDIR)/Milhoja_types_mod.o $(BUILDDIR)/Milhoja_tile_C_interface.o Makefile
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<

@@ -66,6 +66,9 @@ if __name__ == '__main__':
     parser.add_argument('--runtime',  '-r', type=str, default=_DEFAULT_RUNTIME,  help=_RUNTIME_HELP)
     parser.add_argument('--grid',     '-g', type=str, default=_DEFAULT_GRID,     help=_GRID_HELP)
     parser.add_argument('--offload',  '-o', type=str, default=_DEFAULT_OFFLOAD,  help=_OFFLOAD_HELP)
+    parser.add_argument('--support_exec',   action="store_true", help="Request that the library support execute-style orchestration calls.")
+    parser.add_argument('--support_push',   action="store_true", help="Request that the library support push-style orchestration calls.")
+    parser.add_argument('--support_packets', action="store_true", help="Request that the library support datapackets.")
     parser.add_argument('--prefix',         type=str,                            help='[mandatory] Where to install library')
     parser.add_argument('--debug',          action="store_true", help='Set up in debug mode.')
 
@@ -132,6 +135,18 @@ if __name__ == '__main__':
             fptr.write("DEBUG = true\n")
         else:
             fptr.write("DEBUG = false\n")
+        if args.support_exec:
+            fptr.write("SUPPORT_EXEC = true\n")
+        else:
+            fptr.write("SUPPORT_EXEC =\n")
+        if args.support_push:
+            fptr.write("SUPPORT_PUSH = true\n")
+        else:
+            fptr.write("SUPPORT_PUSH =\n")
+        if args.support_packets:
+            fptr.write("SUPPORT_PACKETS = true\n")
+        else:
+            fptr.write("SUPPORT_PACKETS =\n")
 
         fptr.write(f"FLOATING_POINT_SYSTEM = {_FLOATING_POINT_SYSTEM}\n")
         fptr.write(f"GRID_BACKEND = {grid_backend}\n")

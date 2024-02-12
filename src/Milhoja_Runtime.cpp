@@ -140,7 +140,7 @@ Runtime::Runtime(void)
  *
  * \return 
  */
-#ifndef RUNTIME_USES_TILEITER
+#ifndef RUNTIME_MUST_USE_TILEITER
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void Runtime::setupPipelineForCpuTasks(const std::string& actionName,
@@ -226,9 +226,9 @@ void Runtime::teardownPipelineForCpuTasks(const std::string& actionName) {
 // }
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-#else
-  // Traditional: RUNTIME_USES_TILEITER is defined
+#endif
+#ifdef RUNTIME_CAN_USE_TILEITER
+  // Traditional execute-style runtime invocation
 void Runtime::executeCpuTasks(const std::string& actionName,
                               const RuntimeAction& cpuAction,
                               const TileWrapper& prototype) {
@@ -289,8 +289,8 @@ void Runtime::executeCpuTasks(const std::string& actionName,
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
-#ifdef RUNTIME_USES_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeGpuTasks(const std::string& bundleName,
                               const unsigned int nDistributorThreads,
                               const unsigned int stagger_usec,
@@ -387,10 +387,9 @@ void Runtime::executeGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End single GPU action");
 }
-#endif  // #ifdef MILHOJA_GPUS_SUPPORTED
-#endif  // #ifdef RUNTIME_USES_TILEITER
+#  endif  // #ifdef RUNTIME_CAN_USE_TILEITER
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifndef RUNTIME_MUST_USE_TILEITER
 void Runtime::setupPipelineForGpuTasks(const std::string& bundleName,
                               const unsigned int stagger_usec,
                               const RuntimeAction& gpuAction,
@@ -516,17 +515,18 @@ void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
     Logger::instance().log("[Runtime:teardownPipelineForGpuTasks] End single GPU action");
 }
 
-  //#endif
+#  endif
 
-#endif   // #ifdef MILHOJA_GPUS_SUPPORTED
+#endif   // #ifdef RUNTIME_SUPPORT_DATAPACKETS
 /**
  * 
  *
  * \return 
  */
 
-#ifdef RUNTIME_USES_TILEITER
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeGpuTasks_timed(const std::string& bundleName,
                                     const unsigned int nDistributorThreads,
                                     const unsigned int stagger_usec,
@@ -710,6 +710,8 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End single GPU action (Timed)");
 }
+#    endif
+#  endif
 #endif
 
 /**
@@ -717,7 +719,9 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const TileWrapper& tilePrototype,
@@ -850,14 +854,16 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU action");
 }
-#endif
+#    endif
+#  endif
 
 /**
  * 
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const RuntimeAction& gpuAction,
@@ -972,14 +978,16 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End GPU/Post-GPU action bundle");
 }
-#endif
+#    endif
+#  endif
 
 /**
  * 
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const unsigned int stagger_usec,
@@ -1135,7 +1143,8 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action");
 }
-#endif
+#    endif
+#  endif
 
 
 /**
@@ -1143,7 +1152,9 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
+#      ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
                                             const unsigned int stagger_usec,
@@ -1389,14 +1400,17 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
 }
-#endif
+#      endif
+#    endif
+#  endif
 
 /**
  * 
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                               const unsigned int nDistributorThreads,
                                               const RuntimeAction& actionA_cpu,
@@ -1565,14 +1579,16 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
 }
-#endif
+#    endif
+#  endif
 
 /**
  * 
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const RuntimeAction& actionA_cpu,
                                       const TileWrapper& tilePrototype,
@@ -1739,14 +1755,16 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared & GPU configuration");
 }
-#endif
+#    endif
+#  endif
 
 /**
  * 
  *
  * \return 
  */
-#ifdef MILHOJA_GPUS_SUPPORTED
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
@@ -1893,6 +1911,8 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
 }
+#    endif
+#  endif
 #endif
 #endif    // #ifdef RUNTIME_USES_TILEITER
 
