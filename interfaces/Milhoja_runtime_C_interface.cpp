@@ -533,7 +533,7 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
-#endif   // #ifdef RUNTIME_CAN_USE_TILEITER
-#endif
+#  endif
+#endif   // #ifdef RUNTIME_SUPPORT_DATAPACKETS
 }
 

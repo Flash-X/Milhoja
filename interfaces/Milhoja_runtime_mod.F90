@@ -16,17 +16,19 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_finalize
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_reset
+#ifdef RUNTIME_SUPPORT_PUSH
     public :: milhoja_runtime_setupPipelineForCpuTasks
     public :: milhoja_runtime_pushTileToPipeline
     public :: milhoja_runtime_teardownPipelineForCpuTasks
     public :: milhoja_runtime_setupPipelineForGpuTasks
     public :: milhoja_runtime_pushTileToGpuPipeline
     public :: milhoja_runtime_teardownPipelineForGpuTasks
+#endif
 #ifdef RUNTIME_SUPPORT_EXECUTE
     public :: milhoja_runtime_executeTasks_Cpu
-#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     public :: milhoja_runtime_executeTasks_Gpu
-#endif
+#  endif
 #endif
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
@@ -373,7 +375,7 @@ contains
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToGpuPipeline
 
-#ifdef RUNTIME_SUPPORT_EXEC
+#ifdef RUNTIME_SUPPORT_EXECUTE
     !> Instruct the runtime to use the CPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
@@ -405,7 +407,6 @@ contains
                                                    prototype_Cptr, &
                                                    nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
-#endif
 
 #  ifdef RUNTIME_SUPPORT_DATAPACKETS
     !> Instruct the runtime to use the GPU-only thread team configuration with
