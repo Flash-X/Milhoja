@@ -126,10 +126,14 @@ private:
     static unsigned int    maxThreadsPerTeam_;
     static bool            initialized_;
     static bool            finalized_;
-#ifdef RUNTIME_SUPPORT_DATAPACKETS
-#  ifdef RUNTIME_SUPPORT_PUSH
+#if defined(RUNTIME_SUPPORT_DATAPACKETS) && defined(RUNTIME_SUPPORT_PUSH)
     int                    nTilesPerPacket_;
+#endif
+#ifndef RUNTIME_MUST_USE_TILEITER
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     std::shared_ptr<DataPacket> packet_gpu_;
+#  else
+    std::unique_ptr<void> packet_gpu_;
 #  endif
 #endif
 
@@ -137,7 +141,9 @@ private:
 
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
     MoverUnpacker    gpuToHost1_;
+#ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     MoverUnpacker    gpuToHost2_;
+#endif
 #endif
 };
 

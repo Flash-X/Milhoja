@@ -189,6 +189,13 @@ if __name__ == '__main__':
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)
 
+    runtime_can_use_tileiters = (
+        (grid_backend_macro != 'MILHOJA_NO_GRID_BACKEND')
+        )
+    runtime_must_use_tileiters = runtime_can_use_tileiters and (
+        not runtime_support_push
+        )
+
     #####----- OUTPUT FLAG INFORMATION FOR RECORD
     print()
     print('-' * 80)
@@ -203,6 +210,8 @@ if __name__ == '__main__':
     print(f'  Push-style Orchestration  {runtime_support_push}')
     print(f'  Execute-Orchestration     {runtime_support_exec}')
     print(f'  Implement Datapackets     {runtime_support_packets}')
+    print(f'  Runtime CAN use tileiters {runtime_can_use_tileiters}')
+    print(f'  Runtime MUST use tileiters {runtime_must_use_tileiters}')
     print('-' * 80)
     print()
 
@@ -271,6 +280,11 @@ if __name__ == '__main__':
             fptr.write( '#define RUNTIME_SUPPORT_PUSH\n')
         if args.support_packets:
             fptr.write( '#define RUNTIME_SUPPORT_DATAPACKETS\n')
+            fptr.write( '\n')
+        if runtime_can_use_tileiters:
+            fptr.write( '#define RUNTIME_CAN_USE_TILEITER\n')
+        if runtime_must_use_tileiters:
+            fptr.write( '#define RUNTIME_MUST_USE_TILEITER\n')
             fptr.write( '\n')
         fptr.write( '#endif\n\n')
 

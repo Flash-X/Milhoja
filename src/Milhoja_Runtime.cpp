@@ -82,6 +82,10 @@ void   Runtime::finalize(void) {
     delete [] teams_;
     teams_ = nullptr;
 
+#ifndef RUNTIME_MUST_USE_TILEITER
+    packet_gpu_.reset();
+#endif
+
     milhoja::RuntimeBackend::instance().finalize();
 
     finalized_ = true;
@@ -112,6 +116,9 @@ Runtime& Runtime::instance(void) {
  */
 Runtime::Runtime(void)
     : teams_{nullptr}
+#ifndef RUNTIME_MUST_USE_TILEITER
+    ,packet_gpu_{}
+#endif
 {
     teams_ = new ThreadTeam*[nTeams_];
     for (unsigned int i=0; i<nTeams_; ++i) {

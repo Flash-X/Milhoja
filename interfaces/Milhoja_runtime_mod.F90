@@ -16,9 +16,19 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_finalize
     public :: milhoja_runtime_taskFunction
     public :: milhoja_runtime_reset
+#ifdef RUNTIME_SUPPORT_PUSH
+    public :: milhoja_runtime_setupPipelineForCpuTasks
+    public :: milhoja_runtime_pushTileToPipeline
+    public :: milhoja_runtime_teardownPipelineForCpuTasks
+    public :: milhoja_runtime_setupPipelineForGpuTasks
+    public :: milhoja_runtime_pushTileToGpuPipeline
+    public :: milhoja_runtime_teardownPipelineForGpuTasks
+#endif
+#ifdef RUNTIME_SUPPORT_EXECUTE
     public :: milhoja_runtime_executeTasks_Cpu
-#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     public :: milhoja_runtime_executeTasks_Gpu
+#  endif
 #endif
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
@@ -71,6 +81,7 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT) :: C_ierr
         end function milhoja_runtime_reset_c
 
+#ifdef RUNTIME_SUPPORT_EXECUTE
         !> Fortran interface on routine in C interface of same name.
         function milhoja_runtime_execute_tasks_cpu_c(C_taskFunction,            &
                                                      C_tileWrapperPrototype,    &
@@ -79,14 +90,16 @@ module milhoja_runtime_mod
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction
             type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_cpu_c
+#endif
 
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
-        !> Fortran interface on routine in C interface of same name.
+#  ifdef RUNTIME_SUPPORT_EXECUTE
+        !> Fortran interface for the function in C interface of the same name.
         function milhoja_runtime_execute_tasks_gpu_c(C_taskFunction,        &
                                                      C_nDistributorThreads, &
                                                      C_nThreads,            &
@@ -96,13 +109,14 @@ module milhoja_runtime_mod
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            type(C_FUNPTR),       intent(IN), value :: C_taskFunction 
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction
             integer(MILHOJA_INT), intent(IN), value :: C_nDistributorThreads
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
             type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_gpu_c
+#  endif
 #endif
     end interface
 
@@ -160,6 +174,7 @@ contains
         ierr = milhoja_runtime_reset_c()
     end subroutine milhoja_runtime_reset
 
+#ifdef RUNTIME_SUPPORT_EXECUTE
     !> Instruct the runtime to use the CPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
@@ -192,7 +207,7 @@ contains
                                                    nThreads)
     end subroutine milhoja_runtime_executeTasks_Cpu
 
-#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     !> Instruct the runtime to use the GPU-only thread team configuration with
     !! the given number of threads to apply the given task function to all
     !! blocks.
@@ -235,6 +250,7 @@ contains
                                                    nTilesPerPacket, &
                                                    packetPrototype_Cptr)
     end subroutine milhoja_runtime_executeTasks_Gpu
+#  endif
 #endif
 
 end module milhoja_runtime_mod
