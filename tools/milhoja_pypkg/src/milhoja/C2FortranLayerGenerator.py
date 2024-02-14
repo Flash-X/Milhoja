@@ -370,7 +370,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
-                f'{self.INDENT}use {fortran_mod}_mod, ONLY : '
+                f'{self.INDENT}use {fortran_mod}, ONLY : '
                 f'{self._tf_spec.name}_Fortran\n',
                 f'{self.INDENT}implicit none\n\n'
             ])
