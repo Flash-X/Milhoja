@@ -61,6 +61,89 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
+GRID_DATA_EXTENTS = {
+    "CENTER": [
+        '{0} + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXX": [
+        '({0} + 1) + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXY": [
+        '({0} + 2 * {1} * MILHOJA_K1D',
+        '({0} + 1) + 2 * {1} * MILHOJA_K2D',
+        '{0} + 2 * {1} * MILHOJA_K3D'
+    ],
+    "FLUXZ": [
+        '{0} + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K2D',
+        '({0} + 1) + 2 * {1} * MILHOJA_K3D'
+    ]
+}
+
+# The lbounds for grid data are fairly consistent, so we can use this mapping
+# to insert lbounds for grid data variables inside of the tf spec that need
+# an lbound array.
+GRID_DATA_LBOUNDS = {
+    "CENTER": "(tile_lbound, {0})",  # CC data does use guard cells.
+    "FLUXX": "(tile_lo, {0})",  # assume that flux arrays use 0 guard cells.
+    "FLUXY": "(tile_lo, {0})",
+    "FLUXZ": "(tile_lo, {0})"
+}
+
+# The type mapping for sources that have predetermined types.
+# External and scratch do not have predetermined types, so they do not
+# appear in here.
+# todo::
+#   * There are few unsupported tile metadata types like cell volumes and
+#     face areas. Eventually these should be included in the source datatypes
+#     mapping.
+SOURCE_DATATYPES = {
+    TILE_LO_ARGUMENT: "IntVect",
+    TILE_HI_ARGUMENT: "IntVect",
+    TILE_LBOUND_ARGUMENT: "IntVect",
+    TILE_UBOUND_ARGUMENT: "IntVect",
+    TILE_DELTAS_ARGUMENT: "RealVect",
+    TILE_INTERIOR_ARGUMENT: "IntVect",
+    TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
+    LBOUND_ARGUMENT: "IntVect",
+    TILE_LEVEL_ARGUMENT: "unsigned int",
+    GRID_DATA_ARGUMENT: "real"
+}
+
+# get string and call with format to insert the name of your tile descriptor
+GRID_DATA_PTRS = {
+    "CENTER": "{0}->dataPtr()",
+    "FLUXX": "&{0}->fluxData(milhoja::Axis::I)",
+    "FLUXY": "&{0}->fluxData(milhoja::Axis::J)",
+    "FLUXZ": "&{0}->fluxData(milhoja::Axis::K)"
+}
+
+# This is specifically in reference to tile_metadata specific types like
+# IntVect and RealVect, where the arrays need to be converted to an
+# array of a primitive that can be used in fortran.
+VECTOR_ARRAY_EQUIVALENT = {
+    "IntVect": "int",
+    "RealVect": "real"
+}
+
+# For converting Fortran types to C++/C types.
+F2C_TYPE_MAPPING = {
+    "logical": "bool",
+    "real": "real",
+    "integer": "int"
+}
+
+# For converting potential C++ types to Fortran types.
+C2F_TYPE_MAPPING = {
+    "bool": "logical",
+    "int": "integer",
+    "real": "real"
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed

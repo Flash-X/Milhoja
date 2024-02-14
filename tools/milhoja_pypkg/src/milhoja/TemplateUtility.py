@@ -14,14 +14,8 @@ from abc import abstractmethod
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .LogicError import LogicError
-
-from . import (
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_DELTAS_ARGUMENT, TILE_COORDINATES_ARGUMENT,
-    TILE_FACE_AREAS_ARGUMENT, TILE_CELL_VOLUMES_ARGUMENT,
-    TILE_LEVEL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_GRID_INDEX_ARGUMENT
-)
+from .TaskFunction import TaskFunction
+from . import GRID_DATA_PTRS
 
 
 class TemplateUtility():
@@ -49,30 +43,52 @@ class TemplateUtility():
     _EXTRA_STREAMS_PACK = "n_extra_streams"
     _DESTRUCTOR = 'destructor'
     _STREAM_FUNCS_CXX = 'stream_functions_cxx'
-
-    _SOURCE_TILE_DATA_MAPPING = {
-        "CENTER": "tileDesc_h->dataPtr()",
-        "FLUXX": "&tileDesc_h->fluxData(milhoja::Axis::I)",
-        "FLUXY": "&tileDesc_h->fluxData(milhoja::Axis::J)",
-        "FLUXZ": "&tileDesc_h->fluxData(milhoja::Axis::K)"
-    }
-
-    SOURCE_DATATYPE = {
-        TILE_LO_ARGUMENT: "IntVect",
-        TILE_HI_ARGUMENT: "IntVect",
-        TILE_LBOUND_ARGUMENT: "IntVect",
-        TILE_UBOUND_ARGUMENT: "IntVect",
-        TILE_DELTAS_ARGUMENT: "RealVect",
-        TILE_LEVEL_ARGUMENT: "unsigned int",
-        GRID_DATA_ARGUMENT: "real",
-        TILE_FACE_AREAS_ARGUMENT: "real",
-        TILE_COORDINATES_ARGUMENT: "real",
-        TILE_GRID_INDEX_ARGUMENT: "int",
-        TILE_CELL_VOLUMES_ARGUMENT: "real"
-    }
+    _TILE_DESC = "tileDesc_h"
 
     # C++ Index space is always 0.
+    # todo:: Should this be handled by the TF Spec?
     DEFAULT_INDEX_SPACE = 0
+
+    def __init__(self, tf_spec: TaskFunction):
+        """
+        Initializer for the base template utility class.
+        TemplateUtility needs a copy of tf_spec in order to handle lbounds
+        for any array.
+        """
+        self.tf_spec = tf_spec
+
+    @staticmethod
+    def get_initial_index(vars_in: list, vars_out: list) -> int:
+        """
+        Returns the initial index based on a given variable masking.
+        :param list vars_in: The variable masking for copying into the packet.
+        :param list vars_out: The variable masking for copying out.
+        :return: The size of the array given the variable masking.
+        :rtype: int
+        """
+        starting = maxsize
+        if not vars_in and not vars_out:
+            raise TypeError("No variable masking for array in tf_spec.")
+
+        starting_in = None
+        if vars_in:
+            starting_in = min(vars_in)
+            starting = starting_in
+
+        starting_out = None
+        if vars_out:
+            starting_out = min(vars_out)
+            starting = starting_out
+
+        if starting_in and starting_out:
+            assert starting_in
+            assert starting_out
+            starting = min(starting_in, starting_out)
+
+        if starting == maxsize:
+            raise LogicError("Starting value for array is too large.")
+
+        return starting
 
     @staticmethod
     def get_array_size(vars_in: list, vars_out: list) -> int:
@@ -120,24 +136,27 @@ class TemplateUtility():
     @classmethod
     @abstractmethod
     def iterate_externals(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        externals: OrderedDict
+        cls, connectors: dict, size_connectors: dict, externals: OrderedDict,
+        dummy_arg_list: list
     ):
         ...
 
     @classmethod
     def _common_iterate_externals(
-        cls, connectors: dict, externals: OrderedDict
+        cls, connectors: dict, externals: OrderedDict, dummy_arg_list: list
     ):
         """
         Common code in both utility classes for iterating external vars.
 
+        todo::
+            * Use tf_spec.dummy_arguments directly instead of dummy_arg_list.
+
         :param dict connectors: All cgkit connectors.
         :param dict size_connectors: All size_connectors for cgkit.
         :param OrderedDict externals: All external variables from the TF.
+        :param list dummy_arg_list: The tf spec's argument list.
         """
+        info_list = {}
         # MOVE THROUGH EVERY EXTERNAL ITEM
         for key, var_data in externals.items():
             size_equation = f'sizeof({var_data["type"]})'
@@ -151,12 +170,8 @@ class TemplateUtility():
                 item=key, dtype=var_data["type"],
                 size_eq=size_equation, per_tile=False
             )
+            info_list[key] = info
 
-            # nTiles is a special case here. nTiles should not be included
-            # in the constructor, and it has its own host variable generation.
-            if key != 'nTiles':
-                connectors[cls._CON_ARGS].append(f'{info.dtype} {key}')
-                connectors[cls._HOST_MEMBERS].append(info.host)
             # add the necessary connectors for the constructor section.
             connectors[cls._PUB_MEMBERS].extend([
                 f'{info.dtype} {info.host};\n',
@@ -164,10 +179,8 @@ class TemplateUtility():
             ])
 
             set_host = f'{{{key}}}'
-            # NOTE: it doesn't matter what we set nTiles to here.
-            #       nTiles always gets set in pack, and we cannot set nTiles
-            #       in here using tiles_ because tiles_ has not been filled at
-            #       the time of this packet's construction.
+            # NOTE: nTiles must be set when pack is called because tiles_
+            #       has not been filled at time of packet construction.
             if key == "nTiles":
                 set_host = '{0}'
 
@@ -184,6 +197,16 @@ class TemplateUtility():
                 f'std::memcpy({info.pinned}, static_cast<void*>(&'
                 f'{info.host}), {info.size});\n'
             )
+
+        # sort host members and constructor args based on the task function
+        # ordering.
+        external_arg_list = [
+            item for item in dummy_arg_list if item in externals
+        ]
+        for item in external_arg_list:
+            info = info_list[item]
+            connectors[cls._CON_ARGS].append(f'{info.dtype} {item}')
+            connectors[cls._HOST_MEMBERS].append(info.host)
 
     @classmethod
     @abstractmethod
@@ -268,9 +291,7 @@ class TemplateUtility():
         ...
 
     @classmethod
-    def _common_iterate_tile_scratch(
-        cls, connectors, info
-    ):
+    def _common_iterate_tile_scratch(cls, connectors, info):
         """
         Common code pulled out of each template utility's iterate_scratch
         function.
@@ -312,15 +333,13 @@ class TemplateUtility():
         """
         size = '0'
         if section_dict:
-            size = '\n + '.join(f'SIZE_{item.upper()}' for item in section_dict)
+            size = \
+                '\n + '.join(f'SIZE_{item.upper()}' for item in section_dict)
         connectors[f'size_{name}'] = size
 
     @staticmethod
     def section_creation(
-        name: str,
-        section: OrderedDict,
-        connectors: dict,
-        size_connectors
+        name: str, section: OrderedDict, connectors: dict, size_connectors
     ):
         """
         Creates a section and sets the default value to an empty list.
@@ -340,9 +359,7 @@ class TemplateUtility():
 
     @staticmethod
     def set_pointer_determination(
-        connectors: dict,
-        section: str,
-        info: DataPacketMemberVars,
+        connectors: dict, section: str, info: DataPacketMemberVars,
         item_is_member_variable=False
     ):
         """
@@ -356,17 +373,21 @@ class TemplateUtility():
         :param DataPacketMemberVars info: Contains information for formatting
                                           the name to get variable names.
         :param bool item_is_member_variable: Flag if *item* pinned memory
-                                             pointer is a member variable
+                                             pointer is a member variable.
+                                             default = False.
         """
         dtype = info.dtype
+        dtype += "* "
+        if item_is_member_variable:
+            dtype = ""
         # If the item is a data packet member variable, we don't need
         # to specify a type name here.
         # Note that pointers to memory in the remote device are always
         # member variables, so it will never need a type name.
-        if item_is_member_variable:
-            dtype = ""
-        else:
-            dtype += "* "
+        # if item_is_member_variable:
+        #     dtype = ""
+        # else:
+        #     dtype += "* "
 
         # insert items into boiler plate for the pointer determination
         # phase for *section*.
@@ -474,13 +495,8 @@ class TemplateUtility():
 
     @classmethod
     def add_memcpy_connector(
-        cls,
-        connectors: dict,
-        section: str,
-        extents: str, item: str,
-        start: int, end: int,
-        size_item: str, raw_type: str,
-        source: str
+        cls, connectors: dict, section: str, extents: str, item: str,
+        start: int, end: int, size_item: str, raw_type: str, source: str
     ):
         """
         Adds a memcpy connector based on the information passed in.
@@ -493,6 +509,7 @@ class TemplateUtility():
         :param int end: The ending index of the array.
         :param str size_item: The string containing the size var for item.
         :param str raw_type: The data type of the item.
+        :param str source: The source type of the variable
         """
         offset = f"{extents} * static_cast<std::size_t>({start})"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type})'
@@ -502,7 +519,8 @@ class TemplateUtility():
         # Luckily we don't really need to use DataPacketMemberVars here
         # because the temporary device pointer is locally scoped.
 
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+        desc = cls._TILE_DESC
+        data_pointer_string = GRID_DATA_PTRS[source.upper()].format(desc)
 
         # TODO: Use grid data to get data pointer information.
         connectors[f'memcpy_{section}'].extend([
@@ -518,15 +536,8 @@ class TemplateUtility():
 
     @classmethod
     def add_unpack_connector(
-        cls,
-        connectors: dict,
-        section: str,
-        extents,
-        start: int,
-        end: int,
-        raw_type: str,
-        out_ptr: str,
-        source: str
+        cls, connectors: dict, section: str, extents, start: int, end: int,
+        raw_type: str, out_ptr: str, source: str
     ):
         """
         Adds an unpack connector to the connectors dictionary
@@ -540,10 +551,13 @@ class TemplateUtility():
         :param str raw_type: The item's data type
         :param str in_ptr: The name of the in data pointer
         :param str out_ptr: The name of the out data pointer
+        :param str source: The source type of the variable
         """
         offset = f"{extents} * static_cast<std::size_t>({start});"
         nBytes = f'{extents} * ( {end} - {start} + 1 ) * sizeof({raw_type});'
-        data_pointer_string = cls._SOURCE_TILE_DATA_MAPPING[source.upper()]
+
+        desc = cls._TILE_DESC
+        data_pointer_string = GRID_DATA_PTRS[source.upper()].format(desc)
 
         connectors[cls._IN_PTRS].append(
             f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'
@@ -615,7 +629,6 @@ class TemplateUtility():
         :param dict size_connectors: The dictionary of size
                                      connectors for use with CGKit.
         :param TextIO file: The file to write to.
-        :rtype: None
         """
         for key, item in size_connectors.items():
             file.write(f'/* _connector:{key} */\n{item}\n\n')

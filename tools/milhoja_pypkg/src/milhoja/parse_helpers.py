@@ -1,22 +1,29 @@
 import re
 
 from . import (
-    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT
 )
 
 
 class IncorrectFormatException(BaseException):
+    """Thrown when the format of lbound or extents is incorrect."""
     pass
 
 
 class NonIntegerException(BaseException):
+    """Thrown when an extents or lbound contains a float value."""
     pass
 
 
 def parse_lbound(lbound: str) -> list:
     """
     Parses an lbound string for use within the generator.
+
+    This function is deprecated and only exists for the C++ tests.
+    Once C++ code generation is updated to use parse_lbound_f, this function
+    will be removed.
+
     ..todo::
         * This lbound parser only allows simple lbounds.
           The current format does not allow nested arithmetic expressions
@@ -142,19 +149,129 @@ def parse_lbound(lbound: str) -> list:
     return results
 
 
-def parse_extents(extents: str) -> list:
+def parse_lbound_f(lbound: str) -> list:
+    """
+    Parses a given lbound string and returns a list containing all parts of
+    the lbound for use in packing information.
+
+    Formats for lbounds should be limited to a parenthesis enclosed string
+    with comma separation between elements. The lbound is allowed to contain
+    tile_lo, tile_hi, tile_lbound, and tile_ubound. Each lbound string is also
+    allowed to use non-nested mathematic expressions between parenthesis.
+    Any available keyword to be used inside of an lbound string is considered
+    to be a "size 3" insertion. Since mathematic expressions that use lbounds
+    are required to have all lists be the same size, it is important to
+    understand how large the lbound string is.
+
+    Examples of valid formats include:
+        * (1, 2, -3, 4)
+        * (tile_lo, 1)
+        * (1, tile_lbound),
+        * (tile_lo) - (1, 1, 1)
+        * (tile_lbound, 1) + (1, 3, 4, 5)
+        * (tile_lo, tile_lo) - (tile_lbound, tile_lbound)
+        * (1, 2, 3) + (4, 5, 6) - (2, 2, 2) * (1, 2, 3)
+
+    Examples of invalid lbound formats:
+        * (2, (3-4-6), 2, (92))
+        * (tile_lo, tile_lo) - (tile_lo)
+        * (1, 2, 3) + (tile_lo, 2, 3, 4)
+
+    todo::
+        * We have to force the calling code to replace any variables
+          that are used in the lbound with their source name, and then replace
+          the source names with the original variable name when the list is
+          returned.
+        * This parser does not handle scalar addition/mult/sub/div with
+          metadata. and does not yet throw an error when encountering it.
+        * This parser does not support nested expressions due to the
+          limitations of regular expressions. A full lbound parser would use a
+          tokenizer to extract the full expression.
+        * Write a clear set of rules in the docs of what a valid lbound is.
+    """
+    keywords = {
+        TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+        TILE_UBOUND_ARGUMENT
+    }
+
+    # just use python to throw out all numeric values because I'm bad at
+    # regular expressions.
+    words = re.findall(r'\b(?:[\w]+)\b', lbound)
+    words = [word for word in words if not word.isnumeric()]
+    for word in words:
+        if word not in keywords:
+            raise NotImplementedError(
+                f"{lbound} contained word not in {keywords}"
+            )
+
+    # find everything between a single set of parens to find math symbols.
+    regexr = r'\(([^\)]+)\)'
+    matches = re.findall(regexr, lbound)
+    math_sym_string = lbound
+    for match in matches:
+        math_sym_string.replace(match, "")
+    symbols = re.findall(r'[\+\-\/\*]', math_sym_string)
+
+    # Replace each potential bound keyword inside of the string with its parts
+    # This works because each bound keyword is guaranteed to be an IntVect.
+    for idx, match in enumerate(matches):
+        for keyword in keywords:
+            if keyword in match:
+                matches[idx] = match.replace(
+                    keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
+                )
+
+    iterables = [match.split(',') for match in matches]
+    if not iterables:
+        raise RuntimeError(f"Nothing in lbound {lbound}.")
+
+    # check if all lists inside the bounds equations are the same length.
+    # Don't attempt to stitch different length arrays together.
+    size = len(iterables[0])
+    if not all([len(item) == size for item in iterables]):
+        raise RuntimeError(f"Different lbound part sizes. {lbound}")
+
+    # combine all lbound parts into 1.
+    # list of mathematic expressions will always be 1 less than the number
+    # of operands
+    combined_bound = []
+    for idx, values in enumerate(list(zip(*iterables))):
+        combined_bound.append(values[0])
+        if symbols:
+            for i in range(1, len(values)):
+                symbol = symbols[i-1]
+                combined_bound[idx] += f'{symbol}{values[i]}'
+
+    # remove whitespace
+    combined_bound = [item.strip() for item in combined_bound]
+    return combined_bound
+
+
+def parse_extents(extents: str, src=None) -> list:
     """
     Parses an extents string.
 
     This assumes extents strings are of the format (x, y, z, ...).
     A list of integers separated by commas and surrounded by parenthesis.
+
+    todo::
+        * Source specific parsing should exist.
+
+    :param str extents: The extents string to parse.
+    :param str src: The optional source argument. If a grid source is given,
+                    the function assumes extents to be a specific format.
     """
+    if src:
+        raise NotImplementedError("Source specific extents not implemented.")
+
+    # default for parsing extents. Extents is assume to be a string
+    # containing a list of integers surrounded by parentheses.
     if extents.count('(') != 1 or extents.count(')') != 1:
         raise IncorrectFormatException(
             f"Incorrect parenthesis placement for {extents}"
         )
 
-    if extents[0] != '(' or extents[-1] != ')':
+    if not extents.startswith('(') or not extents.endswith(')'):
         raise IncorrectFormatException(
             f"{extents} is not the correct format of (x, y, z, ...)"
         )
