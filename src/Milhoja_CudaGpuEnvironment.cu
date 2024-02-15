@@ -124,9 +124,9 @@ CudaGpuEnvironment::CudaGpuEnvironment(void)
         gpuMaxThreadDim_[i] = prop.maxThreadsDim[i];
     }
 
-    if (gpuCompMajor_ != 7) {
+    if (gpuCompMajor_ != 7 && gpuCompMajor_ != 8) {
         throw std::runtime_error("[CudaGpuEnvironment::CudaGpuEnvironment] "
-                                 "We assume GPU compute capability 7.X");
+                                 "We assume GPU compute capability 7.X or 8.X");
     }
 
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability

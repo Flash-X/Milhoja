@@ -40,6 +40,8 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
 
     def testSedovGeneration(self):
         path = _TEST_PATH.joinpath("Sedov")
+        # todo:: All of these sedov files should be moved to the FlashX dir.
+        fx_path = _TEST_PATH.joinpath("FlashX")
 
         hydro_2D = {"json": path.joinpath("gpu_tf_hydro_2D.json"),
                     "header": None,
@@ -52,7 +54,7 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
                       "source": path.joinpath("REF_gpu_tf_hydroFC_2D.F90"),
                       "source_dim_dependent": False}
         # Only middle node has concurrent kernel launch
-        hydro_3D = {"json": path.joinpath("gpu_tf_hydro_3D.json"),
+        hydro_3D = {"json": fx_path.joinpath("REF_gpu_tf_hydro_3D.json"),
                     "header": None,
                     "header_dim_dependent": False,
                     "source": path.joinpath("REF_gpu_tf_hydro_3D.F90"),

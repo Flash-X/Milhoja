@@ -10,6 +10,7 @@
 #include <Milhoja_edge.h>
 #include <Milhoja_Tile.h>
 #include <Milhoja_ThreadTeamDataType.h>
+#include <Milhoja_test.h>
 
 #include "RuntimeParameters.h"
 #include "Simulation.h"
@@ -171,9 +172,9 @@ TEST(GridUnitTest,ProbConfigGetters){
     int            nBlocksX{RPs.getInt("Grid", "nBlocksX")};
     int            nBlocksY{RPs.getInt("Grid", "nBlocksY")};
     int            nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
-    int            nxb{RPs.getInt("Grid", "NXB")};
-    int            nyb{RPs.getInt("Grid", "NYB")};
-    int            nzb{RPs.getInt("Grid", "NZB")};
+    int            nxb{MILHOJA_TEST_NXB};
+    int            nyb{MILHOJA_TEST_NYB};
+    int            nzb{MILHOJA_TEST_NZB};
     unsigned int   lRefineMax{RPs.getUnsignedInt("Grid", "finestRefinementLevel")};
 
     RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
@@ -237,9 +238,9 @@ TEST(GridUnitTest,PerTileGetters){
     int   nBlocksX{RPs.getInt("Grid", "nBlocksX")};
     int   nBlocksY{RPs.getInt("Grid", "nBlocksY")};
     int   nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
-    int   nxb{RPs.getInt("Grid", "NXB")};
-    int   nyb{RPs.getInt("Grid", "NYB")};
-    int   nzb{RPs.getInt("Grid", "NZB")};
+    int   nxb{MILHOJA_TEST_NXB};
+    int   nyb{MILHOJA_TEST_NYB};
+    int   nzb{MILHOJA_TEST_NZB};
 
     RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
     RealVect actual_max{LIST_NDIM(xMax, yMax, zMax)};
@@ -307,9 +308,9 @@ TEST(GridUnitTest,MultiCellGetters){
     int   nBlocksX{RPs.getInt("Grid", "nBlocksX")};
     int   nBlocksY{RPs.getInt("Grid", "nBlocksY")};
     int   nBlocksZ{RPs.getInt("Grid", "nBlocksZ")};
-    int   nxb{RPs.getInt("Grid", "NXB")};
-    int   nyb{RPs.getInt("Grid", "NYB")};
-    int   nzb{RPs.getInt("Grid", "NZB")};
+    int   nxb{MILHOJA_TEST_NXB};
+    int   nyb{MILHOJA_TEST_NYB};
+    int   nzb{MILHOJA_TEST_NZB};
 
     RealVect actual_min{LIST_NDIM(xMin, yMin, zMin)};
     RealVect actual_max{LIST_NDIM(xMax, yMax, zMax)};

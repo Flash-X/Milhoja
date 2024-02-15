@@ -11,3 +11,4 @@ per-file-ignores =
     src/milhoja/TaskFunctionGenerator_cpu_cpp.py:E501
     src/milhoja/TaskFunctionGenerator_OpenACC_F.py:E501
     src/milhoja/TileWrapperGenerator_cpp.py:E501
+max-line-length = 80

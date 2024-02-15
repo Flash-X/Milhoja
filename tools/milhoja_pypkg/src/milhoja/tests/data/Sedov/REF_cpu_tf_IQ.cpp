@@ -16,7 +16,7 @@
 
 #include "Io.h"
 
-void  cpu_tf_IQ::taskFunction(const int threadId,
+void  cpu_tf_IQ::taskFunction(const int threadIndex,
                     milhoja::DataItem* dataItem) {
     Tile_cpu_tf_IQ*  wrapper = dynamic_cast<Tile_cpu_tf_IQ*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
@@ -26,7 +26,7 @@ void  cpu_tf_IQ::taskFunction(const int threadId,
     const milhoja::IntVect  tile_hi = tileDesc->hi();
     milhoja::Real*   MH_INTERNAL_cellVolumes_ptr =
         static_cast<milhoja::Real*>(Tile_cpu_tf_IQ::MH_INTERNAL_cellVolumes_)
-        + Tile_cpu_tf_IQ::MH_INTERNAL_CELLVOLUMES_SIZE_ * threadId;
+        + Tile_cpu_tf_IQ::MH_INTERNAL_CELLVOLUMES_SIZE_ * threadIndex;
     milhoja::Grid::instance().fillCellVolumes(
         MH_INTERNAL_level,
         tile_lo,
@@ -39,7 +39,7 @@ void  cpu_tf_IQ::taskFunction(const int threadId,
     const milhoja::FArray4D  CC_1 = tileDesc->data();
 
     Io::instance().computeIntegralQuantitiesByBlock(
-                    threadId,
+                    threadIndex,
                     tile_lo,
                     tile_hi,
                     tile_cellVolumes,

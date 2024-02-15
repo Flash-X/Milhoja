@@ -1,0 +1,62 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    3,
+        "nxb":         16,
+        "nyb":         16,
+        "nzb":         16,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "cpu_tf_IQ",
+        "language": "C++", 
+        "processor": "CPU",
+        "computation_offloading": "",
+        "cpp_header": "cpu_tf_IQ.h",
+        "cpp_source": "cpu_tf_IQ.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "variable_index_base": 1,
+        "argument_list": ["tile_cellVolumes",
+                          "tile_hi",
+                          "tile_lo",
+                          "CC_1"],
+        "argument_specifications": {
+            "tile_lo":          {"source":           "tile_lo"},
+            "tile_hi":          {"source":           "tile_hi"},
+            "tile_cellVolumes": {"source":           "tile_cellVolumes",
+                                 "lo":               "tile_lo",
+                                 "hi":               "tile_hi"},
+            "CC_1":             {"source":           "grid_data",
+                                 "structure_index":  ["CENTER", 1],
+                                 "variables_in":     [1, 8]}
+        },
+        "subroutine_call_graph": [
+            "Io::instance().computeIntegralQuantitiesByBlock"
+        ]
+    },
+    "data_item": {
+        "type": "TileWrapper",
+        "byte_alignment": -1,
+        "header": "Tile_cpu_tf_IQ.h",
+        "source": "Tile_cpu_tf_IQ.cpp",
+        "module": ""
+    },
+    "subroutines": {
+        "Io::instance().computeIntegralQuantitiesByBlock": {
+            "interface_file": "Io.h",
+            "argument_list": ["threadIdx",
+                              "lo",
+                              "hi",
+                              "cellVolumes", 
+                              "solnData"],
+            "argument_mapping": {
+                "threadIdx":   "threadIndex", 
+                "lo":          "tile_lo",
+                "hi":          "tile_hi",
+                "cellVolumes": "tile_cellVolumes",
+                "solnData":    "CC_1"
+            }
+        }
+    }
+}

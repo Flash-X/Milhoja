@@ -29,7 +29,7 @@
             "dt":             {"source":           "external",
                                "name":             "dt",
                                "type":             "real",
-                               "extents":          []},
+                               "extents":          "()"},
             "tile_deltas":    {"source":           "tile_deltas"},
             "tile_lo":        {"source":           "tile_lo"},
             "tile_hi":        {"source":           "tile_hi"},
@@ -67,7 +67,8 @@
         "type": "DataPacket",
         "byte_alignment": 16,
         "header": "DataPacket_gpu_tf_test.h",
-        "source": "DataPacket_gpu_tf_test.cpp"
+        "source": "DataPacket_gpu_tf_test.cpp",
+        "module": "DataPacket_gpu_tf_test_c2f_mod.F90"
     },
     "subroutines": {
         "Hydro_computeFluxesHll_X_gpu_oacc": {

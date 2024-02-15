@@ -1,11 +1,13 @@
 from pathlib import Path
 
-from . import LOG_LEVEL_BASIC
-from . import LOG_LEVEL_BASIC_DEBUG
 from . import LogicError
-from . import TaskFunction
 from . import AbcCodeGenerator
-
+from . import TaskFunction
+from . import (
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
+    TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT,
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT
+)
 
 class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
     """
@@ -247,24 +249,25 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             # Generation-time argument definitions
             points = [
-                TaskFunction.TILE_LO, TaskFunction.TILE_HI,
-                TaskFunction.TILE_LBOUND, TaskFunction.TILE_UBOUND
+                TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
+                TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+                LBOUND_ARGUMENT
             ]
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
-                if spec["source"] == TaskFunction.EXTERNAL_ARGUMENT:
+                if spec["source"] == EXTERNAL_ARGUMENT:
                     arg_type = spec["type"]
-                    dimension = len(spec["extents"])
-                    if dimension == 0:
+                    extents = spec["extents"]
+                    if extents == "()":
                         fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")
                     else:
                         msg = "No test case for non-scalar externals"
                         raise NotImplementedError(msg)
                 elif spec["source"] in points:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
-                elif spec["source"] == TaskFunction.TILE_DELTAS:
+                elif spec["source"] == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}_d(:, :)\n")
-                elif spec["source"] == TaskFunction.GRID_DATA_ARGUMENT:
+                elif spec["source"] == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
                         intent = "IN"
                     elif arg in self._tf_spec.tile_in_out_arguments:
@@ -274,7 +277,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     else:
                         raise LogicError("Unknown grid data variable class")
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
-                elif spec["source"] == TaskFunction.SCRATCH_ARGUMENT:
+                elif spec["source"] == SCRATCH_ARGUMENT:
                     arg_type = spec["type"]
                     dimension = len(self.__parse_extents_spec(spec["extents"]))
                     assert dimension > 0

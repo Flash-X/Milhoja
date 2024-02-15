@@ -2,9 +2,12 @@ import json
 
 from pathlib import Path
 
-from . import MILHOJA_JSON_FORMAT
-from . import CURRENT_MILHOJA_JSON_VERSION
-from . import LogicError
+from .LogicError import LogicError
+from . import (
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
+    CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL
+)
 
 
 class TaskFunction(object):
@@ -16,30 +19,11 @@ class TaskFunction(object):
     FORTRAN_TF_KEY = "fortran_tf"
     DATA_ITEM_KEY = "data_item"
 
-    # Case-sensitive source keys to be used in specification files (e.g.,
-    # Milhoja-JSON files), here, and in code generators.
-    #
-    # Scheme for keys
-    # - concise one word all lowercase for all keys when possible
-    # - tile metadata keys all begin with tile_ (all lowercase) with remainder
-    #   in camelcase with no separation
-    EXTERNAL_ARGUMENT = "external"
-    SCRATCH_ARGUMENT = "scratch"
-    GRID_DATA_ARGUMENT = "grid_data"
-    TILE_GRID_INDEX = "tile_gridIndex"
-    TILE_LEVEL = "tile_level"
-    TILE_LO = "tile_lo"
-    TILE_HI = "tile_hi"
-    TILE_LBOUND = "tile_lbound"
-    TILE_UBOUND = "tile_ubound"
-    TILE_DELTAS = "tile_deltas"
-    TILE_COORDINATES = "tile_coordinates"
-    TILE_FACE_AREAS = "tile_faceAreas"
-    TILE_CELL_VOLUMES = "tile_cellVolumes"
-
     @staticmethod
     def from_milhoja_json(filename):
         """
+        Loads a TaskFunction specification from a json using the milhoja
+        json format.
         """
         # ----- ERROR CHECK ARGUMENTS
         fname = Path(filename).resolve()
@@ -72,7 +56,9 @@ class TaskFunction(object):
         called and all other member functions can assume correctness.
 
         .. todo::
-            * Perform full sanity check of specification
+            * Perform full error check of specification.  Try to use the
+              check_*_specification.py functions developed for
+              TaskFunctionAssembler as much as possible.
             * Should correction do automatic fixing of bad case when it does
               check so that all code generators can be written in
               case-sensitive way?
@@ -99,8 +85,8 @@ class TaskFunction(object):
     @property
     def output_filenames(self):
         """
-        :return: Dictionary of filenames where value is a dictionary
-        consisting of the key "source" and potentially "header".
+        :return: ``dict`` of filenames where value is a ``dict``
+            consisting of the key "source" and potentially "header"
         """
         cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
         cpp_tf_src = self.__tf_spec["cpp_source"].strip()
@@ -125,14 +111,33 @@ class TaskFunction(object):
         if processor.lower() == "cpu" and language.lower() == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
-        elif processor.lower() == "gpu" and language.lower() == "fortran":
+        elif processor.lower() == "cpu" and language.lower() == "fortran":
             assert c2f_src != ""
             assert fortran_tf_src != ""
 
+            # todo::
+            #    * Any generated code for fortran should have a module file.
+
+            filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {
+                "source": fortran_tf_src
+            }
+        elif processor.lower() == "gpu" and language.lower() == "fortran":
+            data_item_mod = self.__data_spec["module"].strip()
+            assert c2f_src != ""
+            assert fortran_tf_src != ""
+            assert data_item_mod != ""
+
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
+            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
+        elif processor.lower() == "gpu" and language.lower() == "c++":
+            assert c2f_src == ""
+            assert fortran_tf_src == ""
         else:
-            raise NotImplementedError("Waiting for test cases")
+            raise NotImplementedError(
+                f"Waiting for test cases for [{processor}, {language}] combo."
+            )
 
         return filenames
 
@@ -160,7 +165,103 @@ class TaskFunction(object):
     def data_item_class_name(self):
         if self.data_item.lower() == "tilewrapper":
             return f"Tile_{self.name}"
-        raise NotImplementedError("Only setup for TileWrapper right now")
+        elif self.data_item.lower() == "datapacket":
+            return f"DataPacket_{self.name}"
+        raise NotImplementedError(
+            f"{self.data_item} has not been implemented."
+        )
+
+    @property
+    def data_item_byte_alignment(self):
+        if self.data_item.lower() == "datapacket":
+            return self.__data_spec["byte_alignment"]
+        raise NotImplementedError(
+            f"{self.data_item} does not use byte_alignment."
+        )
+
+    @property
+    def instantiate_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"instantiate_{self.name}_packet_c"
+
+    @property
+    def delete_packet_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def release_stream_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Streams used with DataPacket only")
+
+        return f"release_{self.name}_extra_queue_c"
+
+    @property
+    def cpp2c_layer_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Cpp2C layer for non-fortran TF.")
+        return f"{self.name}_Cpp2C"
+
+    @property
+    def c2f_layer_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No C2F layer for non-fortran TF.")
+        return f"{self.name}_C2F"
+
+    @property
+    def fortran_module_name(self):
+        if self.language.lower() == "fortran":
+            return f"{self.name}_mod"
+        raise LogicError("No Fortran module for C++ task function")
+
+    @property
+    def fortran_host_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran host dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise LogicError("No Fortran host dummies for host-side TF")
+
+        dummies = ["C_packet_h", "dataQ_h"]
+        n_streams = self.n_streams
+        if n_streams > 1:
+            dummies += [f"queue{i}_h" for i in range(2, n_streams+1)]
+
+        return dummies
+
+    @property
+    def fortran_device_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran device dummies for non-Fortran TF")
+        if self.data_item.lower() != "datapacket":
+            raise LogicError("No Fortran device dummies for host-side TF")
+
+        return ["nTiles_d"] + [f"{each}_d" for each in self.dummy_arguments]
+
+    @property
+    def fortran_dummy_arguments(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No Fortran arguments for non-Fortran TF")
+        return (self.fortran_host_dummy_arguments +
+                self.fortran_device_dummy_arguments)
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
 
     @property
     def instantiate_packet_C_function(self):
@@ -186,8 +287,8 @@ class TaskFunction(object):
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
-        elif self.n_streams <= 1:
-            raise LogicError("No extra streams needed")
+        # elif self.n_streams <= 1:
+        #     raise LogicError("No extra streams needed")
 
         return f"release_{self.name}_extra_queue_C"
 
@@ -255,17 +356,22 @@ class TaskFunction(object):
         """
         .. todo::
             This should reinterpret variable types so that we return the
-            correct type for the task function's processor.
+            correct type for the task function's processor and device.
         """
+        if argument not in self.__tf_spec["argument_specifications"]:
+            msg = "{} not an argument for task function {}"
+            raise ValueError(msg.format(argument, self.name))
+
         spec = self.__tf_spec["argument_specifications"][argument]
 
         src_to_adjust = [
-            TaskFunction.EXTERNAL_ARGUMENT, TaskFunction.SCRATCH_ARGUMENT
+            EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
         ]
-        if ((spec["source"].lower() in src_to_adjust) and
-                (spec["type"].lower() == "real") and
-                (self.processor.lower() == "cpu")):
-            spec["type"] = "milhoja::Real"
+        pcsr = self.processor.lower()
+        if spec["source"].lower() in src_to_adjust:
+            if pcsr == "cpu":
+                if spec["type"].lower() == "real":
+                    spec["type"] = "milhoja::Real"
 
         return spec
 
@@ -277,7 +383,7 @@ class TaskFunction(object):
         arguments = []
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
+            if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 arguments.append((arg, arg_spec["type"]))
 
         return arguments
@@ -286,22 +392,11 @@ class TaskFunction(object):
     def tile_metadata_arguments(self):
         """
         """
-        KEYS_ALL = [
-            TaskFunction.TILE_GRID_INDEX,
-            TaskFunction.TILE_LEVEL,
-            TaskFunction.TILE_LO, TaskFunction.TILE_HI,
-            TaskFunction.TILE_LBOUND, TaskFunction.TILE_UBOUND,
-            TaskFunction.TILE_DELTAS,
-            TaskFunction.TILE_COORDINATES,
-            TaskFunction.TILE_FACE_AREAS,
-            TaskFunction.TILE_CELL_VOLUMES
-        ]
-
         metadata_all = {}
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
             key = arg_spec["source"]
-            if key in KEYS_ALL:
+            if key in TILE_ARGUMENTS_ALL:
                 if key not in metadata_all:
                     metadata_all[key] = [arg]
                 else:
@@ -316,10 +411,9 @@ class TaskFunction(object):
         external_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.EXTERNAL_ARGUMENT:
+            if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 assert arg not in external_all
                 external_all.add(arg)
-
         return external_all
 
     @property
@@ -332,7 +426,7 @@ class TaskFunction(object):
         scratch_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.SCRATCH_ARGUMENT:
+            if arg_spec["source"].lower() == SCRATCH_ARGUMENT:
                 assert arg not in scratch_all
                 scratch_all.add(arg)
 
@@ -345,7 +439,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and (not has_out):
@@ -361,7 +455,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if has_in and has_out:
@@ -377,7 +471,7 @@ class TaskFunction(object):
         data_all = set()
         for arg in self.dummy_arguments:
             arg_spec = self.argument_specification(arg)
-            if arg_spec["source"].lower() == TaskFunction.GRID_DATA_ARGUMENT:
+            if arg_spec["source"].lower() == GRID_DATA_ARGUMENT:
                 has_in = ("variables_in" in arg_spec)
                 has_out = ("variables_out" in arg_spec)
                 if (not has_in) and has_out:
@@ -387,10 +481,24 @@ class TaskFunction(object):
         return data_all
 
     @property
+    def lbound_arguments(self):
+        """
+        :return: Set of lower-bound dummy arguments
+        """
+        lbdd_all = set()
+        for arg in self.dummy_arguments:
+            arg_spec = self.argument_specification(arg)
+            if arg_spec["source"] == LBOUND_ARGUMENT:
+                assert arg not in lbdd_all
+                lbdd_all.add(arg)
+
+        return lbdd_all
+
+    @property
     def internal_subroutine_graph(self):
         """
         :return: Generator for iterating in correct order over the nodes in the
-            internal subroutine graph of the task function.  Each node contains
+            internal subroutine graph of the task function. Each node contains
             one or more subroutines.  If more than one, it is understood that
             the subroutines in that node can be run concurrently.
         """
@@ -399,6 +507,29 @@ class TaskFunction(object):
                 yield [node]
             else:
                 yield node
+
+    @property
+    def use_combined_array_bounds(self) -> list:
+        """
+        :return: A list containing whether or not a subroutine in the call
+                 graph uses a tile_interior or tile_arrayBounds argument.
+                 If one of these is true, the generators should use a
+                 tile_interior array in place of tile_lo and tile_hi, and a
+                 tile_arrayBounds array in place of tile_lbound and
+                 tile_ubound.
+        """
+        combine_bounds = [False, False]
+        for node in self.internal_subroutine_graph:
+            for routine in node:
+                if all([item for item in combine_bounds]):
+                    return combine_bounds
+                args = self.subroutine_actual_arguments(routine)
+                combine_bounds[0] = \
+                    combine_bounds[0] or TILE_INTERIOR_ARGUMENT in args
+                combine_bounds[1] = \
+                    combine_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
+
+        return combine_bounds
 
     def subroutine_interface_file(self, subroutine):
         """

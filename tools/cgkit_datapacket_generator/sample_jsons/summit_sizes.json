@@ -1,9 +1,0 @@
-{
-    "real": 8,
-    "int": 4,
-    "unsigned int": 4,
-    "std::size_t": 8,
-    "IntVect": 8,
-    "RealVect": 16,
-    "bool": 1
-}

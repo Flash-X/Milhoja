@@ -2,7 +2,7 @@
 
 #include <Milhoja.h>
 #include <Milhoja_DataPacket.h>
-#include "DataPacket_Hydro_gpu_3.h"
+#include "DataPacket_gpu_tf_hydro.h"
 
 #include "Sedov.h"
 #include "Eos.h"
@@ -15,19 +15,19 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                     milhoja::DataItem* dataItem_h) {
     using namespace milhoja;
 
-    DataPacket_Hydro_gpu_3*    packet_h   = dynamic_cast<DataPacket_Hydro_gpu_3*>(dataItem_h);
-    const int                  queue_h    = packet_h->asynchronousQueue();
+    DataPacket_gpu_tf_hydro*    packet_h   = dynamic_cast<DataPacket_gpu_tf_hydro*>(dataItem_h);
+    const int                   queue_h    = packet_h->asynchronousQueue();
 
 	const std::size_t* nTiles_d = packet_h->_nTiles_d;
-	const Real* dt_d = packet_h->_dt_d;
+	const Real* dt_d = packet_h->_external_hydro_op1_dt_d;
     const RealVect* deltas_d = packet_h->_tile_deltas_d;
     const IntVect* lo_d = packet_h->_tile_lo_d;
     const IntVect* hi_d = packet_h->_tile_hi_d;
-    FArray4D* CC1_d = packet_h->_f4_U_d;
-    FArray4D* CC2_d = packet_h->_f4_auxC_d;
-    FArray4D* FCX_d = packet_h->_f4_flX_d;
-    FArray4D* FCY_d = packet_h->_f4_flY_d;
-    FArray4D* FCZ_d = packet_h->_f4_flZ_d;
+    FArray4D* CC1_d = packet_h->_f4_CC_1_d;
+    FArray4D* CC2_d = packet_h->_f4_scratch_hydro_op1_auxC_d;
+    FArray4D* FCX_d = packet_h->_f4_scratch_hydro_op1_flX_d;
+    FArray4D* FCY_d = packet_h->_f4_scratch_hydro_op1_flY_d;
+    FArray4D* FCZ_d = packet_h->_f4_scratch_hydro_op1_flZ_d;
 
     // This task function neither reads from nor writes to GAME.  While it does
     // read from GAMC, this variable is not written to as part of the task
@@ -72,6 +72,7 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                  U_d, auxC_d);
         }
 
+#if MILHOJA_NDIM == 2
         #pragma acc parallel loop gang default(none) async(queue_h)
         for (std::size_t n=0; n<*nTiles_d; ++n) {
             const FArray4D* U_d = CC1_d + n;
@@ -94,6 +95,30 @@ void Hydro::advanceSolutionHll_packet_oacc_summit_3(const int tId,
                                                deltas,
                                                U_d, flY_d, auxC_d);
         }
+#elif MILHOJA_NDIM == 3
+        #pragma acc parallel loop gang default(none) async(queue_h)
+        for (std::size_t n=0; n<*nTiles_d; ++n) {
+            const FArray4D* U_d = CC1_d + n;
+            FArray4D* auxC_d = CC2_d + n;
+            FArray4D* flX_d = FCX_d + n;
+            FArray4D* flY_d = FCY_d + n;
+            FArray4D* flZ_d = FCZ_d + n;
+
+            const RealVect* deltas = deltas_d + n;
+            const IntVect* lo = lo_d + n;
+            const IntVect* hi = hi_d + n;
+
+            hy::computeFluxesHll_X_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flX_d, auxC_d);
+            hy::computeFluxesHll_Y_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flY_d, auxC_d);
+            hy::computeFluxesHll_Z_oacc_summit(dt_d, lo, hi,
+                                               deltas,
+                                               U_d, flZ_d, auxC_d);
+        }
+#endif
 
         //----- UPDATE SOLUTIONS IN PLACE
         #pragma acc parallel loop gang default(none) async(queue_h)

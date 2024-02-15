@@ -17,7 +17,7 @@
 #include "Eos.h"
 #include "Simulation.h"
 
-void  cpu_tf_ic::taskFunction(const int threadId,
+void  cpu_tf_ic::taskFunction(const int threadIndex,
                     milhoja::DataItem* dataItem) {
     Tile_cpu_tf_ic*  wrapper = dynamic_cast<Tile_cpu_tf_ic*>(dataItem);
     milhoja::Tile*  tileDesc = wrapper->tile_.get();
@@ -26,19 +26,19 @@ void  cpu_tf_ic::taskFunction(const int threadId,
     const milhoja::IntVect  tile_lbound = tileDesc->loGC();
     const milhoja::IntVect  tile_ubound = tileDesc->hiGC();
     const milhoja::RealVect  tile_deltas = tileDesc->deltas();
-    const milhoja::FArray1D  tile_xCenters =
+    const milhoja::FArray1D  tile_xCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::I,
             milhoja::Edge::Center,
             tile_level,
             tile_lbound, tile_ubound);
-    const milhoja::FArray1D  tile_yCenters =
+    const milhoja::FArray1D  tile_yCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::J,
             milhoja::Edge::Center,
             tile_level,
             tile_lbound, tile_ubound);
-    const milhoja::FArray1D  tile_zCenters =
+    const milhoja::FArray1D  tile_zCoords_center =
         milhoja::Grid::instance().getCellCoords(
             milhoja::Axis::K,
             milhoja::Edge::Center,
@@ -50,9 +50,9 @@ void  cpu_tf_ic::taskFunction(const int threadId,
                     tile_lbound,
                     tile_ubound,
                     tile_level,
-                    tile_xCenters,
-                    tile_yCenters,
-                    tile_zCenters,
+                    tile_xCoords_center,
+                    tile_yCoords_center,
+                    tile_zCoords_center,
                     tile_deltas,
                     CC_1);
     Eos::idealGammaDensIe(

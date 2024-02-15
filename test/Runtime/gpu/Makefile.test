@@ -22,10 +22,6 @@ SRCS_TEST = \
     $(TESTBASEDIR)/computeLaplacianEnergy_packet_oacc_summit.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedKernels.cpp \
     $(TESTBASEDIR)/Analysis.cpp \
-    $(TESTDIR)/DataPacket_gpu_dens_stream.cpp \
-    $(TESTDIR)/DataPacket_gpu_ener_stream.cpp \
-    $(TESTDIR)/DataPacket_gpu_dens_ener_stream.cpp \
-    $(TESTDIR)/DataPacket_gpu_de_1_stream.cpp \
     $(TESTDIR)/testRuntime.cpp \
     $(RUNTIMEDIR)/runRuntimeTests.cpp \
     $(TESTBASEDIR)/computeLaplacianFusedActions_packet_oacc_summit.cpp \
