@@ -5,53 +5,6 @@ module gpu_tf_test2_mod
     private
 
     public :: gpu_tf_test2
-
-    ! NOTE TO MILHOJA USERS:
-    ! The Fortran interfaces defined here should be used to create and manage
-    ! prototype data items to be passed to Milhoja for use with this task
-    ! function.
-    interface
-        ! Instantiate the prototype data packet
-        !
-        ! Arguments
-        !   C_packet - Milhoja-internal handle to the data packet
-        !   All others - user-specified external arguments
-        function instantiate_gpu_tf_test2_packet_C( &
-                    C_packet, &
-                    C_dt &
-                ) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
-            use milhoja_types_mod, ONLY : MILHOJA_INT
-            use milhoja_types_mod, ONLY : MILHOJA_REAL
-            type(C_PTR),         intent(IN)        :: C_packet
-            real(MILHOJA_REAL),  intent(IN), value :: C_dt
-            integer(MILHOJA_INT)                   :: C_ierr
-        end function instantiate_gpu_tf_test2_packet_C
-
-        ! Delete the prototype data packet
-        !
-        ! Arguments
-        !   C_packet - Milhoja-internal handle obtained when instantiating
-        !               data packet
-        function delete_gpu_tf_test2_packet_C(C_packet) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
-            use milhoja_types_mod, ONLY : MILHOJA_INT
-            type(C_PTR),         intent(IN), value :: C_packet
-            integer(MILHOJA_INT)                   :: C_ierr
-        end function delete_gpu_tf_test2_packet_C
-    end interface
-
-    ! Milhoja-internal functions.  Milhoja users should not call these.
-    interface
-        function release_gpu_tf_test2_extra_queue_C(C_packet, C_id) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
-            use milhoja_types_mod, ONLY : MILHOJA_INT
-            type(C_PTR),          intent(IN), value :: C_packet
-            integer(MILHOJA_INT), intent(IN), value :: C_id
-            integer(MILHOJA_INT)                    :: C_ierr
-        end function release_gpu_tf_test2_extra_queue_C
-    end interface
-
 contains
 
     subroutine gpu_tf_test2(         &
@@ -70,6 +23,7 @@ contains
                     hydro_op1_flZ_d, &
                     hydro_op1_auxc_d &
             )
+        use DataPacket_gpu_tf_test2_c2f_mod, ONLY : release_gpu_tf_test2_extra_queue_c
         use iso_c_binding, ONLY : C_PTR
         use openacc
 
@@ -184,13 +138,13 @@ contains
         !$acc&  )
     
         MH_idx = INT(2, kind=MILHOJA_INT)
-        MH_ierr = release_gpu_tf_test2_extra_queue_C(C_packet_h, MH_idx)
+        MH_ierr = release_gpu_tf_test2_extra_queue_c(C_packet_h, MH_idx)
         if (MH_ierr /= MILHOJA_SUCCESS) then
             write(*,*) "[gpu_tf_test2] Unable to release extra OpenACC async queue 2"
             STOP
         end if
         MH_idx = INT(3, kind=MILHOJA_INT)
-        MH_ierr = release_gpu_tf_test2_extra_queue_C(C_packet_h, MH_idx)
+        MH_ierr = release_gpu_tf_test2_extra_queue_c(C_packet_h, MH_idx)
         if (MH_ierr /= MILHOJA_SUCCESS) then
             write(*,*) "[gpu_tf_test2] Unable to release extra OpenACC async queue 3"
             STOP
