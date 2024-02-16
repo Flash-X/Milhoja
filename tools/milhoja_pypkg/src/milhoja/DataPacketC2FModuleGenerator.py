@@ -69,9 +69,9 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
         with open(mod_path, 'w') as module:
             module_name = self._tf_spec.data_item_module_name
-            instance = self._tf_spec.instantiate_packet_C_function.lower()
-            delete = self._tf_spec.delete_packet_C_function.lower()
-            release = self._tf_spec.release_stream_C_function.lower()
+            instance = self._tf_spec.instantiate_packet_C_function
+            delete = self._tf_spec.delete_packet_C_function
+            release = self._tf_spec.release_stream_C_function
 
             # declare interface functions for time advance unit
             module.write(f"module {module_name}\n")
