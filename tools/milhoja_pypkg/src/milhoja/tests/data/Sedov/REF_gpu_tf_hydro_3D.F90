@@ -203,13 +203,13 @@ contains
         !$acc&  )
     
         MH_idx = INT(2, kind=MILHOJA_INT)
-        MH_ierr = release_gpu_tf_hydro_extra_queue_C(C_packet_h, MH_idx)
+        MH_ierr = release_gpu_tf_hydro_extra_queue_c(C_packet_h, MH_idx)
         if (MH_ierr /= MILHOJA_SUCCESS) then
             write(*,*) "[gpu_tf_hydro] Unable to release extra OpenACC async queue 2"
             STOP
         end if
         MH_idx = INT(3, kind=MILHOJA_INT)
-        MH_ierr = release_gpu_tf_hydro_extra_queue_C(C_packet_h, MH_idx)
+        MH_ierr = release_gpu_tf_hydro_extra_queue_c(C_packet_h, MH_idx)
         if (MH_ierr /= MILHOJA_SUCCESS) then
             write(*,*) "[gpu_tf_hydro] Unable to release extra OpenACC async queue 3"
             STOP

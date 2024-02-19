@@ -130,6 +130,9 @@ VECTOR_ARRAY_EQUIVALENT = {
     "RealVect": "real"
 }
 
+# todo::
+#   * Add complex and double complex to type conversion
+
 # For converting Fortran types to C++/C types.
 F2C_TYPE_MAPPING = {
     "logical": "bool",

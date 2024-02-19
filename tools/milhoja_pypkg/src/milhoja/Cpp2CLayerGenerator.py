@@ -146,15 +146,15 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'/* _param:taskfunctionname = '
                 f'{self._tf_spec.name} */\n',
                 f'/* _param:taskfunctionnametf = '
-                f'{self._tf_spec.name}_cpp2c */\n',
+                f'{self._tf_spec.cpp2c_layer_name} */\n',
                 f'/* _param:taskfunctionnamec2f = '
-                f'{self._tf_spec.name}_c2f */\n',
-                f'/* _param:instantiate = instantiate_'
-                f'{self._tf_spec.name}_packet_c */\n',
+                f'{self._tf_spec.c2f_layer_name} */\n',
+                f'/* _param:instantiate = '
+                f'{self._tf_spec.instantiate_packet_C_function} */\n',
                 f'/* _param:deletion = '
-                f'delete_{self._tf_spec.name}_packet_c */\n',
-                f'/* _param:release = release_'
-                f'{self._tf_spec.name}_extra_queue_c */\n',
+                f'{self._tf_spec.delete_packet_C_function} */\n',
+                f'/* _param:release = '
+                f'{self._tf_spec.release_stream_C_function} */\n',
                 f'/* _param:thread_id = {THREAD_INDEX_VAR_NAME} */\n\n',
                 '/* _link:cpp2c */'
             ])

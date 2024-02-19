@@ -6,7 +6,7 @@ from . import TaskFunction
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
     TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT,
-    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING
 )
 
 class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
@@ -124,6 +124,19 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT}private\n")
             fptr.write("\n")
             fptr.write(f"{INDENT}public :: {self._tf_spec.name}\n")
+            fptr.write(f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n")
+            fptr.write(f"{INDENT}interface\n")
+            fptr.write(f"{INDENT*2}")
+            fptr.write("!> C++ task function that TimeAdvance passes to Orchestration unit\n")
+            fptr.write(f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}")
+            fptr.write(f"(C_tId, C_dataItemPtr) bind*(c)\n")
+            fptr.write(f"{INDENT*3}use iso_c_binding, ONLY : C_PTR\n")
+            fptr.write(f"{INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT\n")
+            fptr.write(f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_tId\n")
+            fptr.write(f"{INDENT*3}type(C_PTR), intent(IN), value :: C_dataItemPtr\n")
+            fptr.write(f"{INDENT*2}end subroutine {self._tf_spec.cpp2c_layer_name}\n")
+            fptr.write(f"{INDENT}end interface\n\n")
+
             fptr.write("contains\n")
             fptr.write("\n")
 
@@ -188,7 +201,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 if spec["source"] == EXTERNAL_ARGUMENT:
-                    arg_type = spec["type"]
+                    arg_type = C2F_TYPE_MAPPING.get(spec["type"])
+                    # add warning for untested types, but allow.
+                    if not arg_type:
+                        self._error(f"Unsupported data type: {spec['type']}")
                     extents = spec["extents"]
                     if extents == "()":
                         fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")

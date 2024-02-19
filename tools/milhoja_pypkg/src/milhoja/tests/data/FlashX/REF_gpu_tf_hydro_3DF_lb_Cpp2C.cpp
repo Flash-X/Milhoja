@@ -15,7 +15,7 @@ using milhoja::Real;
 
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
-    void gpu_tf_hydro_c2f (
+    void gpu_tf_hydro_C2F (
     void* packet_h,
     const int queue1_h,
     const int queue2_h,
@@ -103,7 +103,7 @@ extern "C" {
     }
 
     //----- C TASK FUNCTION TO BE CALLED BY RUNTIME
-    void gpu_tf_hydro_cpp2c (const int threadIndex, void* dataItem_h) {
+    void gpu_tf_hydro_Cpp2C (const int threadIndex, void* dataItem_h) {
         DataPacket_gpu_tf_hydro* packet_h = static_cast<DataPacket_gpu_tf_hydro*>(dataItem_h);
         const int queue1_h = packet_h->asynchronousQueue();
         const int _nTiles_h = packet_h->_nTiles_h;
@@ -133,7 +133,7 @@ extern "C" {
         void* _scratch_hydro_op1_flZ_d = static_cast<void*>( packet_h->_scratch_hydro_op1_flZ_d );
 
         // Pass data packet info to C-to-Fortran Reinterpretation Layer
-        gpu_tf_hydro_c2f (
+        gpu_tf_hydro_C2F (
         packet_h,
         queue1_h,
         queue2_h,
