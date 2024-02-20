@@ -1,12 +1,14 @@
 from pathlib import Path
 
+from .parse_helpers import parse_extents
 from . import LogicError
 from . import AbcCodeGenerator
 from . import TaskFunction
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
     TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT,
-    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
@@ -198,6 +200,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
                 LBOUND_ARGUMENT
             ]
+            bounds = {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
+
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 if spec["source"] == EXTERNAL_ARGUMENT:
@@ -215,6 +219,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
                 elif spec["source"] == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}_d(:, :)\n")
+                elif spec["source"] in bounds:
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :, :)\n")
                 elif spec["source"] == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
                         intent = "IN"
@@ -227,7 +233,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
                 elif spec["source"] == SCRATCH_ARGUMENT:
                     arg_type = spec["type"]
-                    dimension = len(self.__parse_extents_spec(spec["extents"]))
+                    dimension = len(parse_extents(spec["extents"]))
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension + 1)]
                     array = "(" + ", ".join(tmp) + ")"

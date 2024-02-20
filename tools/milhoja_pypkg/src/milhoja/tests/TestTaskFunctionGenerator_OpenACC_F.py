@@ -60,5 +60,12 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
                     "source": path.joinpath("REF_gpu_tf_hydro_3D.F90"),
                     "source_dim_dependent": False}
 
-        self.run_tests([hydro_3D], [3], _create_generator)
+        # todo:: Write test for lbound & tile_interior args
+        hydro_lb = {"json": fx_path.joinpath("REF_gpu_tf_hydro_3DF_lb.json"),
+                    "header": None,
+                    "header_dim_dependent": False,
+                    "source": path.joinpath("REF_gpu_tf_hydro_3D.F90"),
+                    "source_dim_dependent": False}
+
+        self.run_tests([hydro_lb, hydro_3D], [3], _create_generator)
         self.run_tests([hydro_2D, hydroFC_2D], [2], _create_generator)
