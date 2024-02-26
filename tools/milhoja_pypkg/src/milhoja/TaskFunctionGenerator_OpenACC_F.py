@@ -131,7 +131,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT*2}")
             fptr.write("!> C++ task function that TimeAdvance passes to Orchestration unit\n")
             fptr.write(f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}")
-            fptr.write(f"(C_tId, C_dataItemPtr) bind*(c)\n")
+            fptr.write(f"(C_tId, C_dataItemPtr) bind(c)\n")
             fptr.write(f"{INDENT*3}use iso_c_binding, ONLY : C_PTR\n")
             fptr.write(f"{INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT\n")
             fptr.write(f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_tId\n")
