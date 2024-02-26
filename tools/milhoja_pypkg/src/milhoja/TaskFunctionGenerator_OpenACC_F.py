@@ -237,7 +237,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension + 1)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(OUT) :: {arg}_d{array}\n")
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d{array}\n")
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
 
