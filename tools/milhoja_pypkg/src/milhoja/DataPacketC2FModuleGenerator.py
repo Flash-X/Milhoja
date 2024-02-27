@@ -154,3 +154,6 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT * 2}end function {release}\n")
             module.write(f"{self.INDENT}end interface\n\n")
             module.write(f"end module {module_name}\n")
+
+            # end of file
+            module.write("\n")

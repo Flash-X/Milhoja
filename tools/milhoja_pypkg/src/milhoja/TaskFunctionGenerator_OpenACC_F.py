@@ -372,3 +372,6 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             # End module declaration
             fptr.write(f"end module {module}\n")
+
+            # end of file
+            fptr.write("\n")

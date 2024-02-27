@@ -406,7 +406,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f' &\n{self.INDENT})'
             )
 
-            fp.write(f'\nend subroutine {self._tf_spec.name}_C2F')
+            fp.write(f'\nend subroutine {self._tf_spec.name}_C2F\n')
+
+            # end of file
+            fp.write("\n")
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
     def log_and_abort(self, msg, e: BaseException):
