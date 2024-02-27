@@ -317,10 +317,18 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
                     for argument in actual_args[:-1]:
-                        arg_spec = self._tf_spec.argument_specification(argument)
+                        spec = self._tf_spec.argument_specification(argument)
                         extents = ""
-                        if "extents" in arg_spec.keys() and arg_spec["extents"] != "()":
-                            dimension = len(parse_extents(arg_spec["extents"]))
+                        if spec["source"] in points:
+                            extents = "(:, n)"
+                        elif spec["source"] == TILE_DELTAS_ARGUMENT:
+                            extents = "(:, n)"
+                        elif spec["source"] in bounds:
+                            extents = "(:, :, n)"
+                        elif spec["source"] == GRID_DATA_ARGUMENT:
+                            extents = "(:, :, :, :, n)"
+                        elif spec["source"] == SCRATCH_ARGUMENT:
+                            dimension = len(parse_extents(spec["extents"]))
                             tmp = [":" for _ in range(dimension)]
                             extents = "(" + ", ".join(tmp) + ", n)"
                         fptr.write(f"{INDENT*5}{argument}_d{extents}, &\n")
