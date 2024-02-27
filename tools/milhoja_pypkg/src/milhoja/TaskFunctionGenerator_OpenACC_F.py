@@ -316,7 +316,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*3}CALL {subroutine}( &\n")
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
-                    for argument in actual_args[:-1]:
+                    arg_list = []
+                    for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
                         extents = ""
                         if spec["source"] in points:
@@ -331,8 +332,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             dimension = len(parse_extents(spec["extents"]))
                             tmp = [":" for _ in range(dimension)]
                             extents = "(" + ", ".join(tmp) + ", n)"
-                        fptr.write(f"{INDENT*5}{argument}_d{extents}, &\n")
-                    fptr.write(f"{INDENT*5}{actual_args[-1]}_d &\n")
+                        arg_list.append(f"{INDENT*5}{argument}_d{extents}")
+                    fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*5})\n")
                     fptr.write(f"{INDENT*2}end do\n")
                     fptr.write(f"{INDENT*2}!$acc end parallel loop\n")
