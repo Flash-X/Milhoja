@@ -317,7 +317,13 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
                     for argument in actual_args[:-1]:
-                        fptr.write(f"{INDENT*5}{argument}_d, &\n")
+                        arg_spec = self._tf_spec.argument_specification(argument)
+                        extents = ""
+                        if "extents" in arg_spec.keys() and arg_spec["extents"] != "()":
+                            dimension = len(parse_extents(arg_spec["extents"]))
+                            tmp = [":" for _ in range(dimension)]
+                            extents = "(" + ", ".join(tmp) + ", n)"
+                        fptr.write(f"{INDENT*5}{argument}_d{extents}, &\n")
                     fptr.write(f"{INDENT*5}{actual_args[-1]}_d &\n")
                     fptr.write(f"{INDENT*5})\n")
                     fptr.write(f"{INDENT*2}end do\n")
