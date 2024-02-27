@@ -182,6 +182,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}!$acc routine ({subroutine}) vector\n")
             fptr.write("\n")
 
+            # No implicit variables
+            fptr.write(f"{INDENT*2}implicit none\n\n")
+
             # Milhoja-internal host-side variables
             #
             # These are not included in the TF dummy arguments
