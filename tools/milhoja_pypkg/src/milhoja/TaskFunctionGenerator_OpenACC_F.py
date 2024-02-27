@@ -125,7 +125,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT}implicit none\n")
             fptr.write(f"{INDENT}private\n")
             fptr.write("\n")
-            fptr.write(f"{INDENT}public :: {self._tf_spec.name}\n")
+            fptr.write(f"{INDENT}public :: {self._tf_spec.name}_Fortran\n")
             fptr.write(f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n")
             fptr.write(f"{INDENT}interface\n")
             fptr.write(f"{INDENT*2}")
@@ -145,7 +145,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             # ----- DEFINE TASK FUNCTION SUBROUTINE
             # Begin Subroutine declaration
             dummy_args = self._tf_spec.fortran_dummy_arguments
-            fptr.write(f"{INDENT}subroutine {self._tf_spec.name}")
+            fptr.write(f"{INDENT}subroutine {self._tf_spec.name}_Fortran")
             if len(dummy_args) == 0:
                 fptr.write("()\n")
             else:
@@ -354,7 +354,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT*2}!$acc end data\n")
 
             # End subroutine declaration
-            fptr.write(f"{INDENT}end subroutine {self._tf_spec.name}\n")
+            fptr.write(f"{INDENT}end subroutine {self._tf_spec.name}_Fortran\n")
             fptr.write("\n")
 
             # End module declaration
