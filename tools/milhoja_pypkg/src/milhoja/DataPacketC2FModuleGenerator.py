@@ -101,7 +101,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_packet &\n"
-                f"{self.INDENT * 2})result(C_ierr) bind (c)\n"
+                f'{self.INDENT * 2}) result(C_ierr) bind(c, name="{instance}")\n'
             )
             module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
             module.write(
@@ -117,7 +117,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
 
             module.write(f"{self.INDENT * 2}function {delete}(")
-            module.write("C_packet) result(C_ierr) bind (c)\n")
+            module.write("C_packet) result(C_ierr) &\n")
+            module.write(f'{self.INDENT * 4}bind(c, name="{delete}")\n')
 
             module.writelines([
                 f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
@@ -135,7 +136,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             # write interface release function for task function
             module.write(f"{self.INDENT}interface\n")
             module.write(f"{self.INDENT * 2}function {release}(")
-            module.write("C_packet, C_id) result(C_ierr) bind(c)\n")
+            module.write("C_packet, C_id) result(C_ierr) &\n")
+            module.write(f'{self.INDENT * 4}bind(c, name="{release}")\n')
 
             # write function
             module.writelines([

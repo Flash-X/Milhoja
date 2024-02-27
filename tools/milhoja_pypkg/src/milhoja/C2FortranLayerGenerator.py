@@ -358,7 +358,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             # write dummy argument list
             fp.write(
                 ', &\n'.join([info.cname for info in c2f_arg_info]) +
-                ' &\n) bind(c)\n\n'
+                f' &\n) bind(c, name="{self._tf_spec.name}_C2F")\n\n'
             )
 
             fortran_mod = self._tf_spec.output_filenames[
