@@ -209,10 +209,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 if spec["source"] == EXTERNAL_ARGUMENT:
-                    arg_type = C2F_TYPE_MAPPING.get(spec["type"])
-                    # add warning for untested types, but allow.
+                    # is this okay? Should we fail if there is no type mapping?
+                    arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                    # fail if arg type is missing
                     if not arg_type:
-                        self._error(f"Unsupported data type: {spec['type']}")
+                        self._error(f"Missing data type {arg}")
                     extents = spec["extents"]
                     if extents == "()":
                         fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")
