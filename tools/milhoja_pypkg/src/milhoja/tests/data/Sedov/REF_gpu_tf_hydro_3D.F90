@@ -4,52 +4,18 @@ module gpu_tf_hydro_mod
     implicit none
     private
 
-    public :: gpu_tf_hydro
+    public :: gpu_tf_hydro_Fortran
+    public :: gpu_tf_hydro_Cpp2C
 
-    ! NOTE TO MILHOJA USERS:
-    ! The Fortran interfaces defined here should be used to create and manage
-    ! prototype data items to be passed to Milhoja for use with this task
-    ! function.
     interface
-        ! Instantiate the prototype data packet
-        !
-        ! Arguments
-        !   C_packet - Milhoja-internal handle to the data packet
-        !   All others - user-specified external arguments
-        function instantiate_gpu_tf_hydro_packet_C( &
-                    C_packet, &
-                    C_dt &
-                ) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
+        !> C++ task function that TimeAdvance passes to Orchestration unit
+        subroutine gpu_tf_hydro_Cpp2C(C_tId, C_dataItemPtr) &
+                bind(c, name="gpu_tf_hydro_Cpp2C")
+            use iso_c_binding, ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
-            use milhoja_types_mod, ONLY : MILHOJA_REAL
-            type(C_PTR),         intent(IN)        :: C_packet
-            real(MILHOJA_REAL),  intent(IN), value :: C_dt
-            integer(MILHOJA_INT)                   :: C_ierr
-        end function instantiate_gpu_tf_hydro_packet_C
-
-        ! Delete the prototype data packet
-        !
-        ! Arguments
-        !   C_packet - Milhoja-internal handle obtained when instantiating
-        !               data packet
-        function delete_gpu_tf_hydro_packet_C(C_packet) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
-            use milhoja_types_mod, ONLY : MILHOJA_INT
-            type(C_PTR),         intent(IN), value :: C_packet
-            integer(MILHOJA_INT)                   :: C_ierr
-        end function delete_gpu_tf_hydro_packet_C
-    end interface
-
-    ! Milhoja-internal functions.  Milhoja users should not call these.
-    interface
-        function release_gpu_tf_hydro_extra_queue_C(C_packet, C_id) result(C_ierr) bind(c)
-            use iso_c_binding,     ONLY : C_PTR
-            use milhoja_types_mod, ONLY : MILHOJA_INT
-            type(C_PTR),          intent(IN), value :: C_packet
-            integer(MILHOJA_INT), intent(IN), value :: C_id
-            integer(MILHOJA_INT)                    :: C_ierr
-        end function release_gpu_tf_hydro_extra_queue_C
+            integer(MILHOJA_INT), intent(IN), value :: C_tId
+            type(C_PTR), intent(IN), value :: C_dataItemPtr
+        end subroutine gpu_tf_hydro_Cpp2C
     end interface
 
 contains
@@ -70,6 +36,7 @@ contains
                     hydro_op1_flZ_d, &
                     hydro_op1_auxc_d &
             )
+        use DataPacket_gpu_tf_hydro_c2f_mod, ONLY : release_gpu_tf_hydro_extra_queue_c
         use iso_c_binding, ONLY : C_PTR
         use openacc
 
@@ -87,6 +54,8 @@ contains
         !$acc routine (Hydro_computeFluxesHll_Z_gpu_oacc) vector
         !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
 
+        implicit none
+
         type(C_PTR),                   intent(IN)    :: C_packet_h
         integer(kind=acc_handle_kind), intent(IN)    :: dataQ_h
         integer(kind=acc_handle_kind), intent(IN)    :: queue2_h
@@ -97,10 +66,10 @@ contains
         integer,                       intent(IN)    :: tile_hi_d(:, :)
         real,                          intent(IN)    :: tile_deltas_d(:, :)
         real,                          intent(INOUT) :: CC_1_d(:, :, :, :, :)
-        real,                          intent(OUT)   :: hydro_op1_flX_d(:, :, :, :, :)
-        real,                          intent(OUT)   :: hydro_op1_flY_d(:, :, :, :, :)
-        real,                          intent(OUT)   :: hydro_op1_flZ_d(:, :, :, :, :)
-        real,                          intent(OUT)   :: hydro_op1_auxc_d(:, :, :, :)
+        real,                          intent(IN)   :: hydro_op1_flX_d(:, :, :, :, :)
+        real,                          intent(IN)   :: hydro_op1_flY_d(:, :, :, :, :)
+        real,                          intent(IN)   :: hydro_op1_flZ_d(:, :, :, :, :)
+        real,                          intent(IN)   :: hydro_op1_auxc_d(:, :, :, :)
 
         integer              :: n
         integer(MILHOJA_INT) :: MH_idx

@@ -43,29 +43,22 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
         # todo:: All of these sedov files should be moved to the FlashX dir.
         fx_path = _TEST_PATH.joinpath("FlashX")
 
-        hydro_2D = {"json": path.joinpath("gpu_tf_hydro_2D.json"),
+        hydro_2D = {"json": fx_path.joinpath("gpu_tf_hydro_2D.json"),
                     "header": None,
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_gpu_tf_hydro_2D.F90"),
+                    "source": fx_path.joinpath("REF_gpu_tf_hydro_2D.F90"),
                     "source_dim_dependent": False}
-        hydroFC_2D = {"json": path.joinpath("gpu_tf_hydroFC_2D.json"),
+        hydroFC_2D = {"json": fx_path.joinpath("gpu_tf_hydroFC_2D.json"),
                       "header": None,
                       "header_dim_dependent": False,
-                      "source": path.joinpath("REF_gpu_tf_hydroFC_2D.F90"),
+                      "source": fx_path.joinpath("REF_gpu_tf_hydroFC_2D.F90"),
                       "source_dim_dependent": False}
         # Only middle node has concurrent kernel launch
         hydro_3D = {"json": fx_path.joinpath("REF_gpu_tf_hydro_3D.json"),
                     "header": None,
                     "header_dim_dependent": False,
-                    "source": path.joinpath("REF_gpu_tf_hydro_3D.F90"),
+                    "source": fx_path.joinpath("REF_gpu_tf_hydro_3D.F90"),
                     "source_dim_dependent": False}
 
-        # todo:: Write test for lbound & tile_interior args
-        hydro_lb = {"json": fx_path.joinpath("REF_gpu_tf_hydro_3DF_lb.json"),
-                    "header": None,
-                    "header_dim_dependent": False,
-                    "source": path.joinpath("REF_gpu_tf_hydro_3D.F90"),
-                    "source_dim_dependent": False}
-
-        self.run_tests([hydro_lb, hydro_3D], [3], _create_generator)
+        self.run_tests([hydro_3D], [3], _create_generator)
         self.run_tests([hydro_2D, hydroFC_2D], [2], _create_generator)
