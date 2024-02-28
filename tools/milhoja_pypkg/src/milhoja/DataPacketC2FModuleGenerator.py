@@ -101,7 +101,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_packet &\n"
-                f'{self.INDENT * 2}) result(C_ierr) bind(c, name="{instance}")\n'
+                f'{self.INDENT * 2}) result(C_ierr) &\n'
+                f'{self.INDENT*4}bind(c, name="{instance}")\n'
             )
             module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
             module.write(

@@ -20,7 +20,7 @@ C_scratch_hydro_op1_auxC_d, &
 C_scratch_hydro_op1_flX_d, &
 C_scratch_hydro_op1_flY_d, &
 C_scratch_hydro_op1_flZ_d &
-) bind(c)
+) bind(c, name="gpu_tf_hydro_C2F")
     use iso_c_binding, ONLY : C_PTR, C_F_POINTER
     use openacc, ONLY : acc_handle_kind
     use milhoja_types_mod, ONLY : MILHOJA_INT
