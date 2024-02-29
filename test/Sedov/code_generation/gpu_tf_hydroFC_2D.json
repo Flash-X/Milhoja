@@ -15,6 +15,8 @@
         "cpp_source": "gpu_tf_hydroFC_Cpp2C.cpp",
         "c2f_source": "gpu_tf_hydroFC_C2F.F90",
         "fortran_source": "gpu_tf_hydroFC_mod.F90",
+        "computation_offloading": "OpenACC",
+        "variable_index_base": 1,
         "argument_list": ["dt",
                           "tile_lo",
                           "tile_hi",

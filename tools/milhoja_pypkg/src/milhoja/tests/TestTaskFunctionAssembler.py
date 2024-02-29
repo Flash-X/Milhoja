@@ -392,7 +392,8 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                     self.assertTrue(group in reference)
                     self.assertTrue(group in result)
 
-                    # todo:: Re-enable these tests to work with new module keyword.
+                    # todo::
+                    #   * Re-enable these tests to work w/ new module keyword.
                     # self.assertEqual(
                     #     len(reference[group]), len(result[group]),
                     #     msg=f"{reference} != {result}"
@@ -475,7 +476,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 "cpp_header":     "cpu_tf_test_Cpp2C.h",
                 "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
                 "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "fortran_source": "cpu_tf_test_mod.F90",
+                "computation_offloading": "",
+                "variable_index_base": 1
             },
             "data_item": {
                 "type":           "TileWrapper",
@@ -521,7 +524,9 @@ class TestTaskFunctionAssembler(unittest.TestCase):
                 "cpp_header":     "cpu_tf_test_Cpp2C.h",
                 "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
                 "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "fortran_source": "cpu_tf_test_mod.F90",
+                "computation_offloading": "",
+                "variable_index_base": 1
             },
             "data_item": {
                 "type":           "TileWrapper",

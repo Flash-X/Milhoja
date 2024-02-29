@@ -41,10 +41,6 @@ from .constants import (
 
 # Custom exceptions
 from .LogicError import LogicError
-
-# Custom exceptions
-from .LogicError import LogicError
-
 # Functions used by classes
 from .check_grid_specification import check_grid_specification
 from .check_tile_specification import check_tile_specification

@@ -154,6 +154,10 @@ class TaskFunction(object):
         return self.__tf_spec["processor"]
 
     @property
+    def variable_index_base(self):
+        raise NotImplementedError()
+
+    @property
     def computation_offloading(self):
         return self.__tf_spec["computation_offloading"]
 

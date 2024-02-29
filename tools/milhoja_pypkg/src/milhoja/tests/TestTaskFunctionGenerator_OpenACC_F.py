@@ -39,8 +39,6 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
         self.run_tests([test_1, test_2], [3], _create_generator)
 
     def testSedovGeneration(self):
-        path = _TEST_PATH.joinpath("Sedov")
-        # todo:: All of these sedov files should be moved to the FlashX dir.
         fx_path = _TEST_PATH.joinpath("FlashX")
 
         hydro_2D = {"json": fx_path.joinpath("gpu_tf_hydro_2D.json"),
