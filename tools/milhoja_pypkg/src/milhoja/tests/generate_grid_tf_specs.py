@@ -43,6 +43,8 @@ def generate_grid_tf_specs(dimension, block_size,
             "cpp_source":     "cpu_tf_ic.cpp",
             "c2f_source":     "",
             "fortran_source": ""
+            "computation_offloading": "",
+            "variable_index_base": 1
         },
         "data_item": {
             "type":           "TileWrapper",
