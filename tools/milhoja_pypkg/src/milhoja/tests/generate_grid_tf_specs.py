@@ -42,7 +42,7 @@ def generate_grid_tf_specs(dimension, block_size,
             "cpp_header":     "cpu_tf_ic.h",
             "cpp_source":     "cpu_tf_ic.cpp",
             "c2f_source":     "",
-            "fortran_source": ""
+            "fortran_source": "",
             "computation_offloading": "",
             "variable_index_base": 1
         },
