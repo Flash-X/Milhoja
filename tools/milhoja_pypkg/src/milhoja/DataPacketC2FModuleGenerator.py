@@ -1,44 +1,56 @@
 from pathlib import Path
 
 from . import AbcCodeGenerator
-from . import INTERNAL_ARGUMENT
+from . import EXTERNAL_ARGUMENT as ext_arg
 from . import TaskFunction
 from . import LogicError
+from . import LOG_LEVEL_BASIC
 
 
 class DataPacketC2FModuleGenerator(AbcCodeGenerator):
+    """
+    Responsible for generating the module interface file for use by the
+    fortran task function and interoperability layers. Nothing is generated
+    for C++ based task functions.
+    """
 
+    # C2F Module generator uses its own specific type mapping for the
+    # fortran interface.
     _TYPE_MAPPING = {
         "real": "real(MILHOJA_REAL)",
         "int": "integer(MILHOJA_INT)",
         "bool": "logical"
     }
 
-    # since this is specifically for the data packet generator it
-    # should be fine to pull specifically from the data packet
-    # external arguments. The Cpp2C and C2F layers ultimately should not
-    # do that, however, since they're more task function related.
-    def __init__(self, tf_spec, indent, logger, external_args):
+    def __init__(self, tf_spec, indent, logger):
         if tf_spec.language.lower() == "c++":
             raise LogicError("No mod file for C++.")
 
-        file_name = tf_spec.output_filenames[
-            TaskFunction.DATA_ITEM_KEY
-        ]["module"]
+        file_name = \
+            tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
+
         super().__init__(
-            tf_spec, "", file_name,
-            indent, "Milhoja DataPacket C2F Module",
+            tf_spec, "", file_name, indent, "Milhoja DataPacket C2F Module",
             logger
         )
         self.INDENT = " " * indent
-        self._externals = external_args
+        self._externals = {
+            item: tf_spec.argument_specification(item)
+            for item in tf_spec.dummy_arguments
+            if tf_spec.argument_specification(item)["source"] == ext_arg
+        }
 
     def generate_header_code(self, destination, overwrite):
-        raise LogicError(
-            "generate_header_code not implemented for module generator."
-        )
+        raise LogicError("No header file for data item module.")
 
     def generate_source_code(self, destination, overwrite):
+        """
+        Generates the fortran source code for the module interface file for
+        the DataPacket.
+
+        :param destination: The destination folder of the mod file.
+        :param overwrite: Overwrite flag for generation.
+        """
         destination_path = Path(destination).resolve()
         if not destination_path.is_dir():
             raise FileNotFoundError(
@@ -50,6 +62,10 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             self._warn(f"{mod_path} already exists.")
             if not overwrite:
                 raise FileExistsError("Overwrite is set to False.")
+
+        self._log(
+            f"Generating mod file at {str(mod_path)}", LOG_LEVEL_BASIC
+        )
 
         with open(mod_path, 'w') as module:
             module_name = self._tf_spec.data_item_module_name
@@ -72,9 +88,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             arg_list = []
             var_declarations = []
             for var, data in self._externals.items():
-                if data["source"] == INTERNAL_ARGUMENT:
-                    continue
                 dtype = data["type"]
+                # dtype = FORTRAN_TYPE_MAPPING[dtype]
                 name = f"C_{var}"
                 arg_list.append(name)
                 var_declarations.append(
@@ -82,7 +97,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
                     f"intent(IN), value :: {name}"
                 )
 
-            args = f' &\n{self.INDENT * 3}'.join(arg_list)
+            args = f', &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_packet &\n"
@@ -136,4 +151,4 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
 
             module.write(f"{self.INDENT * 2}end function {release}\n")
             module.write(f"{self.INDENT}end interface\n\n")
-            module.write(f"end module {module_name}")
+            module.write(f"end module {module_name}\n")

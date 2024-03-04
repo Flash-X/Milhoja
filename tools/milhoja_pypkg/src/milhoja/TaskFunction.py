@@ -2,13 +2,12 @@ import json
 
 from pathlib import Path
 
-from .constants import (
-    MILHOJA_JSON_FORMAT, CURRENT_MILHOJA_JSON_VERSION,
-    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    TILE_ARGUMENTS_ALL
-)
 from .LogicError import LogicError
+from . import (
+    EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
+    CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL
+)
 
 
 class TaskFunction(object):
@@ -23,6 +22,8 @@ class TaskFunction(object):
     @staticmethod
     def from_milhoja_json(filename):
         """
+        Loads a TaskFunction specification from a json using the milhoja
+        json format.
         """
         # ----- ERROR CHECK ARGUMENTS
         fname = Path(filename).resolve()
@@ -114,6 +115,9 @@ class TaskFunction(object):
             assert c2f_src != ""
             assert fortran_tf_src != ""
 
+            # todo::
+            #    * Any generated code for fortran should have a module file.
+
             filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
             filenames[TaskFunction.FORTRAN_TF_KEY] = {
                 "source": fortran_tf_src
@@ -194,38 +198,20 @@ class TaskFunction(object):
         return f"delete_{self.name}_packet_c"
 
     @property
-    def data_item_module_name(self):
-        if self.language.lower() != "fortran":
-            raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
-        return f"{self.data_item_class_name}_c2f_mod"
-
-    @property
     def release_stream_C_function(self):
-        """
-        .. todo::
-            * The release extra streams function always gets created
-              even if no extra streams are used. The function source code
-              is adjusted to raise an error if it is called, but it is
-              generated regardless. A small optimization would be to not
-              have this function be generated if it's not necessary.
-        """
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
-        elif self.n_streams <= 1:
-            raise LogicError("No extra streams needed")
 
         return f"release_{self.name}_extra_queue_c"
-    
+
     @property
     def cpp2c_layer_name(self):
         if self.language.lower() != "fortran":
             raise LogicError("No Cpp2C layer for non-fortran TF.")
         return f"{self.name}_Cpp2C"
-    
+
     @property
     def c2f_layer_name(self):
         if self.language.lower() != "fortran":
@@ -267,6 +253,15 @@ class TaskFunction(object):
             raise LogicError("No Fortran arguments for non-Fortran TF")
         return (self.fortran_host_dummy_arguments +
                 self.fortran_device_dummy_arguments)
+        return f"delete_{self.name}_packet_c"
+
+    @property
+    def data_item_module_name(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No F-to-C++ layer for non-Fortran TF")
+        elif self.data_item.lower() != "datapacket":
+            raise LogicError("Data item is not a data packet")
+        return f"{self.data_item_class_name}_c2f_mod"
 
     @property
     def grid_dimension(self):
@@ -307,10 +302,11 @@ class TaskFunction(object):
         src_to_adjust = [
             EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT
         ]
-        if ((spec["source"].lower() in src_to_adjust) and
-                (spec["type"].lower() == "real") and
-                (self.processor.lower() == "cpu")):
-            spec["type"] = "milhoja::Real"
+        pcsr = self.processor.lower()
+        if spec["source"].lower() in src_to_adjust:
+            if pcsr == "cpu":
+                if spec["type"].lower() == "real":
+                    spec["type"] = "milhoja::Real"
 
         return spec
 
@@ -469,7 +465,6 @@ class TaskFunction(object):
                     combine_bounds[1] or TILE_ARRAY_BOUNDS_ARGUMENT in args
 
         return combine_bounds
-
 
     def subroutine_interface_file(self, subroutine):
         """
