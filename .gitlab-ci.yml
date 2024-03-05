@@ -37,12 +37,15 @@ variables:
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
+ CONDA_ENV_NAME:         Milhoja_py39
+ CONDA_PYTHON_VERSION:   3.9
 
 test_milhoja_pypkg:
  stage: test
  script:
  ##-- Setup all environment variables
  - echo $PWD
+ - echo $SHELL
  - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
@@ -56,12 +59,13 @@ test_milhoja_pypkg:
  - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - ls $CGKIT_PATH
  ##-- Install tox
- - module load python/3.8.10-sfhmzp4
- - rm -rf $CI_BASE_PATH/toxbase
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
  - which python
- - python -m venv $CI_BASE_PATH/toxbase
- - source $CI_BASE_PATH/toxbase/bin/activate
- - which python
+ - python --version
  - which pip
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
@@ -71,6 +75,7 @@ test_milhoja_pypkg:
  - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
  - tox -r -e coverage,report,check
  - popd
+ - conda deactivate
  ##-- Save artifacts
  - tar cvfz milhoja_pypkg_coverage.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/htmlcov
  artifacts:
