@@ -12,6 +12,12 @@
 #include <AMReX_IntVect.H>
 #endif
 
+#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
+#define ACC_ROUTINE_FOR_METH
+#endif
+#endif
+
 namespace milhoja {
 
 class RealVect;
@@ -82,7 +88,7 @@ class IntVect
     IntVect& operator=(const IntVect&) = delete;
 
     //! Return first element of vector
-#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     int I() const {
@@ -90,7 +96,7 @@ class IntVect
     }
 
     //! Return second element of vector, or 0 if MILHOJA_NDIM<2
-#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     int J() const {
@@ -104,7 +110,7 @@ class IntVect
     }
 
     //! Return third element of vector, or 0 if MILHOJA_NDIM<3
-#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     int K() const {
