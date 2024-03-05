@@ -9,24 +9,27 @@ from collections import OrderedDict
 from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
-from .parse_helpers import parse_lbound_f
-from .parse_helpers import parse_extents
-from . import GRID_DATA_FUNC_MAPPING
-from . import SOURCE_DATATYPE_MAPPING
 from . import C2F_TYPE_MAPPING
-from .TemplateUtility import TemplateUtility
+from .parse_helpers import (
+    parse_lbound_f, parse_extents, get_array_size, get_initial_index
+)
 from . import (
     EXTERNAL_ARGUMENT,
+    LBOUND_ARGUMENT,
     TILE_LO_ARGUMENT,
     TILE_HI_ARGUMENT,
     TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT,
-    F_HOST_EQUIVALENT,
     THREAD_INDEX_VAR_NAME,
     GRID_DATA_ARGUMENT,
     SCRATCH_ARGUMENT,
     TILE_INTERIOR_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT
+    TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_ARGUMENTS_ALL,
+    VECTOR_ARRAY_EQUIVALENT,
+    SOURCE_DATATYPES,
+    GRID_DATA_EXTENTS,
+    GRID_DATA_LBOUNDS
 )
 
 
@@ -75,6 +78,8 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
 
     def _get_external_info(self, arg, arg_spec) -> ConversionData:
         dtype = arg_spec["type"]
+        if dtype == "milhoja::Real":
+            dtype = "real"
         shape = \
             parse_extents(arg_spec["extents"]) if arg_spec["extents"] else []
         return ConversionData(
@@ -85,79 +90,66 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             shape=shape
         )
 
-    def _get_tmdata_info(self, arg, arg_spec, saved=set()) \
-    -> Optional[ConversionData]:
-        source = arg_spec["source"]
-        assoc_array = arg_spec.get("array", None)
+    def _get_tmdata_info(self, arg, arg_spec) -> ConversionData:
+        src = arg_spec["source"]
+        name_key = arg
+        dtype = \
+            VECTOR_ARRAY_EQUIVALENT.get(SOURCE_DATATYPES[src], SOURCE_DATATYPES[src])
+        dtype = C2F_TYPE_MAPPING[dtype]
+        shape = ["MILHOJA_MDIM"]
+        if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
+            name_key = src
+            shape.insert(0, "2")
 
-        # array lbound argument.
-        if assoc_array:
-            array_arg_spec = self._tf_spec.argument_specification(assoc_array)
-            lbound = array_arg_spec.get("lbound", None)
-            lbound = lbound if lbound else "(tile_lbound, 1)"
-            bound_size = len(parse_lbound_f(lbound))
-            return ConversionData(
-                cname=f"C_{arg}",
-                fname=f"F_{arg}",
-                dtype="integer",
-                is_pointer=True,
-                shape=[str(bound_size)]
-            )
-        # otherwise normal mdata argument
+        return ConversionData(
+            cname=f"C_{name_key}",
+            fname=f"F_{name_key}",
+            dtype=dtype,
+            is_pointer=True,
+            shape=shape
+        )
+
+    def _get_lbound_info(self, arg, arg_spec) -> ConversionData:
+        arr = arg_spec["array"]
+        array_arg_spec = self._tf_spec.argument_specification(arr)
+        arr_src = array_arg_spec["source"]
+        lbound = ""
+
+        if arr_src == GRID_DATA_ARGUMENT:
+            st_idx = array_arg_spec["structure_index"][0].upper()
+            vars_in = array_arg_spec.get('variables_in', None)
+            vars_out = array_arg_spec.get('variables_out', None)
+            init = get_initial_index(vars_in, vars_out)
+            lbound = GRID_DATA_LBOUNDS[st_idx].format(init)
         else:
-            combine_bounds = self._tf_spec.use_combined_array_bounds
-            if combine_bounds[0] and \
-            (source == TILE_LO_ARGUMENT or source == TILE_HI_ARGUMENT):
-                if TILE_INTERIOR_ARGUMENT in saved:
-                    return None
-                saved.add(TILE_INTERIOR_ARGUMENT)
-                return ConversionData(
-                    cname=f"C_{TILE_INTERIOR_ARGUMENT}",
-                    fname=f"F_{TILE_INTERIOR_ARGUMENT}",
-                    dtype="integer",
-                    is_pointer=True,
-                    shape=["2", "MILHOJA_MDIM"]
-                )
-            elif combine_bounds[1] and \
-            (source == TILE_LBOUND_ARGUMENT or source == TILE_UBOUND_ARGUMENT):
-                if TILE_ARRAY_BOUNDS_ARGUMENT in saved:
-                    return None
-                saved.add(TILE_ARRAY_BOUNDS_ARGUMENT)
-                return ConversionData(
-                    cname=f"C_{TILE_ARRAY_BOUNDS_ARGUMENT}",
-                    fname=f"F_{TILE_ARRAY_BOUNDS_ARGUMENT}",
-                    dtype="integer",
-                    is_pointer=True,
-                    shape=["2", "MILHOJA_MDIM"]
-                )
-            else:
-                dtype = F_HOST_EQUIVALENT[SOURCE_DATATYPE_MAPPING[source]]
-                dtype = C2F_TYPE_MAPPING[dtype]
-                return ConversionData(
-                    cname=f"C_{arg}",
-                    fname=f"F_{arg}",
-                    dtype=dtype,
-                    is_pointer=True,
-                    shape=["MILHOJA_MDIM"]
-                )
+            lbound = array_arg_spec[LBOUND_ARGUMENT]
+
+        lbound = parse_lbound_f(lbound)
+        lbound = [item.replace("tile_", "") for item in lbound]
+        bound_size = len(lbound)
+        return ConversionData(
+            cname=f"C_{arg}",
+            fname=f"F_{arg}",
+            dtype="integer",
+            is_pointer=True,
+            shape=[str(bound_size)]
+        )
 
     def _get_grid_info(self, arg, arg_spec) -> ConversionData:
-        dtype = SOURCE_DATATYPE_MAPPING[arg_spec["source"]]
-
+        dtype = SOURCE_DATATYPES[arg_spec["source"]]
         mask_in = arg_spec.get("variables_in", [])
         mask_out = arg_spec.get("variables_out", [])
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        st_index = arg_spec["structure_index"][0]
+        size = get_array_size(mask_in, mask_out)
+        st_index = arg_spec["structure_index"][0].upper()
         block_size = self._tf_spec.block_interior_shape
-        x = '({0}) + 1' if st_index.lower() == "fluxx" else '{0}'
-        y = '({0}) + 1' if st_index.lower() == "fluxy" else '{0}'
-        z = '({0}) + 1' if st_index.lower() == "fluxz" else '{0}'
-
         gcells = self._tf_spec.n_guardcells
+        grid_exts = GRID_DATA_EXTENTS
+
         shape = [
-            x.format(f'{block_size[0]} + 2 * {gcells} * MILHOJA_K1D'),
-            y.format(f'{block_size[1]} + 2 * {gcells} * MILHOJA_K2D'),
-            z.format(f'{block_size[2]} + 2 * {gcells} * MILHOJA_K3D'),
+            * [
+                ext.format(block_size[i], gcells)
+                for i,ext in enumerate(grid_exts[st_index])
+            ],
             str(size)
         ]
         return ConversionData(
@@ -170,6 +162,9 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
 
     def _get_scratch_info(self, arg, arg_spec) -> ConversionData:
         dtype = arg_spec["type"]
+        if dtype == "milhoja::Real":
+            dtype = "real"
+        dtype = C2F_TYPE_MAPPING[dtype]
         shape = parse_extents(arg_spec["extents"])
         return ConversionData(
             cname=f"C_{arg}",
@@ -197,14 +192,19 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             for arg in arg_list:
                 arg_spec = self._tf_spec.argument_specification(arg)
                 conversion_info = None
-                if arg_spec["source"] == EXTERNAL_ARGUMENT:
+                src = arg_spec["source"]
+                if src == EXTERNAL_ARGUMENT:
                     conversion_info = self._get_external_info(arg, arg_spec)
-                elif arg_spec["source"].startswith("tile_"):
+                elif src in TILE_ARGUMENTS_ALL:
                     conversion_info = self._get_tmdata_info(arg, arg_spec)
-                elif arg_spec["source"] == GRID_DATA_ARGUMENT:
+                elif src == LBOUND_ARGUMENT:
+                    conversion_info = self._get_lbound_info(arg, arg_spec)
+                elif src == GRID_DATA_ARGUMENT:
                     conversion_info = self._get_grid_info(arg, arg_spec)
-                elif arg_spec["source"] == SCRATCH_ARGUMENT:
+                elif src == SCRATCH_ARGUMENT:
                     conversion_info = self._get_scratch_info(arg, arg_spec)
+                else:
+                    raise NotImplementedError(f"{src} not implemented.")
 
                 if conversion_info:
                     arg_conversion_info.append(conversion_info)
@@ -216,7 +216,10 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             arg_list = f', &\n{self.INDENT}'.join([
                 info.cname for info in arg_conversion_info
             ])
-            c2f.write(f'{self.INDENT}{arg_list} &\n) bind(c)\n')
+            c2f.write(
+                f'{self.INDENT}{arg_list} &\n)'
+                f'bind(c, name="{routine_name}")\n'
+            )
 
             c2f.write(
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
