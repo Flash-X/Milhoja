@@ -58,7 +58,7 @@ test_milhoja_pypkg:
  - rm -rf $CGKIT_PATH
  - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - ls $CGKIT_PATH
- ##-- Install tox
+ ##-- Create Conda env
  - module load anaconda3/2021.05
  - eval "$(conda 'shell.bash' 'hook')"
  - conda env remove -n $CONDA_ENV_NAME || true
@@ -67,6 +67,7 @@ test_milhoja_pypkg:
  - which python
  - python --version
  - which pip
+ ##-- Install tox
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
  - pip install tox
@@ -88,6 +89,7 @@ test_gnu:
  script:
  ##-- Setup all environment variables
  - echo $PWD
+ - echo $SHELL
 # UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
 # - export CI_BASE_PATH=/tmp/milhoja
 # - rm -rf $CI_BASE_PATH
@@ -137,12 +139,14 @@ test_gnu:
  # installation of the Sedov python package and therefore ensure that we have a clean install
  # of that package.
  # TODO: Use a python setup locally just for this project?
- - module load python/3.8.10-sfhmzp4
- - rm -rf ./pyenv
+ ##-- Create Conda env
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
  - which python
- - python -m venv ./pyenv
- - source ./pyenv/bin/activate
- - which python
+ - python --version
  - which pip
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
@@ -195,6 +199,7 @@ test_gnu:
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - conda deactivate
 
 test_doxygen:
  stage: test
@@ -208,6 +213,7 @@ test_sphinx:
  script:
  ##-- Setup all environment variables
  - echo $PWD
+ - echo $SHELL
  - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
  - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
@@ -220,14 +226,16 @@ test_sphinx:
  - rm -rf $CGKIT_PATH
  - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - ls $CGKIT_PATH
- ##-- Install tox
- - module load python/3.8.10-sfhmzp4
- - rm -rf $CI_BASE_PATH/toxbase
+ ##-- Create Conda env
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
  - which python
- - python -m venv $CI_BASE_PATH/toxbase
- - source $CI_BASE_PATH/toxbase/bin/activate
- - which python
+ - python --version
  - which pip
+ ##-- Install tox
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
  - pip install tox
@@ -236,6 +244,7 @@ test_sphinx:
  - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
  - tox -r -e html,pdf
  - popd
+ - conda deactivate
  ##-- Save artifacts
  - tar cvfz milhoja_pypkg_sphinx.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/docs/build
  artifacts:
