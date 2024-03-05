@@ -25,6 +25,8 @@
 
 #include "_param:data_item_header_file_name.h"
 
+using real = milhoja::Real;
+
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     void _param:c2f_function_name (
