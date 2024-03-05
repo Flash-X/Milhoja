@@ -141,6 +141,7 @@ F2C_TYPE_MAPPING = {
 C2F_TYPE_MAPPING = {
     "bool": "logical",
     "int": "integer",
+    "unsigned int": "integer",
     "real": "real"
 }
 

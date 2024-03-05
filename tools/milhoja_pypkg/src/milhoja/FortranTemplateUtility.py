@@ -4,7 +4,9 @@ from copy import deepcopy
 from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
-from .parse_helpers import parse_lbound_f
+from .parse_helpers import (
+    parse_lbound_f, get_initial_index, get_array_size
+)
 from .TemplateUtility import TemplateUtility
 from . import (
     EXTERNAL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_UBOUND_ARGUMENT,
@@ -67,6 +69,10 @@ class FortranTemplateUtility(TemplateUtility):
         """
         Iterates the tilemetadata section of the JSON.
 
+        todo::
+            * This code desperately needs to be refactored.
+            * lbound arrays should be separated out of this function.
+
         :param dict connectors: The dict containing all connectors for cgkit.
         :param dict size_connectors: The dict containing all size connectors
                                      for variable sizes.
@@ -122,7 +128,7 @@ class FortranTemplateUtility(TemplateUtility):
                     # get starting array value
                     vars_in = array_spec.get('variables_in', None)
                     vars_out = array_spec.get('variables_out', None)
-                    init = self.get_initial_index(vars_in, vars_out)
+                    init = get_initial_index(vars_in, vars_out)
                     lbound = GRID_DATA_LBOUNDS[struct].format(init)
                     lbound = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
@@ -295,7 +301,7 @@ class FortranTemplateUtility(TemplateUtility):
             out_mask = data['variables_out']
             dtype = data['type']
             index_space = self.DEFAULT_INDEX_SPACE
-            array_size = self.get_array_size(in_mask, out_mask)
+            array_size = get_array_size(in_mask, out_mask)
 
             extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             unks = f'{str(array_size)} + 1 - {str(index_space)}'

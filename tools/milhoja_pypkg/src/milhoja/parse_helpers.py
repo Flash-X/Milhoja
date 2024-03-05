@@ -1,8 +1,10 @@
 import re
 
+from sys import maxsize
+
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT
+    TILE_UBOUND_ARGUMENT, LogicError
 )
 
 
@@ -148,67 +150,6 @@ def parse_lbound(lbound: str) -> list:
     results = [item for item in results if item]
     return results
 
-# todo:: 
-#   * We have to force the calling code to replace any variables
-#     that are used in the lbound with their source name, and then replace
-#     the source names with the original variable name when the list is
-#     returned.
-#   * This parser does not handle scalar addition/mult/sub/div with metadata.
-#     and does not yet throw an error when encountering it.
-def parse_lbound_f(lbound: str) -> list:
-    keywords = {
-        TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-        TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
-    }
-    
-    # just use python to throw out all numeric values because I'm bad at
-    # regular expressions.
-    words = re.findall(r'\b(?:[\w]+)\b', lbound)
-    words = [word for word in words if not word.isnumeric()]
-    for word in words:
-        if word not in keywords:
-            raise NotImplementedError(
-                f"{lbound} contained word not in {keywords}"
-            )
-
-    # find everything between a single set of parens to find math symbols.
-    regexr = r'\(([^\)]+)\)'
-    matches = re.findall(regexr, lbound)
-    math_sym_string = lbound
-    for match in matches:
-        math_sym_string.replace(match, "")
-    symbols = re.findall(r'[\+\-\/\*]', math_sym_string)
-
-    # Replace each potential bound keyword inside of the string with its parts
-    for idx,match in enumerate(matches):
-        for keyword in keywords:
-            if keyword in match:
-                matches[idx] = match.replace(
-                    keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
-                )
-
-    iterables = [match.split(',') for match in matches]
-    # todo:: check if all lists are the same length.
-    if not iterables:
-        raise RuntimeError(f"Nothing in lbound {lbound}.")
-
-    size = len(iterables[0])
-    if not all([len(item) == size for item in iterables]):
-        raise RuntimeError(f"Different lbound part sizes. {lbound}")
-
-    # combine all lbound parts into 1.
-    combined_bound = []
-    for idx, values in enumerate(list(zip(*iterables))):
-        combined_bound.append(values[0])
-        if symbols:
-            for i in range(1, len(values)):
-                symbol = symbols[i-1]
-                combined_bound[idx] += f'{symbol}{values[i]}'
-
-    # remove whitespace
-    combined_bound = [item.strip() for item in combined_bound]
-    return combined_bound
-
 
 def parse_lbound_f(lbound: str) -> list:
     """
@@ -352,3 +293,79 @@ def parse_extents(extents: str, src=None) -> list:
         )
 
     return extents_list
+
+
+def get_initial_index(vars_in: list, vars_out: list) -> int:
+    """
+    Returns the initial index based on a given variable masking.
+    :param list vars_in: The variable masking for copying into the packet.
+    :param list vars_out: The variable masking for copying out.
+    :return: The size of the array given the variable masking.
+    :rtype: int
+    """
+    starting = maxsize
+    if not vars_in and not vars_out:
+        raise TypeError("No variable masking for array in tf_spec.")
+
+    starting_in = None
+    if vars_in:
+        starting_in = min(vars_in)
+        starting = starting_in
+
+    starting_out = None
+    if vars_out:
+        starting_out = min(vars_out)
+        starting = starting_out
+
+    if starting_in and starting_out:
+        assert starting_in
+        assert starting_out
+        starting = min(starting_in, starting_out)
+
+    if starting == maxsize:
+        raise LogicError("Starting value for array is too large.")
+
+    return starting
+
+
+def get_array_size(vars_in: list, vars_out: list) -> int:
+    """
+    Returns the largest array size given a variable mask for copying in
+    and copying out.
+
+    :param list vars_in: The variable masking for copying into the packet.
+    :param list vars_out: The variable masking for copying out.
+    :return: The size of the array given the variable masking.
+    :rtype: int
+    """
+    largest = -maxsize
+    if not vars_in and not vars_out:
+        raise TypeError("No variable masking for given array in tf spec.")
+
+    largest_in = None
+    if vars_in:
+        largest_in = max(vars_in)
+        largest = largest_in
+
+    largest_out = None
+    if vars_out:
+        largest_out = max(vars_out)
+        largest = largest_out
+
+    if vars_in and vars_out:
+        assert largest_in is not None
+        assert largest_out is not None
+
+        # No test cases for a mariable mask in an out array that's
+        # larger than the in mask. Need to create test cases or have
+        # an existing use case.
+        if largest_out > largest_in:
+            raise NotImplementedError(
+                "No test cases when vars_out is larger than vars_in!"
+            )
+
+        largest = max([largest_in, largest_out])
+
+    if largest == -maxsize:
+        raise LogicError("Negative array size, check variable masking.")
+    return largest
