@@ -151,7 +151,7 @@ def parse_lbound(lbound: str) -> list:
     return results
 
 
-def parse_lbound_f(lbound: str) -> list:
+def parse_lbound_f(lbound: str):
     """
     Parses a given lbound string and returns a list containing all parts of
     the lbound for use in packing information.
@@ -190,6 +190,8 @@ def parse_lbound_f(lbound: str) -> list:
           limitations of regular expressions. A full lbound parser would use a
           tokenizer to extract the full expression.
         * Write a clear set of rules in the docs of what a valid lbound is.
+
+    :param str lbound: The lbound string to parse.
     """
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
@@ -199,6 +201,7 @@ def parse_lbound_f(lbound: str) -> list:
     # just use python to throw out all numeric values because I'm bad at
     # regular expressions.
     words = re.findall(r'\b(?:[\w]+)\b', lbound)
+    # todo:: Probably not necessary
     words = [word for word in words if not word.isnumeric()]
     for word in words:
         if word not in keywords:
@@ -246,7 +249,7 @@ def parse_lbound_f(lbound: str) -> list:
 
     # remove whitespace
     combined_bound = [item.strip() for item in combined_bound]
-    return combined_bound
+    return combined_bound, words
 
 
 def parse_extents(extents: str, src=None) -> list:

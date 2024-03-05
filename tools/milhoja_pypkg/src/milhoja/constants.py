@@ -145,6 +145,13 @@ C2F_TYPE_MAPPING = {
     "real": "real"
 }
 
+TILE_KEY_MAPPING = {
+    TILE_LO_ARGUMENT: "",
+    TILE_HI_ARGUMENT: "",
+    TILE_LBOUND_ARGUMENT: "",
+    TILE_UBOUND_ARGUMENT: ""
+}
+
 # Task functions can include subroutines that take as an actual argument
 # the unique thread index of the runtime thread that is effectively calling
 # it.  Since this value is purely internal and is passed in, it is managed
@@ -153,3 +160,14 @@ THREAD_INDEX_ARGUMENT = "milhoja_thread_index"
 # JSON generators need to insert the same variable name that the TF code
 # generators use.
 THREAD_INDEX_VAR_NAME = "threadIndex"
+
+# TODO:: Should we have a specific list of type aliases that
+#        we can include to avoid having to constantly manipulate strings?
+C_TYPE_ALIASES = {
+    "int": "",
+    "milhoja::Real": "",
+    "bool": "",
+    "integer": "using integer = int;",
+    "real": "using real = milhoja::Real;",
+    "logical": "using logical = bool;"
+}
