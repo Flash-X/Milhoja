@@ -37,8 +37,8 @@ variables:
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
- CONDA_ENV_NAME:         Milhoja_py39
- CONDA_PYTHON_VERSION:   3.9
+ CONDA_ENV_NAME:         "Milhoja_py39"
+ CONDA_PYTHON_VERSION:   "3.9"
 
 test_milhoja_pypkg:
  stage: test
