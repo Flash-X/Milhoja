@@ -4,21 +4,27 @@ from . import AbcCodeGenerator
 from . import EXTERNAL_ARGUMENT as ext_arg
 from . import TaskFunction
 from . import LogicError
-from . import LOG_LEVEL_BASIC
+from . import (LOG_LEVEL_BASIC)
 
 
-class DataPacketC2FModuleGenerator(AbcCodeGenerator):
+class TileWrapperModGenerator(AbcCodeGenerator):
     """
     Responsible for generating the module interface file for use by the
     fortran task function and interoperability layers. Nothing is generated
     for C++ based task functions.
-    """
 
+    todo::
+        * This is very similar to the DataPacket version of the module generator
+          class. Is it possible to combine the two?
+    """
     # C2F Module generator uses its own specific type mapping for the
     # fortran interface.
-    _TYPE_MAPPING = {
+    # TODO: We should not have to do this...
+    _CUSTOM_TYPE_MAPPING = {
+        "milhoja::Real": "real(MILHOJA_REAL)",
         "real": "real(MILHOJA_REAL)",
         "int": "integer(MILHOJA_INT)",
+        "integer": "integer(MILHOJA_INT)",
         "bool": "logical"
     }
 
@@ -30,8 +36,9 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
         log_tag = f"Milhoja {tf_spec.data_item_class_name} Module Generator"
 
-        super().__init__(tf_spec, "", file_name, indent, log_tag, logger )
+        super().__init__(tf_spec, None, file_name, indent, log_tag, logger )
         self.INDENT = " " * indent
+        # order is important
         self._externals = {
             item: tf_spec.argument_specification(item)
             for item in tf_spec.dummy_arguments
@@ -69,7 +76,8 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module_name = self._tf_spec.data_item_module_name
             instance = self._tf_spec.instantiate_packet_C_function
             delete = self._tf_spec.delete_packet_C_function
-            release = self._tf_spec.release_stream_C_function
+            acquire = self._tf_spec.acquire_scratch_C_function
+            release = self._tf_spec.release_scratch_C_function
 
             # declare interface functions for time advance unit
             module.write(f"module {module_name}\n")
@@ -77,6 +85,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT}private\n\n")
             module.write(f"{self.INDENT}public :: {instance}\n")
             module.write(f"{self.INDENT}public :: {delete}\n")
+            module.write(f"{self.INDENT}public :: {acquire}\n")
             module.write(f"{self.INDENT}public :: {release}\n\n")
 
             # write functions
@@ -91,15 +100,16 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
                 name = f"C_{var}"
                 arg_list.append(name)
                 var_declarations.append(
-                    f"{self._TYPE_MAPPING[dtype]}, "
+                    f"{self._CUSTOM_TYPE_MAPPING.get(dtype, dtype)}, "
                     f"intent(IN), value :: {name}"
                 )
 
             args = f', &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
-                f", &\n{self.INDENT*3}C_packet &\n"
-                f"{self.INDENT * 2})result(C_ierr) bind (c)\n"
+                f", &\n{self.INDENT*3}C_wrapper &\n"
+                f"{self.INDENT * 2}) result(C_ierr) &\n"
+                f'{self.INDENT*2}bind (c, name="{instance}")\n'
             )
             module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
             module.write(
@@ -109,44 +119,37 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             vars = f'\n{self.INDENT * 3}'.join(var_declarations)
             module.write(f"{self.INDENT * 3}" + vars + "\n")
             module.write(
-                f"{self.INDENT * 3}type(C_PTR), intent(IN) :: C_packet\n"
+                f"{self.INDENT * 3}type(C_PTR), intent(IN) :: C_wrapper\n"
             )
             module.write(f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n")
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
 
             module.write(f"{self.INDENT * 2}function {delete}(")
-            module.write("C_packet) result(C_ierr) bind (c)\n")
-
+            module.write(
+                f'C_wrapper) result(C_ierr) &\n{self.INDENT*2}'
+                f'bind (c, name="{delete}")\n'
+            )
             module.writelines([
                 f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
                 f"{self.INDENT * 3}"
                 "use milhoja_types_mod, ONLY : MILHOJA_INT\n",
                 f"{self.INDENT * 3}"
-                "type(C_PTR), intent(IN), value :: C_packet\n"
+                "type(C_PTR), intent(IN), value :: C_wrapper\n"
                 f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n"
             ])
+            module.write(f"{self.INDENT * 2}end function {delete}\n\n")
 
-            module.write(f"{self.INDENT * 2}end function {delete}\n")
-            module.write(f"{self.INDENT}end interface\n\n")
-            # end
+            for funct in [acquire, release]:
+                module.write(f"{self.INDENT*2}function {funct}()")
+                module.write(" result(C_ierr) &\n")
+                module.write(f'{self.INDENT*2}bind (c, name="{funct}")\n')
 
-            # write interface release function for task function
-            module.write(f"{self.INDENT}interface\n")
-            module.write(f"{self.INDENT * 2}function {release}(")
-            module.write("C_packet, C_id) result(C_ierr) bind(c)\n")
+                # write function
+                module.writelines([
+                    f"{self.INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT"
+                    f"\n{self.INDENT*3}integer(MILHOJA_INT) :: C_ierr\n"
+                ])
+                module.write(f"{self.INDENT*2}end function {funct}\n")
 
-            # write function
-            module.writelines([
-                f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
-                f"{self.INDENT * 3}"
-                "use milhoja_types_mod, ONLY : MILHOJA_INT\n",
-                f"{self.INDENT * 3}"
-                "type(C_PTR), intent(IN), value :: C_packet\n"
-                f"{self.INDENT * 3}"
-                "integer(MILHOJA_INT), intent(IN), value :: C_id\n"
-                f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n"
-            ])
-
-            module.write(f"{self.INDENT * 2}end function {release}\n")
             module.write(f"{self.INDENT}end interface\n\n")
             module.write(f"end module {module_name}\n")
