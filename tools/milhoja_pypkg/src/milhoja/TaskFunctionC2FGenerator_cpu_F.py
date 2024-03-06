@@ -124,7 +124,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         else:
             lbound = array_arg_spec[LBOUND_ARGUMENT]
 
-        lbound = parse_lbound_f(lbound)
+        lbound,_ = parse_lbound_f(lbound)
         lbound = [item.replace("tile_", "") for item in lbound]
         bound_size = len(lbound)
         return ConversionData(

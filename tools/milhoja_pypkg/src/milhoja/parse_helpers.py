@@ -198,6 +198,8 @@ def parse_lbound_f(lbound: str):
         * Write a clear set of rules in the docs of what a valid lbound is.
 
     :param str lbound: The lbound string to parse.
+    :return: A tuple containing the list of the parsed expression and the list
+             of keywords found within the expression.
     """
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
