@@ -24,6 +24,8 @@
 
 #include "Tile_cpu_tf_hydro.h"
 
+using real = milhoja::Real;
+
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     void cpu_tf_hydro_c2f (
