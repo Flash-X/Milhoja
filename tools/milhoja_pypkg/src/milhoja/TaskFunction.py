@@ -183,19 +183,15 @@ class TaskFunction(object):
     def instantiate_packet_C_function(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
-
-        return f"instantiate_{self.name}_packet_c"
+        di = "packet" if self.data_item.lower() == "datapacket" else "wrapper"
+        return f"instantiate_{self.name}_{di}_c"
 
     @property
     def delete_packet_C_function(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
-
-        return f"delete_{self.name}_packet_c"
+        di = "packet" if self.data_item.lower() == "datapacket" else "wrapper"
+        return f"delete_{self.name}_{di}_c"
 
     @property
     def release_stream_C_function(self):
@@ -203,7 +199,6 @@ class TaskFunction(object):
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
-
         return f"release_{self.name}_extra_queue_c"
 
     @property
@@ -275,8 +270,6 @@ class TaskFunction(object):
     def data_item_module_name(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
         return f"{self.data_item_class_name}_c2f_mod"
 
     @property
