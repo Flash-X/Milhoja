@@ -39,7 +39,9 @@ from .constants import (
     GRID_DATA_PTRS, SOURCE_DATATYPES, F2C_TYPE_MAPPING,
     THREAD_INDEX_ARGUMENT,
     THREAD_INDEX_VAR_NAME,
-    SOURCE_DATATYPES
+    SOURCE_DATATYPES,
+    SUPPORTED_LANGUAGES,
+    SUPPORTED_PROCESSORS
 )
 
 # Custom exceptions
@@ -62,6 +64,7 @@ from .TaskFunction import TaskFunction
 from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
+from .TileWrapperModGenerator import TileWrapperModGenerator
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .DataPacketGenerator import DataPacketGenerator
