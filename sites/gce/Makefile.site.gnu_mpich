@@ -10,7 +10,7 @@ CXXCOMPNAME  = gnu
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -O3
-CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
+CXXFLAGS_DEBUG   = -g3 -O0 -DGRID_LOG # -DDEBUG_RUNTIME
 
 CUCOMP       =
 CUFLAGS_PROD =
@@ -22,7 +22,7 @@ F90FLAGS_PROD  = \
 	-finit-real=snan -finit-derived \
 	-finline-functions
 F90FLAGS_DEBUG = \
-	-g -O0 -cpp -fbacktrace \
+	-g3 -O0 -cpp -fbacktrace \
 	-fdefault-real-8 -fdefault-double-8 \
 	-finit-real=snan -finit-derived \
 	-fbounds-check \
@@ -31,7 +31,7 @@ F90FLAGS_DEBUG = \
 	-Wsurprising -Wconversion -Wunderflow \
 	-fimplicit-none -fstack-protector-all
 
-LDFLAGS_STD = -lpthread -lstdc++ -lgfortran
+LDFLAGS_STD = -g3 -lpthread -lstdc++ -lgfortran
 
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
 CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
