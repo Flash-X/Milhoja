@@ -16,7 +16,7 @@
         "cpp_source": "cpu_tf_ic.cpp",
         "c2f_source": "",
         "fortran_source": "",
-        "variable_index_base": 1,
+        "variable_index_base": 0,
         "argument_list": ["tile_lbound",
                           "tile_ubound",
                           "tile_xCenters",
