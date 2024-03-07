@@ -6,9 +6,9 @@ from . import AbcCodeGenerator
 from . import TaskFunction
 from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
-    TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT,
-    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+    TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT,
+    C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 
@@ -25,12 +25,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
     """
     __LOG_TAG = "Milhoja Fortran/OpenACC Task Function"
 
-    def __init__(
-            self,
-            tf_spec,
-            indent,
-            logger
-            ):
+    def __init__(self, tf_spec, indent, logger):
         """
         Construct an object for use with the task function specified by the
         given specification object.
@@ -61,20 +56,6 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         ]
         for msg in msgs_all:
             self._log(msg, LOG_LEVEL_BASIC_DEBUG)
-
-    def __parse_extents_spec(self, spec):
-        """
-        .. todo::
-            * This is generic and really should be in a class for accessing a
-              task function specification.  Make an ArrayInfo class that
-              TaskFunction returns for extents instead of string?  Should that
-              class also manage lbound?
-        """
-        extents = spec.strip()
-        assert extents.startswith("(")
-        assert extents.endswith(")")
-        extents = extents.lstrip("(").rstrip(")")
-        return [int(e) for e in extents.split(",")]
 
     def generate_header_code(self, destination, overwrite):
         raise LogicError("Fortran task functions do not have a header")
@@ -126,7 +107,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT}implicit none\n")
             fptr.write(f"{INDENT}private\n")
             fptr.write("\n")
-            fptr.write(f"{INDENT}public :: {self._tf_spec.name}_Fortran\n")
+            fptr.write(f"{INDENT}public :: {self._tf_spec.function_name}\n")
             fptr.write(f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n")
             fptr.write(f"{INDENT}interface\n")
             fptr.write(f"{INDENT*2}")
@@ -147,7 +128,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             # ----- DEFINE TASK FUNCTION SUBROUTINE
             # Begin Subroutine declaration
             dummy_args = self._tf_spec.fortran_dummy_arguments
-            fptr.write(f"{INDENT}subroutine {self._tf_spec.name}_Fortran")
+            fptr.write(f"{INDENT}subroutine {self._tf_spec.function_name}")
             if len(dummy_args) == 0:
                 fptr.write("()\n")
             else:
@@ -369,7 +350,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT*2}!$acc end data\n")
 
             # End subroutine declaration
-            fptr.write(f"{INDENT}end subroutine {self._tf_spec.name}_Fortran\n")
+            fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")
 
             # End module declaration

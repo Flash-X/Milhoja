@@ -144,7 +144,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 '/* _param:file_name = ',
                 f'{packet_file_name} */\n',
                 f'/* _param:taskfunctionname = '
-                f'{self._tf_spec.name} */\n',
+                f'{self._tf_spec.function_name} */\n',
                 f'/* _param:taskfunctionnametf = '
                 f'{self._tf_spec.cpp2c_layer_name} */\n',
                 f'/* _param:taskfunctionnamec2f = '
@@ -219,7 +219,7 @@ class Cpp2CLayerGenerator(AbcCodeGenerator):
                 f'packet_h->extraAsynchronousQueue({i});\n'
                 f'if (queue{i}_h < 0)\n'
                 f'\tthrow std::overflow_error('
-                f'"[{self._tf_spec.name}_cpp2c] '
+                f'"[{self._tf_spec.cpp2c_layer_name}] '
                 'Potential overflow error when '
                 'accessing async queue id.");\n'
                 for i in range(2, n_ex_streams+2)

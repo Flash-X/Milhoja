@@ -37,12 +37,11 @@ extern "C" {
     const void* _scratch_hydro_op1_flX_d,
     const void* _scratch_hydro_op1_flY_d,
     const void* _scratch_hydro_op1_flZ_d
-    
     );
 
     int instantiate_gpu_tf_hydro_packet_c (
-        real external_hydro_op1_dt,void** packet
-    
+        real external_hydro_op1_dt,
+        void** packet
     ) {
         if ( packet == nullptr) {
             std::cerr << "[instantiate_gpu_tf_hydro_packet_c] packet is NULL" << std::endl;
@@ -88,7 +87,7 @@ extern "C" {
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         }
         unsigned int cast_id = static_cast<unsigned int>(id);
-    
+
         try {
             packet_h->releaseExtraQueue(cast_id);
         } catch (const std::exception& exc) {
@@ -98,7 +97,7 @@ extern "C" {
             std::cerr << "[release_gpu_tf_hydro_extra_queue_c] Unknown error caught" << std::endl;
             return MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM;
         }
-    
+
         return MILHOJA_SUCCESS;
     }
 
@@ -109,11 +108,10 @@ extern "C" {
         const int _nTiles_h = packet_h->_nTiles_h;
         const int queue2_h = packet_h->extraAsynchronousQueue(2);
         if (queue2_h < 0)
-        	throw std::overflow_error("[gpu_tf_hydro_cpp2c] Potential overflow error when accessing async queue id.");
+        	throw std::overflow_error("[gpu_tf_hydro_Cpp2C] Potential overflow error when accessing async queue id.");
         const int queue3_h = packet_h->extraAsynchronousQueue(3);
         if (queue3_h < 0)
-        	throw std::overflow_error("[gpu_tf_hydro_cpp2c] Potential overflow error when accessing async queue id.");
-        
+        	throw std::overflow_error("[gpu_tf_hydro_Cpp2C] Potential overflow error when accessing async queue id.");
 
         void* _nTiles_d = static_cast<void*>( packet_h->_nTiles_d );
         void* _external_hydro_op1_dt_d = static_cast<void*>( packet_h->_external_hydro_op1_dt_d );
@@ -155,7 +153,7 @@ extern "C" {
         _scratch_hydro_op1_flX_d,
         _scratch_hydro_op1_flY_d,
         _scratch_hydro_op1_flZ_d
-        
         );
     }
 }
+

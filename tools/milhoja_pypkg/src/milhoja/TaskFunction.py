@@ -223,6 +223,13 @@ class TaskFunction(object):
         return f"{self.name}_C2F"
 
     @property
+    def function_name(self):
+        """
+        The name of the task function that's called.
+        """
+        return f"{self.name}_{self.language}"
+
+    @property
     def fortran_module_name(self):
         if self.language.lower() == "fortran":
             return f"{self.name}_mod"
