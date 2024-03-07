@@ -82,7 +82,7 @@
         "byte_alignment": -1,
         "header":         "Tile_cpu_tf_hydro.h",
         "source":         "Tile_cpu_tf_hydro.cxx",
-        "module":         ""
+        "module":         "Tile_cpu_tf_hydro_mod.F90"
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_block_cpu": {

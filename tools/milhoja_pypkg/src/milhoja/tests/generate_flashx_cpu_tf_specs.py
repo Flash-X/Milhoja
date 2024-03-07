@@ -77,8 +77,7 @@ def generate_flashx_cpu_tf_specs(dimension, block_size,
             "byte_alignment": -1,
             "header":         "Tile_cpu_tf_hydro.h",
             "source":         "Tile_cpu_tf_hydro.cxx",
-            # todo:: Any fortran based glue code should have a module.
-            "module":         ""
+            "module":         "Tile_cpu_tf_hydro_mod.F90"
         }
     }
 
