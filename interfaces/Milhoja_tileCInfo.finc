@@ -1,0 +1,35 @@
+#if defined __STDC__ || defined __INTEL_COMPILER
+#define TYPENAME_PREFIXED2(prefix,surname) prefix ## _ ## surname
+#else
+#define TYPENAME_PREFIXED2(prefix,surname) prefix/**/_/**/surname
+#endif
+
+#define TYPE_PREFIXED(surname)     type, public, BIND(C) :: TYPENAME_PREFIXED(surname)
+#define TYPE_PREFIXED_END(surname) end type TYPENAME_PREFIXED(surname)
+#define TYPEREF_PREFIXED(surname) TYPE(TYPENAME_PREFIXED(surname))
+
+   TYPE_PREFIXED(tileCPtrs_t)
+      type(c_ptr) :: ccBlkPtr
+      type(c_ptr) :: fluxBlkPtrs(MDIM)
+   TYPE_PREFIXED_END(tileCPtrs_t)
+
+   TYPE_PREFIXED(tileCInts_t)
+      integer(C_INT) :: nCcComp
+      integer(C_INT) :: nFluxComp
+      integer(C_INT) :: loGC(MDIM), hiGC(MDIM)
+      integer(C_INT) :: lo(MDIM),   hi(MDIM)
+      integer(C_INT) :: ndim
+      integer(C_INT) :: level
+      integer(C_INT) :: gridIdxOrBlkId
+      integer(C_INT) :: tileIdx
+   TYPE_PREFIXED_END(tileCInts_t)
+
+   TYPE_PREFIXED(tileCReals_t)
+      real(C_DOUBLE) :: deltas(MDIM)
+   TYPE_PREFIXED_END(tileCReals_t)
+
+   TYPE_PREFIXED(tileCInfo_t)
+      TYPEREF_PREFIXED(tileCPtrs_t) :: CPtrs
+      TYPEREF_PREFIXED(tileCInts_t) :: CInts
+      TYPEREF_PREFIXED(tileCReals_t) :: CReals
+   TYPE_PREFIXED_END(tileCInfo_t)
