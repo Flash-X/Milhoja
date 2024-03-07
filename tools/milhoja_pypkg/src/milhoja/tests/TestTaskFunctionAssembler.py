@@ -319,17 +319,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
             self.assertEqual(len(reference), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in reference)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(reference[group]), len(result[group]))
                 for key in reference[group]:
-                    # print(group, key)
-                    # print(reference[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(reference[group][key],
                                      result[group][key])
@@ -386,25 +380,19 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
                 self.assertEqual(len(reference), len(result))
                 for group in groups_all:
-                    # print(group)
-                    # print(expected[group])
-                    # print(result[group])
                     self.assertTrue(group in reference)
                     self.assertTrue(group in result)
 
                     # todo::
                     #   * Re-enable these tests to work w/ new module keyword.
-                    # self.assertEqual(
-                    #     len(reference[group]), len(result[group]),
-                    #     msg=f"{reference} != {result}"
-                    # )
-                    # for key in reference[group]:
-                    #     # print(group, key)
-                    #     # print(reference[group][key])
-                    #     # print(result[group][key])
-                    #     self.assertTrue(key in result[group])
-                    #     self.assertEqual(reference[group][key],
-                    #                      result[group][key])
+                    self.assertEqual(
+                        len(reference[group]), len(result[group]),
+                        msg=f"{reference} != {result}"
+                    )
+                    for key in reference[group]:
+                        self.assertTrue(key in result[group])
+                        self.assertEqual(reference[group][key],
+                                         result[group][key])
 
                 # ----- DEBUG AT COARSEST SCALE AS INTENDED
                 self.assertEqual(reference, result)
@@ -448,17 +436,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
             self.assertEqual(len(expected), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in expected)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(expected[group]), len(result[group]))
                 for key in expected[group]:
-                    # print(group, key)
-                    # print(expected[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(expected[group][key], result[group][key])
 
