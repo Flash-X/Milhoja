@@ -23,7 +23,7 @@
 #include <Milhoja_Tile.h>
 #include <Milhoja_interface_error_codes.h>
 
-#include "_param:data_item_header_file_name.h"
+#include "_param:data_item_header_file_name"
 
 using real = milhoja::Real;
 

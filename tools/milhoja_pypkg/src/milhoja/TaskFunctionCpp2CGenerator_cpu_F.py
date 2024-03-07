@@ -112,7 +112,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         # # we combine tile_lo and tile_hi.
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
             lo = 'tile_lo' if src == TILE_INTERIOR_ARGUMENT else "tile_loGC"
-            hi = 'tile_hi' if src == TILE_ARRAY_BOUNDS_ARGUMENT else "tile_hiGC"
+            hi = 'tile_hi' if src == TILE_INTERIOR_ARGUMENT else "tile_hiGC"
             connectors[self.C2F_ARG_LIST].append(f"const void* {src}")
             connectors[self.REAL_ARGS].append(f"static_cast<void*>({src})")
             lo_data = lo.replace("tile_", "") + "()"
@@ -178,10 +178,6 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         else:
             lb,words = parse_lbound_f(var_spec["lbound"])
 
-        # NOTE: tile keywords are not guaranteed to be passed in even if
-        #       used as a key for an array lbound. Therefore we should always
-        #       use the tile descriptor to get the values for now
-        # lb = [bound.replace('tile_', '') for bound in lb]
         for word in words:
             alt = word
             if word == TILE_LBOUND_ARGUMENT or word == TILE_UBOUND_ARGUMENT:
@@ -194,6 +190,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 saved.add(word)
 
         lb = f"{{\n{self.INDENT}" + f',\n{self.INDENT}'.join(lb) + "\n}"
+        lb = lb.replace(" ", "")
         connectors[self.CONSOLIDATE_TILE_DATA].append(
             f"int {arg}[] = {lb}"
         )

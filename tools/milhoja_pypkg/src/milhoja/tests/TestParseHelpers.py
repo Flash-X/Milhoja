@@ -13,7 +13,6 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
     """
     Unit test of extents parser function.
     """
-
     def setUp(self):
         pass
 
