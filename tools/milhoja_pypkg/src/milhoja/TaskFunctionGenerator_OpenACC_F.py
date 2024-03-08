@@ -101,70 +101,57 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 fptr.write("\n")
 
             # Begin module declaration
-            fptr.write(f"module {module}\n")
-
-            # Setup module & declare interface
-            fptr.write(f"{INDENT}implicit none\n")
-            fptr.write(f"{INDENT}private\n")
-            fptr.write("\n")
-            fptr.write(f"{INDENT}public :: {self._tf_spec.function_name}\n")
-            fptr.write(f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n")
-            fptr.write(f"{INDENT}interface\n")
-            fptr.write(f"{INDENT*2}")
-            fptr.write("!> C++ task function that TimeAdvance passes to Orchestration unit\n")
-            fptr.write(f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}")
-            fptr.write("(C_tId, C_dataItemPtr) &\n")
-            fptr.write(f'{INDENT*4}bind(c, name="{self._tf_spec.cpp2c_layer_name}")\n')
-            fptr.write(f"{INDENT*3}use iso_c_binding, ONLY : C_PTR\n")
-            fptr.write(f"{INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT\n")
-            fptr.write(f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_tId\n")
-            fptr.write(f"{INDENT*3}type(C_PTR), intent(IN), value :: C_dataItemPtr\n")
-            fptr.write(f"{INDENT*2}end subroutine {self._tf_spec.cpp2c_layer_name}\n")
-            fptr.write(f"{INDENT}end interface\n\n")
-
-            fptr.write("contains\n")
-            fptr.write("\n")
+            fptr.writelines([
+                f"module {module}\n",
+                # Setup module & declare interface
+                f"{INDENT}implicit none\n",
+                f"{INDENT}private\n\n",
+                f"{INDENT}public :: {self._tf_spec.function_name}\n",
+                f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n",
+                f"{INDENT}interface\n{INDENT*2}",
+                f"!> C++ task function that TimeAdvance passes to Orchestration unit\n",
+                f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}",
+                "(C_tId, C_dataItemPtr) &\n",
+                f'{INDENT*4}bind(c, name="{self._tf_spec.cpp2c_layer_name}")\n',
+                f"{INDENT*3}use iso_c_binding, ONLY : C_PTR\n",
+                f"{INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT\n",
+                f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_tId\n",
+                f"{INDENT*3}type(C_PTR), intent(IN), value :: C_dataItemPtr\n",
+                f"{INDENT*2}end subroutine {self._tf_spec.cpp2c_layer_name}\n",
+                f"{INDENT}end interface\n\ncontains\n\n"
+            ])
 
             # ----- DEFINE TASK FUNCTION SUBROUTINE
             # Begin Subroutine declaration
             dummy_args = self._tf_spec.fortran_dummy_arguments
             fptr.write(f"{INDENT}subroutine {self._tf_spec.function_name}")
-            if len(dummy_args) == 0:
-                fptr.write("()\n")
-            else:
-                fptr.write("( &\n")
-                for arg in dummy_args[:-1]:
-                    fptr.write(f"{INDENT*5}{arg}, &\n")
-                fptr.write(f"{INDENT*5}{dummy_args[-1]} &\n")
-                fptr.write(f"{INDENT*3})\n")
+            dummy_arg_str = \
+                "( &\n" + f", &\n{INDENT*5}".join(dummy_args) + f" &\n{INDENT*3})\n"
+            dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
+            fptr.write(dummy_arg_str)
 
-            dp_mod = self._tf_spec.data_item_module_name
-            release = self._tf_spec.release_stream_C_function
             if self._tf_spec.n_streams > 1:
-                fptr.write(f"{INDENT*2}use {dp_mod}, ONLY : {release}\n")
+                data_item_mod = self._tf_spec.data_item_module_name
+                release = self._tf_spec.release_stream_C_function
+                fptr.write(f"{INDENT*2}use {data_item_mod}, ONLY : {release}\n")
+
             # Boilerplate use statements
             fptr.write(f"{INDENT*2}use iso_c_binding, ONLY : C_PTR\n")
-            fptr.write(f"{INDENT*2}use openacc\n")
-            fptr.write("\n")
+            fptr.write(f"{INDENT*2}use openacc\n\n")
             if self._tf_spec.n_streams > 1:
-                fptr.write(f"{INDENT*2}use milhoja_types_mode, ONLY : MILHOJA_INT\n")
-                fptr.write("\n")
+                fptr.write(f"{INDENT*2}use milhoja_types_mode, ONLY : MILHOJA_INT\n\n")
 
+            offloading = []
             # Use in internal subroutines & export for OpenACC
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
                     interface = \
-                        self._tf_spec.subroutine_interface_file(subroutine)
-                    assert interface.strip().endswith(".F90")
-                    interface = interface.strip().rstrip(".F90")
+                        self._tf_spec.subroutine_interface_file(subroutine).strip()
+                    assert interface.endswith(".F90")
+                    interface = interface.rstrip(".F90")
                     fptr.write(f"{INDENT*2}use {interface}, ONLY : {subroutine}\n")
-            fptr.write("\n")
-
-            for node in self._tf_spec.internal_subroutine_graph:
-                for subroutine in node:
-                    fptr.write(f"{INDENT*2}!$acc routine ({subroutine}) vector\n")
-            fptr.write("\n")
-
+                    offloading.append(f"{INDENT*2}!$acc routine ({subroutine}) vector\n")
+            fptr.writelines(["\n", *offloading, "\n"])
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
 
@@ -181,34 +168,35 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT*2}integer, intent(IN) :: nTiles_d\n")
 
             # Generation-time argument definitions
-            points = [
-                TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
-                TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-                LBOUND_ARGUMENT
-            ]
+            points = {
+                TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+                TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT
+            }
             bounds = {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
 
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
-                if spec["source"] == EXTERNAL_ARGUMENT:
+                src = spec["source"]
+                if src == EXTERNAL_ARGUMENT:
+                    extents = spec["extents"]
+                    if extents != "()":
+                        msg = "No test case for non-scalar externals"
+                        raise NotImplementedError(msg) 
+
                     # is this okay? Should we fail if there is no type mapping?
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
-                    # fail if arg type is missing
-                    if not arg_type:
-                        self._error(f"Missing data type {arg}")
-                    extents = spec["extents"]
-                    if extents == "()":
-                        fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")
-                    else:
-                        msg = "No test case for non-scalar externals"
-                        raise NotImplementedError(msg)
-                elif spec["source"] in points:
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")
+
+                elif src in points:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
-                elif spec["source"] == TILE_DELTAS_ARGUMENT:
+
+                elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}_d(:, :)\n")
-                elif spec["source"] in bounds:
+
+                elif src in bounds:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :, :)\n")
-                elif spec["source"] == GRID_DATA_ARGUMENT:
+
+                elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
                         intent = "IN"
                     elif arg in self._tf_spec.tile_in_out_arguments:
@@ -218,37 +206,37 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     else:
                         raise LogicError("Unknown grid data variable class")
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
-                elif spec["source"] == SCRATCH_ARGUMENT:
+
+                elif src == SCRATCH_ARGUMENT:
                     arg_type = spec["type"]
                     dimension = len(parse_extents(spec["extents"]))
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension + 1)]
                     array = "(" + ", ".join(tmp) + ")"
                     fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d{array}\n")
+
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
 
             fptr.write("\n")
 
             # Boilerplate local variables
-            fptr.write(f"{INDENT*2}integer :: n\n")
-            fptr.write("\n")
+            fptr.write(f"{INDENT*2}integer :: n\n\n")
             if self._tf_spec.n_streams > 1:
                 fptr.write(f"{INDENT*2}integer(MILHOJA_INT) :: MH_idx\n")
-                fptr.write(f"{INDENT*2}integer(MILHOJA_INT) :: MH_ierr\n")
-                fptr.write("\n")
+                fptr.write(f"{INDENT*2}integer(MILHOJA_INT) :: MH_ierr\n\n")
 
             # Begin OpenACC data region
             device_args = self._tf_spec.fortran_device_dummy_arguments
             if len(device_args) == 0:
                 raise NotImplementedError("No test case for no arguments")
+
             fptr.write(f"{INDENT*2}!$acc data &\n")
             fptr.write(f"{INDENT*2}!$acc& deviceptr( &\n")
             for arg in device_args[:-1]:
                 fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{arg}, &\n")
             fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{device_args[-1]} &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n")
-            fptr.write("\n")
+            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
 
             # Implement internal subroutine call graph with OpenACC offloading.
             # Data packet sent on dataQ_h
@@ -331,8 +319,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             for queue in current_queues[:-1]:
                 fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{queue}, &\n")
             fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{current_queues[-1]} &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n")
-            fptr.write("\n")
+            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
 
             # Release all extra asynchronous queues after final wait
             for idx in range(2, self._tf_spec.n_streams+1):
@@ -343,18 +330,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 msg = f"Unable to release extra OpenACC async queue {idx}"
                 fptr.write(f'{INDENT*3}write(*,*) "[{self._tf_spec.name}] {msg}"\n')
                 fptr.write(f"{INDENT*3}STOP\n")
-                fptr.write(f"{INDENT*2}end if\n")
-                fptr.write("\n")
+                fptr.write(f"{INDENT*2}end if\n\n")
 
             # End OpenACC data region
             fptr.write(f"{INDENT*2}!$acc end data\n")
-
             # End subroutine declaration
             fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")
-
             # End module declaration
-            fptr.write(f"end module {module}\n")
-
-            # end of file
-            fptr.write("\n")
+            fptr.write(f"end module {module}\n\n")
