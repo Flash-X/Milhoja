@@ -105,7 +105,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 f"{INDENT}public :: {self._tf_spec.function_name}\n",
                 f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n",
                 f"{INDENT}interface\n{INDENT*2}",
-                f"!> C++ task function that TimeAdvance passes to Orchestration unit\n",
+                "!> C++ task function that TimeAdvance passes to Orchestration unit\n",
                 f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}",
                 "(C_tId, C_dataItemPtr) &\n",
                 f'{INDENT*4}bind(c, name="{self._tf_spec.cpp2c_layer_name}")\n',
@@ -177,7 +177,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     extents = spec["extents"]
                     if extents != "()":
                         msg = "No test case for non-scalar externals"
-                        raise NotImplementedError(msg) 
+                        raise NotImplementedError(msg)
 
                     # is this okay? Should we fail if there is no type mapping?
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
