@@ -63,10 +63,6 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
     def generate_source_code(self, destination, overwrite):
         """
         .. todo::
-            * This should likely be inserted into the same module as the data
-              packet code.  How to get both code generators to insert into the
-              same file?  Clearly CG-kit can do this, but where does that outer
-              layer of combining code happen?
             * We are presently limited to only offloading around the loop over
               tiles in data packet.  What if we want to launch a kernel within
               the loop?  What if we don't want to launch any kernels so that
