@@ -286,6 +286,9 @@ if __name__ == '__main__':
         if runtime_must_use_tileiters:
             fptr.write( '#define RUNTIME_MUST_USE_TILEITER\n')
             fptr.write( '\n')
+        if runtime_support_exec and runtime_can_use_tileiters and grid_backend_macro == 'MILHOJA_AMREX_GRID_BACKEND':
+            fptr.write( '#define FULL_MILHOJAGRID\n')
+            fptr.write( '\n')
         fptr.write( '#endif\n\n')
 
     exit(0)

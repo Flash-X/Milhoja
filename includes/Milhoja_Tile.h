@@ -39,7 +39,11 @@ public:
 
     virtual unsigned int        nCcVariables(void) const = 0;
     virtual unsigned int        nFluxVariables(void) const = 0;
+#ifdef RUNTIME_MUST_USE_TILEITER
     virtual RealVect            deltas(void) const;
+#else
+    virtual RealVect            deltas(void) const = 0;
+#endif
     virtual IntVect             lo(void) const = 0;
     virtual IntVect             hi(void) const = 0;
     virtual IntVect             loGC(void) const = 0;
@@ -49,7 +53,9 @@ public:
     virtual FArray4D            fluxData(const unsigned int dir) = 0;
     virtual std::vector<Real*>  fluxDataPtrs(void) = 0;
 
+#ifdef FULL_MILHOJAGRID
     virtual RealVect     getCenterCoords(void) const;
+#endif
 };
 
 }

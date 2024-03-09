@@ -14,6 +14,9 @@
 
 #include "Milhoja.h"
 #include "Milhoja_ThreadTeam.h"
+#ifndef RUNTIME_MUST_USE_TILEITER
+#include "Milhoja_FlashxrTileRaw.h"
+#endif
 #include "Milhoja_TileWrapper.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
@@ -47,10 +50,32 @@ public:
         return maxThreadsPerTeam_;
     }
 
+#ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuTasks(const std::string& actionName,
+                         const RuntimeAction& cpuAction);
+    void pushTileToPipeline(const std::string& actionName,
+			    const TileWrapper& prototype,
+			    const FlashxrTileRawPtrs& tP,
+			    const FlashxTileRawInts& tI,
+			    const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuTasks(const std::string& actionName);
+#endif
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction,
                          const TileWrapper& prototype);
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForGpuTasks(const std::string& bundleName,
+                         const unsigned int stagger_usec,
+                         const RuntimeAction& gpuAction,
+                         const DataPacket& packetPrototype);
+    void pushTileToGpuPipeline(const std::string& bundleName,
+                         const DataPacket& packetPrototype,
+			    const FlashxrTileRawPtrs& tP,
+			    const FlashxTileRawInts& tI,
+			    const FlashxTileRawReals& tR);
+    void teardownPipelineForGpuTasks(const std::string& bundleName);
+#  endif
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
                          const unsigned int stagger_usec,
