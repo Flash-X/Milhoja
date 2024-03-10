@@ -122,7 +122,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             dummy_args = self._tf_spec.fortran_dummy_arguments
             fptr.write(f"{INDENT}subroutine {self._tf_spec.function_name}")
             dummy_arg_str = \
-                "( &\n" + f", &\n{INDENT*5}".join(dummy_args) + f" &\n{INDENT*3})\n"
+                f"( &\n{INDENT*5}" + f", &\n{INDENT*5}".join(dummy_args) + f" &\n{INDENT*3})\n"
             dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
             fptr.write(dummy_arg_str)
 
