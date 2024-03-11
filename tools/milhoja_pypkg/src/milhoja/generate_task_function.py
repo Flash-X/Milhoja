@@ -7,6 +7,7 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
         Add in all other code generators.
     """
     processor = tf_spec.processor
+    offloading = tf_spec.computation_offloading
     language = tf_spec.language
     data_item = tf_spec.data_item
 

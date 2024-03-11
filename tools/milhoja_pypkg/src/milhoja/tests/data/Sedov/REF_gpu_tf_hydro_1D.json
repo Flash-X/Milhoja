@@ -11,6 +11,7 @@
         "name": "gpu_tf_hydro",
         "language": "C++", 
         "processor": "GPU",
+        "computation_offloading": "OpenACC",
         "cpp_header": "gpu_tf_hydro.h",
         "cpp_source": "gpu_tf_hydro.cpp",
         "c2f_source": "",

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
-from .parse_helpers import parse_lbound
+from .parse_helpers import (parse_lbound, get_array_size, get_initial_index)
 from . import TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 
 
@@ -129,7 +129,7 @@ class CppTemplateUtility(TemplateUtility):
             # for now just assume that all index spaces are 1 based
             # since all arrays in the packet are 1 based.
             index_offset = self.DEFAULT_INDEX_SPACE
-            array_size = self.get_array_size(mask_in, [])
+            array_size = get_array_size(mask_in, [])
 
             dtype = data['type']
             extents = ' * '.join(f'({item})' for item in extents)
@@ -172,7 +172,7 @@ class CppTemplateUtility(TemplateUtility):
         for item, data in tileinout.items():
             in_mask = data['variables_in']
             out_mask = data['variables_out']
-            array_size = self.get_array_size(in_mask, out_mask)
+            array_size = get_array_size(in_mask, out_mask)
             index_space = self.DEFAULT_INDEX_SPACE
 
             dtype = data['type']
@@ -219,7 +219,7 @@ class CppTemplateUtility(TemplateUtility):
         for item, data in tileout.items():
             # get tile_out information
             out_mask = data['variables_out']
-            array_size = self.get_array_size([], out_mask)
+            array_size = get_array_size([], out_mask)
             index_space = self.DEFAULT_INDEX_SPACE
             unks = f"{str(array_size)} + 1 - {str(index_space)}"
 

@@ -26,7 +26,8 @@ def check_partial_tf_specification(spec):
     tf_spec = spec["task_function"]
     expected = {"language", "processor",
                 "cpp_header", "cpp_source",
-                "c2f_source", "fortran_source"}
+                "c2f_source", "fortran_source",
+                "computation_offloading"}
     actual = set(tf_spec)
     if actual != expected:
         msg = f"Invalid TF specification keys ({actual})"
@@ -58,6 +59,14 @@ def check_partial_tf_specification(spec):
                 raise TypeError(f"{each} not string ({fname})")
             elif fname == "":
                 raise ValueError(f"Empty {each} filename")
+
+    offloading = tf_spec["computation_offloading"]
+    if not isinstance(offloading, str):
+        raise TypeError(f"computation_offloading not string ({offloading})")
+    elif (processor.lower() == "cpu") and (offloading != ""):
+        raise ValueError("No computation offloading for CPU task functions")
+    elif (processor.lower() == "gpu") and (offloading.lower() != "openacc"):
+        raise ValueError("Only OpenACC computation offloading with GPU")
 
     # ----- DATA ITEM
     data_item = spec["data_item"]

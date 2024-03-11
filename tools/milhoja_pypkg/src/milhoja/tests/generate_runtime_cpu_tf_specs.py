@@ -48,10 +48,11 @@ def generate_runtime_cpu_tf_specs(group_spec_path, destination, overwrite,
     # ----- BOILERPLATE SPECIFICATIONS
     partial_tf_spec = {
         "task_function": {
-            "language":       "C++",
-            "processor":      "CPU",
-            "c2f_source":     "",
-            "fortran_source": ""
+            "language":               "C++",
+            "processor":              "CPU",
+            "computation_offloading": "",
+            "c2f_source":             "",
+            "fortran_source":         ""
         },
         "data_item": {
             "type":           "TileWrapper",

@@ -63,12 +63,13 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":       "C++",
-            "processor":      "GPU",
-            "cpp_header":     "gpu_tf_hydro.h",
-            "cpp_source":     "gpu_tf_hydro.cpp",
-            "c2f_source":     "",
-            "fortran_source": ""
+            "language":               "C++",
+            "processor":              "GPU",
+            "computation_offloading": "OpenACC",
+            "cpp_header":             "gpu_tf_hydro.h",
+            "cpp_source":             "gpu_tf_hydro.cpp",
+            "c2f_source":             "",
+            "fortran_source":         ""
         },
         "data_item": {
             "type":           "DataPacket",

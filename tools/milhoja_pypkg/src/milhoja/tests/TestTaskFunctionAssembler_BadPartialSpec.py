@@ -72,12 +72,13 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
         TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
         self.__partial = {
             "task_function": {
-                "language":       "Fortran",
-                "processor":      "CPU",
-                "cpp_header":     "cpu_tf_test_Cpp2C.h",
-                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
-                "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "language":               "Fortran",
+                "processor":              "CPU",
+                "computation_offloading": "",
+                "cpp_header":             "cpu_tf_test_Cpp2C.h",
+                "cpp_source":             "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":             "cpu_tf_test_C2F.F90",
+                "fortran_source":         "cpu_tf_test_mod.F90"
             },
             "data_item": {
                 "type":           "DataPacket",
@@ -125,7 +126,8 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         expected = {"language", "processor",
                     "cpp_header", "cpp_source",
-                    "c2f_source", "fortran_source"}
+                    "c2f_source", "fortran_source",
+                    "computation_offloading"}
         for each in expected:
             bad = copy.deepcopy(self.__partial)
             del bad["task_function"][each]
@@ -136,7 +138,7 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         bad = copy.deepcopy(self.__partial)
         bad["task_function"]["fail"] = {}
-        self.assertEqual(7, len(bad["task_function"]))
+        self.assertEqual(8, len(bad["task_function"]))
         with open(TF_PARTIAL_JSON, "w") as fptr:
             json.dump(bad, fptr)
         with self.assertRaises(ValueError):
@@ -206,6 +208,30 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
         for bad in ["fail", "cpUu", "gp", ""]:
             bad_spec = copy.deepcopy(self.__partial)
             bad_spec["task_function"]["processor"] = bad
+            with open(TF_PARTIAL_JSON, "w") as fptr:
+                json.dump(bad_spec, fptr)
+            with self.assertRaises(ValueError):
+                self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
+
+    def testComputationOffloading(self):
+        FILENAME = self.__dst.joinpath("cpu_tf_test.json")
+        TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
+
+        # Can't write sets to JSON
+        for bad in NOT_STR_LIST:
+            if not isinstance(bad, set):
+                bad_spec = copy.deepcopy(self.__partial)
+                bad_spec["task_function"]["computation_offloading"] = bad
+                with open(TF_PARTIAL_JSON, "w") as fptr:
+                    json.dump(bad_spec, fptr)
+                with self.assertRaises(TypeError):
+                    self.__Sedov.to_milhoja_json(
+                        FILENAME, TF_PARTIAL_JSON, False
+                    )
+
+        for bad in ["OpenMp", "OpenACC"]:
+            bad_spec = copy.deepcopy(self.__partial)
+            bad_spec["task_function"]["computation_offloading"] = bad
             with open(TF_PARTIAL_JSON, "w") as fptr:
                 json.dump(bad_spec, fptr)
             with self.assertRaises(ValueError):

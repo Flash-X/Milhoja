@@ -24,7 +24,7 @@ class AbcCodeGenerator(abc.ABC):
     """
     def __init__(
                 self,
-                tf_specification,
+                tf_specification: TaskFunction,
                 header_filename,
                 source_filename,
                 indent,
