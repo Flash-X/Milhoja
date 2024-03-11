@@ -69,7 +69,9 @@ class TestMultipleSubroutineGroups(unittest.TestCase):
                 "cpp_header": "cpu_tf_combined.h",
                 "cpp_source": "cpu_tf_combined.cpp",
                 "c2f_source": "",
-                "fortran_source": ""
+                "fortran_source": "",
+                "computation_offloading": "",
+                "variable_index_base": 1
             },
             "data_item": {
                 "type": "TileWrapper",

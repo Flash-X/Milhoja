@@ -77,7 +77,9 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
                 "cpp_header":     "cpu_tf_test_Cpp2C.h",
                 "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
                 "c2f_source":     "cpu_tf_test_C2F.F90",
-                "fortran_source": "cpu_tf_test_mod.F90"
+                "fortran_source": "cpu_tf_test_mod.F90",
+                "computation_offloading": "",
+                "variable_index_base": 1
             },
             "data_item": {
                 "type":           "DataPacket",
@@ -125,7 +127,8 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         expected = {"language", "processor",
                     "cpp_header", "cpp_source",
-                    "c2f_source", "fortran_source"}
+                    "c2f_source", "fortran_source",
+                    "variable_index_base", "computation_offloading"}
         for each in expected:
             bad = copy.deepcopy(self.__partial)
             del bad["task_function"][each]
@@ -136,7 +139,8 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
 
         bad = copy.deepcopy(self.__partial)
         bad["task_function"]["fail"] = {}
-        self.assertEqual(7, len(bad["task_function"]))
+        # todo:: is this length test even necessary?
+        self.assertEqual(len(expected)+1, len(bad["task_function"]))
         with open(TF_PARTIAL_JSON, "w") as fptr:
             json.dump(bad, fptr)
         with self.assertRaises(ValueError):

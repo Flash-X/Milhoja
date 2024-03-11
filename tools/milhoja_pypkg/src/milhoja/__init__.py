@@ -41,7 +41,6 @@ from .constants import (
 
 # Custom exceptions
 from .LogicError import LogicError
-
 # Functions used by classes
 from .check_grid_specification import check_grid_specification
 from .check_tile_specification import check_tile_specification
@@ -61,6 +60,7 @@ from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
+from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .DataPacketGenerator import DataPacketGenerator
 
 # Functions that use classes

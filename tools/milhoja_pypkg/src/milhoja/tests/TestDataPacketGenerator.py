@@ -276,9 +276,6 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         )
 
                 # ..todo::
-                #   * Generator should generate TaskFunction
-
-                # ..todo::
                 #       * currently the cpp2c layer is only generated when
                 #         using a fortran task function there should be
                 #         another "cpp2c layer" that's just for cpp task

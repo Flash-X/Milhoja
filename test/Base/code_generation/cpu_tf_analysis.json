@@ -11,6 +11,7 @@
         "name": "cpu_tf_analysis",
         "language": "C++", 
         "processor": "CPU",
+        "computation_offloading": "",
         "cpp_header": "cpu_tf_analysis.h",
         "cpp_source": "cpu_tf_analysis.cpp",
         "c2f_source": "",
