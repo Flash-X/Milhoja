@@ -1,4 +1,5 @@
 import re
+from warnings import warn
 
 from sys import maxsize
 
@@ -48,6 +49,11 @@ def parse_lbound(lbound: str) -> list:
 
     :param str lbound: The lbound string to parse.
     """
+    warn(
+        'parse_lbound is deprecated. Use parse_lbound_f instead.',
+        DeprecationWarning, stacklevel=2
+    )
+
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
         TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT

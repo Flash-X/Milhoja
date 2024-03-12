@@ -53,11 +53,12 @@ def generate_sedov_cpu_tf_specs(dimension, block_size,
     # ----- BOILERPLATE SPECIFICATIONS
     partial_tf_spec = {
         "task_function": {
-            "language":               "C++",
-            "processor":              "CPU",
+            "language":       "C++",
+            "processor":      "CPU",
+            "c2f_source":     "",
+            "fortran_source": "",
             "computation_offloading": "",
-            "c2f_source":             "",
-            "fortran_source":         ""
+            "variable_index_base": 1
         },
         "data_item": {
             "type":           "TileWrapper",

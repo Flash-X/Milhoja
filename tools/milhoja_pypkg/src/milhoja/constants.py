@@ -122,9 +122,9 @@ SOURCE_DATATYPES = {
 # get string and call with format to insert the name of your tile descriptor
 GRID_DATA_PTRS = {
     "CENTER": "{0}->dataPtr()",
-    "FLUXX": "&{0}->fluxData(milhoja::Axis::I)",
-    "FLUXY": "&{0}->fluxData(milhoja::Axis::J)",
-    "FLUXZ": "&{0}->fluxData(milhoja::Axis::K)"
+    "FLUXX": "{0}->fluxDataPtrs()[0]",
+    "FLUXY": "{0}->fluxDataPtrs()[1]",
+    "FLUXZ": "{0}->fluxDataPtrs()[2]"
 }
 
 # This is specifically in reference to tile_metadata specific types like
@@ -134,6 +134,9 @@ VECTOR_ARRAY_EQUIVALENT = {
     "IntVect": "int",
     "RealVect": "real"
 }
+
+# todo::
+#   * Add complex and double complex to type conversion
 
 # For converting Fortran types to C++/C types.
 F2C_TYPE_MAPPING = {

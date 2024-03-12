@@ -37,13 +37,14 @@ def generate_grid_tf_specs(dimension, block_size,
 
     PARTIAL_TF_SPEC = {
         "task_function": {
-            "language":               "C++",
-            "processor":              "CPU",
+            "language":       "C++",
+            "processor":      "CPU",
+            "cpp_header":     "cpu_tf_ic.h",
+            "cpp_source":     "cpu_tf_ic.cpp",
+            "c2f_source":     "",
+            "fortran_source": "",
             "computation_offloading": "",
-            "cpp_header":             "cpu_tf_ic.h",
-            "cpp_source":             "cpu_tf_ic.cpp",
-            "c2f_source":             "",
-            "fortran_source":         ""
+            "variable_index_base": 1
         },
         "data_item": {
             "type":           "TileWrapper",
