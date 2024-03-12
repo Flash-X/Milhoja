@@ -3,6 +3,7 @@ import milhoja.tests
 
 from pathlib import Path
 from collections import OrderedDict
+from collections import defaultdict
 
 from milhoja import (
     LOG_LEVEL_NONE,
@@ -134,13 +135,22 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 self.HDD: False,
                 self.SDD: False,
                 self.SIZES: self.SUMMIT_SIZES_3D
+            },
+            {
+                self.JSON: _FLASHX_PATH.joinpath(
+                    "REF_gpu_tf_hydro_3DF_lb.json"
+                ),
+                self.FOLDER: "FlashX",
+                self.HDD: False,
+                self.SDD: False,
+                self.SIZES: self.SUMMIT_SIZES_3D
             }
         ]
 
     def tearDown(self):
         pass
 
-    def check_generated_files(self, generated, correct):
+    def check_generated_files(self, json, generated, correct):
         """
         Checks the generated file by comparing it to correct
         with no whitespace.
@@ -155,11 +165,13 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
             self.assertTrue(
                 len(generated_string) == len(correct_string),
+                f"JSON: {json}, \n"
                 f"Generated length: {len(generated_string)}, "
                 f"correct length: {len(correct_string)}"
             )
             self.assertTrue(
                 generated_string == correct_string,
+                f"JSON: {json}, \n"
                 f"Comparison between {generated.name}"
                 f"and {correct.name} returned false."
             )
@@ -241,7 +253,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 with open(generated_name_cpp, 'r') as generated_cpp:
                     with open(correct_name_cpp, 'r') as correct:
                         # Test generated files.
-                        self.check_generated_files(generated_cpp, correct)
+                        self.check_generated_files(
+                            json_path, generated_cpp, correct
+                        )
 
                 generated_name_h = Path(
                     destination,
@@ -257,10 +271,9 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 # check c++ headers
                 with open(generated_name_h, 'r') as generated_h:
                     with open(correct_name_h, 'r') as correct:
-                        self.check_generated_files(generated_h, correct)
-
-                # ..todo::
-                #   * Generator should generate TaskFunction
+                        self.check_generated_files(
+                            json_path, generated_h, correct
+                        )
 
                 # ..todo::
                 #       * currently the cpp2c layer is only generated when
@@ -274,7 +287,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     # check cpp2c layer.
                     generated_cpp2c = Path(
                         destination,
-                        generator.cpp2c_file_name
+                        generator.cpp2c_layer.source_filename
                     )
                     correct_cpp2c = json_path.stem.replace("REF_", "")
                     correct_cpp2c = Path(
@@ -284,12 +297,14 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     )
                     with open(generated_cpp2c, 'r') as generated:
                         with open(correct_cpp2c, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                     # check c2f layer.
                     generated_c2f = Path(
                         destination,
-                        generator.c2f_file_name
+                        generator.c2f_layer.source_filename
                     )
                     correct_c2f = json_path.stem.replace("REF_", "")
                     correct_c2f = Path(
@@ -299,22 +314,27 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     )
                     with open(generated_c2f, 'r') as generated:
                         with open(correct_c2f, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                     # check module file
                     generated_dp_mod = Path(
                         destination,
-                        generator.module_file_name
+                        generator.dp_module.source_filename
                     )
                     correct_dp_mod = json_path.stem.replace("REF_", "")
                     correct_dp_mod = Path(
                         _DATA_PATH,
                         test[self.FOLDER],
-                        "REF_DataPacket_" + str(correct_dp_mod) + "_c2f_mod.F90"
+                        "REF_DataPacket_" + str(correct_dp_mod) +
+                        "_c2f_mod.F90"
                     )
                     with open(generated_dp_mod, 'r') as generated:
                         with open(correct_dp_mod, 'r') as correct:
-                            self.check_generated_files(generated, correct)
+                            self.check_generated_files(
+                                json_path, generated, correct
+                            )
 
                 # clean up generated files if test passes.
                 try:
@@ -334,17 +354,23 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
     def testTemplateUtility(self):
         """
-        Function for testing the template utility classes.
+        Function for testing the template utility classes. Primarily tests
+        that the correct errors are raised given certain conditions. The
+        output is checked by the data packet generation tests.
         """
         connectors = {}
         size_connectors = {}
+
+        # load sample json to pass to constructor.
+        tf_spec = TaskFunction.from_milhoja_json(self._runtime[0][self.JSON])
+        util = FortranTemplateUtility(tf_spec)
 
         # give a sample external variable set.
         mock_external = OrderedDict({
             "external_example": {
                 "source": "external",
                 "type": "int",
-                "extents": ['1', '5']
+                "extents": "(1,5)"
             }
         })
         with self.assertRaises(
@@ -352,7 +378,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             msg="External with extents was used without error."
         ):
             TemplateUtility._common_iterate_externals(
-                connectors, mock_external
+                connectors, mock_external, ["external_example"]
             )
 
         # sample tile_in variable set.
@@ -367,7 +393,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             NotImplementedError,
             msg="No test case for fortran tile_in."
         ):
-            FortranTemplateUtility.iterate_tile_in(
+            util.iterate_tile_in(
                 connectors, size_connectors, mock_tile_in
             )
 
@@ -382,9 +408,61 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             NotImplementedError,
             msg="No test cases for fortran tile_out."
         ):
-            FortranTemplateUtility.iterate_tile_out(
+            util.iterate_tile_out(
                 connectors, size_connectors, mock_tile_out
             )
+
+        # test proper ordering
+        mock_externals = OrderedDict({
+            "dt": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "spark_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            },
+            "spark_coef2": {
+                "source": "external",
+                "type": "real",
+                "extents": "()"
+            },
+            "another_coef": {
+                "source": "external",
+                "type": "int",
+                "extents": "()"
+            }
+        })
+
+        connectors = defaultdict(list)
+        TemplateUtility._common_iterate_externals(
+            connectors, mock_externals,
+            ["dt", "another_coef", "spark_coef2", "spark_coef"]
+        )
+
+        assert TemplateUtility._CON_ARGS in connectors
+        assert TemplateUtility._HOST_MEMBERS in connectors
+        constructor_args = [
+            'real dt',
+            'int another_coef',
+            'real spark_coef2',
+            'int spark_coef'
+        ]
+        host_args = [
+            "_dt_h",
+            "_another_coef_h",
+            "_spark_coef2_h",
+            "_spark_coef_h"
+        ]
+
+        self.assertEqual(
+            connectors[TemplateUtility._CON_ARGS], constructor_args
+        )
+        self.assertEqual(
+            connectors[TemplateUtility._HOST_MEMBERS], host_args
+        )
 
     def testCpp2CGenerator(self):
         for test in self._sedov:
@@ -401,19 +479,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             # use default logging value for now
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
-
-            datapacket_generator = DataPacketGenerator(
-                tf_spec, 4, logger, sizes
-            )
-
-            outer = datapacket_generator.cpp2c_outer_template_name
-            helper = datapacket_generator.cpp2c_helper_template_name
-
-            cpp2c = Cpp2CLayerGenerator(
-                tf_spec, outer, helper,
-                4, LOG_LEVEL_NONE, datapacket_generator.n_extra_streams,
-                datapacket_generator.external_args
-            )
+            cpp2c = Cpp2CLayerGenerator(tf_spec, 4, logger)
 
             with self.assertRaises(
                 LogicError,
@@ -436,31 +502,27 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 print("Could not find files. Continue.")
 
     def testModGeneration(self):
+        """
+        Tests the module file generation for data packets.
+
+        todo::
+            * Write dummy task functions to test argument ordering.
+        """
         for test in self._sedov:
             json_path = test[self.JSON]
             tf_spec = TaskFunction.from_milhoja_json(json_path)
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
 
-            # todo::
-            #   * Need a smaller sample reference file for checking
-            #     all types of arguments (bool, int, real, arrays)
-            sample_externals = {
-                "dt": {
-                    "source": "external",
-                    "type": "real"
-                }
-            }
-
             if tf_spec.language.lower() == "c++":
                 with self.assertRaises(LogicError, msg="Wrong language"):
                     mod_generator = DataPacketC2FModuleGenerator(
-                        tf_spec, 4, logger, sample_externals
+                        tf_spec, 4, logger
                     )
                 continue
 
             mod_generator = DataPacketC2FModuleGenerator(
-                tf_spec, 4, logger, sample_externals
+                tf_spec, 4, logger
             )
 
             with self.assertRaises(LogicError, msg="Header gen should fail."):
@@ -490,28 +552,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
 
-            datapacket_generator = DataPacketGenerator(
-                tf_spec, 4, logger, sizes
-            )
-
-            int_scratch = {
-                "auxC": {
-                    "source": "scratch",
-                    "type": "int",
-                    "extents": ['1', '1', '1'],
-                    "lbound": ["(tile_lo)"]
-                }
-            }
-
             c2f = C2FortranLayerGenerator(
-                tf_spec, 4, logger,
-                datapacket_generator.n_extra_streams,
-                datapacket_generator.external_args,
-                datapacket_generator.tile_metadata_args,
-                datapacket_generator.tile_in_args,
-                datapacket_generator.tile_in_out_args,
-                datapacket_generator.tile_out_args,
-                int_scratch
+                tf_spec, 4, logger
             )
 
             with self.assertRaises(
@@ -520,11 +562,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             ):
                 c2f.generate_header_code(destination, overwrite=True)
 
-            with self.assertRaises(
-                NotImplementedError,
-                msg="Int scratch did not raise error."
-            ):
-                c2f.generate_source_code(destination, overwrite=True)
+            c2f.generate_source_code(destination, overwrite=True)
 
             with self.assertRaises(
                 FileExistsError,
@@ -537,38 +575,3 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                     os.remove(file)
             except FileNotFoundError:
                 print("Could not find files. Continue.")
-
-    def testGetArraySizes(self):
-        # test none on both
-        mask_in = None
-        mask_out = None
-        with self.assertRaises(TypeError):
-            TemplateUtility.get_array_size([], [])
-
-        mask_in = [1, 2]
-        mask_out = [1, 2]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 2)
-
-        mask_in = [2, 8]
-        mask_out = [2, 2]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 8)
-
-        with self.assertRaises(
-            NotImplementedError,
-            msg="No test cases for out size > in size, but no error thrown."
-        ):
-            mask_in = [1, 2]
-            mask_out = [1, 6]
-            TemplateUtility.get_array_size(mask_in, mask_out)
-
-        mask_in = [1, 10]
-        mask_out = []
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 10)
-
-        mask_in = []
-        mask_out = [1, 10]
-        size = TemplateUtility.get_array_size(mask_in, mask_out)
-        self.assertTrue(size == 10)

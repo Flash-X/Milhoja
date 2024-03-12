@@ -56,7 +56,9 @@ def generate_sedov_cpu_tf_specs(dimension, block_size,
             "language":       "C++",
             "processor":      "CPU",
             "c2f_source":     "",
-            "fortran_source": ""
+            "fortran_source": "",
+            "computation_offloading": "",
+            "variable_index_base": 1
         },
         "data_item": {
             "type":           "TileWrapper",

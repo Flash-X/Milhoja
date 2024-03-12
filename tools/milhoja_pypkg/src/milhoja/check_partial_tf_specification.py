@@ -26,7 +26,9 @@ def check_partial_tf_specification(spec):
     tf_spec = spec["task_function"]
     expected = {"language", "processor",
                 "cpp_header", "cpp_source",
-                "c2f_source", "fortran_source"}
+                "c2f_source", "fortran_source",
+                "computation_offloading",
+                "variable_index_base"}
     actual = set(tf_spec)
     if actual != expected:
         msg = f"Invalid TF specification keys ({actual})"
