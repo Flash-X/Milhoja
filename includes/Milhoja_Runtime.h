@@ -158,7 +158,7 @@ private:
 #  ifdef RUNTIME_SUPPORT_DATAPACKETS
     std::shared_ptr<DataPacket> packet_gpu_;
 #  else
-    std::unique_ptr<void> packet_gpu_;
+    std::unique_ptr<DataPacket> packet_gpu_;
 #  endif
 #endif
 
