@@ -4,8 +4,8 @@
 #include "Milhoja.h"
 #include "Milhoja_real.h"
 
-#ifdef RUNTIME_USES_TILEITER
-#error "This file should only be compiled if the Runtime class does not invoke a tile iterator"
+#ifdef RUNTIME_MUST_USE_TILEITER
+#error "This file should only be compiled if the Runtime class need not invoke a tile iterator"
 #endif
 
 #define LIST_MDIM(x,y,z) x,y,z

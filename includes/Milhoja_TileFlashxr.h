@@ -12,8 +12,8 @@
 #include "Milhoja_Tile.h"
 #include "Milhoja_FlashxrTileRaw.h"
 
-#ifdef RUNTIME_USES_TILEITER
-#error "This file should only be compiled if the Runtime class does not invoke a tile iterator"
+#ifdef RUNTIME_MUST_USE_TILEITER
+#error "This file should only be compiled if the Runtime class need not invoke a tile iterator"
 #endif
 
 namespace milhoja {
