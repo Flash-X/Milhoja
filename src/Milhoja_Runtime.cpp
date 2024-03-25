@@ -191,13 +191,17 @@ void Runtime::pushTileToPipeline(const std::string& actionName,
 				 const FlashxTileRawInts& tI,
 				 const FlashxTileRawReals& tR
 				 ) {
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Push single tile task to single CPU pipeline");
+#endif
     ThreadTeam*   cpuTeam = teams_[0];
 
     //    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
     cpuTeam->enqueue( prototype.clone( std::make_unique<TileFlashxr>(tP, tI, tR) ) );
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Single tile task was pushed to CPU pipeline");
+#endif
 }
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void Runtime::teardownPipelineForCpuTasks(const std::string& actionName) {
@@ -442,7 +446,9 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
 				 const FlashxTileRawInts& tI,
 				 const FlashxTileRawReals& tR) {
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Push single tile task to single GPU pipeline");
+#endif
 
     if (nTilesPerPacket_ <= 0) {
         throw std::invalid_argument("[Runtime:pushTileToGpuPipeline] "
@@ -475,7 +481,9 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
             }
     }
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Single tile task was pushed to GPU pipeline");
+#endif
 }
 void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 
