@@ -1,7 +1,20 @@
 # TODO: We need to look up AMReX library by platform (e.g., sandybridge,
 # skylake) as well.
 BASEDIR      = $(MILHOJA_CODE_REPO)
-AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+# Overridden below:
+#AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+
+#----------------------------------------------------------------------------
+# Set the AMReX library path -- manual installation for multiple variants
+#----------------------------------------------------------------------------
+# The env variables FLASHX_AMREXOMPnD_DIR, FLASHX_AMREXnD_DIR have presumably
+# been set by something like ' module load FlashX-TestEnv-gcc':
+ifeq ("$(USEOPENMP)","1")
+  AMREX_PATH=${FLASHX_AMREX_OMP${NDIM}D_DIR}
+else
+  AMREX_PATH=${FLASHX_AMREX${NDIM}D_DIR}
+endif
+AMREXDIR     = ${AMREX_PATH}
 GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
 JSONDIR      = $(MILHOJA_TEST_CLONE)/gce/gnu_current/json/single_include
 CUDADIR      =
