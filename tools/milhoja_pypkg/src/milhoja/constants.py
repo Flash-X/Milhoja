@@ -73,7 +73,7 @@ GRID_DATA_EXTENTS = {
         '{0} + 2 * {1} * MILHOJA_K3D'
     ],
     "FLUXY": [
-        '({0} + 2 * {1} * MILHOJA_K1D',
+        '{0} + 2 * {1} * MILHOJA_K1D',
         '({0} + 1) + 2 * {1} * MILHOJA_K2D',
         '{0} + 2 * {1} * MILHOJA_K3D'
     ],
