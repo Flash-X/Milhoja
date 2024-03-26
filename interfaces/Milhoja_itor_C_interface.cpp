@@ -13,7 +13,6 @@
 #include "Milhoja_interface_error_codes.h"
 
 extern "C" {
-#ifdef FULL_MILHOJAGRID
     /**
      * Build and access a tile iterator.  This includes allocating dynamically
      * memory for the iterator object.  The pointer to this object is given to
@@ -54,7 +53,6 @@ extern "C" {
 
         return MILHOJA_SUCCESS;
     }
-#endif
 
     /**
      * Destroy the given iterator.  This includes releasing dynamically

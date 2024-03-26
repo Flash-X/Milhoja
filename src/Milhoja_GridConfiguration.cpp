@@ -50,7 +50,6 @@ GridConfiguration&   GridConfiguration::instance(void) {
 bool GridConfiguration::isValid(void) const {
     bool    isValid = true;
 
-#ifdef FULL_MILHOJAGRID
     if ((xMax <= xMin) || (yMax <= yMin) || (zMax <= zMin)) {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid physical domain");
         isValid = false;
@@ -126,7 +125,6 @@ bool GridConfiguration::isValid(void) const {
         Logger::instance().log("[GridConfiguration::isValid] ERROR - Invalid AMReX CC Interpolator");
         isValid = false;
    }
-#endif
 #endif
 
     return isValid;

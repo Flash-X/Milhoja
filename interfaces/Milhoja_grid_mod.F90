@@ -21,7 +21,6 @@ module milhoja_grid_mod
     !!!!!----- PUBLIC INTERFACE
     public :: milhoja_grid_init
     public :: milhoja_grid_finalize
-#ifdef FULL_MILHOJAGRID
     public :: milhoja_grid_getCoordinateSystem
     public :: milhoja_grid_getDomainBoundBox
     public :: milhoja_grid_getMaxFinestLevel
@@ -40,7 +39,6 @@ module milhoja_grid_mod
         module procedure :: milhoja_grid_initDomain_noRuntime
         module procedure :: milhoja_grid_initDomain_cpuOnly
     end interface milhoja_grid_initDomain
-#endif
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
@@ -343,22 +341,17 @@ contains
                                  yMin, yMax,                   &
                                  zMin, zMax,                   &
                                  loBCs, hiBCs,                 &
-#ifdef FULL_MILHOJAGRID
                                  externalBcRoutine,            &
-#endif
                                  nxb, nyb, nzb,                &
                                  nBlocksX, nBlocksY, nBlocksZ, &
                                  maxRefinementLevel,           &
                                  ccInterpolator,               &
                                  nGuard, nCcVars, nFluxVars,   &
-#ifdef FULL_MILHOJAGRID
                                  errorEst,                     &
-#endif
                                  ierr)
         use iso_c_binding, ONLY : C_FUNPTR, &
                                   C_FUNLOC, &
                                   C_PTR, &
-                                  C_NULL_FUNPTR, &
                                   C_LOC
 
         use mpi,           ONLY : MPI_INTEGER_KIND
@@ -371,9 +364,7 @@ contains
         real(MILHOJA_REAL),                      intent(IN)  :: zMin, zMax
         integer(MILHOJA_INT), target,            intent(IN)  :: loBCs(1:MILHOJA_MDIM)
         integer(MILHOJA_INT), target,            intent(IN)  :: hiBCs(1:MILHOJA_MDIM)
-#ifdef FULL_MILHOJAGRID
         procedure(milhoja_externalBcCallback)                :: externalBcRoutine
-#endif
         integer(MILHOJA_INT),                    intent(IN)  :: nxb, nyb, nzb
         integer(MILHOJA_INT),                    intent(IN)  :: nBlocksX, nBlocksY, nBlocksZ
         integer(MILHOJA_INT),                    intent(IN)  :: maxRefinementLevel
@@ -381,9 +372,7 @@ contains
         integer(MILHOJA_INT),                    intent(IN)  :: nGuard
         integer(MILHOJA_INT),                    intent(IN)  :: nCcVars
         integer(MILHOJA_INT),                    intent(IN)  :: nFluxVars
-#ifdef FULL_MILHOJAGRID
         procedure(milhoja_errorEstimateCallback)             :: errorEst
-#endif
         integer(MILHOJA_INT),                    intent(OUT) :: ierr
 
         type(C_PTR)    :: loBCs_Cptr
@@ -393,13 +382,8 @@ contains
 
         loBCs_Cptr             = C_LOC(loBCs)
         hiBCs_Cptr             = C_LOC(hiBCs)
-#ifdef FULL_MILHOJAGRID
         externalBcRoutine_Cptr = C_FUNLOC(externalBcRoutine)
         errorEst_Cptr          = C_FUNLOC(errorEst)
-#else
-        externalBcRoutine_Cptr = c_null_funptr !C_FUNLOC(externalBcRoutine)
-        errorEst_Cptr          = c_null_funptr !C_FUNLOC(errorEst)
-#endif
 
         ierr = milhoja_grid_init_C(globalCommF, logRank,         &
                                    coordSys,                     &
@@ -430,7 +414,6 @@ contains
         ierr = milhoja_grid_finalize_C()
     end subroutine milhoja_grid_finalize
 
-#ifdef FULL_MILHOJAGRID
     !> Obtain the coordinate system used to define the domain.
     !!
     !! @param system  An integer index of the system type.  Refer to Milhoja.h.
@@ -696,7 +679,6 @@ contains
 
         ierr = milhoja_grid_fill_guardcells_C()
     end subroutine milhoja_grid_fillGuardCells
-#endif
 
 end module milhoja_grid_mod
 

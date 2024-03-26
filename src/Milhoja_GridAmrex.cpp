@@ -47,19 +47,13 @@ bool GridAmrex::domainDestroyed_   = false;
   *       components for each domain face, but AMReX allows for a scheme per
   *       component for each face.  Should we expose this level of flexibility?
   */
-#ifndef FULL_MILHOJAGRID
-#define max_level 1
-#endif
 GridAmrex::GridAmrex(void)
     : Grid(),
-#ifdef FULL_MILHOJAGRID
-      AmrCore() ,
-#endif
+      AmrCore(),
       unk_{static_cast<std::vector<amrex::MultiFab>::size_type>(max_level+1)},
       fluxes_{static_cast<std::vector<std::vector<amrex::MultiFab>>::size_type>(max_level+1)},
       bcs_{1},
       comm_{GridConfiguration::instance().mpiComm},
-#ifdef FULL_MILHOJAGRID
       nBlocksX_{GridConfiguration::instance().nBlocksX},
       nBlocksY_{GridConfiguration::instance().nBlocksY},
       nBlocksZ_{GridConfiguration::instance().nBlocksZ},
@@ -72,18 +66,6 @@ GridAmrex::GridAmrex(void)
       nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
       errorEst_{GridConfiguration::instance().errorEstimation},
       extBcFcn_{GridConfiguration::instance().externalBcRoutine},
-#else
-      nBlocksX_{GridConfiguration::instance().nBlocksX},
-      nBlocksY_{GridConfiguration::instance().nBlocksY},
-      nBlocksZ_{GridConfiguration::instance().nBlocksZ},
-      nxb_{8},
-      nyb_{8}, 
-      nzb_{1},
-      ccInterpolator_{nullptr},
-      nGuard_{static_cast<int>(4)},
-      nCcVars_{static_cast<int>(17)},
-      nFluxVars_{static_cast<int>(5)},
-#endif
       initBlock_noRuntime_{nullptr},
       initCpuAction_{},
       initCpuPrototype_{nullptr}
@@ -96,7 +78,7 @@ GridAmrex::GridAmrex(void)
     // Therefore, these MFab arrays and the fluxes_[level] array must be as
     // created at instantiation and remain fixed until finalization of the Grid
     // unit.
-    msg = "[FAKE GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
+    msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
     logger.log(msg);
 
     // When constructing a TileIterAmrex at a given level, we must pass in a
@@ -114,7 +96,6 @@ GridAmrex::GridAmrex(void)
         logger.log("[GridAmrex] No flux MultiFabs needed");
     }
 
-#ifdef FULL_MILHOJAGRID
     // Satisfy grid configuration requirements and suggestions (See dev guide).
     std::string   ccInterpolatorName{};
     {
@@ -192,11 +173,9 @@ GridAmrex::GridAmrex(void)
     int size = -1;
     MPI_Comm_size(comm_, &size);
 
-#ifdef FULL_MILHOJAGRID
     // Get values owned by AMReX
     RealVect  domainLo = getProbLo();
     RealVect  domainHi = getProbHi();
-#endif
 
     msg =   "[GridAmrex] " + std::to_string(size)
           + " MPI processes in given communicator";
@@ -205,7 +184,6 @@ GridAmrex::GridAmrex(void)
     msg = "[GridAmrex] N dimensions = " + std::to_string(MILHOJA_NDIM);
     logger.log(msg);
 
-#ifdef FULL_MILHOJAGRID
     msg = "[GridAmrex] ";
     switch (getCoordinateSystem()) {
     case CoordSys::Cartesian:
@@ -241,7 +219,6 @@ GridAmrex::GridAmrex(void)
           + std::to_string(domainHi[Axis::K]) + ")";
     logger.log(msg);
 #endif
-#endif
 
     msg = "[GridAmrex] Boundary Conditions Handling";
     logger.log(msg);
@@ -273,7 +250,6 @@ GridAmrex::GridAmrex(void)
 
     msg = "[GridAmrex] Using " + ccInterpolatorName + " interpolator for cell-centered data";
     logger.log(msg);
-#endif
 
     msg =   "[GridAmrex] Maximum Finest Level = "
           + std::to_string(max_level);
@@ -302,7 +278,6 @@ GridAmrex::GridAmrex(void)
           + " blocks";
     logger.log(msg);
     
-#ifdef FULL_MILHOJAGRID
     msg = "[GridAmrex] Mesh deltas by level";
     logger.log(msg);
     for (int level=0; level<=max_level; ++level) {
@@ -312,7 +287,6 @@ GridAmrex::GridAmrex(void)
               + std::to_string(deltas[Axis::I]);
         logger.log(msg);
     }
-#endif
 #elif MILHOJA_NDIM == 2
     msg =   "[GridAmrex] Block interior size = "
           + std::to_string(nxb_) + " x "
@@ -326,7 +300,6 @@ GridAmrex::GridAmrex(void)
           + " blocks";
     logger.log(msg);
 
-#ifdef FULL_MILHOJAGRID
     msg = "[GridAmrex] Mesh deltas by level";
     logger.log(msg);
     for (int level=0; level<=max_level; ++level) {
@@ -337,7 +310,6 @@ GridAmrex::GridAmrex(void)
               + std::to_string(deltas[Axis::J]);
         logger.log(msg);
     }
-#endif
 #elif MILHOJA_NDIM == 3
     msg =   "[GridAmrex] Block interior size = "
           + std::to_string(nxb_) + " x "
@@ -353,7 +325,6 @@ GridAmrex::GridAmrex(void)
           + " blocks";
     logger.log(msg);
 
-#ifdef FULL_MILHOJAGRID
     msg = "[GridAmrex] Mesh deltas by level";
     logger.log(msg);
     for (int level=0; level<=max_level; ++level) {
@@ -365,7 +336,6 @@ GridAmrex::GridAmrex(void)
               + std::to_string(deltas[Axis::K]);
         logger.log(msg);
     }
-#endif
 #endif
 
     logger.log("[GridAmrex] Created and ready for use");
@@ -434,7 +404,6 @@ void  GridAmrex::finalize(void) {
     Logger::instance().log("[GridAmrex] Finalized");
 }
 
-#ifdef FULL_MILHOJAGRID
 /**
  *  Destroy the domain.  It is a logical error to call this if initDomain has
  *  not already been called or to call it multiple times.
@@ -1012,7 +981,6 @@ void GridAmrex::fillPatch(amrex::MultiFab& mf, const int level) {
     }
 }
 
-#ifdef FULL_MILHOJAGRID
 //----- amrex::AmrCore OVERRIDES
 /**
   * \brief Clear level
@@ -1288,7 +1256,6 @@ void    GridAmrex::ErrorEst(int level, amrex::TagBoxArray& tags,
 
         tagfab.tags_and_untags(itags,validbox);
     }
-#endif
 
 #ifdef GRID_LOG
     msg =   "[GridAmrex::ErrorEst] Did ErrorEst for level "
@@ -1296,7 +1263,6 @@ void    GridAmrex::ErrorEst(int level, amrex::TagBoxArray& tags,
     Logger::instance().log(msg);
 #endif
 }
-#endif
 
 }
 
