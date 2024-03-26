@@ -1,4 +1,5 @@
 #include "Milhoja_Logger.h"
+#include "Milhoja.h"
 
 #include <ctime>
 #include <fstream>
@@ -39,8 +40,13 @@ void   Logger::setLogFilename(const std::string& filename) {
  */
 Logger& Logger::instance(void) {
     if        (!initialized_) {
+#ifdef RUNTIME_MUST_USE_TILEITER
         throw std::logic_error("[Logger::instance] Singleton not initialized");
-    } else if (finalized_) {
+#else
+        initialize("MILHOJA.log", MPI_COMM_WORLD, 0);//lazy init, only with defaults
+#endif
+    }
+    if (finalized_) {
         throw std::logic_error("[Logger::instance] No access after finalization");
     }
 
@@ -138,7 +144,14 @@ Logger::Logger(void)
  */
 Logger::~Logger(void) {
     if (initialized_ && !finalized_) {
+#ifdef RUNTIME_MUST_USE_TILEITER
+        // The Milhoja grid should have closed the logger on finalization,
+        // complain a bit if not.
         std::cerr << "[Logger::~Logger] ERROR - Not finalized" << std::endl;
+#else
+	log("[Logger] ~Logger called, high time to terminate:");
+	finalize();
+#endif
     }
 }
 

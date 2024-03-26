@@ -15,6 +15,12 @@ def main():
     # Location of Milhoja-JSON files
     CG_PATH = CLONE_PATH.joinpath("test", "Sedov", "code_generation")
 
+    # Milhoja-JSON specifications of all task functions in test
+    # TF_PARTIAL_NAMES_ALL = ["cpu_tf_ic_{}D.json",
+    #                         "cpu_tf_hydro_{}D.json",
+    #                         "gpu_tf_hydro_{}D.json",
+    #                         "cpu_tf_IQ_{}D.json"]
+
     # Exit codes so that this can be used in CI build server
     FAILURE = 1
     SUCCESS = 0

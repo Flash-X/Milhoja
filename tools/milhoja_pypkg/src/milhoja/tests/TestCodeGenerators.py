@@ -56,30 +56,37 @@ class TestCodeGenerators(unittest.TestCase):
 
                 generator = create_generator(json_fname)
 
-                header_filename = dst.joinpath(generator.header_filename)
+                # ----- CHECK HEADER AGAINST BASELINE
+                if generator.header_filename is not None:
+                    header_filename = dst.joinpath(generator.header_filename)
+                    self.assertTrue(not header_filename.exists())
+
+                    ref_hdr_fname = test["header"]
+                    if hdr_depends_on_dim:
+                        ref_hdr_fname = Path(str(ref_hdr_fname).format(dim))
+
+                    generator.generate_header_code(dst, True)
+                    self.assertTrue(header_filename.is_file())
+
+                    ref = self.__load_code(ref_hdr_fname)
+                    generated = self.__load_code(header_filename)
+
+                    self.assertEqual(len(ref), len(generated))
+                    for gen_line, ref_line in zip(generated, ref):
+                        self.assertEqual(gen_line, ref_line)
+
+                    # Clean-up
+                    os.remove(str(header_filename))
+
+                # ----- CHECK SOURCE AGAINST BASELINE
                 source_filename = dst.joinpath(generator.source_filename)
-                self.assertTrue(not header_filename.exists())
+                print(source_filename)
                 self.assertTrue(not source_filename.exists())
 
-                ref_hdr_fname = test["header"]
                 ref_src_fname = test["source"]
-                if hdr_depends_on_dim:
-                    ref_hdr_fname = Path(str(ref_hdr_fname).format(dim))
                 if src_depends_on_dim:
                     ref_src_fname = Path(str(ref_src_fname).format(dim))
 
-                # ----- CHECK HEADER AGAINST BASELINE
-                generator.generate_header_code(dst, True)
-                self.assertTrue(header_filename.is_file())
-
-                ref = self.__load_code(ref_hdr_fname)
-                generated = self.__load_code(header_filename)
-
-                self.assertEqual(len(ref), len(generated))
-                for gen_line, ref_line in zip(generated, ref):
-                    self.assertEqual(gen_line, ref_line)
-
-                # ----- CHECK SOURCE AGAINST BASELINE
                 generator.generate_source_code(dst, True)
                 self.assertTrue(source_filename.is_file())
 
@@ -90,6 +97,6 @@ class TestCodeGenerators(unittest.TestCase):
                 for gen_line, ref_line in zip(generated, ref):
                     self.assertEqual(gen_line, ref_line)
 
-                # ----- CLEAN-UP YA LAZY SLOB!
-                os.remove(str(header_filename))
+                # Clean-up
+                # os.remove(str(json_fname_XD))
                 os.remove(str(source_filename))

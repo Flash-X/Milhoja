@@ -55,7 +55,7 @@ public:
     // Tile metadata
     unsigned int        nCcVariables(void) const override;
     unsigned int        nFluxVariables(void) const override;
-#ifndef RUNTIME_USES_TILEITER
+#ifndef RUNTIME_MUST_USE_TILEITER
     RealVect            deltas(void) const override;
 #endif
     IntVect             lo(void) const override;

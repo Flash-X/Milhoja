@@ -15,6 +15,7 @@
         "cpp_source": "cpu_tf_analysis.cpp",
         "c2f_source": "",
         "fortran_source": "",
+        "computation_offloading": "",
         "variable_index_base": 1,
         "argument_list": ["tile_gridIndex",
                           "tile_hi",

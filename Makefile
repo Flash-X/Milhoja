@@ -55,6 +55,10 @@ endif
 
 CPP_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cpp)
 CPP_HDRS := $(wildcard $(INCDIR)/Milhoja_*.h)
+ifeq ($(SUPPORT_PUSH),)
+CPP_SRCS := $(filter-out $(SRCDIR)/Milhoja_TileFlashxr.cpp,$(CPP_SRCS))
+CPP_HDRS := $(filter-out $(INCDIR)/Milhoja_TileFlashxr.h $(INCDIR)/Milhoja_FlashxrTileRaw.h,$(CPP_HDRS))
+endif
 
 CINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.cpp)
 FINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.F90)
@@ -87,11 +91,6 @@ CXXFLAGS += $(OACC_FLAGS)
 else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
-
-# The following may or may not work.
-# Uncommenting the following two lines is necessary for a traditional build:
-#CXXFLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
-#F90FLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
 
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
