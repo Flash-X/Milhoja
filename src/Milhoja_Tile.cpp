@@ -27,14 +27,16 @@ Tile::~Tile(void) {
 }
 
 
-#ifdef FULL_MILHOJAGRID
+#ifdef RUNTIME_MUST_USE_TILEITER
 /**
  * \brief Get deltas for appropriate level.
  */
 RealVect Tile::deltas(void) const {
     return Grid::instance().getDeltas(level());
 }
+#endif
 
+#ifdef FULL_MILHOJAGRID
 /**
   * \brief Get the physical coordinates of the
   *        center of the tile.

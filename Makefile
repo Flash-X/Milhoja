@@ -55,6 +55,14 @@ endif
 
 CPP_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cpp)
 CPP_HDRS := $(wildcard $(INCDIR)/Milhoja_*.h)
+ifeq ($(SUPPORT_PUSH),)
+CPP_SRCS := $(filter-out $(SRCDIR)/Milhoja_TileFlashxr.cpp,$(CPP_SRCS))
+CPP_HDRS := $(filter-out $(INCDIR)/Milhoja_TileFlashxr.h $(INCDIR)/Milhoja_FlashxrTileRaw.h,$(CPP_HDRS))
+endif
+ifeq ($(SUPPORT_EXEC),)
+CPP_SRCS := $(filter-out $(SRCDIR)/Milhoja_TileAmrex.cpp,$(CPP_SRCS))
+CPP_HDRS := $(filter-out $(INCDIR)/Milhoja_TileAmrex.h,$(CPP_HDRS))
+endif
 
 CINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.cpp)
 FINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.F90)
@@ -89,8 +97,10 @@ $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
 
 # The following may or may not work.
-# Uncommenting the following two lines is necessary for a traditional build:
-#CXXFLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
+# Uncommenting the following two lines may be necessary for a traditional build:
+ifndef MILHOJA_NO_GRID_BACKEND
+#CXXFLAGS += -DFULL_MILHOJAGRID
+endif
 #F90FLAGS += -DFULL_MILHOJAGRID -DRUNTIME_USES_TILEITER
 
 .PHONY: all install clean
@@ -161,5 +171,6 @@ $(BUILDDIR)/Milhoja_tileCInfo_mod.o: $(INTERFACEDIR)/Milhoja_tileCInfo_mod.F90 $
 	$(F90COMP) -c $(F90FLAGS) -o $@ $<
 
 $(TARGET): $(OBJS) Makefile
+	echo OBJS is $(OBJS) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 	ar -rcs $@ $(OBJS)
 

@@ -185,6 +185,7 @@ extern "C" {
         return MILHOJA_SUCCESS;
     }
 
+#ifndef RUNTIME_MUST_USE_TILEITER
     /**
      * Instruct the runtime to set up the pipeline for the CPU-only thread team
      * configuration.
@@ -259,7 +260,7 @@ extern "C" {
      *
      * The computational work that is to apply identically to each block has been
      * established by the previous invocation of milhoja_runtime_setup_pipeline_cpu_c.
-     * 
+     *
      * \param tileWrapper    C pointer to the prototype TileWrapper
      * \param nThreads       The number of threads that the single thread team
      *                       should activate. Just for checking, not passed on from here.
@@ -291,6 +292,7 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+#endif
 
 #ifdef RUNTIME_CAN_USE_TILEITER
     /**
@@ -342,6 +344,7 @@ extern "C" {
     }
 #endif
 
+#ifndef RUNTIME_MUST_USE_TILEITER
     /**
      * Set up the runtime to use the GPU-only thread team configuration with
      * the given number of threads to apply the given task function to all
@@ -429,7 +432,7 @@ extern "C" {
      *
      * The computational work to be applied to each tile is expected to have been
      * established by the previous invocation of milhoja_runtime_setup_pipeline_gpu_c.
-     * 
+     *
      * \param packet         Pointer to a prototype data packet to be
      *                       used to create new packets.
      * \param nThreads       The number of threads that the single thread team
@@ -463,6 +466,7 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+#endif
 
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER

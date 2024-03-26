@@ -6,7 +6,9 @@
 #include "Milhoja_TileAmrex.h"
 
 #include "Milhoja_Logger.h"
+#ifndef RUNTIME_MUST_USE_TILEITER
 #include "Milhoja_Grid.h"
+#endif
 
 namespace milhoja {
 
@@ -95,7 +97,7 @@ unsigned int    TileAmrex::nFluxVariables(void) const {
     return static_cast<unsigned int>(nFluxVars);
 }
 
-#ifndef FULL_MILHOJAGRID
+#ifndef RUNTIME_MUST_USE_TILEITER
 /**
  * \brief Get deltas for appropriate level.
  */

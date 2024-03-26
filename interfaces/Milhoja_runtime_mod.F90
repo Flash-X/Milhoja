@@ -310,6 +310,7 @@ contains
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToPipeline
 
+#ifdef RUNTIME_SUPPORT_PUSH
     !> Instruct the runtime to make the GPU-only thread team ready.
     !!
     !! @param taskFunction    The task function to execute
@@ -374,6 +375,7 @@ contains
                                                    nThreads, &
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToGpuPipeline
+#endif
 
 #ifdef RUNTIME_SUPPORT_EXECUTE
     !> Instruct the runtime to use the CPU-only thread team configuration with

@@ -13,8 +13,10 @@
 #endif
 
 #include "Milhoja.h"
-#ifndef RUNTIME_USES_TILEITER
+#ifdef RUNTIME_CAN_USE_TILEITER
 #include "Milhoja_Grid.h"
+#endif
+#ifndef RUNTIME_MUST_USE_TILEITER
 #include "Milhoja_FlashxrTileRaw.h"
 #include "Milhoja_TileFlashxr.h"
 #endif
@@ -191,8 +193,6 @@ void Runtime::pushTileToPipeline(const std::string& actionName,
 				 ) {
     Logger::instance().log("[Runtime] Push single tile task to single CPU pipeline");
     ThreadTeam*   cpuTeam = teams_[0];
-    //***** ACTION PARALLEL DISTRIBUTOR
-    Grid&   grid = Grid::instance();
 
     //    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
     cpuTeam->enqueue( prototype.clone( std::make_unique<TileFlashxr>(tP, tI, tR) ) );
@@ -269,13 +269,11 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 
     //***** ACTION PARALLEL DISTRIBUTOR
     Grid&   grid = Grid::instance();
-#ifdef RUNTIME_USES_TILEITER
     for (unsigned int level=0; level<=grid.getMaxLevel(); ++level) {
         for (auto ti = grid.buildTileIter(level); ti->isValid(); ti->next()) {
             cpuTeam->enqueue( prototype.clone( ti->buildCurrentTile() ) );
         }
     }
-#endif
     cpuTeam->closeQueue(nullptr);
 
     // host thread blocks until cycle ends, so activate another thread 
@@ -465,8 +463,8 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
     RuntimeBackend&               backend = RuntimeBackend::instance();
     {
       //            packet_gpu_->addTile( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} );
-      //            packet_gpu_->addTile( static_cast<std::shared_ptr<Tile> >(std::make_unique<TileFlashxr>(tP, tI, tR) ));
-            packet_gpu_->addTile( std::make_shared<TileFlashxr>(tP, tI, tR) );
+                  packet_gpu_->addTile( static_cast<std::shared_ptr<Tile> >(std::make_unique<TileFlashxr>(tP, tI, tR) ));
+		  //      packet_gpu_->addTile( std::make_shared<TileFlashxr>(tP, tI, tR) );
             if (packet_gpu_->nTiles() >= nTilesPerPacket_) {
                 packet_gpu_->pack();
                 backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
@@ -1918,7 +1916,6 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 #    endif
 #  endif
 #endif
-#endif    // #ifdef RUNTIME_USES_TILEITER
 
 }
 

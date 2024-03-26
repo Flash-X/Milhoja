@@ -1,4 +1,4 @@
-#ifdef __STDC__
+#if defined __STDC__ || defined __INTEL_COMPILER
 #define TYPENAME_PREFIXED2(prefix,surname) prefix ## _ ## surname
 #else
 #define TYPENAME_PREFIXED2(prefix,surname) prefix/**/_/**/surname

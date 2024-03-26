@@ -39,7 +39,7 @@ public:
 
     virtual unsigned int        nCcVariables(void) const = 0;
     virtual unsigned int        nFluxVariables(void) const = 0;
-#ifdef FULL_MILHOJAGRID
+#ifdef RUNTIME_MUST_USE_TILEITER
     virtual RealVect            deltas(void) const;
 #else
     virtual RealVect            deltas(void) const = 0;
