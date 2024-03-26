@@ -97,6 +97,9 @@ void   Runtime::finalize(void) {
     finalized_ = true;
 
     Logger::instance().log("[Runtime] Finalized");
+#if !(defined(RUNTIME_CAN_USE_TILEITER) || defined(FULL_MILHOJAGRID))
+    Logger::instance().finalize();
+#endif
 }
 
 /**

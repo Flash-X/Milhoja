@@ -43,7 +43,7 @@ Logger& Logger::instance(void) {
 #ifdef RUNTIME_MUST_USE_TILEITER
         throw std::logic_error("[Logger::instance] Singleton not initialized");
 #else
-        initialize("MILHOJA.log", MPI_COMM_WORLD, 0);
+        initialize("MILHOJA.log", MPI_COMM_WORLD, 0);//lazy init, only with defaults
 #endif
     }
     if (finalized_) {
@@ -144,7 +144,14 @@ Logger::Logger(void)
  */
 Logger::~Logger(void) {
     if (initialized_ && !finalized_) {
+#ifdef RUNTIME_MUST_USE_TILEITER
+        // The Milhoja grid should have closed the logger on finalization,
+        // complain a bit if not.
         std::cerr << "[Logger::~Logger] ERROR - Not finalized" << std::endl;
+#else
+	log("[Logger] ~Logger called, high time to terminate:");
+	finalize();
+#endif
     }
 }
 
