@@ -74,6 +74,12 @@ CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
            $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
 CU_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cu)
 CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
+else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
+CXXFLAGS += -I$(INCDIR)/CudaBackend
+CXXFLAGS += -I$(INCDIR) -I$(BUILDDIR) \
+           $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
+ALTCU_SRCS := $(wildcard $(SRCDIR)/Milhoja_FakeCuda*.cpp)
+CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
 else
 $(error Unknown backend $(RUNTIME_BACKEND))
 endif
@@ -82,7 +88,8 @@ CPP_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CPP_SRCS:.cpp=.o))
 INT_OBJS := $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(CINT_SRCS:.cpp=.o))
 INT_OBJS += $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(FINT_SRCS:.F90=.o))
 CU_OBJS  := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CU_SRCS:.cu=.o))
-OBJS     := $(CPP_OBJS) $(INT_OBJS) $(CU_OBJS)
+ALTCU_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(ALTCU_SRCS:.cpp=.o))
+OBJS     := $(CPP_OBJS) $(INT_OBJS) $(CU_OBJS) $(ALTCU_OBJS)
 HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
 
 ifeq      ($(COMPUTATION_OFFLOADING),None)

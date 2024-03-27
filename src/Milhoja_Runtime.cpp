@@ -476,6 +476,11 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
 		  //      packet_gpu_->addTile( std::make_shared<TileFlashxr>(tP, tI, tR) );
             if (packet_gpu_->nTiles() >= nTilesPerPacket_) {
                 packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+		Logger::instance().log("[Runtime] Shipping off packet with "
+				       + std::to_string(packet_gpu_->nTiles())
+				       + " tiles...");
+#endif
                 backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
 
                 gpuTeam->enqueue( std::move(packet_gpu_) );
@@ -513,6 +518,11 @@ void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 
         if (packet_gpu_->nTiles() > 0) {
             packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+	    Logger::instance().log("[Runtime] Shipping off packet with "
+				       + std::to_string(packet_gpu_->nTiles())
+				       + " final tiles...");
+#endif
             backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
             gpuTeam->enqueue( std::move(packet_gpu_) );
         } else {
