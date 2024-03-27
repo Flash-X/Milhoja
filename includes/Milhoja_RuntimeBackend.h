@@ -16,6 +16,8 @@ namespace milhoja {
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
+#elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
+  using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void*);
 #else
 // No notion of callback function otherwise.
 // Specify simplest function pointer.

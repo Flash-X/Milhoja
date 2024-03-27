@@ -15,7 +15,7 @@ from pathlib import Path
 _VALID_DIM     = [1, 2, 3]
 _VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
-_VALID_RUNTIME = ['none', 'cuda']
+_VALID_RUNTIME = ['none', 'cuda', 'hostmem']
 _VALID_OFFLOAD = ['none', 'openacc']
 
 #####----- DEFAULT CONFIGURATION VALUES
@@ -148,6 +148,8 @@ if __name__ == '__main__':
     elif runtime_backend.lower() == 'gengpu': # generic non-CUDA GPU
         runtime_backend_macro = 'MILHOJA_GENGPU_RUNTIME_BACKEND'
         gpu_support_included = True
+    elif runtime_backend.lower() == 'hostmem': # handle packets in host memory, "fake CUDA"
+        runtime_backend_macro = 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
     elif runtime_backend.lower() == 'openmpi': # omp_ calls for mem calls / target coyping, can we do it?
         runtime_backend_macro = 'MILHOJA_OPENMPI_RUNTIME_BACKEND'
     elif runtime_backend.lower() == 'openacc': # oacc_ calls for mem alloc, device coyping, can we do it?

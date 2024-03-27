@@ -40,3 +40,6 @@ CU_SRCS_BASE = \
 	$(SRCDIR)/Milhoja_CudaGpuEnvironment.cu \
 	$(SRCDIR)/Milhoja_CudaStreamManager.cu \
 	$(SRCDIR)/Milhoja_CudaMemoryManager.cu
+
+FAKECU_SRCS_BASE = \
+	$(SRCDIR)/Milhoja_FakeCudaMemoryManager.cpp
