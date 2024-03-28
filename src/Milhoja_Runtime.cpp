@@ -97,6 +97,9 @@ void   Runtime::finalize(void) {
     finalized_ = true;
 
     Logger::instance().log("[Runtime] Finalized");
+#if !(defined(RUNTIME_CAN_USE_TILEITER) || defined(FULL_MILHOJAGRID))
+    Logger::instance().finalize();
+#endif
 }
 
 /**
@@ -191,13 +194,17 @@ void Runtime::pushTileToPipeline(const std::string& actionName,
 				 const FlashxTileRawInts& tI,
 				 const FlashxTileRawReals& tR
 				 ) {
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Push single tile task to single CPU pipeline");
+#endif
     ThreadTeam*   cpuTeam = teams_[0];
 
     //    cpuTeam->enqueue( prototype.clone( std::unique_ptr<Tile>{new TileFlashxr{tP, tI, tR}} ) );
     cpuTeam->enqueue( prototype.clone( std::make_unique<TileFlashxr>(tP, tI, tR) ) );
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Single tile task was pushed to CPU pipeline");
+#endif
 }
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void Runtime::teardownPipelineForCpuTasks(const std::string& actionName) {
@@ -442,7 +449,9 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
 				 const FlashxTileRawInts& tI,
 				 const FlashxTileRawReals& tR) {
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Push single tile task to single GPU pipeline");
+#endif
 
     if (nTilesPerPacket_ <= 0) {
         throw std::invalid_argument("[Runtime:pushTileToGpuPipeline] "
@@ -467,6 +476,11 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
 		  //      packet_gpu_->addTile( std::make_shared<TileFlashxr>(tP, tI, tR) );
             if (packet_gpu_->nTiles() >= nTilesPerPacket_) {
                 packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+		Logger::instance().log("[Runtime] Shipping off packet with "
+				       + std::to_string(packet_gpu_->nTiles())
+				       + " tiles...");
+#endif
                 backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
 
                 gpuTeam->enqueue( std::move(packet_gpu_) );
@@ -475,7 +489,9 @@ void Runtime::pushTileToGpuPipeline(const std::string& bundleName,
             }
     }
 
+#ifdef RUNTIME_PERTILE_LOG
     Logger::instance().log("[Runtime] Single tile task was pushed to GPU pipeline");
+#endif
 }
 void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 
@@ -502,6 +518,11 @@ void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 
         if (packet_gpu_->nTiles() > 0) {
             packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+	    Logger::instance().log("[Runtime] Shipping off packet with "
+				       + std::to_string(packet_gpu_->nTiles())
+				       + " final tiles...");
+#endif
             backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
             gpuTeam->enqueue( std::move(packet_gpu_) );
         } else {

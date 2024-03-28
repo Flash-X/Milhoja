@@ -15,6 +15,7 @@
         "cpp_source":           "cpu_tf_hydro_Cpp2C.cxx",
         "c2f_source":           "cpu_tf_hydro_C2F.F90",
         "fortran_source":       "cpu_tf_hydro_mod.F90",
+        "computation_offloading": "",
         "variable_index_base":  1,
         "argument_list":       ["external_hydro_op1_dt",
                                 "external_hydro_op1_eosMode",
@@ -77,7 +78,7 @@
         "byte_alignment": -1,
         "header":         "Tile_cpu_tf_hydro.h",
         "source":         "Tile_cpu_tf_hydro.cxx",
-        "module":         ""
+        "module":         "Tile_cpu_tf_hydro_mod.F90"
     },
     "subroutines": {
         "Hydro_computeSoundSpeedHll_block_cpu": {

@@ -1,31 +1,33 @@
+import re
+
+from copy import deepcopy
 from collections import OrderedDict
 
 from .DataPacketMemberVars import DataPacketMemberVars
+from .parse_helpers import parse_lbound_f
 from .TemplateUtility import TemplateUtility
+from . import (
+    EXTERNAL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_UBOUND_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+    TILE_ARRAY_BOUNDS_ARGUMENT, TILE_LBOUND_ARGUMENT, LBOUND_ARGUMENT,
+    GRID_DATA_LBOUNDS, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING
+)
 
 
 class FortranTemplateUtility(TemplateUtility):
     """
     Internal class for the data packet generator.
+
     Contains utility functions for generating data packets with fortran
     based task functions.
     """
 
-    FARRAY_MAPPING = {
-        "int": "IntVect",
-        "real": "RealVect"
-    }
+    def __init__(self, tf_spec):
+        super().__init__(tf_spec)
 
-    F_HOST_EQUIVALENT = {
-        'RealVect': 'real',
-        'IntVect': 'int'
-    }
-
-    @classmethod
     def iterate_externals(
-        cls, connectors: dict,
-        size_connectors: dict,
-        externals: OrderedDict
+        self, connectors: dict, size_connectors: dict, externals: OrderedDict,
+        dummy_arg_order: list
     ):
         """
         Iterates the external variables section
@@ -40,13 +42,12 @@ class FortranTemplateUtility(TemplateUtility):
                                       for the ptv section in the DataPacket
                                       JSON.
         """
-        cls.section_creation(
-            cls._EXT, externals, connectors, size_connectors
+        self.section_creation(
+            self._EXT, externals, connectors, size_connectors
         )
-        connectors[cls._HOST_MEMBERS] = []
+        connectors[self._HOST_MEMBERS] = []
         # we need to set nTiles value here as a link,
         # _param does not work as expected.
-
         nTiles_value = '// Check for overflow first to avoid UB\n' + \
                        '// TODO: Should casting be checked here ' \
                        'or in base class?\n' + \
@@ -56,16 +57,12 @@ class FortranTemplateUtility(TemplateUtility):
                        ' nTiles was too large for int.");\n' + \
                        '_nTiles_h = static_cast<' \
                        f'{externals["nTiles"]["type"]}>(tiles_.size());'
-        connectors[cls._NTILES_VALUE] = [nTiles_value]
-        cls._common_iterate_externals(connectors, externals)
+        connectors[self._NTILES_VALUE] = [nTiles_value]
+        self._common_iterate_externals(connectors, externals, dummy_arg_order)
 
-    @classmethod
     def iterate_tilemetadata(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        tilemetadata: OrderedDict,
-        num_arrays: int
+        self, connectors: dict, size_connectors: dict,
+        tilemetadata: OrderedDict, num_arrays: int
     ):
         """
         Iterates the tilemetadata section of the JSON.
@@ -76,70 +73,146 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tilemetadata: The dict containing information from
                                          the tile-metadata section in the JSON
         :param str language: The language to use
-        :param int num_arrays: The number of arrays inside tile-in,
-                               tile-in-out, tile-out, and tile-scratch.
+        :param int num_arrays: Unused
         """
 
-        cls.section_creation(
-            cls._T_MDATA, tilemetadata, connectors, size_connectors
+        self.section_creation(
+            self._T_MDATA, tilemetadata, connectors, size_connectors
         )
-        connectors[cls._T_DESCRIPTOR] = []
+        connectors[self._T_DESCRIPTOR] = []
+        one_time_mdata = OrderedDict()
+        bounds_data = {
+            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
+            TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT,
+            TILE_ARRAY_BOUNDS_ARGUMENT
+        }
 
         for item, data in tilemetadata.items():
-            source = data['source']
-            # temporary fix for generating packet for flash-x sim
-            if source == 'tile_lbound':
-                source = 'tile_loGC'
-            elif source == 'tile_ubound':
-                source = 'tile_hiGC'
-            source = source.replace('tile_', '')
-
+            pure_source = data['source']
+            source = pure_source
+            short_source = source.replace('tile_', '')
             item_type = data['type']
-            size_eq = f"MILHOJA_MDIM * sizeof({item_type})"
+            interior = TILE_INTERIOR_ARGUMENT
+            bound_size_modifier = ""
+
+            if source == interior or source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                bound_size_modifier = "2 * "
+
+            size_eq = \
+                f"{bound_size_modifier}MILHOJA_MDIM * sizeof({item_type})"
+
+            lbound = []
+
+            # then it's an lbound array, which means int type and the size of
+            # the array is the # of dimensions of the associated array.
+            if pure_source == LBOUND_ARGUMENT:
+                assoc_array = data["array"]
+                item_type = "int"
+                array_spec = deepcopy(
+                    self.tf_spec.argument_specification(assoc_array)
+                )
+                source = array_spec["source"]
+                if source == EXTERNAL_ARGUMENT:
+                    raise NotImplementedError(
+                        "Lbound for external arrays not implemented."
+                    )
+                elif source == GRID_DATA_ARGUMENT:
+                    lbound = None
+                    struct = array_spec["structure_index"][0].upper()
+                    # get starting array value
+                    vars_in = array_spec.get('variables_in', None)
+                    vars_out = array_spec.get('variables_out', None)
+                    init = self.get_initial_index(vars_in, vars_out)
+                    lbound = GRID_DATA_LBOUNDS[struct].format(init)
+                    lbound = parse_lbound_f(lbound)
+                    lbound = [item.replace("tile_", "") for item in lbound]
+                    one_time_mdata[TILE_LO_ARGUMENT] = \
+                        {"source": "tile_lo", "type": "IntVect"}
+                # todo::
+                #   * this assumes that any mdata in lbound already exists...
+                elif source == SCRATCH_ARGUMENT:
+                    lbound = array_spec["lbound"]
+                    lbound = parse_lbound_f(lbound)
+                    lbound = [item.replace("tile_", "") for item in lbound]
+                size_eq = f"{len(lbound)} * sizeof({item_type})"
+
             info = DataPacketMemberVars(
                 item=item, dtype=item_type, size_eq=size_eq, per_tile=True
             )
-
             # extend each connector
-            connectors[cls._PUB_MEMBERS].extend(
+            connectors[self._PUB_MEMBERS].extend(
                 [f'{item_type}* {info.device};\n']
             )
-            connectors[cls._SET_MEMBERS].extend([f'{info.device}{{nullptr}}'])
-            connectors[cls._SIZE_DET].append(
-                f'static constexpr std::size_t {info.size} = {size_eq};\n')
-            cls.set_pointer_determination(connectors, cls._T_MDATA, info)
+            connectors[self._SET_MEMBERS].extend([f'{info.device}{{nullptr}}'])
+            connectors[self._SIZE_DET].append(
+                f'static constexpr std::size_t {info.size} = {size_eq};\n'
+            )
+            self.set_pointer_determination(connectors, self._T_MDATA, info)
 
             # data type depends on the language. If there exists a mapping
             # for a fortran data type for the given item_type,
             # use that instead.
-            info.dtype = cls.FARRAY_MAPPING.get(item_type, item_type)
-            connectors[cls._T_DESCRIPTOR].append(
-                f'const auto {source} = tileDesc_h->{source}();\n'
+            info.dtype = F2C_TYPE_MAPPING.get(item_type, item_type)
+
+            construct_host = ""
+            if pure_source != LBOUND_ARGUMENT:
+                fix_index = '+1' if pure_source in bounds_data else ''
+                info.dtype = F2C_TYPE_MAPPING.get(info.dtype, info.dtype)
+
+                # need to check for tile_interior and tile_arrayBounds args
+                # can't assume that lo and hi already exist + each var does
+                # not have knowledge of the other
+                if source == TILE_INTERIOR_ARGUMENT:
+                    construct_host = "[MILHOJA_MDIM * 2] = {" \
+                        "tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, " \
+                        "tileDesc_h->lo().J()+1,tileDesc_h->hi().J()+1, " \
+                        "tileDesc_h->lo().K()+1,tileDesc_h->hi().K()+1 }"
+                elif source == TILE_ARRAY_BOUNDS_ARGUMENT:
+                    construct_host = "[MILHOJA_MDIM * 2] = {" \
+                        "tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, "\
+                        "tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, "\
+                        "tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 }"
+                else:
+                    one_time_mdata[item] = data
+                    construct_host = "[MILHOJA_MDIM] = { " \
+                        f"{short_source}.I(){fix_index}, " \
+                        f"{short_source}.J(){fix_index}, " \
+                        f"{short_source}.K(){fix_index} }}"
+            # we can write very specific code if we know that the variable
+            # is an lbound argument.
+            else:
+                # info.dtype = VECTOR_ARRAY_EQUIVALENT[info.dtype]
+                # intvect i,j,k start at 0 so we need to add 1 to the
+                # index. However, anything that's just integers needs to be
+                # untouched.
+                for idx, value in enumerate(lbound):
+                    found = re.search('[a-zA-z]', value)
+                    if found:
+                        lbound[idx] = f"({value}) + 1"
+                construct_host = f"[{len(lbound)}] = {{" +\
+                    ','.join(lbound) + "}"
+
+            self.tile_metadata_memcpy(connectors, construct_host, "", info)
+
+        # for tile metadata that is needed by other metadata, but we only
+        # want to generate 1 variable for it.
+        for item, data in one_time_mdata.items():
+            name = item.replace("tile_", "")
+            src = data["source"]
+            # milhoja uses loGC and hiGC for tile_arrayBounds arrays.
+            # so we need this temporary name adjustment.
+            if src == TILE_LBOUND_ARGUMENT:
+                src = "tile_loGC"
+            elif src == TILE_UBOUND_ARGUMENT:
+                src = "tile_hiGC"
+            src = src.replace("tile_", '')
+            connectors[self._T_DESCRIPTOR].append(
+                f'const auto {name} = tileDesc_h->{src}();\n'
             )
 
-            # ..todo::
-            #   * Probably shouldn't always assume I can replace signed
-            #   * with unsigned here...
-            info.dtype = info.dtype.replace('unsigned', '')
-
-            # indices are 1 based, so bound arrays need to adjust
-            # ..todo::
-            #       * This is not sufficient for lbound
-            fix_index = '+1' if info.dtype == str('IntVect') else ''
-            info.dtype = cls.F_HOST_EQUIVALENT[info.dtype]
-            construct_host = "[MILHOJA_MDIM] = { " \
-                f"{source}.I(){fix_index}, {source}.J(){fix_index}, " + \
-                f"{source}.K(){fix_index} }}"
-
-            use_ref = ""
-            cls.tile_metadata_memcpy(
-                connectors, construct_host, use_ref, info
-            )
-
-    @classmethod
     def tile_metadata_memcpy(
-        cls, connectors: dict, construct: str,
-        use_ref: str, info: DataPacketMemberVars
+        self, connectors: dict, construct: str, use_ref: str,
+        info: DataPacketMemberVars
     ):
         """
         Adds the memcpy portion for the metadata section in a fortran packet.
@@ -152,7 +225,7 @@ class FortranTemplateUtility(TemplateUtility):
         :param DataPacketMemberVars info: Contains information for formatting
                                           the name to get variable names.
         """
-        connectors[f'memcpy_{cls._T_MDATA}'].extend([
+        connectors[f'memcpy_{self._T_MDATA}'].extend([
             f'{info.dtype} {info.host}{construct};\n',
             f'char_ptr = static_cast<char*>(static_cast<void*>('
             f'{info.pinned})) + n * {info.size};\n',
@@ -160,15 +233,14 @@ class FortranTemplateUtility(TemplateUtility):
             f'{use_ref}{info.host}), {info.size});\n\n',
         ])
 
-    @classmethod
     def iterate_tile_in(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        tilein: OrderedDict,
-    ) -> None:
+        self, connectors: dict, size_connectors: dict, tilein: OrderedDict
+    ):
         """
         Iterates the tile in section of the JSON.
+
+        todo::
+            * Write tests for tile_in data for fortran TFs.
 
         :param dict connectors: The dict containing all connectors
                                 for cgkit.
@@ -177,15 +249,15 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tilein: The dict containing the information in
                                    the tile_in section.
         """
-        cls.section_creation(cls._T_IN, tilein, connectors, size_connectors)
+        self.section_creation(self._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
             raise NotImplementedError("No test cases for fortran tile_in.")
             # gather all information from tile_in section.
             extents = data['extents']
             mask_in = data['variables_in']
             dtype = data['type']
-            index_space = cls.DEFAULT_INDEX_SPACE
-            array_size = cls.get_array_size(mask_in, None)
+            index_space = self.DEFAULT_INDEX_SPACE
+            array_size = self.get_array_size(mask_in, None)
 
             extents = ' * '.join(f'({item})' for item in extents)
             unks = f'{str(array_size)} + 1 - {str(index_space)}'
@@ -194,16 +266,12 @@ class FortranTemplateUtility(TemplateUtility):
                 size_eq=f'{extents} * ({unks}) * sizeof({dtype})',
                 per_tile=True
             )
-            cls._common_iterate_tile_data(
-                data, connectors, info, extents, mask_in, None, cls._T_IN
+            self._common_iterate_tile_data(
+                data, connectors, info, extents, mask_in, None, self._T_IN
             )
 
-    @classmethod
     def iterate_tile_in_out(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        tileinout: OrderedDict
+        self, connectors: dict, size_connectors: dict, tileinout: OrderedDict
     ):
         """
         Iterates the tileinout section of the JSON.
@@ -216,20 +284,20 @@ class FortranTemplateUtility(TemplateUtility):
                                       the tile-in-out section of the
                                       datapacket json.
         """
-        cls.section_creation(
-            cls._T_IN_OUT, tileinout, connectors, size_connectors
+        self.section_creation(
+            self._T_IN_OUT, tileinout, connectors, size_connectors
         )
-        connectors[f'memcpy_{cls._T_IN_OUT}'] = []
-        connectors[f'unpack_{cls._T_IN_OUT}'] = []
+        connectors[f'memcpy_{self._T_IN_OUT}'] = []
+        connectors[f'unpack_{self._T_IN_OUT}'] = []
         # unpack all items in tile_in_out
         for item, data in tileinout.items():
             in_mask = data['variables_in']
             out_mask = data['variables_out']
             dtype = data['type']
-            index_space = cls.DEFAULT_INDEX_SPACE
-            array_size = cls.get_array_size(in_mask, out_mask)
+            index_space = self.DEFAULT_INDEX_SPACE
+            array_size = self.get_array_size(in_mask, out_mask)
 
-            extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
+            extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             unks = f'{str(array_size)} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
                 item=item, dtype=dtype,
@@ -237,14 +305,13 @@ class FortranTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_data(
+            self._common_iterate_tile_data(
                 data, connectors, info, extents,
-                in_mask, out_mask, cls._T_IN_OUT
+                in_mask, out_mask, self._T_IN_OUT
             )
 
-    @classmethod
     def iterate_tile_out(
-        cls,
+        self,
         connectors: dict,
         size_connectors: dict,
         tileout: OrderedDict
@@ -255,6 +322,7 @@ class FortranTemplateUtility(TemplateUtility):
         ..todo::
             * Any pinned pointer that needs to be a datapacket member
               variable should be a private variable.
+            * Write tests for fortran tfs that use tile_out data.
 
         :param dict connectors: The dict containing all connectors for use
                                 with cgkit.
@@ -263,17 +331,17 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tileout: The dict containing information from the
                                     tile-out section of the data packet JSON.
         """
-        cls.section_creation(
-            cls._T_OUT, tileout, connectors, size_connectors
+        self.section_creation(
+            self._T_OUT, tileout, connectors, size_connectors
         )
-        connectors[f'unpack_{cls._T_OUT}'] = []
+        connectors[f'unpack_{self._T_OUT}'] = []
         for item, data in tileout.items():
             raise NotImplementedError("No test cases for fortran tile_out.")
             # get tile_out information
             out_mask = data['variables_out']
-            array_size = cls.get_array_size(None, out_mask)
-            index_space = cls.DEFAULT_INDEX_SPACE
-            extents = ' * '.join(f'({item})' for item in data[cls._EXTENTS])
+            array_size = self.get_array_size(None, out_mask)
+            index_space = self.DEFAULT_INDEX_SPACE
+            extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             dtype = data['type']
             unks = f'{str(array_size)} + 1 - {str(index_space)}'
             info = DataPacketMemberVars(
@@ -283,16 +351,13 @@ class FortranTemplateUtility(TemplateUtility):
                         f'* sizeof({dtype})',
                 per_tile=True
             )
-            cls._common_iterate_tile_data(
-                data, connectors, info, extents, out_mask, cls._T_OUT
+            self._common_iterate_tile_data(
+                data, connectors, info, extents, out_mask, self._T_OUT
             )
 
-    @classmethod
     def iterate_tile_scratch(
-        cls,
-        connectors: dict,
-        size_connectors: dict,
-        tilescratch: OrderedDict,
+        self, connectors: dict, size_connectors: dict,
+        tilescratch: OrderedDict
     ):
         """
         Iterates the tilescratch section of the JSON.
@@ -304,11 +369,11 @@ class FortranTemplateUtility(TemplateUtility):
         :param OrderedDict tilescratch: The dict containing information from
                                         the tilescratch section of the JSON.
         """
-        cls.section_creation(
-            cls._T_SCRATCH, tilescratch, connectors, size_connectors
+        self.section_creation(
+            self._T_SCRATCH, tilescratch, connectors, size_connectors
         )
         for item, data in tilescratch.items():
-            exts = data[cls._EXTENTS]
+            exts = data[self._EXTENTS]
             dtype = data["type"]
             # need to fill farrays with default args
 
@@ -319,4 +384,4 @@ class FortranTemplateUtility(TemplateUtility):
                 per_tile=True
             )
 
-            cls._common_iterate_tile_scratch(connectors, info)
+            self._common_iterate_tile_scratch(connectors, info)

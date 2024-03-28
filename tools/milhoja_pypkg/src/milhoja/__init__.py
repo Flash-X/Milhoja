@@ -34,12 +34,13 @@ from .constants import (
     TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT,
     TILE_ARGUMENTS_ALL,
-    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME
+    GRID_DATA_LBOUNDS, GRID_DATA_EXTENTS, THREAD_INDEX_ARGUMENT,
+    THREAD_INDEX_VAR_NAME, C2F_TYPE_MAPPING, VECTOR_ARRAY_EQUIVALENT,
+    GRID_DATA_PTRS, SOURCE_DATATYPES, F2C_TYPE_MAPPING
 )
 
 # Custom exceptions
 from .LogicError import LogicError
-
 # Functions used by classes
 from .check_grid_specification import check_grid_specification
 from .check_tile_specification import check_tile_specification
@@ -59,6 +60,7 @@ from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
+from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
 from .DataPacketGenerator import DataPacketGenerator
 
 # Functions that use classes

@@ -20,9 +20,11 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_setupPipelineForCpuTasks
     public :: milhoja_runtime_pushTileToPipeline
     public :: milhoja_runtime_teardownPipelineForCpuTasks
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     public :: milhoja_runtime_setupPipelineForGpuTasks
     public :: milhoja_runtime_pushTileToGpuPipeline
     public :: milhoja_runtime_teardownPipelineForGpuTasks
+#  endif
 #endif
 #ifdef RUNTIME_SUPPORT_EXECUTE
     public :: milhoja_runtime_executeTasks_Cpu
@@ -255,6 +257,7 @@ contains
         ierr = milhoja_runtime_reset_c()
     end subroutine milhoja_runtime_reset
 
+#ifdef RUNTIME_SUPPORT_PUSH
     !> Instruct the runtime to make the CPU-only thread team ready.
     !!
     !! @param taskFunction    The task function to execute
@@ -310,7 +313,7 @@ contains
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToPipeline
 
-#ifdef RUNTIME_SUPPORT_PUSH
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
     !> Instruct the runtime to make the GPU-only thread team ready.
     !!
     !! @param taskFunction    The task function to execute
@@ -375,6 +378,7 @@ contains
                                                    nThreads, &
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToGpuPipeline
+#  endif
 #endif
 
 #ifdef RUNTIME_SUPPORT_EXECUTE

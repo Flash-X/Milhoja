@@ -7,6 +7,8 @@ BASEDIR      = $(MILHOJA_CODE_REPO)
 #----------------------------------------------------------------------------
 # Set the AMReX library path -- manual installation for multiple variants
 #----------------------------------------------------------------------------
+# The env variables FLASHX_AMREXOMPnD_DIR, FLASHX_AMREXnD_DIR have presumably
+# been set by something like ' module load FlashX-TestEnv-gcc':
 ifeq ("$(USEOPENMP)","1")
   AMREX_PATH=${FLASHX_AMREX_OMP${NDIM}D_DIR}
 else
@@ -21,7 +23,7 @@ CXXCOMPNAME  = gnu
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -O3
-CXXFLAGS_DEBUG   = -g3 -O0 -DGRID_LOG # -DDEBUG_RUNTIME
+CXXFLAGS_DEBUG   = -g3 -O0 -DGRID_LOG -DRUNTIME_PERTILE_LOG # -DDEBUG_RUNTIME
 
 CUCOMP       =
 CUFLAGS_PROD =

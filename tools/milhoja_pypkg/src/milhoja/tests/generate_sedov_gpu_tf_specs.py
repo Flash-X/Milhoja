@@ -68,7 +68,9 @@ def generate_sedov_gpu_tf_specs(dimension, block_size,
             "cpp_header":     "gpu_tf_hydro.h",
             "cpp_source":     "gpu_tf_hydro.cpp",
             "c2f_source":     "",
-            "fortran_source": ""
+            "fortran_source": "",
+            "computation_offloading": "OpenACC",
+            "variable_index_base": 1
         },
         "data_item": {
             "type":           "DataPacket",
