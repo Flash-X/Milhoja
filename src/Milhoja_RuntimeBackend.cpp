@@ -8,6 +8,7 @@
 #include "Milhoja_CudaBackend.h"
 #elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
 #include "Milhoja_FakeCudaBackend.h"
+#include "Milhoja_NullBackend.h"
 #else
 #include "Milhoja_NullBackend.h"
 #endif
@@ -95,14 +96,22 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
     static CudaBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
+    return singleton;
 #elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
-    static FakeCudaBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
+    if (nStreams_ > 0 || nBytesInGpuMemoryPools_ > 0) {
+      static FakeCudaBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
+      return singleton;
+    } else {
+      static NullBackend singleton{};
+      Logger::instance().log("[RuntimeBackend] NullBackend since no streams nor bytes");
+      return singleton;
+    }
 #else
     static NullBackend singleton{};
     Logger::instance().log("[RuntimeBackend] NullBackend - no runtime backend appears needed");
+    return singleton;
 #endif
 
-    return singleton;
 }
 
 RuntimeBackend::~RuntimeBackend(void) {
