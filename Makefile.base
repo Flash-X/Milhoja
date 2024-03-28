@@ -63,9 +63,9 @@ else
 CU_SRCS   =
 endif
 
-ifeq ($(RUNTIME_BACKEND),HOSTMEM)
-ALTCU_SRCS = $(FAKECU_SRCS_BASE)
-endif
+#ifeq ($(RUNTIME_BACKEND),HOSTMEM)
+#ALTCU_SRCS = $(FAKECU_SRCS_BASE)
+#endif
 
 ifeq ($(ENABLE_OPENACC_OFFLOAD),true)
 CXXFLAGS += $(OACC_FLAGS)
@@ -88,7 +88,7 @@ endif
 
 
 # List of sources, objects, and dependencies
-C_SRCS    = $(SRCS_BASE) $(SRCS_TEST) $(SRCS_GENERATED)
+C_SRCS    = $(SRCS_BASE) $(SRCS_TEST) $(SRCS_GENERATED) $(ALTCU_SRCS)
 SRCS      = $(C_SRCS) $(CU_SRCS)
 
 C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
