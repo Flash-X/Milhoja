@@ -34,4 +34,4 @@ class TestTaskFunctionC2FGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
                     "source_dim_dependent": False}
 
         self.run_tests([hydro_3D], [3], _create_generator)
-        # self.run_tests([hydro_2D], [2], _create_generator)
+        self.run_tests([hydro_2D], [2], _create_generator)
