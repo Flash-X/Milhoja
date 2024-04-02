@@ -2,8 +2,6 @@ import pathlib
 
 from pathlib import Path
 from pkg_resources import resource_filename
-from copy import deepcopy
-from collections import OrderedDict
 
 from . import AbcCodeGenerator
 from . import LogicError
@@ -11,12 +9,11 @@ from . import TaskFunction
 from .generate_packet_file import generate_packet_file
 from .parse_helpers import parse_lbound_f
 from . import (
-    EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, LBOUND_ARGUMENT,
-    TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT, SCRATCH_ARGUMENT,
+    EXTERNAL_ARGUMENT, LBOUND_ARGUMENT, TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
     THREAD_INDEX_VAR_NAME, GRID_DATA_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_PTRS, SOURCE_DATATYPES,
     VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
-    F2C_TYPE_MAPPING
 )
 
 
@@ -45,7 +42,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             )
         ).resolve()
 
-        self.stree_opts  = {
+        self.stree_opts = {
             'codePath': pathlib.Path.cwd(),
             'indentSpace': ' ' * indent,
             'verbose': False,
@@ -81,14 +78,15 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
         # generate outer template
         with open(outer_template, 'w') as outer:
+            data_item_key = TaskFunction.DATA_ITEM_KEY
             class_header = \
-                self._tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["header"]
+                self._tf_spec.output_filenames[data_item_key]["header"]
             c2f_func = self._tf_spec.name + "_c2f"
             class_name = self._tf_spec.data_item_class_name
             cpp2c_func = self._tf_spec.name + "_cpp2c"
 
             outer.writelines([
-                f'/* _link:tf_cpp2c */\n'
+                '/* _link:tf_cpp2c */\n'
                 '/* _param:data_item_header_file_name = ',
                 f'{class_header} */\n',
                 '/* _param:c2f_function_name = ',
@@ -141,10 +139,10 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             elif src == TILE_LBOUND_ARGUMENT:
                 alt_src = "tile_hiGC"
             tile_desc_func = alt_src.replace("tile_", '')
-
+            tile_desc_name = self.tile_desc_name
             if alt_src not in saved:
                 connectors[self.TILE_DATA].append(
-                    f"const auto {arg} = {self.tile_desc_name}->{tile_desc_func}()"
+                    f"const auto {arg} = {tile_desc_name}->{tile_desc_func}()"
                 )
                 saved.add(alt_src)
 
@@ -159,7 +157,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 raw = VECTOR_ARRAY_EQUIVALENT[dtype]
                 connectors[self.CONSOLIDATE_TILE_DATA].append(
                     f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                    f"{self.INDENT}{arg}.J(),\n" 
+                    f"{self.INDENT}{arg}.J(),\n"
                     f"{self.INDENT}{arg}.K()\n}}"
                 )
 
@@ -174,18 +172,20 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         if var_spec["source"] == GRID_DATA_ARGUMENT:
             st_idx = var_spec["structure_index"][0].upper()
             gcells = self._tf_spec.n_guardcells
-            lb,words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(gcells))
+            lb, words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(gcells))
         else:
-            lb,words = parse_lbound_f(var_spec["lbound"])
+            lb, words = parse_lbound_f(var_spec["lbound"])
 
         for word in words:
             alt = word
             if word == TILE_LBOUND_ARGUMENT or word == TILE_UBOUND_ARGUMENT:
-                alt = "tile_loGC" if word == TILE_LBOUND_ARGUMENT else "tile_hiGC"
+                alt = \
+                    "tile_loGC" if word == TILE_LBOUND_ARGUMENT else "tile_hiGC"
             if alt not in saved:
                 tile_desc_func = alt.replace("tile_", "")
+                tile_desc_name = self.tile_desc_name
                 connectors[self.TILE_DATA].append(
-                    f"const auto {word} = {self.tile_desc_name}->{tile_desc_func}()"
+                    f"const auto {word} = {tile_desc_name}->{tile_desc_func}()"
                 )
                 saved.add(word)
 

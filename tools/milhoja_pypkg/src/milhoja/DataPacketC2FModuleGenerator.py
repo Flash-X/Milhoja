@@ -30,7 +30,7 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
             tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
         log_tag = f"Milhoja {tf_spec.data_item_class_name} Module Generator"
 
-        super().__init__(tf_spec, "", file_name, indent, log_tag, logger )
+        super().__init__(tf_spec, "", file_name, indent, log_tag, logger)
         self.INDENT = " " * indent
         self._externals = {
             item: tf_spec.argument_specification(item)

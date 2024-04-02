@@ -52,6 +52,7 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
             self.assertTrue(tf_spec_fname.is_file())
 
             filename = f"REF_cpu_tf_hydro_{dimension}D.json"
+            print(_FLASHX_PATH.joinpath(filename))
             with open(_FLASHX_PATH.joinpath(filename), "r") as fptr:
                 expected = json.load(fptr)
             with open(tf_spec_fname, "r") as fptr:

@@ -16,7 +16,6 @@
         "cpp_source": "cpu_tf_hydro.cpp",
         "c2f_source": "",
         "fortran_source": "",
-        "computation_offloading": "",
         "variable_index_base": 1,
         "argument_list": ["external_hydro_op1_dt",
                           "tile_deltas",

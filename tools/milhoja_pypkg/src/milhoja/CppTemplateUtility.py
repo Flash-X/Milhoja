@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from .DataPacketMemberVars import DataPacketMemberVars
 from .TemplateUtility import TemplateUtility
-from .parse_helpers import (parse_lbound, get_array_size, get_initial_index)
+from .parse_helpers import (parse_lbound, get_array_size)
 from . import TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 
 

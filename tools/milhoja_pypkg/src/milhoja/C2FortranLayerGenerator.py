@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from copy import deepcopy
 
 from .parse_helpers import (parse_extents, get_array_size)
-from .TemplateUtility import TemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError

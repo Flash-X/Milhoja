@@ -207,7 +207,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         """
         lb_input = "(tile_lo) - (1,2,3) + (2,3,4)"
         correct = ["tile_lo.I()-1+2", "tile_lo.J()-2+3", "tile_lo.K()-3+4"]
-        result,_ = parse_lbound_f(lb_input)
+        result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
         with self.assertRaises(
@@ -215,21 +215,21 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
             msg="Keyword not implemented"
         ):
             lb_input = "(infinity) - (1,2,3)"
-            result,_ = parse_lbound_f(lb_input)
+            result, _ = parse_lbound_f(lb_input)
 
         lb_input = "(tile_hi, -1)"
         correct = ["tile_hi.I()", "tile_hi.J()", "tile_hi.K()", "-1"]
-        result,_ = parse_lbound_f(lb_input)
+        result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
         lb_input = "(1, -2, 3, -4)"
         correct = ["1", "-2", "3", "-4"]
-        result,_ = parse_lbound_f(lb_input)
+        result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
         lb_input = "(1, tile_lo, 6)"
         correct = ["1", "tile_lo.I()", "tile_lo.J()", "tile_lo.K()", '6']
-        result,_ = parse_lbound_f(lb_input)
+        result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
     def testStartingIndex(self):
