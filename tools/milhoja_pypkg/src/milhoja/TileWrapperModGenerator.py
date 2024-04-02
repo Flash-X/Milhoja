@@ -36,7 +36,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
         log_tag = f"Milhoja {tf_spec.data_item_class_name} Module Generator"
 
-        super().__init__(tf_spec, None, file_name, indent, log_tag, logger )
+        super().__init__(tf_spec, None, file_name, indent, log_tag, logger)
         self.INDENT = " " * indent
         # order is important
         self._externals = {

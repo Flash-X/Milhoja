@@ -21,16 +21,20 @@ def _create_generator(json_filename):
 
 class TestTaskFunctionCpp2CGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
     def testSedovGeneration(self):
-        hydro_2D = {"json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D.json"),
-                    "header": None,
-                    "header_dim_dependent": False,
-                    "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D_Cpp2C.cxx"),
-                    "source_dim_dependent": False}
-        hydro_3D = {"json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D.json"),
-                    "header": None,
-                    "header_dim_dependent": False,
-                    "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D_Cpp2C.cxx"),
-                    "source_dim_dependent": False}
+        hydro_2D = {
+            "json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D.json"),
+            "header": None,
+            "header_dim_dependent": False,
+            "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_2D_Cpp2C.cxx"),
+            "source_dim_dependent": False
+        }
+        hydro_3D = {
+            "json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D.json"),
+            "header": None,
+            "header_dim_dependent": False,
+            "source": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D_Cpp2C.cxx"),
+            "source_dim_dependent": False
+        }
 
         self.run_tests([hydro_3D], [3], _create_generator)
-        # self.run_tests([hydro_2D], [2], _create_generator)
+        self.run_tests([hydro_2D], [2], _create_generator)
