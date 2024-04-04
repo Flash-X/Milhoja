@@ -80,7 +80,6 @@ class TestCodeGenerators(unittest.TestCase):
 
                 # ----- CHECK SOURCE AGAINST BASELINE
                 source_filename = dst.joinpath(generator.source_filename)
-                print(source_filename)
                 self.assertTrue(not source_filename.exists())
 
                 ref_src_fname = test["source"]

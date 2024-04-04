@@ -20,7 +20,7 @@ def _create_generator(json_filename):
 
 
 class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
-    def testGeneration(self):
+    def testSedovGeneration(self):
         path = _TEST_PATH.joinpath("Sedov")
 
         # Only first node in call graph has concurrent kernel launches
@@ -38,7 +38,7 @@ class TestTaskFunctionGenerator_OpenACC_F(milhoja.tests.TestCodeGenerators):
 
         self.run_tests([test_1, test_2], [3], _create_generator)
 
-    def testSedovGeneration(self):
+    def testFlashXGeneration(self):
         fx_path = _TEST_PATH.joinpath("FlashX")
 
         hydro_2D = {"json": fx_path.joinpath("gpu_tf_hydro_2D.json"),
