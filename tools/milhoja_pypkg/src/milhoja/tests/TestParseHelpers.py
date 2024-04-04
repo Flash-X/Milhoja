@@ -282,7 +282,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         ):
             mask_in = [1, 2]
             mask_out = [1, 6]
-            get_array_size(mask_in, mask_out)
+            get_array_size(mask_in, mask_out, True)
 
         mask_in = [1, 10]
         mask_out = []

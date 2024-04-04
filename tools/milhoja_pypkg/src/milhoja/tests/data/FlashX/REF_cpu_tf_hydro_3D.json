@@ -43,7 +43,7 @@
             "tile_lo":                     {"source":           "tile_lo"},
             "CC_1":                        {"source":           "grid_data",
                                             "structure_index":  ["CENTER", 1],
-                                            "variables_in":     [1, 10],
+                                            "variables_in":     [1, 9],
                                             "variables_out":    [1, 10]},
             "scratch_hydro_op1_auxC":      {"source":           "scratch",
                                             "type":             "real",
