@@ -301,7 +301,7 @@ class FortranTemplateUtility(TemplateUtility):
             out_mask = data['variables_out']
             dtype = data['type']
             index_space = self.DEFAULT_INDEX_SPACE
-            array_size = get_array_size(in_mask, out_mask)
+            array_size = get_array_size(in_mask, out_mask, True)
 
             extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             unks = f'{str(array_size)} + 1 - {str(index_space)}'

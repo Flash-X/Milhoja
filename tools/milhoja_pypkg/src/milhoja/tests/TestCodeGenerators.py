@@ -100,3 +100,7 @@ class TestCodeGenerators(unittest.TestCase):
                 # Clean-up
                 # os.remove(str(json_fname_XD))
                 os.remove(str(source_filename))
+
+                # clean up any template files if they exist
+                for file in dst.glob("cg-tpl.*.cpp"):
+                    os.remove(file)
