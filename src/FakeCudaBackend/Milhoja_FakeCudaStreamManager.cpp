@@ -72,18 +72,18 @@ void    FakeCudaStreamManager::finalize(void) {
                            + std::to_string(streams_.size())
                            + " FAKECUDA streams/OpenACC asynchronous queues");
 #else
-    cudaError_t   cErr = cudaErrorInvalidValue;
-    for (std::size_t i=0; i<streams_.size(); ++i) {
-         cErr = cudaStreamDestroy(streams_[i].cudaStream);
-         if (cErr != cudaSuccess) {
-            std::string  errMsg = "[FakeCudaStreamManager::finalize] ";
-            errMsg += "Unable to destroy CUDA stream\n";
-            errMsg += "FAKECUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr));
-            throw std::runtime_error(errMsg);
-         }
-    }
-    Logger::instance().log(  "[FakeCudaStreamManager] Destroyed "
+    // cudaError_t   cErr = cudaErrorInvalidValue;
+    // for (std::size_t i=0; i<streams_.size(); ++i) {
+    //      cErr = cudaStreamDestroy(streams_[i].cudaStream);
+    //      if (cErr != cudaSuccess) {
+    //         std::string  errMsg = "[FakeCudaStreamManager::finalize] ";
+    //         errMsg += "Unable to destroy CUDA stream\n";
+    //         errMsg += "FAKECUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+    //         errMsg += std::string(cudaGetErrorString(cErr));
+    //         throw std::runtime_error(errMsg);
+    //      }
+    // }
+    Logger::instance().log(  "[FakeCudaStreamManager] Fake-destroyed "
                            + std::to_string(streams_.size())
                            + " FAKECUDA streams");
 #endif
@@ -150,19 +150,19 @@ FakeCudaStreamManager::FakeCudaStreamManager(void)
 #else
     Stream   stream{};
     for (std::size_t i=0; i<nMaxStreams_; ++i) {
-         cudaError_t    cErr = cudaStreamCreate(&(stream.cudaStream));
-         if (cErr != cudaSuccess) {
-            std::string  errMsg = "[FakeCudaStreamManager::FakeCudaStreamManager] ";
-            errMsg += "Unable to create CUDA stream\n";
-            errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
-            errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
-            pthread_mutex_unlock(&idxMutex_);
-            throw std::runtime_error(errMsg);
-         }
+         // cudaError_t    cErr = cudaStreamCreate(&(stream.cudaStream));
+         // if (cErr != cudaSuccess) {
+         //    std::string  errMsg = "[FakeCudaStreamManager::FakeCudaStreamManager] ";
+         //    errMsg += "Unable to create CUDA stream\n";
+         //    errMsg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
+         //    errMsg += std::string(cudaGetErrorString(cErr)) + "\n";
+         //    pthread_mutex_unlock(&idxMutex_);
+         //    throw std::runtime_error(errMsg);
+         // }
 
          streams_.push_back( std::move(stream) );
     }
-    Logger::instance().log(  "[FakeCudaStreamManager] Created "
+    Logger::instance().log(  "[FakeCudaStreamManager] Fake-created "
                            + std::to_string(streams_.size())
                            + " FAKECUDA streams");
 #endif
@@ -277,8 +277,8 @@ void   FakeCudaStreamManager::releaseStream(Stream& stream) {
     if (stream.accAsyncQueue == NULL_ACC_ASYNC_QUEUE) {
         throw std::invalid_argument("[FakeCudaStreamManager::releaseStream] "
                                     "Given stream has null OpenACC asynchronous queue");
-#endif
     }
+#endif
 
     pthread_mutex_lock(&idxMutex_);
 
