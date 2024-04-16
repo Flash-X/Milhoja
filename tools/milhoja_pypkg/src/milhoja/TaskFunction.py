@@ -111,12 +111,6 @@ class TaskFunction(object):
             TaskFunction.CPP_TF_KEY: {
                 "header": cpp_tf_hdr,
                 "source": cpp_tf_src
-            },
-            TaskFunction.C2F_KEY: {
-                "source": c2f_src
-            },
-            TaskFunction.FORTRAN_TF_KEY: {
-                "source": fortran_tf_src
             }
         }
 
@@ -127,6 +121,13 @@ class TaskFunction(object):
             assert c2f_src != ""
             assert fortran_tf_src != ""
             assert data_item_mod != ""
+
+            filenames[TaskFunction.C2F_KEY] = {
+                "source": c2f_src
+            }
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {
+                "source": fortran_tf_src
+            }
 
         if language == "c++":
             assert c2f_src == ""
