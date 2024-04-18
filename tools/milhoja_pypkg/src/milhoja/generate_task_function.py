@@ -1,4 +1,5 @@
 from . import TaskFunctionGenerator_cpu_cpp
+from . import TaskFunctionGenerator_cpu_F
 from . import TaskFunctionGenerator_OpenACC_F
 
 
@@ -12,6 +13,8 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     language = tf_spec.language
     data_item = tf_spec.data_item.lower()
 
+    # todo:: This should use a mapping to call a function to determine the
+    #        correct generator combo for cleaner code.
     if (language.lower() == "c++") and (processor == "cpu"):
         generator = TaskFunctionGenerator_cpu_cpp(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
@@ -19,6 +22,9 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
 
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
+    elif (language.lower() == "fortran") and (processor == "cpu"):
+        generator = TaskFunctionGenerator_cpu_F(tf_spec, indent, logger)
+
     elif (language.lower() == "fortran") and (offloading == "openacc"):
         generator = TaskFunctionGenerator_OpenACC_F(tf_spec, indent, logger)
         generator.generate_source_code(destination, overwrite)

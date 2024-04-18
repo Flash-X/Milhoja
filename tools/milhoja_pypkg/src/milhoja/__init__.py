@@ -69,6 +69,7 @@ from .DataPacketGenerator import DataPacketGenerator
 from .TaskFunctionCpp2CGenerator_cpu_F import TaskFunctionCpp2CGenerator_cpu_F
 from .TaskFunctionC2FGenerator_cpu_F import TaskFunctionC2FGenerator_cpu_F
 from .TaskFunctionGenerator_OpenACC_F import TaskFunctionGenerator_OpenACC_F
+from .TaskFunctionGenerator_cpu_F import TaskFunctionGenerator_cpu_F
 
 # Functions that use classes
 from .generate_data_item import generate_data_item
