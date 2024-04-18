@@ -36,7 +36,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
         log_tag = f"Milhoja {tf_spec.data_item_class_name} Module Generator"
 
-        super().__init__(tf_spec, None, file_name, indent, log_tag, logger )
+        super().__init__(tf_spec, None, file_name, indent, log_tag, logger)
         self.INDENT = " " * indent
         # order is important
         self._externals = {
@@ -108,13 +108,13 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_wrapper &\n"
-                f"{self.INDENT * 2}) result(C_ierr) &\n"
-                f'{self.INDENT*2}bind (c, name="{instance}")\n'
+                f"{self.INDENT * 2}) result(C_ierr) "
+                f'{self.INDENT*2}bind(c, name="{instance}")\n'
             )
-            module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY: C_PTR\n")
+            module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n")
             module.write(
                 f"{self.INDENT * 3}use milhoja_types_mod, "
-                "ONLY: MILHOJA_INT, MILHOJA_REAL\n"
+                "ONLY : MILHOJA_INT, MILHOJA_REAL\n"
             )
             vars = f'\n{self.INDENT * 3}'.join(var_declarations)
             module.write(f"{self.INDENT * 3}" + vars + "\n")
@@ -127,7 +127,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT * 2}function {delete}(")
             module.write(
                 f'C_wrapper) result(C_ierr) &\n{self.INDENT*2}'
-                f'bind (c, name="{delete}")\n'
+                f'bind(c, name="{delete}")\n'
             )
             module.writelines([
                 f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n",
@@ -142,14 +142,14 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             for funct in [acquire, release]:
                 module.write(f"{self.INDENT*2}function {funct}()")
                 module.write(" result(C_ierr) &\n")
-                module.write(f'{self.INDENT*2}bind (c, name="{funct}")\n')
+                module.write(f'{self.INDENT*2}bind(c, name="{funct}")\n')
 
                 # write function
                 module.writelines([
                     f"{self.INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT"
                     f"\n{self.INDENT*3}integer(MILHOJA_INT) :: C_ierr\n"
                 ])
-                module.write(f"{self.INDENT*2}end function {funct}\n")
+                module.write(f"{self.INDENT*2}end function {funct}\n\n")
 
             module.write(f"{self.INDENT}end interface\n\n")
             module.write(f"end module {module_name}\n")

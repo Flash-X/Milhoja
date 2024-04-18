@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from copy import deepcopy
 
 from .parse_helpers import (parse_extents, get_array_size)
-from .TemplateUtility import TemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
@@ -352,13 +351,13 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 '#error "This file should only be compiled '
                 'if using OpenACC offloading"\n',
                 '#endif\n\n',
-                f'subroutine {self._tf_spec.name}_C2F( &\n'
+                f'subroutine {self._tf_spec.c2f_layer_name}( &\n'
             ])
 
             # write dummy argument list
             fp.write(
                 ', &\n'.join([info.cname for info in c2f_arg_info]) +
-                ' &\n) bind(c)\n\n'
+                f' &\n) bind(c, name="{self._tf_spec.c2f_layer_name}")\n\n'
             )
 
             fortran_mod = self._tf_spec.output_filenames[
@@ -371,7 +370,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
                 f'{self.INDENT}use {fortran_mod}, ONLY : '
-                f'{self._tf_spec.name}_Fortran\n',
+                f'{self._tf_spec.function_name}\n',
                 f'{self.INDENT}implicit none\n\n'
             ])
 
@@ -396,7 +395,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
             ])
             fp.write('\n')
 
-            fp.write(f'{self.INDENT}CALL {self._tf_spec.name}_Fortran ( &\n')
+            fp.write(f'{self.INDENT}CALL {self._tf_spec.function_name} ( &\n')
             fp.write(
                 (self.INDENT * 2) +
                 f', &\n{self.INDENT * 2}'.join([
@@ -406,7 +405,10 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
                 f' &\n{self.INDENT})'
             )
 
-            fp.write(f'\nend subroutine {self._tf_spec.name}_C2F')
+            fp.write(f'\nend subroutine {self._tf_spec.c2f_layer_name}\n')
+
+            # end of file
+            fp.write("\n")
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
 
     def log_and_abort(self, msg, e: BaseException):

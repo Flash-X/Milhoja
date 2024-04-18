@@ -130,7 +130,7 @@ class FortranTemplateUtility(TemplateUtility):
                     vars_out = array_spec.get('variables_out', None)
                     init = get_initial_index(vars_in, vars_out)
                     lbound = GRID_DATA_LBOUNDS[struct].format(init)
-                    lbound,_ = parse_lbound_f(lbound)
+                    lbound, _ = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
                     one_time_mdata[TILE_LO_ARGUMENT] = \
                         {"source": "tile_lo", "type": "IntVect"}
@@ -138,7 +138,7 @@ class FortranTemplateUtility(TemplateUtility):
                 #   * this assumes that any mdata in lbound already exists...
                 elif source == SCRATCH_ARGUMENT:
                     lbound = array_spec["lbound"]
-                    lbound,_ = parse_lbound_f(lbound)
+                    lbound, _ = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
                 size_eq = f"{len(lbound)} * sizeof({item_type})"
 
@@ -301,7 +301,7 @@ class FortranTemplateUtility(TemplateUtility):
             out_mask = data['variables_out']
             dtype = data['type']
             index_space = self.DEFAULT_INDEX_SPACE
-            array_size = get_array_size(in_mask, out_mask)
+            array_size = get_array_size(in_mask, out_mask, True)
 
             extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             unks = f'{str(array_size)} + 1 - {str(index_space)}'

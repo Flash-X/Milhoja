@@ -1,4 +1,5 @@
 import re
+from warnings import warn
 
 from sys import maxsize
 
@@ -48,6 +49,11 @@ def parse_lbound(lbound: str) -> list:
 
     :param str lbound: The lbound string to parse.
     """
+    warn(
+        'parse_lbound is deprecated. Use parse_lbound_f instead.',
+        DeprecationWarning, stacklevel=2
+    )
+
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
         TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
@@ -333,13 +339,15 @@ def get_initial_index(vars_in: list, vars_out: list) -> int:
     return starting
 
 
-def get_array_size(vars_in: list, vars_out: list) -> int:
+def get_array_size(vars_in: list, vars_out: list, check_out_size=False) -> int:
     """
     Returns the largest array size given a variable mask for copying in
     and copying out.
 
     :param list vars_in: The variable masking for copying into the packet.
     :param list vars_out: The variable masking for copying out.
+    :param bool check_out_size: Flag to check if out array size is larger
+                                than the in array size.
     :return: The size of the array given the variable masking.
     :rtype: int
     """
@@ -364,7 +372,7 @@ def get_array_size(vars_in: list, vars_out: list) -> int:
         # No test cases for a mariable mask in an out array that's
         # larger than the in mask. Need to create test cases or have
         # an existing use case.
-        if largest_out > largest_in:
+        if check_out_size and largest_out > largest_in:
             raise NotImplementedError(
                 "No test cases when vars_out is larger than vars_in!"
             )

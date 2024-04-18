@@ -319,17 +319,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
             self.assertEqual(len(reference), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in reference)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(reference[group]), len(result[group]))
                 for key in reference[group]:
-                    # print(group, key)
-                    # print(reference[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(reference[group][key],
                                      result[group][key])
@@ -386,17 +380,16 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
                 self.assertEqual(len(reference), len(result))
                 for group in groups_all:
-                    # print(group)
-                    # print(reference[group])
-                    # print(result[group])
                     self.assertTrue(group in reference)
                     self.assertTrue(group in result)
 
-                    self.assertEqual(len(reference[group]), len(result[group]))
+                    # todo::
+                    #   * Re-enable these tests to work w/ new module keyword.
+                    self.assertEqual(
+                        len(reference[group]), len(result[group]),
+                        msg=f"{reference} != {result}"
+                    )
                     for key in reference[group]:
-                        # print(group, key)
-                        # print(reference[group][key])
-                        # print(result[group][key])
                         self.assertTrue(key in result[group])
                         self.assertEqual(reference[group][key],
                                          result[group][key])
@@ -443,17 +436,11 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
             self.assertEqual(len(expected), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in expected)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(expected[group]), len(result[group]))
                 for key in expected[group]:
-                    # print(group, key)
-                    # print(expected[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(expected[group][key], result[group][key])
 
@@ -466,13 +453,14 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         tf_partial_spec = {
             "task_function": {
-                "language":               "Fortran",
-                "processor":              "CPU",
+                "language":       "Fortran",
+                "processor":      "CPU",
+                "cpp_header":     "cpu_tf_test_Cpp2C.h",
+                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":     "cpu_tf_test_C2F.F90",
+                "fortran_source": "cpu_tf_test_mod.F90",
                 "computation_offloading": "",
-                "cpp_header":             "cpu_tf_test_Cpp2C.h",
-                "cpp_source":             "cpu_tf_test_Cpp2C.cxx",
-                "c2f_source":             "cpu_tf_test_C2F.F90",
-                "fortran_source":         "cpu_tf_test_mod.F90"
+                "variable_index_base": 1
             },
             "data_item": {
                 "type":           "TileWrapper",
@@ -513,13 +501,14 @@ class TestTaskFunctionAssembler(unittest.TestCase):
 
         tf_partial_spec = {
             "task_function": {
-                "language":               "Fortran",
-                "processor":              "CPU",
+                "language":       "Fortran",
+                "processor":      "CPU",
+                "cpp_header":     "cpu_tf_test_Cpp2C.h",
+                "cpp_source":     "cpu_tf_test_Cpp2C.cxx",
+                "c2f_source":     "cpu_tf_test_C2F.F90",
+                "fortran_source": "cpu_tf_test_mod.F90",
                 "computation_offloading": "",
-                "cpp_header":             "cpu_tf_test_Cpp2C.h",
-                "cpp_source":             "cpu_tf_test_Cpp2C.cxx",
-                "c2f_source":             "cpu_tf_test_C2F.F90",
-                "fortran_source":         "cpu_tf_test_mod.F90"
+                "variable_index_base": 1
             },
             "data_item": {
                 "type":           "TileWrapper",

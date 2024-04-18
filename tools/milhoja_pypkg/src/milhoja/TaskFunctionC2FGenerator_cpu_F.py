@@ -1,11 +1,7 @@
 import pathlib
 
-from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
-from copy import deepcopy
-from collections import OrderedDict
-
 from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
@@ -16,11 +12,6 @@ from .parse_helpers import (
 from . import (
     EXTERNAL_ARGUMENT,
     LBOUND_ARGUMENT,
-    TILE_LO_ARGUMENT,
-    TILE_HI_ARGUMENT,
-    TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT,
-    THREAD_INDEX_VAR_NAME,
     GRID_DATA_ARGUMENT,
     SCRATCH_ARGUMENT,
     TILE_INTERIOR_ARGUMENT,
@@ -63,7 +54,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"]
         self.INDENT = ' ' * indent
 
-        self.stree_opts  = {
+        self.stree_opts = {
             'codePath': pathlib.Path.cwd(),
             'indentSpace': ' ' * indent,
             'verbose': False,
@@ -93,8 +84,9 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
     def _get_tmdata_info(self, arg, arg_spec) -> ConversionData:
         src = arg_spec["source"]
         name_key = arg
-        dtype = \
-            VECTOR_ARRAY_EQUIVALENT.get(SOURCE_DATATYPES[src], SOURCE_DATATYPES[src])
+        dtype = VECTOR_ARRAY_EQUIVALENT.get(
+            SOURCE_DATATYPES[src], SOURCE_DATATYPES[src]
+        )
         dtype = C2F_TYPE_MAPPING[dtype]
         shape = ["MILHOJA_MDIM"]
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
@@ -124,7 +116,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         else:
             lbound = array_arg_spec[LBOUND_ARGUMENT]
 
-        lbound,_ = parse_lbound_f(lbound)
+        lbound, _ = parse_lbound_f(lbound)
         lbound = [item.replace("tile_", "") for item in lbound]
         bound_size = len(lbound)
         return ConversionData(
@@ -148,7 +140,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         shape = [
             * [
                 ext.format(block_size[i], gcells)
-                for i,ext in enumerate(grid_exts[st_index])
+                for i, ext in enumerate(grid_exts[st_index])
             ],
             str(size)
         ]
@@ -210,7 +202,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
                     arg_conversion_info.append(conversion_info)
 
             routine_name = self._tf_spec.c2f_layer_name
-            c2f.write(f'#include "Milhoja.h"\n\n')
+            c2f.write('#include "Milhoja.h"\n\n')
             c2f.write(f'subroutine {routine_name}( &\n')
             arg_list = f', &\n{self.INDENT}'.join(func_args)
             arg_list = f', &\n{self.INDENT}'.join([
@@ -272,12 +264,12 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
                 if not info.is_pointer:
                     dtype = info.dtype if info.dtype != "integer" else "int"
                     set_values.append(
-                        f"{self.INDENT}{info.fname} = " \
+                        f"{self.INDENT}{info.fname} = "
                         f"{dtype.upper()}({info.cname})"
                     )
                 else:
                     set_values.append(
-                        f"{self.INDENT}CALL C_F_POINTER({info.cname}, " \
+                        f"{self.INDENT}CALL C_F_POINTER({info.cname}, "
                         f"{info.fname}, shape=[{','.join(info.shape)}])"
                     )
             c2f.write('\n'.join(set_values) + "\n\n")

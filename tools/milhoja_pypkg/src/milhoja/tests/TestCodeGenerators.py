@@ -98,3 +98,13 @@ class TestCodeGenerators(unittest.TestCase):
 
                 # ----- CLEAN-UP YA LAZY SLOB!
                 os.remove(str(source_filename))
+
+                # clean up any template files if they exist,
+                # also make sure that the destination isn't a templates folder,
+                # (DELETING THE BUILT-IN TEMPLATES IS NO BUENO!)
+                if dst.stem == "templates":
+                    raise Exception(
+                        "Please don't use a templates folder as a destination!"
+                    )
+                for file in dst.glob("cg-tpl.*.cpp"):
+                    os.remove(file)

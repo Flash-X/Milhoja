@@ -8,14 +8,14 @@
         "nguardcells":  1
     },
     "task_function": {
-        "name": "gpu_tf_hydro_3D",
-        "language": "C++", 
+        "name": "gpu_tf_test",
+        "language": "Fortran", 
         "processor": "GPU",
         "computation_offloading": "OpenACC",
         "cpp_header": "gpu_tf_test_Cpp2C.h",
         "cpp_source": "gpu_tf_test_Cpp2C.cpp",
-        "c2f_source": "",
-        "fortran_source": "",
+        "c2f_source": "gpu_tf_test_C2F.F90",
+        "fortran_source": "gpu_tf_test_mod.F90",
         "variable_index_base": 1,
         "argument_list": ["dt",
                           "tile_lo",
@@ -52,11 +52,10 @@
                                "lbound":           "(tile_lo, 1)"},
             "hydro_op1_auxc": {"source":           "scratch",
                                "type":             "real",
-                               "extents":          "(18, 18, 18, 1)",
-                               "lbound":           "((tile_lo) - (1, 1, 1), 1)"}
+                               "extents":          "(18, 18, 18)",
+                               "lbound":           "(tile_lo) - (1, 1, 1)"}
         },
         "subroutine_call_graph": [
-            "Hydro_computeSoundSpeedHll_gpu_oacc",
             [
                 "Hydro_computeFluxesHll_X_gpu_oacc",
                 "Hydro_computeFluxesHll_Y_gpu_oacc",
@@ -70,22 +69,9 @@
         "byte_alignment": 16,
         "header": "DataPacket_gpu_tf_test.h",
         "source": "DataPacket_gpu_tf_test.cpp",
-        "module": ""
+        "module": "DataPacket_gpu_tf_test_c2f_mod.F90"
     },
     "subroutines": {
-        "Hydro_computeSoundSpeedHll_gpu_oacc": {
-            "interface_file": "dr_cg_hydroAdvance_mod.F90",
-            "argument_list": ["lo",
-                              "hi",
-                              "U",
-                              "auxC"],
-            "argument_mapping": {
-                "lo":     "tile_lo",
-                "hi":     "tile_hi",
-                "U":      "CC_1",
-                "auxC":   "hydro_op1_auxc"
-            }
-        },
         "Hydro_computeFluxesHll_X_gpu_oacc": {
             "interface_file": "dr_cg_hydroAdvance_mod.F90",
             "argument_list": ["dt",

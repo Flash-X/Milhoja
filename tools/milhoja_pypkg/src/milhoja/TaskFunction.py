@@ -111,12 +111,6 @@ class TaskFunction(object):
             TaskFunction.CPP_TF_KEY: {
                 "header": cpp_tf_hdr,
                 "source": cpp_tf_src
-            },
-            TaskFunction.C2F_KEY: {
-                "source": c2f_src
-            },
-            TaskFunction.FORTRAN_TF_KEY: {
-                "source": fortran_tf_src
             }
         }
 
@@ -127,6 +121,13 @@ class TaskFunction(object):
             assert c2f_src != ""
             assert fortran_tf_src != ""
             assert data_item_mod != ""
+
+            filenames[TaskFunction.C2F_KEY] = {
+                "source": c2f_src
+            }
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {
+                "source": fortran_tf_src
+            }
 
         if language == "c++":
             assert c2f_src == ""
@@ -152,6 +153,10 @@ class TaskFunction(object):
     @property
     def processor(self):
         return self.__tf_spec["processor"]
+
+    @property
+    def variable_index_base(self):
+        raise NotImplementedError()
 
     @property
     def computation_offloading(self):
@@ -230,6 +235,13 @@ class TaskFunction(object):
         return f"{self.name}_C2F"
 
     @property
+    def function_name(self):
+        """
+        The name of the task function that's called.
+        """
+        return f"{self.name}_{self.language}"
+
+    @property
     def fortran_module_name(self):
         if self.language.lower() == "fortran":
             return f"{self.name}_mod"
@@ -264,7 +276,6 @@ class TaskFunction(object):
             raise LogicError("No Fortran arguments for non-Fortran TF")
         return (self.fortran_host_dummy_arguments +
                 self.fortran_device_dummy_arguments)
-        return f"delete_{self.name}_packet_c"
 
     @property
     def data_item_module_name(self):

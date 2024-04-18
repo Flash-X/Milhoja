@@ -35,7 +35,6 @@ def generate_packet_file(
     """
     caller = "Milhoja generate_packet_file"
 
-    # local function for looping through and linking templates.
     def construct_source_tree(stree: SourceTree, templates: list):
         assert len(templates) > 0
         stree.initTree(templates[0])
@@ -57,6 +56,8 @@ def generate_packet_file(
     stree = SourceTree(**sourcetree_opts, debug=False)
     construct_source_tree(stree, linked_templates)
     lines = stree.parse()
+    if lines[-1] != "\n":
+        lines = lines + "\n"
 
     if output.is_file():
         logger.warn(caller, f"{str(output)} already exists.")
@@ -71,3 +72,5 @@ def generate_packet_file(
         lines = re.sub(r'#if 0.*?#endif\n\n', '', lines, flags=re.DOTALL)
         # Write code to the destination
         new_file.write(lines)
+        # end of file
+        new_file.write("\n")

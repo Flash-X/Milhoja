@@ -69,17 +69,11 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
 
             self.assertEqual(len(expected), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in expected)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(expected[group]), len(result[group]))
                 for key in expected[group]:
-                    # print(group, key)
-                    # print(expected[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(expected[group][key], result[group][key])
 
@@ -123,17 +117,11 @@ class TestTaskFunctionAssembler_FlashX(unittest.TestCase):
 
             self.assertEqual(len(expected), len(result))
             for group in groups_all:
-                # print(group)
-                # print(expected[group])
-                # print(result[group])
                 self.assertTrue(group in expected)
                 self.assertTrue(group in result)
 
                 self.assertEqual(len(expected[group]), len(result[group]))
                 for key in expected[group]:
-                    # print(group, key)
-                    # print(expected[group][key])
-                    # print(result[group][key])
                     self.assertTrue(key in result[group])
                     self.assertEqual(expected[group][key], result[group][key])
 
