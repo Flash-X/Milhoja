@@ -161,7 +161,7 @@ test_gnu:
  - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
  - python setup.py test
  - python setup.py sdist && cd dist
- - pip install $(ls Sedov-*.tar.gz)
+ - pip install $(ls sedov-*.tar.gz)
  - python -c 'import sedov ; sedov.print_versions()'
  - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
  - python setup.py sdist && cd dist
