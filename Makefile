@@ -20,6 +20,14 @@ INTERFACEDIR    := ./interfaces
 TOOLSDIR        := ./tools
 CONFIG_MAKEFILE := ./Makefile.configure
 
+BACKEND_BUILDDIR :=
+ifeq ($(RUNTIME_BACKEND),CUDA)
+BACKEND_BUILDDIR := $(BUILDDIR)/CudaBackend
+else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
+BACKEND_BUILDDIR := $(BUILDDIR)/FakeCudaBackend
+endif
+
+
 include $(CONFIG_MAKEFILE)
 
 LIBNAME ?= milhoja
@@ -72,10 +80,14 @@ else ifeq ($(RUNTIME_BACKEND),CUDA)
 CXXFLAGS += -I$(INCDIR)/CudaBackend
 CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
            $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
-CU_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cu)
+CU_SRCS := $(wildcard $(SRCDIR)/CudaBackend/Milhoja_*.cu)
 CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
 else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
+CXXFLAGS += -I$(INCDIR)/CudaBackend -I$(INCDIR)/FakeCudaBackend
+CXXFLAGS += -I$(INCDIR) -I$(BUILDDIR) \
+           $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
 ALTCU_SRCS := $(wildcard $(SRCDIR)/FakeCudaBackend/Milhoja_FakeCuda*.cpp)
+CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
 else
 $(error Unknown backend $(RUNTIME_BACKEND))
 endif
@@ -97,7 +109,7 @@ endif
 
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
-install: all
+install:
 	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/include
 	mkdir $(LIB_MILHOJA_PREFIX)/lib
@@ -115,7 +127,7 @@ $(BUILDDIR):
 	@echo
 	@echo "Intermediate build folder $(BUILDDIR) missing.  Created."
 	@echo
-	@mkdir $(BUILDDIR)
+	@mkdir -p $(BUILDDIR) $(BACKEND_BUILDDIR)
 
 $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 	@./tools/write_library_header.py --dim $(NDIM) \

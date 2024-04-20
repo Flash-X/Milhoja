@@ -53,6 +53,8 @@ _NC    = '\033[0m'      # No Color/Not bold
 # relative to that directory.
 _HOME_DIR = Path(__file__).resolve().parent
 _BUILD_DIR = _HOME_DIR.joinpath('build')
+_CUDA_BUILD_DIR = _BUILD_DIR.joinpath('CudaBackend')
+_FAKE_CUDA_BUILD_DIR = _BUILD_DIR.joinpath('FakeCudaBackend')
 
 if __name__ == '__main__':
     """
@@ -115,6 +117,10 @@ if __name__ == '__main__':
         print()
         shutil.rmtree(_BUILD_DIR)
     _BUILD_DIR.mkdir()
+    if runtime_backend.lower() == 'cuda':
+        _CUDA_BUILD_DIR.mkdir()
+    elif runtime_backend.lower() == 'hostmem':
+        _FAKE_CUDA_BUILD_DIR.mkdir()
 
     # TODO: It would make more sense if the build system were copied into
     # _BUILD_DIR.  I believe that this is a more typical approach.

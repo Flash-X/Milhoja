@@ -103,7 +103,7 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
       return singleton;
     } else {
       static NullBackend singleton{};
-      Logger::instance().log("[RuntimeBackend] NullBackend since no streams no bytes");
+      Logger::instance().log("[RuntimeBackend] NullBackend since no streams nor bytes");
       return singleton;
     }
 #else
