@@ -23,7 +23,7 @@ CXXCOMPNAME  = gnu
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -O3
-CXXFLAGS_DEBUG   = -g3 -O0 -DGRID_LOG -DRUNTIME_PERTILE_LOG # -DDEBUG_RUNTIME
+CXXFLAGS_DEBUG   = -g3 -Og -DGRID_LOG -DRUNTIME_PERTILE_LOG # -DDEBUG_RUNTIME
 
 CUCOMP       =
 CUFLAGS_PROD =
@@ -35,7 +35,7 @@ F90FLAGS_PROD  = \
 	-finit-real=snan -finit-derived \
 	-finline-functions
 F90FLAGS_DEBUG = \
-	-g3 -O0 -cpp -fbacktrace \
+	-g3 -Og -cpp -fbacktrace \
 	-fdefault-real-8 -fdefault-double-8 \
 	-finit-real=snan -finit-derived \
 	-fbounds-check \
