@@ -66,14 +66,14 @@ public:
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifndef RUNTIME_MUST_USE_TILEITER
     void setupPipelineForGpuTasks(const std::string& bundleName,
-                         const unsigned int stagger_usec,
-                         const RuntimeAction& gpuAction,
-                         const DataPacket& packetPrototype);
+				  const unsigned int stagger_usec,
+				  const RuntimeAction& gpuAction,
+				  const DataPacket& packetPrototype);
     void pushTileToGpuPipeline(const std::string& bundleName,
-                         const DataPacket& packetPrototype,
-			    const FlashxrTileRawPtrs& tP,
-			    const FlashxTileRawInts& tI,
-			    const FlashxTileRawReals& tR);
+			       const DataPacket& packetPrototype,
+			       const FlashxrTileRawPtrs& tP,
+			       const FlashxTileRawInts& tI,
+			       const FlashxTileRawReals& tR);
     void teardownPipelineForGpuTasks(const std::string& bundleName);
 #  endif
     void executeGpuTasks(const std::string& actionName,
@@ -96,11 +96,25 @@ public:
                             const TileWrapper& tilePrototype,
                             const RuntimeAction& gpuAction,
                             const DataPacket& packetPrototype);
+#  endif
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForExtGpuTasks(const std::string& bundleName,
+                                 const RuntimeAction& gpuAction,
+                                 const RuntimeAction& postGpuAction,
+                                 const DataPacket& packetPrototype);
+    void pushTileToExtGpuPipeline(const std::string& bundleName,
+				  const DataPacket& packetPrototype,
+				  const FlashxrTileRawPtrs& tP,
+				  const FlashxTileRawInts& tI,
+				  const FlashxTileRawReals& tR);
+    void teardownPipelineForExtGpuTasks(const std::string& bundleName);
+#  endif
     void executeExtendedGpuTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype);
+#  ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,

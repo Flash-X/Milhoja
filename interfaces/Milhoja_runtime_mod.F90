@@ -24,12 +24,16 @@ module milhoja_runtime_mod
     public :: milhoja_runtime_setupPipelineForGpuTasks
     public :: milhoja_runtime_pushTileToGpuPipeline
     public :: milhoja_runtime_teardownPipelineForGpuTasks
+    public :: milhoja_runtime_setupPipelineForExtGpuTasks
+    public :: milhoja_runtime_pushTileToExtGpuPipeline
+    public :: milhoja_runtime_teardownPipelineForExtGpuTasks
 #  endif
 #endif
 #ifdef RUNTIME_SUPPORT_EXECUTE
     public :: milhoja_runtime_executeTasks_Cpu
 #  ifdef RUNTIME_SUPPORT_DATAPACKETS
     public :: milhoja_runtime_executeTasks_Gpu
+    public :: milhoja_runtime_executeTasks_ExtGpu !  ??
 #  endif
 #endif
 
@@ -152,6 +156,22 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_setup_pipeline_gpu_c
+        function milhoja_runtime_setup_pipeline_extgpu_c(C_taskFunction,            &
+                                                     C_postTaskFunction,    &
+                                                     C_nThreads,            &
+                                                     C_nTilesPerPacket,     &
+                                                     C_packetPrototype) result(C_ierr) &
+                                                     bind(c)
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction
+            type(C_FUNPTR),       intent(IN), value :: C_postTaskFunction
+            type(C_PTR),          intent(IN), value :: C_packetPrototype
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_setup_pipeline_extgpu_c
 
         !> Fortran interface for the function in C interface of the same name.
         function milhoja_runtime_teardown_pipeline_gpu_c(C_nThreads,            &
@@ -164,6 +184,16 @@ module milhoja_runtime_mod
             integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_teardown_pipeline_gpu_c
+        function milhoja_runtime_teardown_pipeline_extgpu_c(C_nThreads,            &
+                                                         C_nTilesPerPacket)     &
+                                                         result(C_ierr) &
+                                                         bind(c)
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_teardown_pipeline_extgpu_c
 
         !> Fortran interface for the function in C interface of the same name.
         function milhoja_runtime_push_pipeline_gpu_c(C_packetPrototype,         &
@@ -180,6 +210,18 @@ module milhoja_runtime_mod
             type(C_PTR),          intent(IN), value :: tileCInfo
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_push_pipeline_gpu_c
+        function milhoja_runtime_push_pipeline_extgpu_c(C_packetPrototype,         &
+                                                     C_nThreads,                &
+                                                     tileCINfo)  result(C_ierr) &
+                                                     bind(c)
+            use iso_c_binding,     ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_PTR),          intent(IN), value :: C_packetPrototype
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            type(C_PTR),          intent(IN), value :: tileCInfo
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_push_pipeline_extgpu_c
 
 #  ifdef RUNTIME_SUPPORT_EXECUTE
         !> Fortran interface for the function in C interface of the same name.
@@ -199,6 +241,24 @@ module milhoja_runtime_mod
             type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_gpu_c
+        function milhoja_runtime_execute_tasks_extgpu_c(C_taskFunction,     &
+                                                     C_postTaskFunction,    &
+                                                     C_nDistributorThreads, &
+                                                     C_nThreads,            &
+                                                     C_nTilesPerPacket,     &
+                                                     C_packetPrototype)     &
+                                                     result(C_ierr) bind(c)
+            use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            implicit none
+            type(C_FUNPTR),       intent(IN), value :: C_taskFunction
+            type(C_FUNPTR),       intent(IN), value :: C_postTaskFunction
+            integer(MILHOJA_INT), intent(IN), value :: C_nDistributorThreads
+            integer(MILHOJA_INT), intent(IN), value :: C_nThreads
+            integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
+            type(C_PTR),          intent(IN), value :: C_packetPrototype
+            integer(MILHOJA_INT)                    :: C_ierr
+        end function milhoja_runtime_execute_tasks_extgpu_c
 #  endif
 #endif
     end interface
@@ -344,10 +404,40 @@ contains
                                                    nTilesPerPacket, &
                                                    packetPrototype_Cptr)
     end subroutine milhoja_runtime_setupPipelineForGpuTasks
+    subroutine milhoja_runtime_setupPipelineForExtGpuTasks(taskFunction, &
+                                                postTaskFunction,     &
+                                                nThreads,             &
+                                                nTilesPerPacket,      &
+                                                packetPrototype_Cptr, &
+                                                ierr)
+        use iso_c_binding, ONLY : C_PTR, &
+                                  C_FUNPTR, &
+                                  C_FUNLOC
+
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        procedure(milhoja_runtime_taskFunction)             :: postTaskFunction
+        type(C_PTR),                            intent(IN)  :: packetPrototype_Cptr
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: taskFunction_Cptr
+        type(C_FUNPTR) :: postTaskFunction_Cptr
+
+        taskFunction_Cptr = C_FUNLOC(taskFunction)
+        postTaskFunction_Cptr = C_FUNLOC(postTaskFunction)
+
+        ierr = milhoja_runtime_setup_pipeline_extgpu_c(taskFunction_Cptr, &
+                                                   postTaskFunction_Cptr, &
+                                                   nThreads, &
+                                                   nTilesPerPacket, &
+                                                   packetPrototype_Cptr)
+    end subroutine milhoja_runtime_setupPipelineForExtGpuTasks
 
     !> Instruct the runtime to tear down the GPU-only thread team pipeline.
     !!
-    !! @param nThreads        The number of threads to activate in team
+    !! @param nThreads        Number of threads to activate in team (diag)
+    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_teardownPipelineForGpuTasks(nThreads, nTilesPerPacket,&
                                                            ierr)
@@ -357,6 +447,20 @@ contains
 
         ierr = milhoja_runtime_teardown_pipeline_gpu_c(nThreads, nTilesPerPacket)
     end subroutine milhoja_runtime_teardownPipelineForGpuTasks
+
+    !> Instruct the runtime to tear down the EXTGPU thread team pipeline.
+    !!
+    !! @param nThreads        Number of threads to activate in team (diag)
+    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
+    !! @param ierr            The milhoja error code
+    subroutine milhoja_runtime_teardownPipelineForExtGpuTasks(nThreads, nTilesPerPacket,&
+                                                           ierr)
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        ierr = milhoja_runtime_teardown_pipeline_extgpu_c(nThreads, nTilesPerPacket)
+    end subroutine milhoja_runtime_teardownPipelineForExtGpuTasks
 
     !> Push one tile to the prepared pipeline for task execution.
     !!
@@ -378,6 +482,19 @@ contains
                                                    nThreads, &
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToGpuPipeline
+    subroutine milhoja_runtime_pushTileToExtGpuPipeline(prototype_Cptr, &
+                                                nThreads, tileCInfo_Cp, ierr)
+        use iso_c_binding, ONLY : C_PTR
+
+        type(C_PTR),                            intent(IN)  :: prototype_Cptr
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        type(C_PTR),                            intent(IN)  :: tileCInfo_Cp
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        ierr = milhoja_runtime_push_pipeline_extgpu_c(prototype_Cptr, &
+                                                   nThreads, &
+                                                   tileCInfo_Cp)
+    end subroutine milhoja_runtime_pushTileToExtGpuPipeline
 #  endif
 #endif
 
@@ -457,6 +574,56 @@ contains
                                                    nTilesPerPacket, &
                                                    packetPrototype_Cptr)
     end subroutine milhoja_runtime_executeTasks_Gpu
+    !> Instruct the runtime to use the GPU/post-GPU thread team configuration
+    !! with the given number of threads to apply the given task function to all
+    !! blocks in packet form ("on the GPU") and then the "Post" task function
+    !! in direct (tile-wrapped) form ("on the CPU").
+    !! blocks.
+    !!
+    !! \todo Allow calling code to specify action name for improved logging.
+    !! \todo Should add arguments for specifying the set of blocks.
+    !!
+    !! @param taskFunction          The task function to execute "on the GPU"
+    !! @param postTaskFunction      The "Post" task function to execute "on the CPU"
+    !! @param nDistributorThreads   The number of distributor threads to use
+    !! @param nThreads              The number of threads to activate in team
+    !! @param nTilesPerPacket       The maximum number of tiles allowed in each
+    !!                              packet
+    !! @param packetPrototype_Cptr  Pointer to a prototype data packet to be
+    !!                              used to create new packets.
+    !! @param ierr                  The milhoja error code
+    subroutine milhoja_runtime_executeTasks_ExtGpu(taskFunction,      &
+                                                postTaskFunction,     &
+                                                nDistributorThreads,  &
+                                                nThreads,             &
+                                                nTilesPerPacket,      &
+                                                packetPrototype_Cptr, &
+                                                ierr)
+        use iso_c_binding, ONLY : C_FUNPTR, &
+                                  C_PTR, &
+                                  C_FUNLOC
+
+        procedure(milhoja_runtime_taskFunction)             :: taskFunction
+        procedure(milhoja_runtime_taskFunction)             :: postTaskFunction
+        integer(MILHOJA_INT),                   intent(IN)  :: nDistributorThreads
+        integer(MILHOJA_INT),                   intent(IN)  :: nThreads
+        integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
+        type(C_PTR),                            intent(IN)  :: packetPrototype_Cptr
+        integer(MILHOJA_INT),                   intent(OUT) :: ierr
+
+        type(C_FUNPTR) :: taskFunction_Cptr
+        type(C_FUNPTR) :: postTaskFunction_Cptr
+
+        taskFunction_Cptr = C_FUNLOC(taskFunction)
+        postTaskFunction_Cptr = C_FUNLOC(postTaskFunction)
+
+        ierr = milhoja_runtime_execute_tasks_extgpu_c(taskFunction_Cptr, &
+                                                   postTaskFunction_Cptr, &
+                                                   nDistributorThreads, &
+                                                   nThreads, &
+                                                   nTilesPerPacket, &
+                                                   packetPrototype_Cptr)
+    end subroutine milhoja_runtime_executeTasks_ExtGpu
 #  endif
 #endif
 
