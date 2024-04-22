@@ -152,7 +152,8 @@ C2F_TYPE_MAPPING = {
     "bool": "logical",
     "int": "integer",
     "unsigned int": "integer",
-    "real": "real"
+    "real": "real",
+    "milhoja::Real": "real"
 }
 
 TILE_KEY_MAPPING = {

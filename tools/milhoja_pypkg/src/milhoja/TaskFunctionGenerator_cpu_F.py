@@ -120,7 +120,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             dummy_args = self._tf_spec.dummy_arguments
             fptr.write(f"{INDENT}subroutine {self._tf_spec.function_name}")
             dummy_arg_str = \
-                f"( &\n{INDENT*5}" + f", &\n{INDENT*5}".join(dummy_args) + f" &\n{INDENT*3})\n"
+                f"( &\n{INDENT*2}" + f", &\n{INDENT*2}".join(dummy_args) + f" &\n{INDENT})\n"
             dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
             fptr.write(dummy_arg_str)
 
@@ -142,10 +142,14 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             # Generation-time argument definitions
             points = {
                 TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-                TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT
+                TILE_UBOUND_ARGUMENT
             }
             bounds = {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
 
+            grid_ptr_data = []
+            grid_ptr_nullify = []
+            set_ptr_for_eos = {}
+            end_tf = []
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 src = spec["source"]
@@ -160,13 +164,17 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}\n")
 
                 elif src in points:
-                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:, :)\n")
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:)\n")
+
+                elif src == LBOUND_ARGUMENT:
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:)\n")
+                    # we have to set a pointer for EOS wrapped
 
                 elif src == TILE_DELTAS_ARGUMENT:
-                    fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:, :)\n")
+                    fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
 
                 elif src in bounds:
-                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:, :, :)\n")
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:, :)\n")
 
                 elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
@@ -177,20 +185,27 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         intent = "OUT"
                     else:
                         raise LogicError("Unknown grid data variable class")
-                    fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}(:, :, :, :, :)\n")
+                    fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}(:, :, :, :)\n")
+                    grid_ptr_data.extend([
+                        f"{INDENT*2}real, pointer :: {arg}_ptr(:, :, :, :)\n"
+                    ])
+                    grid_ptr_nullify.append(f"{INDENT*2}NULLIFY({arg}_ptr)\n")
+                    end_tf.extend([f"NULLIFY({arg}_ptr)\n"])
 
                 elif src == SCRATCH_ARGUMENT:
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
                     dimension = len(parse_extents(spec["extents"]))
                     assert dimension > 0
-                    tmp = [":" for _ in range(dimension + 1)]
+                    tmp = [":" for _ in range(dimension)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n")
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(OUT) :: {arg}{array}\n")
 
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
 
             fptr.write("\n")
+            fptr.write("".join(grid_ptr_data) + "\n")
+            fptr.write("".join(grid_ptr_nullify) + "\n")
 
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
@@ -200,11 +215,16 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     arg_list = []
                     for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
-                        arg_list.append(f"{INDENT*3}{argument}")
+                        arg = f"{INDENT*3}{argument}"
+                        if spec["source"] == GRID_DATA_ARGUMENT:
+                            arg += "_ptr"
+                        arg_list.append(arg)
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*2})\n")
+                    print(subroutine)
 
             # End subroutine declaration
+            fptr.write(f"\n{INDENT*2}" + f"{INDENT*2}".join(end_tf))
             fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")
             # End module declaration
