@@ -3,7 +3,7 @@ from pathlib import Path
 from .constants import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG,
     TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_CELL_VOLUMES_ARGUMENT
+    TILE_CELL_VOLUMES_ARGUMENT, F2C_TYPE_MAPPING
 )
 from .TaskFunction import TaskFunction
 from .AbcLogger import AbcLogger
@@ -142,18 +142,14 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         n_args = len(constructor_args)
 
         if n_args == 0:
-            code = "(void)"
-        elif n_args == 1:
-            arg, arg_type = constructor_args[0]
-            code = f"(const {arg_type} {arg})"
-        else:
-            code = "("
-            for j, arg in enumerate(constructor_args):
-                code += f"\n{INDENT*5}const {arg_type} {arg}"
-                if j < n_args - 1:
-                    code += ","
-            code += ")"
+            return "(void)"
 
+        # I don't like adjusting types here. We really should have a standard
+        # typing system for use inside of the JSONs.
+        code = f"(\n{INDENT*3}" + \
+            f",\n{INDENT*3}".join([
+                f"const {F2C_TYPE_MAPPING.get(dtype, dtype)} {arg}" for arg,dtype in constructor_args
+            ]) + "\n)"
         return code
 
     def generate_source_code(self, destination, overwrite):

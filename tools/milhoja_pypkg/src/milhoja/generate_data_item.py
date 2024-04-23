@@ -31,7 +31,9 @@ def generate_data_item(tf_spec, destination, overwrite, library_path,
     data_item = tf_spec.data_item
     language = tf_spec.language
 
-    if (language.lower() == "c++") and (data_item.lower() == "tilewrapper"):
+    if (language.lower() == "c++" or language.lower() == "fortran") and \
+            (data_item.lower() == "tilewrapper"):
+
         generator = TileWrapperGenerator_cpp(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
         generator.generate_source_code(destination, overwrite)

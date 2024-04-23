@@ -148,7 +148,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
             grid_ptr_data = []
             grid_ptr_nullify = []
-            set_ptr_for_eos = {}
+            eos_ptr = {}
             end_tf = []
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
@@ -168,7 +168,12 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
                 elif src == LBOUND_ARGUMENT:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:)\n")
-                    # we have to set a pointer for EOS wrapped
+                    array_spec = self._tf_spec.argument_specification(spec["array"])
+                    if array_spec["source"] == GRID_DATA_ARGUMENT:
+                        # we have to set a pointer for EOS wrapped
+                        eos_ptr[spec["array"]] = "({0}:,{1}:,{2}:,{3}:)".format(
+                            f"{arg}(0)", f"{arg}(1)", f"{arg}(2)", f"{arg}(3)"
+                        )
 
                 elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
@@ -191,6 +196,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     ])
                     grid_ptr_nullify.append(f"{INDENT*2}NULLIFY({arg}_ptr)\n")
                     end_tf.extend([f"NULLIFY({arg}_ptr)\n"])
+                    eos_ptr[arg] = "(:, :, :, :)\n"
 
                 elif src == SCRATCH_ARGUMENT:
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
@@ -206,6 +212,8 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             fptr.write("\n")
             fptr.write("".join(grid_ptr_data) + "\n")
             fptr.write("".join(grid_ptr_nullify) + "\n")
+            for key in eos_ptr:
+                fptr.write(f"{INDENT*2}{key}_ptr{eos_ptr[key]}\n")
 
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
