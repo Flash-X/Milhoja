@@ -15,7 +15,7 @@
 
 struct FlashxrTileRawPtrs {
   milhoja::Real*           unkBlkPtr;
-  milhoja::Real*           fluxxBlkPtr, fluxyBlkPtr, fluxzBlkPtr;
+  milhoja::Real            *fluxxBlkPtr, *fluxyBlkPtr, *fluxzBlkPtr;
 };
 
 struct FlashxTileRawInts {
