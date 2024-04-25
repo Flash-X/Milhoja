@@ -211,12 +211,12 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
                 fptr.write(f'{arg}_ scratch already allocated");\n')
                 fptr.write(f"{INDENT}}}\n")
                 fptr.write("\n")
-                fptr.write(f"{INDENT}const std::size_t nBytes = nThreads\n")
+                fptr.write(f"{INDENT}const std::size_t nBytes_{arg} = nThreads\n")
                 fptr.write(f"{INDENT*5}* {classname}::{arg.upper()}_SIZE_\n")
                 fptr.write(f"{INDENT*5}* sizeof({arg_type});\n")
                 fptr.write("\n")
                 fptr.write(f"{INDENT}milhoja::RuntimeBackend::instance().")
-                fptr.write(f"requestCpuMemory(nBytes, &{arg}_);\n")
+                fptr.write(f"requestCpuMemory(nBytes_{arg}, &{arg}_);\n")
                 fptr.write("\n")
                 fptr.write("#ifdef DEBUG_RUNTIME\n")
                 fptr.write(f'{INDENT}std::string   msg = "[{classname}::acquireScratch] Acquired"\n')
@@ -281,7 +281,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write(f"{classname}::clone")
             fptr.write("(std::shared_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
-            fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
+            fptr.write(f"{INDENT}{classname}* ptr = new {classname}{{")
             if len(constructor_args) == 0:
                 fptr.write("{};\n")
             elif len(constructor_args) == 1:
@@ -364,6 +364,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
             constructor_args = self._tf_spec.constructor_dummy_arguments
             for arg, arg_type in constructor_args:
+                arg_type = F2C_TYPE_MAPPING.get(arg_type, arg_type)
                 fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
             fptr.write("\n")
 
