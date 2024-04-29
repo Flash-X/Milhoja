@@ -92,7 +92,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
         with open(source_filename, "w") as fptr:
             # ----- DEFINE MODULE & MODULE INTERFACE
             # C Preprocessor includes
-            fptr.write("#include Milhoja.h\n")
+            fptr.write('#include "Milhoja.h"\n')
 
             # todo:: this can probably be pulled out into a separate function
             # Begin module declaration
@@ -174,6 +174,12 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         eos_ptr[spec["array"]] = "({0}:,{1}:,{2}:,{3}:)".format(
                             f"{arg}(0)", f"{arg}(1)", f"{arg}(2)", f"{arg}(3)"
                         )
+                        grid_ptr_data.extend([
+                            f"{INDENT*2}real, pointer :: {arg}_ptr(:, :, :, :)\n"
+                        ])
+                        grid_ptr_nullify.append(f"{INDENT*2}NULLIFY({arg}_ptr)\n")
+                        end_tf.extend([f"NULLIFY({arg}_ptr)\n"])
+                        eos_ptr[arg] = "(:, :, :, :)\n"
 
                 elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
@@ -191,12 +197,6 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     else:
                         raise LogicError("Unknown grid data variable class")
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}(:, :, :, :)\n")
-                    grid_ptr_data.extend([
-                        f"{INDENT*2}real, pointer :: {arg}_ptr(:, :, :, :)\n"
-                    ])
-                    grid_ptr_nullify.append(f"{INDENT*2}NULLIFY({arg}_ptr)\n")
-                    end_tf.extend([f"NULLIFY({arg}_ptr)\n"])
-                    eos_ptr[arg] = "(:, :, :, :)\n"
 
                 elif src == SCRATCH_ARGUMENT:
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
@@ -204,7 +204,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(OUT) :: {arg}{array}\n")
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n")
 
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
@@ -224,8 +224,6 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
                         arg = f"{INDENT*3}{argument}"
-                        if spec["source"] == GRID_DATA_ARGUMENT:
-                            arg += "_ptr"
                         arg_list.append(arg)
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*2})\n")
