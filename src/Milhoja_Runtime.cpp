@@ -892,7 +892,8 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const RuntimeAction& gpuAction,
                                       const RuntimeAction& postGpuAction,
-                                      const DataPacket& packetPrototype) {
+                                      const DataPacket& packetPrototype,
+                                      const TileWrapper& tilePrototype) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
 #else
@@ -941,6 +942,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
+    gpuToHost1_.setReceiverProto(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads
@@ -1006,8 +1008,9 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
 #  ifndef RUNTIME_MUST_USE_TILEITER
 void Runtime::setupPipelineForExtGpuTasks(const std::string& bundleName,
                               const RuntimeAction& gpuAction,
-                                 const RuntimeAction& postGpuAction,
-                              const DataPacket& packetPrototype) {
+                              const RuntimeAction& postGpuAction,
+                              const DataPacket& packetPrototype,
+                              const TileWrapper& tilePrototype) {
 
     Logger::instance().log("[Runtime] Start setting up GPU/Post-GPU action");
 
@@ -1046,6 +1049,7 @@ void Runtime::setupPipelineForExtGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
+    gpuToHost1_.setReceiverProto(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads

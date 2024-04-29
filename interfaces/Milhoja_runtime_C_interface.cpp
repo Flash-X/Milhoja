@@ -409,7 +409,8 @@ extern "C" {
                                               milhoja::ACTION_ROUTINE postTaskFunction,
                                               const int nThreads,
                                               const int nTilesPerPacket,
-                                              void* packet) {
+                                              void* packet,
+                                              void* tileWrapper) {
        if (nThreads < 0) {
            std::cerr << "[milhoja_runtime_setup_pipeline_extgpu_c] nThreads is negative" << std::endl;
            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
@@ -421,6 +422,7 @@ extern "C" {
        unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
        unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
 
+       milhoja::TileWrapper*  tilePrototype   = static_cast<milhoja::TileWrapper*>(tileWrapper);
        milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
 
        milhoja::RuntimeAction     pktAction;
@@ -441,7 +443,8 @@ extern "C" {
            milhoja::Runtime::instance().setupPipelineForExtGpuTasks("Lazy GPU Bundle Name",
                                                         pktAction,
                                                         postAction,
-                                                        *prototype);
+                                                        *prototype,
+                                                        *tilePrototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE;
@@ -658,7 +661,8 @@ extern "C" {
                                               const int nDistributorThreads,
                                               const int nThreads,
                                               const int nTilesPerPacket,
-                                              void* packet) {
+                                              void* packet,
+                                              void* tileWrapper) {
        if        (nDistributorThreads < 0) {
            std::cerr << "[milhoja_runtime_execute_tasks_extgpu_c] nDistributorThreads is negative" << std::endl;
            return MILHOJA_ERROR_N_THREADS_NEGATIVE;
@@ -674,6 +678,7 @@ extern "C" {
        unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
        unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
 
+       milhoja::TileWrapper*  tilePrototype   = static_cast<milhoja::TileWrapper*>(tileWrapper);
        milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
 
        milhoja::RuntimeAction     pktAction;
@@ -695,7 +700,8 @@ extern "C" {
                                                         nDistributorThreads_ui,
                                                         pktAction,
                                                         postAction,
-                                                        *prototype);
+                                                        *prototype,
+                                                        *tilePrototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;

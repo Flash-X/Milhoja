@@ -101,7 +101,8 @@ public:
     void setupPipelineForExtGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
-                                 const DataPacket& packetPrototype);
+                                 const DataPacket& packetPrototype,
+                                 const TileWrapper& tilePrototype);
     void pushTileToExtGpuPipeline(const std::string& bundleName,
 				  const DataPacket& packetPrototype,
 				  const FlashxrTileRawPtrs& tP,
@@ -113,7 +114,8 @@ public:
                                  const unsigned int nDistributorThreads,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
-                                 const DataPacket& packetPrototype);
+                                 const DataPacket& packetPrototype,
+                                 const TileWrapper& tilePrototype);
 #  ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
