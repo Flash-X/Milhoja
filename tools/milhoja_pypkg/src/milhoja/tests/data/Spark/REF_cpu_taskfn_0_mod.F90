@@ -56,7 +56,6 @@ contains
       scratch_Hydro_yRight_fake, &
       scratch_Hydro_zCenter_fake &
    )
-      use iso_c_binding, ONLY : C_PTR
       use Hydro_interface, ONLY : Hydro_prepBlock
       use Hydro_interface, ONLY : Hydro_advance
 

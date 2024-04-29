@@ -1,5 +1,4 @@
 #include "Milhoja.h"
-
 module cpu_tf_hydro_mod
     implicit none
     private
@@ -8,15 +7,17 @@ module cpu_tf_hydro_mod
     public :: cpu_tf_hydro_Cpp2C
 
    interface
-      subroutine cpu_tf_hydro_Cpp2C(C_threadIndex, C_dataItemPtr) bind(c)
-         use iso_c_binding,     ONLY : C_PTR
-         use milhoja_types_mod, ONLY : MILHOJA_INT
-         integer(MILHOJA_INT), intent(IN), value :: C_threadIndex
-         type(C_PTR),          intent(IN), value :: C_dataItemPtr
-      end subroutine cpu_tf_hydro_Cpp2C
-   end interface
+        subroutine cpu_tf_hydro_Cpp2C(C_threadIndex, C_dataItemPtr) &
+        bind(c, name="cpu_tf_hydro_Cpp2C")
+            use iso_c_binding, ONLY : C_PTR
+            use milhoja_types_mod, ONLY : MILHOJA_INT
+            integer(MILHOJA_INT), intent(IN), value :: C_threadIndex
+            type(C_PTR), intent(IN), value :: C_dataItemPtr
+        end subroutine cpu_tf_hydro_Cpp2C
+    end interface
 
 contains
+
     subroutine cpu_tf_hydro_Fortran( &
         external_hydro_op1_dt, &
         external_hydro_op1_eosMode, &
@@ -35,44 +36,48 @@ contains
         lbdd_scratch_hydro_op1_flY, &
         lbdd_scratch_hydro_op1_flZ &
     )
-
-        use Hydro_advanceSolution_variants_mod, ONLY : &
-            Hydro_computeSoundSpeed_block_cpu, &
-            Hydro_computeFluxes_X_block_cpu, &
-            Hydro_computeFluxes_Y_block_cpu, &
-            Hydro_computeFluxes_Z_block_cpu, &
-            Hydro_updateSolution_block_cpu
+        use Hydro_advanceSolution_variants_mod, ONLY : Hydro_computeSoundSpeedHll_block_cpu
+        use Hydro_advanceSolution_variants_mod, ONLY : Hydro_computeFluxesHll_X_block_cpu
+        use Hydro_advanceSolution_variants_mod, ONLY : Hydro_computeFluxesHll_Y_block_cpu
+        use Hydro_advanceSolution_variants_mod, ONLY : Hydro_computeFluxesHll_Z_block_cpu
+        use Hydro_advanceSolution_variants_mod, ONLY : Hydro_updateSolutionHll_block_cpu
         use Eos_interface, ONLY : Eos_wrapped
 
+
+        implicit none
         real,    intent(IN)            :: external_hydro_op1_dt
         integer, intent(IN)            :: external_hydro_op1_eosMode
-        real,    intent(IN)            :: tile_deltas(1:MILHOJA_MDIM)
-        integer, intent(IN)            :: tile_hi(1:MILHOJA_MDIM)
-        integer, intent(IN)            :: tile_interior(1:2, 1:MILHOJA_MDIM)
-        integer, intent(IN)            :: tile_lo(1:MILHOJA_MDIM)
-        integer, intent(IN)            :: lbdd_CC_1(1:4)
+        real,    intent(IN)            :: tile_deltas(:)
+        integer, intent(IN)            :: tile_hi(:)
+        integer, intent(IN)            :: tile_interior(:, :)
+        integer, intent(IN)            :: tile_lo(:)
         real,    intent(INOUT), target :: CC_1(:, :, :, :)
-        integer, intent(IN)            :: lbdd_scratch_hydro_op1_auxC(1:3)
         real,    intent(OUT)           :: scratch_hydro_op1_auxC(:, :, :)
-        integer, intent(IN)            :: lbdd_scratch_hydro_op1_flX(1:4)
         real,    intent(OUT)           :: scratch_hydro_op1_flX(:, :, :, :)
         real,    intent(OUT)           :: scratch_hydro_op1_flY(:, :, :, :)
         real,    intent(OUT)           :: scratch_hydro_op1_flZ(:, :, :, :)
+        integer, intent(IN)            :: lbdd_CC_1(:)
+        integer, intent(IN)            :: lbdd_scratch_hydro_op1_auxC(:)
+        integer, intent(IN)            :: lbdd_scratch_hydro_op1_flX(:)
+        integer, intent(IN)            :: lbdd_scratch_hydro_op1_flY(:)
+        integer, intent(IN)            :: lbdd_scratch_hydro_op1_flZ(:)
 
         real, pointer :: CC_1_ptr(:, :, :, :)
 
         NULLIFY(CC_1_ptr)
 
-        CALL Hydro_computeSoundSpeed_block_cpu( &
-            tile_lo, tile_hi, &
+        CALL Hydro_computeSoundSpeedHll_block_cpu( &
+            tile_lo, &
+            tile_hi, &
             CC_1, &
             lbdd_CC_1, &
             scratch_hydro_op1_auxC, &
             lbdd_scratch_hydro_op1_auxC &
         )
-        CALL Hydro_computeFluxes_X_block_cpu( &
+        CALL Hydro_computeFluxesHll_X_block_cpu( &
             external_hydro_op1_dt, &
-            tile_lo, tile_hi, &
+            tile_lo, &
+            tile_hi, &
             tile_deltas, &
             CC_1, &
             lbdd_CC_1, &
@@ -81,9 +86,10 @@ contains
             scratch_hydro_op1_flX, &
             lbdd_scratch_hydro_op1_flX &
         )
-        CALL Hydro_computeFluxes_Y_block_cpu( &
+        CALL Hydro_computeFluxesHll_Y_block_cpu( &
             external_hydro_op1_dt, &
-            tile_lo, tile_hi, &
+            tile_lo, &
+            tile_hi, &
             tile_deltas, &
             CC_1, &
             lbdd_CC_1, &
@@ -92,9 +98,10 @@ contains
             scratch_hydro_op1_flY, &
             lbdd_scratch_hydro_op1_flY &
         )
-        CALL Hydro_computeFluxes_Z_block_cpu( &
+        CALL Hydro_computeFluxesHll_Z_block_cpu( &
             external_hydro_op1_dt, &
-            tile_lo, tile_hi, &
+            tile_lo, &
+            tile_hi, &
             tile_deltas, &
             CC_1, &
             lbdd_CC_1, &
@@ -103,8 +110,9 @@ contains
             scratch_hydro_op1_flZ, &
             lbdd_scratch_hydro_op1_flZ &
         )
-        CALL Hydro_updateSolution_block_cpu( &
-            tile_lo, tile_hi, &
+        CALL Hydro_updateSolutionHll_block_cpu( &
+            tile_lo, &
+            tile_hi, &
             scratch_hydro_op1_flX, &
             scratch_hydro_op1_flY, &
             scratch_hydro_op1_flZ, &
