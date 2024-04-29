@@ -211,7 +211,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
         connectors["acquire_scratch"].append(
             f"{dtype}* {arg} = static_cast<{dtype}*>("
-            f"{class_name}::{arg.lower()}_) + {class_name}::{arg.upper()}"
+            f"{class_name}::{arg}_) + {class_name}::{arg.upper()}"
             f"_SIZE_ * {THREAD_INDEX_VAR_NAME}"
         )
         connectors[self.REAL_ARGS].append(f'static_cast<void*>({arg})')
