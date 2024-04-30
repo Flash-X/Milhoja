@@ -40,9 +40,9 @@ def generate_data_item(tf_spec, destination, overwrite, library_path,
 
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
-    elif (language.lower() == "c++" or language.lower() == "fortran") and \
-            (data_item.lower() == "datapacket"):
 
+    elif (language.lower() == "c++" or language.lower() == "fortran") and \
+    (data_item.lower() == "datapacket"):
         library = Path(library_path).resolve()
         sizes_json = library.joinpath("include", "sizes.json")
         if not library.is_dir():
