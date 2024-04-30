@@ -202,7 +202,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(OUT) :: {arg}{array}\n")
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n")
 
                 else:
                     raise LogicError(f"{arg} of unknown argument class")

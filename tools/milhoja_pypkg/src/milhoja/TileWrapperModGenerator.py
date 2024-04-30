@@ -96,7 +96,6 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             var_declarations = []
             for var, data in self._externals.items():
                 dtype = data["type"]
-                # dtype = FORTRAN_TYPE_MAPPING[dtype]
                 name = f"C_{var}"
                 arg_list.append(name)
                 var_declarations.append(
@@ -108,7 +107,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             module.write(f'{self.INDENT * 3}' + args)
             module.write(
                 f", &\n{self.INDENT*3}C_wrapper &\n"
-                f"{self.INDENT * 2}) result(C_ierr) "
+                f"{self.INDENT*2}) result(C_ierr) &\n"
                 f'{self.INDENT*2}bind(c, name="{instance}")\n'
             )
             module.write(f"{self.INDENT * 3}use iso_c_binding, ONLY : C_PTR\n")
