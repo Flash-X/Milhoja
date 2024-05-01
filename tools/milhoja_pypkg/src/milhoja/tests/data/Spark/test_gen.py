@@ -4,7 +4,6 @@
 Run the script with -h to obtain more information regarding the script.
 """
 import json
-import shutil
 import argparse
 import traceback
 
@@ -15,7 +14,6 @@ import milhoja
 
 def main():
     # ----- HARDCODED VALUES
-    TEST_PATH = Path(__file__).resolve().parent
     DESTINATION = Path(__file__).resolve().parent
 
     # Exit codes so that this can be used in CI build server
@@ -27,7 +25,6 @@ def main():
     DEFAULT_LOG_LEVEL = milhoja.LOG_LEVEL_BASIC
 
     TF_NAME = "cpu_tf_hydro"
-    # HYDRO_OP1_XD_JSON = TEST_PATH.joinpath("Hydro_op1_XD.json")
     HYDRO_OP1_JSON = DESTINATION.joinpath("__Hydro_op_spec.json")
     TF_JSON = DESTINATION.joinpath(f"{TF_NAME}.json")
     PARTIAL_TF_JSON = DESTINATION.joinpath(f"{TF_NAME}_partial.json")
@@ -124,34 +121,6 @@ def main():
     with open(HYDRO_OP1_JSON, "r") as fptr:
         hydro_op1_spec = json.load(fptr)
 
-    # Scratch extents change with dimension
-    # sz_x = nxb + 2
-    # sz_y = nyb + 2 if dimension >= 2 else 1
-    # sz_z = nzb + 2 if dimension == 3 else 1
-    # extents = f"({sz_x}, {sz_y}, {sz_z})"
-    # hydro_op1_spec["scratch"]["_auxC"]["extents"] = extents
-
-    # sz_x = 1
-    # sz_y = 1 if dimension >= 2 else 0
-    # sz_z = 1 if dimension == 3 else 0
-    # lbound = f"(tile_lo) - ({sz_x}, {sz_y}, {sz_z})"
-    # hydro_op1_spec["scratch"]["_auxC"]["lbound"] = lbound
-
-    # for i, each in enumerate(["_flX", "_flY", "_flZ"]):
-    #     fl_size = [nxb, nyb, nzb]
-    #     fl_size[i] += 1
-
-    #     sz_x = fl_size[0] if i < dimension else 1
-    #     sz_y = fl_size[1] if i < dimension else 1
-    #     sz_z = fl_size[2] if i < dimension else 1
-    #     n_flux = 5 if i < dimension else 1
-
-    #     extents = f"({sz_x}, {sz_y}, {sz_z}, {n_flux})"
-    #     hydro_op1_spec["scratch"][each]["extents"] = extents
-
-    #     lbound = "(tile_lo, 1)" if i < dimension else "(1, 1, 1, 1)"
-    #     hydro_op1_spec["scratch"][each]["lbound"] = lbound
-
     # ----- WRITE ALL FILES
     contents_all = [
         ("grid specification", GRID_SPEC, GRID_JSON),
@@ -198,4 +167,3 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
-

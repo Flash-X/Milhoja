@@ -82,7 +82,7 @@ extern "C" {
     void  cpu_tf_hydro_cpp2c (
        const int threadIndex,
        milhoja::DataItem* dataItem
-) {
+    ) {
        Tile_cpu_tf_hydro* wrapper = dynamic_cast<Tile_cpu_tf_hydro*>(dataItem);
        milhoja::Tile* tileDesc = wrapper->tile_.get();
 
@@ -94,10 +94,10 @@ extern "C" {
        const auto tile_lbound = tileDesc->loGC();
 
        // acquire scratch data
-       milhoja::Real* scratch_hydro_op1_auxC = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_auxc_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_AUXC_SIZE_ * threadIndex;
-       milhoja::Real* scratch_hydro_op1_flX = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_flx_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLX_SIZE_ * threadIndex;
-       milhoja::Real* scratch_hydro_op1_flY = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_fly_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLY_SIZE_ * threadIndex;
-       milhoja::Real* scratch_hydro_op1_flZ = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_flz_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLZ_SIZE_ * threadIndex;
+       milhoja::Real* scratch_hydro_op1_auxC = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_auxC_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_AUXC_SIZE_ * threadIndex;
+       milhoja::Real* scratch_hydro_op1_flX = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_flX_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLX_SIZE_ * threadIndex;
+       milhoja::Real* scratch_hydro_op1_flY = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_flY_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLY_SIZE_ * threadIndex;
+       milhoja::Real* scratch_hydro_op1_flZ = static_cast<milhoja::Real*>(Tile_cpu_tf_hydro::scratch_hydro_op1_flZ_) + Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_FLZ_SIZE_ * threadIndex;
 
        // consolidate tile arrays.
        real tile_deltas_array[] = {

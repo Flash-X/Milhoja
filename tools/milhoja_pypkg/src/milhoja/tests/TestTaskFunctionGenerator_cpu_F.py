@@ -35,11 +35,12 @@ class TestTaskFunctionGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
         #               "source": fx_path.joinpath("REF_cpu_tf_hydroFC_2D.F90"),
         #               "source_dim_dependent": False}
         # Only middle node has concurrent kernel launch
-        hydro_3D = {"json": fx_path.joinpath("REF_cpu_tf_hydro_3D.json"),
-                    "header": None,
-                    "header_dim_dependent": False,
-                    "source": fx_path.joinpath("REF_cpu_tf_hydro_3D.F90"),
-                    "source_dim_dependent": False
+        hydro_3D = {
+            "json": fx_path.joinpath("REF_cpu_tf_hydro_3D.json"),
+            "header": None,
+            "header_dim_dependent": False,
+            "source": fx_path.joinpath("REF_cpu_tf_hydro_3D.F90"),
+            "source_dim_dependent": False
         }
         spark_2D = {
             "json": spark_path.joinpath("cpu_taskfn_0.json"),

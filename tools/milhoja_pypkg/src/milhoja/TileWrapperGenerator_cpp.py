@@ -148,7 +148,8 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
         # typing system for use inside of the JSONs.
         code = f"(\n{INDENT*3}" + \
             f",\n{INDENT*3}".join([
-                f"const {F2C_TYPE_MAPPING.get(dtype, dtype)} {arg}" for arg,dtype in constructor_args
+                f"const {F2C_TYPE_MAPPING.get(dtype, dtype)} {arg}"
+                for arg, dtype in constructor_args
             ]) + "\n)"
         return code
 
@@ -281,12 +282,13 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
             fptr.write(f"{classname}::clone")
             fptr.write("(std::shared_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
-            fptr.write(f"{INDENT}{classname}* ptr = new {classname}{{")
+            fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
             if len(constructor_args) == 0:
                 fptr.write("{};\n")
             elif len(constructor_args) == 1:
                 fptr.write(f"{{{constructor_args[0][0]}_}};\n")
             else:
+                fptr.write("{")
                 for j, (arg, _) in enumerate(constructor_args):
                     fptr.write(f"\n{INDENT*5}{arg}_")
                     if j < len(constructor_args) - 1:

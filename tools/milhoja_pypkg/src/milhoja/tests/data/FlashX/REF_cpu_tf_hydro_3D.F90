@@ -52,10 +52,10 @@ contains
         integer, intent(IN)            :: tile_interior(:, :)
         integer, intent(IN)            :: tile_lo(:)
         real,    intent(INOUT), target :: CC_1(:, :, :, :)
-        real,    intent(OUT)           :: scratch_hydro_op1_auxC(:, :, :)
-        real,    intent(OUT)           :: scratch_hydro_op1_flX(:, :, :, :)
-        real,    intent(OUT)           :: scratch_hydro_op1_flY(:, :, :, :)
-        real,    intent(OUT)           :: scratch_hydro_op1_flZ(:, :, :, :)
+        real,    intent(IN)           :: scratch_hydro_op1_auxC(:, :, :)
+        real,    intent(IN)           :: scratch_hydro_op1_flX(:, :, :, :)
+        real,    intent(IN)           :: scratch_hydro_op1_flY(:, :, :, :)
+        real,    intent(IN)           :: scratch_hydro_op1_flZ(:, :, :, :)
         integer, intent(IN)            :: lbdd_CC_1(:)
         integer, intent(IN)            :: lbdd_scratch_hydro_op1_auxC(:)
         integer, intent(IN)            :: lbdd_scratch_hydro_op1_flX(:)
@@ -121,8 +121,12 @@ contains
             lbdd_CC_1 &
         )
 
-        CC_1_ptr(lbdd_CC_1(1):, lbdd_CC_1(2):, lbdd_CC_1(3):, lbdd_CC_1(4):) => CC_1
-        CALL Eos_wrapped(external_hydro_op1_eosMode, tile_interior, CC_1_ptr)
+        CC_1_ptr(lbdd_CC_1(1):,lbdd_CC_1(2):,lbdd_CC_1(3):,lbdd_CC_1(4):) => CC_1
+        CALL Eos_wrapped( &
+            external_hydro_op1_eosMode, &
+            tile_interior, &
+            CC_1_ptr &
+        )
         NULLIFY(CC_1_ptr)
     end subroutine cpu_tf_hydro_Fortran
 

@@ -5,6 +5,7 @@ from . import TaskFunctionC2FGenerator_cpu_F
 from . import TaskFunctionCpp2CGenerator_cpu_F
 from . import TileWrapperModGenerator
 
+
 def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     """
     .. todo::
@@ -40,10 +41,15 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
         c2f_generator.generate_source_code(destination, overwrite)
         assert destination.joinpath(generator.source_filename).is_file()
 
-        tile_wrapper_mod_generator = TileWrapperModGenerator(tf_spec, indent, logger)
-        tile_wrapper_mod_generator.generate_source_code(destination, overwrite)
-        
-        assert destination.joinpath(tile_wrapper_mod_generator.source_filename).is_file()
+        tile_wrapper_mod_generator = \
+            TileWrapperModGenerator(tf_spec, indent, logger)
+        tile_wrapper_mod_generator.generate_source_code(
+            destination, overwrite
+        )
+
+        assert destination.joinpath(
+            tile_wrapper_mod_generator.source_filename
+        ).is_file()
 
     elif (language.lower() == "fortran") and (offloading == "openacc"):
         generator = TaskFunctionGenerator_OpenACC_F(tf_spec, indent, logger)
