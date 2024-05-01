@@ -201,7 +201,8 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 tile_desc_func = alt.replace("tile_", "")
                 tile_desc_name = self.tile_desc_name
                 connectors[self.TILE_DATA].append(
-                    f"const auto {word} = {tile_desc_name}->{tile_desc_func}()"
+                    f"const auto {word} = "
+                    f"{tile_desc_name}->{tile_desc_func}()"
                 )
                 saved.add(word)
 
@@ -264,7 +265,9 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             elif src in TILE_ARGUMENTS_ALL:
                 self._fill_mdata_connectors(var, spec, self.connectors, saved)
             elif src == LBOUND_ARGUMENT:
-                self._fill_lbound_connectors(var, spec, self.connectors, saved)
+                self._fill_lbound_connectors(
+                    var, spec, self.connectors, saved
+                )
             elif src == GRID_DATA_ARGUMENT:
                 self._fill_grid_connectors(var, spec, self.connectors)
             elif src == SCRATCH_ARGUMENT:

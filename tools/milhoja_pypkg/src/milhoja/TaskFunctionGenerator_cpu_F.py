@@ -5,10 +5,11 @@ from . import LogicError
 from . import AbcCodeGenerator
 from . import TaskFunction
 from . import (
-    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
-    TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
-    TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT,
-    C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+    LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT,
+    TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT,
+    SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING,
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 )
 
 
@@ -20,8 +21,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
     .. todo::
         * Should this be able to write with any type of offloading?
         * The module file and the top portion of that including the interface
-          declarations should likely be a CG-Kit template.  Writing the
-          subroutine to be included in the template by CG-kit might stay as is.
+          declarations should likely be a CG-Kit template. Writing the
+          subroutine to be included in the template by CG-kit might
+          stay as is.
     """
     __LOG_TAG = "Milhoja Fortran/OpenACC Task Function"
 
@@ -71,7 +73,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
               possible so that the execution of this doesn't needlessly block
               the execution of other tasks.
             * How to handle Milhoja errors in an internal way that can help
-              applications?  Are these errors considered so improbable that the
+              applications? Are these errors considered so improbable that the
               error checking here is effectively an assert?
         """
         INDENT = " " * self.indentation
@@ -106,12 +108,16 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                 f"{INDENT}interface\n",
                 f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}",
                 "(C_threadIndex, C_dataItemPtr) &\n",
-                f'{INDENT*2}bind(c, name="{self._tf_spec.cpp2c_layer_name}")\n',
+                f'{INDENT*2}bind(c, '
+                f'name="{self._tf_spec.cpp2c_layer_name}")\n',
                 f"{INDENT*3}use iso_c_binding, ONLY : C_PTR\n",
                 f"{INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT\n",
-                f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_threadIndex\n",
-                f"{INDENT*3}type(C_PTR), intent(IN), value :: C_dataItemPtr\n",
-                f"{INDENT*2}end subroutine {self._tf_spec.cpp2c_layer_name}\n",
+                f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: "
+                "C_threadIndex\n",
+                f"{INDENT*3}type(C_PTR), intent(IN), value :: "
+                "C_dataItemPtr\n",
+                f"{INDENT*2}end subroutine "
+                f"{self._tf_spec.cpp2c_layer_name}\n",
                 f"{INDENT}end interface\n\ncontains\n\n"
             ])
 
@@ -120,7 +126,8 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             dummy_args = self._tf_spec.dummy_arguments
             fptr.write(f"{INDENT}subroutine {self._tf_spec.function_name}")
             dummy_arg_str = \
-                f"( &\n{INDENT*2}" + f", &\n{INDENT*2}".join(dummy_args) + f" &\n{INDENT})\n"
+                f"( &\n{INDENT*2}" + f", &\n{INDENT*2}".join(dummy_args) + \
+                f" &\n{INDENT})\n"
             dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
             fptr.write(dummy_arg_str)
 
@@ -128,10 +135,14 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
                     interface = \
-                        self._tf_spec.subroutine_interface_file(subroutine).strip()
+                        self._tf_spec.subroutine_interface_file(
+                            subroutine
+                        ).strip()
                     assert interface.endswith(".F90")
                     interface = interface.rstrip(".F90")
-                    fptr.write(f"{INDENT*2}use {interface}, ONLY : {subroutine}\n")
+                    fptr.write(
+                        f"{INDENT*2}use {interface}, ONLY : {subroutine}\n"
+                    )
             fptr.writelines(["\n", *offloading, "\n"])
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
@@ -156,8 +167,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         msg = "No test case for non-scalar externals"
                         raise NotImplementedError(msg)
 
-                    # is this okay? Should we fail if there is no type mapping?
-                    arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                    # Should we fail if there is no type mapping?
+                    arg_type = \
+                        C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
                     fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}\n")
 
                 elif src in points:
@@ -165,23 +177,31 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
                 elif src == LBOUND_ARGUMENT:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:)\n")
-                    array_spec = self._tf_spec.argument_specification(spec["array"])
+                    array_spec = \
+                        self._tf_spec.argument_specification(spec["array"])
                     if array_spec["source"] == GRID_DATA_ARGUMENT:
                         # we have to set a pointer for EOS wrapped
-                        eos_ptr[spec["array"]] = "({0}:,{1}:,{2}:,{3}:)".format(
-                            f"{arg}(1)", f"{arg}(2)", f"{arg}(3)", f"{arg}(4)"
-                        )
+                        eos_ptr[spec["array"]] = \
+                            "({0}:,{1}:,{2}:,{3}:)".format(
+                                f"{arg}(1)", f"{arg}(2)",
+                                f"{arg}(3)", f"{arg}(4)"
+                            ) + f" => {spec['array']}"
                         grid_ptr_data.extend([
-                            f"{INDENT*2}real, pointer :: {spec['array']}_ptr(:, :, :, :)\n"
+                            f"{INDENT*2}real, pointer :: "
+                            f"{spec['array']}_ptr(:, :, :, :)"
                         ])
-                        grid_ptr_nullify.append(f"{INDENT*2}NULLIFY({spec['array']}_ptr)\n")
+                        grid_ptr_nullify.append(
+                            f"{INDENT*2}NULLIFY({spec['array']}_ptr)\n"
+                        )
                         end_tf.extend([f"NULLIFY({spec['array']}_ptr)\n"])
 
                 elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
 
                 elif src in bounds:
-                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}(:, :)\n")
+                    fptr.write(
+                        f"{INDENT*2}integer, intent(IN) :: {arg}(:, :)\n"
+                    )
 
                 elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
@@ -192,17 +212,24 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         intent = "OUT"
                     else:
                         raise LogicError("Unknown grid data variable class")
-                    fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}(:, :, :, :)\n")
+                    fptr.write(
+                        f"{INDENT*2}real, intent({intent}), target"
+                        f" :: {arg}(:, :, :, :)\n"
+                    )
                     if arg not in eos_ptr:
-                        eos_ptr[arg] = "(:, :, :, :)\n"
+                        eos_ptr[arg] = f"(:, :, :, :) => {arg}\n"
 
                 elif src == SCRATCH_ARGUMENT:
-                    arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                    arg_type = C2F_TYPE_MAPPING.get(
+                        spec["type"], spec["type"]
+                    )
                     dimension = len(parse_extents(spec["extents"]))
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n")
+                    fptr.write(
+                        f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n"
+                    )
 
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
@@ -226,8 +253,8 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         arg = f"{INDENT*3}{argument}"
                         # Eos is weird
                         if (
-                            spec["source"] == GRID_DATA_ARGUMENT and \
-                            "Eos" in subroutine and \
+                            spec["source"] == GRID_DATA_ARGUMENT and
+                            "Eos" in subroutine and
                             argument in eos_ptr
                         ):
                             arg += "_ptr"
@@ -238,7 +265,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
             # End subroutine declaration
             fptr.write(f"\n{INDENT*2}" + f"{INDENT*2}".join(end_tf))
-            fptr.write(f"\n{INDENT}end subroutine {self._tf_spec.function_name}\n")
+            fptr.write(
+                f"\n{INDENT}end subroutine {self._tf_spec.function_name}\n"
+            )
             fptr.write("\n")
             # End module declaration
             fptr.write(f"end module {module}\n\n")
