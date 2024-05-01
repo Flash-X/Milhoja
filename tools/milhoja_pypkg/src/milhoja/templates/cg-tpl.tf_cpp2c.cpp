@@ -1,21 +1,6 @@
 /* _connector:tf_cpp2c */
-/**
- * @copyright Copyright 2022 UChicago Argonne, LLC and contributors
- *
- * @licenseblock
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * @endlicenseblock
- *
- * @file
- */
 
+#include <iostream>
 #include <Milhoja.h>
 #include <Milhoja_real.h>
 #include <Milhoja_IntVect.h>
@@ -32,6 +17,51 @@ extern "C" {
     void _param:c2f_function_name (
         /* _link:c2f_dummy_args */
     );
+
+    int _param:instance(
+        /* _link:external_args */,
+        void** wrapper
+    ) {
+        if (wrapper == nullptr) {
+            std::cerr << "[_param:instance] wrapper is NULL" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        } else if (*wrapper != nullptr) {
+            std::cerr << "[_param:instance] *wrapper not NULL" << std::endl;
+            return MILHOJA_ERROR_POINTER_NOT_NULL;
+        }
+
+        try {
+            *wrapper = static_cast<void*>(new _param:data_item_class{
+                /* _link:instance_args */
+            });
+        } catch (const std::exception& exc) {
+            std::cerr << exc.what() << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_CREATE_WRAPPER;
+        } catch (...) {
+            std::cerr << "[_param:instance] Unknown error caught" << std::endl;
+            return MILHOJA_ERROR_UNABLE_TO_CREATE_WRAPPER;
+        }
+        return MILHOJA_SUCCESS;
+    }
+
+    int _param:deletion(void* wrapper) {
+        if (wrapper == nullptr) {
+            std::cerr << "[_param:deletion] wrapper is NULL" << std::endl;
+            return MILHOJA_ERROR_POINTER_IS_NULL;
+        }
+        delete static_cast<_param:data_item_class*>(wrapper);
+        return MILHOJA_SUCCESS;
+    }
+
+    int _param:acquire_scratch_function(void) {
+        _param:data_item_class::acquireScratch();
+        return MILHOJA_SUCCESS;
+    }
+
+    int _param:release_scratch_function(void) {
+        _param:data_item_class::releaseScratch();
+        return MILHOJA_SUCCESS;
+    }
 
     //----- C DECLARATION OF ACTUAL TASK FUNCTION TO PASS TO RUNTIME
     void  _param:cpp2c_function_name (

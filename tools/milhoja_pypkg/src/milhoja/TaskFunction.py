@@ -184,6 +184,7 @@ class TaskFunction(object):
             f"{self.data_item} does not use byte_alignment."
         )
 
+    # todo:: Name should use "data_item" instead of "packet"
     @property
     def instantiate_packet_C_function(self):
         if self.language.lower() != "fortran":
@@ -191,6 +192,7 @@ class TaskFunction(object):
         di = "packet" if self.data_item.lower() == "datapacket" else "wrapper"
         return f"instantiate_{self.name}_{di}_c"
 
+    # todo:: Name should use "data_item" instead of "packet"
     @property
     def delete_packet_C_function(self):
         if self.language.lower() != "fortran":

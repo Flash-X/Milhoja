@@ -235,11 +235,10 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         arg_list.append(arg)
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*2})\n")
-                    print(subroutine)
 
             # End subroutine declaration
             fptr.write(f"\n{INDENT*2}" + f"{INDENT*2}".join(end_tf))
-            fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
+            fptr.write(f"\n{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")
             # End module declaration
             fptr.write(f"end module {module}\n\n")

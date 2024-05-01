@@ -31,6 +31,8 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
     AC_SCRATCH = "acquire_scratch"
     CONSOLIDATE_TILE_DATA = "consolidate_tile_data"
     REAL_ARGS = "real_args"
+    EXTERNAL_ARGS = "external_args"
+    INSTANCE_ARGS = "instance_args"
 
     def __init__(self, tf_spec: TaskFunction, indent, logger):
         header = None
@@ -84,6 +86,10 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             c2f_func = self._tf_spec.name + "_c2f"
             class_name = self._tf_spec.data_item_class_name
             cpp2c_func = self._tf_spec.name + "_cpp2c"
+            instance_name = self._tf_spec.instantiate_packet_C_function
+            deletion_name = self._tf_spec.delete_packet_C_function
+            acquire_name = self._tf_spec.acquire_scratch_C_function
+            release_name = self._tf_spec.release_scratch_C_function
 
             outer.writelines([
                 '/* _link:tf_cpp2c */\n'
@@ -94,7 +100,15 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 '/* _param:cpp2c_function_name = ',
                 f'{cpp2c_func} */\n'
                 '/* _param:data_item_class = ',
-                f'{class_name} */\n'
+                f'{class_name} */\n',
+                '/* _param:instance = '
+                f'{instance_name} */\n',
+                '/* _param:deletion = '
+                f'{deletion_name} */\n',
+                '/* _param:acquire_scratch_function = '
+                f'{acquire_name} */\n',
+                '/* _param:release_scratch_function = '
+                f'{release_name} */\n'
             ])
 
         return outer_template
@@ -104,6 +118,8 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         dtype = F2C_TYPE_MAPPING.get(spec["type"], spec["type"])
         connectors[self.C2F_ARG_LIST].append(f"const {dtype} {arg}")
         connectors[self.REAL_ARGS].append(f"wrapper->{arg}_")
+        connectors[self.EXTERNAL_ARGS].append(f"const {dtype} {arg}")
+        connectors[self.INSTANCE_ARGS].append(arg)
 
     def _fill_mdata_connectors(self, arg, spec, connectors: dict, saved):
         src = spec["source"]
@@ -229,11 +245,15 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 raise FileExistsError()
 
         # generate tile_data connector.
+        # todo:: Use default dictionary?
         self.connectors[self.C2F_ARG_LIST] = []
         self.connectors[self.REAL_ARGS] = []
         self.connectors[self.TILE_DATA] = []
         self.connectors[self.CONSOLIDATE_TILE_DATA] = []
         self.connectors[self.AC_SCRATCH] = []
+        self.connectors[self.EXTERNAL_ARGS] = []
+        self.connectors[self.INSTANCE_ARGS] = []
+
         # save names of any tile metadata that was already added.
         saved = set()
         for var in self._tf_spec.dummy_arguments:
@@ -265,6 +285,19 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             helper.write(', \n'.join(real_args))
             helper.write("\n")
             del self.connectors[self.REAL_ARGS]
+
+            # special care for external args and isntance args
+            helper.write(f"/* _connectors:{self.EXTERNAL_ARGS} */\n")
+            externals = self.connectors[self.EXTERNAL_ARGS]
+            helper.write(', \n'.join(externals))
+            helper.write(',\n')
+            del self.connectors[self.EXTERNAL_ARGS]
+
+            helper.write(f"/* _connectors:{self.INSTANCE_ARGS} */\n")
+            instances = self.connectors[self.INSTANCE_ARGS]
+            helper.write(', \n'.join(instances))
+            helper.write('\n')
+            del self.connectors[self.INSTANCE_ARGS]
 
             for section, code in self.connectors.items():
                 helper.write(f"/* _connector:{section} */\n")
