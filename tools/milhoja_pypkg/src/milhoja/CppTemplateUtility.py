@@ -294,7 +294,8 @@ class CppTemplateUtility(TemplateUtility):
             lo = f"IntVect{{ LIST_NDIM({', '.join(lbound[:-1])}) }}" \
                 if len(exts) == len(lbound) else lbound[0]
             hi = f'({lo}) +' \
-                f'( IntVect{{ LIST_NDIM({",".join(extents4d[:-1])}) }} )'
+                f'( IntVect{{ LIST_NDIM({",".join(extents4d[:-1])}) }} )' + \
+                '- ( IntVect{LIST_NDIM(1,1,1)} )'
             unks = extents4d[-1]
             self.insert_farray_memcpy(
                 connectors, item, lo, hi, str(unks), info.dtype
