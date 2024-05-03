@@ -34,6 +34,7 @@ package_data = {"milhoja": ["tests/data/*",
                             "tests/data/runtime/*",
                             "tests/data/Sedov/*",
                             "tests/data/FlashX/*",
+                            "tests/data/Spark/*",
                             "templates/*"]}
 
 project_urls = {
