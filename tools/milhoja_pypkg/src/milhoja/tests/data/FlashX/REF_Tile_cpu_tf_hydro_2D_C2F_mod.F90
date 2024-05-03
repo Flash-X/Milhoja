@@ -12,7 +12,8 @@ module Tile_cpu_tf_hydro_c2f_mod
             C_external_hydro_op1_dt, &
             C_external_hydro_op1_eosMode, &
             C_wrapper &
-        ) result(C_ierr) bind(c, name="instantiate_cpu_tf_hydro_wrapper_c")
+        ) result(C_ierr) &
+        bind(c, name="instantiate_cpu_tf_hydro_wrapper_c")
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT, MILHOJA_REAL
             real(MILHOJA_REAL),   intent(IN), value :: C_external_hydro_op1_dt

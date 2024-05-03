@@ -131,6 +131,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
             fptr.write(dummy_arg_str)
 
+            target = ""
             offloading = []
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
@@ -143,6 +144,10 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     fptr.write(
                         f"{INDENT*2}use {interface}, ONLY : {subroutine}\n"
                     )
+
+                    if "Eos_" in subroutine:
+                        target = ", target"
+
             fptr.writelines(["\n", *offloading, "\n"])
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
@@ -213,7 +218,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     else:
                         raise LogicError("Unknown grid data variable class")
                     fptr.write(
-                        f"{INDENT*2}real, intent({intent}), target"
+                        f"{INDENT*2}real, intent({intent}){target}"
                         f" :: {arg}(:, :, :, :)\n"
                     )
                     if arg not in eos_ptr:
