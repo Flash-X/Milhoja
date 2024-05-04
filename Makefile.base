@@ -17,6 +17,9 @@ include Makefile.generated
 # Default shell commands
 RM ?= /bin/rm
 
+# Library name
+LIBNAME ?= milhoja
+
 # Milhoja uses just the C++11 standard, but AMReX requires C++14.
 # Flags can differ by compiler.
 # -MMD generates a dependecy list for each file as a side effect
