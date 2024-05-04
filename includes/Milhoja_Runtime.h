@@ -52,12 +52,12 @@ public:
 
 #ifndef RUNTIME_MUST_USE_TILEITER
     void setupPipelineForCpuTasks(const std::string& actionName,
-                         const RuntimeAction& cpuAction);
+                                  const RuntimeAction& cpuAction);
     void pushTileToPipeline(const std::string& actionName,
-			    const TileWrapper& prototype,
-			    const FlashxrTileRawPtrs& tP,
-			    const FlashxTileRawInts& tI,
-			    const FlashxTileRawReals& tR);
+                            const TileWrapper& prototype,
+                            const FlashxrTileRawPtrs& tP,
+                            const FlashxTileRawInts& tI,
+                            const FlashxTileRawReals& tR);
     void teardownPipelineForCpuTasks(const std::string& actionName);
 #endif
     void executeCpuTasks(const std::string& actionName,
@@ -66,14 +66,14 @@ public:
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifndef RUNTIME_MUST_USE_TILEITER
     void setupPipelineForGpuTasks(const std::string& bundleName,
-				  const unsigned int stagger_usec,
-				  const RuntimeAction& gpuAction,
-				  const DataPacket& packetPrototype);
+                                  const unsigned int stagger_usec,
+                                  const RuntimeAction& gpuAction,
+                                  const DataPacket& packetPrototype);
     void pushTileToGpuPipeline(const std::string& bundleName,
-			       const DataPacket& packetPrototype,
-			       const FlashxrTileRawPtrs& tP,
-			       const FlashxTileRawInts& tI,
-			       const FlashxTileRawReals& tR);
+                               const DataPacket& packetPrototype,
+                               const FlashxrTileRawPtrs& tP,
+                               const FlashxTileRawInts& tI,
+                               const FlashxTileRawReals& tR);
     void teardownPipelineForGpuTasks(const std::string& bundleName);
 #  endif
     void executeGpuTasks(const std::string& actionName,
@@ -99,15 +99,15 @@ public:
 #  endif
 #  ifndef RUNTIME_MUST_USE_TILEITER
     void setupPipelineForExtGpuTasks(const std::string& bundleName,
-                                 const RuntimeAction& gpuAction,
-                                 const RuntimeAction& postGpuAction,
-                                 const DataPacket& packetPrototype,
-                                 const TileWrapper& tilePrototype);
+                                     const RuntimeAction& gpuAction,
+                                     const RuntimeAction& postGpuAction,
+                                     const DataPacket& packetPrototype,
+                                     const TileWrapper& tilePrototype);
     void pushTileToExtGpuPipeline(const std::string& bundleName,
-				  const DataPacket& packetPrototype,
-				  const FlashxrTileRawPtrs& tP,
-				  const FlashxTileRawInts& tI,
-				  const FlashxTileRawReals& tR);
+                                  const DataPacket& packetPrototype,
+                                  const FlashxrTileRawPtrs& tP,
+                                  const FlashxTileRawInts& tI,
+                                  const FlashxTileRawReals& tR);
     void teardownPipelineForExtGpuTasks(const std::string& bundleName);
 #  endif
     void executeExtendedGpuTasks(const std::string& bundleName,
