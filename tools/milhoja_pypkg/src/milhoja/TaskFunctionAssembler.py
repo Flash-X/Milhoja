@@ -896,5 +896,5 @@ class TaskFunctionAssembler(object):
 
         with open(filename, "w") as fptr:
             json.dump(
-                spec, fptr, ensure_ascii=True, allow_nan=False, indent=True
+                spec, fptr, ensure_ascii=True, allow_nan=False, indent=4
             )
