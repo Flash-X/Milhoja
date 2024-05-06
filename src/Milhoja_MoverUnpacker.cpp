@@ -314,9 +314,11 @@ void MoverUnpacker::wait(void) {
 
 void MoverUnpacker::setReceiverProto(TileWrapper const * w) {
 
-    if (state_ == State::Idle) { // otherwise fail?
-      tileProto_ = w;
+    if (state_ != State::Idle) {
+        throw std::logic_error("[MoverUnpacker::setReceiverProto] "
+                               "This setter should only be called in Idle state");
     }
+    tileProto_ = w;
 
 }
 
