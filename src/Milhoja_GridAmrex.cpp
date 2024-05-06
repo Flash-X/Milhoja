@@ -404,6 +404,7 @@ void  GridAmrex::finalize(void) {
     Logger::instance().log("[GridAmrex] Finalized");
 }
 
+#ifdef FULL_MILHOJAGRID
 /**
  *  Destroy the domain.  It is a logical error to call this if initDomain has
  *  not already been called or to call it multiple times.
@@ -422,6 +423,7 @@ void  GridAmrex::destroyDomain(void) {
 
     Logger::instance().log("[GridAmrex] Destroyed domain.");
 }
+#endif
 
 /**
  * Set the initial conditions and setup the grid structure so that the initial
