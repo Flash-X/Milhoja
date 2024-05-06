@@ -308,6 +308,48 @@ TEST_F(TestRuntime, TestSharedCpuGpuConfig) {
     Logger::instance().log("[googletest] End Data Parallel Cpu/Gpu");
 }
 
+TEST_F(TestRuntime, TestExtendedGpuConfig) {
+    constexpr unsigned int   N_DIST_THREADS = 2;
+
+    Logger::instance().log("[googletest] Start TestExtendedGpu");
+
+    RuntimeAction    computeLaplacianDensity;
+    RuntimeAction    computeLaplacianEnergy;
+
+    computeLaplacianEnergy.name            = "LaplacianEnergy";
+    computeLaplacianEnergy.nInitialThreads = 3;
+    computeLaplacianEnergy.teamType        = ThreadTeamDataType::SET_OF_BLOCKS;
+    computeLaplacianEnergy.nTilesPerPacket = 20;
+    computeLaplacianEnergy.routine         = ActionRoutines::computeLaplacianEnergy_packet_oacc_summit;
+
+    computeLaplacianDensity.name            = "LaplacianDensity";
+    computeLaplacianDensity.nInitialThreads = 3;
+    computeLaplacianDensity.teamType        = ThreadTeamDataType::BLOCK;
+    computeLaplacianDensity.nTilesPerPacket = 0;
+    computeLaplacianDensity.routine         = cpu_tf_dens::taskFunction;
+
+    Tile_cpu_tf_dens::acquireScratch();
+
+    const DataPacket_gpu_tf_ener&   packetPrototypeEner{};
+    const Tile_cpu_tf_dens    tilePrototypeDens{};
+
+    double tStart = MPI_Wtime();
+    Runtime::instance().executeExtendedGpuTasks("ExtendedGpu",
+                                                N_DIST_THREADS,
+                                                computeLaplacianEnergy,
+                                                computeLaplacianDensity,
+                                                packetPrototypeEner,
+                                                tilePrototypeDens);
+    double tWalltime = MPI_Wtime() - tStart; 
+
+    Tile_cpu_tf_dens::releaseScratch();
+
+    checkSolution();
+    std::cout << "Total walltime = " << tWalltime << " sec\n";
+
+    Logger::instance().log("[googletest] End TestExtendedGpu");
+}
+
 TEST_F(TestRuntime, TestSharedCpuGpuWowza) {
     Logger::instance().log("[googletest] Start Cpu/Gpu Wowza Config");
 
