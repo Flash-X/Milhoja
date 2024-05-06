@@ -16,7 +16,6 @@ public:
     // constructor
     DataPacket_gpu_tf_hydro(
     real external_hydro_op1_dt
-    
     );
     // destructor
     ~DataPacket_gpu_tf_hydro(void);
@@ -56,7 +55,6 @@ public:
     FArray4D* _f4_scratch_hydro_op1_flX_d;
     FArray4D* _f4_scratch_hydro_op1_flY_d;
     FArray4D* _f4_scratch_hydro_op1_flZ_d;
-    
 private:
     static constexpr std::size_t ALIGN_SIZE=16;
     static constexpr std::size_t pad(const std::size_t size) {
@@ -77,7 +75,7 @@ private:
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLX = (17) * (16) * (1) * (5) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLY = (16) * (17) * (1) * (5) * sizeof(real);
     static constexpr std::size_t SIZE_SCRATCH_HYDRO_OP1_FLZ = (1) * (1) * (1) * (1) * sizeof(real);
-    
 };
 
 #endif
+
