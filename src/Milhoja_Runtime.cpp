@@ -742,9 +742,8 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
  *
  * \return 
  */
-#ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
                                  const RuntimeAction& cpuAction,
                                  const TileWrapper& tilePrototype,
@@ -877,7 +876,6 @@ void Runtime::executeCpuGpuTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU action");
 }
-#    endif
 #  endif
 #endif
 
@@ -1181,9 +1179,8 @@ void Runtime::teardownPipelineForExtGpuTasks(const std::string& bundleName) {
  *
  * \return 
  */
-#ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
                                       const unsigned int nDistributorThreads,
                                       const unsigned int stagger_usec,
@@ -1339,8 +1336,8 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action");
 }
-#    endif
 #  endif
+#endif
 
 
 /**
@@ -1348,9 +1345,9 @@ void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
  *
  * \return 
  */
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
-#      ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
+#    ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                             const unsigned int nDistributorThreads,
                                             const unsigned int stagger_usec,
@@ -1596,17 +1593,17 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared action (Timed)");
 }
-#      endif
 #    endif
 #  endif
+#endif
 
 /**
  * 
  *
  * \return 
  */
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                               const unsigned int nDistributorThreads,
                                               const RuntimeAction& actionA_cpu,
@@ -1775,16 +1772,16 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
 }
-#    endif
 #  endif
+#endif
 
 /**
  * 
  *
  * \return 
  */
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
                                       const RuntimeAction& actionA_cpu,
                                       const TileWrapper& tilePrototype,
@@ -1951,16 +1948,16 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU shared & GPU configuration");
 }
-#    endif
 #  endif
+#endif
 
 /**
  * 
  *
  * \return 
  */
-#  ifdef RUNTIME_SUPPORT_DATAPACKETS
-#    ifdef RUNTIME_CAN_USE_TILEITER
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeTasks_FullPacket(const std::string& bundleName,
                                       const RuntimeAction& cpuAction,
                                       const RuntimeAction& gpuAction,
@@ -2107,7 +2104,6 @@ void Runtime::executeTasks_FullPacket(const std::string& bundleName,
 
     Logger::instance().log("[Runtime] End CPU/GPU/Post-GPU action bundle");
 }
-#    endif
 #  endif
 #endif
 

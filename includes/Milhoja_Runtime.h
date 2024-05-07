@@ -90,13 +90,11 @@ public:
                                const unsigned int stepNumber,
                                const MPI_Comm comm);
 #  endif
-#  ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const TileWrapper& tilePrototype,
                             const RuntimeAction& gpuAction,
                             const DataPacket& packetPrototype);
-#  endif
 #  ifndef RUNTIME_MUST_USE_TILEITER
     void setupPipelineForExtGpuTasks(const std::string& bundleName,
                                      const RuntimeAction& gpuAction,
@@ -116,7 +114,6 @@ public:
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype,
                                  const TileWrapper& tilePrototype);
-#  ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,
@@ -125,7 +122,7 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
-#    ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                        const unsigned int nDistributorThreads,
                                        const unsigned int stagger_usec,
@@ -136,7 +133,7 @@ public:
                                        const unsigned int nTilesPerCpuTurn,
                                        const unsigned int stepNumber,
                                        const MPI_Comm comm);
-#    endif
+#  endif
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,
@@ -157,7 +154,6 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype);
-#  endif
 #endif
 
 private:
@@ -182,9 +178,7 @@ private:
 
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
     MoverUnpacker    gpuToHost1_;
-#ifdef MILHOJA_ADDTL_PIPELINE_CONFIGS
     MoverUnpacker    gpuToHost2_;
-#endif
 #endif
 };
 
