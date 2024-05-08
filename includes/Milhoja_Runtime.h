@@ -90,6 +90,19 @@ public:
                                const unsigned int stepNumber,
                                const MPI_Comm comm);
 #  endif
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuGpuTasks(const std::string& bundleName,
+                                     const RuntimeAction& gpuAction,
+                                     const RuntimeAction& cpuAction,
+                                     const DataPacket& packetPrototype);
+    void pushTileToCpuGpuPipeline(const std::string& bundleName,
+                                  const TileWrapper& tilePrototype,
+                                  const DataPacket& packetPrototype,
+                                  const FlashxrTileRawPtrs& tP,
+                                  const FlashxTileRawInts& tI,
+                                  const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuGpuTasks(const std::string& bundleName);
+#  endif
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const TileWrapper& tilePrototype,
