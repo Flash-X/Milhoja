@@ -164,8 +164,7 @@ module milhoja_runtime_mod
                                                          C_gpuTaskFunction, &
                                                      C_nThreads,            &
                                                      C_nTilesPerPacket,     &
-                                                     C_packetPrototype,     &
-                                                     C_tilePrototype) result(C_ierr) &
+                                                     C_packetPrototype) result(C_ierr) &
                                                      bind(c)
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
@@ -173,7 +172,6 @@ module milhoja_runtime_mod
             type(C_FUNPTR),       intent(IN), value :: C_cpuTaskFunction
             type(C_FUNPTR),       intent(IN), value :: C_gpuTaskFunction
             type(C_PTR),          intent(IN), value :: C_packetPrototype
-            type(C_PTR),          intent(IN), value :: C_tilePrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
             integer(MILHOJA_INT)                    :: C_ierr
@@ -479,7 +477,6 @@ contains
                                                 nThreads,             &
                                                 nTilesPerPacket,      &
                                                 packetPrototype_Cptr, &
-                                                tilePrototype_Cptr,   &
                                                 ierr)
         use iso_c_binding, ONLY : C_PTR, &
                                   C_FUNPTR, &
@@ -488,7 +485,6 @@ contains
         procedure(milhoja_runtime_taskFunction)             :: taskFunction
         procedure(milhoja_runtime_taskFunction)             :: postTaskFunction
         type(C_PTR),                            intent(IN)  :: packetPrototype_Cptr
-        type(C_PTR),                            intent(IN)  :: tilePrototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
         integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
@@ -503,8 +499,7 @@ contains
                                                    postTaskFunction_Cptr, &
                                                    nThreads, &
                                                    nTilesPerPacket, &
-                                                   packetPrototype_Cptr, &
-                                                   tilePrototype_Cptr)
+                                                   packetPrototype_Cptr)
     end subroutine milhoja_runtime_setupPipelineForCpuGpuTasks
     subroutine milhoja_runtime_setupPipelineForExtGpuTasks(taskFunction, &
                                                 postTaskFunction,     &

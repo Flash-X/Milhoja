@@ -405,6 +405,53 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+    int   milhoja_runtime_setup_pipeline_cpugpu_c(milhoja::ACTION_ROUTINE taskFunction,
+                                              milhoja::ACTION_ROUTINE postTaskFunction,
+                                              const int nThreads,
+                                              const int nTilesPerPacket,
+                                              void* packet) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpu_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
+
+       unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
+       unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
+
+       milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
+
+       milhoja::RuntimeAction     pktAction;
+       pktAction.name            = "Lazy GPU setup Action Name";
+       pktAction.nInitialThreads = nThreads_ui;
+       pktAction.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
+       pktAction.nTilesPerPacket = nTilesPerPacket_ui;
+       pktAction.routine         = taskFunction;
+
+       milhoja::RuntimeAction     postAction;
+       postAction.name            = "Lazy CPU setup Action Name";
+       postAction.nInitialThreads = nThreads_ui;
+       postAction.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       postAction.nTilesPerPacket = 0;
+       postAction.routine         = postTaskFunction;
+
+       try {
+           milhoja::Runtime::instance().setupPipelineForCpuGpuTasks("Lazy CPUGPU Bundle Name",
+                                                        pktAction,
+                                                        postAction,
+                                                        *prototype);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
     int   milhoja_runtime_setup_pipeline_extgpu_c(milhoja::ACTION_ROUTINE taskFunction,
                                               milhoja::ACTION_ROUTINE postTaskFunction,
                                               const int nThreads,
@@ -440,7 +487,7 @@ extern "C" {
        postAction.routine         = postTaskFunction;
 
        try {
-           milhoja::Runtime::instance().setupPipelineForExtGpuTasks("Lazy GPU Bundle Name",
+           milhoja::Runtime::instance().setupPipelineForExtGpuTasks("Lazy EXTGPU Bundle Name",
                                                         pktAction,
                                                         postAction,
                                                         *prototype,
@@ -472,6 +519,28 @@ extern "C" {
            return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
        } catch (...) {
            std::cerr << "[milhoja_runtime_teardown_pipeline_gpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+    int   milhoja_runtime_teardown_pipeline_cpugpu_c(const int nThreads,
+                                              const int nTilesPerPacket) {
+       if (nThreads < 0) {      // nThreads: only use in this function
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) { // nTilesPerPacket: only use here
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpu_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
+
+       try {
+           milhoja::Runtime::instance().teardownPipelineForCpuGpuTasks("Lazy CPUGPU setup Bundle Name");
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpu_c] Unknown error caught" << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
        }
 
