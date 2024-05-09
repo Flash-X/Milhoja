@@ -539,6 +539,32 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+    int   milhoja_runtime_push_pipeline_cpugpu_c(void* tileWrapper,
+                                                 void* packet,
+                                                 const int nThreads,
+                                                 FlashxTileRaw* tileInfo) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpugpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+
+       milhoja::TileWrapper*  tilePrototype  = static_cast<milhoja::TileWrapper*>(tileWrapper);
+       milhoja::DataPacket*   prototype      = static_cast<milhoja::DataPacket*>(packet);
+
+       try {
+           milhoja::Runtime::instance().pushTileToCpuGpuPipeline("Lazy Bundle Name",
+                                                           *tilePrototype,
+                                                           *prototype, tileInfo->sP, tileInfo->sI, tileInfo->sR);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpugpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
     int   milhoja_runtime_push_pipeline_extgpu_c(void* packet,
 					      const int nThreads,
                                               FlashxTileRaw* tileInfo) {
@@ -627,6 +653,87 @@ extern "C" {
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
        } catch (...) {
            std::cerr << "[milhoja_runtime_execute_tasks_gpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+    /**
+     * Instruct the runtime to use the CPU/GPU thread team configuration with
+     * the given number of threads to apply the given "CPU" task function to all
+     * blocks in direct (tile-wrapped) form ("on the CPU"), and the "GPU"
+     * task function in packet form ("on the GPU").
+     *
+     * \todo Allow calling code to specify action name for improved logging.
+     * \todo Should add arguments for specifying the set of blocks.
+     * \todo Add stagger as an argument if it proves useful.
+     *
+     * \param cpuTaskFunction       The computational work to apply identically
+     *                              to each block "on the CPU"
+     * \param gpuTaskFunction       The computational work to apply identically
+     *                              to each block "on the GPU"
+     * \param nDistributorThreads   The number of distributor threads to use
+     *                              (may be ignored)
+     * \param nThreads              The number of threads that the single thread
+     *                              team should activate.
+     * \param nTilesPerPacket       The maximum number of tiles allowed in each
+     *                              packet
+     * \param packet                Pointer to a prototype data packet to be
+     *                              used to create new packets.
+     * \param tileWrapper           Pointer to a prototype tile wrapper to be
+     *                              used to create new tileWrapper objects to enqueue.
+     *
+     * \return The milhoja error code
+     */
+    int   milhoja_runtime_execute_tasks_cpugpu_c(milhoja::ACTION_ROUTINE cpuTaskFunction,
+                                                 milhoja::ACTION_ROUTINE gpuTaskFunction,
+                                                 const int nDistributorThreads,
+                                                 const int nThreads,
+                                                 const int nTilesPerPacket,
+                                                 void* packet,
+                                                 void* tileWrapper) {
+       if        (nDistributorThreads < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpugpu_c] nDistributorThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpugpu_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpugpu_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
+
+       unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
+       unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
+
+       milhoja::TileWrapper*  tilePrototype   = static_cast<milhoja::TileWrapper*>(tileWrapper);
+       milhoja::DataPacket*   prototype       = static_cast<milhoja::DataPacket*>(packet);
+
+       milhoja::RuntimeAction     pktAction;
+       pktAction.name            = "Lazy GPU Action Name";
+       pktAction.nInitialThreads = nThreads_ui;
+       pktAction.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
+       pktAction.nTilesPerPacket = nTilesPerPacket_ui;
+       pktAction.routine         = gpuTaskFunction;
+
+       milhoja::RuntimeAction     cpuAction;
+       cpuAction.name            = "Lazy CPU Action Name";
+       cpuAction.nInitialThreads = nThreads_ui;
+       cpuAction.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       cpuAction.nTilesPerPacket = 0;
+       cpuAction.routine         = cpuTaskFunction;
+
+       try {
+           milhoja::Runtime::instance().executeCpuGpuTasks("Lazy GPU Bundle Name",
+                                                        cpuAction,
+                                                        *tilePrototype,
+                                                        pktAction,
+                                                        *prototype);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_execute_tasks_cpugpu_c] Unknown error caught" << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
        }
 

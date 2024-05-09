@@ -1060,7 +1060,7 @@ void Runtime::teardownPipelineForCpuGpuTasks(const std::string& bundleName) {
         }
 #ifdef EXTRA_DEBUG
         if ((packet_gpu_ != nullptr) || (packet_gpu_.use_count() != 0)) {
-          throw std::logic_error("[Runtime::executeCpuGpuTasks] packet_gpu_ ownership not transferred (after)");
+          throw std::logic_error("[Runtime::teardownPipelineForCpuGpuTasks] packet_gpu_ ownership not transferred (after)");
         }
 #endif
 
