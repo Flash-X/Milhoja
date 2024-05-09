@@ -233,7 +233,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     tmp = [":" for _ in range(dimension)]
                     array = "(" + ", ".join(tmp) + ")"
                     fptr.write(
-                        f"{INDENT*2}{arg_type}, intent(IN) :: {arg}{array}\n"
+                        f"{INDENT*2}{arg_type}, intent(INOUT) :: {arg}{array}\n"
                     )
 
                 else:

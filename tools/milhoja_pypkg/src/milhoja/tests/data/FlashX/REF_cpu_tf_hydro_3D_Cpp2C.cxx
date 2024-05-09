@@ -12,7 +12,7 @@ using real = milhoja::Real;
 
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
-    void cpu_tf_hydro_c2f (
+    void cpu_tf_hydro_C2F (
         const milhoja::Real external_hydro_op1_dt,
         const int external_hydro_op1_eosMode,
         const void* tile_deltas_array,
@@ -79,7 +79,7 @@ extern "C" {
     }
 
     //----- C DECLARATION OF ACTUAL TASK FUNCTION TO PASS TO RUNTIME
-    void  cpu_tf_hydro_cpp2c (
+    void  cpu_tf_hydro_Cpp2C (
        const int threadIndex,
        milhoja::DataItem* dataItem
     ) {
@@ -150,7 +150,7 @@ extern "C" {
               1
        };
 
-       cpu_tf_hydro_c2f(
+       cpu_tf_hydro_C2F(
        wrapper->external_hydro_op1_dt_,
        wrapper->external_hydro_op1_eosMode_,
        static_cast<void*>(tile_deltas_array),

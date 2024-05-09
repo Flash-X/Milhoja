@@ -51,11 +51,11 @@ contains
         integer, intent(IN)            :: lbdd_CC_1(1:4)
         real,    intent(INOUT), target :: CC_1(:, :, :, :)
         integer, intent(IN)            :: lbdd_scratch_hydro_op1_auxC(1:3)
-        real,    intent(IN)           :: scratch_hydro_op1_auxC(:, :, :)
+        real,    intent(INOUT)         :: scratch_hydro_op1_auxC(:, :, :)
         integer, intent(IN)            :: lbdd_scratch_hydro_op1_flX(1:4)
-        real,    intent(IN)           :: scratch_hydro_op1_flX(:, :, :, :)
-        real,    intent(IN)           :: scratch_hydro_op1_flY(:, :, :, :)
-        real,    intent(IN)           :: scratch_hydro_op1_flZ(:, :, :, :)
+        real,    intent(INOUT)         :: scratch_hydro_op1_flX(:, :, :, :)
+        real,    intent(INOUT)         :: scratch_hydro_op1_flY(:, :, :, :)
+        real,    intent(INOUT)         :: scratch_hydro_op1_flZ(:, :, :, :)
 
         real, pointer :: CC_1_ptr(:, :, :, :)
 

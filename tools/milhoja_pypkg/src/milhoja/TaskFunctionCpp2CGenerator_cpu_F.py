@@ -83,9 +83,9 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             data_item_key = TaskFunction.DATA_ITEM_KEY
             class_header = \
                 self._tf_spec.output_filenames[data_item_key]["header"]
-            c2f_func = self._tf_spec.name + "_c2f"
+            c2f_func = self._tf_spec.c2f_layer_name
             class_name = self._tf_spec.data_item_class_name
-            cpp2c_func = self._tf_spec.name + "_cpp2c"
+            cpp2c_func = self._tf_spec.cpp2c_layer_name
             instance_name = self._tf_spec.instantiate_packet_C_function
             deletion_name = self._tf_spec.delete_packet_C_function
             acquire_name = self._tf_spec.acquire_scratch_C_function
