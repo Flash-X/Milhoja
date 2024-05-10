@@ -405,8 +405,8 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
-    int   milhoja_runtime_setup_pipeline_cpugpu_c(milhoja::ACTION_ROUTINE taskFunction,
-                                              milhoja::ACTION_ROUTINE postTaskFunction,
+    int   milhoja_runtime_setup_pipeline_cpugpu_c(milhoja::ACTION_ROUTINE pktTaskFunction,
+                                              milhoja::ACTION_ROUTINE tileTaskFunction,
                                               const int nThreads,
                                               const int nTilesPerPacket,
                                               void* packet) {
@@ -428,19 +428,19 @@ extern "C" {
        pktAction.nInitialThreads = nThreads_ui;
        pktAction.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
        pktAction.nTilesPerPacket = nTilesPerPacket_ui;
-       pktAction.routine         = taskFunction;
+       pktAction.routine         = pktTaskFunction;
 
-       milhoja::RuntimeAction     postAction;
-       postAction.name            = "Lazy CPU setup Action Name";
-       postAction.nInitialThreads = nThreads_ui;
-       postAction.teamType        = milhoja::ThreadTeamDataType::BLOCK;
-       postAction.nTilesPerPacket = 0;
-       postAction.routine         = postTaskFunction;
+       milhoja::RuntimeAction     tileAction;
+       tileAction.name            = "Lazy CPU setup Action Name";
+       tileAction.nInitialThreads = nThreads_ui;
+       tileAction.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       tileAction.nTilesPerPacket = 0;
+       tileAction.routine         = tileTaskFunction;
 
        try {
            milhoja::Runtime::instance().setupPipelineForCpuGpuTasks("Lazy CPUGPU Bundle Name",
                                                         pktAction,
-                                                        postAction,
+                                                        tileAction,
                                                         *prototype);
        } catch (const std::exception& exc) {
            std::cerr << exc.what() << std::endl;

@@ -242,16 +242,16 @@ module milhoja_runtime_mod
             type(C_PTR),          intent(IN), value :: tileCInfo
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_push_pipeline_gpu_c
-        function milhoja_runtime_push_pipeline_cpugpu_c(C_packetPrototype,      &
-                                                        C_tilePrototype,        &
+        function milhoja_runtime_push_pipeline_cpugpu_c(C_tilePrototype,        &
+                                                        C_packetPrototype,      &
                                                      C_nThreads,                &
                                                      tileCINfo)  result(C_ierr) &
                                                      bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            type(C_PTR),          intent(IN), value :: C_packetPrototype
             type(C_PTR),          intent(IN), value :: C_tilePrototype
+            type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             type(C_PTR),          intent(IN), value :: tileCInfo
             integer(MILHOJA_INT)                    :: C_ierr
@@ -287,8 +287,8 @@ module milhoja_runtime_mod
             type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_execute_tasks_gpu_c
-        function milhoja_runtime_execute_tasks_cpugpu_c(C_taskFunction,     &
-                                                     C_postTaskFunction,    &
+        function milhoja_runtime_execute_tasks_cpugpu_c(C_tileTaskFunction, &
+                                                     C_pktTaskFunction,     &
                                                      C_nDistributorThreads, &
                                                      C_nThreads,            &
                                                      C_nTilesPerPacket,     &
@@ -298,8 +298,8 @@ module milhoja_runtime_mod
             use iso_c_binding,     ONLY : C_PTR, C_FUNPTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
             implicit none
-            type(C_FUNPTR),       intent(IN), value :: C_taskFunction
-            type(C_FUNPTR),       intent(IN), value :: C_postTaskFunction
+            type(C_FUNPTR),       intent(IN), value :: C_tileTaskFunction
+            type(C_FUNPTR),       intent(IN), value :: C_pktTaskFunction
             integer(MILHOJA_INT), intent(IN), value :: C_nDistributorThreads
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
             integer(MILHOJA_INT), intent(IN), value :: C_nTilesPerPacket
@@ -472,34 +472,34 @@ contains
                                                    nTilesPerPacket, &
                                                    packetPrototype_Cptr)
     end subroutine milhoja_runtime_setupPipelineForGpuTasks
-    subroutine milhoja_runtime_setupPipelineForCpuGpuTasks(taskFunction, &
-                                                postTaskFunction,     &
-                                                nThreads,             &
-                                                nTilesPerPacket,      &
-                                                packetPrototype_Cptr, &
+    subroutine milhoja_runtime_setupPipelineForCpuGpuTasks(pktTaskFunction,  &
+                                                           tileTaskFunction, &
+                                                           nThreads,         &
+                                                           nTilesPerPacket,  &
+                                                           packetPrototype_Cptr, &
                                                 ierr)
         use iso_c_binding, ONLY : C_PTR, &
                                   C_FUNPTR, &
                                   C_FUNLOC
 
-        procedure(milhoja_runtime_taskFunction)             :: taskFunction
-        procedure(milhoja_runtime_taskFunction)             :: postTaskFunction
+        procedure(milhoja_runtime_taskFunction)             :: pktTaskFunction
+        procedure(milhoja_runtime_taskFunction)             :: tileTaskFunction
         type(C_PTR),                            intent(IN)  :: packetPrototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
         integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
-        type(C_FUNPTR) :: taskFunction_Cptr
-        type(C_FUNPTR) :: postTaskFunction_Cptr
+        type(C_FUNPTR) :: tileTaskFunction_Cptr
+        type(C_FUNPTR) :: pktTaskFunction_Cptr
 
-        taskFunction_Cptr = C_FUNLOC(taskFunction)
-        postTaskFunction_Cptr = C_FUNLOC(postTaskFunction)
+        tileTaskFunction_Cptr = C_FUNLOC(tileTaskFunction)
+        pktTaskFunction_Cptr = C_FUNLOC(pktTaskFunction)
 
-        ierr = milhoja_runtime_setup_pipeline_cpugpu_c(taskFunction_Cptr, &
-                                                   postTaskFunction_Cptr, &
-                                                   nThreads, &
-                                                   nTilesPerPacket, &
-                                                   packetPrototype_Cptr)
+        ierr = milhoja_runtime_setup_pipeline_cpugpu_c(pktTaskFunction_Cptr, &
+                                                       tileTaskFunction_Cptr, &
+                                                       nThreads, &
+                                                       nTilesPerPacket, &
+                                                       packetPrototype_Cptr)
     end subroutine milhoja_runtime_setupPipelineForCpuGpuTasks
     subroutine milhoja_runtime_setupPipelineForExtGpuTasks(taskFunction, &
                                                 postTaskFunction,     &
@@ -596,19 +596,19 @@ contains
                                                    nThreads, &
                                                    tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToGpuPipeline
-    subroutine milhoja_runtime_pushTileToCpuGpuPipeline(prototype_Cptr, &
+    subroutine milhoja_runtime_pushTileToCpuGpuPipeline(pktPrototype_Cptr, &
                                                         tilePrototype_Cptr, &
                                                 nThreads, tileCInfo_Cp, ierr)
         use iso_c_binding, ONLY : C_PTR
 
-        type(C_PTR),                            intent(IN)  :: prototype_Cptr
+        type(C_PTR),                            intent(IN)  :: pktPrototype_Cptr
         type(C_PTR),                            intent(IN)  :: tilePrototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
         type(C_PTR),                            intent(IN)  :: tileCInfo_Cp
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
-        ierr = milhoja_runtime_push_pipeline_cpugpu_c(prototype_Cptr, &
-                                                      tilePrototype_Cptr, &
+        ierr = milhoja_runtime_push_pipeline_cpugpu_c(tilePrototype_Cptr, &
+                                                      pktPrototype_Cptr, &
                                                       nThreads, &
                                                       tileCInfo_Cp)
     end subroutine milhoja_runtime_pushTileToCpuGpuPipeline
@@ -714,8 +714,8 @@ contains
     !! \todo Allow calling code to specify action name for improved logging.
     !! \todo Should add arguments for specifying the set of blocks.
     !!
-    !! @param taskFunction          The task function to execute "on the GPU"
-    !! @param postTaskFunction      The "Post" task function to execute "on the CPU"
+    !! @param tileTaskFunction      The task function to execute "on the CPU"
+    !! @param pktTaskFunction       The packet task function to execute "on the GPU"
     !! @param nDistributorThreads   The number of distributor threads to use
     !! @param nThreads              The number of threads to activate in team
     !! @param nTilesPerPacket       The maximum number of tiles allowed in each
@@ -725,8 +725,8 @@ contains
     !! @param tilePrototype_Cptr    Pointer to a prototype tile wrapper to be
     !!                              used to enqueue tiles.
     !! @param ierr                  The milhoja error code
-    subroutine milhoja_runtime_executeTasks_CpuGpu(taskFunction,      &
-                                                postTaskFunction,     &
+    subroutine milhoja_runtime_executeTasks_CpuGpu(tileTaskFunction,  &
+                                                pktTaskFunction,      &
                                                 nDistributorThreads,  &
                                                 nThreads,             &
                                                 nTilesPerPacket,      &
@@ -737,8 +737,8 @@ contains
                                   C_PTR, &
                                   C_FUNLOC
 
-        procedure(milhoja_runtime_taskFunction)             :: taskFunction
-        procedure(milhoja_runtime_taskFunction)             :: postTaskFunction
+        procedure(milhoja_runtime_taskFunction)             :: tileTaskFunction
+        procedure(milhoja_runtime_taskFunction)             :: pktTaskFunction
         integer(MILHOJA_INT),                   intent(IN)  :: nDistributorThreads
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
         integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
@@ -746,14 +746,14 @@ contains
         type(C_PTR),                            intent(IN)  :: tilePrototype_Cptr
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
-        type(C_FUNPTR) :: taskFunction_Cptr
-        type(C_FUNPTR) :: postTaskFunction_Cptr
+        type(C_FUNPTR) :: tileTaskFunction_Cptr
+        type(C_FUNPTR) :: pktTaskFunction_Cptr
 
-        taskFunction_Cptr = C_FUNLOC(taskFunction)
-        postTaskFunction_Cptr = C_FUNLOC(postTaskFunction)
+        tileTaskFunction_Cptr = C_FUNLOC(tileTaskFunction)
+        pktTaskFunction_Cptr = C_FUNLOC(pktTaskFunction)
 
-        ierr = milhoja_runtime_execute_tasks_cpugpu_c(taskFunction_Cptr, &
-                                                   postTaskFunction_Cptr, &
+        ierr = milhoja_runtime_execute_tasks_cpugpu_c(tileTaskFunction_Cptr, &
+                                                   pktTaskFunction_Cptr, &
                                                    nDistributorThreads, &
                                                    nThreads, &
                                                    nTilesPerPacket, &
