@@ -37,10 +37,10 @@ public:
 
     // DataPacket members are made public so a matching task function can easily access them.
     // Since both files are auto-generated and not maintained by humans, this is fine.
-    std::size_t _nTiles_h;
-    std::size_t* _nTiles_d;
     real _external_hydro_op1_dt_h;
     real* _external_hydro_op1_dt_d;
+    std::size_t _nTiles_h;
+    std::size_t* _nTiles_d;
     RealVect* _tile_deltas_d;
     IntVect* _tile_hi_d;
     IntVect* _tile_lo_d;
@@ -64,8 +64,8 @@ private:
     // TODO: Streams should be stored inside of an array. Doing so would simplify the code
     // generation & source code for the stream functions.
 
-    static constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
     static constexpr std::size_t SIZE_EXTERNAL_HYDRO_OP1_DT = sizeof(real);
+    static constexpr std::size_t SIZE_NTILES = sizeof(std::size_t);
     static constexpr std::size_t SIZE_FARRAY4D = sizeof(FArray4D);
     static constexpr std::size_t SIZE_TILE_DELTAS = sizeof(RealVect);
     static constexpr std::size_t SIZE_TILE_HI = sizeof(IntVect);
