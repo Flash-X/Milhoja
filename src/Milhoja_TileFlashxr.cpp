@@ -67,8 +67,8 @@ TileFlashxr::TileFlashxr(const unsigned int level,
 }
 
 TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
-			 const FlashxTileRawInts tI,
-			 const FlashxTileRawReals tR)
+                         const FlashxTileRawInts tI,
+                         const FlashxTileRawReals tR)
     : Tile{},
       level_{tI.level},
       gridIdxOrBlkId_{tI.gridIdxOrBlkId},
@@ -81,15 +81,15 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
       nFluxComp_{tI.nFluxComp},
       deltas_{LIST_NDIM(tR.deltaX,tR.deltaY,tR.deltaZ)},
       unkBlkPtr_{tP.unkBlkPtr},
-      //      fluxBlkPtrs_{std::vector<Real*>{LIST_NDIM(tP.fluxxBlkPtr, tP.fluxyBlkPtr, tP.fluxzBlkPtr ) } }
-      fluxBlkPtrs_{std::vector<Real*>{LIST_NDIM(nullptr,nullptr,nullptr ) } }
+      fluxBlkPtrs_{std::vector<Real*>{nullptr, nullptr, nullptr}}
 {
-    for (auto i=0; i<fluxBlkPtrs_.size(); ++i) {
-        fluxBlkPtrs_[i] = (&tP.fluxxBlkPtr)[i];
-        // if (!(fluxBlkPtrs_[i])) {
-        //     throw std::invalid_argument("[TileFlashxr::TileFlashxr] Null flux data pointer");
-        // }
-    }
+    fluxBlkPtrs_[0] = tP.fluxxBlkPtr;
+#if MILHOJA_NDIM > 1
+    fluxBlkPtrs_[1] = tP.fluxyBlkPtr;
+#endif
+#if MILHOJA_NDIM > 2
+    fluxBlkPtrs_[2] = tP.fluxzBlkPtr;
+#endif
 
 #ifdef DEBUG_RUNTIME
     std::string msg =   "[TileFlashxr] Created Tile (level="
