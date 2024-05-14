@@ -70,7 +70,7 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
                          const FlashxTileRawInts tI,
                          const FlashxTileRawReals tR)
     : Tile{},
-      level_{tI.level},
+      level_{static_cast<unsigned int>(tI.level)},
       gridIdxOrBlkId_{tI.gridIdxOrBlkId},
       tileIdx_{tI.tileIdx},
       lo_{LIST_NDIM(tI.loX,tI.loY,tI.loZ)},
