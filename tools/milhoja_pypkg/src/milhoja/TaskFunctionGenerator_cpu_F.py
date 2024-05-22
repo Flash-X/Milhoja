@@ -15,7 +15,7 @@ from . import (
 
 class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
     """
-    A class for generating final, compilable Fortran source code for the task
+    A class for generating final, compilable Fortran source code for the task
     function specified by the TaskFunction object given at instantiation.
 
     .. todo::

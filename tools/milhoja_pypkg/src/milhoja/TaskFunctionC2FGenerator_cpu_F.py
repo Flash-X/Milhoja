@@ -5,22 +5,14 @@ from pathlib import Path
 from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
-from . import C2F_TYPE_MAPPING
 from .parse_helpers import (
     parse_lbound_f, parse_extents, get_array_size, get_initial_index
 )
 from . import (
-    EXTERNAL_ARGUMENT,
-    LBOUND_ARGUMENT,
-    GRID_DATA_ARGUMENT,
-    SCRATCH_ARGUMENT,
-    TILE_INTERIOR_ARGUMENT,
-    TILE_ARRAY_BOUNDS_ARGUMENT,
-    TILE_ARGUMENTS_ALL,
-    VECTOR_ARRAY_EQUIVALENT,
-    SOURCE_DATATYPES,
-    GRID_DATA_EXTENTS,
-    GRID_DATA_LBOUNDS
+    EXTERNAL_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
+    SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_ARGUMENTS_ALL, VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES,
+    GRID_DATA_EXTENTS, GRID_DATA_LBOUNDS, C2F_TYPE_MAPPING
 )
 
 
@@ -153,10 +145,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_scratch_info(self, arg, arg_spec) -> ConversionData:
-        dtype = arg_spec["type"]
-        if dtype == "milhoja::Real":
-            dtype = "real"
-        dtype = C2F_TYPE_MAPPING[dtype]
+        dtype = C2F_TYPE_MAPPING[arg_spec["type"]]
         shape = parse_extents(arg_spec["extents"])
         return ConversionData(
             cname=f"C_{arg}",
