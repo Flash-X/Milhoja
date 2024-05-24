@@ -127,6 +127,21 @@ public:
                                  const RuntimeAction& postGpuAction,
                                  const DataPacket& packetPrototype,
                                  const TileWrapper& tilePrototype);
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuGpuSplitTasks(const std::string& bundleName,
+                                          const unsigned int stagger_usec,
+                                          const RuntimeAction& gpuAction,
+                                          const RuntimeAction& cpuAction,
+                                          const DataPacket& packetPrototype,
+                                          const unsigned int nTilesPerCpuTurn);
+    void pushTileToCpuGpuSplitPipeline(const std::string& bundleName,
+                                       const TileWrapper& tilePrototype,
+                                       const DataPacket& packetPrototype,
+                                       const FlashxrTileRawPtrs& tP,
+                                       const FlashxTileRawInts& tI,
+                                       const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuGpuSplitTasks(const std::string& bundleName);
+#  endif
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,
@@ -178,6 +193,9 @@ private:
     static bool            finalized_;
 #if defined(RUNTIME_SUPPORT_DATAPACKETS) && defined(RUNTIME_SUPPORT_PUSH)
     int                    nTilesPerPacket_;
+    int                    nTilesPerCpuTurn_;
+    bool                   isCpuTurn_;
+    int                    nInCpuTurn_;
 #endif
 #ifndef RUNTIME_MUST_USE_TILEITER
 #  ifdef RUNTIME_SUPPORT_DATAPACKETS
