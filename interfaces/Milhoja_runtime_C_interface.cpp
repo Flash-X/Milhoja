@@ -452,6 +452,58 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+    int   milhoja_runtime_setup_pipeline_cpugpusplit_c(milhoja::ACTION_ROUTINE pktTaskFunction,
+                                              milhoja::ACTION_ROUTINE tileTaskFunction,
+                                              const int nThreads,
+                                              const int nTilesPerPacket,
+                                              const int nTilesPerCpuTurn,
+                                              void* packet) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpusplit_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpusplit_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
+
+       unsigned int    stagger_usec_ui        = 0;
+       unsigned int    nThreads_ui            = static_cast<unsigned int>(nThreads);
+       unsigned int    nTilesPerPacket_ui     = static_cast<unsigned int>(nTilesPerPacket);
+       unsigned int    nTilesPerCpuTurn_ui    = static_cast<unsigned int>(nTilesPerCpuTurn);
+
+       milhoja::DataPacket*   prototype = static_cast<milhoja::DataPacket*>(packet);
+
+       milhoja::RuntimeAction     pktAction;
+       pktAction.name            = "Lazy GPU setup Action Name";
+       pktAction.nInitialThreads = nThreads_ui;
+       pktAction.teamType        = milhoja::ThreadTeamDataType::SET_OF_BLOCKS;
+       pktAction.nTilesPerPacket = nTilesPerPacket_ui;
+       pktAction.routine         = pktTaskFunction;
+
+       milhoja::RuntimeAction     tileAction;
+       tileAction.name            = "Lazy CPU setup Action Name";
+       tileAction.nInitialThreads = nThreads_ui;
+       tileAction.teamType        = milhoja::ThreadTeamDataType::BLOCK;
+       tileAction.nTilesPerPacket = 0;
+       tileAction.routine         = tileTaskFunction;
+
+       try {
+           milhoja::Runtime::instance().setupPipelineForCpuGpuSplitTasks("Split CPUGPU Bundle Name",
+                                                                         stagger_usec_ui,
+                                                                         pktAction,
+                                                                         tileAction,
+                                                                         *prototype,
+                                                                         nTilesPerCpuTurn_ui);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_setup_pipeline_cpugpusplit_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
     int   milhoja_runtime_setup_pipeline_extgpu_c(milhoja::ACTION_ROUTINE taskFunction,
                                               milhoja::ACTION_ROUTINE postTaskFunction,
                                               const int nThreads,
@@ -546,6 +598,28 @@ extern "C" {
 
        return MILHOJA_SUCCESS;
     }
+    int   milhoja_runtime_teardown_pipeline_cpugpusplit_c(const int nThreads,
+                                              const int nTilesPerPacket) {
+       if (nThreads < 0) {      // nThreads: only use in this function
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpusplit_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       } else if (nTilesPerPacket < 0) { // nTilesPerPacket: only use here
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpusplit_c] nTilesPerPacket is negative" << std::endl;
+           return MILHOJA_ERROR_N_TILES_NEGATIVE;
+       }
+
+       try {
+           milhoja::Runtime::instance().teardownPipelineForCpuGpuSplitTasks("Split CPUGPU setup Bundle Name");
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_teardown_pipeline_cpugpusplit_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
     int   milhoja_runtime_teardown_pipeline_extgpu_c(const int nThreads,
                                               const int nTilesPerPacket) {
        if (nThreads < 0) {      // nThreads: only use in this function
@@ -629,6 +703,32 @@ extern "C" {
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
        } catch (...) {
            std::cerr << "[milhoja_runtime_push_pipeline_cpugpu_c] Unknown error caught" << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       }
+
+       return MILHOJA_SUCCESS;
+    }
+    int   milhoja_runtime_push_pipeline_cpugpusplit_c(void* tileWrapper,
+                                                 void* packet,
+                                                 const int nThreads,
+                                                 FlashxTileRaw* tileInfo) {
+       if (nThreads < 0) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpugpusplit_c] nThreads is negative" << std::endl;
+           return MILHOJA_ERROR_N_THREADS_NEGATIVE;
+       }
+
+       milhoja::TileWrapper*  tilePrototype  = static_cast<milhoja::TileWrapper*>(tileWrapper);
+       milhoja::DataPacket*   prototype      = static_cast<milhoja::DataPacket*>(packet);
+
+       try {
+           milhoja::Runtime::instance().pushTileToCpuGpuSplitPipeline("Split Bundle Name",
+                                                           *tilePrototype,
+                                                           *prototype, tileInfo->sP, tileInfo->sI, tileInfo->sR);
+       } catch (const std::exception& exc) {
+           std::cerr << exc.what() << std::endl;
+           return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
+       } catch (...) {
+           std::cerr << "[milhoja_runtime_push_pipeline_cpugpusplit_c] Unknown error caught" << std::endl;
            return MILHOJA_ERROR_UNABLE_TO_EXECUTE_TASKS;
        }
 
