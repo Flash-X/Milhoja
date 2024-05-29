@@ -337,11 +337,19 @@ class DataPacketGenerator(AbcCodeGenerator):
             #       tf spec being language agnostic.
             external[item]["type"] = F2C_TYPE_MAPPING.get(dtype, dtype)
 
-        return self._sort_dict(
+        # Note: Python has stable sorting, so it's okay to do this to
+        #       sort by multiple criteria.
+        result = self._sort_dict(
             external.items(),
-            lambda key_and_type: self._sizes.get(key_and_type[1]['type'], 0),
+            lambda kat: kat[0],
+            False
+        )
+        type_sort = self._sort_dict(
+            result.items(),
+            lambda key_and_type: (self._sizes.get(key_and_type[1]['type'], 0)),
             True
         )
+        return type_sort
 
     @property
     @functools.lru_cache
