@@ -74,7 +74,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
         if outer_template.is_file():
             self._warn(f"{str(outer_template)} already exists.")
-            if overwrite:
+            if not overwrite:
                 self._error("Overwrite is set to False.")
                 raise FileExistsError()
 
@@ -241,7 +241,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
         if helper_template.is_file():
             self._warn(f"{str(helper_template)} already exists.")
-            if overwrite:
+            if not overwrite:
                 self._error("Overwrite is set to False.")
                 raise FileExistsError()
 

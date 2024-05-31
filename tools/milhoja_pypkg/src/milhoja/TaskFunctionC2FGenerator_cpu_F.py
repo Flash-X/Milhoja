@@ -160,7 +160,7 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
 
         if c2f_file.is_file():
             self._warn(f"{str(c2f_file)} already exists.")
-            if overwrite:
+            if not overwrite:
                 self._error("Overwrite is set to False.")
                 raise FileExistsError()
 
