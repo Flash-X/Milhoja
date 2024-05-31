@@ -141,15 +141,6 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
             self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
 
-            # for bound in [lo, hi]:
-            #     l = 'tile_lo' if src == TILE_INTERIOR_ARGUMENT else "tile_lbound"
-            #     h = 'tile_hi' if src == TILE_INTERIOR_ARGUMENT else "tile_ubound"
-            #     if bound not in saved:
-            #         funct = bound.replace("tile_", "")
-            #         self.connectors[self.TILE_DATA].append(
-            #             f"const auto {bound} = {self.tile_desc_name}->{funct}()"
-            #         )
-                    # saved.add(bound)
         else:
             alt_src = src
             if src == TILE_LBOUND_ARGUMENT:
