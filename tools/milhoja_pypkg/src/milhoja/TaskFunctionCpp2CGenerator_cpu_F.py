@@ -147,12 +147,12 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                     self.connectors[self.TILE_DATA].append(
                         f"const auto {bound} = {self.tile_desc_name}->{funct}()"
                     )
-                    saved.add(bound)
+                    # saved.add(bound)
         else:
             alt_src = src
             if src == TILE_LBOUND_ARGUMENT:
                 alt_src = "tile_loGC"
-            elif src == TILE_LBOUND_ARGUMENT:
+            elif src == TILE_UBOUND_ARGUMENT:
                 alt_src = "tile_hiGC"
             tile_desc_func = alt_src.replace("tile_", '')
             tile_desc_name = self.tile_desc_name
