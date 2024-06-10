@@ -73,6 +73,19 @@ class TestTileWrapperGenerator_cpp(milhoja.tests.TestCodeGenerators):
 
         self.run_tests([ic, hydro, IQ], [1, 2, 3], _create_generator)
 
+    def testSparkGeneration(self):
+        path = _TEST_PATH.joinpath("Spark")
+
+        spark_2D = {
+            "json": path.joinpath("REF__tf_spec_cpu_taskfn_0.json"),
+            "header": path.joinpath("REF_TileWrapper_cpu_taskfn_0.h"),
+            "header_dim_dependent": False,
+            "source": path.joinpath("REF_TileWrapper_cpu_taskfn_0.cxx"),
+            "source_dim_dependent": False
+        }
+
+        self.run_tests([spark_2D], [2], _create_generator)
+
     def testString(self):
         path = _TEST_PATH.joinpath("Sedov")
         json_fname = path.joinpath("REF_cpu_tf_IQ_3D.json").resolve()

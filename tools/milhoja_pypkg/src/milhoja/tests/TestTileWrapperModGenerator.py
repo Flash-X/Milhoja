@@ -7,6 +7,7 @@ from pathlib import Path
 
 _FILE_PATH = Path(__file__).resolve().parent
 _FLASHX_PATH = _FILE_PATH.joinpath("data", "FlashX")
+_SPARK_PATH = _FILE_PATH.joinpath("data", "Spark")
 
 
 def _create_generator(json_filename):
@@ -31,10 +32,17 @@ class TestTileWrapperModGenerator(milhoja.tests.TestCodeGenerators):
             "json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D.json"),
             "header": None,
             "header_dim_dependent": False,
-            "source":
-                _FLASHX_PATH.joinpath("REF_Tile_cpu_tf_hydro_3D_C2F_mod.F90"),
+            "source": _FLASHX_PATH.joinpath("REF_Tile_cpu_tf_hydro_3D_C2F_mod.F90"),
+            "source_dim_dependent": False
+        }
+        spark_2D = {
+            "json": _SPARK_PATH.joinpath("REF__tf_spec_cpu_taskfn_0.json"),
+            "header": None,
+            "header_dim_dependent": False,
+            "source": _SPARK_PATH.joinpath("REF_TileWrapper_cpu_taskfn_0_mod.F90"),
             "source_dim_dependent": False
         }
 
         self.run_tests([hydro_3D], [3], _create_generator)
         self.run_tests([hydro_2D], [2], _create_generator)
+        self.run_tests([spark_2D], [2], _create_generator)

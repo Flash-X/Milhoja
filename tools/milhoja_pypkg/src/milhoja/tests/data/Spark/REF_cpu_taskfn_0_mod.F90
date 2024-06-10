@@ -1,5 +1,4 @@
 #include "Milhoja.h"
-
 module cpu_taskfn_0_mod
    implicit none
    private
@@ -29,16 +28,16 @@ contains
       tile_lbound, &
       tile_lo, &
       CC_1, &
+      FLX_1, &
+      FLY_1, &
       scratch_Hydro_cvol_fake, &
       scratch_Hydro_fareaX_fake, &
       scratch_Hydro_fareaY_fake, &
       scratch_Hydro_fareaZ_fake, &
+      scratch_Hydro_fluxBufZ, &
       scratch_Hydro_hy_Vc, &
       scratch_Hydro_hy_flat3d, &
       scratch_Hydro_hy_flux, &
-      scratch_Hydro_hy_fluxBufX, &
-      scratch_Hydro_hy_fluxBufY, &
-      scratch_Hydro_hy_fluxBufZ, &
       scratch_Hydro_hy_flx, &
       scratch_Hydro_hy_fly, &
       scratch_Hydro_hy_flz, &
@@ -71,16 +70,16 @@ contains
       integer, intent(IN) :: tile_lbound(:)
       integer, intent(IN) :: tile_lo(:)
       real, intent(INOUT) :: CC_1(:, :, :, :)
+      real, intent(INOUT) :: FLX_1(:, :, :, :)
+      real, intent(INOUT) :: FLY_1(:, :, :, :)
       real, intent(INOUT) :: scratch_Hydro_cvol_fake(:, :, :)
       real, intent(INOUT) :: scratch_Hydro_fareaX_fake(:, :, :)
       real, intent(INOUT) :: scratch_Hydro_fareaY_fake(:, :, :)
       real, intent(INOUT) :: scratch_Hydro_fareaZ_fake(:, :, :)
+      real, intent(INOUT) :: scratch_Hydro_fluxBufZ(:, :, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_Vc(:, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_flat3d(:, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_flux(:, :, :, :)
-      real, intent(INOUT) :: scratch_Hydro_hy_fluxBufX(:, :, :, :)
-      real, intent(INOUT) :: scratch_Hydro_hy_fluxBufY(:, :, :, :)
-      real, intent(INOUT) :: scratch_Hydro_hy_fluxBufZ(:, :, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_flx(:, :, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_fly(:, :, :, :)
       real, intent(INOUT) :: scratch_Hydro_hy_flz(:, :, :, :)
@@ -97,6 +96,7 @@ contains
       real, intent(INOUT) :: scratch_Hydro_yLeft_fake(:)
       real, intent(INOUT) :: scratch_Hydro_yRight_fake(:)
       real, intent(INOUT) :: scratch_Hydro_zCenter_fake(:)
+
 
 
       CALL Hydro_prepBlock( &
@@ -120,9 +120,9 @@ contains
          scratch_Hydro_hy_flx, &
          scratch_Hydro_hy_fly, &
          scratch_Hydro_hy_flz, &
-         scratch_Hydro_hy_fluxBufX, &
-         scratch_Hydro_hy_fluxBufY, &
-         scratch_Hydro_hy_fluxBufZ, &
+         FLX_1, &
+         FLY_1, &
+         scratch_Hydro_fluxBufZ, &
          scratch_Hydro_hy_grav, &
          scratch_Hydro_hy_flat3d, &
          scratch_Hydro_hy_rope, &
@@ -147,6 +147,7 @@ contains
          scratch_Hydro_cvol_fake &
       )
 
+      
    end subroutine cpu_taskfn_0_Fortran
 
 end module cpu_taskfn_0_mod

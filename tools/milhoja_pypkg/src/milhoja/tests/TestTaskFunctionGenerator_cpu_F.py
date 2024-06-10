@@ -31,7 +31,7 @@ class TestTaskFunctionGenerator_cpu_F(milhoja.tests.TestCodeGenerators):
             "source_dim_dependent": False
         }
         spark_2D = {
-            "json": spark_path.joinpath("REF_cpu_taskfn_0.json"),
+            "json": spark_path.joinpath("REF__tf_spec_cpu_taskfn_0.json"),
             "header": None,
             "header_dim_dependent": False,
             "source": spark_path.joinpath("REF_cpu_taskfn_0_mod.F90"),
