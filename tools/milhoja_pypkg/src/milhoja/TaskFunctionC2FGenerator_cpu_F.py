@@ -16,6 +16,9 @@ from . import (
 )
 
 
+# todo::
+#   * There is also a dataclass in the DataPacket version of the C2F
+#     generator. Maybe it would be worth it to see we can combine these two?
 @dataclass
 class ConversionData:
     """
