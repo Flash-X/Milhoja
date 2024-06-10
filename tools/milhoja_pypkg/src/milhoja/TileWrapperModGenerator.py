@@ -38,12 +38,6 @@ class TileWrapperModGenerator(AbcCodeGenerator):
 
         super().__init__(tf_spec, None, file_name, indent, log_tag, logger)
         self.INDENT = " " * indent
-        # order is important
-        self._externals = {
-            item: tf_spec.argument_specification(item)
-            for item in tf_spec.dummy_arguments
-            if tf_spec.argument_specification(item)["source"] == ext_arg
-        }
 
     def generate_header_code(self, destination, overwrite):
         raise LogicError("No header file for data item module.")
@@ -92,9 +86,16 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT}interface\n")
             module.write(f"{self.INDENT * 2}function {instance}( &\n")
 
+            spec = self._tf_spec
+            externals = {
+                item: spec.argument_specification(item)
+                for item in self._tf_spec.dummy_arguments
+                if spec.argument_specification(item)["source"] == ext_arg
+            }
+
             arg_list = []
             var_declarations = []
-            for var, data in self._externals.items():
+            for var, data in externals.items():
                 dtype = data["type"]
                 name = f"C_{var}"
                 arg_list.append(name)
