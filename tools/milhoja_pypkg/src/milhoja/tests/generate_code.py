@@ -66,7 +66,7 @@ def generate_code(
         to_compile = []
         for _, value in outputs.items():
             # extract check in case source is empty...
-            if value and not value["source"]:
+            if not value["source"]:
                 raise Exception(
                     "Source file provided but file name is null or empty."
                 )
