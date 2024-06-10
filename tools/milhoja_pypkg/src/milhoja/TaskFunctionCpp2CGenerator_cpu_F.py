@@ -268,32 +268,19 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
         # generate helper template
         with open(helper_template, 'w') as helper:
-            # dummy arg list
-            helper.write(f"/* _connector:{self.C2F_ARG_LIST} */\n")
-            arg_list = self.connectors[self.C2F_ARG_LIST]
-            helper.write(', \n'.join(arg_list))
-            helper.write("\n")
-            del self.connectors[self.C2F_ARG_LIST]
+            keys_and_end = [
+                (self.C2F_ARG_LIST, "\n"),
+                (self.REAL_ARGS, "\n"),
+                (self.EXTERNAL_ARGS, ",\n"),
+                (self.INSTANCE_ARGS, "\n")
+            ]
 
-            # passed in args
-            helper.write(f"/* _connectors:{self.REAL_ARGS} */\n")
-            real_args = self.connectors[self.REAL_ARGS]
-            helper.write(', \n'.join(real_args))
-            helper.write("\n")
-            del self.connectors[self.REAL_ARGS]
-
-            # special care for external args and isntance args
-            helper.write(f"/* _connectors:{self.EXTERNAL_ARGS} */\n")
-            externals = self.connectors[self.EXTERNAL_ARGS]
-            helper.write(', \n'.join(externals))
-            helper.write(',\n')
-            del self.connectors[self.EXTERNAL_ARGS]
-
-            helper.write(f"/* _connectors:{self.INSTANCE_ARGS} */\n")
-            instances = self.connectors[self.INSTANCE_ARGS]
-            helper.write(', \n'.join(instances))
-            helper.write('\n')
-            del self.connectors[self.INSTANCE_ARGS]
+            for key, end in keys_and_end:
+                helper.write(f"/* _connector:{key} */\n")
+                arg_list = self.connectors[key]
+                helper.write(', \n'.join(arg_list))
+                helper.write(end)
+                del self.connectors[key]
 
             for section, code in self.connectors.items():
                 helper.write(f"/* _connector:{section} */\n")
