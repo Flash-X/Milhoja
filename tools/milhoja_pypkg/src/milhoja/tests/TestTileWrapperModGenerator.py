@@ -32,14 +32,16 @@ class TestTileWrapperModGenerator(milhoja.tests.TestCodeGenerators):
             "json": _FLASHX_PATH.joinpath("REF_cpu_tf_hydro_3D.json"),
             "header": None,
             "header_dim_dependent": False,
-            "source": _FLASHX_PATH.joinpath("REF_Tile_cpu_tf_hydro_3D_C2F_mod.F90"),
+            "source":
+                _FLASHX_PATH.joinpath("REF_Tile_cpu_tf_hydro_3D_C2F_mod.F90"),
             "source_dim_dependent": False
         }
         spark_2D = {
             "json": _SPARK_PATH.joinpath("REF__tf_spec_cpu_taskfn_0.json"),
             "header": None,
             "header_dim_dependent": False,
-            "source": _SPARK_PATH.joinpath("REF_TileWrapper_cpu_taskfn_0_mod.F90"),
+            "source":
+                _SPARK_PATH.joinpath("REF_TileWrapper_cpu_taskfn_0_mod.F90"),
             "source_dim_dependent": False
         }
 
