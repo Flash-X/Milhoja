@@ -251,6 +251,9 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             set_values = []
             for info in arg_conversion_info:
                 if not info.is_pointer:
+                    # need to call conversion function,
+                    # so we need to do this or use a dtype -> cast func
+                    # map.
                     dtype = info.dtype if info.dtype != "integer" else "int"
                     set_values.append(
                         f"{self.INDENT}{info.fname} = "
