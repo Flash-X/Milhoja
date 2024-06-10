@@ -421,7 +421,7 @@ class TaskFunctionGenerator_cpu_cpp(AbcCodeGenerator):
         self._log(msg, LOG_LEVEL_BASIC)
 
         if (not overwrite) and header_filename.exists():
-            raise RuntimeError(f"{header_filename} already existvis")
+            raise RuntimeError(f"{header_filename} already exists")
 
         with open(header_filename, "w") as fptr:
             fptr.write(f"#ifndef {hdr_macro}\n")
