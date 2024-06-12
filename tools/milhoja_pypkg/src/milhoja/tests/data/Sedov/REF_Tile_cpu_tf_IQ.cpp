@@ -15,11 +15,11 @@ void Tile_cpu_tf_IQ::acquireScratch(void) {
         throw std::logic_error("[Tile_cpu_tf_IQ::acquireScratch] MH_INTERNAL_cellVolumes_ scratch already allocated");
     }
 
-    const std::size_t nBytes = nThreads
+    const std::size_t nBytes_MH_INTERNAL_cellVolumes = nThreads
                     * Tile_cpu_tf_IQ::MH_INTERNAL_CELLVOLUMES_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &MH_INTERNAL_cellVolumes_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_MH_INTERNAL_cellVolumes, &MH_INTERNAL_cellVolumes_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_IQ::acquireScratch] Acquired"

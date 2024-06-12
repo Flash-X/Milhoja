@@ -2,8 +2,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from copy import deepcopy
 
-from .parse_helpers import parse_extents
-from .TemplateUtility import TemplateUtility
+from .parse_helpers import (parse_extents, get_array_size)
 from .AbcCodeGenerator import AbcCodeGenerator
 from .TaskFunction import TaskFunction
 from .LogicError import LogicError
@@ -232,7 +231,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         dtype = "real"
         extents = self.__get_array_extents(spec)
 
-        largest = TemplateUtility.get_array_size(
+        largest = get_array_size(
             spec.get('variables_in', None),
             spec.get('variables_out', None)
         )

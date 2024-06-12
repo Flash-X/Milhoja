@@ -1,9 +1,11 @@
 import re
 from warnings import warn
 
+from sys import maxsize
+
 from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-    TILE_UBOUND_ARGUMENT
+    TILE_UBOUND_ARGUMENT, LogicError
 )
 
 
@@ -155,7 +157,7 @@ def parse_lbound(lbound: str) -> list:
     return results
 
 
-def parse_lbound_f(lbound: str) -> list:
+def parse_lbound_f(lbound: str):
     """
     Parses a given lbound string and returns a list containing all parts of
     the lbound for use in packing information.
@@ -194,6 +196,10 @@ def parse_lbound_f(lbound: str) -> list:
           limitations of regular expressions. A full lbound parser would use a
           tokenizer to extract the full expression.
         * Write a clear set of rules in the docs of what a valid lbound is.
+
+    :param str lbound: The lbound string to parse.
+    :return: A tuple containing the list of the parsed expression and the list
+             of keywords found within the expression.
     """
     keywords = {
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
@@ -203,6 +209,7 @@ def parse_lbound_f(lbound: str) -> list:
     # just use python to throw out all numeric values because I'm bad at
     # regular expressions.
     words = re.findall(r'\b(?:[\w]+)\b', lbound)
+    # todo:: Probably not necessary
     words = [word for word in words if not word.isnumeric()]
     for word in words:
         if word not in keywords:
@@ -250,7 +257,7 @@ def parse_lbound_f(lbound: str) -> list:
 
     # remove whitespace
     combined_bound = [item.strip() for item in combined_bound]
-    return combined_bound
+    return combined_bound, words
 
 
 def parse_extents(extents: str, src=None) -> list:
@@ -297,3 +304,81 @@ def parse_extents(extents: str, src=None) -> list:
         )
 
     return extents_list
+
+
+def get_initial_index(vars_in: list, vars_out: list) -> int:
+    """
+    Returns the initial index based on a given variable masking.
+    :param list vars_in: The variable masking for copying into the packet.
+    :param list vars_out: The variable masking for copying out.
+    :return: The size of the array given the variable masking.
+    :rtype: int
+    """
+    starting = maxsize
+    if not vars_in and not vars_out:
+        raise TypeError("No variable masking for array in tf_spec.")
+
+    starting_in = None
+    if vars_in:
+        starting_in = min(vars_in)
+        starting = starting_in
+
+    starting_out = None
+    if vars_out:
+        starting_out = min(vars_out)
+        starting = starting_out
+
+    if starting_in and starting_out:
+        assert starting_in
+        assert starting_out
+        starting = min(starting_in, starting_out)
+
+    if starting == maxsize:
+        raise LogicError("Starting value for array is too large.")
+
+    return starting
+
+
+def get_array_size(vars_in: list, vars_out: list, check_out_size=False) -> int:
+    """
+    Returns the largest array size given a variable mask for copying in
+    and copying out.
+
+    :param list vars_in: The variable masking for copying into the packet.
+    :param list vars_out: The variable masking for copying out.
+    :param bool check_out_size: Flag to check if out array size is larger
+                                than the in array size.
+    :return: The size of the array given the variable masking.
+    :rtype: int
+    """
+    largest = -maxsize
+    if not vars_in and not vars_out:
+        raise TypeError("No variable masking for given array in tf spec.")
+
+    largest_in = None
+    if vars_in:
+        largest_in = max(vars_in)
+        largest = largest_in
+
+    largest_out = None
+    if vars_out:
+        largest_out = max(vars_out)
+        largest = largest_out
+
+    if vars_in and vars_out:
+        assert largest_in is not None
+        assert largest_out is not None
+
+        # No test cases for a mariable mask in an out array that's
+        # larger than the in mask. Need to create test cases or have
+        # an existing use case.
+        if check_out_size and largest_out > largest_in:
+            raise NotImplementedError(
+                "No test cases when vars_out is larger than vars_in!"
+            )
+
+        largest = max([largest_in, largest_out])
+
+    if largest == -maxsize:
+        raise LogicError("Negative array size, check variable masking.")
+    return largest

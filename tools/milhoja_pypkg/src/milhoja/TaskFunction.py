@@ -6,7 +6,8 @@ from .LogicError import LogicError
 from . import (
     EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
-    CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL
+    CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL,
+    SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS
 )
 
 
@@ -88,56 +89,56 @@ class TaskFunction(object):
         :return: ``dict`` of filenames where value is a ``dict``
             consisting of the key "source" and potentially "header"
         """
-        cpp_tf_hdr = self.__tf_spec["cpp_header"].strip()
-        cpp_tf_src = self.__tf_spec["cpp_source"].strip()
-        c2f_src = self.__tf_spec["c2f_source"].strip()
-        fortran_tf_src = self.__tf_spec["fortran_source"].strip()
-        data_item_hdr = self.__data_spec["header"].strip()
-        data_item_src = self.__data_spec["source"].strip()
+        cpp_tf_hdr = self.__tf_spec.get("cpp_header", "").strip()
+        cpp_tf_src = self.__tf_spec.get("cpp_source", "").strip()
+        c2f_src = self.__tf_spec.get("c2f_source", "").strip()
+        fortran_tf_src = self.__tf_spec.get("fortran_source", "").strip()
+        data_item_hdr = self.__data_spec.get("header", "").strip()
+        data_item_src = self.__data_spec.get("source", "").strip()
+        data_item_mod = self.__data_spec.get("module", "").strip()
 
         assert cpp_tf_hdr != ""
         assert cpp_tf_src != ""
         assert data_item_hdr != ""
         assert data_item_src != ""
 
-        filenames = {}
-        filenames[TaskFunction.DATA_ITEM_KEY] = \
-            {"header": data_item_hdr, "source": data_item_src}
-        filenames[TaskFunction.CPP_TF_KEY] = \
-            {"header": cpp_tf_hdr, "source": cpp_tf_src}
-
-        processor = self.processor
-        language = self.language
-        if processor.lower() == "cpu" and language.lower() == "c++":
-            assert c2f_src == ""
-            assert fortran_tf_src == ""
-        elif processor.lower() == "cpu" and language.lower() == "fortran":
-            assert c2f_src != ""
-            assert fortran_tf_src != ""
-
-            # todo::
-            #    * Any generated code for fortran should have a module file.
-
-            filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
-            filenames[TaskFunction.FORTRAN_TF_KEY] = {
-                "source": fortran_tf_src
+        filenames = {
+            TaskFunction.DATA_ITEM_KEY: {
+                "header": data_item_hdr,
+                "source": data_item_src,
+                "module": data_item_mod
+            },
+            TaskFunction.CPP_TF_KEY: {
+                "header": cpp_tf_hdr,
+                "source": cpp_tf_src
             }
-        elif processor.lower() == "gpu" and language.lower() == "fortran":
-            data_item_mod = self.__data_spec["module"].strip()
+        }
+
+        processor = self.processor.lower()
+        language = self.language.lower()
+
+        if language == "fortran":
             assert c2f_src != ""
             assert fortran_tf_src != ""
             assert data_item_mod != ""
 
-            filenames[TaskFunction.C2F_KEY] = {"source": c2f_src}
-            filenames[TaskFunction.FORTRAN_TF_KEY] = {"source": fortran_tf_src}
-            filenames[TaskFunction.DATA_ITEM_KEY]["module"] = data_item_mod
-        elif processor.lower() == "gpu" and language.lower() == "c++":
+            filenames[TaskFunction.C2F_KEY] = {
+                "source": c2f_src
+            }
+            filenames[TaskFunction.FORTRAN_TF_KEY] = {
+                "source": fortran_tf_src
+            }
+
+        if language == "c++":
             assert c2f_src == ""
             assert fortran_tf_src == ""
-        else:
-            raise NotImplementedError(
-                f"Waiting for test cases for [{processor}, {language}] combo."
-            )
+            assert data_item_mod == ""
+
+        if language not in SUPPORTED_LANGUAGES:
+            raise LogicError(f"{language} not supported.")
+
+        if processor not in SUPPORTED_PROCESSORS:
+            raise LogicError(f"{processor} not supported.")
 
         return filenames
 
@@ -183,23 +184,21 @@ class TaskFunction(object):
             f"{self.data_item} does not use byte_alignment."
         )
 
+    # todo:: Name should use "data_item" instead of "packet"
     @property
     def instantiate_packet_C_function(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
+        di = "packet" if self.data_item.lower() == "datapacket" else "wrapper"
+        return f"instantiate_{self.name}_{di}_c"
 
-        return f"instantiate_{self.name}_packet_c"
-
+    # todo:: Name should use "data_item" instead of "packet"
     @property
     def delete_packet_C_function(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
-
-        return f"delete_{self.name}_packet_c"
+        di = "packet" if self.data_item.lower() == "datapacket" else "wrapper"
+        return f"delete_{self.name}_{di}_c"
 
     @property
     def release_stream_C_function(self):
@@ -207,8 +206,23 @@ class TaskFunction(object):
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
         elif self.data_item.lower() != "datapacket":
             raise LogicError("Streams used with DataPacket only")
-
         return f"release_{self.name}_extra_queue_c"
+
+    @property
+    def acquire_scratch_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No acquire scratch for non-Fortran TF.")
+        if self.data_item.lower() != "tilewrapper":
+            raise LogicError("No acquire scratch function for non-tilewrapper.")
+        return f"acquire_scratch_{self.name}_wrapper_c"
+
+    @property
+    def release_scratch_C_function(self):
+        if self.language.lower() != "fortran":
+            raise LogicError("No acquire scratch for non-Fortran TF.")
+        if self.data_item.lower() != "tilewrapper":
+            raise LogicError("No acquire scratch function for non-tilewrapper.")
+        return f"release_scratch_{self.name}_wrapper_c"
 
     @property
     def cpp2c_layer_name(self):
@@ -269,8 +283,6 @@ class TaskFunction(object):
     def data_item_module_name(self):
         if self.language.lower() != "fortran":
             raise LogicError("No F-to-C++ layer for non-Fortran TF")
-        elif self.data_item.lower() != "datapacket":
-            raise LogicError("Data item is not a data packet")
         return f"{self.data_item_class_name}_c2f_mod"
 
     @property

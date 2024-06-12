@@ -35,7 +35,6 @@ def generate_packet_file(
     """
     caller = "Milhoja generate_packet_file"
 
-    # local function for looping through and linking templates.
     def construct_source_tree(stree: SourceTree, templates: list):
         assert len(templates) > 0
         stree.initTree(templates[0])

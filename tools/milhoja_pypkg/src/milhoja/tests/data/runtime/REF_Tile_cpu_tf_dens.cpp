@@ -15,11 +15,11 @@ void Tile_cpu_tf_dens::acquireScratch(void) {
         throw std::logic_error("[Tile_cpu_tf_dens::acquireScratch] scratch_base_op1_scratch3D_ scratch already allocated");
     }
 
-    const std::size_t nBytes = nThreads
+    const std::size_t nBytes_scratch_base_op1_scratch3D = nThreads
                     * Tile_cpu_tf_dens::SCRATCH_BASE_OP1_SCRATCH3D_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &scratch_base_op1_scratch3D_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_scratch_base_op1_scratch3D, &scratch_base_op1_scratch3D_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_dens::acquireScratch] Acquired"

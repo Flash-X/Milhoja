@@ -65,6 +65,12 @@ def generate_code(
         outputs = tf_spec.output_filenames
         to_compile = []
         for _, value in outputs.items():
+            # extract check in case source is empty...
+            if not value["source"]:
+                raise Exception(
+                    "Source file provided but file name is null or empty."
+                )
+
             if (language.lower() in ["c++", "fortran"]) and \
                     (data_item.lower() == "datapacket"):
                 if not value["source"].startswith("gpu_"):
