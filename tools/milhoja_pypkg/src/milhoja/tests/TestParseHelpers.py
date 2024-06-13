@@ -2,6 +2,9 @@ import milhoja.tests
 
 from milhoja.parse_helpers import parse_extents
 from milhoja.parse_helpers import parse_lbound
+from milhoja.parse_helpers import parse_lbound_f
+from milhoja.parse_helpers import get_array_size
+from milhoja.parse_helpers import get_initial_index
 from milhoja.parse_helpers import IncorrectFormatException
 from milhoja.parse_helpers import NonIntegerException
 
@@ -10,7 +13,6 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
     """
     Unit test of extents parser function.
     """
-
     def setUp(self):
         pass
 
@@ -195,3 +197,99 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         ):
             lbound = "(tile_lo) - (2,2,2) / 2"
             result = parse_lbound(lbound)
+
+    def testLboundFParser(self):
+        """
+        Test parse_lbound_f function.
+
+        todo::
+            * Test found keywords
+        """
+        lb_input = "(tile_lo) - (1,2,3) + (2,3,4)"
+        correct = ["tile_lo.I()-1+2", "tile_lo.J()-2+3", "tile_lo.K()-3+4"]
+        result, _ = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="Keyword not implemented"
+        ):
+            lb_input = "(infinity) - (1,2,3)"
+            result, _ = parse_lbound_f(lb_input)
+
+        lb_input = "(tile_hi, -1)"
+        correct = ["tile_hi.I()", "tile_hi.J()", "tile_hi.K()", "-1"]
+        result, _ = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        lb_input = "(1, -2, 3, -4)"
+        correct = ["1", "-2", "3", "-4"]
+        result, _ = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+        lb_input = "(1, tile_lo, 6)"
+        correct = ["1", "tile_lo.I()", "tile_lo.J()", "tile_lo.K()", '6']
+        result, _ = parse_lbound_f(lb_input)
+        self.check_bound(lb_input, result, correct)
+
+    def testStartingIndex(self):
+        # test none on both
+        mask_in = None
+        mask_out = None
+        with self.assertRaises(TypeError):
+            get_initial_index([], [])
+
+        mask_in = [1, 2]
+        mask_out = [1, 2]
+        init = get_initial_index(mask_in, mask_out)
+        self.assertTrue(init == 1)
+
+        mask_in = [2, 8]
+        mask_out = [2, 2]
+        init = get_initial_index(mask_in, mask_out)
+        self.assertTrue(init == 2)
+
+        mask_in = [1, 10]
+        mask_out = []
+        init = get_initial_index(mask_in, mask_out)
+        self.assertTrue(init == 1)
+
+        mask_in = []
+        mask_out = [3, 10]
+        init = get_initial_index(mask_in, mask_out)
+        self.assertTrue(init == 3)
+
+    def testArraySize(self):
+        # test none on both
+        mask_in = None
+        mask_out = None
+        with self.assertRaises(TypeError):
+            get_array_size([], [])
+
+        mask_in = [1, 2]
+        mask_out = [1, 2]
+        size = get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 2)
+
+        mask_in = [2, 8]
+        mask_out = [2, 2]
+        size = get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 8)
+
+        with self.assertRaises(
+            NotImplementedError,
+            msg="No test cases for out size > in size, but no error thrown."
+        ):
+            mask_in = [1, 2]
+            mask_out = [1, 6]
+            get_array_size(mask_in, mask_out, True)
+
+        mask_in = [1, 10]
+        mask_out = []
+        size = get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 10)
+
+        mask_in = []
+        mask_out = [1, 10]
+        size = get_array_size(mask_in, mask_out)
+        self.assertTrue(size == 10)

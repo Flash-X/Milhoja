@@ -80,7 +80,6 @@ class TestCodeGenerators(unittest.TestCase):
 
                 # ----- CHECK SOURCE AGAINST BASELINE
                 source_filename = dst.joinpath(generator.source_filename)
-                print(source_filename)
                 self.assertTrue(not source_filename.exists())
 
                 ref_src_fname = test["source"]
@@ -97,6 +96,15 @@ class TestCodeGenerators(unittest.TestCase):
                 for gen_line, ref_line in zip(generated, ref):
                     self.assertEqual(gen_line, ref_line)
 
-                # Clean-up
-                # os.remove(str(json_fname_XD))
+                # ----- CLEAN-UP YA LAZY SLOB!
                 os.remove(str(source_filename))
+
+                # clean up any template files if they exist,
+                # also make sure that the destination isn't a templates folder,
+                # (DELETING THE BUILT-IN TEMPLATES IS NO BUENO!)
+                if dst.stem == "templates":
+                    raise Exception(
+                        "Please don't use a templates folder as a destination!"
+                    )
+                for file in dst.glob("cg-tpl.*.cpp"):
+                    os.remove(file)

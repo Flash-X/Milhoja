@@ -14,6 +14,11 @@ LOG_LEVEL_MAX = 3
 
 LOG_LEVELS = list(range(LOG_LEVEL_NONE, LOG_LEVEL_MAX+1))
 
+# If we ever want to support more languages in the future
+SUPPORTED_LANGUAGES = ["c++", "fortran"]
+# If we ever want to support TPUs or NPUs :) (kidding, just a formality)
+SUPPORTED_PROCESSORS = ["cpu", "gpu"]
+
 # All code in the package that exists specifically to check for errors (e.g.,
 # check_*_specification) should use this as its log tag
 #
@@ -106,6 +111,8 @@ SOURCE_DATATYPES = {
     TILE_HI_ARGUMENT: "IntVect",
     TILE_LBOUND_ARGUMENT: "IntVect",
     TILE_UBOUND_ARGUMENT: "IntVect",
+    TILE_INTERIOR_ARGUMENT: "IntVect",
+    TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
     TILE_DELTAS_ARGUMENT: "RealVect",
     TILE_INTERIOR_ARGUMENT: "IntVect",
     TILE_ARRAY_BOUNDS_ARGUMENT: "IntVect",
@@ -144,7 +151,16 @@ F2C_TYPE_MAPPING = {
 C2F_TYPE_MAPPING = {
     "bool": "logical",
     "int": "integer",
-    "real": "real"
+    "unsigned int": "integer",
+    "real": "real",
+    "milhoja::Real": "real"
+}
+
+TILE_KEY_MAPPING = {
+    TILE_LO_ARGUMENT: "",
+    TILE_HI_ARGUMENT: "",
+    TILE_LBOUND_ARGUMENT: "",
+    TILE_UBOUND_ARGUMENT: ""
 }
 
 # Task functions can include subroutines that take as an actual argument
@@ -155,3 +171,14 @@ THREAD_INDEX_ARGUMENT = "milhoja_thread_index"
 # JSON generators need to insert the same variable name that the TF code
 # generators use.
 THREAD_INDEX_VAR_NAME = "threadIndex"
+
+# TODO:: Should we have a specific list of type aliases that
+#        we can include to avoid having to constantly manipulate strings?
+C_TYPE_ALIASES = {
+    "int": "",
+    "milhoja::Real": "",
+    "bool": "",
+    "integer": "using integer = int;",
+    "real": "using real = milhoja::Real;",
+    "logical": "using logical = bool;"
+}

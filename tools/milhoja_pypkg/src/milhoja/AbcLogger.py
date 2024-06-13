@@ -12,8 +12,8 @@ class AbcLogger(object):
     application-specific logging standard.
 
     Note that this includes the Milhoja command line tools to be called by
-    users.  For instance, these tools should log errors through a logger rather
-    than printing to stdout/stderr themselves.
+    users.  For instance, these tools should log errors through a logger
+    rather than printing to stdout/stderr themselves.
     """
     def __init__(self, level):
         """

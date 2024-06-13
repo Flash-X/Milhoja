@@ -1,0 +1,377 @@
+{
+ "format": [
+  "Milhoja-JSON",
+  "1.0.0"
+ ],
+ "grid": {
+  "dimension": 2,
+  "nxb": 8,
+  "nyb": 8,
+  "nzb": 1,
+  "nguardcells": 1
+ },
+ "task_function": {
+  "language": "Fortran",
+  "processor": "CPU",
+  "cpp_header": "cpu_taskfn_0_Cpp2C.h",
+  "cpp_source": "cpu_taskfn_0_Cpp2C.cxx",
+  "c2f_source": "cpu_taskfn_0_C2F.F90",
+  "fortran_source": "cpu_taskfn_0_mod.F90",
+  "computation_offloading": "",
+  "variable_index_base": 1,
+  "name": "cpu_taskfn_0",
+  "argument_list": [
+   "external_Hydro_dt",
+   "external_Hydro_dtOld",
+   "external_Hydro_stage",
+   "tile_arrayBounds",
+   "tile_deltas",
+   "tile_interior",
+   "tile_lbound",
+   "tile_lo",
+   "CC_1",
+   "scratch_Hydro_cvol_fake",
+   "scratch_Hydro_fareaX_fake",
+   "scratch_Hydro_fareaY_fake",
+   "scratch_Hydro_fareaZ_fake",
+   "scratch_Hydro_hy_Vc",
+   "scratch_Hydro_hy_flat3d",
+   "scratch_Hydro_hy_flux",
+   "scratch_Hydro_hy_fluxBufX",
+   "scratch_Hydro_hy_fluxBufY",
+   "scratch_Hydro_hy_fluxBufZ",
+   "scratch_Hydro_hy_flx",
+   "scratch_Hydro_hy_fly",
+   "scratch_Hydro_hy_flz",
+   "scratch_Hydro_hy_grav",
+   "scratch_Hydro_hy_rope",
+   "scratch_Hydro_hy_starState",
+   "scratch_Hydro_hy_tmpState",
+   "scratch_Hydro_hy_uMinus",
+   "scratch_Hydro_hy_uPlus",
+   "scratch_Hydro_xCenter_fake",
+   "scratch_Hydro_xLeft_fake",
+   "scratch_Hydro_xRight_fake",
+   "scratch_Hydro_yCenter_fake",
+   "scratch_Hydro_yLeft_fake",
+   "scratch_Hydro_yRight_fake",
+   "scratch_Hydro_zCenter_fake"
+  ],
+  "argument_specifications": {
+   "external_Hydro_dt": {
+    "type": "real",
+    "extents": "()",
+    "source": "external"
+   },
+   "external_Hydro_dtOld": {
+    "type": "real",
+    "extents": "()",
+    "source": "external"
+   },
+   "external_Hydro_stage": {
+    "type": "integer",
+    "extents": "()",
+    "source": "external"
+   },
+   "tile_arrayBounds": {
+    "source": "tile_arrayBounds"
+   },
+   "tile_deltas": {
+    "source": "tile_deltas"
+   },
+   "tile_interior": {
+    "source": "tile_interior"
+   },
+   "tile_lbound": {
+    "source": "tile_lbound"
+   },
+   "tile_lo": {
+    "source": "tile_lo"
+   },
+   "CC_1": {
+    "source": "grid_data",
+    "structure_index": [
+     "CENTER",
+     1
+    ],
+    "variables_in": [
+     1,
+     18
+    ],
+    "variables_out": [
+     1,
+     18
+    ]
+   },
+   "scratch_Hydro_cvol_fake": {
+    "type": "real",
+    "extents": "(1,1,1)",
+    "lbound": "(1, 1, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_fareaX_fake": {
+    "type": "real",
+    "extents": "(1,1,1)",
+    "lbound": "(1, 1, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_fareaY_fake": {
+    "type": "real",
+    "extents": "(1,1,1)",
+    "lbound": "(1, 1, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_fareaZ_fake": {
+    "type": "real",
+    "extents": "(1,1,1)",
+    "lbound": "(1, 1, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_Vc": {
+    "type": "real",
+    "extents": "(28,28,1)",
+    "lbound": "(tile_lbound)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_flat3d": {
+    "type": "real",
+    "extents": "(28,28,1)",
+    "lbound": "(tile_lbound)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_flux": {
+    "type": "real",
+    "extents": "(28,28,1,7)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_fluxBufX": {
+    "type": "real",
+    "extents": "(17,16,1,5)",
+    "lbound": "(tile_lo, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_fluxBufY": {
+    "type": "real",
+    "extents": "(16,17,1,5)",
+    "lbound": "(tile_lo, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_fluxBufZ": {
+    "type": "real",
+    "extents": "(16,16,1,5)",
+    "lbound": "(tile_lo, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_flx": {
+    "type": "real",
+    "extents": "(28,28,1,5)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_fly": {
+    "type": "real",
+    "extents": "(28,28,1,5)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_flz": {
+    "type": "real",
+    "extents": "(28,28,1,5)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_grav": {
+    "type": "real",
+    "extents": "(3,28,28,1)",
+    "lbound": "(1, tile_lbound)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_rope": {
+    "type": "real",
+    "extents": "(28,28,1,7)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_starState": {
+    "type": "real",
+    "extents": "(28,28,1,18)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_tmpState": {
+    "type": "real",
+    "extents": "(28,28,1,18)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_uMinus": {
+    "type": "real",
+    "extents": "(28,28,1,7)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_hy_uPlus": {
+    "type": "real",
+    "extents": "(28,28,1,7)",
+    "lbound": "(tile_lbound, 1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_xCenter_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_xLeft_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_xRight_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_yCenter_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_yLeft_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_yRight_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   },
+   "scratch_Hydro_zCenter_fake": {
+    "type": "real",
+    "extents": "(1)",
+    "lbound": "(1)",
+    "source": "scratch"
+   }
+  },
+  "subroutine_call_graph": [
+   "Hydro_prepBlock",
+   "Hydro_advance"
+  ]
+ },
+ "data_item": {
+  "type": "TileWrapper",
+  "byte_alignment": -1,
+  "header": "Tile_cpu_taskfn_0.h",
+  "source": "Tile_cpu_taskfn_0.cxx",
+  "module": "Tile_cpu_taskfn_0_C2F_mod.F90"
+ },
+ "subroutines": {
+  "Hydro_prepBlock": {
+   "interface_file": "Hydro_interface.F90",
+   "argument_list": [
+    "Uin",
+    "hy_Vc",
+    "blkLimits",
+    "blkLimitsGC",
+    "hy_starState",
+    "hy_tmpState",
+    "stage",
+    "lo",
+    "loGC"
+   ],
+   "argument_mapping": {
+    "Uin": "CC_1",
+    "hy_Vc": "scratch_Hydro_hy_Vc",
+    "blkLimits": "tile_interior",
+    "blkLimitsGC": "tile_arrayBounds",
+    "hy_starState": "scratch_Hydro_hy_starState",
+    "hy_tmpState": "scratch_Hydro_hy_tmpState",
+    "stage": "external_Hydro_stage",
+    "lo": "tile_lo",
+    "loGC": "tile_lbound"
+   }
+  },
+  "Hydro_advance": {
+   "interface_file": "Hydro_interface.F90",
+   "argument_list": [
+    "stage_in",
+    "Uin",
+    "dt",
+    "dtOld",
+    "hy_starState",
+    "hy_tmpState",
+    "hy_flx",
+    "hy_fly",
+    "hy_flz",
+    "hy_fluxBufX",
+    "hy_fluxBufY",
+    "hy_fluxBufZ",
+    "hy_grav",
+    "hy_flat3d",
+    "hy_rope",
+    "hy_flux",
+    "hy_uPlus",
+    "hy_uMinus",
+    "deltas",
+    "blkLimits",
+    "blkLimitsGC",
+    "lo",
+    "loGC",
+    "hy_xCenter",
+    "hy_yCenter",
+    "hy_zCenter",
+    "hy_xLeft",
+    "hy_xRight",
+    "hy_yLeft",
+    "hy_yRight",
+    "hy_fareaX",
+    "hy_fareaY",
+    "hy_fareaZ",
+    "hy_cvol"
+   ],
+   "argument_mapping": {
+    "stage_in": "external_Hydro_stage",
+    "Uin": "CC_1",
+    "dt": "external_Hydro_dt",
+    "dtOld": "external_Hydro_dtOld",
+    "hy_starState": "scratch_Hydro_hy_starState",
+    "hy_tmpState": "scratch_Hydro_hy_tmpState",
+    "hy_flx": "scratch_Hydro_hy_flx",
+    "hy_fly": "scratch_Hydro_hy_fly",
+    "hy_flz": "scratch_Hydro_hy_flz",
+    "hy_fluxBufX": "scratch_Hydro_hy_fluxBufX",
+    "hy_fluxBufY": "scratch_Hydro_hy_fluxBufY",
+    "hy_fluxBufZ": "scratch_Hydro_hy_fluxBufZ",
+    "hy_grav": "scratch_Hydro_hy_grav",
+    "hy_flat3d": "scratch_Hydro_hy_flat3d",
+    "hy_rope": "scratch_Hydro_hy_rope",
+    "hy_flux": "scratch_Hydro_hy_flux",
+    "hy_uPlus": "scratch_Hydro_hy_uPlus",
+    "hy_uMinus": "scratch_Hydro_hy_uMinus",
+    "deltas": "tile_deltas",
+    "blkLimits": "tile_interior",
+    "blkLimitsGC": "tile_arrayBounds",
+    "lo": "tile_lo",
+    "loGC": "tile_lbound",
+    "hy_xCenter": "scratch_Hydro_xCenter_fake",
+    "hy_yCenter": "scratch_Hydro_yCenter_fake",
+    "hy_zCenter": "scratch_Hydro_zCenter_fake",
+    "hy_xLeft": "scratch_Hydro_xLeft_fake",
+    "hy_xRight": "scratch_Hydro_xRight_fake",
+    "hy_yLeft": "scratch_Hydro_yLeft_fake",
+    "hy_yRight": "scratch_Hydro_yRight_fake",
+    "hy_fareaX": "scratch_Hydro_fareaX_fake",
+    "hy_fareaY": "scratch_Hydro_fareaY_fake",
+    "hy_fareaZ": "scratch_Hydro_fareaZ_fake",
+    "hy_cvol": "scratch_Hydro_cvol_fake"
+   }
+  }
+ }
+}

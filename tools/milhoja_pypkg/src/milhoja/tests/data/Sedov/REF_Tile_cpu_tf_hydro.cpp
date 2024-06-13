@@ -15,11 +15,11 @@ void Tile_cpu_tf_hydro::acquireScratch(void) {
         throw std::logic_error("[Tile_cpu_tf_hydro::acquireScratch] scratch_hydro_op1_auxC_ scratch already allocated");
     }
 
-    const std::size_t nBytes = nThreads
+    const std::size_t nBytes_scratch_hydro_op1_auxC = nThreads
                     * Tile_cpu_tf_hydro::SCRATCH_HYDRO_OP1_AUXC_SIZE_
                     * sizeof(milhoja::Real);
 
-    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes, &scratch_hydro_op1_auxC_);
+    milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_scratch_hydro_op1_auxC, &scratch_hydro_op1_auxC_);
 
 #ifdef DEBUG_RUNTIME
     std::string   msg = "[Tile_cpu_tf_hydro::acquireScratch] Acquired"
@@ -43,7 +43,9 @@ void Tile_cpu_tf_hydro::releaseScratch(void) {
 #endif
 }
 
-Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(const milhoja::Real external_hydro_op1_dt)
+Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(
+    const milhoja::Real external_hydro_op1_dt
+)
     : milhoja::TileWrapper{},
       external_hydro_op1_dt_{external_hydro_op1_dt}
 {

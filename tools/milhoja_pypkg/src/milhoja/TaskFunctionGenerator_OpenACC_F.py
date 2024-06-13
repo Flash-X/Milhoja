@@ -64,7 +64,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         """
         .. todo::
             * We are presently limited to only offloading around the loop over
-              tiles in data packet.  What if we want to launch a kernel within
+              tiles in data packet. What if we want to launch a kernel within
               the loop?  What if we don't want to launch any kernels so that
               the internal subroutine can do its own launching?
             * The extra asynchronous queues should be released as soon as

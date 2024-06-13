@@ -4,7 +4,9 @@
 #include <Milhoja_TileWrapper.h>
 
 struct Tile_cpu_tf_hydro : public milhoja::TileWrapper {
-    Tile_cpu_tf_hydro(const milhoja::Real external_hydro_op1_dt);
+    Tile_cpu_tf_hydro(
+      const milhoja::Real external_hydro_op1_dt
+    );
     ~Tile_cpu_tf_hydro(void);
 
     Tile_cpu_tf_hydro(Tile_cpu_tf_hydro&)                  = delete;

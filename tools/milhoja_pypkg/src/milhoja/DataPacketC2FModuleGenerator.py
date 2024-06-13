@@ -22,17 +22,15 @@ class DataPacketC2FModuleGenerator(AbcCodeGenerator):
         "bool": "logical"
     }
 
-    def __init__(self, tf_spec, indent, logger):
+    def __init__(self, tf_spec: TaskFunction, indent, logger):
         if tf_spec.language.lower() == "c++":
             raise LogicError("No mod file for C++.")
 
         file_name = \
             tf_spec.output_filenames[TaskFunction.DATA_ITEM_KEY]["module"]
+        log_tag = f"Milhoja {tf_spec.data_item_class_name} Module Generator"
 
-        super().__init__(
-            tf_spec, "", file_name, indent, "Milhoja DataPacket C2F Module",
-            logger
-        )
+        super().__init__(tf_spec, "", file_name, indent, log_tag, logger)
         self.INDENT = " " * indent
         self._externals = {
             item: tf_spec.argument_specification(item)
