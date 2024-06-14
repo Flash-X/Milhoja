@@ -63,6 +63,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_external_info(self, arg, arg_spec) -> ConversionData:
+        """
+        Builds and returns a ConversionData object for an external argument,
+        for use in the C2F layer.
+
+        :param arg: The argument name.
+        :param arg_spec: The argument specification. 'external' is the assumed
+                         source.
+        """
         dtype = arg_spec["type"]
         if dtype == "milhoja::Real":
             dtype = "real"
@@ -77,6 +85,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_tmdata_info(self, arg, arg_spec) -> ConversionData:
+        """
+        Builds and returns a ConversionData object for a tile metadata
+        argument, for use in the C2F layer.
+
+        :param arg: The argument name.
+        :param arg_spec: The argument specification. Any tile metadata source
+                         is the assumed source.
+        """
         src = arg_spec["source"]
         name_key = arg
         dtype = VECTOR_ARRAY_EQUIVALENT.get(
@@ -97,6 +113,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_lbound_info(self, arg, arg_spec) -> ConversionData:
+        """
+        Builds and returns a ConversionData object for an lbound argument,
+        for use in the C2F layer.
+
+        :param arg: The argument name.
+        :param arg_spec: The argument specification. Any lbound source
+                         is the assumed source.
+        """
         arr = arg_spec["array"]
         array_arg_spec = self._tf_spec.argument_specification(arr)
         arr_src = array_arg_spec["source"]
@@ -123,6 +147,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_grid_info(self, arg, arg_spec) -> ConversionData:
+        """
+        Builds and returns a ConversionData object for a grid data
+        argument, for use in the C2F layer.
+
+        :param arg: The argument name.
+        :param arg_spec: The argument specification. 'grid_data' is the
+                         assumed source.
+        """
         dtype = SOURCE_DATATYPES[arg_spec["source"]]
         mask_in = arg_spec.get("variables_in", [])
         mask_out = arg_spec.get("variables_out", [])
@@ -148,6 +180,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _get_scratch_info(self, arg, arg_spec) -> ConversionData:
+        """
+        Builds and returns a ConversionData object for a scratch
+        argument, for use in the C2F layer.
+
+        :param arg: The argument name.
+        :param arg_spec: The argument specification. 'scratch' is the assumed
+                         source.
+        """
         dtype = C2F_TYPE_MAPPING[arg_spec["type"]]
         shape = parse_extents(arg_spec["extents"])
         return ConversionData(
@@ -159,6 +199,12 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         )
 
     def _generate_c2f(self, destination: Path, overwrite):
+        """
+        Generates the C to Fortran layer for a task function.
+
+        :arg destination: The location to save the file.
+        :arg overwrite: If set, overwrite anything at the source destination.
+        """
         c2f_file = destination.joinpath(self.source_filename).resolve()
 
         if c2f_file.is_file():
@@ -278,9 +324,14 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
             c2f.write(f"end subroutine {routine_name}\n")
 
     def generate_header_code(self, destination, overwrite):
+        """No header code for C2F layer, raises LogicError."""
         raise LogicError("C2F layer does not have a header file.")
 
     def generate_source_code(self, destination, overwrite):
+        """
+        Wrapper around the actual code generation function for generating
+        source code.
+        """
         dest_path = Path(destination).resolve()
         if not dest_path.is_dir():
             self._error(f"{dest_path} does not exist!")

@@ -30,7 +30,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
     def __init__(self, tf_spec, indent, logger):
         """
         Construct an object for use with the task function specified by the
-        given specification object.
+        given task function.
 
         :param tf_spec: Specification object derived from TaskFunction
         :param log_level: Milhoja level to use for logging generation
@@ -60,10 +60,18 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             self._log(msg, LOG_LEVEL_BASIC_DEBUG)
 
     def generate_header_code(self, destination, overwrite):
+        """
+        Generates header code for a TaskFunction based on the task function
+        spec. There is no header file for task functions so this raises
+        a LogicError.
+        """
         raise LogicError("Fortran task functions do not have a header")
 
     def generate_source_code(self, destination, overwrite):
         """
+        Generate the source code for a task function based on the
+        task function specification.
+
         .. todo::
             * We are presently limited to only offloading around the loop over
               tiles in data packet.  What if we want to launch a kernel within
@@ -75,6 +83,10 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             * How to handle Milhoja errors in an internal way that can help
               applications? Are these errors considered so improbable that the
               error checking here is effectively an assert?
+
+        :param destination: The destination path
+        :param overwrite: Whether or not to overwrite any file that might be
+                          at the destination.
         """
         INDENT = " " * self.indentation
 
