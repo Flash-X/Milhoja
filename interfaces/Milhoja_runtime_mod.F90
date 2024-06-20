@@ -673,7 +673,7 @@ contains
         integer(MILHOJA_INT),                   intent(IN)  :: nTilesPerPacket
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
-        ierr = milhoja_runtime_teardown_pipeline_cpugpu_c(nThreads, nTilesPerPacket)
+        ierr = milhoja_runtime_teardown_pipeline_cpugpusplit_c(nThreads, nTilesPerPacket)
     end subroutine milhoja_runtime_teardownPipelineForCpuGpuSplitTasks
 
     !> Instruct the runtime to tear down the EXTGPU thread team pipeline.
