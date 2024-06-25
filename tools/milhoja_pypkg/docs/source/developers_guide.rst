@@ -140,7 +140,7 @@ Data Items
 Generated Data Items are responsible for holding the information needed by the
 Task Function, and work in tandem with the Milhoja runtime if using any device
 offloading. There are two types of Data Items, `Tile Wrappers <#Tile Wrappers>`_
-and `Data Packets <#Data Packets>`_.
+and `Data Packets <#Data Packets>`_. 
 
 Tile Wrappers
 """""""""""""
@@ -153,6 +153,11 @@ Tile Wrappers are used for data that does not need to be offloaded.
 
 Data Packets
 """"""""""""
+
+DataPackets are used when data needs to be offloaded to a device. As such, a
+DataPacket is responsible for determining the memory layout of all of the data
+on the device, requesting that memory to be allocated by calling the milhoja
+runtime, and calling 
 
 Whether or not a DataPacket subclass needs to be generated is the responsiblity of the application that is using Milhoja and 
 its code generation tools. If a new DataPacket subclass needs to be generated, the DataPacket code generator will be used.
