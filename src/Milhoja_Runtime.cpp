@@ -1629,7 +1629,7 @@ void Runtime::pushTileToCpuGpuSplitPipeline(const std::string& bundleName,
                                             const FlashxTileRawReals& tR) {
 
 #ifdef RUNTIME_PERTILE_LOG
-    Logger::instance().log("[Runtime] Push single tile task to CPU/GPU pipeline");
+    Logger::instance().log("[Runtime] Push single tile task to CPU/GPU split pipeline");
 #endif
 
     if (nTilesPerPacket_ <= 0) {
@@ -1703,12 +1703,12 @@ void Runtime::pushTileToCpuGpuSplitPipeline(const std::string& bundleName,
     }
 
 #ifdef RUNTIME_PERTILE_LOG
-    Logger::instance().log("[Runtime] Single tile task was pushed to CPU/GPU pipeline");
+    Logger::instance().log("[Runtime] Single tile task was pushed to CPU/GPU split pipeline");
 #endif
 }
 void Runtime::teardownPipelineForCpuGpuSplitTasks(const std::string& bundleName) {
 
-    Logger::instance().log("[Runtime] Tear Down CPU/GPU action");
+    Logger::instance().log("[Runtime] Tear Down CPU/GPU shared action");
 
     if (nTilesPerPacket_ <= 0) {
         throw std::invalid_argument("[Runtime:teardownPipelineForCpuGpuSplitTasks] "
