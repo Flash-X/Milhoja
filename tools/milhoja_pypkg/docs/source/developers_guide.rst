@@ -140,12 +140,42 @@ Data Items
 Generated Data Items are responsible for holding the information needed by the
 Task Function, and work in tandem with the Milhoja runtime if using any device
 offloading. There are two types of Data Items, `Tile Wrappers <#Tile Wrappers>`_
-and `Data Packets <#Data Packets>`_. 
+and `Data Packets <#Data Packets>`_.
 
 Tile Wrappers
 """""""""""""
 
-Tile Wrappers are used for data that does not need to be offloaded.
+Tile Wrappers are data items that contain a tile reference as well as thread-private
+variables. Generally, Tile Wrappers are used for Task Functions that do not 
+require device offloading.
+
+Requirements
+''''''''''''
+
+1. The base TileWrapper class shall be derived from DataItem and written such that an
+   instantiation of it can be used directly as the prototype for a TF that has no 
+   thread-private variables. The class interface must contain a means for TFs to
+   access tile metadata via objects instantiated from TileWrapper or from objects
+   instantiated from classes derived from TileWrapper.
+2. For those tile-based TFs that use "external" variables, a derived custom version
+   of TileWrapper shall be written by a Milhoja code generator in a way analogous
+   to the generation of custom DataPacket code. The interface shall allow for access
+   of tile metadata and external variables by the TF and such that the TF code
+   generator can write the code needed to access all such variables.
+3. If thread-private scratch data is needed by a tile-based TF, then the derived
+   custom version of TileWrapper shall be written to allocate a static pool of
+   scratch memory of sufficient size structured such that each activated thread
+   in the team to which the TF is assigned can gain exclusive access to its scratch
+   variable using its unique thread index.  The derived class's interface shall
+   include static routines for acquiring and releasing the scratch memory.
+   This interface shall be such that it allows calling code to determine when to
+   acquire and release the scratch rather than impose, for instance, that scratch
+   memory management must occur as part of or just before/after a Milhoja invocation.
+4. The interface of the TileWrapper class shall be made and maintained as similar
+   as possible to that of the DataPacket class so that the use of prototypes and
+   cloning by the runtime and calling code are as similar as possible. This should
+   ease learning and using the design as well as improve maintainability of codes
+   that use Milhoja.
 
 .. todo::
   * Write tile wrapper overview.
@@ -156,8 +186,8 @@ Data Packets
 
 DataPackets are used when data needs to be offloaded to a device. As such, a
 DataPacket is responsible for determining the memory layout of all of the data
-on the device, requesting that memory to be allocated by calling the milhoja
-runtime, and calling 
+on the device, requesting that memory to be allocated, and copying that data to
+pinned memory so milhoja can move it over to the device.
 
 Whether or not a DataPacket subclass needs to be generated is the responsiblity of the application that is using Milhoja and 
 its code generation tools. If a new DataPacket subclass needs to be generated, the DataPacket code generator will be used.
@@ -165,15 +195,12 @@ When the generator is called, it will create new files based on the information 
 generator will need:
 
 * The byte sizes for every data type used in the DataPacket JSON input.
-* The language that is being used to run the task function. Either 'cpp' or 'fortran'.
-* A JSON input containing all information needed for each item in a data packet. 
-  For specifications on this, read the DataPacket JSON section in the UserManual.
 
 Since an important aspect of the DataPacket is that it's as efficient as possible, there are a number of things to be considered 
 when generating a new DataPacket subclass. 
 
 First, since the data packets are being used on a remote memory deivce, the way the information in the DataPacket is stored 
-should be appropriate for that device. Given that these DataPacket classes are mostly for use with a remote GPU, the data is 
+should be appropriate for that device. Given that these DataPacket classes are primarily for use with a remote GPU, the data is 
 copied over using the Struct of Arrays (SoA) pattern. This is a performant pattern for memory being used with GPUs. It's also 
 used to overcome certain challenges in generating Fortran task functions. In order to effectively generate code following the 
 SoA pattern, the DataPacket JSON defines various sections for specifying variables. For more information, see the 
@@ -189,8 +216,12 @@ padding and being more performant.
 
 Using that information, the DataPacket generator can create a new subclass for passing information to a remote device. 
 
-Packet Generation Steps
-"""""""""""""""""""""""
+Generation
+''''''''''
+
+Generating a DataPacket has some small differences when compared to generating
+a TileWrapper object. The DataPacket generator needs a 'sizes' json in addition to
+the TaskFunctionSpecification.
 
 In order to generate a DataPacket subclass, the code uses an external tool called CG-Kit to simplify assembling the generated 
 code into a file (TODO: will CG-Kit be discussed in the developer's guide in depth?). This external tool uses template files 
@@ -198,7 +229,7 @@ to assemble code into a main file by using keywords like _param, _link, and _con
 class is responsible for assembling any necessary _params, _links, and _connectors, and calling CG-Kit to combine the fragments 
 into one or more code files for using the derived DataPacket class.
 
-The steps for generating a DataPacket subclass are as follows: 
+The steps for generating a DataPacket subclass are as follows:
 
 1. The DataPacket generator takes in a language specifier, a byte sizes JSON, and DataPacket. 
 

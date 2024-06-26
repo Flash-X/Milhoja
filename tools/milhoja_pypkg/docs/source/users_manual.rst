@@ -8,23 +8,27 @@ Operation Sepcification JSON
 
 Op Spec JSON documentation goes here.
 
-++++++++++++++++++++++++++++++++++++++
-Task Function Specification JSON Rules
-++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++
+Task Function Specification
++++++++++++++++++++++++++++
 
-The Task Function Specification JSON is comprised of different sections that
+The Task Function Specification is comprised of different sections that
 allow the code generation tools to generate both the Task Function code
-and the corresponding data item code. This documentation is up to date with
-Milhoja JSON version 1.0.0 and milhoja pypackage version 0.0.4. Each subsection
-of this section will detail each section of the Task Function Specification JSON
-and what needs to be inside each one.
+and the corresponding data item code. Each subsection of this section will detail
+each section of the Task Function Specification and what needs to be inside each
+one in order to be considered a 'valid' Task Function Specification.
+
+This documentation is up to date with Milhoja JSON version 1.0.0 and milhoja pypackage
+version 0.0.4. This documentation will always be updated to reflect primary standard
+defined by Milhoja, which is the Milhoja JSON Format.
 
 format
 ------
 
 Contains Task Function Specification JSON metadata. Contains a list where
 the first value in the list is the format type, and the second item is the
-format version.
+format version. Generally, this information is automatically inserted by the
+code generation tools.
 
 grid
 ----
@@ -57,7 +61,7 @@ The name of the header file for the task function.
 cpp_source
 ^^^^^^^^^^
 
-The name of the source file for the task function. Also considered the C++ to
+The name of the source file for a C++ task function. Also considered the C++ to
 C layer when using the **Fortran** language.
 
 c2f_source
@@ -93,9 +97,38 @@ argument_specifications
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Contains the specifications for every argument found in `argument_list <#argument_list>`_.
+Every argument specification will contain a "source" key that tells the code
+generators what attributes to expect inside of the argument specification.
+
+Source types
+''''''''''''
+
+Argument specifications include a wide array of different attributes depending
+on what the "source" key contains. For each type of data source, the code generators
+expect different attributes.
 
 .. todo::
-    * Include documentation for each source type.
+    * Explain different sources.
+
+* external
+
+External sources require a few attributes.
+
+* "tile" sources
+
+There a large number of tile sources. Because "tile" sources are specific tile
+keywords, all the information needed to properly generate code is built into
+the code generation tools. Thus, "tile" sources don't require anything other
+than the "source" keyword.
+
+* lbound
+
+* grid
+    * grid sources
+
+* scratch
+    * SCRATCH
+
 
 subroutine_call_graph
 ^^^^^^^^^^^^^^^^^^^^^
@@ -112,7 +145,7 @@ Contains supplemental information necessary for creating the data item for a
 given task function. Includes:
 
     * **type** of data item, either "TileWrapper" or "DataPacket"
-    * **byte_alignment** of data item variables.
+    * **byte_alignment** of data item variables. Only required for DataPackets.
     * **header** The name of the header file.
     * **source** The name of the source file.
     * **module** The name of the module file. Only required if `language <#language>`_ is **Fortran**.
