@@ -109,12 +109,25 @@ expect different attributes.
 
 .. todo::
     * Explain different sources.
+    * Write section that explains all valid types.
 
 * external
 
-External sources require a few attributes.
+A variable with an external source expects the following attributes: *type*,
+*extents*. See `<#types>`_ for all possible values for *type*. Extents is an 
+array of the format "(x, y, z, ...)" where the number of elements is the dimensionality
+of the extents variable, and each value in the array is the size of the array.
+Note that extents for variables is not yet implemented, however the generators
+still expect that attribute to exist, so *extents* will always be "()".
 
 * "tile" sources
+    * tile_lo
+    * tile_hi
+    * tile_lbound
+    * tile_ubound
+    * tile_interior
+    * tile_arrayBound
+    * tile_deltas
 
 There a large number of tile sources. Because "tile" sources are specific tile
 keywords, all the information needed to properly generate code is built into
@@ -123,11 +136,25 @@ than the "source" keyword.
 
 * lbound
 
-* grid
-    * grid sources
+The *lbound* source is used to store the lower bound of an array specified in the
+Task Function Specification. It expects an *array* attribute, where the value
+is the name of the variable inside of the specification associated with that
+lbound.
+
+* grid_data
+
+The *grid_data* source is for grid variables. The *grid_data* expects the
+attribute *structure_index*. It is a list, where the first value is "CENTER",
+"FLUXX", "FLUXY", or "FLUXZ", and the second value is always 1. The *grid_data*
+source also expects at least one of the following attributes: *variables_in*,
+*variables_out*. Those attributes are a list containing a contiguous number index
+range for an unk array.
 
 * scratch
-    * SCRATCH
+
+The *scratch* source is for variables that are intended to be used as scratch
+arrays. Expects a *type*, *extents*, and *lbound* attribute.
+
 
 
 subroutine_call_graph
