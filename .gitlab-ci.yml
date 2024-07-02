@@ -40,7 +40,7 @@ variables:
  CONDA_ENV_NAME:         "Milhoja_py39"
  CONDA_PYTHON_VERSION:   "3.9"
 
-.test_milhoja_pypkg:
+test_milhoja_pypkg:
  stage: test
  script:
  ##-- Setup all environment variables
@@ -208,7 +208,7 @@ test_doxygen:
  - doxygen
  - popd
 
-.test_sphinx:
+test_sphinx:
  stage: test
  script:
  ##-- Setup all environment variables
