@@ -119,16 +119,17 @@ with the Milhoja pypackage.
   * Fix broken links.
 
 There are two major types of codes that the Milhoja pypackage can generate for the
-user when provided with a `TaskFunction Specification <#>`_. These are the `TaskFunction <#Task Functions>`_
-and the `Data Items <#Data Items>`_. These two types of codes are considered a pair,
-so one JSON input should be used to generate both at the same time. One is not
-guaranteed to work without the other. Ultimately, the application using this package
-decides what code needs to be generated.
+user when provided with a :ref:`users_manual:Task Function Specification`. These are
+:ref:`developers_guide:Task Functions` and :ref:`developers_guide:Data Items`.
+These two types of codes are considered a pair, so one JSON input should be used
+to generate both at the same time. One is not guaranteed to work without the other.
+Ultimately, the application using this package decides what code needs to be generated.
 
 Task Functions
 ^^^^^^^^^^^^^^
 
-Task function generation doc goes here?
+Task Functions are responsible for using :ref:`Data Items` to run the subroutines
+specified inside of the :ref:`Task Function Specification`.
 
 .. todo::
   * Write task function overview.
@@ -139,14 +140,14 @@ Data Items
 
 Generated Data Items are responsible for holding the information needed by the
 Task Function, and work in tandem with the Milhoja runtime if using any device
-offloading. There are two types of Data Items, `Tile Wrappers <#Tile Wrappers>`_
-and `Data Packets <#Data Packets>`_.
+offloading. There are two types of Data Items, :ref:`developers_guide:Tile Wrappers`
+and :ref:`developers_guide:Data Packets`.
 
 Tile Wrappers
 """""""""""""
 
 Tile Wrappers are data items that contain a tile reference as well as thread-private
-variables. Generally, Tile Wrappers are used for Task Functions that do not 
+variables. Generally, Tile Wrappers are used for Task Functions that do not
 require device offloading.
 
 Requirements
@@ -187,17 +188,12 @@ Data Packets
 DataPackets are used when data needs to be offloaded to a device. As such, a
 DataPacket is responsible for determining the memory layout of all of the data
 on the device, requesting that memory to be allocated, and copying that data to
-pinned memory so milhoja can move it over to the device.
+pinned memory so the milhoja runtime can move it over to the device. Because DataPackets
+need to allocate space based on the the DataPacket generator will need an additional JSON
+containing the byte sizes for every data type used in the DataPacket JSON input.
 
-Whether or not a DataPacket subclass needs to be generated is the responsiblity of the application that is using Milhoja and 
-its code generation tools. If a new DataPacket subclass needs to be generated, the DataPacket code generator will be used.
-When the generator is called, it will create new files based on the information passed to it. To do this, the DataPacket 
-generator will need:
-
-* The byte sizes for every data type used in the DataPacket JSON input.
-
-Since an important aspect of the DataPacket is that it's as efficient as possible, there are a number of things to be considered 
-when generating a new DataPacket subclass. 
+Since the DataPacket deals with trasferring data between devices, it's important
+for it to be as memory efficient as possible.
 
 First, since the data packets are being used on a remote memory deivce, the way the information in the DataPacket is stored 
 should be appropriate for that device. Given that these DataPacket classes are primarily for use with a remote GPU, the data is 
@@ -267,14 +263,10 @@ The steps for generating a DataPacket subclass are as follows:
 7. The C to Fortran layer generation creates a new Fortran 90 file that converts the C pointers and variable members in the 
    DataPacket to Fortran based variables, then calls the Fortran task function associated with the generated DataPacket class. 
    This file is named **c2f.f90**.
-   
-   a. For information on the C to Fortran layer, see :doc:`f2c`.
 
 8. The C++ to C layer is created using CG-Kit. Two more template files are generated and are combined with pre-existing template 
    files to create the layer. The generated template files are named **cg-tpl.cpp2c_outer** and **cg-tpl.cpp2c_helper.cpp** and 
    the existing templates are **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp** and **cg-tpl.cpp2c.cpp**.
-
-   a. For more information of the C++ to C interoperability layer, see :doc:`f2c`.
 
 Data Mapping
 ^^^^^^^^^^^^
@@ -298,12 +290,21 @@ When creating a packet using the 'cpp' language option, each item in tile-in, ti
 device memory pointers associated with them. The name of the pointer starts with the prefix '_f4_', followed by the name of the item,
 followed by the suffix '_d'.
 
-    * NOTE: When should we be using FArray3D / FArray2D / FArray1D instead of FArray4D? Is this based on dimensionality of the problem?
-
-
 Code Generation Interface
 -------------------------
 .. autoclass:: milhoja.TileWrapperGenerator_cpp
     :members:
+.. autoclass:: milhoja.TileWrapperModGenerator
+    :members:
+.. autoclass:: milhoja.DataPacketGenerator
+    :members:
 .. autoclass:: milhoja.TaskFunctionGenerator_cpu_cpp
+    :members:
+.. autoclass:: milhoja.TaskFunctionGenerator_cpu_F
+    :members:
+.. autoclass:: milhoja.TaskFunctionGenerator_OpenACC_F
+    :members:
+.. autoclass:: milhoja.TaskFunctionC2FGenerator_cpu_F
+    :members:
+.. autoclass:: milhoja.TaskFunctionCpp2CGenerator_cpu_F
     :members:

@@ -25,9 +25,7 @@ from . import (
 
 class DataPacketGenerator(AbcCodeGenerator):
     """
-    This class serves as a wrapper for all of the packet generation scripts.
-    This will eventually be built into the primary means of generating data
-    packets instead of calling generate_packet.py.
+    Responsible for generating code related to DataPackets.
 
     ..todo::
         * check if lru_caching is necessary
