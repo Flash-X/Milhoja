@@ -139,11 +139,9 @@ module milhoja_runtime_mod
                                                      bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
-!!$            use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
             implicit none
             type(C_PTR),          intent(IN), value :: C_tileWrapperPrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
-!!$            type(Milhoja_tileCInfo_t), intent(IN)   :: tileCInfo
             type(C_PTR),          intent(IN), value :: tileCInfo
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_push_pipeline_cpu_c
@@ -266,11 +264,9 @@ module milhoja_runtime_mod
                                                      bind(c)
             use iso_c_binding,     ONLY : C_PTR
             use milhoja_types_mod, ONLY : MILHOJA_INT
-!!$            use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
             implicit none
             type(C_PTR),          intent(IN), value :: C_packetPrototype
             integer(MILHOJA_INT), intent(IN), value :: C_nThreads
-!!$            type(Milhoja_tileCInfo_t), intent(IN)   :: tileCInfo
             type(C_PTR),          intent(IN), value :: tileCInfo
             integer(MILHOJA_INT)                    :: C_ierr
         end function milhoja_runtime_push_pipeline_gpu_c
@@ -492,15 +488,16 @@ contains
     !!
     !! @param prototype_Cptr  WRITE THIS
     !! @param nThreads        The number of threads to activate in team
+    !! @param tileCInfo_Cp    C-pointer to C-compatible tile information,
+    !!                        carries identity and properties of the tile
+    !!                        and links to actual raw Flash-X real data.
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_pushTileToPipeline(prototype_Cptr, &
                                                 nThreads, tileCInfo_Cp, ierr)
         use iso_c_binding, ONLY : C_PTR
-!!$        use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
 
         type(C_PTR),                            intent(IN)  :: prototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
-!!$        type(Milhoja_tileCInfo_t),              intent(IN)  :: tileCInfo
         type(C_PTR),                            intent(IN)  :: tileCInfo_Cp
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 
@@ -512,10 +509,11 @@ contains
 #  ifdef RUNTIME_SUPPORT_DATAPACKETS
     !> Instruct the runtime to make the GPU-only thread team ready.
     !!
-    !! @param taskFunction    The task function to execute
-    !! @param prototype_Cptr  WRITE THIS
-    !! @param nThreads        The number of threads to activate in team
-    !! @param ierr            The milhoja error code
+    !! @param taskFunction          The task function to execute
+    !! @param packetPrototype_Cptr  C-pointer to a prototype datapacket
+    !! @param nThreads              The number of threads to activate in team
+    !! @param nTilesPerPacket       The maximum number of tiles in a packet
+    !! @param ierr                  The milhoja error code
     subroutine milhoja_runtime_setupPipelineForGpuTasks(taskFunction, &
                                                 nThreads,             &
                                                 nTilesPerPacket,      &
@@ -637,7 +635,7 @@ contains
     !> Instruct the runtime to tear down the GPU-only thread team pipeline.
     !!
     !! @param nThreads        Number of threads to activate in team (diag)
-    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
+    !! @param nTilesPerPacket Max number of tiles in a packet (diag)
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_teardownPipelineForGpuTasks(nThreads, nTilesPerPacket,&
                                                            ierr)
@@ -651,7 +649,7 @@ contains
     !> Instruct the runtime to tear down the CPUGPU thread team pipeline.
     !!
     !! @param nThreads        Number of threads to activate in team (diag)
-    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
+    !! @param nTilesPerPacket Max number of tiles in a packet (diag)
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_teardownPipelineForCpuGpuTasks(nThreads, nTilesPerPacket,&
                                                            ierr)
@@ -665,7 +663,7 @@ contains
     !> Instruct the runtime to tear down the Split CPUGPU thread team pipeline.
     !!
     !! @param nThreads        Number of threads to activate in team (diag)
-    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
+    !! @param nTilesPerPacket Max number of tiles in a packet (diag)
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_teardownPipelineForCpuGpuSplitTasks(nThreads, nTilesPerPacket,&
                                                            ierr)
@@ -679,7 +677,7 @@ contains
     !> Instruct the runtime to tear down the EXTGPU thread team pipeline.
     !!
     !! @param nThreads        Number of threads to activate in team (diag)
-    !! @param nTilesPerPacket Max nuber oftiles in packet (diag)
+    !! @param nTilesPerPacket Max number of tiles in a packet (diag)
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_teardownPipelineForExtGpuTasks(nThreads, nTilesPerPacket,&
                                                            ierr)
@@ -694,15 +692,16 @@ contains
     !!
     !! @param prototype_Cptr  WRITE THIS
     !! @param nThreads        The number of threads to activate in team
+    !! @param tileCInfo_Cp    C-pointer to C-compatible tile information,
+    !!                        carries identity and properties of the tile
+    !!                        and links to actual raw Flash-X real data.
     !! @param ierr            The milhoja error code
     subroutine milhoja_runtime_pushTileToGpuPipeline(prototype_Cptr, &
                                                 nThreads, tileCInfo_Cp, ierr)
         use iso_c_binding, ONLY : C_PTR
-!!$        use Milhoja_tileCInfo_mod, ONLY: Milhoja_tileCInfo_t
 
         type(C_PTR),                            intent(IN)  :: prototype_Cptr
         integer(MILHOJA_INT),                   intent(IN)  :: nThreads
-!!$        type(Milhoja_tileCInfo_t),              intent(IN)  :: tileCInfo
         type(C_PTR),                            intent(IN)  :: tileCInfo_Cp
         integer(MILHOJA_INT),                   intent(OUT) :: ierr
 

@@ -98,6 +98,7 @@ void  CudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
  *  callback for handling the unpacking and other auxiliary work that must occur
  *  once the packet is back in pinned memory.
  *
+ * \param  packet   - the data packet to transfer.
  * \param  callback - the routine that will be registered with the CUDA runtime
  *                    so that the routine can unpack the packet (likely using
  *                    unpack) and perform other desired actions.
