@@ -3,7 +3,7 @@ User Manual
 =============
 
 +++++++++++++++++++++++
-Operation Sepcification
+Operation Specification
 +++++++++++++++++++++++
 
 .. todo::

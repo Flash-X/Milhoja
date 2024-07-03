@@ -189,106 +189,141 @@ DataPackets are used when data needs to be offloaded to a device. As such, a
 DataPacket is responsible for determining the memory layout of all of the data
 on the device, requesting that memory to be allocated, and copying that data to
 pinned memory so the milhoja runtime can move it over to the device. Because DataPackets
-need to allocate space based on the the DataPacket generator will need an additional JSON
-containing the byte sizes for every data type used in the DataPacket JSON input.
+need to allocate space for variables given in the Task Function Specification,
+DataPacket generator will need an additional JSON containing the byte sizes for
+every data type used in the DataPacket JSON input. This allows for the DataPacket
+to be more memory efficient.
 
-Since the DataPacket deals with trasferring data between devices, it's important
-for it to be as memory efficient as possible.
+There are two principles that the DataPacket adheres to in order to improve
+memory efficiency and speed.
 
-First, since the data packets are being used on a remote memory deivce, the way the information in the DataPacket is stored 
-should be appropriate for that device. Given that these DataPacket classes are primarily for use with a remote GPU, the data is 
-copied over using the Struct of Arrays (SoA) pattern. This is a performant pattern for memory being used with GPUs. It's also 
-used to overcome certain challenges in generating Fortran task functions. In order to effectively generate code following the 
-SoA pattern, the DataPacket JSON defines various sections for specifying variables. For more information, see the 
-input_interface/DataPacket JSON section in the UserManual.
+1.  First, since the data packets are being used on a remote memory deivce, the way
+    the information in the DataPacket is stored should be appropriate for that device.
+    Given that these DataPacket classes are primarily for use with a remote GPU, the
+    data is copied over using the Struct of Arrays (SoA) pattern. This is a performant
+    pattern for memory being used with GPUs.
 
-Second, since the DataPackets are being created and managed a very low level, it's important that the DataPacket uses its space 
-efficiently. Because the DataPackets deal memory at the byte level, it's crucial to ensure that each section in the DataPacket 
-is on a byte alignment boundary that matches the boundary of the hardware that the DataPacket and associated task function 
-are being used on, to avoid memory alignment errors. For these reasons, we force the user to specify a byte-alignment value. 
-For similar reasons, the DataPacket generator requires the byte sizes of each variable in the data packet. This is so that the 
-variables can be sorted inside of the packet from largest to smallest, potentially reducing the total amount of necessary 
-padding and being more performant.
+2.  Second, since the DataPackets are being created and managed at a very low level,
+    it's important that the DataPacket uses its space efficiently. Because the
+    DataPackets deal memory at the byte level, it's crucial to ensure that each
+    section in the DataPacket is on a byte alignment boundary that matches the boundary
+    of the hardware that the DataPacket and associated Task Function are being
+    used on, to avoid memory alignment errors. So, every Milhoja installation's 
+    sizes JSON contains a "byte-align" field for this reason. This attribute inside
+    of the sizes JSON also allows the generator to sort variables by size and
+    add any necessary padding to each data array in the packet, further improving
+    memory efficiency.
 
-Using that information, the DataPacket generator can create a new subclass for passing information to a remote device. 
 
 Generation
 ''''''''''
-
-Generating a DataPacket has some small differences when compared to generating
-a TileWrapper object. The DataPacket generator needs a 'sizes' json in addition to
-the TaskFunctionSpecification.
-
-In order to generate a DataPacket subclass, the code uses an external tool called CG-Kit to simplify assembling the generated 
-code into a file (TODO: will CG-Kit be discussed in the developer's guide in depth?). This external tool uses template files 
-to assemble code into a main file by using keywords like _param, _link, and _connector. The code that generates the DataPacket 
-class is responsible for assembling any necessary _params, _links, and _connectors, and calling CG-Kit to combine the fragments 
-into one or more code files for using the derived DataPacket class.
+In order to generate a DataPacket subclass, the code uses an external tool called
+CG-Kit to simplify assembling the generated code into a file. This external tool
+uses template files to assemble code into a main file by using keywords like _param,
+_link, and _connector. The code that generates the DataPacket class is responsible
+for assembling any necessary _params, _links, and _connectors, and calling CG-Kit
+to combine the fragments into one or more code files for using the derived DataPacket
+class.
 
 The steps for generating a DataPacket subclass are as follows:
 
-1. The DataPacket generator takes in a language specifier, a byte sizes JSON, and DataPacket. 
+1.  The DataPacket generator takes in a Task Function Specification, destination,
+    overwrite flag, a path to the Milhoja library installation using the generated
+    code, indentation value, and a logging object derived from Milhoja.AbcLogger.
 
-2. The DataPacket generator loads each JSON and creates any extra information it needs for DataPacket class generation.
+2.  The DataPacket generator loads each JSON and creates any extra information it
+    needs for DataPacket class generation.
 
-3. The generator moves through each section in the DataPacket JSON in a specified order [`constructor`, `tile_metadata`, `tile_in`, 
-   `tile_in_out`, `tile_out`, and `tile_scratch`], sorts the section by size, then generates formatted links, connectors, 
-   and param strings and stores them in dictionaries for later use. The links, connectors, and params from the DataPacket 
-   generator save the implementation for the DataPacket. 
+3.  The generator iterates through each variable in a specific internal order:
+    
+        1. external sources
+        2. tile_metadata sources
+        3. arrays that only have the 'variables_in' attribute. (read)
+        4. arrays that have both the 'variabels_in' and 'variables_out' attribute. (read-write)
+        5. arrays that only have the 'variables_out' attribute. (write)
+        6. scratch data sources.
+        7. creates new variables necessary for C++ Task Functions.
 
-   a. Using the information from the JSON input, the DataPacket generator will implement methods from the base DataPacket class as necessary.
-      The methods `extraAsynchronousQueue()` and `releaseExtraQueue()` are given derived class implementations if there are more than 
-      0 n-extra-streams. The clone method is overridden, using the arguments from the `constructor` section to create a new packet, 
-      satisfying the prototype design pattern. The `unpack()` function uses information from `tile_in`, `tile_in_out`, and `tile_out` to 
-      unpack the information from device memory back into host memory.
+    A section inside of the DataPacket is generated for each item in the internal
+    iteration order. The variables created in each section are sorted by size
+    and formatted links, connectors, and param strings are created for later
+    use with CG-Kit.
 
-   b. The `pack()` function is generated using three distinct phases. The first is the size determination phase, where the size of each item 
-      in the packet is determined, as well as the overall size of the packet. The next phase is the pointer determination phase. Since the 
-      packet uses a SoA pattern, the pointer determination phase gets the start of each array of pointers for each item in the packet. The 
-      size of each item's pointer array is equal to the number of tiles. The last phase is the memcpy phase, where pointers from the host 
-      memory are copied into pinned memory.
+   a.   Using the information from the JSON input, the DataPacket generator will
+        override methods from the base DataPacket class as necessary. The methods
+        `extraAsynchronousQueue()` and `releaseExtraQueue()` are overriden if
+        there are more than 0 n-extra-streams. The clone method is overridden,
+        using the arguments from the `external` section to create a new packet,
+        satisfying the prototype design pattern of the Data Items. The `unpack()`
+        function uses information from read, read-write, and write sections
+        to unpack the information from device memory back into host memory.
 
-4. Once the generator has gone through each section in the JSON, it will write the strings in the dictionaries to CG-Kit 
-   template files for use by CG-Kit. These files are **cg-tpl.datapacket_helpers.cpp** and **cg-tpl.datapacket_outer.cpp**.
+   b.   The `pack()` function is generated using three distinct phases. The first
+        is the size determination phase, where the size of each item in the packet
+        is determined, as well as the overall size of the packet. The next phase
+        is the pointer determination phase. Since the packet uses a SoA pattern,
+        the pointer determination phase gets the start of each array of pointers
+        for each item in the packet. The number of tiles along with the size of 
+        a given section determine the total size of data that the pointer points
+        to. The last phase is the memory copy phase, where pointers from the host
+        memory are copied into pinned memory for use by the runtime.
 
-5. Once the files have been generated, the DataPacket generator calls CG-Kit to insert each param, connector, and link into 
-   the premade template files named **cg-tpl.datapacket.cpp** and **cg-tpl.datapacket_header.cpp**, resulting in the completed
-   implementation of the new DataPacket class. The output files are named **cgkit.[name].cpp** and **cgkit.[name].h**, where
-   [name] is the basename of whatever file was used to generate the packets, without the file extention. 
+4.  Once the generator has created each section each section in the JSON, it will
+    write the generated strings for each section to CG-Kit template files. These
+    files are called **cg-tpl.helper_{name}.cpp** and **cg-tpl.outer_{name}.cpp**,
+    where **{name}** is the `data_item_class_name` found the the Task Function
+    Specification api.
 
-6. If the 'fortran' language is specified, the DataPacket generator will call two more functions to create interoperability 
-   layers for the new DataPacket. One is the C++ to C layer, and the other is the C to Fortran layer. The C to Fortran layer and 
-   the C++ to C layer are created using the same inputs used for the DataPacket.
+5.  Once the files have been generated, the DataPacket generator calls CG-Kit to 
+    insert each param, connector, and link into the premade template files named
+    **cg-tpl.datapacket.cpp** and **cg-tpl.datapacket_header.cpp** (included with
+    the milhoja pypackage), resulting in the completed implementation of the new
+    DataPacket class. The output file names are determined in the :ref:`users_manual/Task Function Specification/data_item`
+    section.
 
-7. The C to Fortran layer generation creates a new Fortran 90 file that converts the C pointers and variable members in the 
-   DataPacket to Fortran based variables, then calls the Fortran task function associated with the generated DataPacket class. 
-   This file is named **c2f.f90**.
+6.  If the 'fortran' language is specified, the DataPacket generator will call two
+    more functions to create interoperability layers for the new DataPacket. One
+    is the C++ to C layer, and the other is the C to Fortran layer. The C to Fortran
+    layer and the C++ to C layer are created using the same inputs used for the DataPacket.
 
-8. The C++ to C layer is created using CG-Kit. Two more template files are generated and are combined with pre-existing template 
-   files to create the layer. The generated template files are named **cg-tpl.cpp2c_outer** and **cg-tpl.cpp2c_helper.cpp** and 
-   the existing templates are **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp** and **cg-tpl.cpp2c.cpp**.
+7.  The C to Fortran layer generation creates a new Fortran 90 file that converts
+    the C pointers and variable members in the DataPacket to Fortran based variables,
+    then calls the Fortran task function associated with the generated DataPacket class. 
+    The name of the file is determined from the Task Function Specification.
+
+8.  The C++ to C layer is created using CG-Kit. Two more template files are generated
+    and are combined with pre-existing template files to create the layer. The
+    generated template file names are determined from the Task Function Specification
+    and the existing templates are **cg-tpl.cpp2c_no_extra_queue.cpp** or **cg-tpl.cpp2c_extra_queue.cpp**
+    and **cg-tpl.cpp2c.cpp**.
 
 Data Mapping
 ^^^^^^^^^^^^
 
-Every item specified in a JSON file will have a mapping in the data packet associated with it. The data packet generator will create
-multiple variables for use within and outside of the data packet. The variables shall be called the name of the associated item followed by 
-a prefix and a suffix.
+Every item specified in a JSON file will have a mapping in the data packet associated
+with it. The data packet generator will create multiple variables for use within
+and outside of the data packet. The variables shall be called the name of the associated
+item surrounded by a prefix and a suffix.
 
-For items in host memory, each item in the JSON will have an associated variable in the data packet that starts with the prefix '_',
-followed by the name of the item, followed by the suffix '_h'. Items contained in the 'constructor'/'thread-private-variables' are the 
-only variables contained in the data packet that have associated host variables in the data packet. Example: 'dt' -> '_dt_h'.
+For items in host memory, each item in the JSON will have an associated variable
+in the data packet that starts with the prefix '_', followed by the name of the
+item, followed by the suffix '_h'. Items contained in the 'external' section are the 
+only variables contained in the data packet that have associated host variables
+in the data packet. Example: 'dt' -> '_dt_h'.
 
-For items in device memory, each item in the JSON will have an associated variable in the data packet that starts with the prefix '_',
-followed by the name of the item, followed by the suffix '_d'. Every item in the JSON will have an associated device pointer.
-Example: 'dt' -> '_dt_d'. 
+For items in device memory, each item in the JSON will have an associated variable
+in the data packet that starts with the prefix '_', followed by the name of the
+item, followed by the suffix '_d'. Every item in the JSON will have an associated
+device pointer. Example: 'dt' -> '_dt_d'. 
 
-Items in the tile-in and tile-in-out sections have pinned memory pointers associated with them in the data packet. This starts with the 
-prefix '_', followed by the name of the item, followed by the suffix '_p'. Example: 'Uin' -> '_Uin_p'.
+Items in the read and read-write sections have pinned memory pointers associated
+with them in the data packet. This starts with the prefix '_', followed by the
+name of the item, followed by the suffix '_p'. Example: 'Uin' -> '_Uin_p'.
 
-When creating a packet using the 'cpp' language option, each item in tile-in, tile-in-out, tile-out, and tile-scratch will have FArrayND 
-device memory pointers associated with them. The name of the pointer starts with the prefix '_f4_', followed by the name of the item,
-followed by the suffix '_d'.
+When creating a packet using the 'cpp' language option, each item in read, read-write,
+write, and scratch sections will have FArray{N}D device memory pointers associated
+with them. The name of the pointer starts with the prefix '_f4_', followed by the
+name of the item, followed by the suffix '_d'.
 
 Code Generation Interface
 -------------------------
