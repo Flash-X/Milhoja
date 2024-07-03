@@ -1,6 +1,5 @@
 import json
 
-from numbers import Integral
 from pathlib import Path
 
 from .constants import LOG_LEVEL_BASIC_DEBUG
