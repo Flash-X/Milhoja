@@ -423,7 +423,6 @@ void  GridAmrex::destroyDomain(void) {
 
     Logger::instance().log("[GridAmrex] Destroyed domain.");
 }
-#endif
 
 /**
  * Set the initial conditions and setup the grid structure so that the initial
@@ -1265,6 +1264,7 @@ void    GridAmrex::ErrorEst(int level, amrex::TagBoxArray& tags,
     Logger::instance().log(msg);
 #endif
 }
+#endif
 
 }
 
