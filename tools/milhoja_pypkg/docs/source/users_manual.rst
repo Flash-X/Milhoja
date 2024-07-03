@@ -311,7 +311,7 @@ Example:
     {
         "data_item": {
             "type": "TileWrapper",
-            "byte_alignment": 1,
+            "byte_alignment": 16,
             "header": "TileWrapper_cpu_taskfn_0.h",
             "module": "TileWrapper_cpu_taskfn_0_mod.F90",
             "source": "TileWrapper_cpu_taskfn_0.cxx"

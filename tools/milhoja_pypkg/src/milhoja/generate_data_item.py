@@ -8,13 +8,10 @@ from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
 from .DataPacketGenerator import DataPacketGenerator
 
 
-def generate_data_item(tf_spec, destination, overwrite, library_path,
-                       indent, logger):
+def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
+                       logger):
     """
-    Generate all data item code related to the given task function.
-
-    .. todo::
-        Add in all other code generators.
+    Generate a Data Item based on the given Task Function Specification.
 
     :param tf_spec: TaskFunction specification including data item's
         specification
@@ -66,7 +63,7 @@ def generate_data_item(tf_spec, destination, overwrite, library_path,
         }
         assert set(sizes) == expected
         for name, sz in sizes.items():
-            assert isinstance(sz, Integral)
+            assert isinstance(sz, int)
             assert sz > 0
             msg = f"\tSize of {name} = {sz} bytes"
             logger.log(LOG_TAG, msg, LOG_LEVEL_BASIC_DEBUG)

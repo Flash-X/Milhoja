@@ -115,9 +115,6 @@ Code Generation
 This document is a living document detailing the code generation systems that come bundled
 with the Milhoja pypackage.
 
-.. todo::
-  * Fix broken links.
-
 There are two major types of codes that the Milhoja pypackage can generate for the
 user when provided with a :ref:`users_manual:Task Function Specification`. These are
 :ref:`developers_guide:Task Functions` and :ref:`developers_guide:Data Items`.
@@ -128,8 +125,8 @@ Ultimately, the application using this package decides what code needs to be gen
 Task Functions
 ^^^^^^^^^^^^^^
 
-Task Functions are responsible for using :ref:`Data Items` to run the subroutines
-specified inside of the :ref:`Task Function Specification`.
+Task Functions are responsible for using :ref:`developers_guide:Data Items` to run the subroutines
+specified inside of the :ref:`users_manual:Task Function Specification`.
 
 .. todo::
   * Write task function overview.
@@ -208,10 +205,10 @@ memory efficiency and speed.
     DataPackets deal memory at the byte level, it's crucial to ensure that each
     section in the DataPacket is on a byte alignment boundary that matches the boundary
     of the hardware that the DataPacket and associated Task Function are being
-    used on, to avoid memory alignment errors. So, every Milhoja installation's 
-    sizes JSON contains a "byte-align" field for this reason. This attribute inside
-    of the sizes JSON also allows the generator to sort variables by size and
-    add any necessary padding to each data array in the packet, further improving
+    used on, to avoid memory alignment errors. For this reason, the `data_item` section
+    of the Task Function Specification contains a "byte_align" attribute. This attribute
+    inside of the specification also allows the generator to sort variables by size
+    and add any necessary padding to each data array in the packet, further improving
     memory efficiency.
 
 
@@ -278,7 +275,7 @@ The steps for generating a DataPacket subclass are as follows:
     insert each param, connector, and link into the premade template files named
     **cg-tpl.datapacket.cpp** and **cg-tpl.datapacket_header.cpp** (included with
     the milhoja pypackage), resulting in the completed implementation of the new
-    DataPacket class. The output file names are determined in the :ref:`users_manual/Task Function Specification/data_item`
+    DataPacket class. The output file names are determined in the :ref:`users_manual:data_item`
     section.
 
 6.  If the 'fortran' language is specified, the DataPacket generator will call two
