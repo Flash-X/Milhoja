@@ -12,6 +12,7 @@
 #include "Milhoja_TileIter.h"
 #include "Milhoja_interface_error_codes.h"
 
+#ifdef FULL_MILHOJAGRID
 extern "C" {
     /**
      * Build and access a tile iterator.  This includes allocating dynamically
@@ -221,4 +222,4 @@ extern "C" {
         return MILHOJA_SUCCESS;
     }
 }
-
+#endif

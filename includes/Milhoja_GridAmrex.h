@@ -38,7 +38,7 @@ namespace milhoja {
   * Grid derived class implemented with AMReX.
   */
 class GridAmrex : public Grid
-#ifdef FULL_MILHOJAGRID
+#if defined(FULL_MILHOJAGRID) || defined(MILHOJA_AMREX_GRID_BACKEND)
 		, private amrex::AmrCore
 #endif
 {
@@ -82,9 +82,11 @@ public:
     RealVect     getProbLo(void) const override;
     RealVect     getProbHi(void) const override;
     unsigned int getMaxRefinement(void) const override;
-    unsigned int getMaxLevel(void) const override;
     unsigned int getNumberLocalBlocks(void) override;
+#endif
+    unsigned int getMaxLevel(void) const override;
     std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) override;
+#ifdef FULL_MILHOJAGRID
     TileIter*                 buildTileIter_forFortran(const unsigned int lev) override;
     void         writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const override;
@@ -126,7 +128,7 @@ private:
     //!< Assume that guardcells are not used when computing fluxes.
     static constexpr   unsigned int NO_GC_FOR_FLUX = 0;
 
-#ifdef FULL_MILHOJAGRID
+#ifdef MILHOJA_AMREX_GRID_BACKEND
     void    fillPatch(amrex::MultiFab& mf, const int level);
 
     //----- AMRCORE OVERRIDES
@@ -160,6 +162,7 @@ private:
     std::vector<std::vector<amrex::MultiFab>>   fluxes_;  // Flux data
     amrex::Vector<amrex::BCRec>                 bcs_;   //!< Boundary conditions
 
+#ifdef FULL_MILHOJAGRID
     // AMReX is given this communicator and therefore should own this.  However,
     // I have not yet found a getter to access it in this class.
     const MPI_Comm        comm_;
@@ -168,6 +171,7 @@ private:
     // These cannot be obtained from AMReX
     const unsigned int    nBlocksX_, nBlocksY_, nBlocksZ_;
     const unsigned int    nxb_, nyb_, nzb_;
+#endif
     amrex::Interpolater*  ccInterpolator_;
 
     // These cannot be acquired from AMReX and play an important role here in
