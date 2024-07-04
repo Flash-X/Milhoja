@@ -993,7 +993,7 @@ std::string  ThreadTeam::printState_NotThreadsafe(const std::string& method,
  * in the team.
  * 
  * \todo Check if some errors could be thrown during destruction.  If so, do we
- *       accept such ugly failure handling or device a better logging/error
+ *       accept such ugly failure handling or devise a better logging/error
  *       handling scheme.
  *
  * \param  varg - a void pointer to the thread's ThreadData initialization data
@@ -1435,7 +1435,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
             // managed by the resource itself and there is no possibility of a
             // race condition on calling enqueue.
             //
-            // TODO: Do the technical specs or requirements require th addition
+            // TODO: Do the technical specs or requirements require the addition
             // of a req/spec that states that the enqueue method of all runtime
             // elements must be thread safe and therefore manage access to
             // internal shared resources by external calls?
