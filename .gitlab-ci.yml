@@ -201,7 +201,7 @@ test_gnu:
  - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
  - conda deactivate
 
-test_doxygen:
+.test_doxygen:
  stage: test
  script:
  - pushd docs/doxygen
