@@ -291,7 +291,7 @@ void   CudaStreamManager::releaseStream(Stream& stream) {
     // Streams will be released frequently and we might have a great many
     // streams.  Therefore, we don't want to perform this error checking by
     // default.
-    for (const auto& freeStream : freeStreams_) {
+    for (const auto& freeStream : streams_) {
         if (stream.cudaStream == freeStream.cudaStream) {
             pthread_mutex_unlock(&idxMutex_);
             throw std::invalid_argument("[CudaStreamManager::releaseStream] "

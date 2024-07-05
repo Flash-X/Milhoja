@@ -288,19 +288,6 @@ void   FakeCudaStreamManager::releaseStream(Stream& stream) {
                                     "All streams accounted for.  No streams to release.");
     }
 
-#ifdef DEBUG_RUNTIME
-    // Streams will be released frequently and we might have a great many
-    // streams.  Therefore, we don't want to perform this error checking by
-    // default.
-    for (const auto& freeStream : freeStreams_) {
-        if (stream.cudaStream == freeStream.cudaStream) {
-            pthread_mutex_unlock(&idxMutex_);
-            throw std::invalid_argument("[FakeCudaStreamManager::releaseStream] "
-                                        "Given stream is already free");
-        }
-    }
-#endif
-
     // We must put the stream back in the queue before emitting the signal
     streams_.push_back( std::move(stream) );
     pthread_cond_signal(&streamReleased_);
