@@ -127,7 +127,7 @@ test_gnu:
  ##-- Copy cgkit to this space so that it can be installed without needing special
  #    permissions.
  - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
- - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git
+ - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git -b pushtile_supported
  - cd $MILHOJA_WORK_CLONE
  - git log -1 --oneline
  ##-- Install python packages for use throughout
