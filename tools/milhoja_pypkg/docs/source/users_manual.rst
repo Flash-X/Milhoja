@@ -23,6 +23,15 @@ This documentation is up to date with Milhoja JSON version 1.0.0 and milhoja pyp
 version 0.0.4. This documentation will always be updated to reflect primary standard
 defined by and used Milhoja, which is the Milhoja JSON Format.
 
+While it is possible to load a raw Task Function Specification and use it, it is
+highly recommended that you load the JSON using 
+
+Task Function Specification Requirements
+----------------------------------------
+
+.. todo::
+    * Write requirements...
+
 format
 ------
 
@@ -91,18 +100,18 @@ c2f_source
 ^^^^^^^^^^
 
 The name of the source file for the C to Fortran interoperability layer. Only
-required if the `language <#language>`_ used is **Fortran**.
+required if the :ref:`users_manual:language` used is **Fortran**.
 
 fortran_source
 ^^^^^^^^^^^^^^
 
 The name of the fortran source file for the task function. Required if the
-`language <#language>`_ being used is **Fortran**.
+:ref:`users_manual:language` being used is **Fortran**.
 
 computation_offloading
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The computation offloading to use. Leave empty when `processor <#processor>`_ is **CPU**, 
+The computation offloading to use. Leave empty when :ref:`users_manual:processor` is **CPU**, 
 and use **OpenACC** when **GPU** is the processor.
 
 variable_index_base
@@ -114,12 +123,12 @@ argument_list
 ^^^^^^^^^^^^^
 
 The list of arguments for the task function. All arguments should be defined
-inside of the `argument_specifications <#argument_specifications>`_ section.
+inside of the :ref:`users_manual:argument_specifications` section.
 
 argument_specifications
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Contains the specifications for every argument found in `argument_list <#argument_list>`_.
+Contains the specifications for every argument found in :ref:`users_manual:argument_list`.
 Every argument specification will contain a "source" key that tells the code
 generators what attributes to expect inside of the argument specification.
 
@@ -130,14 +139,20 @@ Argument specifications include a wide array of different attributes depending
 on what the "source" key contains. For each type of data source, the code generators
 expect different attributes.
 
-* **external**
+external
+********
 
 A variable with an external source expects the following attributes: *type*,
-*extents*. See `types <#types>`_ for all possible values for *type*. Extents is an 
+*extents*. See :ref:`users_manual:types` for all possible values for *type*. Extents is an 
 array of the format "(x, y, z, ...)" where the number of elements is the dimensionality
 of the extents variable, and each value in the array is the extents of that array.
 Note that extents for variables is not yet implemented, however the generators
 still expect that attribute to exist, so *extents* will always be "()".
+
+Any external variables are passed in by value to the Data Item constructor,
+meaning that a deep copy of the variable is made and stored within the Data
+Item. Therefore, external variables cannot be changed once they are passed into
+the Data Item, and thus thread-private variables.
 
 Example:
 
@@ -153,7 +168,11 @@ Example:
         }
     }
 
-* **tile_metadata sources**
+tile_metadata sources
+*********************
+
+All tile_metadata sources:
+
     * tile_lo
     * tile_hi
     * tile_lbound
@@ -191,7 +210,8 @@ Examples:
         }
     }
 
-* **lbound**
+lbound
+******
 
 The *lbound* source is used to store the lower bound of an array specified in the
 Task Function Specification. It expects an *array* attribute, where the value
@@ -219,7 +239,8 @@ Example: [#]_
 
 .. [#] Notice that "scratch_hydro_op1_auxC" must be defined for the lbound.
 
-* **grid_data**
+grid_data
+*********
 
 The *grid_data* source is for grid variables. The *grid_data* expects the
 attribute *structure_index*. It is a list, where the first value is "CENTER",
@@ -249,7 +270,8 @@ Example:
         }
     }
 
-* **scratch**
+scratch
+*******
 
 The *scratch* source is for variables that are intended to be used as scratch
 arrays. Expects a *type*, *extents*, and *lbound* attribute.
@@ -276,7 +298,7 @@ arrays. Expects a *type*, *extents*, and *lbound* attribute.
 subroutine_call_graph
 ^^^^^^^^^^^^^^^^^^^^^
 
-Contains the call order for all of the functions specified in the `subroutines <#subroutines>`_
+Contains the call order for all of the functions specified in the :ref:`users_manual:subroutines`
 section. Consists of an ordered list of subroutine names. If multiple subroutines
 can be called at once (i.e. using threads or streams), one can use a nested list 
 of subroutine names instead of just one subroutine name.
@@ -302,7 +324,7 @@ given task function. Includes:
     * **byte_alignment** of data item variables. Only required for DataPackets.
     * **header** The name of the header file.
     * **source** The name of the source file.
-    * **module** The name of the module file. Only required if `language <#language>`_ is **Fortran**.
+    * **module** The name of the module file. Only required if :ref:`users_manual:language` is **Fortran**.
 
 Example:
 
@@ -327,7 +349,7 @@ inside of the task function. The dictionary includes this information:
 
     * **interface_file** The interface or header file that the subroutine definition is in.
     * **argument_list** The ordered parameter list of the subroutine.
-    * **argument_mapping** The mapping of subroutine arguments to `task function arguments <#argument_list>`_.
+    * **argument_mapping** The mapping of subroutine arguments to :ref:`users_manual:argument_specifications`
 
 
 types

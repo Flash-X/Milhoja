@@ -147,19 +147,21 @@ Tile Wrappers are data items that contain a tile reference as well as thread-pri
 variables. Generally, Tile Wrappers are used for Task Functions that do not
 require device offloading.
 
-Requirements
-''''''''''''
+TileWrapper Requirements
+''''''''''''''''''''''''
 
 1. The base TileWrapper class shall be derived from DataItem and written such that an
    instantiation of it can be used directly as the prototype for a TF that has no 
    thread-private variables. The class interface must contain a means for TFs to
    access tile metadata via objects instantiated from TileWrapper or from objects
    instantiated from classes derived from TileWrapper.
+
 2. For those tile-based TFs that use "external" variables, a derived custom version
    of TileWrapper shall be written by a Milhoja code generator in a way analogous
    to the generation of custom DataPacket code. The interface shall allow for access
    of tile metadata and external variables by the TF and such that the TF code
    generator can write the code needed to access all such variables.
+
 3. If thread-private scratch data is needed by a tile-based TF, then the derived
    custom version of TileWrapper shall be written to allocate a static pool of
    scratch memory of sufficient size structured such that each activated thread
@@ -169,6 +171,7 @@ Requirements
    This interface shall be such that it allows calling code to determine when to
    acquire and release the scratch rather than impose, for instance, that scratch
    memory management must occur as part of or just before/after a Milhoja invocation.
+
 4. The interface of the TileWrapper class shall be made and maintained as similar
    as possible to that of the DataPacket class so that the use of prototypes and
    cloning by the runtime and calling code are as similar as possible. This should
@@ -211,9 +214,57 @@ memory efficiency and speed.
     and add any necessary padding to each data array in the packet, further improving
     memory efficiency.
 
+DataPacket Requirements
+'''''''''''''''''''''''
+
+1.  The DataPacket generator shall construct C++ classes derived from Milhoja's
+    DataPacket base class and any other necessary files for use with either
+    corresponding C++ or Fortran task functions, but not both.
+
+2.  In order to generate a DataPacket, the DataPacket generator shall require an
+    input data structure that is, or is derived from, :py:class:`milhoja.TaskFunction`,
+    as well as an input file containing the sizes of every data type of every
+    variable defined inside of the :py:class:`milhoja.TaskFunction` or its derived
+    type, called the sizes json.
+
+3.  The contents of an input data structure should not be dependent on the language of
+    the corresponding task function or vice-versa. Thus, the information contained
+    within the input data file shall be language agnostic.
+
+    .. todo::
+        * This might be a requirement of the TaskFunction class, not the DataPacket...
+
+4.  The DataPacket generator shall attempt to optimize the derived DataPacket
+    class such that it uses as little memory as possible, given the information
+    from the data structure input and the sizes json.
+
+5.  The DataPacket generator shall assume that the information in the given input
+    is self-contained and doesn't require any external files, outside of those
+    found in the Milhoja Runtime, for generated code to function properly.
+
+6.  The DataPacket generator shall have a consistent set of rules, across all
+    possible outputs, for mapping data inside of the input data structure to the 
+    variables contained within the generated derived DataPacket class. It's crucial
+    that variable names have consistent rulings, in the event that other code
+    generators need to reference variables contained inside of the derived DataPacket
+    class.
+
+7.  For each variable defined inside of the input data structure, a generated
+    derived DataPacket class will request that the runtime allocates space with
+    appropriate padding for that variable onto the external device. The derived
+    class will also create a pinned memory pointer and device memory pointer for
+    each variable. The derived class is also responsible for copying the memory
+    from the host variables into pinned memory, as well as copying pinned memory
+    back to the host memory.
+
+8.  For any variables contained inside of the input data structure that are considered
+    :ref:`users_manual:external` variables, the generated derived DataPacket class
+    will contain a third "host" pointer that contains the value of the variable when
+    it was passed into the constructor.
 
 Generation
 ''''''''''
+
 In order to generate a DataPacket subclass, the code uses an external tool called
 CG-Kit to simplify assembling the generated code into a file. This external tool
 uses template files to assemble code into a main file by using keywords like _param,
@@ -231,8 +282,8 @@ The steps for generating a DataPacket subclass are as follows:
 2.  The DataPacket generator loads each JSON and creates any extra information it
     needs for DataPacket class generation.
 
-3.  The generator iterates through each variable in a specific internal order:
-    
+3.  The generator iterates through each variable in a specific internal order: [#]_
+
         1. external sources
         2. tile_metadata sources
         3. arrays that only have the 'variables_in' attribute. (read)
@@ -264,6 +315,9 @@ The steps for generating a DataPacket subclass are as follows:
         a given section determine the total size of data that the pointer points
         to. The last phase is the memory copy phase, where pointers from the host
         memory are copied into pinned memory for use by the runtime.
+
+.. [#] Note that this is used internally only, argument order is preserved through
+       :ref:`users_manual:argument_list`. 
 
 4.  Once the generator has created each section each section in the JSON, it will
     write the generated strings for each section to CG-Kit template files. These
