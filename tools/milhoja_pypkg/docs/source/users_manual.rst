@@ -36,7 +36,8 @@ version 0.0.4. This documentation will always be updated to reflect primary stan
 defined by and used Milhoja, which is the Milhoja JSON Format.
 
 While it is possible to load a raw Task Function Specification and use it, it is
-highly recommended that you load the JSON using 
+highly recommended that you load the JSON using the `TaskFunction.from_json` to
+avoid any bugs from loading the JSON directly.
 
 Task Function Specification Requirements
 ----------------------------------------
