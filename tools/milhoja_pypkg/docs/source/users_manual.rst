@@ -1,6 +1,6 @@
-=============
+===========
 User Manual
-=============
+===========
 
 +++++++++++++++++++++++
 Operation Specification
@@ -10,7 +10,7 @@ The operation specification is an intermediate step to get to the :ref:`users_ma
 The file consists of all scratch and external variable definitions, and the
 definitions of each subroutine containing the definitions of each parameter.
 Generally, this file will be generated via the code generation tools, and not
-by hand. This file, along with the :ref:`Grid Specification` and the recipe call
+by hand. This file, along with the :ref:`users_manual:Grid Specification` and the recipe call
 graph, are used to generate the Task Function Specification.
 
 ++++++++++++++++++
