@@ -6,8 +6,20 @@ User Manual
 Operation Specification
 +++++++++++++++++++++++
 
-.. todo::
-    * Write Op Spec Specification here.
+The operation specification is an intermediate step to get to the :ref:`users_manual:Task Function Specification`.
+The file consists of all scratch and external variable definitions, and the
+definitions of each subroutine containing the definitions of each parameter.
+Generally, this file will be generated via the code generation tools, and not
+by hand. This file, along with the :ref:`Grid Specification` and the recipe call
+graph, are used to generate the Task Function Specification.
+
+++++++++++++++++++
+Grid Specification
+++++++++++++++++++
+
+The Grid Specification is a small JSON containing information about the grid.
+Inlcudes the `dimension`, `nxb`, `nyb`, `nzb`, and the number of guard cells,
+`nguardcells`. Generally, this file will be generated and not written by hand.
 
 +++++++++++++++++++++++++++
 Task Function Specification
