@@ -136,7 +136,7 @@ FakeCudaMemoryManager::FakeCudaMemoryManager(void)
         std::string  errMsg = "[FakeCudaMemoryManager::FakeCudaMemoryManager] ";
         errMsg += "Unable to allocate 'pinned' memory\n";
         errMsg += "FakeCuda error\n";
-	perror(NULL);
+        perror(NULL);
         throw std::runtime_error(errMsg);
     }
     Logger::instance().log(  "[FakeCudaMemoryManager] Allocated " 
@@ -150,7 +150,7 @@ FakeCudaMemoryManager::FakeCudaMemoryManager(void)
         std::string  errMsg = "[FakeCudaMemoryManager::FakeCudaMemoryManager] ";
         errMsg += "Unable to allocate GPU memory\n";
         errMsg += "FakeCuda error\n";
-	perror(NULL);
+        perror(NULL);
         throw std::runtime_error(errMsg);
     }
     Logger::instance().log(  "[FakeCudaMemoryManager] Allocated " 

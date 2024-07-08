@@ -195,9 +195,9 @@ void MoverUnpacker::handleTransferFinished(void* userData) {
     if (dataReceiver) {
         while (packet->nTiles() > 0) {
 #if(0)
-	    std::shared_ptr<Tile> curTile = std::move(packet->popTile());
-	    std::shared_ptr<TileWrapper> wrappedTile = 
-	              unpacker->tileProto_->clone( std::move(curTile) );
+            std::shared_ptr<Tile> curTile = std::move(packet->popTile());
+            std::shared_ptr<TileWrapper> wrappedTile =
+                  unpacker->tileProto_->clone( std::move(curTile) );
             dataReceiver->enqueue( std::move(wrappedTile) );
 #endif
             dataReceiver->enqueue(

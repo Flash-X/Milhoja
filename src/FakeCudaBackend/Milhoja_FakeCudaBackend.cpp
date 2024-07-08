@@ -88,8 +88,8 @@ void  FakeCudaBackend::initiateHostToGpuTransfer(DataPacket& packet) {
     //     throw std::runtime_error(errMsg);
     // }
     memcpy(packet.copyToGpuStart_gpu(),
-	   packet.copyToGpuStart_host(),
-	   packet.copyToGpuSizeInBytes());
+           packet.copyToGpuStart_host(),
+           packet.copyToGpuSizeInBytes());
 }
 
 /**
@@ -128,8 +128,8 @@ void  FakeCudaBackend::initiateGpuToHostTransfer(DataPacket& packet,
     //     throw std::runtime_error(errMsg);
     // }
     memcpy(packet.returnToHostStart_host(),
-	   packet.returnToHostStart_gpu(),
-	   packet.returnToHostSizeInBytes());
+           packet.returnToHostStart_gpu(),
+           packet.returnToHostSizeInBytes());
 
     // cErr = cudaLaunchHostFunc(stream, callback, callbackData); 
     // if (cErr != cudaSuccess) {

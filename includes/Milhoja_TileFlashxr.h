@@ -33,15 +33,17 @@ class TileFlashxr
 {
 public:
     TileFlashxr(const unsigned int level,
-              const int gridIdxOrBlkId,
-              const int tileIdx,
-              const amrex::Box&& interior,
-              const amrex::Box&& dataArray,
-		Real*  unkBlkPtr,
-              std::vector<Real*>&& fluxBlkPtrs);
+                const int gridIdxOrBlkId,
+                const int tileIdx,
+                const amrex::Box&& interior,
+                const amrex::Box&& dataArray,
+                Real*  unkBlkPtr,
+                std::vector<Real*>&& fluxBlkPtrs);
+
     TileFlashxr(const FlashxrTileRawPtrs tP,
-			 const FlashxTileRawInts tI,
-			 const FlashxTileRawReals tR);
+                const FlashxTileRawInts tI,
+                const FlashxTileRawReals tR);
+
     ~TileFlashxr(void);
 
     TileFlashxr(TileFlashxr&)                  = delete;
@@ -70,15 +72,15 @@ public:
     std::vector<Real*>  fluxDataPtrs(void) override;
 
 private:
-    const unsigned int                     level_;    /**< 0-based level of Tile */
-    const int                              gridIdxOrBlkId_;  /**< grid index or block ID - for debugging */
-    const int                              tileIdx_;  /**< tile index - unused, for debugging */
-    const IntVect                          lo_, hi_;
-    const IntVect                          loGC_, hiGC_;
-    const int                              nCcComp_;
-    const int                              nFluxComp_;
-    const RealVect                         deltas_;
-    Real*                                  unkBlkPtr_;
+    const unsigned int               level_;    /**< 0-based level of Tile */
+    const int                        gridIdxOrBlkId_;  /**< grid index or block ID - for debugging */
+    const int                        tileIdx_;  /**< tile index - unused, for debugging */
+    const IntVect                    lo_, hi_;
+    const IntVect                    loGC_, hiGC_;
+    const int                        nCcComp_;
+    const int                        nFluxComp_;
+    const RealVect                   deltas_;
+    Real*                            unkBlkPtr_;
     std::vector<Real*>               fluxBlkPtrs_;
 };
 

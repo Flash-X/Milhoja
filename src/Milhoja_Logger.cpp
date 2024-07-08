@@ -149,8 +149,8 @@ Logger::~Logger(void) {
         // complain a bit if not.
         std::cerr << "[Logger::~Logger] ERROR - Not finalized" << std::endl;
 #else
-	log("[Logger] ~Logger called, high time to terminate:");
-	finalize();
+        log("[Logger] ~Logger called, high time to terminate:");
+        finalize();
 #endif
     }
 }
