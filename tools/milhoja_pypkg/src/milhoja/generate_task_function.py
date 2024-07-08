@@ -8,8 +8,13 @@ from . import TileWrapperModGenerator
 
 def generate_task_function(tf_spec, destination, overwrite, indent, logger):
     """
-    .. todo::
-        Add in all other code generators.
+    Generates Task Function code based on the given input parameters.
+
+    :param tf_spec: The Task Function Specification object
+    :param destination: The pre-existing destination folder for the files
+    :param overwrite: Flag for overwriting any files at the destination if set
+    :param indent: The number of spaces to set as the indent
+    :param logger: The logging object derived from :py:class:`AbcLogger`
     """
     processor = tf_spec.processor.lower()
     offloading = tf_spec.computation_offloading.lower()

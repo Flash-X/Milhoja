@@ -14,12 +14,13 @@ class TileWrapperModGenerator(AbcCodeGenerator):
     for C++ based task functions.
 
     todo::
-        * This is very similar to the DataPacket version of the module generator
-          class. Is it possible to combine the two?
+        * This is very similar to the DataPacket version of the module
+          generator class. Is it possible to combine the two? Should we even
+          combine the two?
     """
     # C2F Module generator uses its own specific type mapping for the
     # fortran interface.
-    # TODO: We should not have to do this...
+    # todo: * We should not have to do this...
     _CUSTOM_TYPE_MAPPING = {
         "milhoja::Real": "real(MILHOJA_REAL)",
         "real": "real(MILHOJA_REAL)",
@@ -29,6 +30,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
     }
 
     def __init__(self, tf_spec: TaskFunction, indent, logger):
+        """Constructor."""
         if tf_spec.language.lower() == "c++":
             raise LogicError("No mod file for C++.")
 
@@ -40,12 +42,15 @@ class TileWrapperModGenerator(AbcCodeGenerator):
         self.INDENT = " " * indent
 
     def generate_header_code(self, destination, overwrite):
+        """
+        Generate header code. TileWrapper module does not have a header
+        file, so this raises a LogicError.
+        """
         raise LogicError("No header file for data item module.")
 
     def generate_source_code(self, destination, overwrite):
         """
-        Generates the fortran source code for the module interface file for
-        the DataPacket.
+        Generates the fortran source code for the mod file for a TileWrapper.
 
         :param destination: The destination folder of the mod file.
         :param overwrite: Overwrite flag for generation.

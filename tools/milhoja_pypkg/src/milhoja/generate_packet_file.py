@@ -19,7 +19,7 @@ def generate_packet_file(
     sourcetree_opts=DEFAULT_SOURCE_TREE_OPTS
 ):
     """
-    Generates a data packet file for creating the entire packet.
+    Generates a DataPacket file based on the inputs with CG-Kit.
 
     :param str output: The output name for the file.
     :param list linked_templates: All templates to be linked. The first in the

@@ -35,6 +35,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
     INSTANCE_ARGS = "instance_args"
 
     def __init__(self, tf_spec: TaskFunction, indent, logger):
+        """Constructor."""
         header = None
         source = tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         self.tf_cpp2c_name = source
@@ -114,6 +115,13 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         return outer_template
 
     def _fill_external_connectors(self, arg, spec, connectors: dict):
+        """
+        Fills a connector for the helper templates for external arguments.
+
+        :param arg: The name of the argument
+        :param spec: The argument specification. 'external' is assumed source.
+        :param connectors: All connectors for the helper template.
+        """
         # convert to C type if necessary.
         dtype = F2C_TYPE_MAPPING.get(spec["type"], spec["type"])
         connectors[self.C2F_ARG_LIST].append(f"const {dtype} {arg}")
@@ -122,6 +130,17 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         connectors[self.INSTANCE_ARGS].append(arg)
 
     def _fill_mdata_connectors(self, arg, spec, connectors: dict, saved):
+        """
+        Fills a connector for the helper templates for tile metadata
+        arguments.
+
+        :param arg: The name of the argument.
+        :param spec: The argument specification. Assumed source is any tile
+                     metadata.
+        :param connectors: The dictionary containing all connectors for the
+                           helper template.
+        :param saved: The set of all previously saved tile metadata arguments.
+        """
         src = spec["source"]
         # # we combine tile_lo and tile_hi.
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
@@ -171,6 +190,15 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 )
 
     def _fill_lbound_connectors(self, arg, spec, connectors, saved):
+        """
+        Fills the connector for a helper template for any lbound sources.
+
+        :param arg: The argument name.
+        :param spec: The argument specification. 'lbound' is assumed source.
+        :param connectors: The dictionary of connectors for the template.
+        :param saved: A set of tile keywords that were already written to the
+                      connector.
+        """
         associated_var = spec["array"]
         var_spec = self._tf_spec.argument_specification(associated_var)
         # # we need to add loGC or hiGC to the list of tile data
@@ -208,6 +236,12 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         connectors[self.REAL_ARGS].append(f"static_cast<void*>({arg})")
 
     def _fill_grid_connectors(self, arg, spec, connectors):
+        """
+        Fills a connector for helper templates for grid arguments.
+
+        :param arg: The argument name.
+        :param spec: The argument specification. 'grid' is assumed source.
+        """
         dtype = SOURCE_DATATYPES[spec["source"]]
         grid_axis = spec["structure_index"][0]
         func = GRID_DATA_PTRS[grid_axis].format("tileDesc")
@@ -216,6 +250,13 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         connectors[self.REAL_ARGS].append(f"static_cast<void*>({arg})")
 
     def _fill_scratch_connectors(self, arg, spec, connectors):
+        """
+        Fills a connector for helper templates for scratch arguments.
+
+        :param arg: The argument name.
+        :param spec: The argument specification. 'scratch' is assumed source.
+        :param connectors: The dictionary of connectors.
+        """
         dtype = F2C_TYPE_MAPPING.get(spec["type"], spec["type"])
         class_name = self._tf_spec.data_item_class_name
 
@@ -228,6 +269,12 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         connectors[self.C2F_ARG_LIST].append(f'const void* {arg}')
 
     def _generate_helper_template(self, destination: Path, overwrite) -> Path:
+        """
+        Generates the helper template for use with CG-Kit.
+
+        :param destination: The location to save the generated code.
+        :param overwrite: Whether or not to overwrite the destination.
+        """
         helper_template = destination.joinpath(
             f"cg-tpl.{self._tf_spec.name}_helper.cpp"
         ).resolve()
@@ -290,9 +337,19 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         return helper_template
 
     def generate_header_code(self, destination, overwrite):
+        """
+        Generates header code for the Cpp2C layer for task functions.
+        Task functions do not use a header file, so this throws a LogicError.
+        """
         raise LogicError("Cpp2C TF does not have a header file.")
 
     def generate_source_code(self, destination, overwrite):
+        """
+        Generates the source code for the Cpp2C layer.
+
+        :param destination: The location to save the generated code.
+        :param overwrite: Whether or not to overwrite any file at destination.
+        """
         dest_path = Path(destination).resolve()
         if not dest_path.is_dir():
             self._error(f"{dest_path} does not exist!")

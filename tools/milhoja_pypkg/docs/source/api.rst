@@ -13,6 +13,10 @@ Infrastructure
 
 Application Interface
 ---------------------
+.. autofunction:: milhoja.generate_task_function
+
+.. autofunction:: milhoja.generate_data_item
+
 .. autoclass:: milhoja.SubroutineGroup
     :members:
 .. autoclass:: milhoja.TaskFunctionAssembler
