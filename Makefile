@@ -34,7 +34,6 @@ LIBNAME ?= milhoja
 TARGET          := $(BUILDDIR)/lib$(LIBNAME).a
 
 MILHOJA_H       := $(BUILDDIR)/Milhoja.h
-SIZES_JSON      := $(BUILDDIR)/sizes.json
 
 include $(SITE_MAKEFILE)
 
@@ -52,6 +51,8 @@ include ./nvhpc.mk
 else
 $(error $(CXXCOMPNAME) compiler not yet supported.)
 endif
+
+SIZES_JSON      := $(if $(SUPPORT_PACKETS),$(BUILDDIR)/sizes.json)
 
 ifeq ($(DEBUG),true)
 CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_AMREX)
@@ -117,7 +118,9 @@ install:
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
 	cp $(BUILDDIR)/*.mod $(LIB_MILHOJA_PREFIX)/include
+ifneq ($(SIZES_JSON),)
 	cp $(SIZES_JSON) $(LIB_MILHOJA_PREFIX)/include
+endif
 	cp $(INTERFACEDIR)/*.finc $(LIB_MILHOJA_PREFIX)/include
 clean:
 	$(RM) $(BUILDDIR)/*.o
